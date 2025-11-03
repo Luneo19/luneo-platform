@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luneo Pricing - Stripe Integration</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f8fafc; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 50px; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 50px; }
+        .pricing-card { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid transparent; transition: all 0.3s; }
+        .pricing-card:hover { border-color: #3b82f6; transform: translateY(-5px); }
+        .pricing-card.featured { border-color: #3b82f6; position: relative; }
+        .pricing-card.featured::before { content: "Most Popular"; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #3b82f6; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; }
+        .plan-name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .plan-price { font-size: 48px; font-weight: bold; color: #3b82f6; margin-bottom: 20px; }
+        .plan-features { list-style: none; padding: 0; margin-bottom: 30px; }
+        .plan-features li { padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+        .plan-features li:before { content: "✓"; color: #10b981; font-weight: bold; margin-right: 10px; }
+        .subscribe-btn { width: 100%; padding: 15px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
+        .subscribe-btn:hover { background: #2563eb; }
+        .status { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; }
+        .status.success { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .status.error { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Luneo Pricing Plans</h1>
+            <p>Choose the perfect plan for your creative needs</p>
+        </div>
+
+        <div class="pricing-grid" id="pricing-grid">
+            <!-- Plans will be loaded dynamically -->
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://backend-d9psmhik6-luneos-projects.vercel.app/api';
+        
+        async function loadPlans() {
+            try {
+                const response = await fetch(`${API_BASE}/stripe/products`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderPlans(data.products);
+                }
+            } catch (error) {
+                showStatus('Error loading plans: ' + error.message, 'error');
+            }
+        }
+
+        function renderPlans(products) {
+            const grid = document.getElementById('pricing-grid');
+            grid.innerHTML = products.map(product => `
+                <div class="pricing-card ${product.id === 'pro' ? 'featured' : ''}">
+                    <div class="plan-name">${product.name}</div>
+                    <div class="plan-price">$${(product.price / 100).toFixed(2)}</div>
+                    <ul class="plan-features">
+                        ${product.features.map(feature => `<li>${feature}</li>`).join('')}
+                    </ul>
+                    <button class="subscribe-btn" onclick="subscribeToPlan('${product.id}')">
+                        Subscribe Now
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function subscribeToPlan(planId) {
+            try {
+                showStatus('Processing subscription...', 'success');
+                
+                const response = await fetch(`${API_BASE}/stripe/create-subscription`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan: planId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus(`Successfully subscribed to ${planId} plan! Subscription ID: ${data.subscriptionId}`, 'success');
+                } else {
+                    showStatus('Subscription failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load plans on page load
+        loadPlans();
+    </script>
+</body>
+</html>

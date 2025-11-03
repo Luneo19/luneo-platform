@@ -1,0 +1,95 @@
+{
+  "expo": {
+    "name": "Luneo Enterprise",
+    "slug": "luneo-enterprise",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#3751ff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.luneo.enterprise",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Cette app utilise l'appareil photo pour capturer des produits et créer des designs.",
+        "NSPhotoLibraryUsageDescription": "Cette app accède à vos photos pour importer des images dans vos designs.",
+        "NSFaceIDUsageDescription": "Cette app utilise Face ID pour une authentification sécurisée.",
+        "NSTouchIDUsageDescription": "Cette app utilise Touch ID pour une authentification sécurisée."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#3751ff"
+      },
+      "package": "com.luneo.enterprise",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.VIBRATE",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.USE_BIOMETRIC"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cette app utilise l'appareil photo pour capturer des produits et créer des designs."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cette app accède à vos photos pour importer des images dans vos designs."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Cette app utilise Face ID pour une authentification sécurisée."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#3751ff",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-secure-store"
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "luneo-enterprise-mobile"
+      }
+    },
+    "scheme": "luneo",
+    "privacy": "public"
+  }
+}
+
+

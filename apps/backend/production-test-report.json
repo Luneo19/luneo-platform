@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-09-15T05:30:55.007Z",
+  "environment": "production",
+  "domain": "luneo.app",
+  "tests": {
+    "apiKey": true,
+    "domainAuth": false,
+    "smtpConnection": true,
+    "emailSending": true,
+    "templates": true,
+    "webhooks": false
+  },
+  "configuration": {
+    "fromEmail": "Luneo <no-reply@luneo.app>",
+    "domainVerified": "true",
+    "maxEmailsPerHour": "10000",
+    "maxEmailsPerDay": "100000"
+  }
+}

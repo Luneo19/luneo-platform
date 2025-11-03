@@ -1,0 +1,33 @@
+{
+  "name": "@luneo/ar-export",
+  "version": "1.0.0",
+  "description": "AR Export professionnel - GLB to USDZ conversion & AR Quick Look",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest"
+  },
+  "keywords": [
+    "ar",
+    "usdz",
+    "glb",
+    "ios",
+    "ar-quick-look",
+    "scene-viewer",
+    "webxr"
+  ],
+  "author": "Luneo",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.158.0",
+    "@types/three": "^0.158.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}
+

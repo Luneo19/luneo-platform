@@ -1,0 +1,162 @@
+export default () => ({
+  port: parseInt(process.env.PORT, 10) || 3001,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  
+  // Shopify Configuration
+  shopify: {
+    apiKey: process.env.SHOPIFY_API_KEY,
+    apiSecret: process.env.SHOPIFY_API_SECRET,
+    scopes: process.env.SHOPIFY_SCOPES?.split(',') || [
+      'write_products',
+      'read_products',
+      'write_orders',
+      'read_orders',
+      'write_customers',
+      'read_customers',
+      'write_inventory',
+      'read_inventory',
+      'write_script_tags',
+      'read_script_tags',
+      'write_themes',
+      'read_themes',
+      'write_shipping',
+      'read_shipping',
+      'write_checkouts',
+      'read_checkouts',
+      'write_reports',
+      'read_reports',
+      'write_price_rules',
+      'read_price_rules',
+      'write_marketing_events',
+      'read_marketing_events',
+      'write_resource_feedbacks',
+      'read_resource_feedbacks',
+      'write_shopify_payments_payouts',
+      'read_shopify_payments_payouts',
+      'write_shopify_payments_disputes',
+      'read_shopify_payments_disputes',
+      'write_translations',
+      'read_translations',
+      'write_locales',
+      'read_locales',
+      'write_currency',
+      'read_currency',
+      'write_publications',
+      'read_publications',
+      'write_product_listings',
+      'read_product_listings',
+      'write_inventory_transfers',
+      'read_inventory_transfers',
+      'write_inventory_levels',
+      'read_inventory_levels',
+      'write_location',
+      'read_location',
+      'write_merchant_managed_fulfillment_orders',
+      'read_merchant_managed_fulfillment_orders',
+      'write_assigned_fulfillment_orders',
+      'read_assigned_fulfillment_orders',
+      'write_third_party_fulfillment_orders',
+      'read_third_party_fulfillment_orders',
+      'write_fulfillments',
+      'read_fulfillments',
+      'write_orders_fulfillments',
+      'read_orders_fulfillments',
+      'write_orders_transactions',
+      'read_orders_transactions',
+      'write_orders_payments',
+      'read_orders_payments',
+      'write_orders_risks',
+      'read_orders_risks',
+      'write_orders_refunds',
+      'read_orders_refunds',
+      'write_orders_cancellations',
+      'read_orders_cancellations',
+      'write_orders_edits',
+      'read_orders_edits',
+      'write_orders_draft_orders',
+      'read_orders_draft_orders',
+      'write_orders_cart_transforms',
+      'read_orders_cart_transforms',
+      'write_orders_checkouts',
+      'read_orders_checkouts',
+      'write_orders_checkout_tokens',
+      'read_orders_checkout_tokens',
+      'write_orders_abandoned_checkouts',
+      'read_orders_abandoned_checkouts',
+      'write_orders_abandoned_checkouts_attributes',
+      'read_orders_abandoned_checkouts_attributes',
+      'write_orders_abandoned_checkouts_discounts',
+      'read_orders_abandoned_checkouts_discounts',
+      'write_orders_abandoned_checkouts_line_items',
+      'read_orders_abandoned_checkouts_line_items',
+      'write_orders_abandoned_checkouts_shipping_address',
+      'read_orders_abandoned_checkouts_shipping_address',
+      'write_orders_abandoned_checkouts_billing_address',
+      'read_orders_abandoned_checkouts_billing_address',
+      'write_orders_abandoned_checkouts_shipping_lines',
+      'read_orders_abandoned_checkouts_shipping_lines',
+      'write_orders_abandoned_checkouts_tax_lines',
+      'read_orders_abandoned_checkouts_tax_lines',
+      'write_orders_abandoned_checkouts_line_items_taxes',
+      'read_orders_abandoned_checkouts_line_items_taxes',
+      'write_orders_abandoned_checkouts_discount_codes',
+      'read_orders_abandoned_checkouts_discount_codes',
+    ],
+    appUrl: process.env.SHOPIFY_APP_URL || 'http://localhost:3001',
+    redirectUrl: process.env.SHOPIFY_REDIRECT_URL || 'http://localhost:3001/auth/callback',
+    webhookSecret: process.env.SHOPIFY_WEBHOOK_SECRET,
+    apiVersion: process.env.SHOPIFY_API_VERSION || '2023-10',
+  },
+  
+  // Database Configuration
+  database: {
+    url: process.env.DATABASE_URL,
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT, 10) || 5432,
+    username: process.env.DB_USERNAME || 'postgres',
+    password: process.env.DB_PASSWORD || 'password',
+    database: process.env.DB_NAME || 'luneo_shopify',
+  },
+  
+  // Redis Configuration
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB, 10) || 0,
+  },
+  
+  // JWT Configuration
+  jwt: {
+    secret: process.env.JWT_SECRET || 'luneo-shopify-jwt-secret',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  },
+  
+  // Luneo Backend Configuration
+  luneo: {
+    apiUrl: process.env.LUNEO_API_URL || 'http://localhost:3000/api/v1',
+    apiKey: process.env.LUNEO_API_KEY,
+    webhookSecret: process.env.LUNEO_WEBHOOK_SECRET,
+  },
+  
+  // Frontend Configuration
+  frontend: {
+    url: process.env.FRONTEND_URL || 'http://localhost:3000',
+    apiUrl: process.env.FRONTEND_API_URL || 'http://localhost:3000/api',
+  },
+  
+  // Monitoring & Logging
+  monitoring: {
+    sentryDsn: process.env.SENTRY_DSN,
+    logLevel: process.env.LOG_LEVEL || 'info',
+  },
+  
+  // Rate Limiting
+  rateLimit: {
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000, // 15 minutes
+    max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+  },
+});
+
+
+
