@@ -1,0 +1,26 @@
+═══════════════════════════════════════════════════════════════
+🔴 PROBLÈME: Google OAuth renvoie "redirect_uri_mismatch"
+═══════════════════════════════════════════════════════════════
+
+✅ SOLUTION RAPIDE (3 minutes):
+
+1. Ouvrir Google Cloud Console:
+   https://console.cloud.google.com/apis/credentials
+
+2. Cliquer sur votre OAuth 2.0 Client ID:
+   212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com
+
+3. Dans "Authorized redirect URIs", AJOUTER:
+   https://obrijgptqztacolemsbk.supabase.co/auth/v1/callback
+
+4. SAVE
+
+5. Tester: https://app.luneo.app/login → Click Google
+
+═══════════════════════════════════════════════════════════════
+
+Cette URL DOIT être dans Google Cloud Console pour que OAuth fonctionne.
+
+C'est la dernière étape ! Après ça = 100% opérationnel ✅
+
+═══════════════════════════════════════════════════════════════

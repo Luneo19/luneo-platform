@@ -1,0 +1,168 @@
+# ╔═══════════════════════════════════════════════════════════════════╗
+# ║  📝 EXEMPLE DE CONFIGURATION TERRAFORM - LUNEO ENTERPRISE        ║
+# ║     Copiez ce fichier vers terraform.tfvars et adaptez           ║
+# ╚═══════════════════════════════════════════════════════════════════╝
+
+# ========================================
+# CONFIGURATION OBLIGATOIRE
+# ========================================
+
+# Token Hetzner Cloud (OBLIGATOIRE)
+# Obtenez-le depuis : https://console.hetzner.cloud/projects
+hetzner_token = "your-hetzner-cloud-token-here"
+
+# Domaine principal de l'application
+domain = "api.luneo.app"
+
+# Environnement de déploiement
+environment = "prod" # ou "staging" ou "dev"
+
+# ========================================
+# MOTS DE PASSE (OBLIGATOIRES)
+# ========================================
+
+# Mot de passe PostgreSQL (minimum 16 caractères)
+postgres_password = "your-secure-postgres-password-here"
+
+# Mot de passe Redis (minimum 8 caractères)
+redis_password = "your-secure-redis-password-here"
+
+# ========================================
+# CONFIGURATION INFRASTRUCTURE
+# ========================================
+
+# Région Hetzner (recommandé: nbg1 pour l'Europe)
+region = "nbg1"
+
+# Types d'instances
+instance_type        = "cpx31"  # 4 vCPU, 8GB RAM pour API
+worker_instance_type = "cpx41"  # 8 vCPU, 16GB RAM pour workers AI
+render_instance_type = "cpx51"  # 16 vCPU, 32GB RAM pour rendu 3D
+
+# ========================================
+# SÉCURITÉ
+# ========================================
+
+# IPs autorisées pour SSH (RESTREIGNEZ EN PRODUCTION!)
+allowed_ssh_ips = [
+  "0.0.0.0/0"  # ⚠️ À changer pour vos IPs spécifiques
+]
+
+# Configuration SSH
+enable_ssh_key = true
+ssh_key_name   = "luneo-deploy-key"
+
+# ========================================
+# RÉSEAUX PRIVÉS
+# ========================================
+
+# CIDR du réseau privé principal
+private_network_cidr = "10.0.0.0/16"
+
+# Sous-réseaux (généralement pas besoin de changer)
+api_subnet_cidr    = "10.0.1.0/24"
+worker_subnet_cidr = "10.0.2.0/24"
+db_subnet_cidr     = "10.0.3.0/24"
+
+# ========================================
+# STOCKAGE
+# ========================================
+
+# Tailles des volumes persistants
+postgres_volume_size = 100  # 100GB pour PostgreSQL
+redis_volume_size    = 20   # 20GB pour Redis
+
+# ========================================
+# MONITORING & LOGS
+# ========================================
+
+# Monitoring
+enable_monitoring = true
+enable_logging    = true
+log_retention_days = 30
+
+# ========================================
+# SAUVEGARDES
+# ========================================
+
+# Configuration des sauvegardes
+enable_backups         = true
+backup_retention_days  = 30
+backup_schedule        = "0 2 * * *"  # Tous les jours à 2h
+
+# ========================================
+# SCALING
+# ========================================
+
+# Configuration du scaling
+min_api_instances   = 2
+max_api_instances   = 5
+enable_auto_scaling = false  # À activer après mise en place des métriques
+
+# ========================================
+# APPLICATION
+# ========================================
+
+# Configuration de l'application
+app_port              = 3001
+health_check_path     = "/health"
+health_check_interval = 15
+
+# ========================================
+# TAGS & MÉTADONNÉES
+# ========================================
+
+# Tags pour l'organisation
+project_name  = "luneo"
+owner_email   = "admin@luneo.app"
+cost_center   = "engineering"
+
+# ========================================
+# FONCTIONNALITÉS
+# ========================================
+
+# Feature flags
+enable_ar_features      = false  # Fonctionnalités AR/3D
+enable_ai_features      = true   # Fonctionnalités IA
+enable_webhook_features = true   # Webhooks
+enable_sso_features     = false  # SSO (à activer si nécessaire)
+
+# ========================================
+# VAULT (OPTIONNEL)
+# ========================================
+
+# Configuration Vault pour la gestion des secrets
+# vault_address = "https://vault.luneo.app"
+# vault_token   = "your-vault-token-here"
+
+# ========================================
+# EXEMPLES POUR DIFFÉRENTS ENVIRONNEMENTS
+# ========================================
+
+# Pour l'environnement de développement :
+# environment = "dev"
+# instance_type = "cx21"        # Plus petit
+# worker_instance_type = "cpx31" # Plus petit
+# min_api_instances = 1
+# max_api_instances = 2
+# postgres_volume_size = 20
+# redis_volume_size = 10
+
+# Pour l'environnement de staging :
+# environment = "staging"
+# instance_type = "cpx21"       # Moyen
+# worker_instance_type = "cpx31" # Moyen
+# min_api_instances = 1
+# max_api_instances = 3
+# postgres_volume_size = 50
+# redis_volume_size = 15
+
+# Pour l'environnement de production :
+# environment = "prod"
+# instance_type = "cpx31"       # Plus gros
+# worker_instance_type = "cpx41" # Plus gros
+# min_api_instances = 2
+# max_api_instances = 10
+# postgres_volume_size = 100
+# redis_volume_size = 20
+

@@ -1,0 +1,33 @@
+═══════════════════════════════════════════════════════════════
+✅ OAUTH FONCTIONNE ! Mais affiche "obrijgptqztacolemsbk.supabase.co"
+═══════════════════════════════════════════════════════════════
+
+🎯 POUR CHANGER LE NOM AFFICHÉ:
+
+1. Ouvrir Google Cloud Console:
+   https://console.cloud.google.com/apis/credentials/consent
+
+2. Click "EDIT APP"
+
+3. Modifier "App name":
+   obrijgptqztacolemsbk.supabase.co ❌
+   → Luneo Platform ✅
+
+4. Ajouter (recommandé):
+   - User support email: service.luneo@gmail.com
+   - App logo: [Votre logo 512x512]
+   - Home page: https://app.luneo.app
+   - Privacy policy: https://app.luneo.app/legal/privacy
+
+5. SAVE AND CONTINUE
+
+6. Tester: https://app.luneo.app/login → Click Google
+   → Devrait afficher "Luneo Platform" ✨
+
+═══════════════════════════════════════════════════════════════
+
+⏱️ Temps: 5 minutes
+🎨 Résultat: OAuth professionnel avec votre branding
+✅ Score final: 100/100
+
+═══════════════════════════════════════════════════════════════

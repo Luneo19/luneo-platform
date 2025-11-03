@@ -1,0 +1,210 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Luneo - Vue d'ensemble",
+    "tags": ["luneo", "overview"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Requêtes API par seconde",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Req/s",
+            "min": 0
+          }
+        ],
+        "xAxis": {
+          "mode": "time"
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Temps de réponse API",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Utilisation CPU",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "CPU %",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Utilisation Mémoire",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory %",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Taille de la base de données",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_database_size_bytes",
+            "legendFormat": "{{datname}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Bytes",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 8
+        }
+      },
+      {
+        "id": 6,
+        "title": "Jobs IA en cours",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "luneo_ai_jobs_active",
+            "legendFormat": "Jobs actifs"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Designs générés (24h)",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "increase(luneo_designs_generated_total[24h])",
+            "legendFormat": "Designs"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 16
+        }
+      },
+      {
+        "id": 8,
+        "title": "Utilisateurs actifs (24h)",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "increase(luneo_users_active_total[24h])",
+            "legendFormat": "Utilisateurs"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 9,
+        "title": "Revenus (24h)",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "increase(luneo_revenue_total[24h])",
+            "legendFormat": "€"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 16
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  }
+}
+
+

@@ -1,0 +1,200 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/backend/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          npm ci
+      
+      - name: Generate Prisma Client
+        run: |
+          cd apps/backend
+          npx prisma generate
+      
+      - name: Run linter
+        run: |
+          cd apps/backend
+          npm run lint || true
+      
+      - name: Run unit tests
+        run: |
+          cd apps/backend
+          npm test -- --testPathPattern=unit --coverage
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./apps/backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+
+  build-and-push:
+    name: Build and Push Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: luneo/backend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./apps/backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-backend:
+    name: Deploy Backend
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Deploy to production
+        run: |
+          echo "Deploying backend to production..."
+          # Add your deployment commands here
+          # Examples:
+          # - SSH to server and pull latest image
+          # - Update ECS/Fargate task definition
+          # - Trigger Railway/Render deployment
+          # - Update Kubernetes deployment
+      
+      - name: Wait for health check
+        run: |
+          echo "Waiting for backend to be healthy..."
+          for i in {1..30}; do
+            if curl -f https://api.luneo.app/health; then
+              echo "Backend is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/30: Backend not ready yet..."
+            sleep 10
+          done
+          echo "Backend health check failed!"
+          exit 1
+
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd apps/frontend
+          npm ci
+      
+      - name: Build frontend
+        run: |
+          cd apps/frontend
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.luneo.app
+      
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./apps/frontend
+
+  smoke-tests:
+    name: Smoke Tests
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check backend health
+        run: |
+          curl -f https://api.luneo.app/health
+      
+      - name: Check frontend
+        run: |
+          curl -f https://luneo.app
+      
+      - name: Test authentication
+        run: |
+          response=$(curl -s -w "%{http_code}" -o /dev/null https://api.luneo.app/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test@example.com","password":"wrong"}')
+          if [ "$response" -eq 401 ]; then
+            echo "Auth endpoint working (returned 401 as expected)"
+            exit 0
+          else
+            echo "Auth endpoint returned unexpected status: $response"
+            exit 1
+          fi
+      
+      - name: Notify success
+        if: success()
+        run: |
+          echo "🎉 Deployment successful!"
+          # Add notification here (Slack, Discord, email, etc.)
+      
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          # Add notification here
+

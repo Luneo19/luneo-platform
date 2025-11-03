@@ -1,0 +1,733 @@
+openapi: 3.1.0
+info:
+  title: Luneo Enterprise API
+  description: |
+    API complète pour la plateforme SaaS B2B de personnalisation de produits avec IA.
+    
+    ## Fonctionnalités principales
+    - Génération de designs personnalisés avec IA
+    - Gestion multi-tenant avec white-label
+    - Authentification SSO (SAML, OAuth)
+    - Webhooks en temps réel
+    - Métriques et coûts IA
+    - Pipeline AR/3D
+    
+  version: 1.0.0
+  contact:
+    name: Luneo Support
+    email: api@luneo.app
+    url: https://luneo.app
+  license:
+    name: Proprietary
+    url: https://luneo.app/terms
+
+servers:
+  - url: https://api.luneo.app/v1
+    description: Production API
+  - url: https://staging-api.luneo.app/v1
+    description: Staging API
+  - url: http://localhost:3001/v1
+    description: Development API
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  # ========================================
+  # AUTHENTICATION
+  # ========================================
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Connexion utilisateur
+      description: Authentification par email/password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: securePassword123
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  refreshToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/sso/saml/callback:
+    post:
+      tags:
+        - Authentication
+      summary: Callback SSO SAML
+      description: Traitement du callback après authentification SAML
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                samlResponse:
+                  type: string
+                  description: Réponse SAML encodée
+                relayState:
+                  type: string
+                  description: État de relais SAML
+      responses:
+        '200':
+          description: Authentification SSO réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  # ========================================
+  # BRANDS & PRODUCTS
+  # ========================================
+  /brands/{brandId}/products:
+    get:
+      tags:
+        - Products
+      summary: Liste des produits
+      description: Récupère la liste des produits d'une marque
+      parameters:
+        - name: brandId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: brand_123
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Liste des produits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  # ========================================
+  # DESIGNS GENERATION
+  # ========================================
+  /designs:
+    post:
+      tags:
+        - Designs
+      summary: Créer un design
+      description: |
+        Crée un nouveau design personnalisé avec IA.
+        
+        **Exemple de prompt** : "Grave en script cursif 'Jessica' centré sur le fermoir, couleur: or 18k, profondeur: 0.6mm"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - productId
+                - prompt
+              properties:
+                productId:
+                  type: string
+                  format: uuid
+                  example: prod_123
+                  description: ID du produit à personnaliser
+                prompt:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+                  example: "Grave en script cursif 'Jessica' centré sur le fermoir, couleur: or 18k, profondeur: 0.6mm"
+                  description: Description textuelle du design souhaité
+                options:
+                  type: object
+                  properties:
+                    font:
+                      type: string
+                      enum: [script-cursive, block, serif, sans-serif]
+                      default: script-cursive
+                      example: script-cursive
+                    position:
+                      type: string
+                      enum: [center, top, bottom, left, right]
+                      default: center
+                      example: center
+                    material:
+                      type: string
+                      enum: [gold, silver, platinum, steel]
+                      default: gold
+                      example: gold
+                    finish:
+                      type: string
+                      enum: [polished, brushed, matte, satin]
+                      default: polished
+                      example: polished
+                    depth:
+                      type: number
+                      minimum: 0.1
+                      maximum: 2.0
+                      default: 0.6
+                      example: 0.6
+                      description: Profondeur de gravure en mm
+                previewMode:
+                  type: boolean
+                  default: true
+                  description: Mode aperçu (génération rapide, basse résolution)
+      responses:
+        '201':
+          description: Design créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  designId:
+                    type: string
+                    format: uuid
+                    example: dsg_456
+                  status:
+                    type: string
+                    enum: [queued, processing, completed, failed]
+                    example: queued
+                  estimatedSeconds:
+                    type: integer
+                    example: 4
+                    description: Temps estimé de génération
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /designs/{designId}:
+    get:
+      tags:
+        - Designs
+      summary: Statut du design
+      description: Récupère le statut et les URLs d'un design
+      parameters:
+        - name: designId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: dsg_456
+      responses:
+        '200':
+          description: Informations du design
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Design'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /designs/{designId}/finalize:
+    post:
+      tags:
+        - Designs
+      summary: Finaliser un design
+      description: Verrouille un design pour commande (crée un snapshot)
+      parameters:
+        - name: designId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: dsg_456
+      responses:
+        '200':
+          description: Design finalisé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  designId:
+                    type: string
+                    format: uuid
+                  snapshotId:
+                    type: string
+                    format: uuid
+                    description: ID du snapshot créé
+                  highResUrl:
+                    type: string
+                    format: uri
+                    description: URL de l'image haute résolution
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ========================================
+  # ORDERS
+  # ========================================
+  /orders:
+    post:
+      tags:
+        - Orders
+      summary: Créer une commande
+      description: Crée une nouvelle commande avec un design finalisé
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - designId
+                - productId
+              properties:
+                designId:
+                  type: string
+                  format: uuid
+                  example: dsg_456
+                  description: ID du design finalisé
+                productId:
+                  type: string
+                  format: uuid
+                  example: prod_123
+                  description: ID du produit
+                quantity:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                  example: 1
+                shipping:
+                  type: object
+                  required:
+                    - address
+                    - city
+                    - postalCode
+                    - country
+                  properties:
+                    address:
+                      type: string
+                      example: "123 Rue de la Paix"
+                    city:
+                      type: string
+                      example: "Paris"
+                    postalCode:
+                      type: string
+                      example: "75001"
+                    country:
+                      type: string
+                      example: "FR"
+                customerInfo:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                    phone:
+                      type: string
+                    firstName:
+                      type: string
+                    lastName:
+                      type: string
+      responses:
+        '201':
+          description: Commande créée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId:
+                    type: string
+                    format: uuid
+                  orderNumber:
+                    type: string
+                    example: "LUN-2024-001"
+                  status:
+                    type: string
+                    enum: [created, pending_payment, paid, processing, shipped, delivered]
+                    example: pending_payment
+                  paymentIntent:
+                    type: object
+                    properties:
+                      clientSecret:
+                        type: string
+                        description: Secret client Stripe pour le paiement
+                      amount:
+                        type: integer
+                        description: Montant en centimes
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ========================================
+  # WEBHOOKS
+  # ========================================
+  /webhooks/verify:
+    post:
+      tags:
+        - Webhooks
+      summary: Vérification webhook
+      description: Endpoint de vérification pour les webhooks entrants
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event:
+                  type: string
+                  enum: [design.completed, design.failed, order.created, order.paid]
+                data:
+                  type: object
+                  description: Données de l'événement
+                timestamp:
+                  type: string
+                  format: date-time
+                signature:
+                  type: string
+                  description: Signature HMAC-SHA256
+      responses:
+        '200':
+          description: Webhook traité avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+
+  # ========================================
+  # ADMIN
+  # ========================================
+  /admin/ai/costs:
+    post:
+      tags:
+        - Admin
+      summary: Rapport des coûts IA
+      description: Génère un rapport des coûts IA pour l'administration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                brandId:
+                  type: string
+                  format: uuid
+                  description: Filtrer par marque (optionnel)
+                groupBy:
+                  type: string
+                  enum: [day, week, month]
+                  default: day
+      responses:
+        '200':
+          description: Rapport des coûts IA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalCost:
+                    type: number
+                    description: Coût total en centimes
+                  breakdown:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          format: date
+                        cost:
+                          type: number
+                        designs:
+                          type: integer
+                        brandId:
+                          type: string
+
+  # ========================================
+  # REALTIME WEBSOCKET
+  # ========================================
+  /realtime:
+    get:
+      tags:
+        - Realtime
+      summary: Connexion WebSocket
+      description: |
+        Établit une connexion WebSocket pour recevoir des mises à jour en temps réel.
+        
+        **Événements émis** :
+        - `design.completed` : Design terminé
+        - `design.failed` : Échec de génération
+        - `order.updated` : Mise à jour de commande
+        
+        **Authentification** : Token JWT dans le header `Authorization: Bearer <token>`
+      security:
+        - BearerAuth: []
+      responses:
+        '101':
+          description: Connexion WebSocket établie
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT d'authentification
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Clé API pour l'accès programmatique
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [CONSUMER, BRAND_USER, BRAND_ADMIN, PLATFORM_ADMIN, FABRICATOR]
+        isActive:
+          type: boolean
+        emailVerified:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          default: EUR
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        model3dUrl:
+          type: string
+          format: uri
+          nullable: true
+        customizationOptions:
+          type: object
+          description: Options de personnalisation disponibles
+        isActive:
+          type: boolean
+
+    Design:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          nullable: true
+        prompt:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, cancelled]
+        previewUrl:
+          type: string
+          format: uri
+          nullable: true
+        highResUrl:
+          type: string
+          format: uri
+          nullable: true
+        costCents:
+          type: integer
+          description: Coût en centimes
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "VALIDATION_ERROR"
+            message: "Les données fournies sont invalides"
+            details:
+              field: "prompt"
+              reason: "Le prompt doit contenir au moins 10 caractères"
+
+    Unauthorized:
+      description: Non autorisé
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "UNAUTHORIZED"
+            message: "Token d'authentification manquant ou invalide"
+
+    Forbidden:
+      description: Accès interdit
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "FORBIDDEN"
+            message: "Vous n'avez pas les permissions nécessaires"
+
+    NotFound:
+      description: Ressource non trouvée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "NOT_FOUND"
+            message: "La ressource demandée n'existe pas"
+
+    RateLimited:
+      description: Limite de taux dépassée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "RATE_LIMITED"
+            message: "Trop de requêtes. Réessayez plus tard"
+            details:
+              retryAfter: 60
+
+    InternalServerError:
+      description: Erreur interne du serveur
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "INTERNAL_ERROR"
+            message: "Une erreur interne s'est produite"
+
