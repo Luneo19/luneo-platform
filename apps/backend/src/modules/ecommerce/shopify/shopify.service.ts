@@ -265,4 +265,43 @@ export class ShopifyService {
     const storedNonce = await this.cache.getSimple(`shopify_nonce:${shopDomain}:${brandId}`);
     return storedNonce === nonce;
   }
+
+  /**
+   * Process webhook with replay protection and async job queuing
+   */
+  async processWebhook(shopDomain: string, topic: string, payload: ShopifyWebhookPayload): Promise<void> {
+    // Replay protection: Check if webhook ID already processed
+    if (payload.id) {
+      const webhookKey = `shopify_webhook:${shopDomain}:${payload.id}`;
+      const alreadyProcessed = await this.cache.getSimple(webhookKey);
+      
+      if (alreadyProcessed) {
+        this.logger.warn(`Webhook ${payload.id} already processed for shop ${shopDomain}, skipping`);
+        return;
+      }
+
+      // Mark as processed (24h expiry)
+      await this.cache.setSimple(webhookKey, 'processed', 86400);
+    }
+
+    // Process product update based on topic
+    if (topic === 'products/update' || topic === 'products/create') {
+      await this.processProductWebhook(shopDomain, payload);
+    } else {
+      this.logger.log(`Unhandled webhook topic: ${topic} for shop ${shopDomain}`);
+    }
+  }
+
+  /**
+   * Process product webhook (can be extended to queue async jobs)
+   */
+  private async processProductWebhook(shopDomain: string, payload: ShopifyWebhookPayload): Promise<void> {
+    this.logger.log(`Processing product webhook for shop ${shopDomain}`);
+    
+    // TODO: Queue async job for product sync if needed
+    // Example: await this.queueService.add('product-sync', { shopDomain, productId: payload.id });
+    
+    // For now, just log the update
+    this.logger.debug(`Product webhook payload: ${JSON.stringify(payload)}`);
+  }
 }

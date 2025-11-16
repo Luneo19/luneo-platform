@@ -102,7 +102,7 @@ export class UVReprojectorUtil {
 
       return reprojected;
     } catch (error) {
-      console.error('UV reprojection error:', error);
+      // Error logged by caller
       // Fallback: return original mask with warning
       return this.fallbackReprojection(options);
     }

@@ -151,12 +151,11 @@ export class ShopifyController {
       // Parse payload
       const payload = JSON.parse(rawBody);
 
-      // Process webhook (add replay protection, process product update, etc.)
+      // Process webhook with replay protection
       this.logger.log(`Received webhook from ${shopDomain}: ${topic}`);
       
-      // TODO: Add replay protection using nonce/timestamp
-      // TODO: Process product update
-      // TODO: Queue job for async processing
+      // Process webhook using service method (includes replay protection)
+      await this.shopifyService.processWebhook(shopDomain, topic, payload);
 
       return { success: true, message: 'Webhook processed' };
     } catch (error) {
