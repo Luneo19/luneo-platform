@@ -1,0 +1,66 @@
+# CODEOWNERS - Définit les propriétaires automatiques pour les reviews de code
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners - tous les fichiers nécessitent une review de sécurité et devops
+* @security @devops
+
+# Infrastructure & DevOps
+/infrastructure/ @devops @security
+/infra/ @devops @security
+/.github/ @devops
+/docker-compose*.yml @devops
+/Makefile @devops
+/scripts/ @devops @backend
+
+# Kubernetes & Secrets
+/infrastructure/kubernetes/ @devops @security
+**/secrets/ @security @devops
+
+# Backend
+/apps/backend/ @backend @security
+/packages/**/backend/ @backend @security
+**/*.service.ts @backend
+**/*.controller.ts @backend
+
+# Frontend
+/apps/frontend/ @frontend
+/apps/widget/ @frontend
+/packages/ui/ @frontend
+**/*.tsx @frontend
+**/*.jsx @frontend
+
+# Mobile
+/apps/mobile/ @frontend @mobile
+
+# Shopify App
+/apps/shopify/ @backend @frontend
+
+# Security & Secrets - Toujours reviewer par sécurité
+**/.env* @security
+**/secrets* @security
+**/*secret* @security
+**/*key* @security
+**/*token* @security
+**/*password* @security
+**/*credential* @security
+
+# Configuration sensible
+**/config/configuration.ts @security @backend
+**/sentry*.config.ts @security @devops
+
+# Database & Migrations
+**/prisma/ @backend @security
+**/*.sql @backend @security
+**/migrations/ @backend @security
+
+# Documentation
+/docs/ @frontend @backend
+README.md @frontend @backend
+
+# Tests critiques
+**/*.spec.ts @backend @frontend
+**/*.test.ts @backend @frontend
+
+# CI/CD
+/.github/workflows/ @devops @security
+

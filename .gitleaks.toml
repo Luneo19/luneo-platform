@@ -1,0 +1,31 @@
+# Configuration Gitleaks pour détecter les secrets
+title = "Luneo Platform Secret Detection"
+
+[extend]
+# Utiliser les règles par défaut
+useDefault = true
+
+[allowlist]
+description = "Allowlist pour les faux positifs"
+paths = [
+  '''\.example$''',
+  '''\.spec\.ts$''',
+  '''\.test\.ts$''',
+  '''test/''',
+  '''tests/''',
+  '''node_modules/''',
+  '''\.next/''',
+  '''dist/''',
+  '''build/''',
+  '''docs/''',
+]
+
+[[allowlist.commit]]
+# Permettre les commits de documentation
+regex = '''^docs?|^chore|^test'''
+
+[[allowlist.regexes]]
+# Patterns autorisés dans les commentaires
+description = "Commentaires avec exemples de secrets"
+regex = '''# .* (sk_test|api_key|secret).*example'''
+

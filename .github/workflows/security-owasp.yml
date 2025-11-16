@@ -1,0 +1,63 @@
+name: OWASP ZAP Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      target-url:
+        description: "URL cible (ex: https://staging.luneo.app)"
+        required: false
+  schedule:
+    - cron: "0 3 * * 1" # chaque lundi 03:00 UTC
+
+jobs:
+  zap-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.20.0
+
+      - name: Resolve target URL
+        run: |
+          TARGET="${{ github.event.inputs.target-url }}"
+          if [[ -z "${TARGET}" ]]; then
+            TARGET="${{ secrets.OWASP_BASE_URL }}"
+          fi
+          if [[ -z "${TARGET}" ]]; then
+            TARGET="http://localhost:3000"
+          fi
+          echo "TARGET_URL=${TARGET}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+        if: env.TARGET_URL == 'http://localhost:3000'
+
+      - name: Build frontend (static export)
+        run: pnpm --filter luneo-frontend run build
+        if: env.TARGET_URL == 'http://localhost:3000'
+
+      - name: Start Next.js server
+        run: pnpm --filter luneo-frontend run start &
+        if: env.TARGET_URL == 'http://localhost:3000'
+
+      - name: Wait for frontend
+        run: npx wait-on http://localhost:3000
+        if: env.TARGET_URL == 'http://localhost:3000'
+
+      - name: Run OWASP ZAP Baseline
+        run: |
+          mkdir -p reports/security
+          bash scripts/security/run-zap-baseline.sh "${TARGET_URL}" "github-actions"
+
+      - name: Upload ZAP reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report
+          path: reports/security
+
