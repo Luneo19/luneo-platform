@@ -2,41 +2,77 @@
 
 **Plateforme complète de personnalisation 3D/AR pour e-commerce**
 
+**Last Updated:** November 16, 2025
+
 [![Status](https://img.shields.io/badge/status-production--ready-green)](.)
 [![Score](https://img.shields.io/badge/audit-92%25-brightgreen)](.)
 [![License](https://img.shields.io/badge/license-proprietary-blue)](.)
 
 ---
 
-## 🚀 **Démarrage Rapide** (5 minutes)
+## 🚀 **Quickstart for Developers**
 
-### **Option 1: Makefile (Recommandé)**
+### Prerequisites
+
+- Node.js 20+
+- pnpm 8+
+- PostgreSQL 15+ (or Docker)
+- Redis 7+ (or Docker)
+- Git
+
+### Quick Setup (5 minutes)
 
 ```bash
-# 0. Provisionner Postgres/Redis + migrations Prisma
-./scripts/db/bootstrap-local.sh
+# 1. Clone repository
+git clone https://github.com/luneo/platform.git
+cd luneo-platform
 
-# 1. Setup complet automatique
+# 2. Setup development environment
 make setup
 
-# 2. Démarrer Docker services (PostgreSQL, Redis, etc.)
+# 3. Start Docker services (PostgreSQL, Redis, etc.)
 make docker-up
 
-# 3. Lancer les serveurs dev
+# 4. Start development servers
 make dev
 
-# Ouvrir: http://localhost:3000
+# Frontend: http://localhost:3000
+# Backend: http://localhost:3001
+# API Docs: http://localhost:3001/api/docs
 ```
 
-### **Option 2: Manuel**
+### Make Commands
 
 ```bash
-# 1. Setup
-./scripts/setup-dev.sh
+make setup      # Setup dev environment (install deps, generate Prisma client)
+make dev        # Start dev servers (frontend + backend)
+make build      # Build production bundles
+make test       # Run all tests
+make docker-up  # Start Docker services (PostgreSQL, Redis)
+make docker-down # Stop Docker services
+make health     # Check services health
+```
 
-# 2. Lancer
-# Terminal 1: cd apps/backend && npm run start:dev
-# Terminal 2: cd apps/frontend && npm run dev
+### Manual Setup (Alternative)
+
+```bash
+# 1. Install dependencies
+pnpm install
+
+# 2. Setup database
+cd apps/backend
+npx prisma generate
+npx prisma migrate dev
+
+# 3. Start services
+# Terminal 1: Backend
+cd apps/backend && npm run start:dev
+
+# Terminal 2: Frontend
+cd apps/frontend && npm run dev
+
+# Terminal 3: Worker (optional)
+cd apps/worker-ia && npm run dev
 ```
 
 ---

@@ -1,5 +1,7 @@
 # Luneo Widget SDK
 
+**Last Updated:** November 16, 2025
+
 Embed SDK for integrating Luneo AI design widget into third-party websites. Supports secure iframe embedding with JWT token authentication and postMessage handshake.
 
 ## Installation

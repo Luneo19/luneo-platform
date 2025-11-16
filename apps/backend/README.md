@@ -1,5 +1,7 @@
 # 🚀 Luneo Backend API
 
+**Last Updated:** November 16, 2025
+
 Backend professionnel pour le SaaS de personnalisation produit Luneo, développé avec NestJS, Prisma, et PostgreSQL.
 
 ## 🏗️ Architecture

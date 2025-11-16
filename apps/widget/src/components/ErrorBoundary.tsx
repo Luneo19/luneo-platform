@@ -36,15 +36,15 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="luneo-widget-error p-6 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          <p className="font-semibold mb-2">Une erreur est survenue</p>
-          <p className="mb-4">
-            {this.state.error?.message ?? 'Le widget ne peut pas être affiché pour le moment.'}
+        <div className="luneo-widget-error p-6 bg-red-50 border border-red-200 rounded-xl">
+          <p className="font-semibold mb-2 text-red-900">Une erreur est survenue</p>
+          <p className="mb-4 text-red-700">
+            {this.state.error?.message ?? 'Le widget ne peut pas être affiché pour le moment. Veuillez rafraîchir la page.'}
           </p>
           <button
             type="button"
             onClick={this.reset}
-            className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-md transition-colors duration-200"
+            className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
           >
             Réessayer
           </button>

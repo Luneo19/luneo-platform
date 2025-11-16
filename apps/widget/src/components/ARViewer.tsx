@@ -14,8 +14,8 @@ export const ARViewer: React.FC<ARViewerProps> = ({ design, className }) => {
   if (!design?.metadata) {
     return (
       <div className={cn('p-6 text-center text-gray-500 bg-white border border-dashed border-gray-300 rounded-lg', className)}>
-        <p className="font-medium">Prévisualisation AR indisponible</p>
-        <p className="text-sm mt-1">Générez un design pour activer la scène AR.</p>
+        <p className="font-medium">Activez la réalité augmentée pour voir votre design dans votre espace</p>
+        <p className="text-sm mt-1">Générez un design d'abord, puis essayez-le en AR</p>
       </div>
     );
   }
@@ -25,8 +25,8 @@ export const ARViewer: React.FC<ARViewerProps> = ({ design, className }) => {
   if (!viewerUrl || typeof viewerUrl !== 'string') {
     return (
       <div className={cn('p-6 text-center text-gray-500 bg-white border border-dashed border-gray-300 rounded-lg', className)}>
-        <p className="font-medium">Aucun modèle AR généré</p>
-        <p className="text-sm mt-1">Assurez-vous que la génération AR est activée.</p>
+        <p className="font-medium">La version AR n'est pas disponible pour ce design</p>
+        <p className="text-sm mt-1">Essayez de régénérer avec une description plus détaillée</p>
       </div>
     );
   }

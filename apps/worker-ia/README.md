@@ -1,5 +1,7 @@
 # Luneo AI Worker
 
+**Last Updated:** November 16, 2025
+
 Service Node.js dédié au traitement asynchrone (génération d’images, exports 3D, prévisualisation AR) pour la plateforme Luneo. Le worker consomme les jobs BullMQ déposés par le backend et sauvegarde les rendus dans un stockage local ou S3.
 
 ## ⚙️ Prérequis

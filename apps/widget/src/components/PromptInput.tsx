@@ -1,6 +1,25 @@
 import React, { useEffect, useRef } from 'react';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 
+function getProductSpecificSuggestions(placeholder?: string): string[] {
+  const placeholderLower = (placeholder || '').toLowerCase();
+  
+  if (placeholderLower.includes('t-shirt') || placeholderLower.includes('tshirt')) {
+    return ['Design minimaliste', 'Style vintage', 'Motif géométrique', 'Texte personnalisé'];
+  }
+  
+  if (placeholderLower.includes('mug') || placeholderLower.includes('tasse')) {
+    return ['Citation du jour', 'Design humoristique', 'Logo entreprise', 'Motif floral'];
+  }
+  
+  if (placeholderLower.includes('poster') || placeholderLower.includes('affiche')) {
+    return ['Affiche événement', 'Art mural', 'Design moderne', 'Style rétro'];
+  }
+  
+  // Default suggestions
+  return ['Design minimaliste', 'Style moderne', 'Motif coloré', 'Texte personnalisé'];
+}
+
 interface PromptInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -52,7 +71,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={placeholder || "Ex: \"Un t-shirt bleu avec un logo minimaliste\""}
             disabled={disabled || isLoading}
             maxLength={maxLength}
             className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
@@ -76,21 +95,20 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
           <div className="flex items-center">
             <Sparkles className="w-3 h-3 mr-1" />
-            <span>Powered by Luneo AI</span>
+            <span>💡 Astuce: Plus de détails = meilleur résultat</span>
           </div>
-          <span>{value.length}/{maxLength}</span>
+          {value.length > maxLength * 0.8 && (
+            <span className={value.length >= maxLength ? 'text-red-600 font-medium' : ''}>
+              {maxLength - value.length} caractères restants
+            </span>
+          )}
         </div>
 
         {!value && (
           <div className="mt-3">
             <p className="text-xs text-gray-500 mb-2">Suggestions rapides :</p>
             <div className="flex flex-wrap gap-2">
-              {[
-                'Logo moderne',
-                'Poster événement',
-                'Carte de visite',
-                'Bannière web'
-              ].map((suggestion) => (
+              {getProductSpecificSuggestions(placeholder).map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"

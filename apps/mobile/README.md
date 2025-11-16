@@ -1,5 +1,7 @@
 # 📱 Luneo Enterprise Mobile
 
+**Last Updated:** November 16, 2025
+
 Application mobile React Native pour la plateforme Luneo Enterprise.
 
 ## 🚀 Démarrage Rapide

@@ -38,8 +38,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                   <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
                   <RefreshCw className="absolute w-6 h-6 text-blue-600" />
                 </div>
-                <p className="font-medium">Génération en cours…</p>
-                <p className="text-sm text-gray-500">L'IA prépare votre design</p>
+                <p className="font-medium">Création de votre design...</p>
+                <p className="text-sm text-gray-500">Génération en cours (~15 secondes)</p>
               </div>
             </div>
           ) : imageUrl ? (
@@ -54,8 +54,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
             <div className="absolute inset-0 flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <Camera className="w-12 h-12 mx-auto mb-3 opacity-60" />
-                <p className="font-medium">Aucun design pour le moment</p>
-                <p className="text-sm">Décrivez votre idée pour lancer une génération</p>
+                <p className="font-medium">Créez votre premier design en quelques secondes</p>
+                <p className="text-sm">Décrivez votre idée ci-dessus et laissez l'IA faire la magie ✨</p>
               </div>
             </div>
           )}
@@ -89,7 +89,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                   type="button"
                   onClick={onRegenerate}
                   className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-lg shadow-sm transition-colors duration-200"
-                  title="Régénérer"
+                  title="Créer une autre version"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>

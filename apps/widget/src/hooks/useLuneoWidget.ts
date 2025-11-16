@@ -87,14 +87,14 @@ export const useLuneoWidget = (
       const preparedPrompt = sanitizePrompt(raw ?? prompt, config.promptMaxLength);
 
       if (!preparedPrompt) {
-        const err = new Error('Le prompt est vide après sanitation.');
+        const err = new Error('Veuillez décrire votre design pour continuer.');
         setError(err);
         onError?.(err);
         return;
       }
 
       if (!limiterRef.current.tryConsume()) {
-        const err = new Error('Limite de génération atteinte. Veuillez patienter quelques instants.');
+        const err = new Error('Vous avez atteint la limite de générations gratuites. Réessayez dans quelques minutes ou passez à la version premium.');
         setError(err);
         onError?.(err);
         return;
@@ -102,7 +102,7 @@ export const useLuneoWidget = (
 
       const runtimeOrigin = getRuntimeOrigin();
       if (!isOriginAllowed(runtimeOrigin, config.security.allowedOrigins)) {
-        const err = new Error('Origine non autorisée pour le widget.');
+        const err = new Error('Configuration invalide. Contactez le support si le problème persiste.');
         setError(err);
         onError?.(err);
         return;
@@ -135,14 +135,31 @@ export const useLuneoWidget = (
         });
 
         if (!response.ok) {
-          throw new Error(`Échec de la génération (${response.status})`);
+          const status = response.status;
+          let errorMessage = 'Une erreur est survenue lors de la génération.';
+          
+          if (status === 400) {
+            errorMessage = 'Votre demande n\'a pas pu être traitée. Veuillez reformuler votre description.';
+          } else if (status === 401) {
+            errorMessage = 'Session expirée. Veuillez rafraîchir la page.';
+          } else if (status === 403) {
+            errorMessage = 'Accès refusé. Vérifiez vos permissions.';
+          } else if (status === 404) {
+            errorMessage = 'Service temporairement indisponible. Réessayez dans quelques instants.';
+          } else if (status === 429) {
+            errorMessage = 'Trop de demandes. Veuillez patienter quelques instants.';
+          } else if (status >= 500) {
+            errorMessage = 'Une erreur est survenue. Notre équipe a été notifiée. Réessayez dans quelques instants.';
+          }
+          
+          throw new Error(errorMessage);
         }
 
         const payload = await response.json();
         const design: Design | null = payload?.data?.design ?? payload?.design ?? null;
 
         if (!design) {
-          throw new Error('Réponse invalide du service de génération.');
+          throw new Error('Le design n\'a pas pu être généré. Réessayez avec une description différente.');
         }
 
         setGeneratedDesign(design);

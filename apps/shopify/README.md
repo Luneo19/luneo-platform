@@ -1,5 +1,7 @@
 # 🚀 **LUNEO SHOPIFY APP - GUIDE DE DÉPLOIEMENT**
 
+**Last Updated:** November 16, 2025
+
 ## 📋 **PRÉREQUIS**
 
 ### **1. Compte Shopify Partner**
