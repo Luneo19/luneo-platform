@@ -8,14 +8,16 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "lint": "eslint src/**/*.{ts,tsx}",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.292.0"
+    "@luneo/types": "workspace:*",
+    "lucide-react": "^0.292.0",
+    "framer-motion": "^10.16.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",

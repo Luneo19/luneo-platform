@@ -1,30 +1,72 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
-  "pipeline": {
+  "globalDependencies": [
+    "tsconfig.json",
+    ".env",
+    ".env.local"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "CI"
+  ],
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "out/**"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "build/**",
+        "out/**",
+        "*.js",
+        "*.d.ts"
+      ],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "STRIPE_*",
+        "DATABASE_URL",
+        "REDIS_*",
+        "OPENAI_*",
+        "AWS_*",
+        "MAILGUN_*",
+        "SENDGRID_*"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "outputs": []
     },
     "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"],
+      "inputs": [
+        "src/**/*.tsx",
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "**/__tests__/**"
+      ]
+    },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "outputs": ["test-results/**", "playwright-report/**"]
     },
     "type-check": {
-      "dependsOn": ["^type-check"]
+      "dependsOn": ["^build"],
+      "outputs": []
     },
     "clean": {
       "cache": false
     },
     "deploy": {
-      "dependsOn": ["build", "test", "lint"]
+      "dependsOn": ["build", "test", "lint"],
+      "outputs": [],
+      "cache": false
     }
+  },
+  "remoteCache": {
+    "enabled": true
   }
 }

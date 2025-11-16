@@ -78,7 +78,7 @@ export class SlackService {
    * Format message for Slack
    */
   private formatMessage(event: string, data: Record<string, any>): any {
-    const eventConfig = {
+    const eventConfig: Record<string, { color: string; title: string; emoji: string }> = {
       'design.created': {
         color: '#2196F3',
         title: '🎨 Nouveau Design Créé',
@@ -99,6 +99,11 @@ export class SlackService {
         title: '💰 Paiement Reçu',
         emoji: ':moneybag:',
       },
+      'quota.alert': {
+        color: '#FFA000',
+        title: '⚠️ Alerte Quota',
+        emoji: ':warning:',
+      },
     };
 
     const config = eventConfig[event] || {
@@ -107,10 +112,19 @@ export class SlackService {
       emoji: ':bell:',
     };
 
+    const severityColorMap: Record<string, string> = {
+      critical: '#EF5350',
+      warning: '#FFB300',
+      info: '#42A5F5',
+    };
+
+    const severity = typeof data.severity === 'string' ? data.severity.toLowerCase() : '';
+    const attachmentColor = severityColorMap[severity] ?? config.color;
+
     return {
       text: `${config.emoji} ${config.title}`,
       attachments: [{
-        color: config.color,
+        color: attachmentColor,
         title: config.title,
         fields: Object.entries(data).map(([key, value]) => ({
           title: this.formatFieldName(key),

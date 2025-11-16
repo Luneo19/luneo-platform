@@ -1,0 +1,98 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BackupFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "backup:CreateBackupVault",
+        "backup:DeleteBackupVault",
+        "backup:DescribeBackupVault",
+        "backup:ListBackupVaults",
+        "backup:CreateBackupPlan",
+        "backup:DeleteBackupPlan",
+        "backup:GetBackupPlan",
+        "backup:ListBackupPlans",
+        "backup:UpdateBackupPlan",
+        "backup:CreateBackupSelection",
+        "backup:DeleteBackupSelection",
+        "backup:GetBackupSelection",
+        "backup:ListBackupSelections",
+        "backup:StartBackupJob",
+        "backup:StopBackupJob",
+        "backup:DescribeBackupJob",
+        "backup:ListBackupJobs",
+        "backup:GetBackupVaultAccessPolicy",
+        "backup:PutBackupVaultAccessPolicy",
+        "backup:DeleteBackupVaultAccessPolicy",
+        "backup:GetBackupVaultNotifications",
+        "backup:PutBackupVaultNotifications",
+        "backup:TagResource",
+        "backup:UntagResource",
+        "backup:ListTags"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "BackupStorageAccess",
+      "Effect": "Allow",
+      "Action": [
+        "backup-storage:*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "KMSAccess",
+      "Effect": "Allow",
+      "Action": [
+        "kms:CreateKey",
+        "kms:DescribeKey",
+        "kms:ListKeys",
+        "kms:ListAliases",
+        "kms:CreateAlias",
+        "kms:UpdateAlias",
+        "kms:DeleteAlias",
+        "kms:EnableKey",
+        "kms:DisableKey",
+        "kms:ScheduleKeyDeletion",
+        "kms:CancelKeyDeletion",
+        "kms:PutKeyPolicy",
+        "kms:GetKeyPolicy",
+        "kms:ListKeyPolicies",
+        "kms:TagResource",
+        "kms:UntagResource",
+        "kms:ListResourceTags",
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:CreateGrant",
+        "kms:ListGrants",
+        "kms:RevokeGrant"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "BackupIAMRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:ListRoles",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:PassRole"
+      ],
+      "Resource": "arn:aws:iam::115849270532:role/luneo-prod-backup-*"
+    }
+  ]
+}
+

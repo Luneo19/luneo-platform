@@ -1,0 +1,41 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3StateBackend",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetBucketVersioning",
+        "s3:PutBucketVersioning",
+        "s3:GetBucketEncryption",
+        "s3:PutBucketEncryption",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:PutBucketPublicAccessBlock",
+        "s3:GetBucketAcl",
+        "s3:PutBucketAcl"
+      ],
+      "Resource": [
+        "arn:aws:s3:::luneo-terraform-state",
+        "arn:aws:s3:::luneo-terraform-state/*"
+      ]
+    },
+    {
+      "Sid": "DynamoDBStateLocking",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:CreateTable",
+        "dynamodb:UpdateTable"
+      ],
+      "Resource": "arn:aws:dynamodb:eu-west-1:115849270532:table/luneo-terraform-locks"
+    }
+  ]
+}
+

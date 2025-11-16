@@ -69,7 +69,8 @@ set_secret "CLOUDINARY_API_SECRET" "s0yc_QR4w9IsM6_HRq2hM5SDnfI"
 set_secret "CLOUDINARY_URL" "cloudinary://541766291559917:s0yc_QR4w9IsM6_HRq2hM5SDnfI@deh4aokbx"
 
 # SendGrid
-set_secret "SENDGRID_API_KEY" "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"
+# SENDGRID_API_KEY - À configurer manuellement avec une nouvelle clé régénérée
+# set_secret "SENDGRID_API_KEY" "VOTRE_NOUVELLE_CLE_SENDGRID"
 set_secret "SENDGRID_DOMAIN" "luneo.app"
 set_secret "SENDGRID_FROM_NAME" "Luneo"
 set_secret "SENDGRID_FROM_EMAIL" "no-reply@luneo.app"

@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: luneo-platform
+
+resources:
+  - ../../base
+  - applications/backend.yaml
+  - applications/frontend.yaml
+  - applications/worker-ia.yaml
+  - applications/render.yaml
+  - secrets/external-secrets.yaml
+
+patchesStrategicMerge:
+  - patches/gitops-config.yaml
+  - patches/backend-helm-values.yaml
+  - patches/frontend-helm-values.yaml
+  - patches/worker-helm-values.yaml
+  - patches/render-helm-values.yaml
+
+configMapGenerator:
+  - name: luneo-feature-flags
+    literals:
+      - realtime_monitoring=true
+      - demo_mode=false
+      - dr_mode=false
+

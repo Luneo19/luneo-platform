@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-backend
+spec:
+  source:
+    helm:
+      valuesObject:
+        ingress:
+          enabled: true
+          className: alb
+          hosts:
+            - host: api.luneo.app
+              paths:
+                - path: /
+                  pathType: Prefix
+        autoscaling:
+          enabled: true
+          minReplicas: 4
+          maxReplicas: 12
+          targetCPUUtilizationPercentage: 55
+        metrics:
+          serviceMonitor:
+            enabled: true
+            interval: 30s
+            namespace: luneo-observability
+

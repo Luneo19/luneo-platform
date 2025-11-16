@@ -1,0 +1,37 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: luneo-observability-prometheus-rules-secondary
+  namespace: luneo-observability
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: rules
+    app.kubernetes.io/part-of: luneo
+spec:
+  groups:
+    - name: standby-health
+      interval: 60s
+      rules:
+        - alert: StandbyApiUnavailable
+          expr: |
+            sum(rate(http_server_requests_total{job="luneo-backend", cluster="luneo-prod-eks-secondary"}[5m])) == 0
+          for: 30m
+          labels:
+            severity: warning
+            service: luneo-backend-standby
+          annotations:
+            summary: "Aucune requête vue sur l'API standby"
+            description: |
+              L'API standby ne reçoit plus de trafic. Vérifier l'état du cluster secondaire.
+        - alert: StandbyQueueGrowth
+          expr: |
+            sum(rate(bullmq_queue_waiting_jobs{cluster="luneo-prod-eks-secondary"}[5m])) > 5
+          for: 15m
+          labels:
+            severity: warning
+            service: ai-generation-standby
+          annotations:
+            summary: "Backlog inattendu sur le cluster secondaire"
+            description: |
+              Le cluster secondaire accumule des jobs alors qu'il est censé rester vide. Vérifier la configuration de routage.
+

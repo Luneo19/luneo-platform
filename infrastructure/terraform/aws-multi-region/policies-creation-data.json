@@ -1,0 +1,101 @@
+{
+  "account_id": "115849270532",
+  "user_name": "191197Em.",
+  "policies": [
+    {
+      "name": "terraform-state-backend",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-state-backend",
+      "json_file": "iam-policies/01-terraform-state-backend.json",
+      "description": "Permissions pour le backend Terraform (S3 + DynamoDB)",
+      "order": 1
+    },
+    {
+      "name": "terraform-infrastructure-readonly",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-infrastructure-readonly",
+      "json_file": "iam-policies/02-terraform-infrastructure-readonly.json",
+      "description": "Permissions en lecture seule pour découvrir les ressources AWS",
+      "order": 2
+    },
+    {
+      "name": "terraform-vpc-networking",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-vpc-networking",
+      "json_file": "iam-policies/03-terraform-vpc-networking.json",
+      "description": "Permissions pour créer et gérer les VPC et réseaux",
+      "order": 3
+    },
+    {
+      "name": "terraform-eks-management",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-eks-management",
+      "json_file": "iam-policies/04-terraform-eks-management.json",
+      "description": "Permissions pour créer et gérer les clusters EKS",
+      "order": 4
+    },
+    {
+      "name": "terraform-rds-aurora",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-rds-aurora",
+      "json_file": "iam-policies/05-terraform-rds-aurora.json",
+      "description": "Permissions pour créer et gérer les clusters Aurora PostgreSQL",
+      "order": 5
+    },
+    {
+      "name": "terraform-s3-artifacts",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-s3-artifacts",
+      "json_file": "iam-policies/06-terraform-s3-artifacts.json",
+      "description": "Permissions pour créer et gérer les buckets S3 d'artifacts",
+      "order": 6
+    },
+    {
+      "name": "terraform-route53-dns",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-route53-dns",
+      "json_file": "iam-policies/07-terraform-route53-dns.json",
+      "description": "Permissions pour gérer les enregistrements DNS et health checks",
+      "order": 7
+    },
+    {
+      "name": "terraform-cloudwatch-monitoring",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-cloudwatch-monitoring",
+      "json_file": "iam-policies/08-terraform-cloudwatch-monitoring.json",
+      "description": "Permissions pour créer des alarmes et métriques CloudWatch",
+      "order": 8
+    },
+    {
+      "name": "terraform-backup-management",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-backup-management",
+      "json_file": "iam-policies/09-terraform-backup-management.json",
+      "description": "Permissions pour créer et gérer les plans de sauvegarde AWS Backup",
+      "order": 9
+    },
+    {
+      "name": "terraform-iam-management",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-iam-management",
+      "json_file": "iam-policies/10-terraform-iam-management.json",
+      "description": "Permissions pour créer et gérer les rôles IAM nécessaires aux services AWS",
+      "order": 10
+    }
+  ],
+  "aws_cli_commands": {
+    "create_policy": {
+      "template": "aws iam create-policy --policy-name {name} --policy-document file://{json_file} --description \"{description}\"",
+      "example": "aws iam create-policy --policy-name terraform-state-backend --policy-document file://iam-policies/01-terraform-state-backend.json --description \"Permissions pour le backend Terraform (S3 + DynamoDB)\""
+    },
+    "attach_policy": {
+      "template": "aws iam attach-user-policy --user-name {user_name} --policy-arn {arn}",
+      "example": "aws iam attach-user-policy --user-name 191197Em. --policy-arn arn:aws:iam::115849270532:policy/terraform-state-backend"
+    },
+    "verify_policy": {
+      "template": "aws iam get-policy --policy-arn {arn}",
+      "example": "aws iam get-policy --policy-arn arn:aws:iam::115849270532:policy/terraform-state-backend"
+    },
+    "list_attached_policies": {
+      "template": "aws iam list-attached-user-policies --user-name {user_name}",
+      "example": "aws iam list-attached-user-policies --user-name 191197Em."
+    }
+  },
+  "instructions": {
+    "step1": "Créer toutes les politiques avec la commande create_policy",
+    "step2": "Attacher toutes les politiques à l'utilisateur avec la commande attach_policy",
+    "step3": "Vérifier avec list_attached_policies",
+    "note": "Ces commandes nécessitent les permissions iam:CreatePolicy et iam:AttachUserPolicy"
+  }
+}
+

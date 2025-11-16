@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TerminusModule } from '@nestjs/terminus';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { HealthController } from './health.controller';
 
@@ -23,6 +23,8 @@ import {
   emailDomainConfig,
   appConfig,
   monitoringConfig,
+  featureFlagsConfig,
+  tracingConfig,
 } from './config/configuration';
 
 // Modules
@@ -43,16 +45,23 @@ import { BillingModule } from './modules/billing/billing.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { ProductEngineModule } from './modules/product-engine/product-engine.module';
 import { RenderModule } from './modules/render/render.module';
+import { ProductionModule } from './modules/production/production.module';
 import { EcommerceModule } from './modules/ecommerce/ecommerce.module';
 import { UsageBillingModule } from './modules/usage-billing/usage-billing.module';
 import { SecurityModule } from './modules/security/security.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ObservabilityModule } from './modules/observability/observability.module';
+import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 
 // Common
 import { CommonModule } from './common/common.module';
+import { LoggerModule } from './common/logger/logger.module';
 
 // Jobs
 import { JobsModule } from './jobs/jobs.module';
+import type { RedisOptions } from 'ioredis';
+import type { ConnectionOptions as TlsConnectionOptions } from 'tls';
+import { HttpMetricsInterceptor } from './modules/observability/http-metrics.interceptor';
 
 @Module({
   imports: [
@@ -74,6 +83,8 @@ import { JobsModule } from './jobs/jobs.module';
         emailDomainConfig,
         appConfig,
         monitoringConfig,
+        featureFlagsConfig,
+        tracingConfig,
       ],
       cache: true,
     }),
@@ -81,12 +92,19 @@ import { JobsModule } from './jobs/jobs.module';
     // Rate limiting
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        throttlers: [{
-          ttl: configService.get('app.rateLimitTtl') * 1000,
-          limit: configService.get('app.rateLimitLimit'),
-        }],
-      }),
+      useFactory: (configService: ConfigService) => {
+        const ttlSeconds = configService.get<number>('app.rateLimitTtl') ?? 60;
+        const limit = configService.get<number>('app.rateLimitLimit') ?? 100;
+
+        return {
+          throttlers: [
+            {
+              ttl: ttlSeconds * 1000,
+              limit,
+            },
+          ],
+        };
+      },
       inject: [ConfigService],
     }),
 
@@ -102,18 +120,40 @@ import { JobsModule } from './jobs/jobs.module';
     // BullMQ for job queues
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        redis: configService.get('redis.url'),
-        defaultJobOptions: {
-          removeOnComplete: 100,
-          removeOnFail: 50,
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 2000,
+      useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('redis.url') ?? 'redis://localhost:6379';
+        const parsed = new URL(redisUrl);
+        const connection: RedisOptions = {
+          host: parsed.hostname,
+          port: Number(parsed.port || '6379'),
+        };
+
+        if (parsed.password) {
+          connection.password = parsed.password;
+        }
+
+        if (parsed.username) {
+          connection.username = parsed.username;
+        }
+
+        if (parsed.protocol === 'rediss:') {
+          connection.tls = {} as TlsConnectionOptions;
+        }
+
+        return {
+          connection,
+          prefix: 'luneo',
+          defaultJobOptions: {
+            removeOnComplete: 100,
+            removeOnFail: 50,
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 2000,
+            },
           },
-        },
-      }),
+        };
+      },
       inject: [ConfigService],
     }),
 
@@ -135,13 +175,17 @@ import { JobsModule } from './jobs/jobs.module';
     PlansModule,
     ProductEngineModule,
     RenderModule,
+    ProductionModule,
     EcommerceModule,
     UsageBillingModule,
     SecurityModule,
     AnalyticsModule,
+    ObservabilityModule,
+    FeatureFlagsModule,
 
     // Common utilities
     CommonModule,
+    LoggerModule,
 
     // Job processing
     JobsModule,
@@ -151,6 +195,10 @@ import { JobsModule } from './jobs/jobs.module';
     {
       provide: APP_FILTER,
       useClass: SentryGlobalFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpMetricsInterceptor,
     },
   ],
 })

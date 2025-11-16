@@ -62,15 +62,16 @@ export class WebXRViewer {
   private modelPlaced: boolean = false;
 
   constructor(config: WebXRConfig) {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      throw new Error('WebXR is only available in a browser context');
+    }
     this.config = {
       enableHitTest: true,
       ...config,
     };
     
-    // Setup renderer for XR
     this.config.renderer.xr.enabled = true;
     
-    // Create reticle (placement indicator)
     if (this.config.enableHitTest) {
       this.createReticle();
     }
@@ -163,9 +164,18 @@ export class WebXRViewer {
     // Setup hit test
     if (this.config.enableHitTest) {
       const viewerSpace = await this.session.requestReferenceSpace('viewer');
-      this.hitTestSource = await this.session.requestHitTestSource({
-        space: viewerSpace,
-      }) || null;
+      const sessionWithHitTest = this.session as XRSession & {
+        requestHitTestSource?: (options: XRHitTestOptionsInit) => Promise<XRHitTestSource>;
+      };
+
+      if (typeof sessionWithHitTest.requestHitTestSource === 'function') {
+        this.hitTestSource =
+          (await sessionWithHitTest.requestHitTestSource({
+            space: viewerSpace,
+          })) ?? null;
+      } else {
+        this.hitTestSource = null;
+      }
     }
     
     // Session end handler

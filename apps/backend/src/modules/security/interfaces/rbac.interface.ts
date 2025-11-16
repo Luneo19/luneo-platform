@@ -231,9 +231,17 @@ export interface RequestUser {
 /**
  * Interface pour le contexte d'autorisation
  */
+export type AuthorizationResource = {
+  id?: string;
+  brandId?: string | null;
+  ownerId?: string | null;
+  type?: string;
+  metadata?: Record<string, unknown>;
+} & Record<string, unknown>;
+
 export interface AuthorizationContext {
   user: RequestUser;
-  resource?: any;
+  resource?: AuthorizationResource;
   action: Permission;
 }
 
@@ -243,5 +251,14 @@ export interface AuthorizationContext {
 export interface AccessRule {
   resource: string;
   condition: (context: AuthorizationContext) => boolean;
+}
+
+export interface UserSummary {
+  id: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  brandId: string | null;
+  createdAt: Date;
 }
 

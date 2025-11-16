@@ -8,6 +8,96 @@ export interface RenderRequest {
   callback?: string;
 }
 
+export type RenderBlendMode =
+  | 'clear'
+  | 'source'
+  | 'over'
+  | 'in'
+  | 'out'
+  | 'atop'
+  | 'dest'
+  | 'dest-over'
+  | 'dest-in'
+  | 'dest-out'
+  | 'dest-atop'
+  | 'xor'
+  | 'add'
+  | 'saturate'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten';
+
+export type RenderFit = 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
+
+export interface RenderZoneBase {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  rotation?: number;
+  opacity?: number;
+  zIndex?: number;
+}
+
+export interface RenderImageZone extends RenderZoneBase {
+  type: 'image';
+  imageUrl: string;
+  fit?: RenderFit;
+  blend?: RenderBlendMode;
+}
+
+export interface RenderTextZone extends RenderZoneBase {
+  type: 'text';
+  text: string;
+  font?: string;
+  fontSize?: number;
+  color?: string;
+  align?: 'left' | 'center' | 'right';
+  fontWeight?: string | number;
+  letterSpacing?: number;
+  lineHeight?: number;
+  backgroundColor?: string;
+}
+
+export interface RenderColorZone extends RenderZoneBase {
+  type: 'color';
+  color: string;
+  blend?: RenderBlendMode;
+}
+
+export type RenderZone = RenderImageZone | RenderTextZone | RenderColorZone;
+
+export type RenderEffectType =
+  | 'blur'
+  | 'sharpen'
+  | 'brightness'
+  | 'contrast'
+  | 'hue'
+  | 'grayscale'
+  | 'sepia'
+  | 'vintage';
+
+export interface RenderEffect {
+  type: RenderEffectType;
+  intensity?: number;
+  value?: number;
+}
+
+export interface RenderDesignOptions {
+  zones?: Record<string, RenderZone>;
+  effects?: RenderEffect[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface RenderDesignData {
+  baseAsset?: string;
+  images?: string[];
+  options?: RenderDesignOptions;
+  assets?: AssetInfo[];
+}
+
 export interface RenderOptions {
   // Canvas/Scene settings
   width: number;
@@ -100,7 +190,7 @@ export interface RenderResult {
 export interface RenderJob {
   id: string;
   type: 'render-2d' | 'render-3d' | 'export';
-  data: RenderJobData;
+  data: RenderQueuePayload;
   options: {
     attempts: number;
     backoff: {
@@ -112,14 +202,13 @@ export interface RenderJob {
   };
 }
 
-export interface RenderJobData {
-  requestId: string;
-  productId: string;
-  designId?: string;
-  options: RenderOptions;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+export type RenderQueuePayload = RenderRenderPayload | ExportJobData;
+
+export interface RenderRenderPayload {
+  request: RenderRequest;
+  priority?: RenderRequest['priority'];
   userId?: string;
-  brandId: string;
+  brandId?: string;
 }
 
 export interface AssetInfo {
@@ -130,7 +219,7 @@ export interface AssetInfo {
   size: number;
   width?: number;
   height?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SceneNode {
@@ -141,7 +230,7 @@ export interface SceneNode {
   rotation: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
   children?: SceneNode[];
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
 }
 
 export interface ExportSettings {
@@ -152,13 +241,37 @@ export interface ExportSettings {
   includeMaterials: boolean;
   includeTextures: boolean;
   compressionLevel?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ExportResult {
+  format: ExportSettings['format'];
+  url: string;
+  size: number;
+  metadata: {
+    assetsCount: number;
+    quality: ExportSettings['quality'];
+    exportTime: number;
+  };
+}
+
+export interface ExportJobData {
+  assets: AssetInfo[];
+  options: ExportSettings;
+  triggeredBy?: string;
+}
+
+export interface RenderQueueResult {
+  status: RenderResult['status'];
+  requestId: string;
+  result: RenderResult;
 }
 
 export interface RenderMetrics {
   totalRenders: number;
   successfulRenders: number;
   failedRenders: number;
+  successRate: number;
   averageRenderTime: number;
   queueLength: number;
   activeWorkers: number;

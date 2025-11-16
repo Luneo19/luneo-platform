@@ -1,5 +1,5 @@
 {
-  "extends": "@luneo/tsconfig/base.json",
+  "extends": "@luneo/tsconfig/react-library.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"

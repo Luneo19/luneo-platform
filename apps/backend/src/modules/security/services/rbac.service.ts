@@ -1,13 +1,15 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
+import { Prisma, UserRole as PrismaUserRole } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import {
   Role,
   Permission,
   ROLE_PERMISSIONS,
-  RequestUser,
   AuthorizationContext,
   AccessRule,
+  AuthorizationResource,
+  UserSummary,
 } from '../interfaces/rbac.interface';
 
 /**
@@ -18,11 +20,63 @@ import {
 export class RBACService {
   private readonly logger = new Logger(RBACService.name);
   private customRules: AccessRule[] = [];
+  private readonly roleToPrismaMap: Record<Role, PrismaUserRole> = {
+    [Role.SUPER_ADMIN]: PrismaUserRole.PLATFORM_ADMIN,
+    [Role.ADMIN]: PrismaUserRole.BRAND_ADMIN,
+    [Role.MANAGER]: PrismaUserRole.BRAND_USER,
+    [Role.DESIGNER]: PrismaUserRole.FABRICATOR,
+    [Role.VIEWER]: PrismaUserRole.CONSUMER,
+  };
+
+  private readonly prismaToRoleMap: Record<PrismaUserRole, Role> = {
+    [PrismaUserRole.PLATFORM_ADMIN]: Role.SUPER_ADMIN,
+    [PrismaUserRole.BRAND_ADMIN]: Role.ADMIN,
+    [PrismaUserRole.BRAND_USER]: Role.MANAGER,
+    [PrismaUserRole.FABRICATOR]: Role.DESIGNER,
+    [PrismaUserRole.CONSUMER]: Role.VIEWER,
+  };
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
   ) {}
+
+  private formatError(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return typeof error === 'string' ? error : JSON.stringify(error);
+  }
+
+  private formatStack(error: unknown): string | undefined {
+    return error instanceof Error ? error.stack : undefined;
+  }
+
+  private mapRoleToPrisma(role: Role): PrismaUserRole {
+    return this.roleToPrismaMap[role] ?? PrismaUserRole.CONSUMER;
+  }
+
+  private mapPrismaRoleToRole(role: PrismaUserRole | null | undefined): Role {
+    if (!role) {
+      return Role.VIEWER;
+    }
+    return this.prismaToRoleMap[role] ?? Role.VIEWER;
+  }
+
+  private buildAuthorizationContext(context: AuthorizationContext): AuthorizationContext {
+    if (!context.resource) {
+      return context;
+    }
+
+    const resource: AuthorizationResource = {
+      ...context.resource,
+    };
+
+    return {
+      ...context,
+      resource,
+    };
+  }
 
   /**
    * Récupérer les permissions d'un rôle
@@ -46,9 +100,9 @@ export class RBACService {
     try {
       // Check cache
       const cacheKey = `rbac:user:${userId}:${permission}`;
-      const cached = await this.cache.get(cacheKey, null, null);
-      if (cached !== null) {
-        return cached === 'true';
+      const cached = (await this.cache.getSimple(cacheKey)) as boolean | null;
+      if (typeof cached === 'boolean') {
+        return cached;
       }
 
       // Récupérer l'utilisateur avec son rôle
@@ -61,16 +115,17 @@ export class RBACService {
         return false;
       }
 
-      const hasPermission = this.roleHasPermission(user.role as Role, permission);
+      const mappedRole = this.mapPrismaRoleToRole(user.role);
+      const hasPermission = this.roleHasPermission(mappedRole, permission);
 
       // Cache pour 5 minutes
-      await this.cache.set(cacheKey, hasPermission ? 'true' : 'false', 300);
+      await this.cache.setSimple(cacheKey, hasPermission, 300);
 
       return hasPermission;
     } catch (error) {
       this.logger.error(
-        `Failed to check user permission: ${error.message}`,
-        error.stack,
+        `Failed to check user permission: ${this.formatError(error)}`,
+        this.formatStack(error),
       );
       return false;
     }
@@ -81,41 +136,50 @@ export class RBACService {
    */
   async authorize(context: AuthorizationContext): Promise<boolean> {
     try {
+      const normalizedContext = this.buildAuthorizationContext(context);
+
       // 1. Vérifier la permission de base
-      const hasPermission = context.user.permissions.includes(context.action);
+      const hasPermission = normalizedContext.user.permissions.includes(
+        normalizedContext.action,
+      );
       if (!hasPermission) {
         this.logger.warn(
-          `User ${context.user.id} denied: missing permission ${context.action}`,
+          `User ${normalizedContext.user.id} denied: missing permission ${normalizedContext.action}`,
         );
         return false;
       }
 
       // 2. Vérifier les règles personnalisées
       for (const rule of this.customRules) {
-        if (!rule.condition(context)) {
+        if (!rule.condition(normalizedContext)) {
           this.logger.warn(
-            `User ${context.user.id} denied by custom rule: ${rule.resource}`,
+            `User ${normalizedContext.user.id} denied by custom rule: ${rule.resource}`,
           );
           return false;
         }
       }
 
       // 3. Vérifier l'isolation par brand (si applicable)
-      if (context.resource && context.resource.brandId && context.user.brandId) {
-        if (context.resource.brandId !== context.user.brandId) {
-          // Super admin peut accéder à tout
-          if (context.user.role !== Role.SUPER_ADMIN) {
-            this.logger.warn(
-              `User ${context.user.id} denied: cross-brand access attempt`,
-            );
-            return false;
-          }
+      if (
+        normalizedContext.resource?.brandId &&
+        normalizedContext.user.brandId &&
+        normalizedContext.resource.brandId !== normalizedContext.user.brandId
+      ) {
+        // Super admin peut accéder à tout
+        if (normalizedContext.user.role !== Role.SUPER_ADMIN) {
+          this.logger.warn(
+            `User ${normalizedContext.user.id} denied: cross-brand access attempt`,
+          );
+          return false;
         }
       }
 
       return true;
     } catch (error) {
-      this.logger.error(`Authorization error: ${error.message}`, error.stack);
+      this.logger.error(
+        `Authorization error: ${this.formatError(error)}`,
+        this.formatStack(error),
+      );
       return false;
     }
   }
@@ -147,7 +211,7 @@ export class RBACService {
     try {
       await this.prisma.user.update({
         where: { id: userId },
-        data: { role: role as any },
+        data: { role: this.mapRoleToPrisma(role) },
       });
 
       // Invalider le cache
@@ -155,8 +219,11 @@ export class RBACService {
 
       this.logger.log(`Role ${role} assigned to user ${userId}`);
     } catch (error) {
-      this.logger.error(`Failed to assign role: ${error.message}`, error.stack);
-      throw error;
+      this.logger.error(
+        `Failed to assign role: ${this.formatError(error)}`,
+        this.formatStack(error),
+      );
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
@@ -170,9 +237,12 @@ export class RBACService {
         select: { role: true },
       });
 
-      return (user?.role as Role) || Role.VIEWER;
+      return this.mapPrismaRoleToRole(user?.role);
     } catch (error) {
-      this.logger.error(`Failed to get user role: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get user role: ${this.formatError(error)}`,
+        this.formatStack(error),
+      );
       return Role.VIEWER;
     }
   }
@@ -186,8 +256,8 @@ export class RBACService {
       return this.getRolePermissions(role);
     } catch (error) {
       this.logger.error(
-        `Failed to get user permissions: ${error.message}`,
-        error.stack,
+        `Failed to get user permissions: ${this.formatError(error)}`,
+        this.formatStack(error),
       );
       return [];
     }
@@ -212,14 +282,15 @@ export class RBACService {
   /**
    * Lister les utilisateurs par rôle
    */
-  async getUsersByRole(role: Role, brandId?: string): Promise<any[]> {
+  async getUsersByRole(role: Role, brandId?: string): Promise<UserSummary[]> {
     try {
-      const where: any = { role };
+      const prismaRole = this.mapRoleToPrisma(role);
+      const where: Prisma.UserWhereInput = { role: prismaRole };
       if (brandId) {
         where.brandId = brandId;
       }
 
-      return await this.prisma.user.findMany({
+      const users = await this.prisma.user.findMany({
         where,
         select: {
           id: true,
@@ -230,10 +301,19 @@ export class RBACService {
           createdAt: true,
         },
       });
+
+      return users.map<UserSummary>((user) => ({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: this.mapPrismaRoleToRole(user.role),
+        brandId: user.brandId ?? null,
+        createdAt: user.createdAt,
+      }));
     } catch (error) {
       this.logger.error(
-        `Failed to get users by role: ${error.message}`,
-        error.stack,
+        `Failed to get users by role: ${this.formatError(error)}`,
+        this.formatStack(error),
       );
       return [];
     }
@@ -244,7 +324,7 @@ export class RBACService {
    */
   async getRoleStats(brandId?: string): Promise<Record<Role, number>> {
     try {
-      const where: any = {};
+      const where: Prisma.UserWhereInput = {};
       if (brandId) {
         where.brandId = brandId;
       }
@@ -255,19 +335,27 @@ export class RBACService {
         _count: true,
       });
 
-      const stats: Record<string, number> = {};
-      for (const role of Object.values(Role)) {
-        stats[role] = 0;
-      }
+      const stats = Object.values(Role).reduce<Record<Role, number>>((acc, currentRole) => {
+        acc[currentRole] = 0;
+        return acc;
+      }, {} as Record<Role, number>);
 
       for (const group of users) {
-        stats[group.role] = group._count;
+        const mappedRole = this.mapPrismaRoleToRole(group.role);
+        const count = typeof group._count === 'number' ? group._count : 0;
+        stats[mappedRole] = (stats[mappedRole] ?? 0) + count;
       }
 
-      return stats as Record<Role, number>;
+      return stats;
     } catch (error) {
-      this.logger.error(`Failed to get role stats: ${error.message}`, error.stack);
-      return {} as Record<Role, number>;
+      this.logger.error(
+        `Failed to get role stats: ${this.formatError(error)}`,
+        this.formatStack(error),
+      );
+      return Object.values(Role).reduce<Record<Role, number>>((acc, currentRole) => {
+        acc[currentRole] = 0;
+        return acc;
+      }, {} as Record<Role, number>);
     }
   }
 

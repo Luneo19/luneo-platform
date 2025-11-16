@@ -8,7 +8,7 @@
 - Obtenir les clés API
 
 ### **2. Environnement de développement**
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL
 - Redis
 - Compte Vercel

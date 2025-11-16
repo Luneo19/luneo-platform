@@ -1,11 +1,38 @@
-import { Process, Processor } from '@nestjs/bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
+import { QueueNames } from '@/jobs/queue.constants';
+import { Prisma, DesignStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { S3Service } from '@/libs/s3/s3.service';
 import { ProductRulesService } from '@/modules/product-engine/services/product-rules.service';
 import { ValidationEngine } from '@/modules/product-engine/services/validation-engine.service';
+import {
+  DesignOptions,
+  DesignZoneOption,
+  ProductRules,
+  ValidationResult,
+  ZoneValidationContext,
+} from '@/modules/product-engine/interfaces/product-rules.interface';
+import { getErrorMessage, getErrorStack } from '@/common/utils/error.utils';
+
+type RawDesignZone = {
+  id?: string;
+  type?: string;
+} & Record<string, unknown>;
+
+type RawDesignOptions = Omit<DesignOptions, 'zones'> & {
+  quality?: 'standard' | 'high' | 'ultra';
+  numImages?: number;
+  size?: string;
+  style?: string;
+  steps?: number;
+  cfgScale?: number;
+  seed?: number;
+  effects?: string[];
+  zones?: RawDesignZone[];
+};
 
 interface DesignJobData {
   designId: string;
@@ -13,8 +40,8 @@ interface DesignJobData {
   brandId: string;
   userId?: string;
   prompt: string;
-  options: any;
-  rules: any;
+  options: RawDesignOptions;
+  rules: ProductRules;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   retryCount?: number;
 }
@@ -42,8 +69,8 @@ interface AIGenerationResult {
   };
 }
 
-@Processor('design-generation')
-export class DesignWorker {
+@Processor(QueueNames.DESIGN_GENERATION)
+export class DesignWorker extends WorkerHost {
   private readonly logger = new Logger(DesignWorker.name);
 
   constructor(
@@ -52,21 +79,40 @@ export class DesignWorker {
     private readonly s3Service: S3Service,
     private readonly productRulesService: ProductRulesService,
     private readonly validationEngine: ValidationEngine,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Process('generate-design')
-  async generateDesign(job: Job<DesignJobData>) {
+  async process(job: Job<DesignJobData>): Promise<unknown> {
+    switch (job.name) {
+      case 'validate-design':
+        return this.validateDesign(job);
+      case 'optimize-design':
+        return this.optimizeDesign(job);
+      default:
+        return this.generateDesign(job);
+    }
+  }
+
+  private async generateDesign(job: Job<DesignJobData>) {
     const { designId, productId, brandId, userId, prompt, options, rules, priority } = job.data;
     const startTime = Date.now();
+    const normalizedOptions = this.normalizeDesignOptions(options);
 
     try {
       this.logger.log(`Starting design generation for design ${designId}`);
 
       // Mettre à jour le statut
-      await this.updateDesignStatus(designId, 'PROCESSING');
+      await this.updateDesignStatus(designId, DesignStatus.PROCESSING);
 
       // Valider les règles du produit
-      const validationResult = await this.validateDesignRules(productId, options, rules);
+      const validationResult = await this.validateDesignRules({
+        productId,
+        brandId,
+        userId,
+        options: normalizedOptions,
+        rules,
+      });
       if (!validationResult.isValid) {
         throw new Error(`Validation failed: ${validationResult.errors.join(', ')}`);
       }
@@ -78,10 +124,10 @@ export class DesignWorker {
       }
 
       // Générer avec l'IA
-      const aiResult = await this.generateWithAI(prompt, options, rules);
+      const aiResult = await this.generateWithAI(prompt, normalizedOptions, rules);
 
       // Post-traiter les images générées
-      const processedImages = await this.postProcessImages(aiResult.images, options);
+      const processedImages = await this.postProcessImages(aiResult.images, normalizedOptions);
 
       // Uploader les assets
       const uploadedAssets = await this.uploadAssets(processedImages, designId);
@@ -90,16 +136,17 @@ export class DesignWorker {
       await this.createAssetRecords(designId, uploadedAssets);
 
       // Mettre à jour le design avec les résultats
+      const generationTime = Date.now() - startTime;
       await this.updateDesignWithResults(designId, {
-        status: 'COMPLETED',
-        optionsJson: options,
-        metadata: {
-          generationTime: Date.now() - startTime,
+        status: DesignStatus.COMPLETED,
+        optionsJson: this.toJson(normalizedOptions),
+        metadata: this.toJsonObject({
+          generationTime,
           aiMetadata: aiResult.metadata,
           costs: aiResult.costs,
           validationResult,
           moderationResult,
-        },
+        }),
       });
 
       // Déclencher les webhooks de succès
@@ -108,32 +155,35 @@ export class DesignWorker {
       // Mettre en cache les résultats
       await this.cacheDesignResults(designId, uploadedAssets);
 
-      const totalTime = Date.now() - startTime;
-      this.logger.log(`Design generation completed for ${designId} in ${totalTime}ms`);
+      this.logger.log(`Design generation completed for ${designId} in ${generationTime}ms`);
 
       return {
         designId,
         status: 'success',
         assets: uploadedAssets,
-        generationTime: totalTime,
+        generationTime,
       };
 
     } catch (error) {
-      this.logger.error(`Design generation failed for ${designId}:`, error);
+      const message = getErrorMessage(error);
+      this.logger.error(
+        `Design generation failed for ${designId}: ${message}`,
+        getErrorStack(error),
+      );
 
       // Mettre à jour le statut d'erreur
-      await this.updateDesignStatus(designId, 'FAILED', error.message);
+      await this.updateDesignStatus(designId, DesignStatus.FAILED, message);
 
       // Déclencher les webhooks d'erreur
-      await this.triggerErrorWebhooks(designId, brandId, error.message);
+      await this.triggerErrorWebhooks(designId, brandId, message);
 
-      throw error;
+      throw error instanceof Error ? error : new Error(message);
     }
   }
 
-  @Process('validate-design')
-  async validateDesign(job: Job<DesignJobData>) {
-    const { designId, productId, options, rules } = job.data;
+  private async validateDesign(job: Job<DesignJobData>) {
+    const { designId, productId, brandId, userId, options, rules } = job.data;
+    const normalizedOptions = this.normalizeDesignOptions(options);
 
     try {
       this.logger.log(`Validating design ${designId}`);
@@ -141,22 +191,22 @@ export class DesignWorker {
       // Valider avec le moteur de règles
       const validationContext = {
         productId,
-        brandId: job.data.brandId,
-        userId: job.data.userId,
-        options,
+        brandId,
+        userId,
+        options: normalizedOptions,
         rules,
       };
 
-      const validationResult = await this.validationEngine.validateDesign(validationContext);
+      const validationResult = await this.validateDesignRules(validationContext);
 
       // Mettre à jour le design avec les résultats de validation
       await this.prisma.design.update({
         where: { id: designId },
         data: {
-          metadata: {
-            validation: validationResult as any,
-            validatedAt: new Date(),
-          } as any,
+          metadata: this.toJsonObject({
+            validation: this.toJson(validationResult),
+            validatedAt: new Date().toISOString(),
+          }),
         },
       });
 
@@ -166,39 +216,43 @@ export class DesignWorker {
       };
 
     } catch (error) {
-      this.logger.error(`Design validation failed for ${designId}:`, error);
-      throw error;
+      const message = getErrorMessage(error);
+      this.logger.error(
+        `Design validation failed for ${designId}: ${message}`,
+        getErrorStack(error),
+      );
+      throw error instanceof Error ? error : new Error(message);
     }
   }
 
-  @Process('optimize-design')
-  async optimizeDesign(job: Job<DesignJobData>) {
+  private async optimizeDesign(job: Job<DesignJobData>) {
     const { designId, productId, options } = job.data;
+    const normalizedOptions = this.normalizeDesignOptions(options);
 
     try {
       this.logger.log(`Optimizing design ${designId}`);
 
       // Analyser les performances du design
-      const performanceAnalysis = await this.analyzeDesignPerformance(designId, options);
+      const performanceAnalysis = await this.analyzeDesignPerformance(designId, normalizedOptions);
 
       // Optimiser les options selon les règles
-      const optimizedOptions = await this.optimizeDesignOptions(options, performanceAnalysis);
+      const optimizedOptions = await this.optimizeDesignOptions(normalizedOptions, performanceAnalysis);
 
       // Générer des suggestions d'amélioration
-      const suggestions = await this.generateOptimizationSuggestions(designId, options, optimizedOptions);
+      const suggestions = await this.generateOptimizationSuggestions(designId, normalizedOptions, optimizedOptions);
 
       // Mettre à jour le design avec les optimisations
       await this.prisma.design.update({
         where: { id: designId },
         data: {
-          options: optimizedOptions as any,
-          metadata: {
+          options: this.toJson(optimizedOptions),
+          metadata: this.toJsonObject({
             optimization: {
-              suggestions,
-              performanceAnalysis,
-              optimizedAt: new Date(),
+              suggestions: this.toJson(suggestions),
+              performanceAnalysis: this.toJson(performanceAnalysis),
+              optimizedAt: new Date().toISOString(),
             },
-          } as any,
+          }),
         },
       });
 
@@ -210,23 +264,20 @@ export class DesignWorker {
       };
 
     } catch (error) {
-      this.logger.error(`Design optimization failed for ${designId}:`, error);
-      throw error;
+      const message = getErrorMessage(error);
+      this.logger.error(
+        `Design optimization failed for ${designId}: ${message}`,
+        getErrorStack(error),
+      );
+      throw error instanceof Error ? error : new Error(message);
     }
   }
 
   /**
    * Valide les règles du design
    */
-  private async validateDesignRules(productId: string, options: any, rules: any) {
-    const validationContext = {
-      productId,
-      brandId: '', // Sera rempli par le job
-      options,
-      rules,
-    };
-
-    return this.validationEngine.validateDesign(validationContext);
+  private async validateDesignRules(context: ZoneValidationContext): Promise<ValidationResult> {
+    return this.validationEngine.validateDesign(context);
   }
 
   /**
@@ -261,7 +312,7 @@ export class DesignWorker {
   /**
    * Génère avec l'IA
    */
-  private async generateWithAI(prompt: string, options: any, rules: any): Promise<AIGenerationResult> {
+  private async generateWithAI(prompt: string, options: DesignOptions, rules: ProductRules): Promise<AIGenerationResult> {
     const startTime = Date.now();
 
     try {
@@ -305,13 +356,13 @@ export class DesignWorker {
   /**
    * Sélectionne le modèle IA approprié
    */
-  private selectAIModel(options: any, rules: any): string {
+  private selectAIModel(options: DesignOptions, _rules: ProductRules): string {
     // Logique de sélection du modèle selon les besoins
     if (options.quality === 'ultra') {
       return 'dall-e-3';
     } else if (options.quality === 'high') {
       return 'midjourney-v6';
-    } else if (rules.zones?.some((zone: any) => zone.type === '3d')) {
+    } else if (this.hasZoneType(options, '3d')) {
       return 'stable-diffusion-3d';
     } else {
       return 'stable-diffusion-xl';
@@ -321,7 +372,7 @@ export class DesignWorker {
   /**
    * Prépare les paramètres de génération
    */
-  private prepareGenerationParams(prompt: string, options: any, model: string): any {
+  private prepareGenerationParams(prompt: string, options: DesignOptions, model: string): Record<string, unknown> {
     const baseParams = {
       prompt,
       num_images: options.numImages || 1,
@@ -354,7 +405,12 @@ export class DesignWorker {
   /**
    * Appelle l'API IA
    */
-  private async callAIAPI(model: string, params: any): Promise<any> {
+  private async callAIAPI(model: string, params: Record<string, unknown>): Promise<{
+    images: Array<{ url: string; width: number; height: number; format: string }>;
+    usage: { total_tokens: number; credits: number };
+    seed: number;
+    version: string;
+  }> {
     // Simulation d'appel API
     // En production, utiliser les vraies APIs (OpenAI, Stability AI, etc.)
     
@@ -384,7 +440,11 @@ export class DesignWorker {
   /**
    * Appelle l'API de modération
    */
-  private async callModerationAPI(prompt: string): Promise<any> {
+  private async callModerationAPI(prompt: string): Promise<{
+    flagged: boolean;
+    confidence: number;
+    categories: string[];
+  }> {
     // Simulation de modération
     // En production, utiliser OpenAI Moderation API
     
@@ -400,7 +460,9 @@ export class DesignWorker {
   /**
    * Traite la réponse IA
    */
-  private async processAIResponse(response: any): Promise<Array<{
+  private async processAIResponse(response: {
+    images: Array<{ url: string; width: number; height: number; format: string }>;
+  }): Promise<Array<{
     url: string;
     width: number;
     height: number;
@@ -428,7 +490,10 @@ export class DesignWorker {
   /**
    * Post-traite les images générées
    */
-  private async postProcessImages(images: any[], options: any): Promise<any[]> {
+  private async postProcessImages(
+    images: Array<{ url: string; width: number; height: number; format: string; size: number }>,
+    options: DesignOptions
+  ): Promise<Array<{ url: string; width: number; height: number; format: string; size: number; processed?: boolean; effects?: string[] }>> {
     const processedImages = [];
 
     for (const image of images) {
@@ -448,7 +513,10 @@ export class DesignWorker {
   /**
    * Applique les post-traitements
    */
-  private async applyPostProcessing(image: any, options: any): Promise<any> {
+  private async applyPostProcessing(
+    image: { url: string; width: number; height: number; format: string; size: number },
+    options: DesignOptions
+  ): Promise<{ url: string; width: number; height: number; format: string; size: number; processed: boolean; effects: string[] }> {
     // Simulation de post-traitement
     // En production, utiliser Sharp ou équivalent
     
@@ -462,7 +530,10 @@ export class DesignWorker {
   /**
    * Upload les assets vers S3
    */
-  private async uploadAssets(images: any[], designId: string): Promise<any[]> {
+  private async uploadAssets(
+    images: Array<{ url: string; width: number; height: number; format: string; size: number }>,
+    designId: string
+  ): Promise<Array<{ url: string | { Location: string }; filename: string; size: number; format: string; width: number; height: number; index: number }>> {
     const uploadedAssets = [];
 
     for (let i = 0; i < images.length; i++) {
@@ -488,7 +559,7 @@ export class DesignWorker {
         );
 
         uploadedAssets.push({
-          url: uploadResult as any,
+          url: uploadResult,
           filename,
           size: imageBuffer.length,
           format: image.format,
@@ -520,21 +591,31 @@ export class DesignWorker {
   /**
    * Crée les enregistrements d'assets
    */
-  private async createAssetRecords(designId: string, assets: any[]): Promise<void> {
+  private async createAssetRecords(
+    designId: string,
+    assets: Array<{ url: string | { Location: string }; filename: string; size: number; format: string; width: number; height: number; index: number }>
+  ): Promise<void> {
     for (const asset of assets) {
+      const assetUrl = typeof asset.url === 'string' ? asset.url : asset.url.Location;
+      const assetType = ['glb', 'gltf', 'usdz'].includes(asset.format.toLowerCase()) ? 'model' : 'image';
+
       await this.prisma.asset.create({
         data: {
-          designId: designId as any,
-          url: asset.url,
-          type: asset.format,
-          metadata: {
+          designId,
+          url: assetUrl,
+          type: assetType,
+          format: asset.format,
+          size: asset.size,
+          width: asset.width,
+          height: asset.height,
+          metadata: this.toJsonObject({
             filename: asset.filename,
-            size: asset.size,
+            originalUrl: assetUrl,
             width: asset.width,
             height: asset.height,
             index: asset.index,
-          } as any,
-        } as any,
+          }),
+        },
       });
     }
   }
@@ -542,7 +623,39 @@ export class DesignWorker {
   /**
    * Met à jour le design avec les résultats
    */
-  private async updateDesignWithResults(designId: string, data: any): Promise<void> {
+  private async updateDesignWithResults(
+    designId: string,
+    data: {
+      status: DesignStatus;
+      optionsJson: Prisma.InputJsonValue;
+      metadata: Prisma.JsonObject;
+    },
+  ): Promise<void> {
+    const updateData: Prisma.DesignUpdateInput = {
+      status: data.status,
+      optionsJson: data.optionsJson,
+      metadata: data.metadata,
+    };
+
+    await this.prisma.design.update({
+      where: { id: designId },
+      data: updateData,
+    });
+  }
+
+  /**
+   * Met à jour le statut du design
+   */
+  private async updateDesignStatus(designId: string, status: DesignStatus, error?: string): Promise<void> {
+    const data: Prisma.DesignUpdateInput = { status };
+
+    if (error) {
+      data.metadata = this.toJsonObject({
+        error,
+        failedAt: new Date().toISOString(),
+      });
+    }
+
     await this.prisma.design.update({
       where: { id: designId },
       data,
@@ -550,22 +663,9 @@ export class DesignWorker {
   }
 
   /**
-   * Met à jour le statut du design
-   */
-  private async updateDesignStatus(designId: string, status: string, error?: string): Promise<void> {
-    await this.prisma.design.update({
-      where: { id: designId },
-      data: {
-        status: status as any,
-        ...(error && { metadata: { error, failedAt: new Date() } as any }),
-      },
-    });
-  }
-
-  /**
    * Calcule le coût
    */
-  private calculateCost(usage: any): number {
+  private calculateCost(usage: { total_tokens?: number; credits?: number }): number {
     // Logique de calcul des coûts
     return (usage?.total_tokens || 0) * 0.0001 + (usage?.credits || 0) * 0.01;
   }
@@ -573,7 +673,12 @@ export class DesignWorker {
   /**
    * Analyse les performances du design
    */
-  private async analyzeDesignPerformance(designId: string, options: any): Promise<any> {
+  private async analyzeDesignPerformance(designId: string, options: DesignOptions): Promise<{
+    complexity: number;
+    estimatedRenderTime: number;
+    resourceUsage: { memory: number; cpu: number; gpu: number };
+    qualityScore: number;
+  }> {
     // Simulation d'analyse de performance
     return {
       complexity: this.calculateComplexity(options),
@@ -586,7 +691,7 @@ export class DesignWorker {
   /**
    * Calcule la complexité
    */
-  private calculateComplexity(options: any): number {
+  private calculateComplexity(options: DesignOptions): number {
     let complexity = 1;
     
     if (options.zones) {
@@ -603,7 +708,7 @@ export class DesignWorker {
   /**
    * Estime le temps de rendu
    */
-  private estimateRenderTime(options: any): number {
+  private estimateRenderTime(options: DesignOptions): number {
     const baseTime = 2000; // 2 secondes de base
     const complexity = this.calculateComplexity(options);
     return baseTime * complexity;
@@ -612,7 +717,7 @@ export class DesignWorker {
   /**
    * Estime l'utilisation des ressources
    */
-  private estimateResourceUsage(options: any): any {
+  private estimateResourceUsage(options: DesignOptions): { memory: number; cpu: number; gpu: number } {
     return {
       memory: this.calculateComplexity(options) * 100, // MB
       cpu: this.calculateComplexity(options) * 10, // %
@@ -623,7 +728,7 @@ export class DesignWorker {
   /**
    * Calcule le score de qualité
    */
-  private calculateQualityScore(options: any): number {
+  private calculateQualityScore(options: DesignOptions): number {
     let score = 0.5;
     
     if (options.quality === 'ultra') score += 0.3;
@@ -638,7 +743,10 @@ export class DesignWorker {
   /**
    * Optimise les options du design
    */
-  private async optimizeDesignOptions(options: any, performanceAnalysis: any): Promise<any> {
+  private async optimizeDesignOptions(
+    options: DesignOptions,
+    performanceAnalysis: { complexity: number; estimatedRenderTime: number; resourceUsage: { memory: number; cpu: number; gpu: number }; qualityScore: number }
+  ): Promise<DesignOptions> {
     const optimized = { ...options };
     
     // Optimisations basées sur l'analyse de performance
@@ -662,24 +770,169 @@ export class DesignWorker {
   /**
    * Génère des suggestions d'optimisation
    */
-  private async generateOptimizationSuggestions(designId: string, originalOptions: any, optimizedOptions: any): Promise<string[]> {
-    const suggestions = [];
-    
-    if (originalOptions.quality !== optimizedOptions.quality) {
+  private async generateOptimizationSuggestions(designId: string, originalOptions: DesignOptions, optimizedOptions: DesignOptions): Promise<string[]> {
+    const suggestions: string[] = [];
+    const originalEffects = originalOptions.effects ?? [];
+    const optimizedEffects = optimizedOptions.effects ?? [];
+
+    if (originalOptions.quality && optimizedOptions.quality && originalOptions.quality !== optimizedOptions.quality) {
       suggestions.push(`Qualité réduite de ${originalOptions.quality} à ${optimizedOptions.quality} pour améliorer les performances`);
     }
     
-    if (originalOptions.effects?.length > optimizedOptions.effects?.length) {
-      suggestions.push(`${originalOptions.effects.length - optimizedOptions.effects.length} effet(s) supprimé(s) pour réduire la complexité`);
+    if (originalEffects.length > optimizedEffects.length) {
+      suggestions.push(`${originalEffects.length - optimizedEffects.length} effet(s) supprimé(s) pour réduire la complexité`);
     }
     
     return suggestions;
   }
 
   /**
+   * Normalise les options de design brutes pour garantir la compatibilité avec Prisma et les moteurs de validation.
+   */
+  private normalizeDesignOptions(options: RawDesignOptions): DesignOptions {
+    const { zones, effects, ...rest } = options;
+    const normalized = { ...(rest as Record<string, unknown>) } as DesignOptions;
+
+    const normalizedEffects = this.ensureStringArray(effects);
+    normalized.effects = normalizedEffects;
+
+    const { record, types } = this.normalizeZones(zones);
+    if (record) {
+      normalized.zones = record;
+    }
+    if (types.length > 0) {
+      normalized.zoneTypes = types;
+    }
+
+    return normalized;
+  }
+
+  private normalizeZones(zones?: RawDesignZone[]): { record?: Record<string, DesignZoneOption>; types: string[] } {
+    if (!zones || zones.length === 0) {
+      return { record: undefined, types: [] };
+    }
+
+    const record: Record<string, DesignZoneOption> = {};
+    const types: string[] = [];
+
+    zones.forEach((zone, index) => {
+      const zoneId = typeof zone.id === 'string' ? zone.id : `zone_${index}`;
+      const zoneType = typeof zone.type === 'string' ? zone.type.toLowerCase() : undefined;
+      const normalizedZone = this.normalizeZone(zone);
+      record[zoneId] = normalizedZone;
+      if (zoneType) {
+        types.push(zoneType);
+      }
+    });
+
+    return {
+      record: Object.keys(record).length > 0 ? record : undefined,
+      types,
+    };
+  }
+
+  private normalizeZone(zone: RawDesignZone): DesignZoneOption {
+    const zoneType = typeof zone.type === 'string' ? zone.type.toLowerCase() : undefined;
+
+    switch (zoneType) {
+      case 'text':
+        return {
+          text: this.getString(zone, 'text'),
+          font: this.getString(zone, 'font'),
+          effects: this.getStringArray(zone, 'effects'),
+        };
+
+      case 'color':
+        return {
+          color: this.getString(zone, 'color'),
+          gradient: this.getBoolean(zone, 'gradient'),
+        };
+
+      case 'select':
+        return {
+          value: this.getString(zone, 'value'),
+        };
+
+      case 'image':
+      case '3d':
+      default:
+        return {
+          imageUrl: this.getString(zone, 'imageUrl') ?? this.getString(zone, 'url'),
+          imageFile: zone.imageFile,
+          mimeType: this.getString(zone, 'mimeType'),
+          width: this.getNumber(zone, 'width'),
+          height: this.getNumber(zone, 'height'),
+          hasTransparency: this.getBoolean(zone, 'hasTransparency'),
+          quality: this.getNumber(zone, 'quality'),
+          effects: this.getStringArray(zone, 'effects'),
+        };
+    }
+  }
+
+  private getString(source: Record<string, unknown>, key: string): string | undefined {
+    const value = source[key];
+    return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+  }
+
+  private getNumber(source: Record<string, unknown>, key: string): number | undefined {
+    const value = source[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    }
+    return undefined;
+  }
+
+  private getBoolean(source: Record<string, unknown>, key: string): boolean | undefined {
+    const value = source[key];
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      if (value.toLowerCase() === 'true') return true;
+      if (value.toLowerCase() === 'false') return false;
+    }
+    return undefined;
+  }
+
+  private getStringArray(source: Record<string, unknown>, key: string): string[] | undefined {
+    const value = source[key];
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+    const result = value.filter((item): item is string => typeof item === 'string');
+    return result.length > 0 ? result : undefined;
+  }
+
+  private ensureStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+
+  private hasZoneType(options: DesignOptions, type: string): boolean {
+    return Array.isArray(options.zoneTypes) && options.zoneTypes.includes(type);
+  }
+
+  private toJson(value: unknown): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  }
+
+  private toJsonObject(value: Record<string, unknown>): Prisma.JsonObject {
+    return JSON.parse(JSON.stringify(value)) as Prisma.JsonObject;
+  }
+
+  /**
    * Met en cache les résultats du design
    */
-  private async cacheDesignResults(designId: string, assets: any[]): Promise<void> {
+  private async cacheDesignResults(
+    designId: string,
+    assets: Array<{ url: string | { Location: string }; filename: string; size: number; format: string; width: number; height: number; index: number }>
+  ): Promise<void> {
     const cacheKey = `design_results:${designId}`;
     const cacheData = {
       assets,
@@ -692,7 +945,11 @@ export class DesignWorker {
   /**
    * Déclenche les webhooks de succès
    */
-  private async triggerSuccessWebhooks(designId: string, brandId: string, assets: any[]): Promise<void> {
+  private async triggerSuccessWebhooks(
+    designId: string,
+    brandId: string,
+    assets: Array<{ url: string | { Location: string }; filename: string; size: number; format: string; width: number; height: number; index: number }>
+  ): Promise<void> {
     // Implémentation des webhooks de succès
     this.logger.log(`Triggering success webhooks for design ${designId}`);
   }

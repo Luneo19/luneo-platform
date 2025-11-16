@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig/node.json",
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": []
+  },
+  "include": ["src"],
+  "files": ["src/index.ts", "src/plans.ts", "src/types.ts"],
+  "exclude": ["dist", "node_modules"]
+}
+

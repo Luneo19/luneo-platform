@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tempo-secondary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: tracing
+    luneo.io/region: us-east-1
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+    namespace: luneo-observability
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 1.10.1
+    chart: tempo
+    helm:
+      releaseName: tempo
+      values: |
+        storage:
+          trace:
+            backend: s3
+            s3:
+              bucket: luneo-observability-tempo-secondary
+              endpoint: s3.us-east-1.amazonaws.com
+              region: us-east-1
+        ingester:
+          replicas: 1
+        compactor:
+          enabled: true
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+

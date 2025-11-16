@@ -1,8 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma, UsageMetric as PrismaUsageMetric } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { UsageMeteringService } from './usage-metering.service';
 import { UsageMetricType } from '../interfaces/usage.interface';
+
+export interface UsageMetricAggregation {
+  count: number;
+  total: number;
+}
+
+export type UsageStatsResult = {
+  period: 'day' | 'month' | 'year';
+  startDate: Date;
+  endDate: Date;
+  metrics: Record<UsageMetricType, UsageMetricAggregation>;
+};
 
 /**
  * Service de tracking d'usage
@@ -14,62 +26,81 @@ export class UsageTrackingService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cache: SmartCacheService,
     private readonly meteringService: UsageMeteringService,
   ) {}
+
+  private formatError(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
+  }
+
+  /**
+   * Créer un bloc de métadonnées commun
+   */
+  private buildMetadata(extra: Record<string, string | number | boolean | null>): Record<string, string | number | boolean | null> {
+    return {
+      ...extra,
+      timestamp: new Date().toISOString(),
+    };
+  }
 
   /**
    * Track la création d'un design
    */
   async trackDesignCreated(brandId: string, designId: string): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'designs_created', 1, {
-      designId,
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(
+      brandId,
+      'designs_created',
+      1,
+      this.buildMetadata({ designId }),
+    );
   }
 
   /**
    * Track un rendu 2D
    */
   async trackRender2D(brandId: string, designId: string, format: string): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'renders_2d', 1, {
-      designId,
-      format,
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(
+      brandId,
+      'renders_2d',
+      1,
+      this.buildMetadata({ designId, format }),
+    );
   }
 
   /**
    * Track un rendu 3D
    */
   async trackRender3D(brandId: string, designId: string, format: string): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'renders_3d', 1, {
-      designId,
-      format,
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(
+      brandId,
+      'renders_3d',
+      1,
+      this.buildMetadata({ designId, format }),
+    );
   }
 
   /**
    * Track un export GLTF
    */
   async trackExportGLTF(brandId: string, designId: string): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'exports_gltf', 1, {
-      designId,
-      format: 'gltf',
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(
+      brandId,
+      'exports_gltf',
+      1,
+      this.buildMetadata({ designId, format: 'gltf' }),
+    );
   }
 
   /**
    * Track un export USDZ
    */
   async trackExportUSDZ(brandId: string, designId: string): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'exports_usdz', 1, {
-      designId,
-      format: 'usdz',
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(
+      brandId,
+      'exports_usdz',
+      1,
+      this.buildMetadata({ designId, format: 'usdz' }),
+    );
   }
 
   /**
@@ -81,30 +112,26 @@ export class UsageTrackingService {
     model: string,
     cost: number,
   ): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'ai_generations', 1, {
-      designId,
-      model,
-      cost,
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(
+      brandId,
+      'ai_generations',
+      1,
+      this.buildMetadata({ designId, model, cost }),
+    );
   }
 
   /**
    * Track le stockage (GB)
    */
   async trackStorage(brandId: string, sizeGB: number): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'storage_gb', sizeGB, {
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(brandId, 'storage_gb', sizeGB, this.buildMetadata({}));
   }
 
   /**
    * Track la bande passante (GB)
    */
   async trackBandwidth(brandId: string, sizeGB: number): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'bandwidth_gb', sizeGB, {
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(brandId, 'bandwidth_gb', sizeGB, this.buildMetadata({}));
   }
 
   /**
@@ -115,11 +142,12 @@ export class UsageTrackingService {
     endpoint: string,
     method: string,
   ): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'api_calls', 1, {
-      endpoint,
-      method,
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(
+      brandId,
+      'api_calls',
+      1,
+      this.buildMetadata({ endpoint, method }),
+    );
   }
 
   /**
@@ -130,11 +158,12 @@ export class UsageTrackingService {
     webhookId: string,
     topic: string,
   ): Promise<void> {
-    await this.meteringService.recordUsage(brandId, 'webhook_deliveries', 1, {
-      webhookId,
-      topic,
-      timestamp: new Date().toISOString(),
-    });
+    await this.meteringService.recordUsage(
+      brandId,
+      'webhook_deliveries',
+      1,
+      this.buildMetadata({ webhookId, topic }),
+    );
   }
 
   /**
@@ -158,10 +187,7 @@ export class UsageTrackingService {
 
       return estimatedSizeGB;
     } catch (error) {
-      this.logger.error(
-        `Failed to calculate storage: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to calculate storage: ${this.formatError(error)}`);
       return 0;
     }
   }
@@ -169,7 +195,7 @@ export class UsageTrackingService {
   /**
    * Récupérer les stats d'usage pour un brand
    */
-  async getUsageStats(brandId: string, period: 'day' | 'month' | 'year') {
+  async getUsageStats(brandId: string, period: 'day' | 'month' | 'year'): Promise<UsageStatsResult> {
     try {
       const now = new Date();
       let startDate: Date;
@@ -189,6 +215,9 @@ export class UsageTrackingService {
           startDate.setMonth(0, 1);
           startDate.setHours(0, 0, 0, 0);
           break;
+        default:
+          startDate = new Date(now);
+          startDate.setHours(0, 0, 0, 0);
       }
 
       const usageRecords = await this.prisma.usageMetric.findMany({
@@ -201,13 +230,16 @@ export class UsageTrackingService {
       });
 
       // Agréger par métrique
-      const stats: Record<string, { count: number; total: number }> = {};
+      const stats: Record<UsageMetricType, UsageMetricAggregation> = {} as Record<
+        UsageMetricType,
+        UsageMetricAggregation
+      >;
       for (const record of usageRecords) {
-        if (!stats[record.metric]) {
-          stats[record.metric] = { count: 0, total: 0 };
-        }
-        stats[record.metric].count++;
-        stats[record.metric].total += record.value;
+        const metric = record.metric as UsageMetricType;
+        const metricStats = stats[metric] ?? { count: 0, total: 0 };
+        metricStats.count += 1;
+        metricStats.total += record.value;
+        stats[metric] = metricStats;
       }
 
       return {
@@ -217,11 +249,8 @@ export class UsageTrackingService {
         metrics: stats,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to get usage stats: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to get usage stats: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
@@ -231,13 +260,13 @@ export class UsageTrackingService {
   async getUsageHistory(
     brandId: string,
     metric?: UsageMetricType,
-    limit: number = 100,
-  ) {
+    limit = 100,
+  ): Promise<PrismaUsageMetric[]> {
     try {
-      const where: any = { brandId };
-      if (metric) {
-        where.metric = metric;
-      }
+      const where: Prisma.UsageMetricWhereInput = {
+        brandId,
+        ...(metric ? { metric } : {}),
+      };
 
       const records = await this.prisma.usageMetric.findMany({
         where,
@@ -247,11 +276,8 @@ export class UsageTrackingService {
 
       return records;
     } catch (error) {
-      this.logger.error(
-        `Failed to get usage history: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to get usage history: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 }

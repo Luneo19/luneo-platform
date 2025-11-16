@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { getErrorMessage, getErrorStack } from '@/common/utils/error.utils';
 
 export interface SMTPEmailOptions {
   to: string | string[];
@@ -23,10 +24,10 @@ export interface SMTPEmailOptions {
 @Injectable()
 export class SMTPService {
   private readonly logger = new Logger(SMTPService.name);
-  private transporter: nodemailer.Transporter;
+  private transporter!: nodemailer.Transporter;
   private smtpAvailable = false;
-  private defaultFrom: string;
-  private defaultReplyTo: string;
+  private defaultFrom = '';
+  private defaultReplyTo = '';
 
   constructor(private configService: ConfigService) {
     this.initializeSMTP();
@@ -38,8 +39,8 @@ export class SMTPService {
     const smtpPort = this.configService.get<number>('emailDomain.smtpPort');
     const smtpSecure = this.configService.get<boolean>('emailDomain.smtpSecure');
     
-    this.defaultFrom = this.configService.get<string>('emailDomain.smtpFrom');
-    this.defaultReplyTo = this.configService.get<string>('emailDomain.sendgridReplyTo');
+    this.defaultFrom = this.configService.get<string>('emailDomain.smtpFrom') ?? 'no-reply@luneo.app';
+    this.defaultReplyTo = this.configService.get<string>('emailDomain.sendgridReplyTo') ?? this.defaultFrom;
 
     if (!sendgridApiKey) {
       this.logger.warn('SendGrid API key not configured. SMTP service will not be available.');
@@ -65,8 +66,11 @@ export class SMTPService {
 
       this.smtpAvailable = true;
       this.logger.log(`SMTP service initialized with ${smtpHost}:${smtpPort}`);
-    } catch (error) {
-      this.logger.error('Failed to initialize SMTP service:', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to initialize SMTP service: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
     }
   }
 
@@ -116,9 +120,12 @@ export class SMTPService {
       
       this.logger.log(`Email sent successfully via SMTP to ${options.to}`);
       return result;
-    } catch (error) {
-      this.logger.error('Failed to send email via SMTP:', error);
-      throw error;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to send email via SMTP: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
+      throw error instanceof Error ? error : new Error(getErrorMessage(error));
     }
   }
 

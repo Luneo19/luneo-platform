@@ -1,26 +1,39 @@
 {
   "name": "@luneo/types",
   "version": "1.0.0",
-  "description": "Types TypeScript partagés pour Luneo",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "Shared TypeScript types for Luneo Platform",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit",
-    "lint": "eslint src/"
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "type-check": "tsc --noEmit"
   },
+  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "eslint": "^8.0.0"
-  }
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "types",
+    "typescript",
+    "luneo",
+    "shared"
+  ],
+  "author": "Luneo Team",
+  "license": "MIT"
 }
-
-

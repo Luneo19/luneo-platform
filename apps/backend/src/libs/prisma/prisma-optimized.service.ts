@@ -1,10 +1,18 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { RedisOptimizedService } from '../redis/redis-optimized.service';
+
+interface PrismaCacheOptions {
+  cacheType?: string;
+  ttl?: number;
+  tags?: string[];
+}
 
 @Injectable()
 export class PrismaOptimizedService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaOptimizedService.name);
+  private readonly slowQueryThreshold =
+    Number(process.env.PRISMA_SLOW_QUERY_THRESHOLD_MS ?? 250);
 
   constructor(private readonly redisService: RedisOptimizedService) {
     super({
@@ -15,6 +23,20 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
       },
       log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
       errorFormat: 'pretty',
+    });
+
+    this.$use(async (params, next) => {
+      const start = Date.now();
+      const result = await next(params);
+      const duration = Date.now() - start;
+      if (duration >= this.slowQueryThreshold) {
+        this.logger.warn(
+          `Slow query (${duration} ms) on ${params.model}.${params.action} -- params: ${JSON.stringify(
+            params.args,
+          )}`,
+        );
+      }
+      return result;
     });
   }
 
@@ -36,9 +58,9 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
     model: any,
     args: any,
     cacheKey: string,
-    cacheType: string = 'api',
-    ttl?: number
+    options: PrismaCacheOptions = {},
   ): Promise<T[]> {
+    const cacheType = options.cacheType ?? 'api';
     try {
       // Essayer de récupérer depuis le cache
       const cached = await this.redisService.get<T[]>(cacheKey, cacheType);
@@ -52,7 +74,10 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
       const result = await model.findMany(args);
 
       // Mettre en cache le résultat
-      await this.redisService.set(cacheKey, result, cacheType, { ttl });
+      await this.redisService.set(cacheKey, result, cacheType, {
+        ttl: options.ttl,
+        tags: options.tags,
+      });
 
       return result;
     } catch (error) {
@@ -68,9 +93,9 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
     model: any,
     args: any,
     cacheKey: string,
-    cacheType: string = 'api',
-    ttl?: number
+    options: PrismaCacheOptions = {},
   ): Promise<T | null> {
+    const cacheType = options.cacheType ?? 'api';
     try {
       // Essayer de récupérer depuis le cache
       const cached = await this.redisService.get<T>(cacheKey, cacheType);
@@ -84,7 +109,10 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
       const result = await model.findUnique(args);
 
       // Mettre en cache le résultat (même si null)
-      await this.redisService.set(cacheKey, result, cacheType, { ttl });
+      await this.redisService.set(cacheKey, result, cacheType, {
+        ttl: options.ttl,
+        tags: options.tags,
+      });
 
       return result;
     } catch (error) {
@@ -100,9 +128,9 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
     model: any,
     args: any,
     cacheKey: string,
-    cacheType: string = 'api',
-    ttl?: number
+    options: PrismaCacheOptions = {},
   ): Promise<number> {
+    const cacheType = options.cacheType ?? 'api';
     try {
       // Essayer de récupérer depuis le cache
       const cached = await this.redisService.get<number>(cacheKey, cacheType);
@@ -116,7 +144,10 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
       const result = await model.count(args);
 
       // Mettre en cache le résultat
-      await this.redisService.set(cacheKey, result, cacheType, { ttl });
+      await this.redisService.set(cacheKey, result, cacheType, {
+        ttl: options.ttl,
+        tags: options.tags,
+      });
 
       return result;
     } catch (error) {
@@ -132,9 +163,9 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
     model: any,
     args: any,
     cacheKey: string,
-    cacheType: string = 'analytics',
-    ttl?: number
+    options: PrismaCacheOptions = {},
   ): Promise<any> {
+    const cacheType = options.cacheType ?? 'analytics';
     try {
       // Essayer de récupérer depuis le cache
       const cached = await this.redisService.get(cacheKey, cacheType);
@@ -148,7 +179,10 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
       const result = await model.aggregate(args);
 
       // Mettre en cache le résultat
-      await this.redisService.set(cacheKey, result, cacheType, { ttl });
+      await this.redisService.set(cacheKey, result, cacheType, {
+        ttl: options.ttl,
+        tags: options.tags,
+      });
 
       return result;
     } catch (error) {
@@ -173,10 +207,10 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
    * Transaction with cache invalidation
    */
   async transactionWithCacheInvalidation<T>(
-    fn: (tx: PrismaClient) => Promise<T>,
-    invalidatePatterns: string[] = []
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+    invalidatePatterns: string[] = [],
   ): Promise<T> {
-    const result = await this.$transaction(fn);
+    const result = await this.$transaction(async (tx) => fn(tx));
 
     // Invalider le cache après la transaction
     for (const pattern of invalidatePatterns) {
@@ -198,22 +232,22 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
         return cached;
       }
 
-      const [designsCount, ordersCount, revenue, usersCount] = await Promise.all([
+      const [designsCount, ordersCount, revenue, usersCount] = await this.$transaction([
         this.design.count({ where: { brandId } }),
-        this.order.count({ 
-          where: { 
-            brandId, 
-            status: { in: ['PAID', 'DELIVERED'] } 
-          } 
+        this.order.count({
+          where: {
+            brandId,
+            status: { in: ['PAID', 'DELIVERED'] },
+          },
         }),
         this.order.aggregate({
-          where: { 
-            brandId, 
-            status: { in: ['PAID', 'DELIVERED'] } 
+          where: {
+            brandId,
+            status: { in: ['PAID', 'DELIVERED'] },
           },
-          _sum: { totalCents: true }
+          _sum: { totalCents: true },
         }),
-        this.user.count({ where: { brandId } })
+        this.user.count({ where: { brandId } }),
       ]);
 
       const metrics = {
@@ -225,7 +259,10 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
       };
 
       // Cache pour 5 minutes
-      await this.redisService.set(cacheKey, metrics, 'analytics', { ttl: 300 });
+      await this.redisService.set(cacheKey, metrics, 'analytics', {
+        ttl: 300,
+        tags: [`brand:${brandId}`],
+      });
 
       return metrics;
     } catch (error) {
@@ -297,7 +334,10 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
       };
 
       // Cache pour 2 heures
-      await this.redisService.set(cacheKey, result, 'product', { ttl: 7200 });
+      await this.redisService.set(cacheKey, result, 'product', {
+        ttl: 7200,
+        tags: [`brand:${brandId}`, 'products'],
+      });
 
       return result;
     } catch (error) {

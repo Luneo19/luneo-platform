@@ -1,13 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { 
-  ValidationResult, 
-  ValidationError, 
+import {
+  ValidationResult,
+  ValidationError,
   ValidationWarning,
   DesignOptions,
   ProductRules,
-  ZoneValidationContext
+  ZoneValidationContext,
+  ProductZone,
+  DesignImageZoneOptions,
+  DesignTextZoneOptions,
+  DesignColorZoneOptions,
+  DesignSelectZoneOptions,
+  DesignZoneOption,
+  CompatibilityCondition,
 } from '../interfaces/product-rules.interface';
 
 @Injectable()
@@ -89,10 +96,12 @@ export class ValidationEngine {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
+    const zoneOptionsMap = context.options.zones ?? {};
+
     for (const zone of context.rules.zones) {
-      const zoneOptions = context.options.zones[zone.id];
+      const zoneOption = zoneOptionsMap[zone.id];
       
-      if (!zoneOptions && zone.constraints?.required) {
+      if (!zoneOption && zone.constraints?.required) {
         errors.push({
           code: 'ZONE_REQUIRED',
           message: `La zone "${zone.label}" est obligatoire`,
@@ -102,25 +111,25 @@ export class ValidationEngine {
         continue;
       }
 
-      if (zoneOptions) {
+      if (zoneOption) {
         // Validation spécifique au type de zone
         switch (zone.type) {
           case 'image':
-            this.validateImageZone(zone, zoneOptions, errors, warnings);
+            this.validateImageZone(zone, this.ensureImageZoneOptions(zoneOption), errors, warnings);
             break;
           case 'text':
-            this.validateTextZone(zone, zoneOptions, errors, warnings);
+            this.validateTextZone(zone, this.ensureTextZoneOptions(zoneOption), errors, warnings);
             break;
           case 'color':
-            this.validateColorZone(zone, zoneOptions, errors, warnings);
+            this.validateColorZone(zone, this.ensureColorZoneOptions(zoneOption), errors, warnings);
             break;
           case 'select':
-            this.validateSelectZone(zone, zoneOptions, errors, warnings);
+            this.validateSelectZone(zone, this.ensureSelectZoneOptions(zoneOption), errors, warnings);
             break;
         }
 
         // Validation des contraintes communes
-        this.validateZoneConstraints(zone, zoneOptions, errors, warnings);
+        this.validateZoneConstraints(zone, zoneOption, errors, warnings);
       }
     }
 
@@ -131,10 +140,10 @@ export class ValidationEngine {
    * Valide une zone image
    */
   private validateImageZone(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: DesignImageZoneOptions,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    warnings: ValidationWarning[],
   ): void {
     // Vérifier la présence de l'image
     if (!options.imageUrl && !options.imageFile) {
@@ -194,10 +203,10 @@ export class ValidationEngine {
    * Valide une zone texte
    */
   private validateTextZone(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: DesignTextZoneOptions,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    warnings: ValidationWarning[],
   ): void {
     if (!options.text || typeof options.text !== 'string') {
       errors.push({
@@ -257,10 +266,10 @@ export class ValidationEngine {
    * Valide une zone couleur
    */
   private validateColorZone(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: DesignColorZoneOptions,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    warnings: ValidationWarning[],
   ): void {
     if (!options.color) {
       errors.push({
@@ -299,10 +308,10 @@ export class ValidationEngine {
    * Valide une zone de sélection
    */
   private validateSelectZone(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: DesignSelectZoneOptions,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    warnings: ValidationWarning[],
   ): void {
     if (!options.value) {
       errors.push({
@@ -315,7 +324,11 @@ export class ValidationEngine {
     }
 
     // Vérifier les options autorisées
-    const allowedOptions = zone.metadata?.options || [];
+    const metadataOptions = zone.metadata?.options;
+    const allowedOptions = Array.isArray(metadataOptions)
+      ? metadataOptions.filter((opt): opt is string => typeof opt === 'string')
+      : [];
+
     if (allowedOptions.length > 0 && !allowedOptions.includes(options.value)) {
       errors.push({
         code: 'INVALID_SELECTION',
@@ -330,35 +343,43 @@ export class ValidationEngine {
    * Valide les contraintes d'une zone
    */
   private validateZoneConstraints(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: DesignZoneOption,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    warnings: ValidationWarning[],
   ): void {
     if (!zone.constraints) return;
 
+    const { width, height } = this.extractDimensions(options);
+
     // Vérifier la taille minimale
-    if (zone.constraints.minSize && options.width && options.height) {
-      if (options.width < zone.constraints.minSize.w || options.height < zone.constraints.minSize.h) {
-        errors.push({
-          code: 'SIZE_TOO_SMALL',
-          message: `La taille est trop petite. Minimum: ${zone.constraints.minSize.w}x${zone.constraints.minSize.h}px`,
-          zone: zone.id,
-          severity: 'error'
-        });
-      }
+    if (
+      zone.constraints.minSize &&
+      width !== undefined &&
+      height !== undefined &&
+      (width < zone.constraints.minSize.w || height < zone.constraints.minSize.h)
+    ) {
+      errors.push({
+        code: 'SIZE_TOO_SMALL',
+        message: `La taille est trop petite. Minimum: ${zone.constraints.minSize.w}x${zone.constraints.minSize.h}px`,
+        zone: zone.id,
+        severity: 'error',
+      });
     }
 
     // Vérifier la taille maximale
-    if (zone.constraints.maxSize && options.width && options.height) {
-      if (options.width > zone.constraints.maxSize.w || options.height > zone.constraints.maxSize.h) {
-        errors.push({
-          code: 'SIZE_TOO_LARGE',
-          message: `La taille est trop grande. Maximum: ${zone.constraints.maxSize.w}x${zone.constraints.maxSize.h}px`,
-          zone: zone.id,
-          severity: 'error'
-        });
-      }
+    if (
+      zone.constraints.maxSize &&
+      width !== undefined &&
+      height !== undefined &&
+      (width > zone.constraints.maxSize.w || height > zone.constraints.maxSize.h)
+    ) {
+      errors.push({
+        code: 'SIZE_TOO_LARGE',
+        message: `La taille est trop grande. Maximum: ${zone.constraints.maxSize.w}x${zone.constraints.maxSize.h}px`,
+        zone: zone.id,
+        severity: 'error',
+      });
     }
   }
 
@@ -496,28 +517,25 @@ export class ValidationEngine {
         },
       });
 
-      if (brand) {
-        // Vérifier les limites du plan
-        if (brand.limits) {
-          const limits = brand.limits as any;
-          
-          // Limite de zones
-          if (limits.maxZonesPerDesign && context.rules.zones.length > limits.maxZonesPerDesign) {
-            errors.push({
-              code: 'ZONES_LIMIT_EXCEEDED',
-              message: `Limite de zones dépassée (${limits.maxZonesPerDesign})`,
-              severity: 'error'
-            });
-          }
+      if (brand && brand.limits && typeof brand.limits === 'object' && !Array.isArray(brand.limits)) {
+        const limits = brand.limits as Record<string, unknown>;
 
-          // Limite de complexité
-          if (limits.maxComplexity && this.calculateComplexity(context.options) > limits.maxComplexity) {
-            warnings.push({
-              code: 'COMPLEXITY_WARNING',
-              message: 'Le design est très complexe',
-              suggestion: 'Simplifiez le design pour améliorer les performances'
-            });
-          }
+        const maxZonesPerDesign = typeof limits.maxZonesPerDesign === 'number' ? limits.maxZonesPerDesign : undefined;
+        if (maxZonesPerDesign !== undefined && context.rules.zones.length > maxZonesPerDesign) {
+          errors.push({
+            code: 'ZONES_LIMIT_EXCEEDED',
+            message: `Limite de zones dépassée (${maxZonesPerDesign})`,
+            severity: 'error',
+          });
+        }
+
+        const maxComplexity = typeof limits.maxComplexity === 'number' ? limits.maxComplexity : undefined;
+        if (maxComplexity !== undefined && this.calculateComplexity(context.options) > maxComplexity) {
+          warnings.push({
+            code: 'COMPLEXITY_WARNING',
+            message: 'Le design est très complexe',
+            suggestion: 'Simplifiez le design pour améliorer les performances',
+          });
         }
       }
 
@@ -558,13 +576,16 @@ export class ValidationEngine {
     const warnings: ValidationWarning[] = [];
 
     try {
-      for (const [zoneId, zoneOptions] of Object.entries(context.options.zones)) {
-        const zone = context.rules.zones.find(z => z.id === zoneId);
+      const zoneOptionsMap = context.options.zones ?? {};
+
+      for (const [zoneId, zoneOption] of Object.entries(zoneOptionsMap)) {
+        const zone = context.rules.zones.find((z) => z.id === zoneId);
         if (!zone || zone.type !== 'image') continue;
 
-        // Vérifier la qualité de l'image
-        if (zoneOptions.imageUrl) {
-          const qualityCheck = await this.checkImageQuality(zoneOptions.imageUrl);
+        const imageOptions = this.ensureImageZoneOptions(zoneOption);
+
+        if (imageOptions.imageUrl) {
+          const qualityCheck = await this.checkImageQuality(imageOptions.imageUrl);
           
           if (qualityCheck.isLowQuality) {
             warnings.push({
@@ -631,15 +652,16 @@ export class ValidationEngine {
     let complexity = 0;
 
     // Complexité basée sur les zones
-    if (options.zones) {
-      for (const zoneOptions of Object.values(options.zones)) {
-        if (zoneOptions.complexity === 'complex') {
-          complexity += 3;
-        } else if (zoneOptions.complexity === 'medium') {
-          complexity += 2;
-        } else {
-          complexity += 1;
-        }
+    const zoneOptionsMap = options.zones ?? {};
+
+    for (const zoneOption of Object.values(zoneOptionsMap)) {
+      const imageOptions = this.ensureImageZoneOptions(zoneOption);
+      if (imageOptions.complexity === 'complex') {
+        complexity += 3;
+      } else if (imageOptions.complexity === 'medium') {
+        complexity += 2;
+      } else {
+        complexity += 1;
       }
     }
 
@@ -688,24 +710,14 @@ export class ValidationEngine {
    * Vérifie si une option existe
    */
   private hasOption(options: DesignOptions, optionPath: string): boolean {
-    const keys = optionPath.split('.');
-    let current = options as any;
-    
-    for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
-        current = current[key];
-      } else {
-        return false;
-      }
-    }
-    
-    return current !== undefined && current !== null;
+    const value = this.getOptionValue(options, optionPath);
+    return value !== undefined && value !== null;
   }
 
   /**
    * Évalue une condition de règle
    */
-  private evaluateRuleCondition(condition: Record<string, any>, options: DesignOptions): boolean {
+  private evaluateRuleCondition(condition: CompatibilityCondition, options: DesignOptions): boolean {
     for (const [key, value] of Object.entries(condition)) {
       if (!this.hasOptionValue(options, key, value)) {
         return false;
@@ -717,19 +729,29 @@ export class ValidationEngine {
   /**
    * Vérifie si une option a une valeur spécifique
    */
-  private hasOptionValue(options: DesignOptions, optionPath: string, expectedValue: any): boolean {
+  private hasOptionValue(options: DesignOptions, optionPath: string, expectedValue: unknown): boolean {
+    const value = this.getOptionValue(options, optionPath);
+
+    if (typeof expectedValue === 'object' && expectedValue !== null) {
+      return JSON.stringify(value) === JSON.stringify(expectedValue);
+    }
+
+    return value === expectedValue;
+  }
+
+  private getOptionValue(options: DesignOptions, optionPath: string): unknown {
     const keys = optionPath.split('.');
-    let current = options as any;
-    
+    let current: unknown = options;
+
     for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+      if (typeof current === 'object' && current !== null && !Array.isArray(current) && key in current) {
+        current = (current as Record<string, unknown>)[key];
       } else {
-        return false;
+        return undefined;
       }
     }
-    
-    return current === expectedValue;
+
+    return current;
   }
 
   /**
@@ -750,6 +772,41 @@ export class ValidationEngine {
     const namedColors = ['red', 'blue', 'green', 'black', 'white', 'gold', 'silver'];
     
     return hexRegex.test(color) || rgbRegex.test(color) || namedColors.includes(color.toLowerCase());
+  }
+
+  private ensureImageZoneOptions(option: DesignZoneOption | undefined): DesignImageZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignImageZoneOptions;
+  }
+
+  private ensureTextZoneOptions(option: DesignZoneOption | undefined): DesignTextZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignTextZoneOptions;
+  }
+
+  private ensureColorZoneOptions(option: DesignZoneOption | undefined): DesignColorZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignColorZoneOptions;
+  }
+
+  private ensureSelectZoneOptions(option: DesignZoneOption | undefined): DesignSelectZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignSelectZoneOptions;
+  }
+
+  private extractDimensions(option: DesignZoneOption): { width?: number; height?: number } {
+    const imageOptions = this.ensureImageZoneOptions(option);
+    const width = typeof imageOptions.width === 'number' ? imageOptions.width : undefined;
+    const height = typeof imageOptions.height === 'number' ? imageOptions.height : undefined;
+    return { width, height };
   }
 }
 

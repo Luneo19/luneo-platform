@@ -5,7 +5,8 @@ import {
   Param,
   Patch,
   Body,
-  Request,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +18,7 @@ import {
 import { BrandsService } from './brands.service';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
+import type { Request } from 'express';
 
 @ApiTags('brands')
 @Controller('brands')
@@ -31,8 +33,9 @@ export class BrandsController {
     status: 201,
     description: 'Marque créée avec succès',
   })
-  async create(@Body() createBrandDto: any, @Request() req) {
-    return this.brandsService.create(createBrandDto, req.user.id);
+  async create(@Body() createBrandDto: any, @Req() req: Request) {
+    const user = this.requireUser(req);
+    return this.brandsService.create(createBrandDto, user.id);
   }
 
   @Get(':id')
@@ -42,8 +45,9 @@ export class BrandsController {
     status: 200,
     description: 'Détails de la marque',
   })
-  async findOne(@Param('id') id: string, @Request() req) {
-    return this.brandsService.findOne(id, req.user);
+  async findOne(@Param('id') id: string, @Req() req: Request) {
+    const user = this.requireUser(req);
+    return this.brandsService.findOne(id, user);
   }
 
   @Patch(':id')
@@ -53,8 +57,9 @@ export class BrandsController {
     status: 200,
     description: 'Marque mise à jour',
   })
-  async update(@Param('id') id: string, @Body() updateBrandDto: any, @Request() req) {
-    return this.brandsService.update(id, updateBrandDto, req.user);
+  async update(@Param('id') id: string, @Body() updateBrandDto: any, @Req() req: Request) {
+    const user = this.requireUser(req);
+    return this.brandsService.update(id, updateBrandDto, user);
   }
 
   @Post(':id/webhooks')
@@ -64,7 +69,15 @@ export class BrandsController {
     status: 201,
     description: 'Webhook ajouté',
   })
-  async addWebhook(@Param('id') id: string, @Body() webhookData: any, @Request() req) {
-    return this.brandsService.addWebhook(id, webhookData, req.user);
+  async addWebhook(@Param('id') id: string, @Body() webhookData: any, @Req() req: Request) {
+    const user = this.requireUser(req);
+    return this.brandsService.addWebhook(id, webhookData, user);
+  }
+
+  private requireUser(req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    return req.user;
   }
 }

@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki-distributed-primary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: logging
+    luneo.io/region: eu-west-1
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+    namespace: luneo-observability
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 0.77.2
+    chart: loki-distributed
+    helm:
+      releaseName: loki
+      values: |
+        serviceAccount:
+          create: true
+          name: loki
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/luneo-observability-loki
+        loki:
+          storage:
+            type: s3
+            s3:
+              s3: https://s3.eu-west-1.amazonaws.com
+              bucketNames: luneo-observability-loki
+              region: eu-west-1
+              s3ForcePathStyle: true
+          limits_config:
+            retention_period: 168h
+        gateway:
+          ingress:
+            enabled: true
+            ingressClassName: alb
+            hosts:
+              - logs.luneo.app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+

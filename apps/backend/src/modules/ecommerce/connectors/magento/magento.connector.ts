@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '@/libs/prisma/prisma.service';
-import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { Prisma, EcommerceIntegration as PrismaEcommerceIntegration } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 import {
   MagentoProduct,
   MagentoOrder,
   EcommerceIntegration,
+  EcommerceConfig,
   SyncResult,
   SyncOptions,
+  SyncError,
 } from '../../interfaces/ecommerce.interface';
 
 @Injectable()
@@ -18,9 +19,7 @@ export class MagentoConnector {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-    private readonly cache: SmartCacheService,
   ) {}
 
   /**
@@ -51,7 +50,7 @@ export class MagentoConnector {
       });
 
       this.logger.log(`Magento integration created for brand ${brandId}`);
-      return integration as any;
+      return this.mapIntegration(integration);
     } catch (error) {
       this.logger.error(`Error connecting Magento:`, error);
       throw error;
@@ -99,8 +98,8 @@ export class MagentoConnector {
     integrationId: string,
     options?: { pageSize?: number; currentPage?: number }
   ): Promise<MagentoProduct[]> {
-    const integration = await this.getIntegration(integrationId);
-    const apiToken = this.decryptToken(integration.accessToken);
+    const integration = await this.getIntegrationRecord(integrationId);
+    const apiToken = this.decryptTokenOrThrow(integration.accessToken);
 
     try {
       const query = `
@@ -143,7 +142,7 @@ export class MagentoConnector {
       `;
 
       const response = await firstValueFrom(
-        this.httpService.post(
+        this.httpService.post<MagentoProductsResponse>(
           `${integration.shopDomain}/graphql`,
           {
             query,
@@ -161,7 +160,8 @@ export class MagentoConnector {
         )
       );
 
-      return this.transformMagentoProducts(response.data.data.products.items);
+      const items = response.data?.data?.products?.items ?? [];
+      return this.transformMagentoProducts(items);
     } catch (error) {
       this.logger.error(`Error fetching Magento products:`, error);
       throw error;
@@ -176,27 +176,36 @@ export class MagentoConnector {
     productData: Partial<MagentoProduct>,
     sku?: string,
   ): Promise<MagentoProduct> {
-    const integration = await this.getIntegration(integrationId);
-    const apiToken = this.decryptToken(integration.accessToken);
+    const integration = await this.getIntegrationRecord(integrationId);
+    const apiToken = this.decryptTokenOrThrow(integration.accessToken);
 
     try {
       const url = sku
         ? `${integration.shopDomain}/rest/V1/products/${sku}`
         : `${integration.shopDomain}/rest/V1/products`;
 
-      const method = sku ? 'put' : 'post';
-
       const response = await firstValueFrom(
-        this.httpService[method](
-          url,
-          { product: productData },
-          {
-            headers: {
-              'Authorization': `Bearer ${apiToken}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        )
+        (sku
+          ? this.httpService.put<MagentoProduct>(
+              url,
+              { product: productData },
+              {
+                headers: {
+                  Authorization: `Bearer ${apiToken}`,
+                  'Content-Type': 'application/json',
+                },
+              },
+            )
+          : this.httpService.post<MagentoProduct>(
+              url,
+              { product: productData },
+              {
+                headers: {
+                  Authorization: `Bearer ${apiToken}`,
+                  'Content-Type': 'application/json',
+                },
+              },
+            ))
       );
 
       return response.data;
@@ -213,8 +222,8 @@ export class MagentoConnector {
     integrationId: string,
     options?: { pageSize?: number; currentPage?: number }
   ): Promise<MagentoOrder[]> {
-    const integration = await this.getIntegration(integrationId);
-    const apiToken = this.decryptToken(integration.accessToken);
+    const integration = await this.getIntegrationRecord(integrationId);
+    const apiToken = this.decryptTokenOrThrow(integration.accessToken);
 
     try {
       const searchCriteria = new URLSearchParams();
@@ -222,17 +231,17 @@ export class MagentoConnector {
       searchCriteria.append('searchCriteria[currentPage]', (options?.currentPage || 1).toString());
 
       const response = await firstValueFrom(
-        this.httpService.get(
+        this.httpService.get<MagentoOrdersResponse>(
           `${integration.shopDomain}/rest/V1/orders?${searchCriteria}`,
           {
             headers: {
-              'Authorization': `Bearer ${apiToken}`,
+              Authorization: `Bearer ${apiToken}`,
             },
           }
         )
       );
 
-      return response.data.items;
+      return response.data?.items ?? [];
     } catch (error) {
       this.logger.error(`Error fetching Magento orders:`, error);
       throw error;
@@ -242,27 +251,33 @@ export class MagentoConnector {
   /**
    * Transforme les produits Magento GraphQL en format standard
    */
-  private transformMagentoProducts(graphqlProducts: any[]): MagentoProduct[] {
-    return graphqlProducts.map(product => ({
-      id: product.id,
-      sku: product.sku,
-      name: product.name,
-      status: 1, // Enabled
-      visibility: 4, // Catalog, Search
-      type_id: 'simple',
-      price: product.price_range?.minimum_price?.regular_price?.value || 0,
-      attribute_set_id: 4, // Default
-      custom_attributes: [],
-      media_gallery_entries: product.media_gallery?.map((media: any, index: number) => ({
-        id: index + 1,
-        media_type: 'image',
-        label: media.label,
-        position: media.position || index,
-        disabled: false,
-        types: ['image', 'small_image', 'thumbnail'],
-        file: media.url,
-      })) || [],
-    }));
+  private transformMagentoProducts(graphqlProducts: MagentoGraphqlProduct[]): MagentoProduct[] {
+    return graphqlProducts.map((product) => {
+      const mediaEntries = product.media_gallery ?? [];
+
+      return {
+        id: product.id,
+        sku: product.sku,
+        name: product.name,
+        status: 1,
+        visibility: 4,
+        type_id: 'simple',
+        price: product.price_range?.minimum_price?.regular_price?.value ?? 0,
+        attribute_set_id: 4,
+        custom_attributes: [],
+        media_gallery_entries: mediaEntries
+          .map((media, index) => ({
+            id: index + 1,
+            media_type: 'image',
+            label: media.label ?? `Media ${index + 1}`,
+            position: media.position ?? index,
+            disabled: false,
+            types: ['image', 'small_image', 'thumbnail'],
+            file: media.url ?? '',
+          }))
+          .filter((entry) => entry.file !== ''),
+      };
+    });
   }
 
   /**
@@ -270,7 +285,7 @@ export class MagentoConnector {
    */
   async syncProducts(integrationId: string, options?: SyncOptions): Promise<SyncResult> {
     const startTime = Date.now();
-    const errors: any[] = [];
+    const errors: SyncError[] = [];
     let itemsProcessed = 0;
     let itemsFailed = 0;
 
@@ -287,7 +302,8 @@ export class MagentoConnector {
           errors.push({
             itemId: product.sku,
             code: 'SYNC_ERROR',
-            message: error.message,
+            message: error instanceof Error ? error.message : 'Unknown error',
+            details: error,
           });
           itemsFailed++;
         }
@@ -301,17 +317,20 @@ export class MagentoConnector {
           status: itemsFailed === 0 ? 'success' : 'partial',
           itemsProcessed,
           itemsFailed,
-          errors,
+          errors: this.toJson(errors),
           duration: Date.now() - startTime,
         },
       });
+
+      const syncStatus: SyncResult['status'] =
+        itemsFailed === 0 ? 'success' : itemsProcessed === 0 ? 'failed' : 'partial';
 
       return {
         integrationId,
         platform: 'magento',
         type: 'product',
         direction: 'import',
-        status: syncLog.status as any,
+        status: syncStatus,
         itemsProcessed,
         itemsFailed,
         duration: Date.now() - startTime,
@@ -322,7 +341,7 @@ export class MagentoConnector {
           deleted: 0,
           skipped: itemsFailed,
         },
-        createdAt: new Date(),
+        createdAt: syncLog.createdAt,
       };
     } catch (error) {
       this.logger.error(`Magento product sync failed:`, error);
@@ -355,7 +374,7 @@ export class MagentoConnector {
     integrationId: string,
     magentoProduct: MagentoProduct,
   ): Promise<void> {
-    const integration = await this.getIntegration(integrationId);
+    const integration = await this.getIntegrationRecord(integrationId);
 
     const luneoProduct = await this.prisma.product.create({
       data: {
@@ -364,7 +383,7 @@ export class MagentoConnector {
         description: '',
         sku: magentoProduct.sku,
         price: magentoProduct.price,
-        images: magentoProduct.media_gallery_entries.map(media => media.file),
+        images: (magentoProduct.media_gallery_entries ?? []).map((media) => media.file),
         isActive: magentoProduct.status === 1,
       },
     });
@@ -375,7 +394,7 @@ export class MagentoConnector {
         luneoProductId: luneoProduct.id,
         externalProductId: magentoProduct.id.toString(),
         externalSku: magentoProduct.sku,
-        syncStatus: 'synced',
+        syncStatus: 'synced' as const,
         lastSyncedAt: new Date(),
       },
     });
@@ -395,7 +414,7 @@ export class MagentoConnector {
       data: {
         name: magentoProduct.name,
         price: magentoProduct.price,
-        images: magentoProduct.media_gallery_entries.map(media => media.file),
+        images: (magentoProduct.media_gallery_entries ?? []).map((media) => media.file),
         isActive: magentoProduct.status === 1,
       },
     });
@@ -406,7 +425,7 @@ export class MagentoConnector {
   /**
    * Récupère une intégration
    */
-  private async getIntegration(integrationId: string): Promise<any> {
+  private async getIntegrationRecord(integrationId: string): Promise<PrismaEcommerceIntegration> {
     const integration = await this.prisma.ecommerceIntegration.findUnique({
       where: { id: integrationId },
     });
@@ -416,6 +435,72 @@ export class MagentoConnector {
     }
 
     return integration;
+  }
+
+  private mapIntegration(record: PrismaEcommerceIntegration): EcommerceIntegration {
+    return {
+      id: record.id,
+      brandId: record.brandId,
+      platform: record.platform as EcommerceIntegration['platform'],
+      shopDomain: record.shopDomain,
+      accessToken: record.accessToken ?? undefined,
+      refreshToken: record.refreshToken ?? undefined,
+      config: this.parseConfig(record.config),
+      status: record.status as EcommerceIntegration['status'],
+      lastSyncAt: record.lastSyncAt ?? undefined,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
+  private parseConfig(config: Prisma.JsonValue | null): EcommerceConfig {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return {};
+    }
+
+    const record = config as Record<string, unknown>;
+
+    return {
+      apiKey: typeof record.apiKey === 'string' ? record.apiKey : undefined,
+      apiSecret: typeof record.apiSecret === 'string' ? record.apiSecret : undefined,
+      webhookSecret: typeof record.webhookSecret === 'string' ? record.webhookSecret : undefined,
+      scopes: this.ensureStringArray(record.scopes),
+      features: this.ensureStringArray(record.features),
+      customFields: this.ensureRecord(record.customFields),
+    };
+  }
+
+  private ensureStringArray(value: unknown): string[] | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    const entries = value.filter((item): item is string => typeof item === 'string');
+    return entries.length > 0 ? entries : undefined;
+  }
+
+  private ensureRecord(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    return value as Record<string, unknown>;
+  }
+
+  private toJson(value: unknown): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
+  }
+
+  private decryptTokenOrThrow(encryptedToken: string | null): string {
+    if (!encryptedToken) {
+      throw new Error('Magento integration has no access token');
+    }
+
+    return this.decryptToken(encryptedToken);
   }
 
   /**
@@ -431,6 +516,40 @@ export class MagentoConnector {
   private decryptToken(encryptedToken: string): string {
     return Buffer.from(encryptedToken, 'base64').toString('utf8');
   }
+}
+
+
+interface MagentoProductsResponse {
+  data?: {
+    products?: {
+      items?: MagentoGraphqlProduct[];
+    };
+  };
+}
+
+interface MagentoGraphqlProduct {
+  id: number;
+  sku: string;
+  name: string;
+  price_range?: {
+    minimum_price?: {
+      regular_price?: {
+        value?: number;
+        currency?: string;
+      };
+    };
+  };
+  media_gallery?: MagentoGraphqlMedia[];
+}
+
+interface MagentoGraphqlMedia {
+  url?: string;
+  label?: string;
+  position?: number;
+}
+
+interface MagentoOrdersResponse {
+  items?: MagentoOrder[];
 }
 
 

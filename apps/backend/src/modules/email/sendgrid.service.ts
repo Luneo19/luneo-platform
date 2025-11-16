@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as sgMail from '@sendgrid/mail';
+import { getErrorMessage, getErrorStack } from '@/common/utils/error.utils';
 
 export interface SendGridEmailOptions {
   to: string | string[];
@@ -70,7 +71,7 @@ export interface SendGridEmailOptions {
 export class SendGridService {
   private readonly logger = new Logger(SendGridService.name);
   private sendgridAvailable = false;
-  private defaultFrom: string;
+  private defaultFrom = '';
 
   constructor(private configService: ConfigService) {
     this.initializeSendGrid();
@@ -78,7 +79,7 @@ export class SendGridService {
 
   private initializeSendGrid() {
     const apiKey = this.configService.get<string>('email.sendgridApiKey');
-    this.defaultFrom = this.configService.get<string>('email.fromEmail');
+    this.defaultFrom = this.configService.get<string>('email.fromEmail') ?? 'no-reply@luneo.app';
 
     if (!apiKey) {
       this.logger.warn('SendGrid API key not configured. Service will not be available.');
@@ -89,8 +90,11 @@ export class SendGridService {
       sgMail.setApiKey(apiKey);
       this.sendgridAvailable = true;
       this.logger.log('SendGrid initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize SendGrid:', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to initialize SendGrid: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
     }
   }
 
@@ -177,9 +181,12 @@ export class SendGridService {
       
       this.logger.log(`Email sent successfully via SendGrid to ${options.to}`);
       return result;
-    } catch (error) {
-      this.logger.error('Failed to send email via SendGrid:', error);
-      throw error;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to send email via SendGrid: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
+      throw error instanceof Error ? error : new Error(getErrorMessage(error));
     }
   }
 
@@ -384,9 +391,12 @@ export class SendGridService {
         message: 'SendGrid stats feature requires additional implementation',
         available: this.sendgridAvailable,
       };
-    } catch (error) {
-      this.logger.error('Failed to get SendGrid stats:', error);
-      throw error;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to get SendGrid stats: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
+      throw error instanceof Error ? error : new Error(getErrorMessage(error));
     }
   }
 

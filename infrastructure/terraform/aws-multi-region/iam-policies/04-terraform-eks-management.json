@@ -1,0 +1,140 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EKSFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "eks:CreateCluster",
+        "eks:DeleteCluster",
+        "eks:DescribeCluster",
+        "eks:ListClusters",
+        "eks:UpdateClusterVersion",
+        "eks:UpdateClusterConfig",
+        "eks:CreateNodegroup",
+        "eks:DeleteNodegroup",
+        "eks:DescribeNodegroup",
+        "eks:ListNodegroups",
+        "eks:UpdateNodegroupVersion",
+        "eks:UpdateNodegroupConfig",
+        "eks:TagResource",
+        "eks:UntagResource",
+        "eks:ListTagsForResource",
+        "eks:AssociateIdentityProviderConfig",
+        "eks:DisassociateIdentityProviderConfig",
+        "eks:ListIdentityProviderConfigs",
+        "eks:DescribeIdentityProviderConfig",
+        "eks:AssociateEncryptionConfig",
+        "eks:DescribeUpdate",
+        "eks:ListUpdates",
+        "eks:DescribeAddonVersions",
+        "eks:DescribeAddon",
+        "eks:ListAddons",
+        "eks:CreateAddon",
+        "eks:DeleteAddon",
+        "eks:UpdateAddon",
+        "eks:AccessKubernetesApi",
+        "eks:CreateAccessEntry",
+        "eks:DeleteAccessEntry",
+        "eks:DescribeAccessEntry",
+        "eks:ListAccessEntries",
+        "eks:UpdateAccessEntry",
+        "eks:AssociateAccessPolicy",
+        "eks:DisassociateAccessPolicy",
+        "eks:ListAssociatedAccessPolicies",
+        "eks:ListAccessEntryAssociatedAccessPolicies"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EC2ForEKS",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateLaunchTemplate",
+        "ec2:DeleteLaunchTemplate",
+        "ec2:DescribeLaunchTemplates",
+        "ec2:DescribeLaunchTemplateVersions",
+        "ec2:CreateLaunchTemplateVersion",
+        "ec2:DeleteLaunchTemplateVersion",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeImages",
+        "ec2:DescribeSnapshots",
+        "ec2:DescribeVolumes",
+        "ec2:CreateVolume",
+        "ec2:DeleteVolume",
+        "ec2:AttachVolume",
+        "ec2:DetachVolume",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:DescribeSpotInstanceRequests",
+        "ec2:RequestSpotInstances",
+        "ec2:CancelSpotInstanceRequests"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EC2ForEKSUnconditional",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeImages",
+        "ec2:DescribeSnapshots",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeSpotInstanceRequests"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IAMForEKS",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:ListRoles",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::115849270532:role/luneo-prod-eks-*",
+        "arn:aws:iam::115849270532:role/luneo-prod-eks-node-*",
+        "arn:aws:iam::115849270532:role/luneo-prod-eks-cluster-*"
+      ]
+    },
+    {
+      "Sid": "KMSForEKS",
+      "Effect": "Allow",
+      "Action": [
+        "kms:CreateKey",
+        "kms:DeleteKey",
+        "kms:DescribeKey",
+        "kms:ListKeys",
+        "kms:ListAliases",
+        "kms:EnableKeyRotation",
+        "kms:DisableKeyRotation",
+        "kms:GetKeyRotationStatus",
+        "kms:TagResource",
+        "kms:UntagResource",
+        "kms:ListResourceTags",
+        "kms:CreateAlias",
+        "kms:DeleteAlias",
+        "kms:UpdateAlias",
+        "kms:PutKeyPolicy",
+        "kms:GetKeyPolicy"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+

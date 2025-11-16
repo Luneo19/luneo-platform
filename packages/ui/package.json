@@ -40,7 +40,8 @@
     "@types/react-dom": "^18.0.0",
     "typescript": "^5.0.0",
     "tsup": "^7.0.0",
-    "eslint": "^8.0.0"
+    "eslint": "^8.0.0",
+    "@luneo/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

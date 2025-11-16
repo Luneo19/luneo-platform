@@ -53,11 +53,11 @@ Après avoir copié les Price IDs, mettre à jour:
 
 ```typescript
 business: { 
-  monthly: 'price_1SH7SxKG9MsM6fdSetmxFnVl',
+  monthly: 'price_BUSINESS_MONTHLY',
   yearly: 'PRICE_ID_BUSINESS_ANNUAL' // ← Copier depuis Stripe
 },
 enterprise: { 
-  monthly: 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
+  monthly: 'price_ENTERPRISE_MONTHLY',
   yearly: 'PRICE_ID_ENTERPRISE_ANNUAL' // ← Copier depuis Stripe
 }
 ```

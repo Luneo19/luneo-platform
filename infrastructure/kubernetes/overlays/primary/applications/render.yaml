@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-render
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: render
+    luneo.io/tier: async
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+    namespace: luneo-platform
+  source:
+    repoURL: https://github.com/luneo-platform/platform-helm.git
+    targetRevision: main
+    chart: luneo-render
+    helm:
+      releaseName: luneo-render
+      valuesObject:
+        image:
+          repository: 123456789012.dkr.ecr.eu-west-1.amazonaws.com/luneo-render
+          tag: latest
+        replicas: 3
+        gpu:
+          enabled: true
+          type: nvidia.com/gpu
+          count: 1
+        nodeSelector:
+          gpu: "true"
+        tolerations:
+          - key: dedicated
+            operator: Equal
+            value: render
+            effect: NoSchedule
+        env:
+          - name: S3_BUCKET
+            valueFrom:
+              configMapKeyRef:
+                name: gitops-platform-config
+                key: registry
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+

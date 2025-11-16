@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespaces.yaml
+  - gitops-config.yaml
+  - argocd-applicationset.yaml
+
+configMapGenerator:
+  - name: luneo-gitops-global-settings
+    namespace: argocd
+    literals:
+      - repoUrl=https://github.com/luneo-platform/platform-releases.git
+      - revision=main
+      - appNamespace=luneo-platform
+      - observabilityNamespace=luneo-observability
+      - enableCanary=true
+
+configurations:
+  - kustomizeconfig.yaml
+

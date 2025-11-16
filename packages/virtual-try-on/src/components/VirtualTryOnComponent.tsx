@@ -95,6 +95,9 @@ export function VirtualTryOnComponent({
   /**
    * Initialisation
    */
+  const isPaused = state === 'paused';
+  const isInteractive = state === 'running' || isPaused;
+
   useEffect(() => {
     if (!containerRef.current) return;
     
@@ -361,7 +364,7 @@ export function VirtualTryOnComponent({
       )}
       
       {/* Controls */}
-      {showControls && state === 'running' && (
+      {showControls && isInteractive && (
         <div style={{
           position: 'absolute',
           bottom: 16,
@@ -373,7 +376,7 @@ export function VirtualTryOnComponent({
         }}>
           {/* Pause/Resume */}
           <button
-            onClick={state === 'paused' ? handleResume : handlePause}
+            onClick={isPaused ? handleResume : handlePause}
             style={{
               padding: '12px 24px',
               backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -384,7 +387,7 @@ export function VirtualTryOnComponent({
               fontSize: 14,
             }}
           >
-            {state === 'paused' ? '▶ Reprendre' : '⏸ Pause'}
+            {isPaused ? '▶ Reprendre' : '⏸ Pause'}
           </button>
           
           {/* Screenshot */}
@@ -427,7 +430,7 @@ export function VirtualTryOnComponent({
       )}
       
       {/* CSS animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }

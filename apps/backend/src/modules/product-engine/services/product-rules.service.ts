@@ -1,15 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { 
-  ProductRules, 
-  ProductZone, 
-  ValidationResult, 
-  ValidationError, 
+import {
+  ProductRules,
+  ProductZone,
+  ValidationResult,
+  ValidationError,
   ValidationWarning,
   ZoneValidationContext,
   CompatibilityRule,
-  DesignOptions
+  CompatibilityCondition,
+  DesignOptions,
+  DesignZoneOption,
+  DesignImageZoneOptions,
+  DesignTextZoneOptions,
+  DesignColorZoneOptions,
+  DesignSelectZoneOptions,
+  PricingRules,
+  RulesUsageStats,
 } from '../interfaces/product-rules.interface';
 
 @Injectable()
@@ -30,7 +39,7 @@ export class ProductRulesService {
     // Vérifier le cache d'abord
     const cached = await this.cache.getSimple(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached as ProductRules;
     }
 
     try {
@@ -48,11 +57,10 @@ export class ProductRulesService {
         return null;
       }
 
-      const rules = product.rulesJson as any;
-      
-      // Mettre en cache pour 1 heure
-      await this.cache.setSimple(cacheKey, JSON.stringify(rules), 3600);
-      
+      const rules = this.parseProductRules(product.rulesJson);
+
+      await this.cache.setSimple(cacheKey, rules, 3600);
+
       return rules;
     } catch (error) {
       this.logger.error(`Error fetching product rules for ${productId}:`, error);
@@ -70,7 +78,7 @@ export class ProductRulesService {
 
       const updatedProduct = await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: this.serializeRules(rules) },
         select: { id: true, rulesJson: true },
       });
 
@@ -78,9 +86,11 @@ export class ProductRulesService {
       await this.cache.delSimple(`product_rules:${productId}`);
       
       // Mettre en cache les nouvelles règles
-      await this.cache.setSimple(`product_rules:${productId}`, JSON.stringify(rules), 3600);
+      const parsedRules = this.parseProductRules(updatedProduct.rulesJson);
 
-      return updatedProduct.rulesJson as any;
+      await this.cache.setSimple(`product_rules:${productId}`, parsedRules, 3600);
+
+      return parsedRules;
     } catch (error) {
       this.logger.error(`Error updating product rules for ${productId}:`, error);
       throw error;
@@ -95,11 +105,12 @@ export class ProductRulesService {
     const warnings: ValidationWarning[] = [];
 
     try {
-      // Valider chaque zone
+      const zoneOptionsMap = context.options.zones ?? {};
+
       for (const zone of context.rules.zones) {
-        const zoneOptions = context.options.zones[zone.id];
+        const zoneOption = zoneOptionsMap[zone.id];
         
-        if (!zoneOptions && zone.constraints?.required) {
+        if (!zoneOption && zone.constraints?.required) {
           errors.push({
             code: 'ZONE_REQUIRED',
             message: `La zone "${zone.label}" est obligatoire`,
@@ -109,8 +120,8 @@ export class ProductRulesService {
           continue;
         }
 
-        if (zoneOptions) {
-          const zoneValidation = this.validateZone(zone, zoneOptions);
+        if (zoneOption) {
+          const zoneValidation = this.validateZone(zone, zoneOption);
           errors.push(...zoneValidation.errors);
           warnings.push(...zoneValidation.warnings);
         }
@@ -156,32 +167,31 @@ export class ProductRulesService {
   /**
    * Valide une zone spécifique
    */
-  private validateZone(zone: ProductZone, options: any): {
+  private validateZone(zone: ProductZone, option: DesignZoneOption): {
     errors: ValidationError[];
     warnings: ValidationWarning[];
   } {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
-    // Validation du type
     switch (zone.type) {
       case 'text':
-        this.validateTextZone(zone, options, errors, warnings);
+        this.validateTextZone(zone, this.ensureTextZoneOptions(option), errors, warnings);
         break;
       case 'image':
-        this.validateImageZone(zone, options, errors, warnings);
+        this.validateImageZone(zone, this.ensureImageZoneOptions(option), errors, warnings);
         break;
       case 'color':
-        this.validateColorZone(zone, options, errors, warnings);
+        this.validateColorZone(zone, this.ensureColorZoneOptions(option), errors, warnings);
         break;
       case 'select':
-        this.validateSelectZone(zone, options, errors, warnings);
+        this.validateSelectZone(zone, this.ensureSelectZoneOptions(option), errors, warnings);
         break;
     }
 
     // Validation des contraintes
     if (zone.constraints) {
-      this.validateZoneConstraints(zone, options, errors, warnings);
+      this.validateZoneConstraints(zone, option, errors, warnings);
     }
 
     return { errors, warnings };
@@ -192,7 +202,7 @@ export class ProductRulesService {
    */
   private validateTextZone(
     zone: ProductZone,
-    options: any,
+    options: DesignTextZoneOptions,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -246,7 +256,7 @@ export class ProductRulesService {
    */
   private validateImageZone(
     zone: ProductZone,
-    options: any,
+    options: DesignImageZoneOptions,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -273,7 +283,11 @@ export class ProductRulesService {
     }
 
     // Vérifier la résolution
-    if (zone.maxResolution && options.width && options.height) {
+    if (
+      zone.maxResolution &&
+      typeof options.width === 'number' &&
+      typeof options.height === 'number'
+    ) {
       if (options.width > zone.maxResolution.w || options.height > zone.maxResolution.h) {
         warnings.push({
           code: 'IMAGE_TOO_LARGE',
@@ -299,7 +313,7 @@ export class ProductRulesService {
    */
   private validateColorZone(
     zone: ProductZone,
-    options: any,
+    options: DesignColorZoneOptions,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -331,7 +345,7 @@ export class ProductRulesService {
    */
   private validateSelectZone(
     zone: ProductZone,
-    options: any,
+    options: DesignSelectZoneOptions,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -345,8 +359,11 @@ export class ProductRulesService {
       return;
     }
 
-    // Vérifier que la valeur est dans les options autorisées
-    const allowedOptions = zone.metadata?.options || [];
+    const metadataOptions = zone.metadata?.options;
+    const allowedOptions = Array.isArray(metadataOptions)
+      ? metadataOptions.filter((opt): opt is string => typeof opt === 'string')
+      : [];
+
     if (allowedOptions.length > 0 && !allowedOptions.includes(options.value)) {
       errors.push({
         code: 'INVALID_SELECTION',
@@ -362,34 +379,40 @@ export class ProductRulesService {
    */
   private validateZoneConstraints(
     zone: ProductZone,
-    options: any,
+    option: DesignZoneOption,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
     if (!zone.constraints) return;
 
-    // Vérifier la taille minimale
-    if (zone.constraints.minSize && options.width && options.height) {
-      if (options.width < zone.constraints.minSize.w || options.height < zone.constraints.minSize.h) {
-        errors.push({
-          code: 'SIZE_TOO_SMALL',
-          message: `La taille est trop petite. Minimum: ${zone.constraints.minSize.w}x${zone.constraints.minSize.h}px`,
-          zone: zone.id,
-          severity: 'error'
-        });
-      }
+    const { width, height } = this.extractDimensions(option);
+
+    if (
+      zone.constraints.minSize &&
+      width !== undefined &&
+      height !== undefined &&
+      (width < zone.constraints.minSize.w || height < zone.constraints.minSize.h)
+    ) {
+      errors.push({
+        code: 'SIZE_TOO_SMALL',
+        message: `La taille est trop petite. Minimum: ${zone.constraints.minSize.w}x${zone.constraints.minSize.h}px`,
+        zone: zone.id,
+        severity: 'error',
+      });
     }
 
-    // Vérifier la taille maximale
-    if (zone.constraints.maxSize && options.width && options.height) {
-      if (options.width > zone.constraints.maxSize.w || options.height > zone.constraints.maxSize.h) {
-        errors.push({
-          code: 'SIZE_TOO_LARGE',
-          message: `La taille est trop grande. Maximum: ${zone.constraints.maxSize.w}x${zone.constraints.maxSize.h}px`,
-          zone: zone.id,
-          severity: 'error'
-        });
-      }
+    if (
+      zone.constraints.maxSize &&
+      width !== undefined &&
+      height !== undefined &&
+      (width > zone.constraints.maxSize.w || height > zone.constraints.maxSize.h)
+    ) {
+      errors.push({
+        code: 'SIZE_TOO_LARGE',
+        message: `La taille est trop grande. Maximum: ${zone.constraints.maxSize.w}x${zone.constraints.maxSize.h}px`,
+        zone: zone.id,
+        severity: 'error',
+      });
     }
   }
 
@@ -443,7 +466,7 @@ export class ProductRulesService {
    * Valide les contraintes globales
    */
   private validateGlobalConstraints(
-    constraints: any,
+    constraints: ProductRules['globalConstraints'],
     options: DesignOptions
   ): {
     errors: ValidationError[];
@@ -454,26 +477,28 @@ export class ProductRulesService {
 
     if (!constraints) return { errors, warnings };
 
-    // Vérifier la quantité minimale
-    if (constraints.minOrderQuantity && options.quantity) {
-      if (options.quantity < constraints.minOrderQuantity) {
-        errors.push({
-          code: 'MIN_QUANTITY_NOT_MET',
-          message: `Quantité minimale: ${constraints.minOrderQuantity}`,
-          severity: 'error'
-        });
-      }
+    const quantity = typeof options.quantity === 'number' ? options.quantity : undefined;
+
+    const minOrderQuantity = typeof constraints.minOrderQuantity === 'number'
+      ? constraints.minOrderQuantity
+      : undefined;
+    if (minOrderQuantity !== undefined && quantity !== undefined && quantity < minOrderQuantity) {
+      errors.push({
+        code: 'MIN_QUANTITY_NOT_MET',
+        message: `Quantité minimale: ${minOrderQuantity}`,
+        severity: 'error',
+      });
     }
 
-    // Vérifier la quantité maximale
-    if (constraints.maxOrderQuantity && options.quantity) {
-      if (options.quantity > constraints.maxOrderQuantity) {
-        errors.push({
-          code: 'MAX_QUANTITY_EXCEEDED',
-          message: `Quantité maximale: ${constraints.maxOrderQuantity}`,
-          severity: 'error'
-        });
-      }
+    const maxOrderQuantity = typeof constraints.maxOrderQuantity === 'number'
+      ? constraints.maxOrderQuantity
+      : undefined;
+    if (maxOrderQuantity !== undefined && quantity !== undefined && quantity > maxOrderQuantity) {
+      errors.push({
+        code: 'MAX_QUANTITY_EXCEEDED',
+        message: `Quantité maximale: ${maxOrderQuantity}`,
+        severity: 'error',
+      });
     }
 
     return { errors, warnings };
@@ -482,7 +507,7 @@ export class ProductRulesService {
   /**
    * Évalue une condition de règle
    */
-  private evaluateRuleCondition(condition: Record<string, any>, options: DesignOptions): boolean {
+  private evaluateRuleCondition(condition: CompatibilityCondition, options: DesignOptions): boolean {
     for (const [key, value] of Object.entries(condition)) {
       if (!this.hasOptionValue(options, key, value)) {
         return false;
@@ -495,36 +520,21 @@ export class ProductRulesService {
    * Vérifie si une option existe
    */
   private hasOption(options: DesignOptions, optionPath: string): boolean {
-    const keys = optionPath.split('.');
-    let current = options as any;
-    
-    for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
-        current = current[key];
-      } else {
-        return false;
-      }
-    }
-    
-    return current !== undefined && current !== null;
+    const value = this.getOptionValue(options, optionPath);
+    return value !== undefined && value !== null;
   }
 
   /**
    * Vérifie si une option a une valeur spécifique
    */
-  private hasOptionValue(options: DesignOptions, optionPath: string, expectedValue: any): boolean {
-    const keys = optionPath.split('.');
-    let current = options as any;
-    
-    for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
-        current = current[key];
-      } else {
-        return false;
-      }
+  private hasOptionValue(options: DesignOptions, optionPath: string, expectedValue: unknown): boolean {
+    const value = this.getOptionValue(options, optionPath);
+
+    if (typeof expectedValue === 'object' && expectedValue !== null) {
+      return JSON.stringify(value) === JSON.stringify(expectedValue);
     }
-    
-    return current === expectedValue;
+
+    return value === expectedValue;
   }
 
   /**
@@ -554,12 +564,15 @@ export class ProductRulesService {
   /**
    * Obtient les statistiques d'usage des règles
    */
-  async getRulesUsageStats(productId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<any> {
+  async getRulesUsageStats(
+    productId: string,
+    period: 'day' | 'week' | 'month' = 'week',
+  ): Promise<RulesUsageStats> {
     const cacheKey = `rules_usage:${productId}:${period}`;
     
     const cached = await this.cache.getSimple(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached as RulesUsageStats;
     }
 
     try {
@@ -605,10 +618,10 @@ export class ProductRulesService {
         },
       });
 
-      const stats = {
+      const stats: RulesUsageStats = {
         period,
-        startDate,
-        endDate: now,
+        startDate: startDate.toISOString(),
+        endDate: now.toISOString(),
         designs: designsStats.reduce((acc, stat) => {
           acc[stat.status.toLowerCase()] = stat._count.status;
           return acc;
@@ -616,8 +629,7 @@ export class ProductRulesService {
         orders: ordersStats,
       };
 
-      // Mettre en cache pour 15 minutes
-      await this.cache.setSimple(cacheKey, JSON.stringify(stats), 900);
+      await this.cache.setSimple(cacheKey, stats, 900);
       
       return stats;
     } catch (error) {
@@ -625,6 +637,189 @@ export class ProductRulesService {
       throw error;
     }
   }
+
+  private getOptionValue(options: DesignOptions, optionPath: string): unknown {
+    const keys = optionPath.split('.');
+    let current: unknown = options;
+
+    for (const key of keys) {
+      if (typeof current === 'object' && current !== null && !Array.isArray(current) && key in current) {
+        current = (current as Record<string, unknown>)[key];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
+  }
+
+  private parseProductRules(rulesJson: Prisma.JsonValue): ProductRules {
+    if (!rulesJson || typeof rulesJson !== 'object' || Array.isArray(rulesJson)) {
+      return { zones: [] };
+    }
+
+    const raw = rulesJson as Partial<ProductRules> & Record<string, unknown>;
+
+    const zones = Array.isArray(raw.zones)
+      ? raw.zones.map((zone) => this.ensureProductZone(zone))
+      : [];
+
+    const compatibilityRules = Array.isArray(raw.compatibilityRules)
+      ? raw.compatibilityRules
+          .map((rule) => this.ensureCompatibilityRule(rule))
+          .filter((rule): rule is CompatibilityRule => rule !== undefined)
+      : undefined;
+
+    return {
+      zones,
+      compatibilityRules,
+      globalConstraints: this.ensureGlobalConstraints(raw.globalConstraints),
+      pricing: this.ensurePricingRules(raw.pricing),
+      metadata: this.ensureRecord(raw.metadata),
+    };
+  }
+
+  private serializeRules(rules: ProductRules): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(rules)) as Prisma.InputJsonValue;
+  }
+
+  private ensureProductZone(zone: unknown): ProductZone {
+    if (!zone || typeof zone !== 'object' || Array.isArray(zone)) {
+      return {
+        id: this.generateZoneId(),
+        label: 'Zone',
+        type: 'image',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      };
+    }
+
+    const raw = zone as Partial<ProductZone> & Record<string, unknown>;
+
+    return {
+      id: typeof raw.id === 'string' ? raw.id : this.generateZoneId(),
+      label: typeof raw.label === 'string' ? raw.label : 'Zone',
+      type: this.ensureZoneType(raw.type),
+      x: typeof raw.x === 'number' ? raw.x : 0,
+      y: typeof raw.y === 'number' ? raw.y : 0,
+      width: typeof raw.width === 'number' ? raw.width : 100,
+      height: typeof raw.height === 'number' ? raw.height : 100,
+      allowedMime: Array.isArray(raw.allowedMime)
+        ? raw.allowedMime.filter((mime): mime is string => typeof mime === 'string')
+        : undefined,
+      maxResolution: this.ensureResolution(raw.maxResolution),
+      priceDeltaCents: typeof raw.priceDeltaCents === 'number' ? raw.priceDeltaCents : undefined,
+      constraints:
+        raw.constraints && typeof raw.constraints === 'object' && !Array.isArray(raw.constraints)
+          ? (raw.constraints as ProductZone['constraints'])
+          : undefined,
+      metadata: this.ensureRecord(raw.metadata),
+    };
+  }
+
+  private ensureZoneType(type: unknown): ProductZone['type'] {
+    if (type === 'text' || type === 'color' || type === 'select') {
+      return type;
+    }
+    return 'image';
+  }
+
+  private ensureRecord(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private ensureResolution(value: unknown): { w: number; h: number } | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const record = value as Record<string, unknown>;
+    const width = record.w;
+    const height = record.h;
+
+    if (typeof width === 'number' && Number.isFinite(width) && typeof height === 'number' && Number.isFinite(height)) {
+      return { w: width, h: height };
+    }
+
+    return undefined;
+  }
+
+  private ensureCompatibilityRule(rule: unknown): CompatibilityRule | undefined {
+    if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
+      return undefined;
+    }
+
+    const raw = rule as Partial<CompatibilityRule> & Record<string, unknown>;
+    if (!raw.if || typeof raw.if !== 'object' || Array.isArray(raw.if)) {
+      return undefined;
+    }
+
+    return {
+      if: raw.if as CompatibilityCondition,
+      deny: Array.isArray(raw.deny) ? raw.deny.filter((item): item is string => typeof item === 'string') : undefined,
+      allow: Array.isArray(raw.allow) ? raw.allow.filter((item): item is string => typeof item === 'string') : undefined,
+      require: Array.isArray(raw.require)
+        ? raw.require.filter((item): item is string => typeof item === 'string')
+        : undefined,
+      priceMultiplier: typeof raw.priceMultiplier === 'number' ? raw.priceMultiplier : undefined,
+    };
+  }
+
+  private ensureGlobalConstraints(value: unknown): ProductRules['globalConstraints'] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+    return value as ProductRules['globalConstraints'];
+  }
+
+  private ensurePricingRules(value: unknown): PricingRules | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+    return value as PricingRules;
+  }
+
+  private ensureImageZoneOptions(option: DesignZoneOption | undefined): DesignImageZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignImageZoneOptions;
+  }
+
+  private ensureTextZoneOptions(option: DesignZoneOption | undefined): DesignTextZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignTextZoneOptions;
+  }
+
+  private ensureColorZoneOptions(option: DesignZoneOption | undefined): DesignColorZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignColorZoneOptions;
+  }
+
+  private ensureSelectZoneOptions(option: DesignZoneOption | undefined): DesignSelectZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignSelectZoneOptions;
+  }
+
+  private extractDimensions(option: DesignZoneOption): { width?: number; height?: number } {
+    const imageOptions = this.ensureImageZoneOptions(option);
+    const width = typeof imageOptions.width === 'number' ? imageOptions.width : undefined;
+    const height = typeof imageOptions.height === 'number' ? imageOptions.height : undefined;
+    return { width, height };
+  }
+
+  private generateZoneId(): string {
+    return `zone_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  }
 }
-
-

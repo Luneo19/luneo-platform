@@ -1,21 +1,29 @@
-import { Process, Processor } from '@nestjs/bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
+import { QueueNames } from '@/jobs/queue.constants';
+import { JobNames } from '@/jobs/job.constants';
+import { Prisma, Order as OrderModel, Design as DesignModel, Product as ProductModel, Brand as BrandModel } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { S3Service } from '@/libs/s3/s3.service';
+import {
+  ProductionJobData,
+  ProductionJobPayload,
+  ProductionTrackingPayload,
+  ProductionOptions,
+  Address,
+} from '@/modules/production/interfaces/production-jobs.interface';
 
-interface ProductionJobData {
-  orderId: string;
-  brandId: string;
-  designId: string;
-  productId: string;
-  quantity: number;
-  options: any;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  factoryWebhookUrl?: string;
-  shippingAddress: any;
-  billingAddress: any;
+type DesignWithAssets = Prisma.DesignGetPayload<{ include: { assets: true } }>;
+
+interface QualityReport {
+  overallScore: number;
+  issues: string[];
+  recommendations: string[];
+  totalChecked: number;
+  passed: boolean;
+  failed: number;
 }
 
 interface ProductionBundle {
@@ -32,6 +40,7 @@ interface ProductionBundle {
     materials: string[];
     finishes: string[];
     specialInstructions: string[];
+    specialRequirements: string[];
     qualityLevel: string;
     deadline: Date;
   };
@@ -44,17 +53,32 @@ interface ProductionBundle {
   };
 }
 
-@Processor('production-processing')
-export class ProductionWorker {
+@Processor(QueueNames.PRODUCTION_PROCESSING)
+export class ProductionWorker extends WorkerHost {
   private readonly logger = new Logger(ProductionWorker.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
     private readonly s3Service: S3Service,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Process('create-production-bundle')
+  async process(job: Job<ProductionJobPayload>): Promise<unknown> {
+    switch (job.name) {
+      case JobNames.PRODUCTION.QUALITY_CONTROL:
+        return this.qualityControl(job as Job<ProductionJobData>);
+      case JobNames.PRODUCTION.TRACK_PRODUCTION:
+        return this.trackProduction(job as Job<ProductionTrackingPayload>);
+      case JobNames.PRODUCTION.GENERATE_INSTRUCTIONS:
+        return this.generateManufacturingInstructions(job as Job<ProductionJobData>);
+      case JobNames.PRODUCTION.CREATE_BUNDLE:
+      default:
+        return this.createProductionBundle(job as Job<ProductionJobData>);
+    }
+  }
+
   async createProductionBundle(job: Job<ProductionJobData>) {
     const { orderId, brandId, designId, productId, quantity, options } = job.data;
     const startTime = Date.now();
@@ -80,7 +104,7 @@ export class ProductionWorker {
       const productionFiles = await this.generateProductionFiles(design, product, options);
 
       // Créer les instructions de production
-      const instructions = await this.createProductionInstructions(order, design, product, options);
+      const instructions = await this.createProductionInstructions(order, design, product, options, quantity);
 
       // Créer le bundle de production
       const bundle: ProductionBundle = {
@@ -128,7 +152,6 @@ export class ProductionWorker {
     }
   }
 
-  @Process('quality-control')
   async qualityControl(job: Job<ProductionJobData>) {
     const { orderId, designId, productId } = job.data;
 
@@ -158,7 +181,7 @@ export class ProductionWorker {
       await this.saveQualityReport(orderId, qualityReport);
 
       // Décider si la production peut continuer
-      if (qualityReport.overallScore < 0.8) {
+      if (!qualityReport.passed) {
         await this.updateOrderStatus(orderId, 'QUALITY_ISSUE', 'Quality control failed');
         throw new Error(`Quality control failed: ${qualityReport.issues.join(', ')}`);
       }
@@ -177,7 +200,6 @@ export class ProductionWorker {
     }
   }
 
-  @Process('track-production')
   async trackProduction(job: Job<{ orderId: string; factoryId: string }>) {
     const { orderId, factoryId } = job.data;
 
@@ -219,7 +241,6 @@ export class ProductionWorker {
     }
   }
 
-  @Process('generate-manufacturing-instructions')
   async generateManufacturingInstructions(job: Job<ProductionJobData>) {
     const { orderId, designId, productId, quantity, options } = job.data;
 
@@ -237,11 +258,11 @@ export class ProductionWorker {
         orderId,
         product: {
           name: product.name,
-          sku: product.sku,
-          baseSpecifications: product.specifications || {},
+          sku: product.sku ?? '',
+          baseSpecifications: this.getJsonRecord(product.customizationOptions) ?? {},
         },
         design: {
-          customizations: design.optionsJson,
+          customizations: this.toJson(design.optionsJson),
           zones: this.extractZonesFromDesign(design),
         },
         manufacturing: {
@@ -288,14 +309,9 @@ export class ProductionWorker {
   /**
    * Récupère une commande
    */
-  private async getOrder(orderId: string): Promise<any> {
+  private async getOrder(orderId: string): Promise<OrderModel> {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: {
-        design: true,
-        product: true,
-        brand: true,
-      },
     });
 
     if (!order) {
@@ -308,7 +324,7 @@ export class ProductionWorker {
   /**
    * Récupère un design
    */
-  private async getDesign(designId: string): Promise<any> {
+  private async getDesign(designId: string): Promise<DesignWithAssets> {
     const design = await this.prisma.design.findUnique({
       where: { id: designId },
       include: {
@@ -326,7 +342,7 @@ export class ProductionWorker {
   /**
    * Récupère un produit
    */
-  private async getProduct(productId: string): Promise<any> {
+  private async getProduct(productId: string): Promise<ProductModel> {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -341,7 +357,7 @@ export class ProductionWorker {
   /**
    * Récupère une marque
    */
-  private async getBrand(brandId: string): Promise<any> {
+  private async getBrand(brandId: string): Promise<BrandModel> {
     const brand = await this.prisma.brand.findUnique({
       where: { id: brandId },
     });
@@ -356,7 +372,12 @@ export class ProductionWorker {
   /**
    * Valide les données de production
    */
-  private async validateProductionData(order: any, design: any, product: any, brand: any): Promise<void> {
+  private async validateProductionData(
+    order: OrderModel,
+    design: DesignModel,
+    product: ProductModel,
+    brand: BrandModel,
+  ): Promise<void> {
     if (order.status !== 'PAID') {
       throw new Error('Order must be paid before production');
     }
@@ -377,17 +398,21 @@ export class ProductionWorker {
   /**
    * Génère les fichiers de production
    */
-  private async generateProductionFiles(design: any, product: any, options: any): Promise<any[]> {
-    const files = [];
+  private async generateProductionFiles(
+    design: DesignWithAssets,
+    product: ProductModel,
+    _options: ProductionOptions,
+  ): Promise<Array<{ filename: string; url: string; type: 'design' | 'instructions' | 'metadata'; format: string; size: number }>> {
+    const files: Array<{ filename: string; url: string; type: 'design' | 'instructions' | 'metadata'; format: string; size: number }> = [];
 
     // Fichiers du design
     for (const asset of design.assets) {
       files.push({
-        filename: `design_${asset.id}.${asset.type}`,
+        filename: `design_${asset.id}.${asset.format ?? 'bin'}`,
         url: asset.url,
         type: 'design',
-        format: asset.type,
-        size: asset.metaJson?.size || 0,
+        format: asset.format ?? asset.type,
+        size: asset.size ?? this.extractAssetSize(asset.metadata),
       });
     }
 
@@ -408,14 +433,29 @@ export class ProductionWorker {
   /**
    * Crée les instructions de production
    */
-  private async createProductionInstructions(order: any, design: any, product: any, options: any): Promise<any> {
+  private async createProductionInstructions(
+    order: OrderModel,
+    design: DesignModel,
+    product: ProductModel,
+    options: ProductionOptions,
+    quantity: number,
+  ): Promise<{
+    quantity: number;
+    materials: string[];
+    finishes: string[];
+    specialInstructions: string[];
+    specialRequirements: string[];
+    qualityLevel: string;
+    deadline: Date;
+  }> {
     return {
-      quantity: order.quantity,
-      materials: options.materials || ['standard'],
-      finishes: options.finishes || ['standard'],
-      specialInstructions: options.specialInstructions || [],
-      qualityLevel: options.qualityLevel || 'standard',
-      deadline: this.calculateDeadline(order.createdAt, product.productionTime || 5),
+      quantity,
+      materials: options.materials ?? ['standard'],
+      finishes: options.finishes ?? ['standard'],
+      specialInstructions: options.specialInstructions ?? [],
+      specialRequirements: options.specialRequirements ?? [],
+      qualityLevel: options.qualityLevel ?? 'standard',
+      deadline: this.calculateDeadline(order.createdAt, product.productionTime ?? 5),
     };
   }
 
@@ -459,9 +499,9 @@ export class ProductionWorker {
       where: { id: orderId },
       data: {
         productionBundleUrl: bundleUrl,
-        metadata: {
-          bundleGeneratedAt: new Date(),
-        },
+        metadata: this.toJsonObject({
+          bundleGeneratedAt: new Date().toISOString(),
+        }),
       },
     });
   }
@@ -502,7 +542,7 @@ export class ProductionWorker {
   /**
    * Génère la signature du webhook
    */
-  private generateWebhookSignature(payload: any): string {
+  private generateWebhookSignature(payload: Record<string, unknown>): string {
     // Simulation de signature HMAC
     // En production, utiliser crypto.createHmac
     return `sha256=${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
@@ -512,12 +552,20 @@ export class ProductionWorker {
    * Met à jour le statut de la commande
    */
   private async updateOrderStatus(orderId: string, status: string, error?: string): Promise<void> {
+    const data: Prisma.OrderUpdateInput = {
+      status: status as any,
+    };
+
+    if (error) {
+      data.metadata = this.toJsonObject({
+        error,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
     await this.prisma.order.update({
       where: { id: orderId },
-      data: {
-        status: status as any,
-        ...(error && { metadata: { error, updatedAt: new Date() } as any }),
-      },
+      data,
     });
   }
 
@@ -546,7 +594,13 @@ export class ProductionWorker {
   /**
    * Vérifie la qualité d'un asset
    */
-  private async checkAssetQuality(asset: any): Promise<any> {
+  private async checkAssetQuality(asset: { id: string; url: string; type: string; format?: string | null; size?: number | null; metadata: Prisma.JsonValue | null }): Promise<{
+    assetId: string;
+    qualityScore: number;
+    issues: string[];
+    recommendations: string[];
+    checks: { resolution: boolean; format: boolean; integrity: boolean };
+  }> {
     // Simulation de vérification de qualité
     const qualityScore = Math.random() * 0.4 + 0.6; // Score entre 0.6 et 1.0
     
@@ -555,30 +609,45 @@ export class ProductionWorker {
       qualityScore,
       issues: qualityScore < 0.8 ? ['Low resolution', 'Poor contrast'] : [],
       recommendations: qualityScore < 0.9 ? ['Improve contrast', 'Increase resolution'] : [],
+      checks: {
+        resolution: qualityScore >= 0.75,
+        format: true,
+        integrity: true,
+      },
     };
   }
 
   /**
    * Analyse les vérifications de qualité
    */
-  private analyzeQualityChecks(qualityChecks: any[]): any {
-    const overallScore = qualityChecks.reduce((sum, check) => sum + check.qualityScore, 0) / qualityChecks.length;
+  private analyzeQualityChecks(qualityChecks: Array<{
+    assetId: string;
+    qualityScore: number;
+    issues: string[];
+    recommendations: string[];
+    checks: { resolution: boolean; format: boolean; integrity: boolean };
+  }>): QualityReport {
+    const totalChecked = qualityChecks.length;
+    const overallScore = totalChecked > 0 ? qualityChecks.reduce((sum, check) => sum + check.qualityScore, 0) / totalChecked : 0;
     const allIssues = qualityChecks.flatMap(check => check.issues);
     const allRecommendations = qualityChecks.flatMap(check => check.recommendations);
+    const passedCount = qualityChecks.filter(check => check.qualityScore >= 0.8).length;
+    const failedCount = totalChecked - passedCount;
 
     return {
       overallScore,
       issues: allIssues,
       recommendations: allRecommendations,
-      passed: overallScore >= 0.8,
-      assetCount: qualityChecks.length,
+      totalChecked,
+      passed: failedCount === 0,
+      failed: failedCount,
     };
   }
 
   /**
    * Sauvegarde le rapport de qualité
    */
-  private async saveQualityReport(orderId: string, qualityReport: any): Promise<void> {
+  private async saveQualityReport(orderId: string, qualityReport: QualityReport): Promise<void> {
     await this.prisma.qualityReport.create({
       data: {
         orderId,
@@ -594,18 +663,26 @@ export class ProductionWorker {
   /**
    * Extrait les zones du design
    */
-  private extractZonesFromDesign(design: any): any[] {
-    if (!design.optionsJson?.zones) return [];
-    return Object.entries(design.optionsJson.zones).map(([id, data]) => ({
+  private extractZonesFromDesign(design: DesignModel): Array<{ id: string; data: unknown }> {
+    const options = this.getJsonRecord(design.optionsJson);
+    const zonesValue = options?.zones;
+
+    if (!zonesValue || typeof zonesValue !== 'object' || Array.isArray(zonesValue)) {
+      return [];
+    }
+
+    const zones = zonesValue as Record<string, unknown>;
+
+    return Object.entries(zones).map(([id, data]) => ({
       id,
-      ...(data as any),
+      data,
     }));
   }
 
   /**
    * Génère les points de contrôle qualité
    */
-  private generateQualityCheckpoints(design: any, product: any): string[] {
+  private generateQualityCheckpoints(_design: DesignModel, _product: ProductModel): string[] {
     return [
       'Material verification',
       'Dimensional accuracy',
@@ -618,7 +695,7 @@ export class ProductionWorker {
   /**
    * Calcule les tolérances
    */
-  private calculateTolerances(product: any, options: any): Record<string, number> {
+  private calculateTolerances(_product: ProductModel, options: ProductionOptions): Record<string, number> {
     return {
       dimensions: options.qualityLevel === 'premium' ? 0.1 : 0.2,
       color: options.qualityLevel === 'premium' ? 5 : 10,
@@ -629,7 +706,7 @@ export class ProductionWorker {
   /**
    * Génère les exigences d'emballage
    */
-  private generatePackagingRequirements(product: any, quantity: number): string[] {
+  private generatePackagingRequirements(_product: ProductModel, quantity: number): string[] {
     return [
       'Protective wrapping',
       'Branded packaging',
@@ -640,7 +717,7 @@ export class ProductionWorker {
   /**
    * Génère les exigences d'étiquetage
    */
-  private generateLabelingRequirements(orderId: string, product: any, design: any): string[] {
+  private generateLabelingRequirements(orderId: string, product: ProductModel, design: DesignModel): string[] {
     return [
       'Order ID',
       'Product SKU',
@@ -649,10 +726,34 @@ export class ProductionWorker {
     ];
   }
 
+  private extractAssetSize(metadata: Prisma.JsonValue | null): number {
+    if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+      const record = metadata as Record<string, unknown>;
+      const size = record.size;
+      if (typeof size === 'number' && Number.isFinite(size)) {
+        return size;
+      }
+      if (typeof size === 'string') {
+        const parsed = Number(size);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+    return 0;
+  }
+
+  private getJsonRecord(value: Prisma.JsonValue | null | undefined): Record<string, any> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return value as Record<string, any>;
+  }
+
   /**
    * Crée le document d'instructions
    */
-  private async createInstructionsDocument(instructions: any): Promise<Buffer> {
+  private async createInstructionsDocument(instructions: Record<string, unknown>): Promise<Buffer> {
     // Simulation de création de document
     // En production, utiliser une librairie comme PDFKit
     const document = JSON.stringify(instructions, null, 2);
@@ -687,11 +788,20 @@ export class ProductionWorker {
     await this.prisma.order.update({
       where: { id: orderId },
       data: {
-        metadata: {
+        metadata: this.toJsonObject({
           manufacturingInstructionsUrl: instructionsUrl,
-        },
+        }),
       },
     });
+  }
+
+  private toJson(value: unknown): Prisma.InputJsonValue {
+    const serialized = JSON.stringify(value ?? null);
+    return JSON.parse(serialized) as Prisma.InputJsonValue;
+  }
+
+  private toJsonObject(value: Record<string, unknown>): Prisma.JsonObject {
+    return JSON.parse(JSON.stringify(value)) as Prisma.JsonObject;
   }
 }
 

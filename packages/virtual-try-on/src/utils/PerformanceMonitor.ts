@@ -101,17 +101,26 @@ export class PerformanceMonitor {
     // Calculer FPS si 1 seconde écoulée
     if (now - this.lastFPSUpdate >= this.fpsUpdateInterval) {
       const deltaTime = (now - this.lastFPSUpdate) / 1000; // En secondes
-      const framesSinceLastUpdate = this.framesRendered - (this.fpsHistory.length * this.config.sampleSize);
-      const currentFPS = Math.round(framesSinceLastUpdate / deltaTime);
+      // Utiliser le nombre de frames dans frameTimes au lieu de framesRendered total
+      const framesInInterval = this.frameTimes.length;
+      const currentFPS = framesInInterval > 0 && deltaTime > 0 
+        ? Math.round(framesInInterval / deltaTime)
+        : 0;
       
-      this.fpsHistory.push(currentFPS);
-      if (this.fpsHistory.length > this.config.sampleSize) {
-        this.fpsHistory.shift();
+      if (currentFPS > 0) {
+        this.fpsHistory.push(currentFPS);
+        if (this.fpsHistory.length > this.config.sampleSize) {
+          this.fpsHistory.shift();
+        }
+        
+        // Update min/max
+        if (this.minFPS === Infinity) {
+          this.minFPS = currentFPS;
+        } else {
+          this.minFPS = Math.min(this.minFPS, currentFPS);
+        }
+        this.maxFPS = Math.max(this.maxFPS, currentFPS);
       }
-      
-      // Update min/max
-      this.minFPS = Math.min(this.minFPS, currentFPS);
-      this.maxFPS = Math.max(this.maxFPS, currentFPS);
       
       this.lastFPSUpdate = now;
     }

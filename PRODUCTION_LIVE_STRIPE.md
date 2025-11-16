@@ -9,9 +9,9 @@
 
 Vous avez configuré:
 - ✅ `STRIPE_SECRET_KEY` = `sk_live_...` (LIVE)
-- ✅ `STRIPE_PRICE_PRO` = `price_1RvB1uKG9MsM6fdSnrGm2qIo`
+- ✅ `STRIPE_PRICE_PRO` = `price_PRO_MONTHLY`
 - ✅ `STRIPE_PRICE_BUSINESS` = (à vérifier)
-- ✅ `STRIPE_PRICE_ENTERPRISE` = `price_1SH7TMKG9MsM6fdSx4pebEXZ`
+- ✅ `STRIPE_PRICE_ENTERPRISE` = `price_ENTERPRISE_MONTHLY`
 
 ---
 

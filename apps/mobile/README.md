@@ -5,7 +5,7 @@ Application mobile React Native pour la plateforme Luneo Enterprise.
 ## 🚀 Démarrage Rapide
 
 ### Prérequis
-- Node.js 18+
+- Node.js 20+
 - npm ou yarn
 - Expo CLI
 - Android Studio (pour Android)

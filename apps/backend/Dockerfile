@@ -1,7 +1,10 @@
 # Dockerfile pour Luneo Backend - Production
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
+
+# Toolchain required for native dependencies (bcrypt, sharp…)
+RUN apk add --no-cache python3 make g++ libc6-compat
 
 # Copier les fichiers de dépendances
 COPY package*.json ./
@@ -18,9 +21,12 @@ COPY . .
 RUN pnpm run build
 
 # Stage de production
-FROM node:18-alpine AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
+
+# Toolchain for optional native modules (keeps ability to rebuild when needed)
+RUN apk add --no-cache libc6-compat
 
 # Installer pnpm
 RUN npm install -g pnpm

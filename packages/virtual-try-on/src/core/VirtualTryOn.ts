@@ -50,7 +50,10 @@ export class VirtualTryOn {
   private performanceMonitor: PerformanceMonitor;
   
   // Event listeners
-  private eventListeners: Map<keyof VirtualTryOnEvents, Function[]> = new Map();
+  private eventListeners: Map<
+    keyof VirtualTryOnEvents,
+    Array<VirtualTryOnEvents[keyof VirtualTryOnEvents]>
+  > = new Map();
   
   // Animation frame
   private animationFrameId: number | null = null;

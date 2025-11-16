@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -14,6 +7,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { DesignsService } from './designs.service';
+import { RequireQuota } from '@/common/decorators/quota.decorator';
+import type { Request } from 'express';
 
 @ApiTags('designs')
 @Controller('designs')
@@ -27,7 +22,8 @@ export class DesignsController {
     status: 201,
     description: 'Design créé et génération IA lancée',
   })
-  async create(@Body() createDesignDto: any, @Request() req) {
+  @RequireQuota({ metric: 'ai_generations', amountField: 'body.batchSize' })
+  async create(@Body() createDesignDto: any, @Req() req: Request) {
     return this.designsService.create(createDesignDto, req.user);
   }
 
@@ -38,7 +34,7 @@ export class DesignsController {
     status: 200,
     description: 'Détails du design',
   })
-  async findOne(@Param('id') id: string, @Request() req) {
+  async findOne(@Param('id') id: string, @Req() req: Request) {
     return this.designsService.findOne(id, req.user);
   }
 
@@ -49,7 +45,8 @@ export class DesignsController {
     status: 200,
     description: 'Génération haute résolution lancée',
   })
-  async upgradeToHighRes(@Param('id') id: string, @Request() req) {
+  @RequireQuota({ metric: 'renders_2d' })
+  async upgradeToHighRes(@Param('id') id: string, @Req() req: Request) {
     return this.designsService.upgradeToHighRes(id, req.user);
   }
 }

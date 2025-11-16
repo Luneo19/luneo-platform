@@ -2,6 +2,7 @@ import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@n
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RBACService } from './services/rbac.service';
 import { AuditLogsService, AuditEventType } from './services/audit-logs.service';
+import { AuditSearchQuery } from './interfaces/audit.interface';
 import { GDPRService } from './services/gdpr.service';
 import { Role, Permission } from './interfaces/rbac.interface';
 import { PermissionsGuard } from './guards/permissions.guard';
@@ -19,6 +20,82 @@ export class SecurityController {
     private readonly auditLogs: AuditLogsService,
     private readonly gdprService: GDPRService,
   ) {}
+
+  private getQueryValue(value?: string | string[]): string | undefined {
+    if (Array.isArray(value)) {
+      return value[0];
+    }
+    return value;
+  }
+
+  private parseAuditQuery(
+    query: Record<string, string | string[] | undefined>,
+  ): AuditSearchQuery {
+    const get = (key: string) => this.getQueryValue(query[key]);
+
+    const filters: AuditSearchQuery = {};
+
+    const userId = get('userId');
+    if (userId) filters.userId = userId;
+
+    const brandId = get('brandId');
+    if (brandId) filters.brandId = brandId;
+
+    const eventType = get('eventType');
+    if (eventType && Object.values(AuditEventType).includes(eventType as AuditEventType)) {
+      filters.eventType = eventType as AuditEventType;
+    }
+
+    const resourceType = get('resourceType');
+    if (resourceType) filters.resourceType = resourceType;
+
+    const resourceId = get('resourceId');
+    if (resourceId) filters.resourceId = resourceId;
+
+    const success = get('success');
+    if (success !== undefined) {
+      const normalized = success.toLowerCase();
+      if (normalized === 'true' || normalized === '1') {
+        filters.success = true;
+      } else if (normalized === 'false' || normalized === '0') {
+        filters.success = false;
+      }
+    }
+
+    const startDate = get('startDate');
+    if (startDate) {
+      const date = new Date(startDate);
+      if (!Number.isNaN(date.getTime())) {
+        filters.startDate = date;
+      }
+    }
+
+    const endDate = get('endDate');
+    if (endDate) {
+      const date = new Date(endDate);
+      if (!Number.isNaN(date.getTime())) {
+        filters.endDate = date;
+      }
+    }
+
+    const limit = get('limit');
+    if (limit) {
+      const parsed = Number(limit);
+      if (!Number.isNaN(parsed)) {
+        filters.limit = parsed;
+      }
+    }
+
+    const offset = get('offset');
+    if (offset) {
+      const parsed = Number(offset);
+      if (!Number.isNaN(parsed)) {
+        filters.offset = parsed;
+      }
+    }
+
+    return filters;
+  }
 
   // ==================== RBAC ====================
 
@@ -81,24 +158,16 @@ export class SecurityController {
   @RequirePermissions(Permission.AUDIT_READ)
   @ApiOperation({ summary: 'Search audit logs' })
   @ApiResponse({ status: 200, description: 'Audit logs retrieved' })
-  async searchAuditLogs(
-    @Query('userId') userId?: string,
-    @Query('brandId') brandId?: string,
-    @Query('eventType') eventType?: AuditEventType,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-  ) {
-    return this.auditLogs.search({
-      userId,
-      brandId,
-      eventType,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-      limit: limit ? parseInt(limit, 10) : 100,
-      offset: offset ? parseInt(offset, 10) : 0,
-    });
+  async searchAuditLogs(@Query() query: Record<string, string | string[] | undefined>) {
+    const filters = this.parseAuditQuery(query);
+    if (filters.limit === undefined) {
+      filters.limit = 100;
+    }
+    if (filters.offset === undefined) {
+      filters.offset = 0;
+    }
+
+    return this.auditLogs.search(filters);
   }
 
   @Get('audit/resource/:resourceType/:resourceId')
@@ -148,7 +217,8 @@ export class SecurityController {
   @RequirePermissions(Permission.AUDIT_EXPORT)
   @ApiOperation({ summary: 'Export audit logs to CSV' })
   @ApiResponse({ status: 200, description: 'CSV exported' })
-  async exportAuditLogsCSV(@Query() filters: any) {
+  async exportAuditLogsCSV(@Query() query: Record<string, string | string[] | undefined>) {
+    const filters = this.parseAuditQuery(query);
     const csv = await this.auditLogs.exportToCSV(filters);
     return {
       csv,

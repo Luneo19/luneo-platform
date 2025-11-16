@@ -99,7 +99,7 @@ Response contiendra le Price ID à copier.
 **Pour chaque plan, modifier/ajouter:**
 
 ```
-STRIPE_PRICE_PRO=price_1RvB1uKG9MsM6fdSnrGm2qIo
+STRIPE_PRICE_PRO=price_PRO_MONTHLY
 STRIPE_PRICE_BUSINESS=price_NOUVEAU_BUSINESS_ID
 STRIPE_PRICE_ENTERPRISE=price_NOUVEAU_ENTERPRISE_ID
 ```

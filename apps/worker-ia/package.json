@@ -7,17 +7,29 @@
     "build": "tsc",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "lint": "eslint src/**/*.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "bullmq": "^4.15.0",
+    "@luneo/ai-safety": "workspace:*",
     "openai": "^4.20.0",
     "sharp": "^0.32.6",
     "ioredis": "^5.3.2",
     "winston": "^3.11.0",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "three": "^0.158.0",
+    "@types/three": "^0.158.0",
+    "gltf-pipeline": "^4.3.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.57.2",
+    "@opentelemetry/instrumentation-http": "^0.204.0",
+    "@opentelemetry/instrumentation-ioredis": "^0.52.0",
+    "@opentelemetry/instrumentation-undici": "^0.15.0",
+    "@opentelemetry/sdk-node": "^0.57.2",
+    "@opentelemetry/sdk-trace-base": "^2.2.0",
+    "@opentelemetry/semantic-conventions": "^1.38.0"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",

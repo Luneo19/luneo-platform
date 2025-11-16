@@ -139,16 +139,16 @@ const planPrices: Record<string, { monthly: string | null, yearly: string | null
     yearly: null 
   },
   professional: { 
-    monthly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
-    yearly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo' // Même Price ID, prix yearly créé dynamiquement
+    monthly: 'price_PRO_MONTHLY',
+    yearly: 'price_PRO_MONTHLY' // Même Price ID, prix yearly créé dynamiquement
   },
   business: { 
-    monthly: 'price_1SH7SxKG9MsM6fdSetmxFnVl',
-    yearly: 'price_1SH7SxKG9MsM6fdSetmxFnVl' // Même Price ID, prix yearly créé dynamiquement
+    monthly: 'price_BUSINESS_MONTHLY',
+    yearly: 'price_BUSINESS_MONTHLY' // Même Price ID, prix yearly créé dynamiquement
   },
   enterprise: { 
-    monthly: 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
-    yearly: 'price_1SH7TMKG9MsM6fdSx4pebEXZ' // Même Price ID, prix yearly créé dynamiquement
+    monthly: 'price_ENTERPRISE_MONTHLY',
+    yearly: 'price_ENTERPRISE_MONTHLY' // Même Price ID, prix yearly créé dynamiquement
   }
 };
 ```
@@ -243,9 +243,9 @@ const sessionConfig = {
 
 | Plan | Prix mensuel | Prix annuel | Calcul annuel | Price ID Monthly | Product ID |
 |------|--------------|-------------|---------------|------------------|------------|
-| Professional | €29 | €278.40 | 29 × 12 × 0.8 | price_1RvB1uKG9MsM6fdSnrGm2qIo | Auto-récupéré |
-| Business | €59 | €566.40 | 59 × 12 × 0.8 | price_1SH7SxKG9MsM6fdSetmxFnVl | prod_TDYaUcC0940jpT |
-| Enterprise | €99 | €950.40 | 99 × 12 × 0.8 | price_1SH7TMKG9MsM6fdSx4pebEXZ | prod_TDYaqgD6gwRVd0 |
+| Professional | €29 | €278.40 | 29 × 12 × 0.8 | price_PRO_MONTHLY | Auto-récupéré |
+| Business | €59 | €566.40 | 59 × 12 × 0.8 | price_BUSINESS_MONTHLY | prod_TDYaUcC0940jpT |
+| Enterprise | €99 | €950.40 | 99 × 12 × 0.8 | price_ENTERPRISE_MONTHLY | prod_TDYaqgD6gwRVd0 |
 
 ### Conversion en centimes
 
@@ -453,9 +453,9 @@ features: [
 **URL:** https://vercel.com/luneos-projects/frontend/settings/environment-variables
 
 ```
-STRIPE_SECRET_KEY=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
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_jL5xDF4ylCaiXVDswVAliVA3
-NEXT_PUBLIC_APP_URL=https://app.luneo.app
+STRIPE_SECRET_KEY=sk_live_your_secret_key
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_publishable_key
+NEXT_PUBLIC_APP_URL=https://app.your-domain.com
 ```
 
 **Note:** Les Price IDs sont hardcodés dans le code (pas dans les variables env)
@@ -633,8 +633,8 @@ cancel_url: 'https://app.luneo.app/pricing',
 ### 3. Les Price IDs yearly sont les MÊMES que monthly
 ```typescript
 professional: { 
-  monthly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
-  yearly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo' // ← Même Price ID
+  monthly: 'price_PRO_MONTHLY',
+  yearly: 'price_PRO_MONTHLY' // ← Même Price ID
 }
 ```
 

@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { gzipSync, gunzipSync } from 'zlib';
+import { getErrorMessage, getErrorStack } from '@/common/utils/error.utils';
 
 interface CacheConfig {
   ttl: number;
@@ -30,7 +32,8 @@ export class RedisOptimizedService {
   };
 
   constructor(private configService: ConfigService) {
-    this.redis = new Redis(this.configService.get('redis.url'), {
+    const redisUrl = this.configService.get<string>('redis.url') ?? 'redis://localhost:6379';
+    this.redis = new Redis(redisUrl, {
       retryDelayOnFailover: 50,
       keepAlive: 30000,
       lazyConnect: true,
@@ -49,8 +52,11 @@ export class RedisOptimizedService {
       this.logger.log('Redis connected successfully');
     });
 
-    this.redis.on('error', (error) => {
-      this.logger.error('Redis connection error:', error);
+    this.redis.on('error', (error: unknown) => {
+      this.logger.error(
+        `Redis connection error: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
     });
 
     this.redis.on('ready', () => {
@@ -61,13 +67,19 @@ export class RedisOptimizedService {
   private async initializeCacheConfigs() {
     try {
       // Configurer les politiques de mémoire pour chaque type de cache
-      for (const [type, config] of Object.entries(this.cacheConfigs)) {
-        const key = `cache:${type}:*`;
-        await this.redis.config('SET', 'maxmemory-policy', 'allkeys-lru');
-        this.logger.log(`Cache config initialized for ${type}: TTL=${config.ttl}s, MaxMemory=${config.maxMemory}`);
+      await this.redis.config('SET', 'maxmemory-policy', 'allkeys-lru');
+      const maxMemory = this.configService.get<string>('redis.maxMemory');
+      if (maxMemory) {
+        await this.redis.config('SET', 'maxmemory', maxMemory);
       }
-    } catch (error) {
-      this.logger.error('Failed to initialize cache configs:', error);
+      Object.entries(this.cacheConfigs).forEach(([type, config]) => {
+        this.logger.log(`Cache config ready for ${type}: TTL=${config.ttl}s`);
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to initialize cache configs: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
     }
   }
 
@@ -84,14 +96,17 @@ export class RedisOptimizedService {
       // Décompression automatique si nécessaire
       const config = this.cacheConfigs[type];
       if (config?.compression && data.startsWith('gzip:')) {
-        const compressedData = data.slice(5); // Remove 'gzip:' prefix
-        // Ici on utiliserait zlib pour décompresser en production
-        return JSON.parse(compressedData);
+        const base64 = data.slice(5);
+        const buffer = Buffer.from(base64, 'base64');
+        return JSON.parse(gunzipSync(buffer).toString('utf-8'));
       }
 
       return JSON.parse(data);
-    } catch (error) {
-      this.logger.error(`Failed to get cache key ${key}:`, error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to get cache key ${key}: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       return null;
     }
   }
@@ -114,8 +129,8 @@ export class RedisOptimizedService {
       
       // Compression automatique si nécessaire
       if (config?.compression && serializedData.length > (config.threshold || 1024)) {
-        // Ici on utiliserait zlib pour compresser en production
-        serializedData = `gzip:${serializedData}`;
+        const compressed = gzipSync(serializedData);
+        serializedData = `gzip:${compressed.toString('base64')}`;
       }
 
       await this.redis.setex(fullKey, ttl, serializedData);
@@ -126,8 +141,11 @@ export class RedisOptimizedService {
       }
 
       return true;
-    } catch (error) {
-      this.logger.error(`Failed to set cache key ${key}:`, error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to set cache key ${key}: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       return false;
     }
   }
@@ -140,8 +158,11 @@ export class RedisOptimizedService {
       const fullKey = this.buildKey(key, type);
       const result = await this.redis.del(fullKey);
       return result > 0;
-    } catch (error) {
-      this.logger.error(`Failed to delete cache key ${key}:`, error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to delete cache key ${key}: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       return false;
     }
   }
@@ -163,8 +184,11 @@ export class RedisOptimizedService {
       }
       
       return totalDeleted;
-    } catch (error) {
-      this.logger.error('Failed to invalidate cache by tags:', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to invalidate cache by tags: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       return 0;
     }
   }
@@ -183,14 +207,17 @@ export class RedisOptimizedService {
         // Décompression automatique si nécessaire
         const config = this.cacheConfigs[type];
         if (config?.compression && value.startsWith('gzip:')) {
-          const compressedData = value.slice(5);
-          return JSON.parse(compressedData);
+          const base64 = value.slice(5);
+          return JSON.parse(gunzipSync(Buffer.from(base64, 'base64')).toString('utf-8'));
         }
         
         return JSON.parse(value);
       });
-    } catch (error) {
-      this.logger.error('Failed to get multiple cache keys:', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to get multiple cache keys: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       return keys.map(() => null);
     }
   }
@@ -214,7 +241,7 @@ export class RedisOptimizedService {
         
         // Compression automatique si nécessaire
         if (config?.compression && serializedData.length > (config.threshold || 1024)) {
-          serializedData = `gzip:${serializedData}`;
+          serializedData = `gzip:${gzipSync(serializedData).toString('base64')}`;
         }
         
         pipeline.setex(fullKey, ttl, serializedData);
@@ -222,8 +249,11 @@ export class RedisOptimizedService {
       
       await pipeline.exec();
       return true;
-    } catch (error) {
-      this.logger.error('Failed to set multiple cache keys:', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to set multiple cache keys: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       return false;
     }
   }
@@ -246,9 +276,12 @@ export class RedisOptimizedService {
       ]);
 
       return { memory, keyspace, clients, stats };
-    } catch (error) {
-      this.logger.error('Failed to get cache stats:', error);
-      throw error;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to get cache stats: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
+      throw error instanceof Error ? error : new Error(getErrorMessage(error));
     }
   }
 
@@ -259,8 +292,11 @@ export class RedisOptimizedService {
     try {
       await this.redis.flushall();
       return true;
-    } catch (error) {
-      this.logger.error('Failed to clear all cache:', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to clear all cache: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       return false;
     }
   }

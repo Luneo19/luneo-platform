@@ -1,19 +1,41 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
   Body,
-  Query,
-  Req,
+  Controller,
+  Delete,
+  Get,
+  Headers,
   HttpException,
   HttpStatus,
   Logger,
+  Post,
+  Put,
+  Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { Request } from 'express';
-import { AppBridgeService } from './app-bridge.service';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+
+import {
+  AppBridgeService,
+  AppBridgeConfig,
+  AppBridgeSession,
+  AppBridgeUser,
+  AppBridgeShop,
+  AppBridgeContext,
+  ModalResult,
+  ToastResult,
+  NavigationResult,
+  AuthResult,
+  AuthenticationDto,
+  CreateSessionDto,
+  ModalData,
+  ToastData,
+  NavigationData,
+  AppContextDto,
+} from './app-bridge.service';
+
+const SHOP_HEADER = 'x-shopify-shop-domain';
+
+type SuccessWithData<T> = { success: true; data: T };
+type SuccessMessage = { success: true; message: string };
 
 @ApiTags('app-bridge')
 @Controller('app-bridge')
@@ -22,54 +44,50 @@ export class AppBridgeController {
 
   constructor(private readonly appBridgeService: AppBridgeService) {}
 
+  private extractShopDomain(shopDomain?: string): string {
+    if (!shopDomain) {
+      throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
+    }
+    return shopDomain;
+  }
+
+  private extractShopFromQuery(shop?: string): string {
+    if (!shop) {
+      throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
+    }
+    return shop;
+  }
+
+  private handleError(context: string, error: unknown): never {
+    this.logger.error(context, error);
+    throw new HttpException(context, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
   @Get('config')
   @ApiOperation({ summary: 'Obtenir la configuration App Bridge' })
   @ApiQuery({ name: 'shop', description: 'Domaine du shop Shopify' })
   @ApiResponse({ status: 200, description: 'Configuration App Bridge retournée' })
-  async getAppBridgeConfig(@Query('shop') shop: string) {
+  async getAppBridgeConfig(@Query('shop') shop: string): Promise<SuccessWithData<AppBridgeConfig>> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
-
-      const config = await this.appBridgeService.getAppBridgeConfig(shop);
-      
-      return {
-        success: true,
-        data: config,
-      };
+      const config = await this.appBridgeService.getAppBridgeConfig(this.extractShopFromQuery(shop));
+      return { success: true, data: config };
     } catch (error) {
-      this.logger.error('Erreur lors de la récupération de la config App Bridge:', error);
-      throw new HttpException(
-        'Erreur lors de la récupération de la configuration',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError("Erreur lors de la récupération de la configuration App Bridge", error);
     }
   }
 
   @Post('authenticate')
-  @ApiOperation({ summary: 'Authentifier l\'utilisateur via App Bridge' })
+  @ApiOperation({ summary: "Authentifier l'utilisateur via App Bridge" })
   @ApiResponse({ status: 200, description: 'Authentification réussie' })
-  async authenticate(@Body() body: any, @Req() req: Request) {
+  async authenticate(
+    @Body() body: AuthenticationDto,
+    @Headers(SHOP_HEADER) shopDomain?: string,
+  ): Promise<SuccessWithData<AuthResult>> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
-
-      const authResult = await this.appBridgeService.authenticate(shop, body);
-      
-      return {
-        success: true,
-        data: authResult,
-      };
+      const result = await this.appBridgeService.authenticate(this.extractShopDomain(shopDomain), body);
+      return { success: true, data: result };
     } catch (error) {
-      this.logger.error('Erreur lors de l\'authentification App Bridge:', error);
-      throw new HttpException(
-        'Erreur lors de l\'authentification',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError("Erreur lors de l'authentification App Bridge", error);
     }
   }
 
@@ -77,127 +95,69 @@ export class AppBridgeController {
   @ApiOperation({ summary: 'Obtenir la session App Bridge' })
   @ApiQuery({ name: 'shop', description: 'Domaine du shop Shopify' })
   @ApiResponse({ status: 200, description: 'Session retournée' })
-  async getSession(@Query('shop') shop: string) {
+  async getSession(@Query('shop') shop: string): Promise<SuccessWithData<AppBridgeSession | null>> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
-
-      const session = await this.appBridgeService.getSession(shop);
-      
-      return {
-        success: true,
-        data: session,
-      };
+      const session = await this.appBridgeService.getSession(this.extractShopFromQuery(shop));
+      return { success: true, data: session };
     } catch (error) {
-      this.logger.error('Erreur lors de la récupération de la session:', error);
-      throw new HttpException(
-        'Erreur lors de la récupération de la session',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError('Erreur lors de la récupération de la session', error);
     }
   }
 
   @Post('session')
   @ApiOperation({ summary: 'Créer une nouvelle session App Bridge' })
   @ApiResponse({ status: 200, description: 'Session créée avec succès' })
-  async createSession(@Body() body: any, @Req() req: Request) {
+  async createSession(
+    @Body() body: CreateSessionDto,
+    @Headers(SHOP_HEADER) shopDomain?: string,
+  ): Promise<SuccessWithData<AppBridgeSession>> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
-
-      const session = await this.appBridgeService.createSession(shop, body);
-      
-      return {
-        success: true,
-        data: session,
-      };
+      const session = await this.appBridgeService.createSession(this.extractShopDomain(shopDomain), body);
+      return { success: true, data: session };
     } catch (error) {
-      this.logger.error('Erreur lors de la création de la session:', error);
-      throw new HttpException(
-        'Erreur lors de la création de la session',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError('Erreur lors de la création de la session', error);
     }
   }
 
   @Put('session')
   @ApiOperation({ summary: 'Mettre à jour la session App Bridge' })
   @ApiResponse({ status: 200, description: 'Session mise à jour avec succès' })
-  async updateSession(@Body() body: any, @Req() req: Request) {
+  async updateSession(
+    @Body() body: Partial<AppBridgeSession>,
+    @Headers(SHOP_HEADER) shopDomain?: string,
+  ): Promise<SuccessWithData<AppBridgeSession>> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
-
-      const session = await this.appBridgeService.updateSession(shop, body);
-      
-      return {
-        success: true,
-        data: session,
-      };
+      const session = await this.appBridgeService.updateSession(this.extractShopDomain(shopDomain), body);
+      return { success: true, data: session };
     } catch (error) {
-      this.logger.error('Erreur lors de la mise à jour de la session:', error);
-      throw new HttpException(
-        'Erreur lors de la mise à jour de la session',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError('Erreur lors de la mise à jour de la session', error);
     }
   }
 
   @Delete('session')
   @ApiOperation({ summary: 'Supprimer la session App Bridge' })
   @ApiResponse({ status: 200, description: 'Session supprimée avec succès' })
-  async deleteSession(@Req() req: Request) {
+  async deleteSession(
+    @Headers(SHOP_HEADER) shopDomain?: string,
+  ): Promise<SuccessMessage> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
-
-      await this.appBridgeService.deleteSession(shop);
-      
-      return {
-        success: true,
-        message: 'Session supprimée avec succès',
-      };
+      await this.appBridgeService.deleteSession(this.extractShopDomain(shopDomain));
+      return { success: true, message: 'Session supprimée avec succès' };
     } catch (error) {
-      this.logger.error('Erreur lors de la suppression de la session:', error);
-      throw new HttpException(
-        'Erreur lors de la suppression de la session',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError('Erreur lors de la suppression de la session', error);
     }
   }
 
   @Get('user')
-  @ApiOperation({ summary: 'Obtenir les informations de l\'utilisateur connecté' })
+  @ApiOperation({ summary: "Obtenir les informations de l'utilisateur connecté" })
   @ApiQuery({ name: 'shop', description: 'Domaine du shop Shopify' })
   @ApiResponse({ status: 200, description: 'Informations utilisateur retournées' })
-  async getCurrentUser(@Query('shop') shop: string) {
+  async getCurrentUser(@Query('shop') shop: string): Promise<SuccessWithData<AppBridgeUser>> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
-
-      const user = await this.appBridgeService.getCurrentUser(shop);
-      
-      return {
-        success: true,
-        data: user,
-      };
+      const user = await this.appBridgeService.getCurrentUser(this.extractShopFromQuery(shop));
+      return { success: true, data: user };
     } catch (error) {
-      this.logger.error('Erreur lors de la récupération de l\'utilisateur:', error);
-      throw new HttpException(
-        'Erreur lors de la récupération de l\'utilisateur',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError("Erreur lors de la récupération de l'utilisateur", error);
     }
   }
 
@@ -205,131 +165,72 @@ export class AppBridgeController {
   @ApiOperation({ summary: 'Obtenir les informations du shop' })
   @ApiQuery({ name: 'shop', description: 'Domaine du shop Shopify' })
   @ApiResponse({ status: 200, description: 'Informations du shop retournées' })
-  async getShopInfo(@Query('shop') shop: string) {
+  async getShopInfo(@Query('shop') shop: string): Promise<SuccessWithData<AppBridgeShop>> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
-
-      const shopInfo = await this.appBridgeService.getShopInfo(shop);
-      
-      return {
-        success: true,
-        data: shopInfo,
-      };
+      const shopInfo = await this.appBridgeService.getShopInfo(this.extractShopFromQuery(shop));
+      return { success: true, data: shopInfo };
     } catch (error) {
-      this.logger.error('Erreur lors de la récupération des infos du shop:', error);
-      throw new HttpException(
-        'Erreur lors de la récupération des informations du shop',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError('Erreur lors de la récupération des informations du shop', error);
     }
   }
 
   @Post('navigation')
-  @ApiOperation({ summary: 'Naviguer vers une page dans l\'admin Shopify' })
+  @ApiOperation({ summary: "Naviguer vers une page dans l'admin Shopify" })
   @ApiResponse({ status: 200, description: 'Navigation effectuée avec succès' })
-  async navigateToPage(@Body() body: any, @Req() req: Request) {
+  async navigateToPage(
+    @Body() body: NavigationData,
+    @Headers(SHOP_HEADER) shopDomain?: string,
+  ): Promise<SuccessWithData<NavigationResult>> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
-
-      const result = await this.appBridgeService.navigateToPage(shop, body);
-      
-      return {
-        success: true,
-        data: result,
-      };
+      const result = await this.appBridgeService.navigateToPage(this.extractShopDomain(shopDomain), body);
+      return { success: true, data: result };
     } catch (error) {
-      this.logger.error('Erreur lors de la navigation:', error);
-      throw new HttpException(
-        'Erreur lors de la navigation',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError('Erreur lors de la navigation', error);
     }
   }
 
   @Post('modal')
-  @ApiOperation({ summary: 'Ouvrir une modal dans l\'admin Shopify' })
+  @ApiOperation({ summary: "Ouvrir une modal dans l'admin Shopify" })
   @ApiResponse({ status: 200, description: 'Modal ouverte avec succès' })
-  async openModal(@Body() body: any, @Req() req: Request) {
+  async openModal(
+    @Body() body: ModalData,
+    @Headers(SHOP_HEADER) shopDomain?: string,
+  ): Promise<SuccessWithData<ModalResult>> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
-
-      const result = await this.appBridgeService.openModal(shop, body);
-      
-      return {
-        success: true,
-        data: result,
-      };
+      const result = await this.appBridgeService.openModal(this.extractShopDomain(shopDomain), body);
+      return { success: true, data: result };
     } catch (error) {
-      this.logger.error('Erreur lors de l\'ouverture de la modal:', error);
-      throw new HttpException(
-        'Erreur lors de l\'ouverture de la modal',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError("Erreur lors de l'ouverture de la modal", error);
     }
   }
 
   @Post('toast')
-  @ApiOperation({ summary: 'Afficher un toast dans l\'admin Shopify' })
+  @ApiOperation({ summary: "Afficher un toast dans l'admin Shopify" })
   @ApiResponse({ status: 200, description: 'Toast affiché avec succès' })
-  async showToast(@Body() body: any, @Req() req: Request) {
+  async showToast(
+    @Body() body: ToastData,
+    @Headers(SHOP_HEADER) shopDomain?: string,
+  ): Promise<SuccessWithData<ToastResult>> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
-
-      const result = await this.appBridgeService.showToast(shop, body);
-      
-      return {
-        success: true,
-        data: result,
-      };
+      const result = await this.appBridgeService.showToast(this.extractShopDomain(shopDomain), body);
+      return { success: true, data: result };
     } catch (error) {
-      this.logger.error('Erreur lors de l\'affichage du toast:', error);
-      throw new HttpException(
-        'Erreur lors de l\'affichage du toast',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError("Erreur lors de l'affichage du toast", error);
     }
   }
 
   @Post('context')
-  @ApiOperation({ summary: 'Obtenir le contexte de l\'application' })
+  @ApiOperation({ summary: "Obtenir le contexte de l'application" })
   @ApiResponse({ status: 200, description: 'Contexte retourné' })
-  async getAppContext(@Body() body: any, @Req() req: Request) {
+  async getAppContext(
+    @Body() body: AppContextDto,
+    @Headers(SHOP_HEADER) shopDomain?: string,
+  ): Promise<SuccessWithData<AppBridgeContext>> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
-
-      const context = await this.appBridgeService.getAppContext(shop, body);
-      
-      return {
-        success: true,
-        data: context,
-      };
+      const context = await this.appBridgeService.getAppContext(this.extractShopDomain(shopDomain), body);
+      return { success: true, data: context };
     } catch (error) {
-      this.logger.error('Erreur lors de la récupération du contexte:', error);
-      throw new HttpException(
-        'Erreur lors de la récupération du contexte',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.handleError('Erreur lors de la récupération du contexte', error);
     }
   }
 }
-
-
-

@@ -1,0 +1,37 @@
+groups:
+  - name: luneo-quota-alerts
+    interval: 30s
+    rules:
+      - alert: QuotaUsageWarning
+        expr: luneo_quota_usage_percentage >= 0
+        for: 2m
+        labels:
+          severity: warning
+          team: billing
+        annotations:
+          summary: '{{$labels.brand}} nearing quota for {{$labels.metric}}'
+          description: >
+            Usage is currently at {{ printf "%.1f" $value }}% for plan {{$labels.plan}}.
+            Review the dashboard and consider nudging the customer to upgrade.
+      - alert: QuotaUsageCritical
+        expr: luneo_quota_usage_percentage >= 90
+        for: 1m
+        labels:
+          severity: critical
+          team: billing
+        annotations:
+          summary: 'Critical quota threshold for {{$labels.brand}}/{{$labels.metric}}'
+          description: >
+            {{$labels.brand}} has {{ printf "%.0f" $value }}% of quota consumed on {{$labels.metric}}.
+            Trigger on-call escalation and auto-create a CS follow-up.
+      - alert: QuotaChecksLatencyDegraded
+        expr: histogram_quantile(0.95, rate(luneo_quota_check_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: 'Quota enforcement latency above 500ms (p95)'
+          description: >
+            Enforcement time is {{ printf "%.3f" $value }}s for source {{$labels.source}}.
+

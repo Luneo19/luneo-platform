@@ -1,0 +1,23 @@
+FROM node:18-bullseye
+
+WORKDIR /workspace
+
+# Copier les fichiers de dépendances pour tirer parti du cache Docker
+COPY package.json package-lock.json pnpm-workspace.yaml turbo.json ./
+COPY apps/backend/package.json apps/backend/
+
+# Installer les dépendances du monorepo (npm gère les workspaces)
+RUN npm install
+
+# Copier le reste du code
+COPY . .
+
+WORKDIR /workspace/apps/backend
+
+ENV NODE_ENV=development
+ENV PORT=3001
+
+EXPOSE 3001
+
+CMD ["npm", "run", "start:dev"]
+

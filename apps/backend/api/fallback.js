@@ -1,3 +1,12 @@
+// ⚠️⚠️⚠️ ATTENTION: FICHIER DE DÉVELOPPEMENT UNIQUEMENT ⚠️⚠️⚠️
+// Ce fichier contient des credentials hardcodés et ne doit JAMAIS être utilisé en production
+// Il sert uniquement de fallback quand le backend NestJS n'est pas disponible en DEV
+
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ ERREUR CRITIQUE: fallback.js ne doit PAS être utilisé en production !');
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 

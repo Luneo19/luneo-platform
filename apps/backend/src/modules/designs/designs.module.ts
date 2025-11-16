@@ -1,18 +1,19 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
 import { DesignsController } from './designs.controller';
 import { DesignsService } from './designs.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
+import { AiModule } from '@/modules/ai/ai.module';
+import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
+import { QuotaGuard } from '@/common/guards/quota.guard';
 
 @Module({
   imports: [
     PrismaModule,
-    BullModule.registerQueue({
-      name: 'ai-generation',
-    }),
+    AiModule,
+    UsageBillingModule,
   ],
   controllers: [DesignsController],
-  providers: [DesignsService],
+  providers: [DesignsService, QuotaGuard],
   exports: [DesignsService],
 })
 export class DesignsModule {}

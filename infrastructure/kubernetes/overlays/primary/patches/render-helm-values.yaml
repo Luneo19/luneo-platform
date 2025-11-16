@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-render
+spec:
+  source:
+    helm:
+      valuesObject:
+        autoscaling:
+          enabled: true
+          minReplicas: 2
+          maxReplicas: 6
+          behavior:
+            scaleDown:
+              stabilizationWindowSeconds: 120
+            scaleUp:
+              stabilizationWindowSeconds: 60
+        metrics:
+          serviceMonitor:
+            enabled: true
+            namespace: luneo-observability
+            labels:
+              release: kube-prometheus-stack
+

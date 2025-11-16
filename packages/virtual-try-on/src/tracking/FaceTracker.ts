@@ -134,8 +134,11 @@ export class FaceTracker {
       // Créer FaceMesh
       this.faceMesh = new FaceMesh({
         locateFile: (file) => {
-          // CDN MediaPipe
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+          // CDN MediaPipe (configurable via env or fallback)
+          const cdnUrl = typeof process !== 'undefined' && process.env.MEDIAPIPE_CDN_URL
+            ? process.env.MEDIAPIPE_CDN_URL
+            : 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh';
+          return `${cdnUrl}/${file}`;
         }
       });
       
@@ -269,9 +272,15 @@ export class FaceTracker {
   /**
    * Event: face detected
    */
-  on(event: 'faceDetected', callback: (result: FaceTrackingResult) => void): void;
+  on(
+    event: 'faceDetected',
+    callback: (result: FaceTrackingResult) => void
+  ): void;
   on(event: 'faceLost', callback: () => void): void;
-  on(event: string, callback: Function): void {
+  on(
+    event: 'faceDetected' | 'faceLost',
+    callback: ((result: FaceTrackingResult) => void) | (() => void)
+  ): void {
     if (event === 'faceDetected') {
       this.onFaceDetectedCallback = callback as any;
     } else if (event === 'faceLost') {

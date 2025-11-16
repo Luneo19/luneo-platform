@@ -18,11 +18,11 @@ export enum WebhookEvent {
 export class WebhookPayloadDto {
   @ApiProperty({ description: 'Webhook event type' })
   @IsEnum(WebhookEvent)
-  event: WebhookEvent;
+  event!: WebhookEvent;
 
   @ApiProperty({ description: 'Event data payload' })
   @IsObject()
-  data: Record<string, any>;
+  data!: Record<string, any>;
 
   @ApiPropertyOptional({ description: 'Timestamp of the event' })
   @IsString()

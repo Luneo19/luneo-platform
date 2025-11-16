@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-backend-secondary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: backend
+    luneo.io/tier: api
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+    namespace: luneo-platform
+  source:
+    repoURL: https://github.com/luneo-platform/platform-helm.git
+    targetRevision: main
+    chart: luneo-backend
+    helm:
+      releaseName: luneo-backend
+      valuesObject:
+        image:
+          repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/luneo-backend
+          tag: latest
+        replicas: 2
+        env:
+          - name: NODE_ENV
+            value: production
+          - name: REGION_ROLE
+            value: standby
+        service:
+          type: ClusterIP
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+

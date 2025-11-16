@@ -82,9 +82,11 @@ export interface USDZConversionResult {
  */
 export class USDZConverter {
   private apiUrl: string;
+  private requestTimeoutMs: number;
 
-  constructor(config: { apiUrl: string }) {
+  constructor(config: { apiUrl: string; timeoutMs?: number }) {
     this.apiUrl = config.apiUrl;
+    this.requestTimeoutMs = config.timeoutMs ?? 15000;
   }
 
   /**
@@ -107,7 +109,7 @@ export class USDZConverter {
       };
       
       // Appeler l'API de conversion
-      const response = await fetch(this.apiUrl, {
+      const response = await this.requestWithTimeout(this.apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -170,7 +172,7 @@ export class USDZConverter {
    */
   async checkExists(glbUrl: string): Promise<string | null> {
     try {
-      const response = await fetch(`${this.apiUrl}/check`, {
+      const response = await this.requestWithTimeout(`${this.apiUrl}/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ glb_url: glbUrl }),
@@ -184,6 +186,19 @@ export class USDZConverter {
       return null;
     } catch {
       return null;
+    }
+  }
+  private async requestWithTimeout(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs);
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal });
+      return response;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 }

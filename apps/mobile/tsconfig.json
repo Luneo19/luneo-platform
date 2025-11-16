@@ -8,6 +8,7 @@
       "@/components/*": ["./src/components/*"],
       "@/screens/*": ["./src/screens/*"],
       "@/services/*": ["./src/services/*"],
+      "@/navigation/*": ["./src/navigation/*"],
       "@/store/*": ["./src/store/*"],
       "@/hooks/*": ["./src/hooks/*"],
       "@/utils/*": ["./src/utils/*"],

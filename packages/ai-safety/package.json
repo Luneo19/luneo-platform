@@ -1,0 +1,22 @@
+{
+  "name": "@luneo/ai-safety",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "description": "Prompt sanitization, hashing and compliance helpers for AI workloads.",
+  "license": "MIT",
+  "author": "Luneo Team",
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "typescript": "^5.3.3"
+  }
+}
+

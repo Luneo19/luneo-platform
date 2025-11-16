@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Design, DesignStatus, PaginatedResponse } from '@/types';
+import { Design, DesignStatus, PaginatedResponse, Pagination } from '@/types';
 import { designsApi } from '@/services/api';
 
 interface DesignsState {
@@ -11,12 +11,7 @@ interface DesignsState {
   isLoading: boolean;
   isGenerating: boolean;
   error: string | null;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+  pagination: Pagination;
   
   // Filtres et recherche
   filters: {
@@ -56,7 +51,9 @@ export const useDesignsStore = create<DesignsState>()(
         page: 1,
         limit: 20,
         total: 0,
-        pages: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
       },
       filters: {},
 

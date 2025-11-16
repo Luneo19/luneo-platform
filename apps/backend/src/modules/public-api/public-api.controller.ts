@@ -1,13 +1,25 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PublicApiService } from './public-api.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { RateLimitGuard } from './rate-limit/rate-limit.guard';
 import { CreateDesignDto, CreateOrderDto, GetAnalyticsDto } from './dto';
+import { QuotaGuard } from '@/common/guards/quota.guard';
+import { RequireQuota } from '@/common/decorators/quota.decorator';
 
 @ApiTags('Public API')
 @Controller('api/v1')
-@UseGuards(ApiKeyGuard, RateLimitGuard)
+@UseGuards(ApiKeyGuard, RateLimitGuard, QuotaGuard)
 @ApiBearerAuth('api-key')
 export class PublicApiController {
   constructor(private readonly publicApiService: PublicApiService) {}
@@ -26,6 +38,7 @@ export class PublicApiController {
   @Get('brand')
   @ApiOperation({ summary: 'Get brand information' })
   @ApiResponse({ status: 200, description: 'Brand information retrieved successfully' })
+  @RequireQuota({ metric: 'api_calls' })
   async getBrand() {
     return this.publicApiService.getBrandInfo();
   }
@@ -35,6 +48,7 @@ export class PublicApiController {
   @ApiResponse({ status: 200, description: 'Products retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @RequireQuota({ metric: 'api_calls' })
   async getProducts(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
@@ -46,6 +60,7 @@ export class PublicApiController {
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiResponse({ status: 200, description: 'Product retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Product not found' })
+  @RequireQuota({ metric: 'api_calls' })
   async getProduct(@Param('id') id: string) {
     return this.publicApiService.getProduct(id);
   }
@@ -55,6 +70,7 @@ export class PublicApiController {
   @ApiOperation({ summary: 'Create a new design' })
   @ApiResponse({ status: 201, description: 'Design created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid design data' })
+  @RequireQuota({ metric: 'designs_created' })
   async createDesign(@Body() createDesignDto: CreateDesignDto) {
     return this.publicApiService.createDesign(createDesignDto);
   }
@@ -63,6 +79,7 @@ export class PublicApiController {
   @ApiOperation({ summary: 'Get design by ID' })
   @ApiResponse({ status: 200, description: 'Design retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Design not found' })
+  @RequireQuota({ metric: 'api_calls' })
   async getDesign(@Param('id') id: string) {
     return this.publicApiService.getDesign(id);
   }
@@ -72,6 +89,7 @@ export class PublicApiController {
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid order data' })
+  @RequireQuota({ metric: 'api_calls' })
   async createOrder(@Body() createOrderDto: CreateOrderDto) {
     return this.publicApiService.createOrder(createOrderDto);
   }
@@ -80,6 +98,7 @@ export class PublicApiController {
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiResponse({ status: 200, description: 'Order retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Order not found' })
+  @RequireQuota({ metric: 'api_calls' })
   async getOrder(@Param('id') id: string) {
     return this.publicApiService.getOrder(id);
   }
@@ -90,6 +109,7 @@ export class PublicApiController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: String })
+  @RequireQuota({ metric: 'api_calls' })
   async getOrders(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -101,6 +121,7 @@ export class PublicApiController {
   @Get('analytics')
   @ApiOperation({ summary: 'Get analytics data' })
   @ApiResponse({ status: 200, description: 'Analytics retrieved successfully' })
+  @RequireQuota({ metric: 'api_calls' })
   async getAnalytics(@Query() query: GetAnalyticsDto) {
     return this.publicApiService.getAnalytics(query);
   }
@@ -109,6 +130,7 @@ export class PublicApiController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Test webhook endpoint' })
   @ApiResponse({ status: 200, description: 'Webhook test successful' })
+  @RequireQuota({ metric: 'webhook_deliveries' })
   async testWebhook(@Body() payload: any) {
     return this.publicApiService.testWebhook(payload);
   }

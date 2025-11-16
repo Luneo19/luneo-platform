@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: luneo-platform-multi-region
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: luneo
+spec:
+  generators:
+    - list:
+        elements:
+          - name: primary
+            region: eu-west-1
+            cluster: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+            destinationNamespace: luneo-platform
+            overlay: overlays/primary
+          - name: secondary
+            region: us-east-1
+            cluster: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+            destinationNamespace: luneo-platform
+            overlay: overlays/secondary
+          - name: observability-primary
+            region: eu-west-1
+            cluster: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+            destinationNamespace: luneo-observability
+            overlay: overlays/observability-primary
+          - name: observability-secondary
+            region: us-east-1
+            cluster: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+            destinationNamespace: luneo-observability
+            overlay: overlays/observability-secondary
+          - name: policies-primary
+            region: eu-west-1
+            cluster: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+            destinationNamespace: gatekeeper-system
+            overlay: overlays/policies-primary
+          - name: policies-secondary
+            region: us-east-1
+            cluster: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+            destinationNamespace: gatekeeper-system
+            overlay: overlays/policies-secondary
+  template:
+    metadata:
+      name: '{{name}}'
+      labels:
+        app.kubernetes.io/component: gitops-managed
+        app.kubernetes.io/part-of: luneo
+        luneo.io/region: '{{region}}'
+    spec:
+      project: default
+      destination:
+        name: '{{cluster}}'
+        namespace: '{{destinationNamespace}}'
+      source:
+        repoURL: https://github.com/luneo-platform/platform-gitops.git
+        targetRevision: main
+        path: '{{overlay}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - ServerSideApply=true
+

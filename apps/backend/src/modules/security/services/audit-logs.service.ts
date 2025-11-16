@@ -1,96 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { AuditLog as PrismaAuditLog, Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import {
+  AuditAlert,
+  AuditContext,
+  AuditEventType,
+  AuditLogCreateInput,
+  AuditLogRecord,
+  AuditSearchQuery,
+  AuditSearchResult,
+  AuditStatistics,
+  AuditMetadata,
+} from '../interfaces/audit.interface';
 
-/**
- * Types d'événements auditables
- */
-export enum AuditEventType {
-  // Authentication
-  LOGIN = 'auth.login',
-  LOGOUT = 'auth.logout',
-  LOGIN_FAILED = 'auth.login_failed',
-  PASSWORD_CHANGED = 'auth.password_changed',
-  PASSWORD_RESET = 'auth.password_reset',
-
-  // User Management
-  USER_CREATED = 'user.created',
-  USER_UPDATED = 'user.updated',
-  USER_DELETED = 'user.deleted',
-  USER_ROLE_CHANGED = 'user.role_changed',
-  USER_INVITED = 'user.invited',
-
-  // Brand Management
-  BRAND_CREATED = 'brand.created',
-  BRAND_UPDATED = 'brand.updated',
-  BRAND_DELETED = 'brand.deleted',
-
-  // Product Management
-  PRODUCT_CREATED = 'product.created',
-  PRODUCT_UPDATED = 'product.updated',
-  PRODUCT_DELETED = 'product.deleted',
-  PRODUCT_PUBLISHED = 'product.published',
-
-  // Design Management
-  DESIGN_CREATED = 'design.created',
-  DESIGN_UPDATED = 'design.updated',
-  DESIGN_DELETED = 'design.deleted',
-  DESIGN_APPROVED = 'design.approved',
-
-  // Order Management
-  ORDER_CREATED = 'order.created',
-  ORDER_UPDATED = 'order.updated',
-  ORDER_CANCELLED = 'order.cancelled',
-  ORDER_REFUNDED = 'order.refunded',
-
-  // Billing
-  BILLING_UPDATED = 'billing.updated',
-  INVOICE_GENERATED = 'billing.invoice_generated',
-  PAYMENT_SUCCEEDED = 'billing.payment_succeeded',
-  PAYMENT_FAILED = 'billing.payment_failed',
-
-  // Settings
-  SETTINGS_UPDATED = 'settings.updated',
-
-  // Integrations
-  INTEGRATION_CREATED = 'integration.created',
-  INTEGRATION_UPDATED = 'integration.updated',
-  INTEGRATION_DELETED = 'integration.deleted',
-  INTEGRATION_SYNCED = 'integration.synced',
-
-  // API & Security
-  API_KEY_CREATED = 'api.key_created',
-  API_KEY_DELETED = 'api.key_deleted',
-  WEBHOOK_CREATED = 'webhook.created',
-  WEBHOOK_DELETED = 'webhook.deleted',
-  ACCESS_DENIED = 'security.access_denied',
-  RATE_LIMIT_EXCEEDED = 'security.rate_limit_exceeded',
-
-  // GDPR
-  DATA_EXPORTED = 'gdpr.data_exported',
-  DATA_DELETED = 'gdpr.data_deleted',
-  CONSENT_GIVEN = 'gdpr.consent_given',
-  CONSENT_WITHDRAWN = 'gdpr.consent_withdrawn',
-}
-
-/**
- * Interface pour un log d'audit
- */
-export interface AuditLog {
-  id?: string;
-  eventType: AuditEventType;
-  userId?: string;
-  userEmail?: string;
-  brandId?: string;
-  resourceType?: string;
-  resourceId?: string;
-  action: string;
-  metadata?: Record<string, any>;
-  ipAddress?: string;
-  userAgent?: string;
-  success: boolean;
-  errorMessage?: string;
-  timestamp: Date;
-}
+export { AuditEventType } from '../interfaces/audit.interface';
 
 /**
  * Service de gestion des logs d'audit
@@ -102,39 +25,116 @@ export class AuditLogsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private formatError(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return typeof error === 'string' ? error : JSON.stringify(error);
+  }
+
+  private formatStack(error: unknown): string | undefined {
+    return error instanceof Error ? error.stack : undefined;
+  }
+
+  private toJson(metadata?: AuditMetadata): Prisma.InputJsonValue | undefined {
+    if (metadata === undefined) {
+      return undefined;
+    }
+    return metadata as Prisma.InputJsonValue;
+  }
+
+  private mapRecord(record: PrismaAuditLog): AuditLogRecord {
+    return {
+      id: record.id,
+      eventType: record.eventType as AuditEventType,
+      userId: record.userId,
+      userEmail: record.userEmail ?? null,
+      brandId: record.brandId ?? null,
+      resourceType: record.resourceType,
+      resourceId: record.resourceId,
+      action: record.action,
+      success: record.success,
+      metadata: (record.metadata as AuditMetadata | null) ?? null,
+      timestamp: record.timestamp,
+      ipAddress: record.ipAddress ?? null,
+      userAgent: record.userAgent ?? null,
+      errorMessage: record.errorMessage ?? null,
+    };
+  }
+
+  private buildWhere(filters: AuditSearchQuery): Prisma.AuditLogWhereInput {
+    const where: Prisma.AuditLogWhereInput = {};
+
+    if (filters.userId) {
+      where.userId = filters.userId;
+    }
+
+    if (filters.brandId) {
+      where.brandId = filters.brandId;
+    }
+
+    if (filters.eventType) {
+      where.eventType = filters.eventType;
+    }
+
+    if (filters.resourceType) {
+      where.resourceType = filters.resourceType;
+    }
+
+    if (filters.resourceId) {
+      where.resourceId = filters.resourceId;
+    }
+
+    if (typeof filters.success === 'boolean') {
+      where.success = filters.success;
+    }
+
+    if (filters.startDate || filters.endDate) {
+      where.timestamp = {};
+      if (filters.startDate) {
+        where.timestamp.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        where.timestamp.lte = filters.endDate;
+      }
+    }
+
+    return where;
+  }
+
   /**
    * Créer un log d'audit
    */
-  async log(log: AuditLog): Promise<void> {
+  async log(entry: AuditLogCreateInput): Promise<void> {
     try {
       await this.prisma.auditLog.create({
         data: {
-          eventType: log.eventType,
-          userId: log.userId,
-          // userEmail: log.userEmail, // Commenté car pas dans AuditLogCreateInput
-          // brandId: log.brandId, // Commenté car pas dans AuditLogCreateInput
-          resourceType: log.resourceType,
-          resourceId: log.resourceId,
-          action: log.action,
-          metadata: log.metadata || {},
-          ipAddress: log.ipAddress,
-          userAgent: log.userAgent,
-          success: log.success,
-          // errorMessage: log.errorMessage, // Commenté car pas dans AuditLogCreateInput
-          timestamp: log.timestamp || new Date(),
+          eventType: entry.eventType,
+          userId: entry.userId ?? 'system',
+          userEmail: entry.userEmail,
+          brandId: entry.brandId,
+          resourceType: entry.resourceType ?? 'system',
+          resourceId: entry.resourceId ?? 'unknown',
+          action: entry.action,
+          metadata: entry.metadata ? this.toJson(entry.metadata) : undefined,
+          ipAddress: entry.ipAddress,
+          userAgent: entry.userAgent,
+          success: entry.success,
+          errorMessage: entry.errorMessage,
+          timestamp: entry.timestamp ?? new Date(),
         },
       });
 
       // Log aussi dans les logs applicatifs pour debugging
-      const logLevel = log.success ? 'log' : 'warn';
+      const logLevel: 'log' | 'warn' = entry.success ? 'log' : 'warn';
       this.logger[logLevel](
-        `Audit: ${log.eventType} by ${log.userEmail || log.userId} - ${log.action}`,
+        `Audit: ${entry.eventType} by ${entry.userEmail || entry.userId || 'system'} - ${entry.action}`,
       );
     } catch (error) {
       // CRITICAL: Ne jamais faire échouer l'opération métier si l'audit échoue
       this.logger.error(
-        `Failed to create audit log: ${error.message}`,
-        error.stack,
+        `Failed to create audit log: ${this.formatError(error)}`,
+        this.formatStack(error),
       );
     }
   }
@@ -145,16 +145,7 @@ export class AuditLogsService {
   async logSuccess(
     eventType: AuditEventType,
     action: string,
-    context: {
-      userId?: string;
-      userEmail?: string;
-      brandId?: string;
-      resourceType?: string;
-      resourceId?: string;
-      metadata?: Record<string, any>;
-      ipAddress?: string;
-      userAgent?: string;
-    },
+    context: AuditContext,
   ): Promise<void> {
     await this.log({
       eventType,
@@ -172,16 +163,7 @@ export class AuditLogsService {
     eventType: AuditEventType,
     action: string,
     error: string,
-    context: {
-      userId?: string;
-      userEmail?: string;
-      brandId?: string;
-      resourceType?: string;
-      resourceId?: string;
-      metadata?: Record<string, any>;
-      ipAddress?: string;
-      userAgent?: string;
-    },
+    context: AuditContext,
   ): Promise<void> {
     await this.log({
       eventType,
@@ -196,47 +178,31 @@ export class AuditLogsService {
   /**
    * Rechercher des logs d'audit
    */
-  async search(filters: {
-    userId?: string;
-    brandId?: string;
-    eventType?: AuditEventType;
-    resourceType?: string;
-    resourceId?: string;
-    success?: boolean;
-    startDate?: Date;
-    endDate?: Date;
-    limit?: number;
-    offset?: number;
-  }): Promise<{ logs: any[]; total: number }> {
+  async search(filters: AuditSearchQuery): Promise<AuditSearchResult> {
     try {
-      const where: any = {};
-
-      if (filters.userId) where.userId = filters.userId;
-      if (filters.brandId) where.brandId = filters.brandId;
-      if (filters.eventType) where.eventType = filters.eventType;
-      if (filters.resourceType) where.resourceType = filters.resourceType;
-      if (filters.resourceId) where.resourceId = filters.resourceId;
-      if (filters.success !== undefined) where.success = filters.success;
-
-      if (filters.startDate || filters.endDate) {
-        where.timestamp = {};
-        if (filters.startDate) where.timestamp.gte = filters.startDate;
-        if (filters.endDate) where.timestamp.lte = filters.endDate;
-      }
+      const where = this.buildWhere(filters);
+      const limit = filters.limit ?? 100;
+      const offset = filters.offset ?? 0;
 
       const [logs, total] = await Promise.all([
         this.prisma.auditLog.findMany({
           where,
           orderBy: { timestamp: 'desc' },
-          take: filters.limit || 100,
-          skip: filters.offset || 0,
+          take: limit,
+          skip: offset,
         }),
         this.prisma.auditLog.count({ where }),
       ]);
 
-      return { logs, total };
+      return {
+        logs: logs.map((log) => this.mapRecord(log)),
+        total,
+      };
     } catch (error) {
-      this.logger.error(`Failed to search audit logs: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to search audit logs: ${this.formatError(error)}`,
+        this.formatStack(error),
+      );
       return { logs: [], total: 0 };
     }
   }
@@ -247,19 +213,20 @@ export class AuditLogsService {
   async getResourceHistory(
     resourceType: string,
     resourceId: string,
-  ): Promise<any[]> {
+  ): Promise<AuditLogRecord[]> {
     try {
-      return await this.prisma.auditLog.findMany({
+      const records = await this.prisma.auditLog.findMany({
         where: {
           resourceType,
           resourceId,
         },
         orderBy: { timestamp: 'desc' },
       });
+      return records.map((record) => this.mapRecord(record));
     } catch (error) {
       this.logger.error(
-        `Failed to get resource history: ${error.message}`,
-        error.stack,
+        `Failed to get resource history: ${this.formatError(error)}`,
+        this.formatStack(error),
       );
       return [];
     }
@@ -271,17 +238,18 @@ export class AuditLogsService {
   async getUserActivity(
     userId: string,
     limit: number = 100,
-  ): Promise<any[]> {
+  ): Promise<AuditLogRecord[]> {
     try {
-      return await this.prisma.auditLog.findMany({
+      const records = await this.prisma.auditLog.findMany({
         where: { userId },
         orderBy: { timestamp: 'desc' },
         take: limit,
       });
+      return records.map((record) => this.mapRecord(record));
     } catch (error) {
       this.logger.error(
-        `Failed to get user activity: ${error.message}`,
-        error.stack,
+        `Failed to get user activity: ${this.formatError(error)}`,
+        this.formatStack(error),
       );
       return [];
     }
@@ -290,12 +258,12 @@ export class AuditLogsService {
   /**
    * Statistiques d'audit
    */
-  async getStats(brandId?: string, days: number = 30): Promise<any> {
+  async getStats(brandId?: string, days: number = 30): Promise<AuditStatistics | null> {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const where: any = {
+      const where: Prisma.AuditLogWhereInput = {
         timestamp: { gte: startDate },
       };
       if (brandId) where.brandId = brandId;
@@ -319,13 +287,16 @@ export class AuditLogsService {
         success,
         failures,
         successRate: total > 0 ? (success / total) * 100 : 0,
-        topEvents: byEventType.map((e) => ({
-          eventType: e.eventType,
-          count: e._count,
+        topEvents: byEventType.map((event) => ({
+          eventType: event.eventType as AuditEventType,
+          count: typeof event._count === 'number' ? event._count : 0,
         })),
       };
     } catch (error) {
-      this.logger.error(`Failed to get audit stats: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get audit stats: ${this.formatError(error)}`,
+        this.formatStack(error),
+      );
       return null;
     }
   }
@@ -333,7 +304,7 @@ export class AuditLogsService {
   /**
    * Exporter des logs en CSV
    */
-  async exportToCSV(filters: any): Promise<string> {
+  async exportToCSV(filters: AuditSearchQuery): Promise<string> {
     try {
       const { logs } = await this.search({ ...filters, limit: 10000 });
 
@@ -357,15 +328,18 @@ export class AuditLogsService {
 
       return csv;
     } catch (error) {
-      this.logger.error(`Failed to export CSV: ${error.message}`, error.stack);
-      throw error;
+      this.logger.error(
+        `Failed to export CSV: ${this.formatError(error)}`,
+        this.formatStack(error),
+      );
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
   /**
    * Détecter des activités suspectes
    */
-  async detectSuspiciousActivity(userId: string): Promise<any[]> {
+  async detectSuspiciousActivity(userId: string): Promise<AuditAlert[]> {
     try {
       const oneHourAgo = new Date();
       oneHourAgo.setHours(oneHourAgo.getHours() - 1);
@@ -380,7 +354,7 @@ export class AuditLogsService {
         orderBy: { timestamp: 'desc' },
       });
 
-      const alerts = [];
+      const alerts: AuditAlert[] = [];
 
       // Alerte si > 5 échecs en 1h
       if (recentFailures.length > 5) {
@@ -394,7 +368,7 @@ export class AuditLogsService {
 
       // Alerte si accès refusés répétés
       const accessDenied = recentFailures.filter(
-        (f) => f.eventType === AuditEventType.ACCESS_DENIED,
+        (failure) => failure.eventType === AuditEventType.ACCESS_DENIED,
       );
       if (accessDenied.length > 3) {
         alerts.push({
@@ -408,8 +382,8 @@ export class AuditLogsService {
       return alerts;
     } catch (error) {
       this.logger.error(
-        `Failed to detect suspicious activity: ${error.message}`,
-        error.stack,
+        `Failed to detect suspicious activity: ${this.formatError(error)}`,
+        this.formatStack(error),
       );
       return [];
     }

@@ -344,8 +344,8 @@ export async function POST(request: NextRequest) {
   // Ligne 24-39: Config Price IDs
   const planPrices: Record<string, { monthly, yearly }> = {
     professional: { 
-      monthly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
-      yearly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo'
+      monthly: 'price_PRO_MONTHLY',
+      yearly: 'price_PRO_MONTHLY'
     },
     // ... autres plans
   };

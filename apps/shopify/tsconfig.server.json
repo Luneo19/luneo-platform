@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "declaration": true,
+    "removeComments": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true,
+    "incremental": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "baseUrl": "./src/server",
+    "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": ["src/server/**/*", "src/types/**/*"],
+  "exclude": ["node_modules", "dist", "src/frontend"]
+}
+

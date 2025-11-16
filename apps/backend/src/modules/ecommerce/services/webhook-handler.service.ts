@@ -1,20 +1,28 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { Prisma, EcommerceIntegration as PrismaEcommerceIntegration, WebhookLog as PrismaWebhookLog } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ShopifyConnector } from '../connectors/shopify/shopify.connector';
 import { WooCommerceConnector } from '../connectors/woocommerce/woocommerce.connector';
-import { WebhookPayload } from '../interfaces/ecommerce.interface';
+import { EcommerceWebhookJobPayload } from '../interfaces/ecommerce.interface';
+import { EcommerceWebhookQueueService } from './ecommerce-webhook-queue.service';
+import {
+  WebhookPayload,
+  EcommerceIntegration,
+  EcommerceConfig,
+  ShopifyWebhookPayload,
+  WooCommerceWebhookPayload,
+  WebhookStats,
+} from '../interfaces/ecommerce.interface';
 
 @Injectable()
 export class WebhookHandlerService {
   private readonly logger = new Logger(WebhookHandlerService.name);
 
   constructor(
-    @InjectQueue('ecommerce-webhooks') private readonly webhookQueue: Queue,
     private readonly prisma: PrismaService,
     private readonly shopifyConnector: ShopifyConnector,
     private readonly woocommerceConnector: WooCommerceConnector,
+    private readonly webhookQueueService: EcommerceWebhookQueueService,
   ) {}
 
   /**
@@ -23,26 +31,17 @@ export class WebhookHandlerService {
   async handleShopifyWebhook(
     topic: string,
     shop: string,
-    payload: any,
+    payload: ShopifyWebhookPayload,
     hmacHeader: string,
   ): Promise<void> {
     try {
-      // Récupérer l'intégration
-      const integration = await this.prisma.ecommerceIntegration.findFirst({
-        where: {
-          platform: 'shopify',
-          shopDomain: shop,
-          status: 'active',
-        },
-      });
-
+      const integration = await this.getIntegrationByShop(shop);
       if (!integration) {
         this.logger.warn(`No active Shopify integration found for shop: ${shop}`);
         return;
       }
 
-      // Valider le webhook
-      const webhookSecret = (integration.config as any).webhookSecret || '';
+      const webhookSecret = this.extractWebhookSecret(integration.config);
       const isValid = this.shopifyConnector.validateWebhook(
         JSON.stringify(payload),
         hmacHeader,
@@ -63,11 +62,11 @@ export class WebhookHandlerService {
       });
 
       // Traiter de manière asynchrone
-      await this.webhookQueue.add('process-shopify-webhook', {
+      await this.enqueueWebhook({
         integrationId: integration.id,
         topic,
-        shop,
         payload,
+        shopDomain: shop,
       });
 
       this.logger.log(`Shopify webhook queued: ${topic} for shop ${shop}`);
@@ -82,38 +81,44 @@ export class WebhookHandlerService {
    */
   async handleWooCommerceWebhook(
     topic: string,
-    payload: any,
+    payload: WooCommerceWebhookPayload,
     signature: string,
   ): Promise<void> {
     try {
-      // Trouver l'intégration
-      const integration = await this.prisma.ecommerceIntegration.findFirst({
+      const record = await this.prisma.ecommerceIntegration.findFirst({
         where: {
           platform: 'woocommerce',
           status: 'active',
         },
       });
 
-      if (!integration) {
+      if (!record) {
         this.logger.warn(`No active WooCommerce integration found`);
         return;
       }
+
+      const integration = this.mapIntegration(record);
 
       // Log du webhook
       await this.logWebhook({
         id: `woocommerce_${Date.now()}`,
         topic,
+        shop_domain: integration.shopDomain,
         payload,
         created_at: new Date().toISOString(),
       });
 
       // Traiter de manière asynchrone
-      await this.webhookQueue.add('process-woocommerce-webhook', {
-        integrationId: integration.id,
-        topic,
-        payload,
-        signature,
-      });
+      await this.enqueueWebhook(
+        {
+          integrationId: integration.id,
+          topic,
+          payload,
+          shopDomain: integration.shopDomain,
+          signature,
+        },
+        'woocommerce',
+      );
 
       this.logger.log(`WooCommerce webhook queued: ${topic}`);
     } catch (error) {
@@ -131,8 +136,8 @@ export class WebhookHandlerService {
         data: {
           webhookId: webhook.id,
           topic: webhook.topic,
-          shopDomain: webhook.shop_domain,
-          payload: webhook.payload,
+          shopDomain: webhook.shop_domain ?? '',
+          payload: this.toJson(webhook.payload),
           status: 'received',
           createdAt: new Date(webhook.created_at),
         },
@@ -142,21 +147,31 @@ export class WebhookHandlerService {
     }
   }
 
+  private toJson(value: Record<string, unknown>): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  }
+
+  private async enqueueWebhook(
+    payload: EcommerceWebhookJobPayload,
+    platform: 'shopify' | 'woocommerce' = 'shopify',
+  ): Promise<void> {
+    if (platform === 'shopify') {
+      await this.webhookQueueService.enqueueShopifyWebhook(payload);
+      return;
+    }
+
+    await this.webhookQueueService.enqueueWooCommerceWebhook(payload);
+  }
+
   /**
    * Récupère l'historique des webhooks
    */
   async getWebhookHistory(
     integrationId: string,
     limit: number = 50,
-  ): Promise<any[]> {
+  ): Promise<WebhookPayload[]> {
     try {
-      const integration = await this.prisma.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
-      }
+      const integration = await this.getIntegration(integrationId);
 
       const webhooks = await this.prisma.webhookLog.findMany({
         where: {
@@ -166,7 +181,7 @@ export class WebhookHandlerService {
         orderBy: { createdAt: 'desc' },
       });
 
-      return webhooks;
+      return webhooks.map((webhook) => this.mapWebhookRecord(webhook));
     } catch (error) {
       this.logger.error(`Error fetching webhook history:`, error);
       throw error;
@@ -186,28 +201,24 @@ export class WebhookHandlerService {
         throw new Error(`Webhook ${webhookId} not found`);
       }
 
-      const integration = await this.prisma.ecommerceIntegration.findFirst({
-        where: {
-          shopDomain: webhook.shopDomain,
-          status: 'active',
-        },
-      });
-
+      const integration = await this.getIntegrationByShop(webhook.shopDomain);
       if (!integration) {
         throw new Error('No active integration found for webhook');
       }
+
+      const webhookPayload = this.ensureRecord(webhook.payload) ?? {};
 
       // Réessayer selon la plateforme
       if (integration.platform === 'shopify') {
         await this.shopifyConnector.handleWebhook(
           webhook.topic,
           webhook.shopDomain,
-          webhook.payload,
+          webhookPayload,
         );
       } else if (integration.platform === 'woocommerce') {
         await this.woocommerceConnector.handleWebhook(
           webhook.topic,
-          webhook.payload,
+          webhookPayload,
           '', // Signature déjà validée
         );
       }
@@ -228,15 +239,12 @@ export class WebhookHandlerService {
   /**
    * Obtient les statistiques des webhooks
    */
-  async getWebhookStats(integrationId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<any> {
+  async getWebhookStats(
+    integrationId: string,
+    period: 'day' | 'week' | 'month' = 'week',
+  ): Promise<WebhookStats> {
     try {
-      const integration = await this.prisma.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
-      }
+      const integration = await this.getIntegration(integrationId);
 
       const now = new Date();
       const startDate = new Date();
@@ -263,27 +271,113 @@ export class WebhookHandlerService {
         },
       });
 
-      const stats = {
+      return {
         period,
         totalWebhooks: webhooks.length,
-        webhooksByTopic: webhooks.reduce((acc, webhook) => {
+        webhooksByTopic: webhooks.reduce<Record<string, number>>((acc, webhook) => {
           acc[webhook.topic] = (acc[webhook.topic] || 0) + 1;
           return acc;
-        }, {} as Record<string, number>),
-        webhooksByStatus: webhooks.reduce((acc, webhook) => {
+        }, {}),
+        webhooksByStatus: webhooks.reduce<Record<string, number>>((acc, webhook) => {
           acc[webhook.status] = (acc[webhook.status] || 0) + 1;
           return acc;
-        }, {} as Record<string, number>),
-        successRate: webhooks.length > 0
-          ? (webhooks.filter(w => w.status === 'processed').length / webhooks.length) * 100
-          : 0,
+        }, {}),
+        successRate:
+          webhooks.length > 0
+            ? (webhooks.filter((w) => w.status === 'processed').length / webhooks.length) * 100
+            : 0,
       };
-
-      return stats;
     } catch (error) {
       this.logger.error(`Error getting webhook stats:`, error);
       throw error;
     }
+  }
+
+  private async getIntegration(integrationId: string): Promise<EcommerceIntegration> {
+    const record = await this.prisma.ecommerceIntegration.findUnique({
+      where: { id: integrationId },
+    });
+
+    if (!record) {
+      throw new Error(`Integration ${integrationId} not found`);
+    }
+
+    return this.mapIntegration(record);
+  }
+
+  private async getIntegrationByShop(shopDomain: string): Promise<EcommerceIntegration | null> {
+    const record = await this.prisma.ecommerceIntegration.findFirst({
+      where: {
+        shopDomain,
+        status: 'active',
+      },
+    });
+
+    return record ? this.mapIntegration(record) : null;
+  }
+
+  private mapIntegration(record: PrismaEcommerceIntegration): EcommerceIntegration {
+    return {
+      id: record.id,
+      brandId: record.brandId,
+      platform: record.platform as EcommerceIntegration['platform'],
+      shopDomain: record.shopDomain,
+      accessToken: record.accessToken ?? undefined,
+      refreshToken: record.refreshToken ?? undefined,
+      config: this.parseConfig(record.config),
+      status: record.status as EcommerceIntegration['status'],
+      lastSyncAt: record.lastSyncAt ?? undefined,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
+  private parseConfig(config: Prisma.JsonValue | null): EcommerceConfig {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return {};
+    }
+
+    const record = config as Record<string, unknown>;
+
+    return {
+      apiKey: typeof record.apiKey === 'string' ? record.apiKey : undefined,
+      apiSecret: typeof record.apiSecret === 'string' ? record.apiSecret : undefined,
+      webhookSecret: typeof record.webhookSecret === 'string' ? record.webhookSecret : undefined,
+      scopes: this.ensureStringArray(record.scopes),
+      features: this.ensureStringArray(record.features),
+      customFields: this.ensureRecord(record.customFields),
+    };
+  }
+
+  private ensureStringArray(value: unknown): string[] | undefined {
+    if (!value || !Array.isArray(value)) {
+      return undefined;
+    }
+
+    const items = value.filter((entry): entry is string => typeof entry === 'string');
+    return items.length > 0 ? items : undefined;
+  }
+
+  private ensureRecord(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    return value as Record<string, unknown>;
+  }
+
+  private extractWebhookSecret(config: EcommerceConfig): string {
+    return config.webhookSecret ?? '';
+  }
+
+  private mapWebhookRecord(record: PrismaWebhookLog): WebhookPayload {
+    return {
+      id: record.webhookId,
+      topic: record.topic,
+      shop_domain: record.shopDomain,
+      payload: this.ensureRecord(record.payload) ?? {},
+      created_at: record.createdAt.toISOString(),
+    };
   }
 }
 

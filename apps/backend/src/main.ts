@@ -7,6 +7,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { setupSwagger } from './swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
+import * as bodyParser from 'body-parser';
 // import compression from 'compression';
 // import hpp from 'hpp';
 // import rateLimit from 'express-rate-limit';
@@ -14,20 +15,57 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { validateEnv } from './config/configuration';
+import { initializeTracing, shutdownTracing } from './modules/observability/tracing';
 
 async function bootstrap() {
   // Validate environment variables
   validateEnv();
+  await initializeTracing();
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
+  const apiPrefix = configService.get<string>('app.apiPrefix') ?? '/api/v1';
+  app.use(`${apiPrefix}/billing/webhook`, bodyParser.raw({ type: 'application/json' }));
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
+
   // Security middleware - production ready
-  app.use(helmet());
+  const isProd = configService.get('app.nodeEnv') === 'production';
+  app.use(
+    helmet({
+      contentSecurityPolicy: isProd
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+              styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+              imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
+              connectSrc: ["'self'", 'https://api.stripe.com', 'https://*.upstash.io'],
+              fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+              frameSrc: ["'self'", 'https://js.stripe.com'],
+              objectSrc: ["'none'"],
+              upgradeInsecureRequests: [],
+            },
+          }
+        : false,
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      hsts: isProd
+        ? {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true,
+          }
+        : false,
+    }),
+  );
   
   // Enable compression and security middleware in production
-  if (configService.get('app.nodeEnv') === 'production') {
+  if (isProd) {
     const compression = require('compression');
     const hpp = require('hpp');
     const rateLimit = require('express-rate-limit');
@@ -59,13 +97,14 @@ async function bootstrap() {
   }
 
   // CORS
+  const corsOrigin = configService.get<string>('app.corsOrigin') ?? '*';
   app.enableCors({
-    origin: configService.get('app.corsOrigin'),
+    origin: corsOrigin,
     credentials: true,
   });
 
   // Global prefix
-  app.setGlobalPrefix(configService.get('app.apiPrefix'));
+  app.setGlobalPrefix(apiPrefix);
 
   // Validation pipe
   app.useGlobalPipes(
@@ -84,7 +123,7 @@ async function bootstrap() {
     setupSwagger(app);
   }
 
-  const port = configService.get('app.port');
+  const port = configService.get<number>('app.port') ?? 3000;
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}`);
@@ -92,7 +131,18 @@ async function bootstrap() {
   logger.log(`🔍 Health check: http://localhost:${port}/health`);
 }
 
-bootstrap().catch((error) => {
+bootstrap().catch(async (error) => {
   console.error('❌ Failed to start application:', error);
+  await shutdownTracing();
   process.exit(1);
+});
+
+process.on('SIGTERM', async () => {
+  await shutdownTracing();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  await shutdownTracing();
+  process.exit(0);
 });

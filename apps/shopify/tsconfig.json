@@ -1,0 +1,38 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "target": "ES2020",
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/frontend/*"
+      ]
+    },
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/frontend/**/*",
+    "src/pages/**/*",
+    "src/types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/server"
+  ]
+}

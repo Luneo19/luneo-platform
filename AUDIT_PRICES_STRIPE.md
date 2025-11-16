@@ -25,7 +25,7 @@ Cela signifie que le Price ID configuré dans Vercel pour Enterprise n'existe pa
 **Vérifier que les variables suivantes existent et sont CORRECTES:**
 
 ```
-STRIPE_PRICE_PRO=price_1RvB1uKG9MsM6fdSnrGm2qIo
+STRIPE_PRICE_PRO=price_PRO_MONTHLY
 STRIPE_PRICE_BUSINESS=??? (à compléter)
 STRIPE_PRICE_ENTERPRISE=price_1SH7TMKG9MsM6fdSebEXZ (❌ INCORRECT)
 ```
@@ -58,7 +58,7 @@ https://dashboard.stripe.com/products
 Ajouter/mettre à jour les variables:
 
 ```
-STRIPE_PRICE_PRO=price_1RvB1uKG9MsM6fdSnrGm2qIo
+STRIPE_PRICE_PRO=price_PRO_MONTHLY
 STRIPE_PRICE_BUSINESS=price_XXXXXXXXX (nouveau Price ID)
 STRIPE_PRICE_ENTERPRISE=price_YYYYYYYYY (nouveau Price ID)
 ```
@@ -88,7 +88,7 @@ Pour que TOUS les plans fonctionnent, il faut au minimum:
 
 | Plan | Price ID | Status |
 |------|----------|--------|
-| Professional | `price_1RvB1uKG9MsM6fdSnrGm2qIo` | ✅ Confirmé |
+| Professional | `price_PRO_MONTHLY` | ✅ Confirmé |
 | Business | ❌ Manquant | ⚠️ À créer |
 | Enterprise | ❌ Incorrect | ⚠️ À corriger |
 

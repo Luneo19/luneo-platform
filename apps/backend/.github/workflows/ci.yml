@@ -72,6 +72,23 @@ jobs:
         REDIS_URL: redis://localhost:6379
         JWT_SECRET: test-jwt-secret-32-chars-long
         JWT_REFRESH_SECRET: test-refresh-secret-32-chars-long
+        
+    - name: Run unit tests with coverage
+      run: pnpm test:cov
+      env:
+        DATABASE_URL: postgresql://postgres:password@localhost:5432/luneo_test
+        REDIS_URL: redis://localhost:6379
+        JWT_SECRET: test-jwt-secret-32-chars-long
+        JWT_REFRESH_SECRET: test-refresh-secret-32-chars-long
+      continue-on-error: true
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: backend
+        name: backend-coverage
+      continue-on-error: true
 
     - name: Run E2E tests
       run: pnpm test:e2e

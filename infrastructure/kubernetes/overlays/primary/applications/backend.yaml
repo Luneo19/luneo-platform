@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-backend
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: backend
+    luneo.io/tier: api
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+    namespace: luneo-platform
+  source:
+    repoURL: https://github.com/luneo-platform/platform-helm.git
+    targetRevision: main
+    chart: luneo-backend
+    helm:
+      releaseName: luneo-backend
+      valuesObject:
+        image:
+          repository: 123456789012.dkr.ecr.eu-west-1.amazonaws.com/luneo-backend
+          tag: latest
+        replicas: 4
+        service:
+          type: ClusterIP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 768Mi
+          limits:
+            cpu: 2000m
+            memory: 2048Mi
+        env:
+          - name: NODE_ENV
+            value: production
+          - name: FEATURE_FLAGS
+            valueFrom:
+              configMapKeyRef:
+                name: luneo-feature-flags
+                key: realtime_monitoring
+        secretsProvider:
+          enabled: true
+          provider: aws-secretsmanager
+          path: /luneo/prod/backend
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+

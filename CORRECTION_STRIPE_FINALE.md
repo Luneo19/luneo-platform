@@ -40,9 +40,9 @@ Si vous voulez utiliser les clés LIVE (argent réel):
 ## 📋 VÉRIFICATION DES PRICE IDs
 
 Dans Vercel, vous avez:
-- ✅ `STRIPE_PRICE_PRO` = `price_1RvB1uKG9MsM6fdSnrGm2qIo`
+- ✅ `STRIPE_PRICE_PRO` = `price_PRO_MONTHLY`
 - ❓ `STRIPE_PRICE_BUSINESS` = Partiellement visible
-- ✅ `STRIPE_PRICE_ENTERPRISE` = `price_1SH7TMKG9MsM6fdSx4pebEXZ`
+- ✅ `STRIPE_PRICE_ENTERPRISE` = `price_ENTERPRISE_MONTHLY`
 
 **Vérifiez que le Price ID Business est complet!**
 

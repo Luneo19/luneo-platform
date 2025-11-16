@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-frontend-secondary
+spec:
+  source:
+    helm:
+      valuesObject:
+        ingress:
+          enabled: true
+          className: alb
+          annotations:
+            alb.ingress.kubernetes.io/group.name: luneo-standby
+          hosts:
+            - host: app-secondary.luneo.app
+              paths:
+                - path: /
+                  pathType: Prefix
+        metrics:
+          serviceMonitor:
+            enabled: true
+            namespace: luneo-observability
+

@@ -23,7 +23,11 @@ interface AuthState {
   // Biometrics
   enableBiometrics: () => Promise<boolean>;
   authenticateWithBiometrics: () => Promise<boolean>;
-  checkBiometricsSupport: () => Promise<boolean>;
+  checkBiometricsSupport: () => Promise<{
+    hasHardware: boolean;
+    isEnrolled: boolean;
+    supportedTypes: boolean;
+  }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -41,7 +45,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { user, tokens } = await authApi.login(credentials);
+          const { user } = await authApi.login(credentials);
           
           set({
             user,
@@ -67,7 +71,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { user, tokens } = await authApi.register(userData);
+          const { user } = await authApi.register(userData);
           
           set({
             user,

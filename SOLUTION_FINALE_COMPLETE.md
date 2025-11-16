@@ -10,7 +10,7 @@
 L'erreur `No such price: 'price_1SH7TMKG9MsM6fdSebEXZ'` était due à un **typo dans le Price ID Enterprise** dans Vercel.
 
 **Mauvais:** `price_1SH7TMKG9MsM6fdSebEXZ`  
-**Correct:** `price_1SH7TMKG9MsM6fdSx4pebEXZ`
+**Correct:** `price_ENTERPRISE_MONTHLY`
 
 ---
 
@@ -23,9 +23,9 @@ L'erreur `No such price: 'price_1SH7TMKG9MsM6fdSebEXZ'` était due à un **typo 
 ```typescript
 const planPrices: Record<string, string | null> = {
   starter: null,
-  professional: process.env.STRIPE_PRICE_PRO || 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
+  professional: process.env.STRIPE_PRICE_PRO || 'price_PRO_MONTHLY',
   business: process.env.STRIPE_PRICE_BUSINESS || null,
-  enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_1SH7TMKG9MsM6fdSx4pebEXZ'
+  enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_ENTERPRISE_MONTHLY'
 };
 ```
 
@@ -49,9 +49,9 @@ if (billing === 'yearly' && priceId) {
 
 | Plan | Price ID Correct |
 |------|------------------|
-| Professional | `price_1RvB1uKG9MsM6fdSnrGm2qIo` |
+| Professional | `price_PRO_MONTHLY` |
 | Business | (dépend du variable env) |
-| Enterprise | `price_1SH7TMKG9MsM6fdSx4pebEXZ` |
+| Enterprise | `price_ENTERPRISE_MONTHLY` |
 
 **⚠️ IMPORTANT:** La dernière lettre est **X** pas **S**! (Sx4pebEXZ)
 
@@ -64,11 +64,11 @@ if (billing === 'yearly' && priceId) {
 **URL:** https://vercel.com/luneos-projects/frontend/settings/environment-variables
 
 ```
-STRIPE_SECRET_KEY=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
-STRIPE_PRICE_PRO=price_1RvB1uKG9MsM6fdSnrGm2qIo
+STRIPE_SECRET_KEY=sk_live_your_secret_key
+STRIPE_PRICE_PRO=price_PRO_MONTHLY
 STRIPE_PRICE_BUSINESS=(votre Price ID Business)
-STRIPE_PRICE_ENTERPRISE=price_1SH7TMKG9MsM6fdSx4pebEXZ
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_jL5xDF4ylCaiXVDswVAliVA3
+STRIPE_PRICE_ENTERPRISE=price_ENTERPRISE_MONTHLY
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_publishable_key
 NEXT_PUBLIC_APP_URL=https://app.luneo.app
 ```
 
@@ -141,9 +141,9 @@ Si ça ne marche toujours pas, vérifier les logs:
 **Chercher:**
 ```
 🔍 Stripe Price IDs configured: {
-  professional: 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
+  professional: 'price_PRO_MONTHLY',
   business: '...',
-  enterprise: 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
+  enterprise: 'price_ENTERPRISE_MONTHLY',
   requestedPlan: 'enterprise',
   selectedPriceId: '...'
 }

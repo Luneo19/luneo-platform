@@ -72,10 +72,10 @@ enum WebhookEventType {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  password      String?   // Null for OAuth users
+  password      String? // Null for OAuth users
   firstName     String?
   lastName      String?
-  name          String?   // Full name field
+  name          String? // Full name field
   avatar        String?
   role          UserRole  @default(CONSUMER)
   isActive      Boolean   @default(true)
@@ -84,41 +84,50 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Billing
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?
+  stripePlan             String?
+  stripeStatus           String?
+  stripeCurrentPeriodEnd DateTime?
+
   // Relations
-  brandId       String?
-  brand         Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: SetNull)
+
   designs       Design[]
   orders        Order[]
   refreshTokens RefreshToken[]
-  
+
   // OAuth
   oauthAccounts OAuthAccount[]
-  
+
   // Quotas
-  userQuota     UserQuota?
-  
+  userQuota UserQuota?
+
   // GDPR
-  userConsents  UserConsent[]
+  userConsents UserConsent[]
 
   @@index([email])
   @@index([brandId])
   @@index([role])
+  @@index([stripeSubscriptionId])
+  @@index([stripePlan])
 }
 
 model OAuthAccount {
-  id           String @id @default(cuid())
+  id           String    @id @default(cuid())
   provider     String // google, github, etc.
   providerId   String
   accessToken  String?
   refreshToken String?
   expiresAt    DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Relations
-  userId       String
-  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
   @@index([userId])
@@ -129,58 +138,59 @@ model RefreshToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
+
   // Relations
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
 }
 
 model Brand {
-  id                String      @id @default(cuid())
-  name              String
-  slug              String      @unique
-  description       String?
-  logo              String?
-  website           String?
-  status            BrandStatus @default(PENDING_VERIFICATION)
-  
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  logo        String?
+  website     String?
+  status      BrandStatus @default(PENDING_VERIFICATION)
+
   // KYC Fields
-  companyName       String?
-  vatNumber         String?
-  address           String?
-  city              String?
-  country           String?
-  postalCode        String?
-  phone             String?
-  
+  companyName String?
+  vatNumber   String?
+  address     String?
+  city        String?
+  country     String?
+  postalCode  String?
+  phone       String?
+
   // Billing
-  stripeCustomerId  String?
-  stripeSubscriptionId String?  // Stripe subscription ID
-  plan              String      @default("starter")
-  planExpiresAt     DateTime?
-  limits            Json?       // Brand limits configuration
-  
+  stripeCustomerId     String?
+  stripeSubscriptionId String? // Stripe subscription ID
+  plan                 String    @default("starter")
+  planExpiresAt        DateTime?
+  limits               Json? // Brand limits configuration
+
   // Settings
-  settings          Json?       // Brand-specific settings
-  webhookUrl        String?
-  webhookSecret     String?
-  
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  settings      Json? // Brand-specific settings
+  webhookUrl    String?
+  webhookSecret String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  users             User[]
-  products          Product[]
-  designs           Design[]
-  orders            Order[]
-  webhooks          Webhook[]
-  apiKeys           ApiKey[]
-  aiCosts           AICost[]
+  users                 User[]
+  products              Product[]
+  designs               Design[]
+  orders                Order[]
+  webhooks              Webhook[]
+  apiKeys               ApiKey[]
+  aiCosts               AICost[]
   ecommerceIntegrations EcommerceIntegration[]
-  usageMetrics      UsageMetric[]
+  usageMetrics          UsageMetric[]
+  usageTopUps           UsageTopUp[]
 
   @@index([slug])
   @@index([status])
@@ -189,46 +199,46 @@ model Brand {
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
   sku         String?
-  price       Decimal  @db.Decimal(10, 2)
-  currency    String   @default("EUR")
-  
+  price       Decimal @db.Decimal(10, 2)
+  currency    String  @default("EUR")
+
   // Images
-  images      String[] // Array of image URLs
+  images       String[] // Array of image URLs
   baseAssetUrl String? // Base asset URL for rendering
-  
+
   // 3D Model
   model3dUrl  String?
-  modelConfig Json?    // 3D model configuration
-  
+  modelConfig Json? // 3D model configuration
+
   // Customization & Product Engine
   customizationOptions Json? // Available customization options
   rulesJson            Json? // Product Rules Engine configuration
-  
+
   // Manufacturing & Cost
-  baseCostCents    Int?     // Base manufacturing cost in cents
-  laborCostCents   Int?     // Labor cost in cents
-  overheadCostCents Int?    // Overhead cost in cents
-  materialOptions  Json?    // Available materials with pricing
-  finishOptions    Json?    // Available finishes with pricing
-  productionTime   Int?     // Estimated production time in hours
-  
+  baseCostCents     Int? // Base manufacturing cost in cents
+  laborCostCents    Int? // Labor cost in cents
+  overheadCostCents Int? // Overhead cost in cents
+  materialOptions   Json? // Available materials with pricing
+  finishOptions     Json? // Available finishes with pricing
+  productionTime    Int? // Estimated production time in hours
+
   // Status
-  isActive    Boolean  @default(true)
-  isPublic    Boolean  @default(true)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive Boolean @default(true)
+  isPublic Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  brandId     String
-  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  
-  designs     Design[]
-  orders      Order[]
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  designs         Design[]
+  orders          Order[]
   productMappings ProductMapping[]
 
   @@index([brandId])
@@ -237,44 +247,44 @@ model Product {
 }
 
 model Design {
-  id              String       @id @default(cuid())
-  name            String?
-  description     String?
-  
+  id          String  @id @default(cuid())
+  name        String?
+  description String?
+
   // Generation
-  prompt          String
-  promptHash      String?      // For caching
-  options         Json         // Generation options
-  optionsJson     Json?        // Legacy field for compatibility
-  status          DesignStatus @default(PENDING)
-  
+  prompt      String
+  promptHash  String? // For caching
+  options     Json // Generation options
+  optionsJson Json? // Legacy field for compatibility
+  status      DesignStatus @default(PENDING)
+
   // Results
-  previewUrl      String?      // Low-res preview
-  highResUrl      String?      // High-res result
-  imageUrl        String?      // Main image URL
-  renderUrl       String?      // Render URL
-  metadata        Json?        // AI generation metadata
-  
+  previewUrl String? // Low-res preview
+  highResUrl String? // High-res result
+  imageUrl   String? // Main image URL
+  renderUrl  String? // Render URL
+  metadata   Json? // AI generation metadata
+
   // Cost tracking
-  costCents       Int          @default(0)
-  provider        String?      // AI provider used
-  
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  completedAt     DateTime?
+  costCents Int     @default(0)
+  provider  String? // AI provider used
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
 
   // Relations
-  userId          String?
-  user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  brandId         String
-  brand           Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  
-  productId       String
-  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  orders          Order[]
-  assets          Asset[]
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  orders Order[]
+  assets Asset[]
 
   @@index([userId])
   @@index([brandId])
@@ -285,55 +295,58 @@ model Design {
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique
-  status          OrderStatus   @default(CREATED)
-  
+  id          String      @id @default(cuid())
+  orderNumber String      @unique
+  status      OrderStatus @default(CREATED)
+
   // Customer info
   customerEmail   String
   customerName    String?
   customerPhone   String?
-  userEmail       String?       // For GDPR anonymization
+  userEmail       String? // For GDPR anonymization
   shippingAddress Json?
-  
+
   // Pricing
-  subtotalCents   Int
-  taxCents        Int           @default(0)
-  shippingCents   Int           @default(0)
-  totalCents      Int
-  currency        String        @default("EUR")
-  
+  subtotalCents Int
+  taxCents      Int    @default(0)
+  shippingCents Int    @default(0)
+  totalCents    Int
+  currency      String @default("EUR")
+
   // Payment
   paymentStatus   PaymentStatus @default(PENDING)
   stripeSessionId String?
   stripePaymentId String?
-  
+  refundId        String?
+  refundAmountCents Int?
+  refundedAt     DateTime?
+
   // Shipping
-  trackingNumber  String?
-  trackingUrl     String?
-  productionBundleUrl String?   // URL to production bundle
-  
+  trackingNumber      String?
+  trackingUrl         String?
+  productionBundleUrl String? // URL to production bundle
+
   // Notes
-  notes           String?
-  metadata        Json?         // Additional order metadata
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  paidAt          DateTime?
-  shippedAt       DateTime?
+  notes    String?
+  metadata Json? // Additional order metadata
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  paidAt    DateTime?
+  shippedAt DateTime?
 
   // Relations
-  userId          String?
-  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  brandId         String
-  brand           Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  
-  designId        String
-  design          Design        @relation(fields: [designId], references: [id], onDelete: Cascade)
-  
-  productId       String
-  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  designId String
+  design   Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([brandId])
@@ -344,24 +357,23 @@ model Order {
   @@index([createdAt])
 }
 
-
 model ApiKey {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
-  key         String   @unique
-  secret      String?  // Hashed secret for API key authentication
+  key         String    @unique
+  secret      String? // Hashed secret for API key authentication
   scopes      String[] // Array of permissions (legacy)
   permissions String[] // Array of permissions (new)
-  rateLimit   Json?    // Rate limiting configuration
-  isActive    Boolean  @default(true)
+  rateLimit   Json? // Rate limiting configuration
+  isActive    Boolean   @default(true)
   lastUsedAt  DateTime?
   expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Relations
-  brandId     String
-  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@index([brandId])
   @@index([key])
@@ -369,17 +381,17 @@ model ApiKey {
 }
 
 model AICost {
-  id          String   @id @default(cuid())
-  provider    String   // openai, replicate, etc.
-  model       String   // gpt-4, stable-diffusion, etc.
-  costCents   Int
-  tokens      Int?     // For text models
-  duration    Int?     // Processing time in seconds
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  provider  String // openai, replicate, etc.
+  model     String // gpt-4, stable-diffusion, etc.
+  costCents Int
+  tokens    Int? // For text models
+  duration  Int? // Processing time in seconds
+  createdAt DateTime @default(now())
 
   // Relations
-  brandId     String
-  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@index([brandId])
   @@index([provider])
@@ -387,35 +399,58 @@ model AICost {
 }
 
 model UserQuota {
-  id              String   @id @default(cuid())
-  monthlyLimit    Int      @default(100) // Monthly design generations
-  monthlyUsed     Int      @default(0)
-  costLimitCents  Int      @default(5000) // 50€ monthly limit
-  costUsedCents   Int      @default(0)
-  resetAt         DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  monthlyLimit   Int      @default(100) // Monthly design generations
+  monthlyUsed    Int      @default(0)
+  costLimitCents Int      @default(5000) // 50€ monthly limit
+  costUsedCents  Int      @default(0)
+  resetAt        DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([resetAt])
 }
 
+model UsageTopUp {
+  id               String   @id @default(cuid())
+  brandId          String
+  metric           String
+  units            Int
+  unitPriceCents   Int
+  totalPriceCents  Int
+  status           String   @default("pending") // pending, completed, failed
+  stripeCheckoutId String?  @unique
+  stripePaymentId  String?
+  periodKey        String // e.g. 2025-11
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([metric])
+  @@index([periodKey])
+  @@index([status])
+}
+
 model Webhook {
-  id          String   @id @default(cuid())
-  event       String   // Event type (design.created, order.updated, etc.)
-  url         String   // Webhook URL
-  payload     Json     // Webhook payload data
-  statusCode  Int?     // HTTP response status code
-  success     Boolean  @default(false) // Whether webhook was successful
-  error       String?  // Error message if failed
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  event      String // Event type (design.created, order.updated, etc.)
+  url        String // Webhook URL
+  payload    Json // Webhook payload data
+  statusCode Int? // HTTP response status code
+  success    Boolean  @default(false) // Whether webhook was successful
+  error      String? // Error message if failed
+  createdAt  DateTime @default(now())
 
   // Relations
-  brandId     String
-  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@index([brandId])
   @@index([event])
@@ -439,14 +474,14 @@ model SystemConfig {
 // ========================================
 
 model RenderResult {
-  id            String   @id @default(cuid())
-  renderId      String   @unique
-  type          String   // '2d', '3d', 'preview'
-  status        String   // 'success', 'failed'
-  url           String?
-  thumbnailUrl  String?
-  metadata      Json?
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  renderId     String   @unique
+  type         String // '2d', '3d', 'preview'
+  status       String // 'success', 'failed'
+  url          String?
+  thumbnailUrl String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
 
   @@index([renderId])
   @@index([type])
@@ -454,21 +489,21 @@ model RenderResult {
 }
 
 model RenderProgress {
-  id          String   @id @default(cuid())
-  renderId    String   @unique
-  stage       String
-  percentage  Int
-  message     String
-  timestamp   DateTime @default(now())
+  id         String   @id @default(cuid())
+  renderId   String   @unique
+  stage      String
+  percentage Int
+  message    String
+  timestamp  DateTime @default(now())
 
   @@index([renderId])
 }
 
 model RenderError {
-  id          String   @id @default(cuid())
-  renderId    String
-  error       String
-  occurredAt  DateTime @default(now())
+  id         String   @id @default(cuid())
+  renderId   String
+  error      String
+  occurredAt DateTime @default(now())
 
   @@index([renderId])
 }
@@ -476,7 +511,7 @@ model RenderError {
 model ExportResult {
   id        String   @id @default(cuid())
   renderId  String   @unique
-  format    String   // 'gltf', 'usdz', 'png', etc.
+  format    String // 'gltf', 'usdz', 'png', etc.
   url       String
   size      Int
   metadata  Json?
@@ -498,13 +533,13 @@ model ProductionStatus {
 }
 
 model QualityReport {
-  id               String   @id @default(cuid())
-  orderId          String   @unique
-  overallScore     Float
-  issues           String[]
-  recommendations  String[]
-  passed           Boolean
-  createdAt        DateTime @default(now())
+  id              String   @id @default(cuid())
+  orderId         String   @unique
+  overallScore    Float
+  issues          String[]
+  recommendations String[]
+  passed          Boolean
+  createdAt       DateTime @default(now())
 
   @@index([orderId])
 }
@@ -526,22 +561,22 @@ model BatchRenderProgress {
 // ========================================
 
 model EcommerceIntegration {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   brandId      String
-  platform     String   // 'shopify', 'woocommerce', 'magento'
+  platform     String // 'shopify', 'woocommerce', 'magento'
   shopDomain   String
   accessToken  String?
   refreshToken String?
   config       Json
-  status       String   @default("active")
+  status       String    @default("active")
   lastSyncAt   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Relations
-  brand        Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand           Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
   productMappings ProductMapping[]
-  syncLogs     SyncLog[]
+  syncLogs        SyncLog[]
 
   @@index([brandId])
   @@index([platform])
@@ -560,30 +595,30 @@ model ProductMapping {
   metadata          Json?
 
   // Relations
-  integration       EcommerceIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  product           Product              @relation(fields: [luneoProductId], references: [id], onDelete: Cascade)
+  integration EcommerceIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  product     Product              @relation(fields: [luneoProductId], references: [id], onDelete: Cascade)
 
+  @@unique([integrationId, externalProductId])
   @@index([integrationId])
   @@index([luneoProductId])
   @@index([externalProductId])
   @@index([externalSku])
-  @@unique([integrationId, externalProductId])
 }
 
 model SyncLog {
-  id              String   @id @default(cuid())
-  integrationId   String
-  type            String   // 'product', 'order', 'inventory'
-  direction       String   // 'import', 'export'
-  status          String   // 'success', 'failed', 'partial'
-  itemsProcessed  Int      @default(0)
-  itemsFailed     Int      @default(0)
-  errors          Json?
-  duration        Int      // in milliseconds
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  integrationId  String
+  type           String // 'product', 'order', 'inventory'
+  direction      String // 'import', 'export'
+  status         String // 'success', 'failed', 'partial'
+  itemsProcessed Int      @default(0)
+  itemsFailed    Int      @default(0)
+  errors         Json?
+  duration       Int // in milliseconds
+  createdAt      DateTime @default(now())
 
   // Relations
-  integration     EcommerceIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  integration EcommerceIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
 
   @@index([integrationId])
   @@index([type])
@@ -592,14 +627,14 @@ model SyncLog {
 }
 
 model WebhookLog {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   webhookId   String
   topic       String
   shopDomain  String
   payload     Json
-  status      String   @default("received")
+  status      String    @default("received")
   processedAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([webhookId])
   @@index([topic])
@@ -616,7 +651,7 @@ model Asset {
   id        String   @id @default(cuid())
   designId  String
   url       String
-  type      String   // 'image', 'model', 'texture', 'video'
+  type      String // 'image', 'model', 'texture', 'video'
   format    String
   size      Int
   width     Int?
@@ -625,7 +660,7 @@ model Asset {
   createdAt DateTime @default(now())
 
   // Relations
-  design    Design   @relation(fields: [designId], references: [id], onDelete: Cascade)
+  design Design @relation(fields: [designId], references: [id], onDelete: Cascade)
 
   @@index([designId])
   @@index([type])
@@ -635,6 +670,8 @@ model AuditLog {
   id           String   @id @default(cuid())
   eventType    String
   userId       String
+  userEmail    String?
+  brandId      String?
   resourceType String
   resourceId   String
   action       String
@@ -643,8 +680,10 @@ model AuditLog {
   timestamp    DateTime @default(now())
   ipAddress    String?
   userAgent    String?
+  errorMessage String?
 
   @@index([userId])
+  @@index([brandId])
   @@index([eventType])
   @@index([resourceType])
   @@index([resourceId])
@@ -655,14 +694,14 @@ model AuditLog {
 model UserConsent {
   id          String   @id @default(cuid())
   userId      String
-  consentType String   // 'privacy', 'marketing', 'analytics'
+  consentType String // 'privacy', 'marketing', 'analytics'
   granted     Boolean  @default(false)
   recordedAt  DateTime @default(now())
   ipAddress   String?
   userAgent   String?
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([consentType])
@@ -672,14 +711,14 @@ model UserConsent {
 model UsageMetric {
   id        String   @id @default(cuid())
   brandId   String
-  metric    String   // 'designs_created', 'renders_2d', 'api_calls', etc.
+  metric    String // 'designs_created', 'renders_2d', 'api_calls', etc.
   value     Int
-  unit      String   // 'count', 'bytes', 'seconds'
+  unit      String // 'count', 'bytes', 'seconds'
   timestamp DateTime @default(now())
   metadata  Json?
 
   // Relations
-  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@index([brandId])
   @@index([metric])

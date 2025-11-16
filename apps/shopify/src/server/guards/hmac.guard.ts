@@ -1,6 +1,18 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 import * as crypto from 'crypto';
+
+interface ShopifyRequest extends Request {
+  shopifyShop?: string;
+  shopifyTopic?: string;
+}
 
 @Injectable()
 export class HmacGuard implements CanActivate {
@@ -9,64 +21,57 @@ export class HmacGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
+    const request = context.switchToHttp().getRequest<ShopifyRequest>();
 
-    // Vérifier si c'est un webhook Shopify
-    const hmac = request.headers['x-shopify-hmac-sha256'];
-    const shop = request.headers['x-shopify-shop-domain'];
-    const topic = request.headers['x-shopify-topic'];
+    const hmacHeader = this.getHeaderValue(request, 'x-shopify-hmac-sha256');
+    const shopDomain = this.getHeaderValue(request, 'x-shopify-shop-domain');
+    const topic = this.getHeaderValue(request, 'x-shopify-topic');
 
-    if (!hmac || !shop || !topic) {
-      this.logger.warn('Headers Shopify manquants dans la requête');
-      throw new UnauthorizedException('Headers Shopify manquants');
-    }
-
-    // Valider le HMAC
-    const isValidHmac = this.validateHmac(request.body, hmac);
-    
-    if (!isValidHmac) {
-      this.logger.warn(`HMAC invalide pour le shop: ${shop}, topic: ${topic}`);
+    if (!this.validateHmac(request.body, hmacHeader)) {
+      this.logger.warn(`HMAC invalide pour le shop: ${shopDomain}, topic: ${topic}`);
       throw new UnauthorizedException('HMAC invalide');
     }
 
-    // Ajouter les informations du shop à la requête
-    request.shopifyShop = shop;
+    request.shopifyShop = shopDomain;
     request.shopifyTopic = topic;
 
-    this.logger.log(`Webhook validé pour le shop: ${shop}, topic: ${topic}`);
-    
+    this.logger.log(`Webhook validé pour le shop: ${shopDomain}, topic: ${topic}`);
     return true;
   }
 
-  private validateHmac(body: any, hmac: string): boolean {
+  private getHeaderValue(request: ShopifyRequest, headerName: string): string {
+    const value = request.headers[headerName];
+    if (!value) {
+      this.logger.warn(`Header Shopify manquant: ${headerName}`);
+      throw new UnauthorizedException(`Header manquant: ${headerName}`);
+    }
+    if (Array.isArray(value)) {
+      return value[0];
+    }
+    return value;
+  }
+
+  private validateHmac(payload: unknown, receivedHmac: string): boolean {
     try {
-      const webhookSecret = this.configService.get('shopify.webhookSecret');
-      
+      const webhookSecret = this.configService.get<string>('shopify.webhookSecret');
       if (!webhookSecret) {
         this.logger.error('Secret webhook Shopify non configuré');
         return false;
       }
 
-      // Convertir le body en string si c'est un objet
-      let bodyString: string;
-      if (typeof body === 'string') {
-        bodyString = body;
-      } else {
-        bodyString = JSON.stringify(body);
-      }
+      const bodyString =
+        typeof payload === 'string'
+          ? payload
+          : Buffer.isBuffer(payload)
+          ? payload.toString('utf8')
+          : JSON.stringify(payload ?? {});
 
-      // Calculer le HMAC
-      const calculatedHmac = crypto
-        .createHmac('sha256', webhookSecret)
-        .update(bodyString, 'utf8')
-        .digest('base64');
+      const calculatedHmac = crypto.createHmac('sha256', webhookSecret).update(bodyString, 'utf8').digest('base64');
 
-      // Comparer les HMAC
-      const isValid = calculatedHmac === hmac;
-      
+      const isValid = crypto.timingSafeEqual(Buffer.from(calculatedHmac), Buffer.from(receivedHmac));
+
       if (!isValid) {
-        this.logger.warn('HMAC mismatch - Calculé:', calculatedHmac, 'Reçu:', hmac);
+        this.logger.warn('HMAC mismatch - Calculé:', calculatedHmac, 'Reçu:', receivedHmac);
       }
 
       return isValid;

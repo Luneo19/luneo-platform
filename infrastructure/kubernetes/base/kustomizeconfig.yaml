@@ -1,0 +1,6 @@
+nameReference:
+  - kind: ConfigMap
+    fieldSpecs:
+      - path: spec/template/spec/source/path
+        kind: ApplicationSet
+

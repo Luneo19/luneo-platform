@@ -3,74 +3,36 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
 
-export interface ShopifyTokenData {
-  access_token: string;
-  scope: string;
-  expires_in?: number;
-  associated_user?: any;
-  associated_user_scope?: string;
+import {
+  ShopifyTokenData,
+  ShopifyShop,
+  ShopifyProduct,
+  ShopifyOrder,
+  ShopifyScriptTag,
+} from './types/shopify.types';
+
+export type { ShopifyTokenData, ShopifyShop, ShopifyProduct, ShopifyOrder };
+
+interface ShopifyConfig {
+  apiKey: string;
+  apiSecret: string;
+  apiVersion: string;
+  appUrl: string;
 }
 
-export interface ShopifyShop {
-  id: string;
-  name: string;
-  domain: string;
-  email: string;
-  currency: string;
-  timezone: string;
-  plan_name: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ShopifyProduct {
-  id: string;
-  title: string;
-  body_html: string;
-  vendor: string;
-  product_type: string;
-  created_at: string;
-  updated_at: string;
-  published_at: string;
-  template_suffix: string;
-  status: string;
-  published_scope: string;
-  tags: string;
-  admin_graphql_api_id: string;
-  variants: any[];
-  options: any[];
-  images: any[];
-  image: any;
-}
-
-export interface ShopifyOrder {
-  id: string;
-  name: string;
-  email: string;
-  created_at: string;
-  updated_at: string;
-  cancelled_at: string;
-  closed_at: string;
-  processed_at: string;
-  total_price: string;
-  subtotal_price: string;
-  total_tax: string;
-  currency: string;
-  financial_status: string;
-  fulfillment_status: string;
-  line_items: any[];
-  customer: any;
-  shipping_address: any;
-  billing_address: any;
-}
+// Types importés depuis shopify.types.ts
 
 @Injectable()
 export class ShopifyService {
   private readonly logger = new Logger(ShopifyService.name);
-  private readonly shopifyConfig: any;
+  private readonly shopifyConfig: ShopifyConfig;
 
   constructor(private readonly configService: ConfigService) {
-    this.shopifyConfig = this.configService.get('shopify');
+    const config = this.configService.get<ShopifyConfig>('shopify');
+    if (!config) {
+      throw new Error('Configuration Shopify manquante');
+    }
+    this.shopifyConfig = config;
   }
 
   /**
@@ -98,7 +60,7 @@ export class ShopifyService {
     try {
       const tokenUrl = `https://${shop}/admin/oauth/access_token`;
       
-      const response = await axios.post(tokenUrl, {
+      const response = await axios.post<ShopifyTokenData>(tokenUrl, {
         client_id: this.shopifyConfig.apiKey,
         client_secret: this.shopifyConfig.apiSecret,
         code: code,
@@ -112,8 +74,9 @@ export class ShopifyService {
       
       return response.data;
     } catch (error) {
-      this.logger.error('Erreur lors de l\'échange du code:', error);
-      throw new Error(`Échec de l'obtention du token d'accès: ${error.message}`);
+      this.logger.error("Erreur lors de l'échange du code:", error);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Échec de l'obtention du token d'accès: ${message}`);
     }
   }
 
@@ -137,12 +100,13 @@ export class ShopifyService {
   async getShopInfo(shop: string, accessToken: string): Promise<ShopifyShop> {
     try {
       const client = this.createShopifyClient(shop, accessToken);
-      const response = await client.get('/shop.json');
+      const response = await client.get<{ shop: ShopifyShop }>('/shop.json');
       
       return response.data.shop;
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des infos du shop:', error);
-      throw new Error(`Impossible de récupérer les informations du shop: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de récupérer les informations du shop: ${message}`);
     }
   }
 
@@ -152,12 +116,13 @@ export class ShopifyService {
   async getProducts(shop: string, accessToken: string, limit = 50): Promise<ShopifyProduct[]> {
     try {
       const client = this.createShopifyClient(shop, accessToken);
-      const response = await client.get(`/products.json?limit=${limit}`);
+      const response = await client.get<{ products: ShopifyProduct[] }>(`/products.json?limit=${limit}`);
       
       return response.data.products;
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des produits:', error);
-      throw new Error(`Impossible de récupérer les produits: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de récupérer les produits: ${message}`);
     }
   }
 
@@ -167,12 +132,13 @@ export class ShopifyService {
   async getProduct(shop: string, accessToken: string, productId: string): Promise<ShopifyProduct> {
     try {
       const client = this.createShopifyClient(shop, accessToken);
-      const response = await client.get(`/products/${productId}.json`);
+      const response = await client.get<{ product: ShopifyProduct }>(`/products/${productId}.json`);
       
       return response.data.product;
     } catch (error) {
       this.logger.error('Erreur lors de la récupération du produit:', error);
-      throw new Error(`Impossible de récupérer le produit: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de récupérer le produit: ${message}`);
     }
   }
 
@@ -182,12 +148,13 @@ export class ShopifyService {
   async getOrders(shop: string, accessToken: string, limit = 50): Promise<ShopifyOrder[]> {
     try {
       const client = this.createShopifyClient(shop, accessToken);
-      const response = await client.get(`/orders.json?limit=${limit}&status=any`);
+      const response = await client.get<{ orders: ShopifyOrder[] }>(`/orders.json?limit=${limit}&status=any`);
       
       return response.data.orders;
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des commandes:', error);
-      throw new Error(`Impossible de récupérer les commandes: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de récupérer les commandes: ${message}`);
     }
   }
 
@@ -197,22 +164,23 @@ export class ShopifyService {
   async getOrder(shop: string, accessToken: string, orderId: string): Promise<ShopifyOrder> {
     try {
       const client = this.createShopifyClient(shop, accessToken);
-      const response = await client.get(`/orders/${orderId}.json`);
+      const response = await client.get<{ order: ShopifyOrder }>(`/orders/${orderId}.json`);
       
       return response.data.order;
     } catch (error) {
       this.logger.error('Erreur lors de la récupération de la commande:', error);
-      throw new Error(`Impossible de récupérer la commande: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de récupérer la commande: ${message}`);
     }
   }
 
   /**
    * Créer un script tag pour l'intégration
    */
-  async createScriptTag(shop: string, accessToken: string, scriptTagData: any): Promise<any> {
+  async createScriptTag(shop: string, accessToken: string, scriptTagData: Partial<ShopifyScriptTag>): Promise<ShopifyScriptTag> {
     try {
       const client = this.createShopifyClient(shop, accessToken);
-      const response = await client.post('/script_tags.json', {
+      const response = await client.post<{ script_tag: ShopifyScriptTag }>('/script_tags.json', {
         script_tag: scriptTagData,
       });
       
@@ -220,7 +188,8 @@ export class ShopifyService {
       return response.data.script_tag;
     } catch (error) {
       this.logger.error('Erreur lors de la création du script tag:', error);
-      throw new Error(`Impossible de créer le script tag: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de créer le script tag: ${message}`);
     }
   }
 
@@ -235,7 +204,8 @@ export class ShopifyService {
       this.logger.log(`Script tag supprimé pour le shop: ${shop}`);
     } catch (error) {
       this.logger.error('Erreur lors de la suppression du script tag:', error);
-      throw new Error(`Impossible de supprimer le script tag: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de supprimer le script tag: ${message}`);
     }
   }
 
@@ -260,7 +230,8 @@ export class ShopifyService {
       // });
     } catch (error) {
       this.logger.error('Erreur lors de la sauvegarde des données:', error);
-      throw new Error(`Impossible de sauvegarder les données: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de sauvegarder les données: ${message}`);
     }
   }
 
@@ -319,20 +290,29 @@ export class ShopifyService {
    */
   async refreshAccessToken(shop: string): Promise<ShopifyTokenData> {
     try {
+      this.logger.warn(`Tentative de rafraîchissement du token pour le shop: ${shop}`);
       // TODO: Implémenter le rafraîchissement du token
       // Pour l'instant, retourner une erreur
       throw new Error('Rafraîchissement de token non implémenté');
     } catch (error) {
       this.logger.error('Erreur lors du rafraîchissement du token:', error);
-      throw new Error(`Impossible de rafraîchir le token: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de rafraîchir le token: ${message}`);
     }
   }
 
   /**
    * Obtenir le statut du shop
    */
-  async getShopStatus(shop: string): Promise<any> {
+  async getShopStatus(shop: string): Promise<{
+    connected: boolean;
+    installed_at: Date;
+    last_sync: Date;
+    plan: string;
+    features: string[];
+  }> {
     try {
+      this.logger.debug(`Récupération du statut du shop: ${shop}`);
       // TODO: Implémenter la vérification du statut en base de données
       return {
         connected: true,
@@ -343,7 +323,8 @@ export class ShopifyService {
       };
     } catch (error) {
       this.logger.error('Erreur lors de la vérification du statut:', error);
-      throw new Error(`Impossible de vérifier le statut: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de vérifier le statut: ${message}`);
     }
   }
 
@@ -362,7 +343,8 @@ export class ShopifyService {
       this.logger.log(`Shop ${shop} désinstallé avec succès`);
     } catch (error) {
       this.logger.error('Erreur lors de la désinstallation:', error);
-      throw new Error(`Impossible de désinstaller le shop: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de désinstaller le shop: ${message}`);
     }
   }
 }

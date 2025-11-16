@@ -1,0 +1,67 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: luneo-observability-prometheus-rules
+  namespace: luneo-observability
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: rules
+    app.kubernetes.io/part-of: luneo
+spec:
+  groups:
+    - name: luneo-api
+      interval: 30s
+      rules:
+        - alert: ApiLatencyHigh
+          expr: |
+            histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job="luneo-backend"}[2m])) by (le)) > 0.6
+          for: 5m
+          labels:
+            severity: warning
+            service: luneo-backend
+          annotations:
+            summary: "Latence API élevée (P95 > 600ms)"
+            description: |
+              La latence P95 de l'API dépasse 600ms depuis plus de 5 minutes.
+              Vérifier les logs backend et la charge du cluster.
+        - alert: ApiErrorRate
+          expr: |
+            sum(rate(http_server_requests_total{job="luneo-backend",status=~"5.."}[5m])) /
+            sum(rate(http_server_requests_total{job="luneo-backend"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            service: luneo-backend
+          annotations:
+            summary: "Taux d'erreur API critique (>5%)"
+            description: |
+              Plus de 5% des requêtes API répondent en 5xx.
+              Inspecter les routes concernées et vérifier les dépendances (DB, Redis, queues).
+    - name: luneo-queues
+      interval: 30s
+      rules:
+        - alert: QueueWaitThreshold
+          expr: |
+            sum(rate(bullmq_queue_waiting_jobs{queue=~"ai_generation|render_queue"}[2m])) > 40
+          for: 10m
+          labels:
+            severity: warning
+            service: ai-generation
+          annotations:
+            summary: "Backlog élevé sur queue IA/render"
+            description: |
+              Plus de 40 jobs/minute en attente dans les queues critiques.
+              Vérifier workers IA et noeuds GPU.
+        - alert: RenderGpuSaturation
+          expr: |
+            avg(node_gpu_utilization{cluster="luneo-prod-eks-primary"}) > 0.9
+          for: 15m
+          labels:
+            severity: warning
+            service: render
+          annotations:
+            summary: "GPU saturation (utilisation > 90%)"
+            description: |
+              Les GPU utilisés par le service de rendu sont saturés.
+              Envisager un scale-up des noeuds GPU ou analyser les jobs longs.
+

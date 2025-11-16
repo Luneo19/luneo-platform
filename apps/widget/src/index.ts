@@ -12,8 +12,8 @@ export { usePromptGeneration } from './hooks/usePromptGeneration';
 // Types
 export * from './types';
 
-// API Client
-export { LuneoAPI } from './api/client';
+// Security helpers
+export { buildWidgetCsp, buildSandboxAttribute, DEFAULT_SANDBOX_ATTRIBUTES } from './lib/security';
 
 // Utils
 export * from './lib/utils';

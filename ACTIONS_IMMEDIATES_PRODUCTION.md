@@ -80,7 +80,7 @@ npx vercel env add NEXT_PUBLIC_GITHUB_CLIENT_ID production
 
 # Stripe
 npx vercel env add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY production
-# Valeur: pk_live_jL5xDF4ylCaiXVDswVAliVA3
+# Valeur: pk_live_your_publishable_key
 
 # OpenAI (DALL-E 3)
 npx vercel env add OPENAI_API_KEY production

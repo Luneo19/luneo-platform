@@ -13,7 +13,7 @@ export class ShopifyAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
+    const _response = context.switchToHttp().getResponse();
 
     // Exclure certaines routes de l'authentification
     const excludedRoutes = [
@@ -65,12 +65,14 @@ export class ShopifyAuthGuard implements CanActivate {
 
   private isValidShopDomain(shop: string): boolean {
     // Validation du format du domaine Shopify
-    const shopifyDomainRegex = /^[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com$/;
+    const shopifyDomainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/;
     return shopifyDomainRegex.test(shop);
   }
 
   private validateAccessToken(shop: string, accessToken: string): boolean {
     try {
+      const tokenPreview = accessToken.length > 6 ? `${accessToken.slice(0, 6)}***` : '***';
+      this.logger.debug(`Prévalidation du token pour ${shop} (aperçu: ${tokenPreview})`);
       // En production, vérifier le token en base de données
       // Pour l'instant, on accepte tous les tokens (à implémenter)
       

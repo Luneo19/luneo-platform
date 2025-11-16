@@ -1,10 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import Stripe from 'stripe';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { UsageMetric, UsageMetricType, StripeUsageRecord } from '../interfaces/usage.interface';
+import {
+  UsageMetric,
+  UsageMetricType,
+  StripeUsageRecord,
+  UsageMetadata,
+} from '../interfaces/usage.interface';
+import { UsageQueueService } from './usage-queue.service';
 
 /**
  * Service de métering d'usage avec Stripe
@@ -18,11 +22,15 @@ export class UsageMeteringService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
-    @InjectQueue('usage-metering') private usageQueue: Queue,
+    private readonly usageQueueService: UsageQueueService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
       apiVersion: '2023-10-16',
     });
+  }
+
+  private formatError(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
   }
 
   /**
@@ -32,7 +40,7 @@ export class UsageMeteringService {
     brandId: string,
     metric: UsageMetricType,
     value: number = 1,
-    metadata?: Record<string, any>,
+    metadata?: UsageMetadata,
   ): Promise<UsageMetric> {
     try {
       // Créer l'enregistrement d'usage
@@ -47,9 +55,7 @@ export class UsageMeteringService {
       };
 
       // Sauvegarder en DB (via queue pour async)
-      await this.usageQueue.add('record-usage', {
-        usageMetric,
-      });
+      await this.usageQueueService.enqueueUsageMetric({ usageMetric });
 
       // Envoyer à Stripe si applicable
       await this.reportToStripe(brandId, metric, value);
@@ -63,8 +69,8 @@ export class UsageMeteringService {
 
       return usageMetric;
     } catch (error) {
-      this.logger.error(`Failed to record usage: ${error.message}`, error.stack);
-      throw error;
+      this.logger.error(`Failed to record usage: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
@@ -110,10 +116,7 @@ export class UsageMeteringService {
         `Stripe usage record created: ${usageRecord.id} for ${metric}`,
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to report to Stripe: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to report to Stripe: ${this.formatError(error)}`);
       // Ne pas throw pour ne pas bloquer l'enregistrement local
     }
   }
@@ -121,7 +124,7 @@ export class UsageMeteringService {
   /**
    * Récupérer la subscription Stripe d'un brand
    */
-  private async getStripeSubscription(brandId: string): Promise<any> {
+  private async getStripeSubscription(brandId: string): Promise<Stripe.Subscription | null> {
     try {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
@@ -141,10 +144,7 @@ export class UsageMeteringService {
 
       return subscription;
     } catch (error) {
-      this.logger.error(
-        `Failed to get Stripe subscription: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to get Stripe subscription: ${this.formatError(error)}`);
       return null;
     }
   }
@@ -152,9 +152,12 @@ export class UsageMeteringService {
   /**
    * Trouver le subscription item pour une métrique
    */
-  private findSubscriptionItemForMetric(subscription: any, metric: UsageMetricType): any {
-    if (!subscription?.items?.data) {
-      return null;
+  private findSubscriptionItemForMetric(
+    subscription: Stripe.Subscription,
+    metric: UsageMetricType,
+  ): Stripe.SubscriptionItem | undefined {
+    if (!subscription?.items?.data?.length) {
+      return undefined;
     }
 
     // Mapping entre nos métriques et les products Stripe
@@ -175,14 +178,16 @@ export class UsageMeteringService {
 
     const targetProductId = metricToStripeProductMap[metric];
 
-    for (const item of subscription.items.data) {
-      const productId = item.price?.product?.id || item.price?.product;
-      if (productId === targetProductId) {
-        return item;
+    return subscription.items.data.find((item) => {
+      const product = item.price?.product;
+      if (product && typeof product === 'object' && 'id' in product) {
+        return product.id === targetProductId;
       }
-    }
-
-    return null;
+      if (typeof product === 'string') {
+        return product === targetProductId;
+      }
+      return false;
+    });
   }
 
   /**
@@ -213,9 +218,10 @@ export class UsageMeteringService {
   async getCurrentUsage(brandId: string): Promise<Record<UsageMetricType, number>> {
     try {
       // Check cache
-      const cached = await this.cache.get(`usage:${brandId}:current`, null, null);
-      if (cached) {
-        return JSON.parse(cached as string);
+      const cacheKey = `usage:${brandId}:current`;
+      const cached = await this.cache.getSimple(cacheKey);
+      if (cached && typeof cached === 'object') {
+        return cached as Record<UsageMetricType, number>;
       }
 
       // Récupérer depuis DB pour le mois en cours
@@ -233,25 +239,20 @@ export class UsageMeteringService {
       });
 
       // Agréger par métrique
-      const usage: Record<string, number> = {};
+      const usage: Partial<Record<UsageMetricType, number>> = {};
       for (const record of usageRecords) {
-        usage[record.metric] = (usage[record.metric] || 0) + record.value;
+        const metric = record.metric as UsageMetricType;
+        const current = usage[metric] ?? 0;
+        usage[metric] = current + record.value;
       }
 
       // Cache pour 5 minutes
-      await this.cache.set(
-        `usage:${brandId}:current`,
-        JSON.stringify(usage),
-        300,
-      );
+      await this.cache.setSimple(cacheKey, usage, 300);
 
       return usage as Record<UsageMetricType, number>;
     } catch (error) {
-      this.logger.error(
-        `Failed to get current usage: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to get current usage: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
@@ -289,6 +290,9 @@ export class UsageMeteringService {
       // Sommer les quantités dans la période
       let total = 0;
       for (const record of usageRecords.data) {
+        if (record.period.start == null) {
+          continue;
+        }
         const recordDate = new Date(record.period.start * 1000);
         if (recordDate >= startDate && recordDate <= endDate) {
           total += record.total_usage;
@@ -297,10 +301,7 @@ export class UsageMeteringService {
 
       return total;
     } catch (error) {
-      this.logger.error(
-        `Failed to get Stripe usage: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to get Stripe usage: ${this.formatError(error)}`);
       return 0;
     }
   }
@@ -323,11 +324,8 @@ export class UsageMeteringService {
         `Batch recorded ${metrics.length} usage metrics for brand ${brandId}`,
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to batch record usage: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to batch record usage: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 }

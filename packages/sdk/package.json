@@ -1,0 +1,37 @@
+{
+  "name": "@luneo/sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for integrating with the Luneo platform (REST APIs, design automation, orders).",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --sourcemap",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@luneo/types": "workspace:*",
+    "cross-fetch": "^3.1.8"
+  },
+  "devDependencies": {
+    "@luneo/tsconfig": "workspace:*",
+    "@types/node": "^20.12.7",
+    "tsup": "^7.3.0",
+    "typescript": "^5.3.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luneo/platform"
+  }
+}
+

@@ -4,6 +4,44 @@ import { UsageMeteringService } from './usage-metering.service';
 import { QuotasService } from './quotas.service';
 import { UsageMetricType } from '../interfaces/usage.interface';
 
+export interface BillingBreakdownEntry {
+  metric: UsageMetricType;
+  quantity: number;
+  limit: number;
+  overage: number;
+  unitPrice: number;
+  cost: number;
+}
+
+export interface CalculatedBill {
+  period: { start: Date; end: Date };
+  basePrice: number;
+  usageCosts: Record<UsageMetricType, number>;
+  totalUsageCost: number;
+  overageCosts: Record<UsageMetricType, number>;
+  totalOverageCost: number;
+  subtotal: number;
+  tax: number;
+  total: number;
+  breakdown: BillingBreakdownEntry[];
+}
+
+export interface CostProjection {
+  currentDaily: number;
+  projectedMonthly: number;
+  projectedOverage: number;
+  recommendations: string[];
+}
+
+export interface PlanComparison {
+  plan: string;
+  basePrice: number;
+  estimatedOverage: number;
+  total: number;
+  savings: number;
+  recommendation: string;
+}
+
 /**
  * Service de calcul de facturation
  * Calcule les coûts basés sur l'usage et les quotas
@@ -18,28 +56,14 @@ export class BillingCalculationService {
     private readonly quotasService: QuotasService,
   ) {}
 
+  private formatError(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
+  }
+
   /**
    * Calculer la facture du mois en cours
    */
-  async calculateCurrentBill(brandId: string): Promise<{
-    period: { start: Date; end: Date };
-    basePrice: number;
-    usageCosts: Record<UsageMetricType, number>;
-    totalUsageCost: number;
-    overageCosts: Record<UsageMetricType, number>;
-    totalOverageCost: number;
-    subtotal: number;
-    tax: number;
-    total: number;
-    breakdown: Array<{
-      metric: UsageMetricType;
-      quantity: number;
-      limit: number;
-      overage: number;
-      unitPrice: number;
-      cost: number;
-    }>;
-  }> {
+  async calculateCurrentBill(brandId: string): Promise<CalculatedBill> {
     try {
       // Récupérer le plan du brand
       const brand = await this.prisma.brand.findUnique({
@@ -68,9 +92,9 @@ export class BillingCalculationService {
       const currentUsage = await this.meteringService.getCurrentUsage(brandId);
 
       // Calculer les coûts par métrique
-      const usageCosts: Record<string, number> = {};
-      const overageCosts: Record<string, number> = {};
-      const breakdown: Array<any> = [];
+      const usageCosts: Partial<Record<UsageMetricType, number>> = {};
+      const overageCosts: Partial<Record<UsageMetricType, number>> = {};
+      const breakdown: BillingBreakdownEntry[] = [];
 
       let totalUsageCost = 0;
       let totalOverageCost = 0;
@@ -98,7 +122,8 @@ export class BillingCalculationService {
       }
 
       // Calcul de la taxe (TVA 20% pour la France)
-      const subtotal = planLimits.basePrice + totalUsageCost + totalOverageCost;
+      const subtotal =
+        planLimits.basePriceCents + totalUsageCost + totalOverageCost;
       const taxRate = this.getTaxRate(brand.country || 'FR');
       const tax = Math.round(subtotal * taxRate);
       const total = subtotal + tax;
@@ -108,7 +133,7 @@ export class BillingCalculationService {
           start: startOfMonth,
           end: endOfMonth,
         },
-        basePrice: planLimits.basePrice,
+        basePrice: planLimits.basePriceCents,
         usageCosts: usageCosts as Record<UsageMetricType, number>,
         totalUsageCost,
         overageCosts: overageCosts as Record<UsageMetricType, number>,
@@ -119,11 +144,8 @@ export class BillingCalculationService {
         breakdown,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to calculate bill: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to calculate bill: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
@@ -195,26 +217,15 @@ export class BillingCalculationService {
         totalAfter,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to estimate cost: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to estimate cost: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
   /**
    * Calculer les projections de coût
    */
-  async projectCosts(
-    brandId: string,
-    days: number = 30,
-  ): Promise<{
-    currentDaily: number;
-    projectedMonthly: number;
-    projectedOverage: number;
-    recommendations: string[];
-  }> {
+  async projectCosts(brandId: string, days = 30): Promise<CostProjection> {
     try {
       // Récupérer l'usage des 7 derniers jours
       const sevenDaysAgo = new Date();
@@ -230,21 +241,20 @@ export class BillingCalculationService {
       });
 
       // Calculer l'usage moyen quotidien par métrique
-      const dailyAverages: Record<string, number> = {};
-      const metricCounts: Record<string, number> = {};
+      const dailyAverages: Partial<Record<UsageMetricType, number>> = {};
+      const activeDays = new Set<string>();
 
       for (const record of recentUsage) {
-        if (!dailyAverages[record.metric]) {
-          dailyAverages[record.metric] = 0;
-          metricCounts[record.metric] = 0;
-        }
-        dailyAverages[record.metric] += record.value;
-        metricCounts[record.metric]++;
+        const metric = record.metric as UsageMetricType;
+        const currentTotal = dailyAverages[metric] ?? 0;
+        dailyAverages[metric] = currentTotal + record.value;
+        activeDays.add(record.timestamp.toISOString().split('T')[0]);
       }
 
       // Moyenne sur 7 jours
-      for (const metric in dailyAverages) {
-        dailyAverages[metric] = dailyAverages[metric] / 7;
+      const divisor = Math.max(activeDays.size, 1);
+      for (const metric of Object.keys(dailyAverages) as UsageMetricType[]) {
+        dailyAverages[metric] = (dailyAverages[metric] ?? 0) / divisor;
       }
 
       // Projeter sur le nombre de jours demandé
@@ -259,7 +269,8 @@ export class BillingCalculationService {
       const recommendations: string[] = [];
 
       for (const quota of planLimits.quotas) {
-        const dailyAvg = dailyAverages[quota.metric] || 0;
+        const metric = quota.metric as UsageMetricType;
+        const dailyAvg = dailyAverages[metric] ?? 0;
         const projected = dailyAvg * days;
 
         if (projected > quota.limit * 0.9) {
@@ -285,7 +296,7 @@ export class BillingCalculationService {
       ).getDate();
       const currentDaily = currentBill.totalOverageCost / daysInMonth;
 
-      const projectedMonthly = planLimits.basePrice + projectedOverage;
+      const projectedMonthly = planLimits.basePriceCents + projectedOverage;
 
       return {
         currentDaily,
@@ -294,11 +305,8 @@ export class BillingCalculationService {
         recommendations,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to project costs: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to project costs: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
@@ -322,21 +330,12 @@ export class BillingCalculationService {
   /**
    * Comparer les coûts entre différents plans
    */
-  async comparePlans(brandId: string): Promise<
-    Array<{
-      plan: string;
-      basePrice: number;
-      estimatedOverage: number;
-      total: number;
-      savings: number;
-      recommendation: string;
-    }>
-  > {
+  async comparePlans(brandId: string): Promise<PlanComparison[]> {
     try {
       const currentUsage = await this.meteringService.getCurrentUsage(brandId);
       const allPlans = this.quotasService.getAllPlans();
 
-      const comparisons = [];
+      const comparisons: PlanComparison[] = [];
 
       for (const planLimits of allPlans) {
         let overageCost = 0;
@@ -350,13 +349,15 @@ export class BillingCalculationService {
           }
         }
 
-        const total = planLimits.basePrice + overageCost;
+        const total = planLimits.basePriceCents + overageCost;
 
         comparisons.push({
-          plan: planLimits.plan,
-          basePrice: planLimits.basePrice,
+          plan: planLimits.id,
+          basePrice: planLimits.basePriceCents,
           estimatedOverage: overageCost,
           total,
+          savings: 0,
+          recommendation: '',
         });
       }
 
@@ -365,22 +366,24 @@ export class BillingCalculationService {
 
       // Ajouter les recommandations et savings
       const cheapest = comparisons[0];
-      return comparisons.map((comp) => ({
-        ...comp,
-        savings: comp.total - cheapest.total,
-        recommendation:
+      return comparisons.map((comp) => {
+        const savings = comp.total - cheapest.total;
+        const recommendation =
           comp === cheapest
             ? '✅ Best value for your usage'
-            : comp.savings > 5000
+            : savings > 5000
               ? '⚠️  Significantly more expensive'
-              : '💰 Acceptable alternative',
-      }));
+              : '💰 Acceptable alternative';
+
+        return {
+          ...comp,
+          savings,
+          recommendation,
+        };
+      });
     } catch (error) {
-      this.logger.error(
-        `Failed to compare plans: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to compare plans: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 }
