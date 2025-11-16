@@ -54,6 +54,7 @@ import { SecurityModule } from './modules/security/security.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
+import { WidgetModule } from './modules/widget/widget.module';
 
 // Common
 import { CommonModule } from './common/common.module';
@@ -186,6 +187,7 @@ import { HttpMetricsInterceptor } from './modules/observability/http-metrics.int
     AnalyticsModule,
     ObservabilityModule,
     FeatureFlagsModule,
+    WidgetModule,
 
     // Common utilities
     CommonModule,

@@ -40,12 +40,13 @@ async function bootstrap() {
         ? {
             directives: {
               defaultSrc: ["'self'"],
-              scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+              scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://widget.luneo.app'],
               styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
               imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
-              connectSrc: ["'self'", 'https://api.stripe.com', 'https://*.upstash.io'],
+              connectSrc: ["'self'", 'https://api.stripe.com', 'https://*.upstash.io', 'https://widget.luneo.app'],
               fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-              frameSrc: ["'self'", 'https://js.stripe.com'],
+              frameSrc: ["'self'", 'https://js.stripe.com', 'https://widget.luneo.app'],
+              frameAncestors: ["'self'", 'https://*.myshopify.com', 'https://*.shopify.com'],
               objectSrc: ["'none'"],
               upgradeInsecureRequests: [],
             },
