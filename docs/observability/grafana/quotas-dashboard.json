@@ -1,0 +1,151 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Luneo · Usage & Quotas",
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "tags": ["quota", "billing", "usage"],
+    "panels": [
+      {
+        "type": "stat",
+        "title": "Usage % (Top Brands)",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "topk(10, luneo_quota_usage_percentage)",
+            "legendFormat": "{{brand}} · {{metric}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": null, "color": "green" },
+                { "value": 75, "color": "orange" },
+                { "value": 90, "color": "red" }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          }
+        }
+      },
+      {
+        "type": "heatmap",
+        "title": "Latency des vérifications",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 10 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(luneo_quota_check_duration_seconds_bucket{source=~\"$source\", outcome=~\"$outcome\"}[5m])) by (le, source, outcome))",
+            "legendFormat": "{{source}} · {{outcome}}",
+            "refId": "B"
+          }
+        ],
+        "options": {
+          "legend": { "show": true },
+          "tooltip": { "show": true }
+        }
+      },
+      {
+        "type": "bargauge",
+        "title": "Alertes quotas (24h)",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(increase(luneo_quota_alerts_total[24h])) by (severity, metric)",
+            "legendFormat": "{{severity}} · {{metric}}",
+            "refId": "C"
+          }
+        ],
+        "options": {
+          "displayMode": "lcd",
+          "orientation": "horizontal"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": null, "color": "green" },
+                { "value": 5, "color": "orange" },
+                { "value": 10, "color": "red" }
+              ]
+            }
+          },
+          "overrides": []
+        }
+      },
+      {
+        "type": "timeseries",
+        "title": "Crédits restants (per metric)",
+        "gridPos": { "x": 12, "y": 10, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "luneo_quota_remaining_units{brand=~\"$brand\", metric=~\"$metric\"}",
+            "legendFormat": "{{brand}} · {{metric}}",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          },
+          "overrides": []
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "brand",
+          "label": "Brand",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(luneo_quota_usage_percentage, brand)",
+          "refresh": 1
+        },
+        {
+          "name": "metric",
+          "label": "Metric",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(luneo_quota_usage_percentage, metric)",
+          "refresh": 1
+        },
+        {
+          "name": "source",
+          "label": "Source",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(luneo_quota_check_duration_seconds_count, source)",
+          "refresh": 1,
+          "includeAll": true
+        },
+        {
+          "name": "outcome",
+          "label": "Outcome",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(luneo_quota_check_duration_seconds_count, outcome)",
+          "refresh": 1,
+          "includeAll": true
+        }
+      ]
+    }
+  },
+  "overwrite": false
+}
+

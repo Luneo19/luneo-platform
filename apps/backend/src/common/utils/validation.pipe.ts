@@ -5,8 +5,8 @@ import * as sanitizeHtml from 'sanitize-html';
 import xss from 'xss';
 
 @Injectable()
-export class ValidationPipe implements PipeTransform<any> {
-  async transform(value: any, { metatype }: ArgumentMetadata) {
+export class ValidationPipe implements PipeTransform<unknown> {
+  async transform<T>(value: T, { metatype }: ArgumentMetadata): Promise<T> {
     if (!metatype || !this.toValidate(metatype)) {
       return value;
     }
@@ -14,8 +14,8 @@ export class ValidationPipe implements PipeTransform<any> {
     // Sanitize input
     const sanitizedValue = this.sanitizeInput(value);
     
-    const object = plainToClass(metatype, sanitizedValue);
-    const errors = await validate(object);
+    const object = plainToClass(metatype, sanitizedValue) as T;
+    const errors = await validate(object as object);
 
     if (errors.length > 0) {
       const messages = errors.map(error => 
@@ -32,23 +32,25 @@ export class ValidationPipe implements PipeTransform<any> {
     return !types.includes(metatype);
   }
 
-  private sanitizeInput(value: any): any {
+  private sanitizeInput<T>(value: T): T {
     if (typeof value === 'string') {
       // Remove XSS
       let sanitized = xss(value);
       // Remove HTML tags
       sanitized = sanitizeHtml(sanitized, { allowedTags: [] });
-      return sanitized;
+      return sanitized as unknown as T;
     }
 
     if (typeof value === 'object' && value !== null) {
-      const sanitized: any = Array.isArray(value) ? [] : {};
-      
-      for (const [key, val] of Object.entries(value)) {
-        sanitized[key] = this.sanitizeInput(val);
+      if (Array.isArray(value)) {
+        return value.map(item => this.sanitizeInput(item)) as unknown as T;
       }
-      
-      return sanitized;
+
+      const entries = Object.entries(value as Record<string, unknown>).map(
+        ([key, val]) => [key, this.sanitizeInput(val)],
+      );
+
+      return Object.fromEntries(entries) as unknown as T;
     }
 
     return value;

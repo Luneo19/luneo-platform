@@ -557,16 +557,16 @@ POST   /api/stripe/webhook                     # Webhook Stripe
 **Price IDs:**
 ```typescript
 professional: { 
-  monthly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
-  yearly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo' // Même ID, prix créé dynamiquement
+  monthly: 'price_PRO_MONTHLY',
+  yearly: 'price_PRO_MONTHLY' // Même ID, prix créé dynamiquement
 },
 business: { 
-  monthly: 'price_1SH7SxKG9MsM6fdSetmxFnVl',
-  yearly: 'price_1SH7SxKG9MsM6fdSetmxFnVl'
+  monthly: 'price_BUSINESS_MONTHLY',
+  yearly: 'price_BUSINESS_MONTHLY'
 },
 enterprise: { 
-  monthly: 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
-  yearly: 'price_1SH7TMKG9MsM6fdSx4pebEXZ'
+  monthly: 'price_ENTERPRISE_MONTHLY',
+  yearly: 'price_ENTERPRISE_MONTHLY'
 }
 ```
 
@@ -915,9 +915,9 @@ Webhook /api/stripe/webhook
 | Plan | Mensuel | Annuel | Price ID Monthly | Product ID |
 |------|---------|--------|------------------|------------|
 | Starter | Gratuit | Gratuit | - | - |
-| Professional | €29 | €278.40 | price_1RvB1uKG9MsM6fdSnrGm2qIo | Auto-récupéré |
-| Business | €59 | €566.40 | price_1SH7SxKG9MsM6fdSetmxFnVl | prod_TDYaUcC0940jpT |
-| Enterprise | €99 | €950.40 | price_1SH7TMKG9MsM6fdSx4pebEXZ | prod_TDYaqgD6gwRVd0 |
+| Professional | €29 | €278.40 | price_PRO_MONTHLY | Auto-récupéré |
+| Business | €59 | €566.40 | price_BUSINESS_MONTHLY | prod_TDYaUcC0940jpT |
+| Enterprise | €99 | €950.40 | price_ENTERPRISE_MONTHLY | prod_TDYaqgD6gwRVd0 |
 
 **Features par plan:**
 

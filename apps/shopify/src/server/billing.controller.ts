@@ -1,19 +1,48 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
   Body,
-  Query,
-  Req,
+  Controller,
+  Delete,
+  Get,
+  Headers,
   HttpException,
   HttpStatus,
   Logger,
+  Post,
+  Put,
+  Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { Request } from 'express';
-import { BillingService } from './billing.service';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+
+import { BillingService, Subscription, Usage, Invoice, Charge, BillingPlan } from './billing.service';
+
+interface CreateSubscriptionDto {
+  plan_id: string;
+  trial_days?: number;
+}
+
+interface UpdateSubscriptionDto {
+  plan_id?: string;
+  status?: Subscription['status'];
+}
+
+interface RecordUsageDto {
+  ai_generations?: number;
+  ar_views?: number;
+  widget_embeds?: number;
+  storage_used_gb?: number;
+}
+
+interface CreateChargeDto {
+  name: string;
+  price: number;
+  currency: string;
+  return_url: string;
+}
+
+interface ShopifyWebhookHeaders {
+  shop: string;
+  topic: string;
+}
 
 @ApiTags('billing')
 @Controller('billing')
@@ -22,13 +51,31 @@ export class BillingController {
 
   constructor(private readonly billingService: BillingService) {}
 
+  private extractShopDomain(shopDomain?: string): string {
+    if (!shopDomain) {
+      throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
+    }
+    return shopDomain;
+  }
+
+  private extractWebhookHeaders(shopDomain?: string, topic?: string): ShopifyWebhookHeaders {
+    if (!topic) {
+      throw new HttpException('Topic Shopify non spécifié', HttpStatus.BAD_REQUEST);
+    }
+
+    return {
+      shop: this.extractShopDomain(shopDomain),
+      topic,
+    };
+  }
+
   @Get('plans')
   @ApiOperation({ summary: 'Obtenir la liste des plans de facturation' })
   @ApiResponse({ status: 200, description: 'Liste des plans retournée' })
-  async getBillingPlans() {
+  async getBillingPlans(): Promise<{ success: true; data: BillingPlan[] }> {
     try {
       const plans = await this.billingService.getBillingPlans();
-      
+
       return {
         success: true,
         data: plans,
@@ -43,25 +90,21 @@ export class BillingController {
   }
 
   @Get('subscription')
-  @ApiOperation({ summary: 'Obtenir l\'abonnement du shop' })
+  @ApiOperation({ summary: "Obtenir l'abonnement du shop" })
   @ApiQuery({ name: 'shop', description: 'Domaine du shop Shopify' })
   @ApiResponse({ status: 200, description: 'Abonnement retourné' })
-  async getSubscription(@Query('shop') shop: string) {
+  async getSubscription(@Query('shop') shop: string): Promise<{ success: true; data: Subscription | null }> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
+      const subscription = await this.billingService.getSubscription(this.extractShopDomain(shop));
 
-      const subscription = await this.billingService.getSubscription(shop);
-      
       return {
         success: true,
         data: subscription,
       };
     } catch (error) {
-      this.logger.error('Erreur lors de la récupération de l\'abonnement:', error);
+      this.logger.error("Erreur lors de la récupération de l'abonnement:", error);
       throw new HttpException(
-        'Erreur lors de la récupération de l\'abonnement',
+        "Erreur lors de la récupération de l'abonnement",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -70,128 +113,114 @@ export class BillingController {
   @Post('subscription')
   @ApiOperation({ summary: 'Créer un nouvel abonnement' })
   @ApiResponse({ status: 201, description: 'Abonnement créé avec succès' })
-  async createSubscription(@Body() body: any, @Req() req: Request) {
+  async createSubscription(
+    @Body() body: CreateSubscriptionDto,
+    @Headers('x-shopify-shop-domain') shopDomain?: string,
+  ): Promise<{ success: true; data: Subscription }> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
+      const subscription = await this.billingService.createSubscription(this.extractShopDomain(shopDomain), body);
 
-      const subscription = await this.billingService.createSubscription(shop, body);
-      
       return {
         success: true,
         data: subscription,
       };
     } catch (error) {
-      this.logger.error('Erreur lors de la création de l\'abonnement:', error);
+      this.logger.error("Erreur lors de la création de l'abonnement:", error);
       throw new HttpException(
-        'Erreur lors de la création de l\'abonnement',
+        "Erreur lors de la création de l'abonnement",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Put('subscription')
-  @ApiOperation({ summary: 'Mettre à jour l\'abonnement' })
+  @ApiOperation({ summary: "Mettre à jour l'abonnement" })
   @ApiResponse({ status: 200, description: 'Abonnement mis à jour avec succès' })
-  async updateSubscription(@Body() body: any, @Req() req: Request) {
+  async updateSubscription(
+    @Body() body: UpdateSubscriptionDto,
+    @Headers('x-shopify-shop-domain') shopDomain?: string,
+  ): Promise<{ success: true; data: Subscription }> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
+      const subscription = await this.billingService.updateSubscription(this.extractShopDomain(shopDomain), body);
 
-      const subscription = await this.billingService.updateSubscription(shop, body);
-      
       return {
         success: true,
         data: subscription,
       };
     } catch (error) {
-      this.logger.error('Erreur lors de la mise à jour de l\'abonnement:', error);
+      this.logger.error("Erreur lors de la mise à jour de l'abonnement:", error);
       throw new HttpException(
-        'Erreur lors de la mise à jour de l\'abonnement',
+        "Erreur lors de la mise à jour de l'abonnement",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Delete('subscription')
-  @ApiOperation({ summary: 'Annuler l\'abonnement' })
+  @ApiOperation({ summary: "Annuler l'abonnement" })
   @ApiResponse({ status: 200, description: 'Abonnement annulé avec succès' })
-  async cancelSubscription(@Req() req: Request) {
+  async cancelSubscription(
+    @Headers('x-shopify-shop-domain') shopDomain?: string,
+  ): Promise<{ success: true; message: string }> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
+      await this.billingService.cancelSubscription(this.extractShopDomain(shopDomain));
 
-      await this.billingService.cancelSubscription(shop);
-      
       return {
         success: true,
         message: 'Abonnement annulé avec succès',
       };
     } catch (error) {
-      this.logger.error('Erreur lors de l\'annulation de l\'abonnement:', error);
+      this.logger.error("Erreur lors de l'annulation de l'abonnement:", error);
       throw new HttpException(
-        'Erreur lors de l\'annulation de l\'abonnement',
+        "Erreur lors de l'annulation de l'abonnement",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Post('usage')
-  @ApiOperation({ summary: 'Enregistrer l\'utilisation du service' })
+  @ApiOperation({ summary: "Enregistrer l'utilisation du service" })
   @ApiResponse({ status: 200, description: 'Utilisation enregistrée avec succès' })
-  async recordUsage(@Body() body: any, @Req() req: Request) {
+  async recordUsage(
+    @Body() body: RecordUsageDto,
+    @Headers('x-shopify-shop-domain') shopDomain?: string,
+  ): Promise<{ success: true; data: Usage }> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
+      const usage = await this.billingService.recordUsage(this.extractShopDomain(shopDomain), body);
 
-      const usage = await this.billingService.recordUsage(shop, body);
-      
       return {
         success: true,
         data: usage,
       };
     } catch (error) {
-      this.logger.error('Erreur lors de l\'enregistrement de l\'utilisation:', error);
+      this.logger.error("Erreur lors de l'enregistrement de l'utilisation:", error);
       throw new HttpException(
-        'Erreur lors de l\'enregistrement de l\'utilisation',
+        "Erreur lors de l'enregistrement de l'utilisation",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Get('usage')
-  @ApiOperation({ summary: 'Obtenir l\'utilisation du service' })
+  @ApiOperation({ summary: "Obtenir l'utilisation du service" })
   @ApiQuery({ name: 'shop', description: 'Domaine du shop Shopify' })
-  @ApiQuery({ name: 'period', description: 'Période d\'utilisation (month, year)' })
+  @ApiQuery({ name: 'period', description: "Période d'utilisation (month, year)" })
   @ApiResponse({ status: 200, description: 'Utilisation retournée' })
-  async getUsage(@Query('shop') shop: string, @Query('period') period: string = 'month') {
+  async getUsage(
+    @Query('shop') shop: string,
+    @Query('period') period: string = 'month',
+  ): Promise<{ success: true; data: Usage[] }> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
+      const usage = await this.billingService.getUsage(this.extractShopDomain(shop), period);
 
-      const usage = await this.billingService.getUsage(shop, period);
-      
       return {
         success: true,
         data: usage,
       };
     } catch (error) {
-      this.logger.error('Erreur lors de la récupération de l\'utilisation:', error);
+      this.logger.error("Erreur lors de la récupération de l'utilisation:", error);
       throw new HttpException(
-        'Erreur lors de la récupération de l\'utilisation',
+        "Erreur lors de la récupération de l'utilisation",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -202,14 +231,17 @@ export class BillingController {
   @ApiQuery({ name: 'shop', description: 'Domaine du shop Shopify' })
   @ApiQuery({ name: 'limit', description: 'Nombre de factures à retourner' })
   @ApiResponse({ status: 200, description: 'Liste des factures retournée' })
-  async getInvoices(@Query('shop') shop: string, @Query('limit') limit: string = '10') {
+  async getInvoices(
+    @Query('shop') shop: string,
+    @Query('limit') limit = '10',
+  ): Promise<{ success: true; data: Invoice[] }> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
+      const parsedLimit = Number.parseInt(limit, 10);
+      const invoices = await this.billingService.getInvoices(
+        this.extractShopDomain(shop),
+        Number.isNaN(parsedLimit) ? 10 : parsedLimit,
+      );
 
-      const invoices = await this.billingService.getInvoices(shop, parseInt(limit));
-      
       return {
         success: true,
         data: invoices,
@@ -226,18 +258,17 @@ export class BillingController {
   @Get('invoice/:id')
   @ApiOperation({ summary: 'Obtenir une facture spécifique' })
   @ApiResponse({ status: 200, description: 'Facture retournée' })
-  async getInvoice(@Query('shop') shop: string, @Query('id') id: string) {
+  async getInvoice(
+    @Query('shop') shop: string,
+    @Query('id') id: string,
+  ): Promise<{ success: true; data: Invoice | null }> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
-
       if (!id) {
-        throw new HttpException('L\'ID de la facture est requis', HttpStatus.BAD_REQUEST);
+        throw new HttpException("L'ID de la facture est requis", HttpStatus.BAD_REQUEST);
       }
 
-      const invoice = await this.billingService.getInvoice(shop, id);
-      
+      const invoice = await this.billingService.getInvoice(this.extractShopDomain(shop), id);
+
       return {
         success: true,
         data: invoice,
@@ -254,16 +285,13 @@ export class BillingController {
   @Post('charge')
   @ApiOperation({ summary: 'Créer une charge Shopify' })
   @ApiResponse({ status: 201, description: 'Charge créée avec succès' })
-  async createCharge(@Body() body: any, @Req() req: Request) {
+  async createCharge(
+    @Body() body: CreateChargeDto,
+    @Headers('x-shopify-shop-domain') shopDomain?: string,
+  ): Promise<{ success: true; data: Charge }> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
+      const charge = await this.billingService.createCharge(this.extractShopDomain(shopDomain), body);
 
-      const charge = await this.billingService.createCharge(shop, body);
-      
       return {
         success: true,
         data: charge,
@@ -280,18 +308,17 @@ export class BillingController {
   @Get('charge/:id')
   @ApiOperation({ summary: 'Obtenir une charge spécifique' })
   @ApiResponse({ status: 200, description: 'Charge retournée' })
-  async getCharge(@Query('shop') shop: string, @Query('id') id: string) {
+  async getCharge(
+    @Query('shop') shop: string,
+    @Query('id') id: string,
+  ): Promise<{ success: true; data: Charge | null }> {
     try {
-      if (!shop) {
-        throw new HttpException('Le paramètre shop est requis', HttpStatus.BAD_REQUEST);
-      }
-
       if (!id) {
-        throw new HttpException('L\'ID de la charge est requis', HttpStatus.BAD_REQUEST);
+        throw new HttpException("L'ID de la charge est requis", HttpStatus.BAD_REQUEST);
       }
 
-      const charge = await this.billingService.getCharge(shop, id);
-      
+      const charge = await this.billingService.getCharge(this.extractShopDomain(shop), id);
+
       return {
         success: true,
         data: charge,
@@ -308,17 +335,15 @@ export class BillingController {
   @Post('webhook')
   @ApiOperation({ summary: 'Webhook de facturation Shopify' })
   @ApiResponse({ status: 200, description: 'Webhook traité avec succès' })
-  async handleBillingWebhook(@Body() body: any, @Req() req: Request) {
+  async handleBillingWebhook(
+    @Body() body: Record<string, unknown>,
+    @Headers('x-shopify-shop-domain') shopDomain?: string,
+    @Headers('x-shopify-topic') topic?: string,
+  ): Promise<{ success: true; message: string }> {
     try {
-      const shop = req.headers['x-shopify-shop-domain'] as string;
-      const topic = req.headers['x-shopify-topic'] as string;
-      
-      if (!shop) {
-        throw new HttpException('Shop non spécifié', HttpStatus.BAD_REQUEST);
-      }
+      const headers = this.extractWebhookHeaders(shopDomain, topic);
+      await this.billingService.handleBillingWebhook(headers.shop, headers.topic, body);
 
-      await this.billingService.handleBillingWebhook(shop, topic, body);
-      
       return {
         success: true,
         message: 'Webhook de facturation traité avec succès',
@@ -332,6 +357,3 @@ export class BillingController {
     }
   }
 }
-
-
-

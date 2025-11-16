@@ -2,14 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { S3Service } from '@/libs/s3/s3.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { PLAN_DEFINITIONS, type PlanTier } from '@luneo/billing-plans';
 import * as sharp from 'sharp';
-import { 
-  RenderRequest, 
-  RenderOptions, 
+import {
+  RenderRequest,
+  RenderOptions,
   RenderResult,
-  AssetInfo,
-  RenderValidationResult
+  RenderValidationResult,
+  RenderDesignData,
+  RenderImageZone,
+  RenderTextZone,
+  RenderColorZone,
+  RenderEffect,
+  RenderZone,
 } from '../interfaces/render.interface';
+import { mapDesignRecord } from '../utils/render-data.mapper';
 
 @Injectable()
 export class Render2DService {
@@ -21,11 +28,14 @@ export class Render2DService {
     private readonly cache: SmartCacheService,
   ) {}
 
+
   /**
    * Rend un design 2D
    */
   async render2D(request: RenderRequest): Promise<RenderResult> {
     const startTime = Date.now();
+    const renderType = '2d';
+    const quality = request.options?.quality || 'standard';
     
     try {
       this.logger.log(`Starting 2D render for request ${request.id}`);
@@ -59,7 +69,7 @@ export class Render2DService {
       const result: RenderResult = {
         id: request.id,
         status: 'success',
-        url: uploadResult as any,
+        url: uploadResult.url,
         thumbnailUrl,
         metadata: {
           width: request.options.width,
@@ -74,20 +84,118 @@ export class Render2DService {
       };
 
       // Mettre en cache le résultat
-      await this.cache.setSimple(`render_result:${request.id}`, JSON.stringify(result), 3600);
+      await this.cache.setSimple(`render_result:${request.id}`, result, 3600);
+      
+      // Record metrics
+      const durationSeconds = renderTime / 1000;
+      // Note: CustomMetricsService injection would be needed here
+      // For now, metrics are recorded via decorator/interceptor pattern
+      
+      // Create render audit log with cost tracking
+      await this.createRenderAuditLog(request, result, renderTime);
       
       this.logger.log(`2D render completed for request ${request.id} in ${renderTime}ms`);
       
       return result;
     } catch (error) {
-      this.logger.error(`2D render failed for request ${request.id}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const durationSeconds = (Date.now() - startTime) / 1000;
+      // Record error metrics
+      this.logger.error(`2D render failed for request ${request.id}: ${errorMessage}`);
+      
+      // Create audit log for failed render
+      await this.createRenderAuditLog(request, {
+        id: request.id,
+        status: 'failed',
+        error: errorMessage,
+        createdAt: new Date(),
+      }, Date.now() - startTime).catch((err) => {
+        this.logger.error(`Failed to create audit log: ${err}`);
+      });
       
       return {
         id: request.id,
         status: 'failed',
-        error: error.message,
+        error: errorMessage,
         createdAt: new Date(),
       };
+    }
+  }
+
+  /**
+   * Create render audit log with cost tracking
+   */
+  private async createRenderAuditLog(
+    request: RenderRequest,
+    result: RenderResult,
+    durationMs: number,
+  ): Promise<void> {
+    try {
+      // Get brandId from design or product
+      let brandId: string | null = null;
+      
+      if (request.designId) {
+        const design = await this.prisma.design.findUnique({
+          where: { id: request.designId },
+          select: { brandId: true },
+        });
+        brandId = design?.brandId ?? null;
+      } else if (request.productId) {
+        const product = await this.prisma.product.findUnique({
+          where: { id: request.productId },
+          select: { brandId: true },
+        });
+        brandId = product?.brandId ?? null;
+      }
+
+      if (!brandId) {
+        this.logger.warn(`Could not determine brandId for render ${request.id}`);
+        return;
+      }
+
+      // Get brand plan to calculate costs
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        select: { plan: true },
+      });
+
+      const planTier = (brand?.plan ?? 'starter') as PlanTier;
+      const plan = PLAN_DEFINITIONS[planTier] ?? PLAN_DEFINITIONS.starter;
+      
+      // Find render quota to get cost
+      const renderQuota = plan.quotas.find(
+        (q) => q.metric === 'renders_2d' || q.metric === 'renders_3d',
+      );
+      
+      const costCents = renderQuota?.baseCostCents ?? 20; // Default 20 cents
+      const creditsUsed = renderQuota?.creditCost ?? 1; // Default 1 credit
+
+      // Create audit log
+      await this.prisma.renderAuditLog.create({
+        data: {
+          brandId,
+          renderId: request.id,
+          renderType: '2d',
+          status: result.status === 'success' ? 'success' : 'failed',
+          costCents,
+          creditsUsed,
+          durationMs,
+          metadata: {
+            quality: request.options?.quality || 'standard',
+            format: request.options?.format || 'png',
+            width: request.options?.width,
+            height: request.options?.height,
+            designId: request.designId,
+            productId: request.productId,
+            plan: planTier,
+          },
+        },
+      });
+
+      this.logger.debug(`Created render audit log for ${request.id}: ${costCents} cents, ${creditsUsed} credits`);
+    } catch (error) {
+      this.logger.error(`Failed to create render audit log: ${error instanceof Error ? error.message : String(error)}`);
+      // Don't throw - audit logging failure shouldn't break render
     }
   }
 
@@ -137,27 +245,37 @@ export class Render2DService {
   /**
    * Récupère les données du design
    */
-  private async getDesignData(productId: string, designId?: string): Promise<any> {
+  private async getDesignData(productId: string, designId?: string): Promise<RenderDesignData> {
     if (designId) {
       const design = await this.prisma.design.findUnique({
         where: { id: designId },
         select: {
           optionsJson: true,
-          assets: true,
+          assets: {
+            select: {
+              id: true,
+              url: true,
+              type: true,
+              format: true,
+              size: true,
+              width: true,
+              height: true,
+              metadata: true,
+            },
+          },
         },
       });
-      
+
       if (!design) {
         throw new Error(`Design ${designId} not found`);
       }
-      
-      return {
-        options: design.optionsJson,
+
+      return mapDesignRecord({
+        optionsJson: design.optionsJson,
         assets: design.assets,
-      };
+      });
     }
 
-    // Récupérer le produit par défaut
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       select: {
@@ -171,8 +289,8 @@ export class Render2DService {
     }
 
     return {
-      baseAsset: product.baseAssetUrl,
-      images: product.images,
+      baseAsset: product.baseAssetUrl ?? undefined,
+      images: product.images ?? undefined,
     };
   }
 
@@ -205,7 +323,7 @@ export class Render2DService {
    */
   private async applyDesignElements(
     canvas: sharp.Sharp,
-    designData: any,
+    designData: RenderDesignData,
     options: RenderOptions
   ): Promise<sharp.Sharp> {
     let processedCanvas = canvas;
@@ -255,7 +373,8 @@ export class Render2DService {
         blend: 'over',
       }]);
     } catch (error) {
-      this.logger.warn(`Failed to apply base image: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(`Failed to apply base image: ${errorMessage}`);
       return canvas;
     }
   }
@@ -265,7 +384,7 @@ export class Render2DService {
    */
   private async applyZones(
     canvas: sharp.Sharp,
-    zones: Record<string, any>,
+    zones: Record<string, RenderZone>,
     options: RenderOptions
   ): Promise<sharp.Sharp> {
     let processedCanvas = canvas;
@@ -274,7 +393,8 @@ export class Render2DService {
       try {
         processedCanvas = await this.applyZone(processedCanvas, zoneId, zoneData, options);
       } catch (error) {
-        this.logger.warn(`Failed to apply zone ${zoneId}: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.warn(`Failed to apply zone ${zoneId}: ${errorMessage}`);
       }
     }
 
@@ -286,16 +406,17 @@ export class Render2DService {
    */
   private async applyZone(
     canvas: sharp.Sharp,
-    zoneId: string,
-    zoneData: any,
+    _zoneId: string,
+    zoneData: RenderZone,
     options: RenderOptions
   ): Promise<sharp.Sharp> {
-    if (zoneData.type === 'image' && zoneData.imageUrl) {
-      return this.applyImageZone(canvas, zoneData);
-    } else if (zoneData.type === 'text') {
-      return this.applyTextZone(canvas, zoneData);
-    } else if (zoneData.type === 'color') {
-      return this.applyColorZone(canvas, zoneData);
+    switch (zoneData.type) {
+      case 'image':
+        return this.applyImageZone(canvas, zoneData);
+      case 'text':
+        return this.applyTextZone(canvas, zoneData);
+      case 'color':
+        return this.applyColorZone(canvas, zoneData);
     }
 
     return canvas;
@@ -304,13 +425,13 @@ export class Render2DService {
   /**
    * Applique une zone image
    */
-  private async applyImageZone(canvas: sharp.Sharp, zoneData: any): Promise<sharp.Sharp> {
+  private async applyImageZone(canvas: sharp.Sharp, zoneData: RenderImageZone): Promise<sharp.Sharp> {
     try {
       const imageBuffer = await this.downloadAsset(zoneData.imageUrl);
       
       const positionedImage = await sharp(imageBuffer)
-        .resize(zoneData.width || 200, zoneData.height || 200, {
-          fit: 'contain',
+        .resize(zoneData.width ?? 200, zoneData.height ?? 200, {
+          fit: zoneData.fit ?? 'contain',
           background: { r: 0, g: 0, b: 0, alpha: 0 },
         })
         .png()
@@ -318,12 +439,13 @@ export class Render2DService {
 
       return canvas.composite([{
         input: positionedImage,
-        left: zoneData.x || 0,
-        top: zoneData.y || 0,
-        blend: 'over',
+        left: zoneData.x ?? 0,
+        top: zoneData.y ?? 0,
+        blend: zoneData.blend ?? 'over',
       }]);
     } catch (error) {
-      this.logger.warn(`Failed to apply image zone: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(`Failed to apply image zone: ${errorMessage}`);
       return canvas;
     }
   }
@@ -331,7 +453,7 @@ export class Render2DService {
   /**
    * Applique une zone texte
    */
-  private async applyTextZone(canvas: sharp.Sharp, zoneData: any): Promise<sharp.Sharp> {
+  private async applyTextZone(canvas: sharp.Sharp, zoneData: RenderTextZone): Promise<sharp.Sharp> {
     // Pour le texte, nous créons une image SVG temporaire
     const svgText = this.createTextSVG(zoneData);
     
@@ -342,12 +464,13 @@ export class Render2DService {
 
       return canvas.composite([{
         input: textBuffer,
-        left: zoneData.x || 0,
-        top: zoneData.y || 0,
+        left: zoneData.x ?? 0,
+        top: zoneData.y ?? 0,
         blend: 'over',
       }]);
     } catch (error) {
-      this.logger.warn(`Failed to apply text zone: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(`Failed to apply text zone: ${errorMessage}`);
       return canvas;
     }
   }
@@ -355,52 +478,51 @@ export class Render2DService {
   /**
    * Applique une zone couleur
    */
-  private async applyColorZone(canvas: sharp.Sharp, zoneData: any): Promise<sharp.Sharp> {
+  private async applyColorZone(canvas: sharp.Sharp, zoneData: RenderColorZone): Promise<sharp.Sharp> {
     const colorOverlay = await sharp({
       create: {
-        width: zoneData.width || 100,
-        height: zoneData.height || 100,
+        width: zoneData.width ?? 100,
+        height: zoneData.height ?? 100,
         channels: 4,
-        background: zoneData.color || '#000000',
+        background: zoneData.color ?? '#000000',
       },
     }).png().toBuffer();
 
     return canvas.composite([{
       input: colorOverlay,
-      left: zoneData.x || 0,
-      top: zoneData.y || 0,
-      blend: zoneData.blend || 'over',
-      // opacity: zoneData.opacity || 1, // Commenté car pas dans OverlayOptions
+      left: zoneData.x ?? 0,
+      top: zoneData.y ?? 0,
+      blend: zoneData.blend ?? 'over',
     }]);
   }
 
   /**
    * Applique les effets
    */
-  private async applyEffects(canvas: sharp.Sharp, effects: any[]): Promise<sharp.Sharp> {
+  private async applyEffects(canvas: sharp.Sharp, effects: RenderEffect[]): Promise<sharp.Sharp> {
     let processedCanvas = canvas;
 
     for (const effect of effects) {
       switch (effect.type) {
         case 'blur':
-          processedCanvas = processedCanvas.blur(effect.intensity || 1);
+          processedCanvas = processedCanvas.blur(effect.intensity ?? effect.value ?? 1);
           break;
         case 'sharpen':
           processedCanvas = processedCanvas.sharpen();
           break;
         case 'brightness':
           processedCanvas = processedCanvas.modulate({
-            brightness: effect.value || 1,
+            brightness: effect.value ?? effect.intensity ?? 1,
           });
           break;
         case 'contrast':
           processedCanvas = processedCanvas.modulate({
-            saturation: effect.value || 1,
+            saturation: effect.value ?? effect.intensity ?? 1,
           });
           break;
         case 'hue':
           processedCanvas = processedCanvas.modulate({
-            hue: effect.value || 0,
+            hue: effect.value ?? effect.intensity ?? 0,
           });
           break;
         case 'grayscale':
@@ -473,7 +595,7 @@ export class Render2DService {
   private async uploadRender(imageBuffer: Buffer, request: RenderRequest): Promise<{ url: string; size: number }> {
     const filename = `renders/2d/${request.id}.${request.options.format || 'png'}`;
     
-    const uploadResult = await this.s3Service.uploadBuffer(
+    const url = await this.s3Service.uploadBuffer(
       imageBuffer,
       filename,
       {
@@ -487,7 +609,7 @@ export class Render2DService {
     );
 
     return {
-      url: uploadResult as any,
+      url,
       size: imageBuffer.length,
     };
   }
@@ -506,7 +628,7 @@ export class Render2DService {
 
     const filename = `thumbnails/2d/${request.id}.png`;
     
-    const uploadResult = await this.s3Service.uploadBuffer(
+    const url = await this.s3Service.uploadBuffer(
       thumbnailBuffer,
       filename,
       {
@@ -518,7 +640,7 @@ export class Render2DService {
       }
     );
 
-    return uploadResult as any;
+    return url;
   }
 
   /**
@@ -535,11 +657,16 @@ export class Render2DService {
   /**
    * Crée un SVG pour le texte
    */
-  private createTextSVG(zoneData: any): string {
-    const { text = 'Sample Text', font = 'Arial', fontSize = 16, color = '#000000' } = zoneData;
-    
+  private createTextSVG(zoneData: RenderTextZone): string {
+    const text = zoneData.text || 'Sample Text';
+    const font = zoneData.font || 'Arial';
+    const fontSize = zoneData.fontSize ?? 16;
+    const color = zoneData.color || '#000000';
+    const width = zoneData.width ?? 200;
+    const height = zoneData.height ?? 50;
+
     return `
-      <svg width="${zoneData.width || 200}" height="${zoneData.height || 50}" xmlns="http://www.w3.org/2000/svg">
+      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
         <text x="50%" y="50%" font-family="${font}" font-size="${fontSize}" fill="${color}" 
               text-anchor="middle" dominant-baseline="middle">
           ${text}
@@ -558,60 +685,6 @@ export class Render2DService {
       case 'webp': return 'image/webp';
       case 'svg': return 'image/svg+xml';
       default: return 'image/png';
-    }
-  }
-
-  /**
-   * Obtient les métriques de rendu
-   */
-  async getRenderMetrics(): Promise<any> {
-    const cacheKey = 'render_metrics:2d';
-    
-    const cached = await this.cache.getSimple(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-
-    try {
-      // Statistiques des 24 dernières heures
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      
-      const totalRenders = await this.prisma.design.count({
-        where: {
-          createdAt: { gte: yesterday },
-        },
-      });
-
-      const successfulRenders = await this.prisma.design.count({
-        where: {
-          status: 'COMPLETED',
-          createdAt: { gte: yesterday },
-        },
-      });
-
-      const failedRenders = await this.prisma.design.count({
-        where: {
-          status: 'FAILED',
-          createdAt: { gte: yesterday },
-        },
-      });
-
-      const metrics = {
-        totalRenders,
-        successfulRenders,
-        failedRenders,
-        successRate: totalRenders > 0 ? (successfulRenders / totalRenders) * 100 : 0,
-        averageRenderTime: 1500, // Simulation
-        lastUpdated: new Date(),
-      };
-
-      // Mettre en cache pour 5 minutes
-      await this.cache.setSimple(cacheKey, JSON.stringify(metrics), 300);
-      
-      return metrics;
-    } catch (error) {
-      this.logger.error('Error getting render metrics:', error);
-      throw error;
     }
   }
 }

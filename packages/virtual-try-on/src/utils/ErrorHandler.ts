@@ -151,7 +151,10 @@ export class ErrorHandler {
    * Obtient le message user-friendly
    */
   getUserMessage(error: VirtualTryOnError): string {
-    return ERROR_MESSAGES[error.code] || error.message;
+    return (
+      ERROR_MESSAGES[error.code as ErrorCode] ??
+      error.message
+    );
   }
 
   /**
@@ -165,7 +168,7 @@ export class ErrorHandler {
    * Suggestions de résolution selon le code d'erreur
    */
   getSuggestions(error: VirtualTryOnError): string[] {
-    const suggestions: Record<ErrorCode, string[]> = {
+    const suggestions: Partial<Record<ErrorCode, string[]>> = {
       CAMERA_NOT_FOUND: [
         'Connectez une webcam',
         'Vérifiez que la caméra est activée dans les paramètres système',
@@ -206,7 +209,9 @@ export class ErrorHandler {
       INVALID_CONFIG: ['Contactez le support'],
     };
 
-    return suggestions[error.code] || ['Contactez le support technique'];
+    return suggestions[error.code as ErrorCode] ?? [
+      'Contactez le support technique',
+    ];
   }
 
   /**

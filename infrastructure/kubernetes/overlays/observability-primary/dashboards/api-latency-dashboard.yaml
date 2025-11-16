@@ -1,0 +1,168 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-api-latency
+  namespace: luneo-observability
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: luneo
+    app.kubernetes.io/component: observability
+data:
+  api-latency.json: |
+    {
+      "schemaVersion": 39,
+      "title": "API Backend - Latence & Erreurs",
+      "timezone": "browser",
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Latency P95 (ms)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{app=\"luneo-backend\", job=\"luneo-backend\"}[5m])) by (le)) * 1000",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "value": null, "color": "rgba(32, 204, 122, 0.8)" },
+                  { "value": 350, "color": "rgba(244, 162, 97, 0.8)" },
+                  { "value": 600, "color": "rgba(239, 71, 111, 0.8)" }
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "orientation": "horizontal"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Taux d'erreur par endpoint",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_total{job=\"luneo-backend\", status=~\"5..\"}[5m])) by (route)",
+              "legendFormat": "{{route}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "req/s",
+              "min": 0
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Débit requêtes (req/s)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_total{job=\"luneo-backend\"}[1m]))",
+              "legendFormat": "global",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "req/s",
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "smooth"
+              }
+            }
+          }
+        },
+        {
+          "type": "table",
+          "title": "Top latence par route (P95)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"luneo-backend\"}[5m])) by (le, route)) * 1000",
+              "refId": "A",
+              "format": "table"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "renameByName": {
+                  "Value": "Latency P95 (ms)",
+                  "route": "Route"
+                }
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "Latency P95 (ms)",
+                    "desc": true
+                  }
+                ]
+              }
+            },
+            {
+              "id": "limit",
+              "options": {
+                "limit": 10
+              }
+            }
+          ],
+          "options": {
+            "showHeader": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "value": null, "color": "green" },
+                  { "value": 350, "color": "orange" },
+                  { "value": 600, "color": "red" }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "templating": {
+        "list": []
+      },
+      "refresh": "30s"
+    }
+

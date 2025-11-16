@@ -364,7 +364,7 @@ export class EcommerceController {
         luneoProductId: body.luneoProductId,
         externalProductId: body.externalProductId,
         externalSku: body.externalSku,
-        syncStatus: 'synced',
+        syncStatus: 'synced' as const,
         lastSyncedAt: new Date(),
       },
     });

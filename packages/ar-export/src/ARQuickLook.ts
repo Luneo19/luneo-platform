@@ -91,18 +91,20 @@ export class ARQuickLook {
     }
     
     // Callback URL (custom scheme)
+    const url = new URL(config.usdzUrl);
+    const params = new URLSearchParams(url.hash.replace('#', ''));
+    
     if (config.callbackUrl) {
-      const url = new URL(config.usdzUrl);
-      url.hash = `callbackURL=${encodeURIComponent(config.callbackUrl)}`;
-      link.href = url.toString();
+      params.set('callbackURL', encodeURIComponent(config.callbackUrl));
     }
     
-    // Placement mode (iOS 13+)
     if (config.placementMode) {
-      const url = new URL(link.href);
-      url.hash += `&allowsContentScaling=${config.allowScaling ? '1' : '0'}`;
-      link.href = url.toString();
+      params.set('placement', config.placementMode);
+      params.set('allowsContentScaling', config.allowScaling ? '1' : '0');
     }
+    
+    url.hash = params.toString() ? `#${params.toString()}` : '';
+    link.href = url.toString();
     
     // Append to body (required for click)
     document.body.appendChild(link);
@@ -128,12 +130,12 @@ export class ARQuickLook {
     const button = document.createElement('a');
     button.rel = 'ar';
     button.href = config.usdzUrl;
-    button.innerHTML = `
-      <img 
-        src="${config.fallbackImageUrl || ''}" 
-        alt="${config.productName || 'View in AR'}"
-      />
-    `;
+    const img = document.createElement('img');
+    if (config.fallbackImageUrl) {
+      img.src = config.fallbackImageUrl;
+    }
+    img.alt = config.productName || 'View in AR';
+    button.appendChild(img);
     button.style.display = 'inline-block';
     button.style.padding = '12px 24px';
     button.style.backgroundColor = '#007AFF';

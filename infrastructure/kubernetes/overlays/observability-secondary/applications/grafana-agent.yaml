@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-agent-secondary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: telemetry
+    luneo.io/region: us-east-1
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+    namespace: luneo-observability
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 0.37.0
+    chart: grafana-agent
+    helm:
+      releaseName: grafana-agent
+      values: |
+        agent:
+          mode: flow
+        controller:
+          replicas: 1
+        logs:
+          positions:
+            enabled: true
+        traces:
+          configs:
+            - name: tempo
+              receivers:
+                otlp:
+                  protocols:
+                    http:
+                      endpoint: 0.0.0.0:4318
+                    grpc:
+                      endpoint: 0.0.0.0:4317
+              exporters:
+                otlp:
+                  endpoint: tempo-distributor.luneo-observability.svc.cluster.local:4317
+                  tls:
+                    insecure: true
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+

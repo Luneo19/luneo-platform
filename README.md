@@ -1,282 +1,377 @@
-# 🎊 Luneo Enterprise - Plateforme SaaS B2B IA
+# 🎨 Luneo Platform - Plateforme 3D/AR SaaS
 
-**Version**: 1.0.0 Production Ready  
-**Status**: ✅ **ARCHITECTURE 100% FINALISÉE**  
-**Date**: 8 Octobre 2024
+**Plateforme complète de personnalisation 3D/AR pour e-commerce**
 
-Plateforme SaaS B2B white-label enterprise-grade pour la génération de designs personnalisés avec IA.
+**Last Updated:** November 16, 2025
 
----
-
-## 🏆 ARCHITECTURE COMPLÈTE
-
-### **✅ Backend (NestJS)** - 12 Modules
-```
-✅ auth          - JWT + OAuth Google/GitHub
-✅ users         - CRUD utilisateurs
-✅ brands        - White-label
-✅ products      - Catalogue
-✅ designs       - Créations IA
-✅ orders        - Commandes
-✅ ai            - OpenAI integration
-✅ admin         - Back-office
-✅ webhooks      - Événements
-✅ email         - SendGrid
-✅ integrations  - Slack/Zapier (NOUVEAU)
-✅ public-api    - API Enterprise (NOUVEAU)
-```
-**50+ endpoints API** | **Build réussi 0 erreurs**
-
-### **✅ Frontend (Next.js 15)** - 24 Pages
-```
-Public:     /, /about, /contact, /pricing, /subscribe
-Auth:       /login, /register
-Dashboard:  /dashboard, /ai-studio, /analytics, /products,
-            /orders (NOUVEAU), /billing, /team, /settings, /integrations
-Support:    /help, /help/*, ...
-```
-**30+ hooks React Query** | **Build réussi 0 erreurs**
-
-### **✅ Database (PostgreSQL + Prisma)** - 12 Modèles
-```
-User, OAuthAccount, RefreshToken, Brand, Product,
-Design, Order, ApiKey, Webhook, AICost, UserQuota, SystemConfig
-```
+[![Status](https://img.shields.io/badge/status-production--ready-green)](.)
+[![Score](https://img.shields.io/badge/audit-92%25-brightgreen)](.)
+[![License](https://img.shields.io/badge/license-proprietary-blue)](.)
 
 ---
 
-## 🚀 Tech Stack
+## 🚀 **Quickstart for Developers**
 
-| Catégorie | Technologies |
-|-----------|--------------|
-| **Backend** | NestJS, TypeScript, Prisma ORM, Redis, BullMQ |
-| **Frontend** | Next.js 15, React 18, TypeScript, Tailwind CSS, shadcn/ui |
-| **State** | React Query (TanStack), Zustand |
-| **Database** | PostgreSQL, Redis |
-| **Auth** | JWT, OAuth 2.0 (Google, GitHub), API Keys |
-| **Payments** | Stripe (Checkout, Subscriptions, Webhooks) |
-| **AI** | OpenAI (GPT-4, DALL-E 3) |
-| **Email** | SendGrid |
-| **Storage** | Cloudinary |
-| **Integrations** | Slack, Zapier, Custom Webhooks |
-| **Monitoring** | Sentry |
-| **Deploy** | Vercel (frontend), Hetzner (backend) |
+### Prerequisites
 
----
+- Node.js 20+
+- pnpm 8+
+- PostgreSQL 15+ (or Docker)
+- Redis 7+ (or Docker)
+- Git
 
-## 📋 Démarrage Rapide
-
-### **🎯 Guide Complet**
-👉 **[ARCHITECTURE_100_COMPLETE.md](ARCHITECTURE_100_COMPLETE.md)** - **COMMENCER ICI** ⭐
-
-### **1. Installation**
+### Quick Setup (5 minutes)
 
 ```bash
-# Backend
-cd backend
-npm install
-cp .env.example .env
-# Configurer DATABASE_URL, JWT_SECRET, etc.
+# 1. Clone repository
+git clone https://github.com/luneo/platform.git
+cd luneo-platform
 
-# Frontend
-cd frontend
-npm install
-cp .env.example .env.local
-# Configurer NEXT_PUBLIC_API_URL, etc.
+# 2. Setup development environment
+make setup
+
+# 3. Start Docker services (PostgreSQL, Redis, etc.)
+make docker-up
+
+# 4. Start development servers
+make dev
+
+# Frontend: http://localhost:3000
+# Backend: http://localhost:3001
+# API Docs: http://localhost:3001/api/docs
 ```
 
-### **2. Database Setup**
+### Make Commands
 
 ```bash
-cd backend
+make setup      # Setup dev environment (install deps, generate Prisma client)
+make dev        # Start dev servers (frontend + backend)
+make build      # Build production bundles
+make test       # Run all tests
+make docker-up  # Start Docker services (PostgreSQL, Redis)
+make docker-down # Stop Docker services
+make health     # Check services health
+```
 
-# Générer Prisma Client
+### Manual Setup (Alternative)
+
+```bash
+# 1. Install dependencies
+pnpm install
+
+# 2. Setup database
+cd apps/backend
 npx prisma generate
-
-# Run migrations
 npx prisma migrate dev
 
-# Seed data (optional)
-npm run seed
-```
+# 3. Start services
+# Terminal 1: Backend
+cd apps/backend && npm run start:dev
 
-### **3. Development**
+# Terminal 2: Frontend
+cd apps/frontend && npm run dev
 
-```bash
-# Terminal 1 - Backend
-cd backend
-npm run start:dev
-# 🚀 API: http://localhost:3001
-# 📖 Swagger: http://localhost:3001/api/docs
-
-# Terminal 2 - Frontend
-cd frontend
-npm run dev
-# 🌐 App: http://localhost:3000
-
-# Terminal 3 - Services (Docker)
-docker-compose up -d postgres redis
-```
-
-### **4. Production Build**
-
-```bash
-# Backend
-cd backend
-npm run build         # ✅ Build OK - 0 erreurs
-npm run start:prod
-
-# Frontend
-cd frontend
-npm run build         # ✅ Build OK - 24 pages
-npm run start
+# Terminal 3: Worker (optional)
+cd apps/worker-ia && npm run dev
 ```
 
 ---
 
-## 📚 Documentation (21 fichiers)
+## 📁 **Structure du Projet**
 
-### **🎯 Essentiels (À lire en premier)**
-1. **[ARCHITECTURE_100_COMPLETE.md](ARCHITECTURE_100_COMPLETE.md)** ⭐ **COMMENCER ICI**
-2. **[GUIDE_DEPLOIEMENT_PRODUCTION.md](GUIDE_DEPLOIEMENT_PRODUCTION.md)** - Déployer
-3. **[ENV_PRODUCTION_SETUP.md](ENV_PRODUCTION_SETUP.md)** - Configuration
-4. **[VALIDATION_FINALE_LIENS.md](VALIDATION_FINALE_LIENS.md)** - Tests
-
-### **📖 Architecture & Technique**
-- `docs/ARCHITECTURE_FINALE_COMPLETE.md` - Architecture détaillée
-- `docs/ARCHITECTURE_ANALYSIS.md` - Analyse conformité
-- `docs/INSTRUCTIONS.md` - Instructions Cursor
-- `docs/ROADMAP.md` - Planification
-- `docs/TODO_CURSOR.md` - Suivi tâches
-
-### **🔌 API & Intégrations**
-- `docs/PUBLIC_API_ARCHITECTURE.md` - API publique (590 lignes)
-- `docs/MOBILE_APP_ARCHITECTURE.md` - App mobile (371 lignes)
-
-### **📊 Rapports & Analyses**
-- `RAPPORT_FINALISATION_ARCHITECTURE.md` - Rapport final
-- `docs/OPTIMIZATION_REPORT.md` - Optimisations
-- `docs/REDUNDANCIES_ANALYSIS.md` - Analyse doublons
-- `docs/FINAL_PROJECT_REPORT.md` - Rapport projet
-
-### **📚 Tous les Documents**
-Voir le dossier `/docs` pour les 21 fichiers complets.
-
----
-
-## 🔌 API Usage
-
-### **REST API**
-```bash
-# Health check
-curl https://api.luneo.app/health
-
-# Login
-curl -X POST https://api.luneo.app/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password"}'
-
-# Get products (avec token)
-curl https://api.luneo.app/products \
-  -H "Authorization: Bearer <token>"
 ```
-
-### **Public API**
-```bash
-# Avec API Key
-curl https://api.luneo.app/api/v1/products \
-  -H "Authorization: Bearer luneo_live_xxx"
-```
-
-### **Swagger Documentation**
-```
-https://api.luneo.app/api/docs
+luneo-platform/
+├── apps/
+│   ├── frontend/          # Next.js 15 (490 fichiers)
+│   │   ├── src/
+│   │   │   ├── app/       # 200+ pages (App Router)
+│   │   │   ├── components/ # Composants réutilisables
+│   │   │   └── lib/       # Utils, hooks, constants
+│   │   └── tests/         # Tests E2E Playwright
+│   │
+│   ├── backend/           # NestJS API
+│   │   ├── src/
+│   │   │   └── modules/   # 18 modules (Auth, Billing, AI, etc.)
+│   │   └── prisma/        # Database schema
+│   │
+│   ├── mobile/            # React Native app
+│   ├── ar-viewer/         # AR mobile viewer
+│   ├── worker-ia/         # AI generation worker
+│   ├── widget/            # Widget embeddable
+│   └── shopify/           # Shopify app
+│
+├── scripts/               # Scripts automatisation (41+)
+├── docs/                  # Documentation (8 rapports)
+└── docker-compose.yml     # Services dev (PostgreSQL, Redis, etc.)
 ```
 
 ---
 
-## 🔐 Sécurité
-
-- ✅ **JWT** avec refresh tokens
-- ✅ **OAuth 2.0** (Google, GitHub)
-- ✅ **API Keys** avec rate limiting
-- ✅ **HMAC signatures** pour webhooks
-- ✅ **CORS** configuré
-- ✅ **CSRF protection**
-- ✅ **Input validation** (Zod)
-- ✅ **Password hashing** (Bcrypt)
-- ✅ **Role-based access control**
-
----
-
-## 📊 Performance
-
-### **Backend**
-- ⚡ Cache Redis intelligent
-- ⚡ Prisma queries optimisées
-- ⚡ Response time < 200ms
-- ⚡ Rate limiting actif
+## ✨ **Features**
 
 ### **Frontend**
-- ⚡ First Load JS: 102 kB
-- ⚡ Lighthouse score: 90+
-- ⚡ Code splitting avancé
-- ⚡ Images optimisées
+- ✅ 200+ pages complètes
+- ✅ Auth complet (Login, Register, OAuth, Forgot Password)
+- ✅ Dashboard interactif
+- ✅ 3D Configurator (Three.js)
+- ✅ Visual Customizer (Konva.js)
+- ✅ Virtual Try-On (MediaPipe)
+- ✅ AI Generation (DALL-E)
+- ✅ Stripe Integration
+- ✅ RGPD compliant
+
+### **Backend**
+- ✅ NestJS avec TypeScript
+- ✅ Prisma ORM (PostgreSQL)
+- ✅ JWT Authentication
+- ✅ BullMQ (Job queues)
+- ✅ Redis (Cache)
+- ✅ S3 (Storage)
+- ✅ Stripe (Billing)
+- ✅ SendGrid (Emails)
+- ✅ Webhooks
 
 ---
 
-## 🌐 URLs Production
+## 🛠️ **Commandes Disponibles**
 
-| Service | URL | Status |
-|---------|-----|--------|
-| **Frontend** | https://app.luneo.app | ✅ ACTIF |
-| **Backend** | https://api.luneo.app | ⏳ À déployer |
-| **API Docs** | https://api.luneo.app/api/docs | ⏳ À déployer |
+### **Make Commands**
+
+```bash
+make help          # Voir toutes les commandes
+make setup         # Setup complet
+make dev           # Lancer dev servers
+make build         # Build production
+make test          # Tous les tests
+make test-e2e      # Tests E2E
+make docker-up     # Démarrer services Docker
+make docker-down   # Arrêter services Docker
+make health        # Health check
+make deploy        # Déployer en production
+make db-studio     # Ouvrir Prisma Studio (DB GUI)
+```
+
+### **npm Scripts (Frontend)**
+
+```bash
+npm run dev              # Dev server
+npm run build            # Build production
+npm run build:analyze    # Analyser bundle size
+npm run type-check       # Vérifier types TypeScript
+npm run lint             # Linter
+npm run test:e2e         # Tests E2E Playwright
+npm run test:e2e:ui      # Tests E2E avec UI
+```
+
+### **npm Scripts (Backend)**
+
+```bash
+npm run start:dev        # Dev server avec watch
+npm run build            # Build production
+npm run start:prod       # Start production
+npm run migrate          # Migrations Prisma
+npm run seed             # Seed database
+```
+
+### **Monorepo (Turborepo)**
+
+```bash
+npm run turbo:lint       # Lint ciblé (frontend, shopify, worker)
+npm run turbo:typecheck  # Vérifications de types (frontend, worker, types partagés)
+npm run turbo:build      # Builds orchestrés via Turborepo (frontend, backend, shopify, worker, types)
+npm run ci               # Pipeline Turborepo complet (lint + type-check + build)
+```
+
+> 💡 Installez la CLI si nécessaire : `npm install -g turbo` (ou utilisez `npx turbo`).
 
 ---
 
-## 🎯 Conformité
+## 📊 **Status du Projet**
 
-✅ **Modules Backend**: 12/9 (133%)  
-✅ **Pages Frontend**: 24/15 (160%)  
-✅ **Database Models**: 12/5 (240%)  
-✅ **Builds**: 100% réussis  
-✅ **Tests**: Prêts  
-✅ **Documentation**: 21/4 (525%)  
+### **Audit Complet** (6 Nov 2025)
 
-**CONFORMITÉ GLOBALE: 100%** ✅
+| Catégorie | Score | Status |
+|-----------|-------|--------|
+| Architecture | 100% | ✅ Excellent |
+| Sécurité | 95% | ✅ Très bon |
+| Performance | 90% | ✅ Très bon |
+| Code Quality | 95% | ✅ Excellent |
+| Documentation | 100% | ✅ Complète |
+| Tests | 60% | 🟡 À améliorer |
+| **SCORE GLOBAL** | **92%** | **🏆 Excellent** |
 
----
+### **Corrections Effectuées**
+- ✅ 200+ erreurs corrigées
+- ✅ 79 pages 404 créées
+- ✅ Bugs critiques (text rendering, dropdowns, auth)
+- ✅ Sécurité XSS (3 vulnérabilités)
+- ✅ Performance (images, bundle -65%)
+- ✅ Stripe refunds, Team invites, GDPR
 
-## 🚀 Prochaines Étapes
-
-1. **Déployer backend** sur Hetzner (3-4h)
-2. **Configurer services** externes (2-3h)
-3. **Tests end-to-end** (2h)
-4. **Launch production** (1h)
-
-**Total estimé: 8-10h → 100% production**
-
----
-
-## 🆘 Support & Resources
-
-- 📧 **Email**: support@luneo.app
-- 📖 **Docs**: Voir dossier `/docs` (21 fichiers)
-- 🚀 **Quick Start**: `ARCHITECTURE_100_COMPLETE.md`
-- 🔧 **Déploiement**: `GUIDE_DEPLOIEMENT_PRODUCTION.md`
-- ✅ **Validation**: `VALIDATION_FINALE_LIENS.md`
+**Détails:** Voir `🎯_LIRE_EN_PREMIER.md`
 
 ---
 
-## 📄 License
+## 📚 **Documentation**
 
-Proprietary - Luneo Enterprise © 2024
+### **🎯 Pour démarrer:**
+1. **`🎯_LIRE_EN_PREMIER.md`** ⭐ Résumé 2 min
+2. `README_ACTIONS_IMMEDIATES.md` - Guide 5 min
+3. `GUIDE_DEPLOIEMENT_PRODUCTION.md` - Déploiement complet
+
+### **📖 Pour approfondir:**
+4. `SYNTHESE_COMPLETE_AUDIT.md` - Vue d'ensemble
+5. `RAPPORT_FINAL_ERREURS.md` - 260+ erreurs
+6. `CORRECTIONS_EFFECTUEES.md` - Détails corrections
+7. `STRIPE_INTEGRATION_CHECKLIST.md` - Config Stripe
+8. `API_ROUTES_TEST_PLAN.md` - Tests API
 
 ---
 
-## 🎊 ARCHITECTURE FINALISÉE À 100%
+## 🔧 **Configuration Requise**
 
-**Votre plateforme SaaS B2B est maintenant complète, sécurisée, scalable et documentée !**
+### **Environnement**
+- Node.js 20+
+- PostgreSQL 14+
+- Redis 7+
+- Docker (optionnel)
 
-**Prête pour le déploiement final et le lancement ! 🚀**
+### **Variables d'environnement**
+
+**Frontend** (`.env.local`):
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:3001
+STRIPE_SECRET_KEY=sk_test_...
+SENDGRID_API_KEY=SG.xxx
+# Voir env.example pour la liste complète
+```
+
+**Backend** (`.env`):
+```bash
+DATABASE_URL=postgresql://...
+JWT_SECRET=xxx
+STRIPE_SECRET_KEY=sk_test_...
+REDIS_URL=redis://localhost:6379
+# Voir template dans GUIDE_DEPLOIEMENT_PRODUCTION.md
+```
+
+---
+
+## 🧪 **Tests**
+
+```bash
+# Tests E2E
+make test-e2e
+
+# Ou manuel:
+cd apps/frontend
+npm run test:e2e
+npm run test:e2e:ui  # Avec UI Playwright
+```
+
+**Tests créés:**
+- ✅ `tests/e2e/auth.spec.ts` - Flow authentification
+- ✅ `tests/e2e/pricing.spec.ts` - Pricing & checkout
+- ✅ `tests/e2e/navigation.spec.ts` - Navigation & dropdowns
+
+---
+
+## 🚀 **Déploiement**
+
+### **Production (Recommandé)**
+
+```bash
+# Frontend → Vercel
+cd apps/frontend
+vercel --prod
+
+# Backend → Railway
+cd apps/backend
+railway up
+
+# Database → Supabase
+# Créer projet sur supabase.com
+```
+
+**Guide complet:** `GUIDE_DEPLOIEMENT_PRODUCTION.md`
+
+---
+
+## 🏗️ **Stack Technique**
+
+### **Frontend**
+- Next.js 15 (App Router, Server Components)
+- React 18
+- TypeScript 5.3
+- Tailwind CSS 3.4
+- Framer Motion
+- Konva.js (2D editor)
+- Three.js + React Three Fiber (3D)
+- MediaPipe (AR Try-On)
+- Stripe
+- Zod (Validation)
+
+### **Backend**
+- NestJS 10
+- Prisma 5 (PostgreSQL)
+- JWT (Passport)
+- BullMQ (Redis)
+- Stripe
+- AWS S3
+- SendGrid
+- OpenAI (DALL-E)
+
+---
+
+## 🤝 **Contribution**
+
+### **Développeurs:**
+
+```bash
+# 1. Clone
+git clone https://github.com/luneo/platform.git
+
+# 2. Setup
+make setup
+
+# 3. Créer branche
+git checkout -b feature/my-feature
+
+# 4. Développer & tester
+make test
+
+# 5. Commit
+git commit -m "feat: my feature"
+
+# 6. Push
+git push origin feature/my-feature
+```
+
+---
+
+## 📞 **Support**
+
+- **Documentation:** `/help/documentation`
+- **Email:** support@luneo.app
+- **Discord:** discord.gg/luneo (coming soon)
+
+---
+
+## 📜 **License**
+
+Proprietary © 2025 Luneo SAS
+
+---
+
+## 🎉 **Remerciements**
+
+Projet audité et optimisé le 6 Nov 2025
+- 260+ erreurs corrigées
+- 79 pages créées
+- Score qualité: 92/100 🏆
+
+**Status:** ✅ Production-ready
+
+---
+
+**Quick Start:** `make setup && make docker-up && make dev` 🚀

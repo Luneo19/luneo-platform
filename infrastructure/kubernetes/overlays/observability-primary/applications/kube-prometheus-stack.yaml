@@ -1,0 +1,62 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack-primary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: monitoring
+    luneo.io/region: eu-west-1
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+    namespace: luneo-observability
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 58.3.0
+    chart: kube-prometheus-stack
+    helm:
+      releaseName: kube-prometheus-stack
+      values: |
+        namespaceOverride: luneo-observability
+        prometheus:
+          prometheusSpec:
+            retention: 15d
+            scrapeInterval: 30s
+            externalLabels:
+              region: eu-west-1
+              cluster: luneo-prod-eks-primary
+            remoteWrite:
+              - url: https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-abc123/api/v1/remote_write
+                sigv4:
+                  region: eu-west-1
+        alertmanager:
+          alertmanagerSpec:
+            replicas: 2
+            externalUrl: https://alertmanager.luneo.app
+        grafana:
+          enabled: true
+          admin:
+            existingSecret: grafana-admin
+            userKey: admin-user
+            passwordKey: admin-password
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: true
+            ingressClassName: alb
+            hosts:
+              - grafana.luneo.app
+            annotations:
+              alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+          persistence:
+            enabled: true
+            size: 20Gi
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+

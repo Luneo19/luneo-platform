@@ -1,8 +1,4 @@
-import {
-  Controller,
-  Get,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -10,6 +6,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AiService } from './ai.service';
+import type { Request } from 'express';
 
 @ApiTags('ai')
 @Controller('ai')
@@ -23,7 +20,7 @@ export class AiController {
     status: 200,
     description: 'Quota IA',
   })
-  async getQuota(@Request() req) {
+  async getQuota(@Req() req: Request) {
     // This would return user's AI quota information
     return { message: 'AI quota endpoint' };
   }

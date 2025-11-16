@@ -2,7 +2,12 @@ const FormData = require("form-data");
 const Mailgun = require("mailgun.js");
 
 // Configuration Mailgun
-const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY || "d16e202cab0634bae884cb6da16e6433-1ae02a08-98f24f90";
+// ⚠️ IMPORTANT: Ne jamais hardcoder les clés API !
+// Utilisez uniquement les variables d'environnement
+const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
+if (!MAILGUN_API_KEY) {
+  throw new Error("MAILGUN_API_KEY must be set as environment variable");
+}
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || "sandbox913d07faa63149f7b48cb7982cccf5fa.mailgun.org";
 const MAILGUN_URL = process.env.MAILGUN_URL || "https://api.mailgun.net";
 

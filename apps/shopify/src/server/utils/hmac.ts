@@ -109,7 +109,8 @@ export class HmacUtils {
    */
   static encrypt(data: string, key: string): string {
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher('aes-256-cbc', key);
+    const hashedKey = crypto.createHash('sha256').update(key).digest();
+    const cipher = crypto.createCipheriv('aes-256-cbc', hashedKey, iv);
     
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -122,10 +123,15 @@ export class HmacUtils {
    */
   static decrypt(encryptedData: string, key: string): string {
     const parts = encryptedData.split(':');
+    if (parts.length !== 2) {
+      throw new Error('Format de données chiffrées invalide');
+    }
+
     const iv = Buffer.from(parts[0], 'hex');
     const encrypted = parts[1];
+    const hashedKey = crypto.createHash('sha256').update(key).digest();
     
-    const decipher = crypto.createDecipher('aes-256-cbc', key);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', hashedKey, iv);
     
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');

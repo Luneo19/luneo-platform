@@ -1,37 +1,93 @@
 {
-  "name": "luneo-enterprise-saas",
+  "name": "luneo-platform",
   "version": "2.0.0",
   "private": true,
-  "description": "Luneo Enterprise SaaS - Plateforme IA de personnalisation de produits",
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "packages/virtual-try-on",
-    "packages/ar-export",
-    "packages/optimization",
-    "packages/bulk-generator"
+    "packages/*"
   ],
+  "packageManager": "pnpm@10.20.0",
   "scripts": {
-    "build": "turbo run build",
     "dev": "turbo run dev",
+    "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
     "type-check": "turbo run type-check",
-    "clean": "turbo run clean",
+    "clean": "turbo run clean && rm -rf node_modules",
     "deploy": "turbo run deploy",
-    "setup": "node scripts/setup.js"
+    "setup": "npm install && npm run build",
+    "prepare": "husky install",
+    "dev:frontend": "turbo run dev --filter=@luneo/frontend",
+    "dev:backend": "turbo run dev --filter=@luneo/backend",
+    "dev:mobile": "turbo run dev --filter=@luneo/mobile",
+    "dev:worker": "turbo run dev --filter=luneo-worker-ia",
+    "build:frontend": "turbo run build --filter=@luneo/frontend",
+    "build:backend": "turbo run build --filter=@luneo/backend",
+    "build:all": "turbo run build --filter=@luneo/*",
+    "analyze": "turbo run analyze",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "db:bootstrap": "bash scripts/db/bootstrap-local.sh",
+    "prisma:studio": "cd apps/backend && npx prisma studio",
+    "prisma:migrate": "cd apps/backend && npx prisma migrate dev",
+    "prisma:generate": "cd apps/backend && npx prisma generate",
+    "health": "sh scripts/check-health.sh",
+    "validate": "sh scripts/validate-everything.sh",
+    "turbo:lint": "turbo run lint --filter=luneo-frontend --filter=luneo-shopify-app --filter=luneo-worker-ia",
+    "turbo:typecheck": "turbo run type-check --filter=luneo-frontend --filter=luneo-worker-ia --filter=@luneo/types",
+    "turbo:build": "turbo run build --filter=luneo-frontend --filter=@luneo/backend-vercel --filter=luneo-shopify-app --filter=luneo-worker-ia --filter=@luneo/types",
+    "ci": "npm run turbo:lint && npm run turbo:typecheck && npm run turbo:build",
+    "security:audit": "pnpm audit --audit-level=high --prod",
+    "security:owasp": "bash scripts/security/run-zap-baseline.sh",
+    "security:all": "npm run security:audit && pnpm audit --audit-level=moderate && npm run security:owasp",
+    "pricing:verify": "tsx scripts/verify-stripe-pricing.ts",
+    "quota:reset": "tsx scripts/quota-guardian-reset.ts",
+    "perf:k6:backend": "bash -lc \"mkdir -p tests/performance/results && docker run --rm -i --network host -e K6_BASE_URL=\\${K6_BASE_URL:-http://host.docker.internal:3000/api/v1} -e K6_API_KEY=\\${K6_API_KEY:-} -e K6_RATE=\\${K6_RATE:-40} -e K6_DURATION=\\${K6_DURATION:-3m} -e K6_VUS=\\${K6_VUS:-25} -e K6_MAX_VUS=\\${K6_MAX_VUS:-60} -e K6_SLEEP=\\${K6_SLEEP:-0.5} -v \\\"$(pwd)\\\":/mnt grafana/k6 run --summary-export /mnt/tests/performance/results/backend-summary.json /mnt/tests/performance/k6/backend-smoke.js\"",
+    "perf:k6:quota": "bash -lc \"mkdir -p tests/performance/results && docker run --rm -i --network host -e BASE_URL=\\${BASE_URL:-http://host.docker.internal:3333} -e BRAND_ID=\\${BRAND_ID:-dev-brand} -e API_TOKEN=\\${API_TOKEN:-replace-me} -e PUBLIC_API_KEY=\\${PUBLIC_API_KEY:-pk_dev_token} -v \\\"$(pwd)\\\":/mnt grafana/k6 run --summary-export /mnt/tests/performance/results/quota-guardian-summary.json /mnt/tests/k6/usage-quota-guardian.js\"",
+    "perf:k6:quota-share": "bash -lc \"docker run --rm -i --network host -e API_BASE=\\${API_BASE:-http://host.docker.internal:3333/api/v1} -e FRONTEND_URL=\\${FRONTEND_URL:-http://host.docker.internal:3000} -e BRAND_ID=\\${BRAND_ID:-dev-brand} -e AUTH_TOKEN=\\${AUTH_TOKEN:-replace-me} -v \\\"$(pwd)\\\":/mnt grafana/k6 run /mnt/tests/k6/quota-share-topup.js\""
   },
   "devDependencies": {
-    "@turbo/gen": "^1.10.12",
-    "turbo": "^1.10.12",
-    "typescript": "^5.2.2"
+    "@turbo/gen": "^2.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "@typescript-eslint/parser": "^6.7.4",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-unused-imports": "^4.3.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "next": "^15.0.0",
+    "prettier": "^3.2.5",
+    "tsx": "^4.20.6",
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   },
-  "packageManager": "pnpm@8.10.0",
-  "dependencies": {
-    "stripe": "^19.1.0"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luneo/platform.git"
+  },
+  "author": "Luneo Team",
+  "license": "MIT",
+  "description": "Luneo Platform - AI-powered design & e-commerce monorepo",
+  "pnpm": {
+    "overrides": {
+      "@react-native-community/cli": "^17.0.1",
+      "lodash.template": "^4.5.0",
+      "camera-controls": "^2.10.1"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

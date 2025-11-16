@@ -1,0 +1,89 @@
+# Artillery Load Test: Embed Widget Load (10k Concurrent Users)
+# 
+# Alternative to k6 for load testing embed widget flows
+# 
+# Usage:
+#   artillery run --count 10000 --target 1000 artillery-embed-widget.yml
+#   artillery run --count 10000 --target 1000 --output report.json artillery-embed-widget.yml
+
+config:
+  target: 'https://api.luneo.app'
+  phases:
+    # Ramp up to 10k concurrent users
+    - duration: 120
+      arrivalRate: 50
+      name: "Warm up - 1k users"
+    - duration: 300
+      arrivalRate: 20
+      name: "Ramp to 5k users"
+    - duration: 300
+      arrivalRate: 20
+      name: "Ramp to 10k users"
+    - duration: 600
+      arrivalRate: 0
+      name: "Sustain 10k users"
+    - duration: 120
+      arrivalRate: -50
+      name: "Ramp down"
+  processor: "./artillery-processor.js"
+  plugins:
+    expect: {}
+    metrics-by-endpoint:
+      stripQueryString: true
+  variables:
+    shopDomains:
+      - "test-shop-1.myshopify.com"
+      - "test-shop-2.myshopify.com"
+      - "test-shop-3.myshopify.com"
+      - "test-shop-4.myshopify.com"
+      - "test-shop-5.myshopify.com"
+  defaults:
+    headers:
+      User-Agent: "Artillery Load Test"
+  ensure:
+    maxErrorRate: 1
+    p95: 500
+    p99: 1000
+
+scenarios:
+  - name: "Widget Handshake Flow"
+    weight: 100
+    flow:
+      # Step 1: Get embed token
+      - get:
+          url: "/api/embed/token"
+          qs:
+            shop: "{{ $randomString() }}"
+          headers:
+            Origin: "https://{{ $randomString() }}.com"
+          capture:
+            - json: "$.token"
+              as: "embedToken"
+            - json: "$.nonce"
+              as: "nonce"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: token
+            - hasProperty: nonce
+      
+      # Small delay (simulate iframe creation)
+      - think: 0.5
+      
+      # Step 2: Validate nonce
+      - post:
+          url: "/api/embed/validate"
+          json:
+            nonce: "{{ nonce }}"
+          headers:
+            Authorization: "Bearer {{ embedToken }}"
+            Origin: "https://{{ $randomString() }}.com"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - equals:
+              - json: "$.valid"
+              - true
+      
+      # Simulate user viewing widget
+      - think: 2

@@ -1,0 +1,17 @@
+FROM node:18-bullseye
+
+WORKDIR /workspace
+
+COPY package.json package-lock.json pnpm-workspace.yaml turbo.json ./
+COPY apps/worker-ia/package.json apps/worker-ia/
+
+RUN npm install
+
+COPY . .
+
+WORKDIR /workspace/apps/worker-ia
+
+ENV NODE_ENV=development
+
+CMD ["npm", "run", "start:dev"]
+

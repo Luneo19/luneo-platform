@@ -1,17 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/node@3.0.7"
-    }
-  ],
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30,
-      "memory": 1024
-    }
-  },
   "routes": [
     {
       "src": "/(.*)",
@@ -22,5 +10,6 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "outputDirectory": "dist"
+  "installCommand": "cd ../.. && pnpm install --filter @luneo/backend-vercel... --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm --filter @luneo/backend-vercel... run build"
 }

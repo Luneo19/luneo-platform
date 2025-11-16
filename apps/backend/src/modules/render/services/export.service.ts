@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { S3Service } from '@/libs/s3/s3.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { ExportSettings, AssetInfo } from '../interfaces/render.interface';
+import { ExportSettings, AssetInfo, ExportResult } from '../interfaces/render.interface';
 
 @Injectable()
 export class ExportService {
@@ -17,13 +17,13 @@ export class ExportService {
   /**
    * Exporte des assets
    */
-  async exportAssets(assets: AssetInfo[], options: ExportSettings): Promise<any> {
+  async exportAssets(assets: AssetInfo[], options: ExportSettings): Promise<ExportResult> {
     const startTime = Date.now();
     
     try {
       this.logger.log(`Starting asset export: ${assets.length} assets`);
 
-      const exportResult = {
+      const exportResult: ExportResult = {
         format: options.format,
         url: `https://example.com/exports/${Date.now()}.${options.format}`,
         size: 1024000,
@@ -38,8 +38,9 @@ export class ExportService {
       
       return exportResult;
     } catch (error) {
-      this.logger.error(`Asset export failed:`, error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Asset export failed: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 }

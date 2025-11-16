@@ -6,6 +6,8 @@
  * @license MIT
  */
 
+import { VirtualTryOn } from './core/VirtualTryOn';
+
 // Core
 export { VirtualTryOn } from './core/VirtualTryOn';
 export { CameraManager } from './core/CameraManager';
@@ -74,6 +76,16 @@ export function checkBrowserSupport(): {
   const missing: string[] = [];
   const warnings: string[] = [];
 
+  // Check if in browser environment
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    missing.push('Browser environment required');
+    return {
+      supported: false,
+      missing,
+      warnings,
+    };
+  }
+
   // MediaDevices API
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     missing.push('MediaDevices API (camera access)');
@@ -114,6 +126,17 @@ export function getSystemInfo(): {
   devicePixelRatio: number;
   memory?: number;
 } {
+  // Check if in browser environment
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return {
+      userAgent: '',
+      platform: '',
+      language: '',
+      screen: { width: 0, height: 0 },
+      devicePixelRatio: 1,
+    };
+  }
+
   return {
     userAgent: navigator.userAgent,
     platform: navigator.platform,

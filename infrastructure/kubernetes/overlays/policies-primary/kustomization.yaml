@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: gatekeeper-system
+
+resources:
+  - ../../base
+  - applications/gatekeeper.yaml
+  - policies/templates/required-labels-template.yaml
+  - policies/templates/disallow-latest-image-template.yaml
+  - policies/constraints/required-labels.yaml
+  - policies/constraints/disallow-latest-image.yaml
+
+configMapGenerator:
+  - name: policies-metadata
+    literals:
+      - region=eu-west-1
+      - regime=active
+

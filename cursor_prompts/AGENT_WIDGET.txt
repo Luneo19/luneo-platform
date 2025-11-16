@@ -1,0 +1,32 @@
+AGENT_WIDGET — Embed SDK + iframe handshake + token endpoint
+
+Tâches:
+
+1. Create package apps/widget/ with src/index.ts that builds UMD + ESM bundles (vite/tsup).
+
+2. SDK API:
+
+   - LuneoWidget.init({shop, tokenUrl, container, onReady})
+
+   - obtain short-lived embed JWT (GET tokenUrl?shop=)
+
+   - create iframe sandbox with allow attributes and postMessage handshake (nonce)
+
+   - verify origin and one-time nonce on server
+
+3. Implement backend endpoint at apps/backend/src/modules/widget/widget.controller.ts:
+
+   - GET /api/embed/token?shop=... -> validate shop install, sign JWT (5m), embedNonce mapping
+
+4. Add CSP headers for widget CDN responses.
+
+5. Add e2e Playwright test: handshake + token validation.
+
+Deliverables:
+
+- Widget package, build config, token endpoint, snippet example.
+
+Risk:
+
+- Ensure short expiry and single-use nonces to avoid replay.
+

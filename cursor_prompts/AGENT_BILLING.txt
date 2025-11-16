@@ -1,0 +1,20 @@
+AGENT_BILLING — Stripe & usage billing
+
+Tâches:
+
+1. Implement usage billing: per-render credits, monthly plans in @luneo/billing-plans
+
+2. Ensure Stripe webhook handler exists and is idempotent.
+
+3. Add endpoint to query usage per tenant and trigger soft-limit enforcement.
+
+4. Add admin UI pages to view per-tenant cost and disable heavy features if unpaid.
+
+Deliverables:
+
+- Usage accounting, Stripe webhooks idempotency, admin UI stubs.
+
+Risk:
+
+- Billing disputes: keep audit logs of render requests with costs.
+

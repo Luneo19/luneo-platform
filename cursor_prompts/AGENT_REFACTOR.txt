@@ -1,0 +1,20 @@
+AGENT_REFACTOR — Cleanup & tech debt
+
+Tâches:
+
+1. Scan repo for: unused imports, any `any` types, large bundles, duplicated code.
+
+2. Propose safe refactors: split giant modules, extract shared utils into @luneo/* packages.
+
+3. Create PRs with limited scope and tests for each refactor (max 200 lines).
+
+4. Add metrics on technical debt changes in PR description.
+
+Deliverables:
+
+- Refactor PRs, roadmap for debt cleanup.
+
+Risk:
+
+- Breaking changes: keep changes small and covered by tests.
+

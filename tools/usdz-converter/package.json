@@ -1,0 +1,11 @@
+{
+  "name": "usdz-converter",
+  "version": "1.0.0",
+  "description": "GLB to USDZ converter service",
+  "main": "converter.py",
+  "scripts": {
+    "start": "python3 converter.py"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

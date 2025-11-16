@@ -1,0 +1,24 @@
+AGENT_AR — GLTF->USDZ conversion & WebXR
+
+Tâches:
+
+1. Create converter service/container (tools/usdz-converter) that:
+
+   - accepts GLB + textures, optimizes textures (mipmaps, resize), outputs USDZ
+
+   - uses gltf-pipeline + usdz-converter binary or Python tool
+
+2. Add endpoint GET /api/designs/:id/ar that triggers conversion and returns signed CDN URL (short expiry)
+
+3. Add frontend AR viewer: open QuickLook for iOS (rel="ar") and WebXR for supporting Android browsers
+
+4. Add caching for converted USDZ per texture hash to avoid repeated conversions.
+
+Deliverables:
+
+- Converter container, API endpoint, AR frontend component, caching.
+
+Risk:
+
+- Device differences; require manual QA on iPhone models.
+

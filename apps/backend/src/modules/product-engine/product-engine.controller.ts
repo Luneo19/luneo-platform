@@ -17,13 +17,15 @@ import { ProductRulesService } from './services/product-rules.service';
 import { ZonesService } from './services/zones.service';
 import { PricingEngine } from './services/pricing-engine.service';
 import { ValidationEngine } from './services/validation-engine.service';
-import { 
-  ProductRules, 
-  ProductZone, 
+import {
+  ProductRules,
+  ProductZone,
   DesignOptions,
   ValidationResult,
   PricingContext,
-  ZoneValidationContext
+  ZoneValidationContext,
+  PricingSuggestion,
+  RulesUsageStats,
 } from './interfaces/product-rules.interface';
 
 @ApiTags('Product Engine')
@@ -68,7 +70,7 @@ export class ProductEngineController {
   async getRulesUsageStats(
     @Param('productId') productId: string,
     @Query('period') period: 'day' | 'week' | 'month' = 'week'
-  ): Promise<any> {
+  ): Promise<RulesUsageStats> {
     return this.productRulesService.getRulesUsageStats(productId, period);
   }
 
@@ -220,7 +222,7 @@ export class ProductEngineController {
   @Get('pricing/products/:productId/suggestions')
   @ApiOperation({ summary: 'Obtient des suggestions de prix pour un produit' })
   @ApiResponse({ status: 200, description: 'Suggestions récupérées avec succès' })
-  async getPricingSuggestions(@Param('productId') productId: string): Promise<any> {
+  async getPricingSuggestions(@Param('productId') productId: string): Promise<PricingSuggestion> {
     return this.pricingEngine.getPricingSuggestions(productId);
   }
 
@@ -246,9 +248,11 @@ export class ProductEngineController {
     @Query('period') period: 'day' | 'week' | 'month' | 'year' = 'month'
   ): Promise<any> {
     // Combiner les statistiques des règles et des zones
+    const normalizedPeriod: 'day' | 'week' | 'month' = period === 'year' ? 'month' : period;
+
     const [rulesStats, zoneStats] = await Promise.all([
-      this.productRulesService.getRulesUsageStats(productId, period as any),
-      this.zonesService.getZoneUsageStats(productId, period as any),
+      this.productRulesService.getRulesUsageStats(productId, normalizedPeriod),
+      this.zonesService.getZoneUsageStats(productId, normalizedPeriod),
     ]);
 
     return {
@@ -282,7 +286,7 @@ export class ProductEngineController {
   @Get('templates/zone-presets')
   @ApiOperation({ summary: 'Obtient les presets de zones disponibles' })
   @ApiResponse({ status: 200, description: 'Presets récupérés avec succès' })
-  async getZonePresets(): Promise<any> {
+  async getZonePresets(): Promise<Record<string, ZonePreset[]>> {
     return {
       text: [
         {
@@ -377,9 +381,9 @@ export class ProductEngineController {
     const presets = await this.getZonePresets();
     
     // Trouver le preset
-    let preset = null;
+    let preset: ZonePreset | null = null;
     for (const category of Object.values(presets)) {
-      const found = (category as any[]).find((p: any) => p.id === body.presetId);
+      const found = category.find((p) => p.id === body.presetId);
       if (found) {
         preset = found;
         break;
@@ -391,14 +395,19 @@ export class ProductEngineController {
     }
 
     // Créer la zone avec le preset
-    const zoneData = {
-      label: preset.name,
-      type: preset.type,
-      x: body.position?.x || 100,
-      y: body.position?.y || 100,
-      width: 200,
-      height: 100,
-      ...preset,
+    const { id: _presetId, name, ...presetConfig } = preset;
+
+    const presetWidth = typeof presetConfig.width === 'number' ? presetConfig.width : 200;
+    const presetHeight = typeof presetConfig.height === 'number' ? presetConfig.height : 100;
+
+    const zoneData: Omit<ProductZone, 'id'> = {
+      label: name,
+      type: preset.type ?? 'image',
+      x: body.position?.x ?? 100,
+      y: body.position?.y ?? 100,
+      width: presetWidth,
+      height: presetHeight,
+      ...presetConfig,
     };
 
     return this.zonesService.createZone(body.productId, zoneData);
@@ -406,3 +415,7 @@ export class ProductEngineController {
 }
 
 
+interface ZonePreset extends Partial<ProductZone> {
+  id: string;
+  name: string;
+}

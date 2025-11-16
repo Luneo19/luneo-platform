@@ -17,7 +17,7 @@ import { HttpModule } from '@nestjs/axios';
     ZapierService,
     WebhookIntegrationService,
   ],
-  exports: [IntegrationsService],
+  exports: [IntegrationsService, SlackService],
 })
 export class IntegrationsModule {}
 

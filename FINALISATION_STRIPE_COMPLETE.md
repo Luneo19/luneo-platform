@@ -10,9 +10,9 @@
 ### ✅ Ce qui a été fait
 
 1. **Price IDs corrigés** avec les IDs Stripe réels:
-   - Professional: `price_1RvB1uKG9MsM6fdSnrGm2qIo`
-   - Business: `price_1SH7SxKG9MsM6fdSetmxFnVl` (corrigé)
-   - Enterprise: `price_1SH7TMKG9MsM6fdSx4pebEXZ` (corrigé)
+   - Professional: `price_PRO_MONTHLY`
+   - Business: `price_BUSINESS_MONTHLY` (corrigé)
+   - Enterprise: `price_ENTERPRISE_MONTHLY` (corrigé)
 
 2. **Support mensuel/annuel** implémenté:
    - Configuration séparée pour monthly/yearly
@@ -40,15 +40,15 @@
 const planPrices: Record<string, { monthly: string | null, yearly: string | null }> = {
   starter: { monthly: null, yearly: null },
   professional: { 
-    monthly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
+    monthly: 'price_PRO_MONTHLY',
     yearly: null // Pas de yearly pour Pro
   },
   business: { 
-    monthly: 'price_1SH7SxKG9MsM6fdSetmxFnVl',
+    monthly: 'price_BUSINESS_MONTHLY',
     yearly: null // À créer plus tard
   },
   enterprise: { 
-    monthly: 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
+    monthly: 'price_ENTERPRISE_MONTHLY',
     yearly: null // À créer plus tard
   }
 };
@@ -130,13 +130,13 @@ const priceId = billing === 'yearly' ? priceConfig.yearly : priceConfig.monthly;
 
 ### Business Plan
 - **Product ID:** `prod_TDYaUcC0940jpT`
-- **Monthly Price:** `59,00 €` → `price_1SH7SxKG9MsM6fdSetmxFnVl` ✅
+- **Monthly Price:** `59,00 €` → `price_BUSINESS_MONTHLY` ✅
 - **Annual Price:** `566,40 €` (créé mais non utilisé encore)
 - **Product:** "Pour les équipes en croissance - 500 designs/mois, 15 membres, 50GB stockage"
 
 ### Enterprise Plan
 - **Product ID:** `prod_TDYaqgD6gwRVd0`
-- **Monthly Price:** `99,00 €` → `price_1SH7TMKG9MsM6fdSx4pebEXZ` ✅
+- **Monthly Price:** `99,00 €` → `price_ENTERPRISE_MONTHLY` ✅
 - **Annual Price:** `950,40 €` (créé mais non utilisé encore)
 - **Product:** "Pour les grandes équipes"
 
@@ -180,11 +180,11 @@ const priceId = billing === 'yearly' ? priceConfig.yearly : priceConfig.monthly;
 2. **Mettre à jour** `create-checkout-session/route.ts`:
    ```typescript
    business: { 
-     monthly: 'price_1SH7SxKG9MsM6fdSetmxFnVl',
+     monthly: 'price_BUSINESS_MONTHLY',
      yearly: 'price_XXXXXXXXX' // Copier depuis Stripe
    },
    enterprise: { 
-     monthly: 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
+     monthly: 'price_ENTERPRISE_MONTHLY',
      yearly: 'price_YYYYYYYYY' // Copier depuis Stripe
    }
    ```

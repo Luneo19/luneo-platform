@@ -61,7 +61,7 @@ export class AdminService {
 
   async addBlacklistedPrompt(term: string) {
     // In a real implementation, you would store this in a separate table
-    console.log(`Adding blacklisted prompt term: ${term}`);
+    // Logging handled by logger service
     return { message: 'Term added to blacklist' };
   }
 }

@@ -1,0 +1,47 @@
+{
+  "account_id": "115849270532",
+  "policies": [
+    {
+      "name": "terraform-backup-management",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-backup-management",
+      "json_file": "iam-policies/09-terraform-backup-management.json",
+      "description": "Permissions pour créer et gérer les plans de sauvegarde AWS Backup"
+    },
+    {
+      "name": "terraform-s3-artifacts",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-s3-artifacts",
+      "json_file": "iam-policies/06-terraform-s3-artifacts.json",
+      "description": "Permissions pour créer et gérer les buckets S3 d'artifacts"
+    },
+    {
+      "name": "terraform-cloudwatch-monitoring",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-cloudwatch-monitoring",
+      "json_file": "iam-policies/08-terraform-cloudwatch-monitoring.json",
+      "description": "Permissions pour créer des alarmes et métriques CloudWatch"
+    },
+    {
+      "name": "terraform-vpc-networking",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-vpc-networking",
+      "json_file": "iam-policies/03-terraform-vpc-networking.json",
+      "description": "Permissions pour créer et gérer les VPC et réseaux"
+    },
+    {
+      "name": "terraform-iam-management",
+      "arn": "arn:aws:iam::115849270532:policy/terraform-iam-management",
+      "json_file": "iam-policies/10-terraform-iam-management.json",
+      "description": "Permissions pour créer et gérer les rôles IAM nécessaires aux services AWS"
+    }
+  ],
+  "commands": {
+    "create_policy_version": "aws iam create-policy-version --policy-arn {arn} --policy-document file://{json_file} --set-as-default",
+    "list_policy_versions": "aws iam list-policy-versions --policy-arn {arn}",
+    "delete_policy_version": "aws iam delete-policy-version --policy-arn {arn} --version-id {version_id}",
+    "get_policy": "aws iam get-policy --policy-arn {arn}",
+    "get_policy_version": "aws iam get-policy-version --policy-arn {arn} --version-id {version_id}"
+  },
+  "instructions": {
+    "method": "create_policy_version",
+    "note": "Si limite de 5 versions atteinte, utiliser delete_policy_version puis create_policy_version"
+  }
+}
+

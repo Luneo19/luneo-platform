@@ -4,8 +4,9 @@ import {
   Param,
   Patch,
   Body,
-  Request,
+  Req,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +19,7 @@ import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
+import type { Request } from 'express';
 
 @ApiTags('users')
 @Controller('users')
@@ -31,8 +33,9 @@ export class UsersController {
     status: 200,
     description: 'Profil utilisateur',
   })
-  async getProfile(@Request() req) {
-    return this.usersService.findOne(req.user.id, req.user);
+  async getProfile(@Req() req: Request) {
+    const user = this.requireUser(req);
+    return this.usersService.findOne(user.id, user);
   }
 
   @Patch('me')
@@ -41,8 +44,9 @@ export class UsersController {
     status: 200,
     description: 'Profil mis à jour',
   })
-  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
-    return this.usersService.updateProfile(req.user.id, updateProfileDto);
+  async updateProfile(@Req() req: Request, @Body() updateProfileDto: UpdateProfileDto) {
+    const user = this.requireUser(req);
+    return this.usersService.updateProfile(user.id, updateProfileDto);
   }
 
   @Get('me/quota')
@@ -51,8 +55,9 @@ export class UsersController {
     status: 200,
     description: 'Quota utilisateur',
   })
-  async getUserQuota(@Request() req) {
-    return this.usersService.getUserQuota(req.user.id);
+  async getUserQuota(@Req() req: Request) {
+    const user = this.requireUser(req);
+    return this.usersService.getUserQuota(user.id);
   }
 
   @Get(':id')
@@ -65,7 +70,15 @@ export class UsersController {
   })
   @ApiResponse({ status: 403, description: 'Accès refusé' })
   @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
-  async findOne(@Param('id') id: string, @Request() req) {
-    return this.usersService.findOne(id, req.user);
+  async findOne(@Param('id') id: string, @Req() req: Request) {
+    const user = this.requireUser(req);
+    return this.usersService.findOne(id, user);
+  }
+
+  private requireUser(req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    return req.user;
   }
 }

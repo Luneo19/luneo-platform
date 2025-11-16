@@ -1,0 +1,55 @@
+name: Argo CD Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      application:
+        description: "Nom de l'application Argo CD (laisser 'all' pour tout synchroniser)"
+        required: true
+        default: "all"
+
+jobs:
+  sync:
+    name: Synchroniser Argo CD
+    runs-on: ubuntu-latest
+    steps:
+      - name: Synchroniser toutes les applications
+        if: github.event.inputs.application == 'all'
+        uses: argoproj/argo-cd-action@v2
+        with:
+          address: ${{ secrets.ARGOCD_SERVER }}
+          username: ${{ secrets.ARGOCD_USERNAME }}
+          password: ${{ secrets.ARGOCD_PASSWORD }}
+          insecure: true
+          command: app sync --selector app.kubernetes.io/part-of=luneo --prune --timeout 600
+
+      - name: Attendre applications synchronisées
+        if: github.event.inputs.application == 'all'
+        uses: argoproj/argo-cd-action@v2
+        with:
+          address: ${{ secrets.ARGOCD_SERVER }}
+          username: ${{ secrets.ARGOCD_USERNAME }}
+          password: ${{ secrets.ARGOCD_PASSWORD }}
+          insecure: true
+          command: app wait --selector app.kubernetes.io/part-of=luneo --timeout 600
+
+      - name: Synchroniser application ciblée
+        if: github.event.inputs.application != 'all'
+        uses: argoproj/argo-cd-action@v2
+        with:
+          address: ${{ secrets.ARGOCD_SERVER }}
+          username: ${{ secrets.ARGOCD_USERNAME }}
+          password: ${{ secrets.ARGOCD_PASSWORD }}
+          insecure: true
+          command: app sync ${{ github.event.inputs.application }} --prune --timeout 600
+
+      - name: Attendre application ciblée
+        if: github.event.inputs.application != 'all'
+        uses: argoproj/argo-cd-action@v2
+        with:
+          address: ${{ secrets.ARGOCD_SERVER }}
+          username: ${{ secrets.ARGOCD_USERNAME }}
+          password: ${{ secrets.ARGOCD_PASSWORD }}
+          insecure: true
+          command: app wait ${{ github.event.inputs.application }} --timeout 600
+

@@ -187,3 +187,54 @@ groups:
           summary: "Redis has no connected clients"
           description: "Redis may be down or unreachable"
 
+  - name: luneo_kpi_alerts
+    interval: 30s
+    rules:
+      # Queue Wait Time > 60s
+      - alert: QueueWaitTimeHigh
+        expr: luneo_worker_queue_wait_time_current_seconds > 60
+        for: 2m
+        labels:
+          severity: warning
+          component: worker
+        annotations:
+          summary: "Queue wait time exceeds 60 seconds"
+          description: "Queue {{ $labels.queue_name }} has wait time of {{ $value }}s (threshold: 60s)"
+
+      # Error Rate > 1% over 5 minutes
+      - alert: ErrorRateHigh
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) +
+            sum(rate(luneo_openai_requests_error_total[5m])) +
+            sum(rate(luneo_renders_error_total[5m])) +
+            sum(rate(luneo_ar_conversions_error_total[5m]))
+          ) / (
+            sum(rate(http_requests_total[5m])) +
+            sum(rate(luneo_openai_requests_total[5m])) +
+            sum(rate(luneo_renders_total[5m])) +
+            sum(rate(luneo_ar_conversions_total[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Error rate exceeds 1%"
+          description: "Overall error rate is {{ $value | humanizePercentage }} (threshold: 1%)"
+
+      # Cost Spike > 2x Baseline
+      - alert: CostSpikeDetected
+        expr: |
+          (
+            luneo_ai_cost_current_cents{time_window="1h"} /
+            luneo_ai_cost_baseline_cents{time_window="1h"}
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: ai
+        annotations:
+          summary: "AI cost spike detected (>2x baseline)"
+          description: "Current cost ({{ $value | humanize }}x baseline) exceeds threshold. Current: {{ $labels.current }} cents, Baseline: {{ $labels.baseline }} cents"
+

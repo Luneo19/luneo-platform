@@ -1,0 +1,100 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+      
+      - name: Pull Vercel Environment
+        run: cd apps/frontend && vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      
+      - name: Build Project
+        run: cd apps/frontend && vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      
+      - name: Deploy to Vercel
+        run: cd apps/frontend && vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Frontend deployed successfully!"
+          echo "URL: https://app.luneo.app"
+
+  deploy-backend:
+    name: Deploy Backend to Railway
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      
+      - name: Deploy to Railway
+        run: cd apps/backend && railway up
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Backend deployed successfully!"
+          echo "URL: https://api.luneo.app"
+  
+  post-deploy-checks:
+    name: Post-Deployment Health Checks
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-backend]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Wait for services to be ready
+        run: sleep 30
+      
+      - name: Health check frontend
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://app.luneo.app)
+          if [ $response -eq 200 ]; then
+            echo "✅ Frontend is healthy"
+          else
+            echo "❌ Frontend health check failed (HTTP $response)"
+            exit 1
+          fi
+      
+      - name: Health check backend
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.luneo.app/health)
+          if [ $response -eq 200 ]; then
+            echo "✅ Backend is healthy"
+          else
+            echo "❌ Backend health check failed (HTTP $response)"
+            exit 1
+          fi
+      
+      - name: Notify team
+        if: success()
+        run: |
+          echo "🎉 Deployment successful and all health checks passed!"
+          # TODO: Send Slack/Discord notification
+
+
+

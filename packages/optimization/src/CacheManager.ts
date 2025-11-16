@@ -65,8 +65,18 @@ interface CacheItem<T> {
  * const data = await cache.get('design:123');
  * ```
  */
+type NormalizedCacheConfig = {
+  redis?: CacheConfig['redis'];
+  ttl: {
+    memory: number;
+    redis: number;
+    cdn: number;
+  };
+  maxMemorySizeMB: number;
+};
+
 export class CacheManager {
-  private config: Required<CacheConfig>;
+  private config: NormalizedCacheConfig;
   private redis: Redis | null = null;
   
   // Memory cache
@@ -81,11 +91,11 @@ export class CacheManager {
     this.config = {
       redis: config.redis,
       ttl: {
-        memory: config.ttl?.memory || 3600,      // 1h
-        redis: config.ttl?.redis || 86400,       // 24h
-        cdn: config.ttl?.cdn || 604800,          // 7d
+        memory: config.ttl?.memory ?? 3600,      // 1h
+        redis: config.ttl?.redis ?? 86400,       // 24h
+        cdn: config.ttl?.cdn ?? 604800,          // 7d
       },
-      maxMemorySizeMB: config.maxMemorySizeMB || 100,
+      maxMemorySizeMB: config.maxMemorySizeMB ?? 100,
     };
     
     // Initialize Redis if configured

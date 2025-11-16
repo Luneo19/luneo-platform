@@ -1,33 +1,32 @@
-import { Process, Processor } from '@nestjs/bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
+import { QueueNames } from '@/jobs/queue.constants';
+import { JobNames } from '@/jobs/job.constants';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { Render2DService } from '@/modules/render/services/render-2d.service';
 import { Render3DService } from '@/modules/render/services/render-3d.service';
 import { ExportService } from '@/modules/render/services/export.service';
+import { traceJob, withActiveSpan } from '@/common/observability/span-helpers';
+import {
+  RenderJobData,
+  BatchRenderJobPayload,
+  RenderProgressPayload,
+  RenderQueuePayload,
+} from '@/modules/render/interfaces/render-job.interface';
+import {
+  RenderRequest,
+  RenderResult,
+  RenderQueueResult,
+  ExportResult,
+  ExportJobData,
+  RenderOptions,
+  ExportSettings,
+} from '@/modules/render/interfaces/render.interface';
 
-interface RenderJobData {
-  renderId: string;
-  type: '2d' | '3d' | 'preview' | 'export';
-  productId: string;
-  designId?: string;
-  options: any;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  userId?: string;
-  brandId: string;
-  callback?: string;
-}
-
-interface RenderProgress {
-  stage: string;
-  percentage: number;
-  message: string;
-  timestamp: Date;
-}
-
-@Processor('render-processing')
-export class RenderWorker {
+@Processor(QueueNames.RENDER_PROCESSING)
+export class RenderWorker extends WorkerHost {
   private readonly logger = new Logger(RenderWorker.name);
 
   constructor(
@@ -36,403 +35,559 @@ export class RenderWorker {
     private readonly render2DService: Render2DService,
     private readonly render3DService: Render3DService,
     private readonly exportService: ExportService,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Process('render-2d')
+  async process(job: Job<RenderQueuePayload>): Promise<unknown> {
+    switch (job.name) {
+      case JobNames.RENDER.RENDER_3D:
+        return this.render3D(job as Job<RenderJobData>);
+      case JobNames.RENDER.RENDER_PREVIEW:
+        return this.renderPreview(job as Job<RenderJobData>);
+      case JobNames.RENDER.EXPORT_ASSETS:
+        return this.exportAssets(job as Job<RenderJobData>);
+      case JobNames.RENDER.BATCH_RENDER:
+        return this.batchRender(job as Job<BatchRenderJobPayload>);
+      case JobNames.RENDER.RENDER_2D:
+      default:
+        return this.render2D(job as Job<RenderJobData>);
+    }
+  }
+
   async render2D(job: Job<RenderJobData>) {
-    const { renderId, productId, designId, options, priority } = job.data;
-    const startTime = Date.now();
+    return traceJob('render.worker.render2d', job, async (span) => {
+      const { renderId, productId, designId, options, priority } = job.data;
+      const renderOptions = options as RenderOptions;
+      const startTime = Date.now();
 
-    try {
-      this.logger.log(`Starting 2D render for ${renderId}`);
+      span.setAttribute('render.mode', '2d');
+      span.setAttribute('render.priority', priority ?? 'standard');
 
-      // Mettre à jour le progrès
-      await this.updateRenderProgress(job, {
-        stage: 'initialization',
-        percentage: 10,
-        message: 'Initialisation du rendu 2D',
-        timestamp: new Date(),
-      });
+      try {
+        this.logger.log(`Starting 2D render for ${renderId}`);
+        span.addEvent('render.stage', { stage: 'initialization', renderId });
 
-      // Créer la requête de rendu
-      const renderRequest = {
-        id: renderId,
-        type: '2d' as const,
-        productId,
-        designId,
-        options,
-        priority,
-      };
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'initialization',
+            percentage: 10,
+            message: 'Initialisation du rendu 2D',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Exécuter le rendu 2D
-      await this.updateRenderProgress(job, {
-        stage: 'rendering',
-        percentage: 30,
-        message: 'Rendu 2D en cours',
-        timestamp: new Date(),
-      });
+        const renderRequest: RenderRequest = {
+          id: renderId,
+          type: '2d' as const,
+          productId,
+          designId,
+          options: renderOptions,
+          priority,
+        };
 
-      const result = await this.render2DService.render2D(renderRequest);
+        span.addEvent('render.stage', { stage: 'rendering', renderId });
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'rendering',
+            percentage: 30,
+            message: 'Rendu 2D en cours',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Finaliser le rendu
-      await this.updateRenderProgress(job, {
-        stage: 'finalization',
-        percentage: 90,
-        message: 'Finalisation du rendu',
-        timestamp: new Date(),
-      });
+        const result = await withActiveSpan(
+          'render.worker.render2d.execute',
+          {
+            'render.request.type': '2d',
+          },
+          async () => this.render2DService.render2D(renderRequest),
+        );
 
-      // Sauvegarder les résultats
-      await this.saveRenderResults(renderId, result, '2d');
+        span.addEvent('render.stage', { stage: 'finalization', renderId });
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'finalization',
+            percentage: 90,
+            message: 'Finalisation du rendu',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Mettre à jour le progrès final
-      await this.updateRenderProgress(job, {
-        stage: 'completed',
-        percentage: 100,
-        message: 'Rendu 2D terminé avec succès',
-        timestamp: new Date(),
-      });
+        await withActiveSpan(
+          'render.worker.render2d.persist',
+          { 'render.result.type': '2d' },
+          async () => this.saveRenderResults(renderId, result, '2d'),
+        );
 
-      const totalTime = Date.now() - startTime;
-      this.logger.log(`2D render completed for ${renderId} in ${totalTime}ms`);
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'completed',
+            percentage: 100,
+            message: 'Rendu 2D terminé avec succès',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      return {
-        renderId,
-        status: 'success',
-        result,
-        renderTime: totalTime,
-      };
+        const totalTime = Date.now() - startTime;
+        span.setAttribute('render.duration_ms', totalTime);
+        this.logger.log(`2D render completed for ${renderId} in ${totalTime}ms`);
 
-    } catch (error) {
-      this.logger.error(`2D render failed for ${renderId}:`, error);
-      
-      await this.updateRenderProgress(job, {
-        stage: 'error',
-        percentage: 0,
-        message: `Erreur: ${error.message}`,
-        timestamp: new Date(),
-      });
+        return {
+          renderId,
+          status: 'success',
+          result,
+          renderTime: totalTime,
+        };
+      } catch (error: any) {
+        this.logger.error(`2D render failed for ${renderId}:`, error);
+        span.addEvent('render.error', { message: error?.message ?? 'unknown' });
 
-      await this.saveRenderError(renderId, error.message);
-      throw error;
-    }
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'error',
+            percentage: 0,
+            message: `Erreur: ${error.message}`,
+            timestamp: new Date(),
+          },
+          renderId,
+        );
+
+        await this.saveRenderError(renderId, error.message);
+        throw error;
+      }
+    });
   }
 
-  @Process('render-3d')
   async render3D(job: Job<RenderJobData>) {
-    const { renderId, productId, designId, options, priority } = job.data;
-    const startTime = Date.now();
+    return traceJob('render.worker.render3d', job, async (span) => {
+      const { renderId, productId, designId, options, priority } = job.data;
+      const renderOptions = options as RenderOptions;
+      const startTime = Date.now();
 
-    try {
-      this.logger.log(`Starting 3D render for ${renderId}`);
+      span.setAttribute('render.mode', '3d');
+      span.setAttribute('render.priority', priority ?? 'standard');
 
-      // Mettre à jour le progrès
-      await this.updateRenderProgress(job, {
-        stage: 'initialization',
-        percentage: 10,
-        message: 'Initialisation du rendu 3D',
-        timestamp: new Date(),
-      });
+      try {
+        this.logger.log(`Starting 3D render for ${renderId}`);
+        span.addEvent('render.stage', { stage: 'initialization', renderId });
 
-      // Créer la requête de rendu
-      const renderRequest = {
-        id: renderId,
-        type: '3d' as const,
-        productId,
-        designId,
-        options,
-        priority,
-      };
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'initialization',
+            percentage: 10,
+            message: 'Initialisation du rendu 3D',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Préparer la scène 3D
-      await this.updateRenderProgress(job, {
-        stage: 'scene-preparation',
-        percentage: 25,
-        message: 'Préparation de la scène 3D',
-        timestamp: new Date(),
-      });
+        const renderRequest: RenderRequest = {
+          id: renderId,
+          type: '3d' as const,
+          productId,
+          designId,
+          options: renderOptions,
+          priority,
+        };
 
-      // Exécuter le rendu 3D
-      await this.updateRenderProgress(job, {
-        stage: 'rendering',
-        percentage: 50,
-        message: 'Rendu 3D en cours',
-        timestamp: new Date(),
-      });
+        span.addEvent('render.stage', { stage: 'scene-preparation', renderId });
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'scene-preparation',
+            percentage: 25,
+            message: 'Préparation de la scène 3D',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      const result = await this.render3DService.render3D(renderRequest);
+        span.addEvent('render.stage', { stage: 'rendering', renderId });
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'rendering',
+            percentage: 50,
+            message: 'Rendu 3D en cours',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Post-traitement
-      await this.updateRenderProgress(job, {
-        stage: 'post-processing',
-        percentage: 80,
-        message: 'Post-traitement 3D',
-        timestamp: new Date(),
-      });
+        const result = await withActiveSpan(
+          'render.worker.render3d.execute',
+          { 'render.request.type': '3d' },
+          async () => this.render3DService.render3D(renderRequest),
+        );
 
-      // Sauvegarder les résultats
-      await this.saveRenderResults(renderId, result, '3d');
+        span.addEvent('render.stage', { stage: 'post-processing', renderId });
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'post-processing',
+            percentage: 80,
+            message: 'Post-traitement 3D',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Mettre à jour le progrès final
-      await this.updateRenderProgress(job, {
-        stage: 'completed',
-        percentage: 100,
-        message: 'Rendu 3D terminé avec succès',
-        timestamp: new Date(),
-      });
+        await withActiveSpan(
+          'render.worker.render3d.persist',
+          { 'render.result.type': '3d' },
+          async () => this.saveRenderResults(renderId, result, '3d'),
+        );
 
-      const totalTime = Date.now() - startTime;
-      this.logger.log(`3D render completed for ${renderId} in ${totalTime}ms`);
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'completed',
+            percentage: 100,
+            message: 'Rendu 3D terminé avec succès',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      return {
-        renderId,
-        status: 'success',
-        result,
-        renderTime: totalTime,
-      };
+        const totalTime = Date.now() - startTime;
+        span.setAttribute('render.duration_ms', totalTime);
+        this.logger.log(`3D render completed for ${renderId} in ${totalTime}ms`);
 
-    } catch (error) {
-      this.logger.error(`3D render failed for ${renderId}:`, error);
-      
-      await this.updateRenderProgress(job, {
-        stage: 'error',
-        percentage: 0,
-        message: `Erreur: ${error.message}`,
-        timestamp: new Date(),
-      });
+        return {
+          renderId,
+          status: 'success',
+          result,
+          renderTime: totalTime,
+        };
+      } catch (error: any) {
+        this.logger.error(`3D render failed for ${renderId}:`, error);
+        span.addEvent('render.error', { message: error?.message ?? 'unknown' });
 
-      await this.saveRenderError(renderId, error.message);
-      throw error;
-    }
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'error',
+            percentage: 0,
+            message: `Erreur: ${error.message}`,
+            timestamp: new Date(),
+          },
+          renderId,
+        );
+
+        await this.saveRenderError(renderId, error.message);
+        throw error;
+      }
+    });
   }
 
-  @Process('render-preview')
   async renderPreview(job: Job<RenderJobData>) {
-    const { renderId, productId, designId, options, priority } = job.data;
-    const startTime = Date.now();
+    return traceJob('render.worker.renderPreview', job, async (span) => {
+      const { renderId, productId, designId, options, priority } = job.data;
+      const baseOptions = options as RenderOptions;
+      const startTime = Date.now();
 
-    try {
-      this.logger.log(`Starting preview render for ${renderId}`);
+      span.setAttribute('render.mode', 'preview');
+      span.setAttribute('render.priority', priority ?? 'standard');
 
-      // Optimiser les options pour la prévisualisation
-      const previewOptions = {
-        ...options,
-        quality: 'draft',
-        width: Math.min(options.width || 800, 800),
-        height: Math.min(options.height || 600, 600),
-        antialiasing: false,
-        shadows: false,
-      };
+      try {
+        this.logger.log(`Starting preview render for ${renderId}`);
 
-      // Choisir le type de rendu selon le produit
-      const product = await this.getProduct(productId);
-      const renderType = product?.model3dUrl ? '3d' : '2d';
+        const previewOptions: RenderOptions = {
+          ...baseOptions,
+          quality: 'draft',
+          width: Math.min(baseOptions.width ?? 800, 800),
+          height: Math.min(baseOptions.height ?? 600, 600),
+          antialiasing: false,
+          shadows: false,
+        };
 
-      // Créer la requête de rendu
-      const renderRequest = {
-        id: renderId,
-        type: renderType as any,
-        productId,
-        designId,
-        options: previewOptions,
-        priority,
-      };
+        const product = await withActiveSpan(
+          'render.worker.preview.fetch-product',
+          { 'luneo.product.id': productId },
+          async () => this.getProduct(productId),
+        );
+        const renderType = product?.model3dUrl ? '3d' : '2d';
+        span.setAttribute('render.preview.type', renderType);
 
-      // Exécuter le rendu
-      let result;
-      if (renderType === '3d') {
-        result = await this.render3DService.render3D(renderRequest);
-      } else {
-        result = await this.render2DService.render2D(renderRequest);
+        const renderRequest: RenderRequest = {
+          id: renderId,
+          type: renderType as any,
+          productId,
+          designId,
+          options: previewOptions,
+          priority,
+        };
+
+        const result = await withActiveSpan(
+          'render.worker.preview.execute',
+          { 'render.request.type': renderType },
+          async () =>
+            renderType === '3d'
+              ? this.render3DService.render3D(renderRequest)
+              : this.render2DService.render2D(renderRequest),
+        );
+
+        await withActiveSpan(
+          'render.worker.preview.persist',
+          { 'render.result.type': renderType },
+          async () => this.saveRenderResults(renderId, result, 'preview'),
+        );
+
+        const totalTime = Date.now() - startTime;
+        span.setAttribute('render.duration_ms', totalTime);
+        this.logger.log(`Preview render completed for ${renderId} in ${totalTime}ms`);
+
+        return {
+          renderId,
+          status: 'success',
+          result,
+          renderTime: totalTime,
+          type: renderType,
+        };
+      } catch (error: any) {
+        this.logger.error(`Preview render failed for ${renderId}:`, error);
+        span.addEvent('render.error', { message: error?.message ?? 'unknown' });
+        await this.saveRenderError(renderId, error.message);
+        throw error;
       }
-
-      // Sauvegarder les résultats
-      await this.saveRenderResults(renderId, result, 'preview');
-
-      const totalTime = Date.now() - startTime;
-      this.logger.log(`Preview render completed for ${renderId} in ${totalTime}ms`);
-
-      return {
-        renderId,
-        status: 'success',
-        result,
-        renderTime: totalTime,
-        type: renderType,
-      };
-
-    } catch (error) {
-      this.logger.error(`Preview render failed for ${renderId}:`, error);
-      await this.saveRenderError(renderId, error.message);
-      throw error;
-    }
+    });
   }
 
-  @Process('export-assets')
   async exportAssets(job: Job<RenderJobData>) {
-    const { renderId, productId, designId, options, priority } = job.data;
-    const startTime = Date.now();
+    return traceJob('render.worker.exportAssets', job, async (span) => {
+      const { renderId, productId, designId, options, priority } = job.data;
+      const exportOptions = options as ExportSettings;
+      const startTime = Date.now();
 
-    try {
-      this.logger.log(`Starting asset export for ${renderId}`);
+      span.setAttribute('render.mode', 'export');
+      span.setAttribute('render.priority', priority ?? 'standard');
 
-      // Mettre à jour le progrès
-      await this.updateRenderProgress(job, {
-        stage: 'initialization',
-        percentage: 10,
-        message: 'Initialisation de l\'export',
-        timestamp: new Date(),
-      });
+      try {
+        this.logger.log(`Starting asset export for ${renderId}`);
 
-      // Récupérer les assets à exporter
-      const assets = await this.getAssetsToExport(designId, productId);
+        span.addEvent('render.stage', { stage: 'initialization', renderId });
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'initialization',
+            percentage: 10,
+            message: "Initialisation de l'export",
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Préparer l'export
-      await this.updateRenderProgress(job, {
-        stage: 'preparation',
-        percentage: 30,
-        message: 'Préparation des assets',
-        timestamp: new Date(),
-      });
+        const assets = await withActiveSpan(
+          'render.worker.export.fetch-assets',
+          {
+            'luneo.design.id': designId,
+            'luneo.product.id': productId,
+          },
+          async () => this.getAssetsToExport(designId, productId),
+        );
+        span.setAttribute('render.export.asset_count', assets.length ?? 0);
 
-      // Exécuter l'export
-      await this.updateRenderProgress(job, {
-        stage: 'exporting',
-        percentage: 60,
-        message: 'Export en cours',
-        timestamp: new Date(),
-      });
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'preparation',
+            percentage: 30,
+            message: 'Préparation des assets',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      const exportResult = await this.exportService.exportAssets(assets, options);
+        span.addEvent('render.stage', { stage: 'exporting', renderId });
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'exporting',
+            percentage: 60,
+            message: 'Export en cours',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Finaliser l'export
-      await this.updateRenderProgress(job, {
-        stage: 'finalization',
-        percentage: 90,
-        message: 'Finalisation de l\'export',
-        timestamp: new Date(),
-      });
+        const exportResult = await withActiveSpan(
+          'render.worker.export.execute',
+          { 'render.export.count': assets.length ?? 0 },
+          async () => this.exportService.exportAssets(assets, exportOptions),
+        );
 
-      // Sauvegarder les résultats
-      await this.saveExportResults(renderId, exportResult);
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'finalization',
+            percentage: 90,
+            message: "Finalisation de l'export",
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      // Mettre à jour le progrès final
-      await this.updateRenderProgress(job, {
-        stage: 'completed',
-        percentage: 100,
-        message: 'Export terminé avec succès',
-        timestamp: new Date(),
-      });
+        await withActiveSpan(
+          'render.worker.export.persist',
+          {},
+          async () => this.saveExportResults(renderId, exportResult),
+        );
 
-      const totalTime = Date.now() - startTime;
-      this.logger.log(`Asset export completed for ${renderId} in ${totalTime}ms`);
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'completed',
+            percentage: 100,
+            message: 'Export terminé avec succès',
+            timestamp: new Date(),
+          },
+          renderId,
+        );
 
-      return {
-        renderId,
-        status: 'success',
-        result: exportResult,
-        exportTime: totalTime,
-      };
+        const totalTime = Date.now() - startTime;
+        span.setAttribute('render.duration_ms', totalTime);
+        this.logger.log(`Asset export completed for ${renderId} in ${totalTime}ms`);
 
-    } catch (error) {
-      this.logger.error(`Asset export failed for ${renderId}:`, error);
-      
-      await this.updateRenderProgress(job, {
-        stage: 'error',
-        percentage: 0,
-        message: `Erreur: ${error.message}`,
-        timestamp: new Date(),
-      });
+        return {
+          renderId,
+          status: 'success',
+          result: exportResult,
+          exportTime: totalTime,
+        };
+      } catch (error: any) {
+        this.logger.error(`Asset export failed for ${renderId}:`, error);
+        span.addEvent('render.error', { message: error?.message ?? 'unknown' });
 
-      await this.saveRenderError(renderId, error.message);
-      throw error;
-    }
+        await this.updateRenderProgress(
+          job,
+          {
+            stage: 'error',
+            percentage: 0,
+            message: `Erreur: ${error.message}`,
+            timestamp: new Date(),
+          },
+          renderId,
+        );
+
+        await this.saveRenderError(renderId, error.message);
+        throw error;
+      }
+    });
   }
 
-  @Process('batch-render')
-  async batchRender(job: Job<{ batchId: string; renders: RenderJobData[] }>) {
-    const { batchId, renders } = job.data;
-    const startTime = Date.now();
+  async batchRender(job: Job<BatchRenderJobPayload>) {
+    return traceJob('render.worker.batchRender', job, async (span) => {
+      const { batchId, renders } = job.data;
+      const startTime = Date.now();
+      span.setAttribute('render.batch.size', renders.length);
 
-    try {
-      this.logger.log(`Starting batch render for ${batchId} with ${renders.length} renders`);
+      try {
+        this.logger.log(`Starting batch render for ${batchId} with ${renders.length} renders`);
 
-      const results = [];
-      let completed = 0;
+        const results: unknown[] = [];
+        let completed = 0;
+        const concurrency = 3;
+        const chunks = this.chunkArray(renders, concurrency);
 
-      // Traiter les rendus en parallèle (limité)
-      const concurrency = 3;
-      const chunks = this.chunkArray(renders, concurrency);
+        for (const chunk of chunks) {
+          const chunkResults = await Promise.all(
+            chunk.map(async (renderData) => {
+              try {
+                let result;
+                switch (renderData.type) {
+                  case '2d':
+                    result = await this.render2D({ ...job, data: renderData } as Job<RenderJobData>);
+                    break;
+                  case '3d':
+                    result = await this.render3D({ ...job, data: renderData } as Job<RenderJobData>);
+                    break;
+                  case 'preview':
+                    result = await this.renderPreview({ ...job, data: renderData } as Job<RenderJobData>);
+                    break;
+                  case 'export':
+                    result = await this.exportAssets({ ...job, data: renderData } as Job<RenderJobData>);
+                    break;
+                  default:
+                    throw new Error(`Unsupported render type: ${renderData.type}`);
+                }
 
-      for (const chunk of chunks) {
-        const chunkPromises = chunk.map(async (renderData) => {
-          try {
-            let result;
-            
-            switch (renderData.type) {
-              case '2d':
-                result = await this.render2D({ data: renderData } as Job<RenderJobData>);
-                break;
-              case '3d':
-                result = await this.render3D({ data: renderData } as Job<RenderJobData>);
-                break;
-              case 'preview':
-                result = await this.renderPreview({ data: renderData } as Job<RenderJobData>);
-                break;
-              case 'export':
-                result = await this.exportAssets({ data: renderData } as Job<RenderJobData>);
-                break;
-              default:
-                throw new Error(`Unsupported render type: ${renderData.type}`);
-            }
+                completed++;
+                return {
+                  renderId: renderData.renderId,
+                  status: 'success',
+                  result,
+                };
+              } catch (error: any) {
+                this.logger.error(`Batch render failed for ${renderData.renderId}:`, error);
+                completed++;
+                return {
+                  renderId: renderData.renderId,
+                  status: 'failed',
+                  error: error.message,
+                };
+              }
+            }),
+          );
 
-            completed++;
-            return result;
-          } catch (error) {
-            this.logger.error(`Batch render failed for ${renderData.renderId}:`, error);
-            completed++;
-            return {
-              renderId: renderData.renderId,
-              status: 'failed',
-              error: error.message,
-            };
-          }
-        });
+          results.push(...chunkResults);
 
-        const chunkResults = await Promise.all(chunkPromises);
-        results.push(...chunkResults);
+          const progress = (completed / renders.length) * 100;
+          await withActiveSpan(
+            'render.worker.batch.progress',
+            { completed, total: renders.length, percentage: progress },
+            async () =>
+              this.updateBatchProgress(batchId, {
+                completed,
+                total: renders.length,
+                percentage: Math.round(progress),
+                results,
+              }),
+          );
+        }
 
-        // Mettre à jour le progrès global
-        const progress = (completed / renders.length) * 100;
-        await this.updateBatchProgress(batchId, {
-          completed,
-          total: renders.length,
-          percentage: Math.round(progress),
+        const totalTime = Date.now() - startTime;
+        span.setAttribute('render.duration_ms', totalTime);
+        span.setAttribute('render.batch.completed', completed);
+        this.logger.log(`Batch render completed for ${batchId} in ${totalTime}ms`);
+
+        return {
+          batchId,
+          status: 'completed',
           results,
-        });
+          totalTime,
+        };
+      } catch (error) {
+        this.logger.error(`Batch render failed for ${batchId}:`, error);
+        span.addEvent('render.error', { message: (error as any)?.message ?? 'unknown' });
+        throw error;
       }
-
-      const totalTime = Date.now() - startTime;
-      this.logger.log(`Batch render completed for ${batchId} in ${totalTime}ms`);
-
-      return {
-        batchId,
-        status: 'completed',
-        results,
-        totalTime,
-      };
-
-    } catch (error) {
-      this.logger.error(`Batch render failed for ${batchId}:`, error);
-      throw error;
-    }
+    });
   }
 
   /**
    * Met à jour le progrès du rendu
    */
-  private async updateRenderProgress(job: Job, progress: RenderProgress): Promise<void> {
+  private async updateRenderProgress(
+    job: Job<RenderQueuePayload>,
+    progress: RenderProgressPayload,
+    renderIdOverride?: string,
+  ): Promise<void> {
+    const renderId = renderIdOverride
+      ?? (this.isRenderJob(job.data) ? job.data.renderId : job.data.batchId);
+
     // Mettre à jour le progrès du job
-    await job.progress({
+    await job.updateProgress({
       stage: progress.stage,
       percentage: progress.percentage,
       message: progress.message,
@@ -441,10 +596,10 @@ export class RenderWorker {
 
     // Sauvegarder en base
     await this.prisma.renderProgress.upsert({
-      where: { renderId: job.data.renderId },
+      where: { renderId },
       update: progress,
       create: {
-        renderId: job.data.renderId,
+        renderId,
         ...progress,
       },
     });
@@ -464,12 +619,24 @@ export class RenderWorker {
     });
   }
 
+  private isRenderJob(payload: RenderQueuePayload): payload is RenderJobData {
+    return (payload as RenderJobData).renderId !== undefined;
+  }
+
   /**
    * Sauvegarde les résultats du rendu
    */
   private async saveRenderResults(renderId: string, result: any, type: string): Promise<void> {
-    await this.prisma.renderResult.create({
-      data: {
+    await this.prisma.renderResult.upsert({
+      where: { renderId },
+      update: {
+        type,
+        status: result.status,
+        url: result.url,
+        thumbnailUrl: result.thumbnailUrl,
+        metadata: result.metadata,
+      },
+      create: {
         renderId,
         type,
         status: result.status,
@@ -485,8 +652,15 @@ export class RenderWorker {
    * Sauvegarde les résultats de l'export
    */
   private async saveExportResults(renderId: string, result: any): Promise<void> {
-    await this.prisma.exportResult.create({
-      data: {
+    await this.prisma.exportResult.upsert({
+      where: { renderId },
+      update: {
+        format: result.format,
+        url: result.url,
+        size: result.size,
+        metadata: result.metadata,
+      },
+      create: {
         renderId,
         format: result.format,
         url: result.url,

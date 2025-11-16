@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import * as crypto from 'crypto';
@@ -77,16 +78,7 @@ export class ApiKeysService {
     await this.cache.invalidate(`api-keys:${brandId}`, 'api');
 
     return {
-      apiKey: {
-        id: apiKey.id,
-        name: apiKey.name,
-        key: apiKey.id,
-        permissions: apiKey.permissions,
-        rateLimit: apiKey.rateLimit as any,
-        brandId: apiKey.brandId,
-        isActive: apiKey.isActive,
-        createdAt: apiKey.createdAt,
-      },
+      apiKey: this.mapApiKeyRecord(apiKey),
       secret,
     };
   }
@@ -98,7 +90,7 @@ export class ApiKeysService {
     const cacheKey = `api-key:${key}`;
     
     // Essayer de récupérer depuis le cache
-    let apiKey = await this.cache.get(
+    const apiKey = await this.cache.get<ApiKey>(
       cacheKey,
       'api',
       async () => {
@@ -120,19 +112,14 @@ export class ApiKeysService {
           throw new UnauthorizedException('Brand is not active');
         }
 
-        return {
-          id: keyData.id,
-          name: keyData.name,
-          permissions: keyData.permissions,
-          rateLimit: keyData.rateLimit as any,
-          brandId: keyData.brandId,
-          isActive: keyData.isActive,
-          createdAt: keyData.createdAt,
-          lastUsedAt: keyData.lastUsedAt,
-        };
+        return this.mapApiKeyRecord(keyData);
       },
       { ttl: 3600 } // Cache 1 heure
     );
+
+    if (!apiKey) {
+      throw new UnauthorizedException('Invalid API key');
+    }
 
     // Vérifier le secret si fourni
     if (secret) {
@@ -141,7 +128,7 @@ export class ApiKeysService {
         select: { secret: true }
       });
 
-      if (!keyData || !await bcrypt.compare(secret, keyData.secret)) {
+      if (!keyData?.secret || !(await bcrypt.compare(secret, keyData.secret))) {
         throw new UnauthorizedException('Invalid API key secret');
       }
     }
@@ -149,10 +136,7 @@ export class ApiKeysService {
     // Mettre à jour lastUsedAt
     await this.updateLastUsed(key);
 
-    return {
-      ...apiKey,
-      key: apiKey.id, // Add the missing key field
-    };
+    return apiKey;
   }
 
   /**
@@ -172,17 +156,7 @@ export class ApiKeysService {
       throw new NotFoundException('API key not found');
     }
 
-    return {
-      id: apiKey.id,
-      name: apiKey.name,
-      key: apiKey.id,
-      permissions: apiKey.permissions,
-      rateLimit: apiKey.rateLimit as any,
-      brandId: apiKey.brandId,
-      isActive: apiKey.isActive,
-      createdAt: apiKey.createdAt,
-      lastUsedAt: apiKey.lastUsedAt,
-    };
+    return this.mapApiKeyRecord(apiKey);
   }
 
   /**
@@ -203,17 +177,7 @@ export class ApiKeysService {
       }
     });
 
-    return {
-      id: updatedKey.id,
-      name: updatedKey.name,
-      key: updatedKey.id,
-      permissions: updatedKey.permissions,
-      rateLimit: updatedKey.rateLimit as any,
-      brandId: updatedKey.brandId,
-      isActive: updatedKey.isActive,
-      createdAt: updatedKey.createdAt,
-      lastUsedAt: updatedKey.lastUsedAt,
-    };
+    return this.mapApiKeyRecord(updatedKey);
   }
 
   /**
@@ -244,7 +208,7 @@ export class ApiKeysService {
    * Lister les API Keys d'une brand
    */
   async listApiKeys(brandId: string): Promise<ApiKey[]> {
-    return this.cache.get(
+    const cached = await this.cache.get<ApiKey[]>(
       `api-keys:${brandId}`,
       'api',
       async () => {
@@ -254,6 +218,7 @@ export class ApiKeysService {
           select: {
             id: true,
             name: true,
+            key: true,
             permissions: true,
             rateLimit: true,
             brandId: true,
@@ -263,20 +228,12 @@ export class ApiKeysService {
           }
         });
 
-        return apiKeys.map(key => ({
-          id: key.id,
-          name: key.name,
-          key: key.id,
-          permissions: key.permissions,
-          rateLimit: key.rateLimit as any,
-          brandId: key.brandId,
-          isActive: key.isActive,
-          createdAt: key.createdAt,
-          lastUsedAt: key.lastUsedAt,
-        }));
+        return apiKeys.map((key) => this.mapApiKeyRecord(key));
       },
       { ttl: 1800 } // Cache 30 minutes
     );
+
+    return cached ?? [];
   }
 
 
@@ -331,6 +288,52 @@ export class ApiKeysService {
       },
       { ttl: 300 } // Cache 5 minutes
     );
+  }
+
+  private mapApiKeyRecord(record: {
+    id: string;
+    name: string;
+    key: string;
+    permissions: string[];
+    rateLimit: Prisma.JsonValue | null;
+    brandId: string;
+    isActive: boolean;
+    createdAt: Date;
+    lastUsedAt: Date | null;
+  }): ApiKey {
+    return {
+      id: record.id,
+      name: record.name,
+      key: record.key,
+      permissions: record.permissions,
+      rateLimit: this.parseRateLimit(record.rateLimit),
+      brandId: record.brandId,
+      isActive: record.isActive,
+      createdAt: record.createdAt,
+      lastUsedAt: record.lastUsedAt ?? undefined,
+    };
+  }
+
+  private parseRateLimit(value: Prisma.JsonValue | null): ApiKey['rateLimit'] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {
+        requestsPerMinute: 0,
+        requestsPerDay: 0,
+        requestsPerMonth: 0,
+      };
+    }
+
+    const record = value as Record<string, unknown>;
+
+    return {
+      requestsPerMinute: this.parseRateLimitNumber(record.requestsPerMinute),
+      requestsPerDay: this.parseRateLimitNumber(record.requestsPerDay),
+      requestsPerMonth: this.parseRateLimitNumber(record.requestsPerMonth),
+    };
+  }
+
+  private parseRateLimitNumber(value: unknown): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
   /**

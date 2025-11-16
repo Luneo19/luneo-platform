@@ -1,5 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { z } from 'zod';
+import { getErrorMessage } from '@/common/utils/error.utils';
 
 const emailDomainSchema = z.object({
   // SendGrid Domain Authentication
@@ -90,6 +91,6 @@ export const validateEmailDomainConfig = (): EmailDomainConfig => {
       },
     });
   } catch (error) {
-    throw new Error(`Email domain configuration validation failed: ${error.message}`);
+    throw new Error(`Email domain configuration validation failed: ${getErrorMessage(error)}`);
   }
 };

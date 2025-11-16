@@ -3,20 +3,27 @@
  * AR Export professionnel - USDZ, AR Quick Look, Scene Viewer, WebXR
  */
 
+import { ARQuickLook } from './ARQuickLook';
+import type { ARQuickLookConfig } from './ARQuickLook';
+import { SceneViewer } from './SceneViewer';
+import type { SceneViewerConfig } from './SceneViewer';
+import { WebXRViewer } from './WebXRViewer';
+import type { WebXRConfig } from './WebXRViewer';
+
 export { USDZConverter } from './USDZConverter';
-export type { 
-  USDZConversionOptions, 
-  USDZConversionResult 
+export type {
+  USDZConversionOptions,
+  USDZConversionResult
 } from './USDZConverter';
 
-export { ARQuickLook } from './ARQuickLook';
-export type { ARQuickLookConfig } from './ARQuickLook';
+export { ARQuickLook };
+export type { ARQuickLookConfig };
 
-export { SceneViewer } from './SceneViewer';
-export type { SceneViewerConfig } from './SceneViewer';
+export { SceneViewer };
+export type { SceneViewerConfig };
 
-export { WebXRViewer } from './WebXRViewer';
-export type { WebXRConfig } from './WebXRViewer';
+export { WebXRViewer };
+export type { WebXRConfig };
 
 /**
  * Helper: Détecter la plateforme et lancer l'AR approprié
@@ -27,6 +34,9 @@ export async function launchAR(config: {
   productName: string;
   fallbackUrl?: string;
 }): Promise<void> {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    throw new Error('AR launch requires a browser environment');
+  }
   // iOS: AR Quick Look
   if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
     if (!config.usdzUrl) {

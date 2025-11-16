@@ -1,0 +1,34 @@
+AGENT_INFRA — Terraform & infra blueprint (S3, CloudFront, RDS, Redis, ECR)
+
+Tâches:
+
+1. Scanner infrastructure/terraform/ et proposer modules manquants.
+
+2. Générer modules Terraform:
+
+   - S3 bucket for assets (versioned), CloudFront distribution.
+
+   - RDS Postgres with snapshots & final snapshot off.
+
+   - Redis (recommend Upstash or ElastiCache) blueprint.
+
+   - ECR repo for worker-ia and usdz-converter.
+
+   - KMS key resources for secrets.
+
+3. Output terraform variables file template and docs/infrastructure/README.md.
+
+4. Provide sample IAM policies minimal privileges.
+
+5. Add CI plan to apply infra in staging only, require manual approval for prod.
+
+Deliverables:
+
+- infra modules under infrastructure/terraform/
+
+- README operations & TF state backend suggestion (S3 + Dynamo lock)
+
+Risks:
+
+- IAM overprivilege, costs.
+

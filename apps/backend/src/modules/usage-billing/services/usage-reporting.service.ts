@@ -1,8 +1,77 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { UsageMetric as PrismaUsageMetric } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UsageMeteringService } from './usage-metering.service';
-import { BillingCalculationService } from './billing-calculation.service';
+import {
+  BillingCalculationService,
+  CalculatedBill,
+  CostProjection,
+} from './billing-calculation.service';
 import { UsageMetricType } from '../interfaces/usage.interface';
+
+type DailyBreakdown = Record<string, Partial<Record<UsageMetricType, number>>>;
+type MetricTotals = Partial<Record<UsageMetricType, number>>;
+
+interface UsageStats {
+  totalRecords: number;
+  daysActive: number;
+  metricsUsed: number;
+  averageDaily: number;
+}
+
+export interface MonthlyReport {
+  period: {
+    year: number;
+    month: number;
+    startDate: Date;
+    endDate: Date;
+  };
+  dailyBreakdown: DailyBreakdown;
+  metricTotals: MetricTotals;
+  bill: CalculatedBill;
+  stats: UsageStats;
+}
+
+interface TopMetric {
+  metric: string;
+  value: number;
+}
+
+export interface ExecutiveSummary {
+  brand: {
+    name: string;
+    plan: string | null;
+    memberSince: Date;
+  };
+  currentPeriod: {
+    usage: Record<UsageMetricType, number>;
+    bill: CalculatedBill;
+  };
+  projections: CostProjection;
+  topMetrics: TopMetric[];
+  trends: Record<UsageMetricType, number>;
+  insights: string[];
+}
+
+interface MetricDailyData {
+  count: number;
+  total: number;
+}
+
+export interface MetricDetail {
+  metric: UsageMetricType;
+  period: { startDate: Date; endDate: Date };
+  stats: {
+    total: number;
+    average: number;
+    max: number;
+    min: number;
+    count: number;
+  };
+  dailyData: Record<string, MetricDailyData>;
+  hourlyPattern: Record<number, number>;
+  rawRecords: PrismaUsageMetric[];
+}
 
 /**
  * Service de reporting d'usage
@@ -18,10 +87,14 @@ export class UsageReportingService {
     private readonly calculationService: BillingCalculationService,
   ) {}
 
+  private formatError(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
+  }
+
   /**
    * Générer un rapport mensuel complet
    */
-  async generateMonthlyReport(brandId: string, year: number, month: number) {
+  async generateMonthlyReport(brandId: string, year: number, month: number): Promise<MonthlyReport> {
     try {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -41,32 +114,30 @@ export class UsageReportingService {
       });
 
       // Agréger par métrique et par jour
-      const dailyBreakdown: Record<string, Record<string, number>> = {};
-      const metricTotals: Record<string, number> = {};
+      const dailyBreakdown: DailyBreakdown = {};
+      const metricTotals: MetricTotals = {};
 
       for (const record of usageRecords) {
         const day = record.timestamp.toISOString().split('T')[0];
+        const metric = record.metric as UsageMetricType;
 
-        if (!dailyBreakdown[day]) {
-          dailyBreakdown[day] = {};
-        }
+        const dayUsage = dailyBreakdown[day] ?? {};
+        dayUsage[metric] = (dayUsage[metric] ?? 0) + record.value;
+        dailyBreakdown[day] = dayUsage;
 
-        dailyBreakdown[day][record.metric] =
-          (dailyBreakdown[day][record.metric] || 0) + record.value;
-
-        metricTotals[record.metric] =
-          (metricTotals[record.metric] || 0) + record.value;
+        metricTotals[metric] = (metricTotals[metric] ?? 0) + record.value;
       }
 
       // Calculer la facture
       const bill = await this.calculationService.calculateCurrentBill(brandId);
 
       // Statistiques
-      const stats = {
+      const daysCount = Object.keys(dailyBreakdown).length || 1;
+      const stats: UsageStats = {
         totalRecords: usageRecords.length,
         daysActive: Object.keys(dailyBreakdown).length,
         metricsUsed: Object.keys(metricTotals).length,
-        averageDaily: usageRecords.length / Object.keys(dailyBreakdown).length,
+        averageDaily: usageRecords.length / daysCount,
       };
 
       return {
@@ -82,22 +153,15 @@ export class UsageReportingService {
         stats,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to generate monthly report: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to generate monthly report: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
   /**
    * Exporter l'usage en CSV
    */
-  async exportToCSV(
-    brandId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<string> {
+  async exportToCSV(brandId: string, startDate: Date, endDate: Date): Promise<string> {
     try {
       const records = await this.prisma.usageMetric.findMany({
         where: {
@@ -126,18 +190,15 @@ export class UsageReportingService {
 
       return csv;
     } catch (error) {
-      this.logger.error(
-        `Failed to export to CSV: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to export to CSV: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
   /**
    * Générer un résumé exécutif
    */
-  async generateExecutiveSummary(brandId: string) {
+  async generateExecutiveSummary(brandId: string): Promise<ExecutiveSummary> {
     try {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
@@ -158,10 +219,13 @@ export class UsageReportingService {
       const projections = await this.calculationService.projectCosts(brandId, 30);
 
       // Top métriques
-      const topMetrics = Object.entries(currentUsage)
-        .sort(([, a], [, b]) => b - a)
+      const topMetrics: TopMetric[] = Object.entries(currentUsage)
+        .sort(([, a], [, b]) => (b ?? 0) - (a ?? 0))
         .slice(0, 5)
-        .map(([metric, value]) => ({ metric, value }));
+        .map(([metric, value]) => ({
+          metric,
+          value,
+        }));
 
       // Tendances (comparaison avec le mois dernier)
       const lastMonth = new Date();
@@ -172,11 +236,13 @@ export class UsageReportingService {
         lastMonth.getMonth() + 1,
       );
 
-      const trends: Record<string, number> = {};
-      for (const [metric, currentValue] of Object.entries(currentUsage)) {
-        const lastValue = lastMonthReport.metricTotals[metric] || 0;
+      const trends: Record<UsageMetricType, number> = {} as Record<UsageMetricType, number>;
+      for (const [metricKey, currentValue] of Object.entries(currentUsage) as Array<
+        [UsageMetricType, number]
+      >) {
+        const lastValue = lastMonthReport.metricTotals[metricKey] ?? 0;
         if (lastValue > 0) {
-          trends[metric] = ((currentValue - lastValue) / lastValue) * 100;
+          trends[metricKey] = ((currentValue - lastValue) / lastValue) * 100;
         }
       }
 
@@ -196,11 +262,8 @@ export class UsageReportingService {
         insights: this.generateInsights(currentUsage, trends, projections),
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to generate executive summary: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to generate executive summary: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 
@@ -209,13 +272,13 @@ export class UsageReportingService {
    */
   private generateInsights(
     usage: Record<UsageMetricType, number>,
-    trends: Record<string, number>,
-    projections: any,
+    trends: Record<UsageMetricType, number>,
+    projections: CostProjection,
   ): string[] {
     const insights: string[] = [];
 
     // Insight sur les tendances
-    for (const [metric, trend] of Object.entries(trends)) {
+    for (const [metric, trend] of Object.entries(trends) as Array<[UsageMetricType, number]>) {
       if (trend > 50) {
         insights.push(
           `📈 ${metric} has increased by ${trend.toFixed(0)}% compared to last month`,
@@ -243,7 +306,7 @@ export class UsageReportingService {
     }
 
     // Recommendations
-    if (projections.recommendations && projections.recommendations.length > 0) {
+    if (projections.recommendations?.length) {
       insights.push(...projections.recommendations);
     }
 
@@ -258,7 +321,7 @@ export class UsageReportingService {
     metric: UsageMetricType,
     startDate: Date,
     endDate: Date,
-  ) {
+  ): Promise<MetricDetail> {
     try {
       const records = await this.prisma.usageMetric.findMany({
         where: {
@@ -277,12 +340,13 @@ export class UsageReportingService {
       // Statistiques
       const values = records.map((r) => r.value);
       const total = values.reduce((a, b) => a + b, 0);
-      const average = total / values.length || 0;
-      const max = Math.max(...values, 0);
-      const min = Math.min(...values, 999999);
+      const count = values.length;
+      const average = count > 0 ? total / count : 0;
+      const max = count > 0 ? Math.max(...values) : 0;
+      const min = count > 0 ? Math.min(...values) : 0;
 
       // Grouper par jour
-      const dailyData: Record<string, { count: number; total: number }> = {};
+      const dailyData: Record<string, MetricDailyData> = {};
       for (const record of records) {
         const day = record.timestamp.toISOString().split('T')[0];
         if (!dailyData[day]) {
@@ -307,18 +371,15 @@ export class UsageReportingService {
           average,
           max,
           min,
-          count: records.length,
+          count,
         },
         dailyData,
         hourlyPattern,
-        rawRecords: records.slice(0, 100), // Limiter à 100 pour ne pas surcharger
+        rawRecords: records.slice(0, 100),
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to get metric detail: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error(`Failed to get metric detail: ${this.formatError(error)}`);
+      throw error instanceof Error ? error : new Error(this.formatError(error));
     }
   }
 

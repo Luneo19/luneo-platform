@@ -108,15 +108,15 @@ const handleStripeCheckout = async (planId: string, billingCycle: 'monthly' | 'y
 ```typescript
 const planPrices: Record<string, { monthly: string | null, yearly: string | null }> = {
   professional: { 
-    monthly: 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
+    monthly: 'price_PRO_MONTHLY',
     yearly: null // Pas encore configuré
   },
   business: { 
-    monthly: 'price_1SH7SxKG9MsM6fdSetmxFnVl',
+    monthly: 'price_BUSINESS_MONTHLY',
     yearly: null
   },
   enterprise: { 
-    monthly: 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
+    monthly: 'price_ENTERPRISE_MONTHLY',
     yearly: null
   }
 };
@@ -204,7 +204,7 @@ return NextResponse.json({
 3. **API Route:**
    - Reçoit la requête
    - Sélectionne `planPrices.professional.monthly`
-   - Price ID: `price_1RvB1uKG9MsM6fdSnrGm2qIo`
+   - Price ID: `price_PRO_MONTHLY`
    - Crée session Stripe
 
 4. **Stripe:**

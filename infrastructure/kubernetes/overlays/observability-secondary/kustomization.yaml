@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: luneo-observability
+
+resources:
+  - ../../base
+  - applications/kube-prometheus-stack.yaml
+  - applications/loki-distributed.yaml
+  - applications/tempo.yaml
+  - applications/grafana-agent.yaml
+  - dashboards/ai-queues-dashboard.yaml
+  - dashboards/api-latency-dashboard.yaml
+  - alerts/prometheus-rules.yaml
+
+configMapGenerator:
+  - name: observability-settings
+    literals:
+      - region=us-east-1
+      - prometheusRetention=7d
+      - lokiRetention=3d
+      - tempoRetention=2d
+

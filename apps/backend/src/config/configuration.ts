@@ -1,5 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { z } from 'zod';
+import { getErrorMessage } from '@/common/utils/error.utils';
 
 const envSchema = z.object({
   // Database
@@ -64,6 +65,19 @@ const envSchema = z.object({
   // Monitoring
   SENTRY_DSN: z.string().url().optional().or(z.literal('')),
   SENTRY_ENVIRONMENT: z.string().optional(),
+  MONITORING_QUEUE_WAIT_THRESHOLD: z.string().transform(Number).default('100'),
+  MONITORING_QUEUE_OLDEST_SECONDS: z.string().transform(Number).default('120'),
+  MONITORING_QUEUE_ALERT_WAIT_THRESHOLD: z.string().transform(Number).default('250'),
+  MONITORING_QUEUE_ALERT_OLDEST_SECONDS: z.string().transform(Number).default('300'),
+  MONITORING_QUEUE_ALERT_INTERVAL_SECONDS: z.string().transform(Number).default('300'),
+  OTEL_ENABLED: z.string().optional(),
+  OTEL_TRACES_ENABLED: z.string().optional(),
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.string().url().optional(),
+  OTEL_EXPORTER_OTLP_HEADERS: z.string().optional(),
+  OTEL_SERVICE_NAME: z.string().optional(),
+  OTEL_SERVICE_NAMESPACE: z.string().optional(),
+  OTEL_TRACES_SAMPLER_RATIO: z.string().optional(),
+  OTEL_DEBUG: z.string().optional(),
   
   // App
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -74,6 +88,15 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('*'),
   RATE_LIMIT_TTL: z.string().transform(Number).default('60'),
   RATE_LIMIT_LIMIT: z.string().transform(Number).default('100'),
+  
+  // Feature flags
+  FEATURE_FLAGS: z.string().optional(),
+  
+  // Shopify
+  SHOPIFY_API_KEY: z.string().optional(),
+  SHOPIFY_API_SECRET: z.string().optional(),
+  SHOPIFY_SCOPES: z.string().optional(),
+  MASTER_ENCRYPTION_KEY: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -82,7 +105,7 @@ export const validateEnv = (): EnvConfig => {
   try {
     return envSchema.parse(process.env);
   } catch (error) {
-    throw new Error(`Environment validation failed: ${error.message}`);
+    throw new Error(`Environment validation failed: ${getErrorMessage(error)}`);
   }
 };
 
@@ -179,10 +202,88 @@ export const appConfig = registerAs('app', () => ({
   corsOrigin: process.env.CORS_ORIGIN || '*',
   rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
   rateLimitLimit: parseInt(process.env.RATE_LIMIT_LIMIT || '100', 10),
+  logDir: process.env.LOG_DIR || 'logs',
+  url: process.env.APP_URL || 'http://localhost:3000',
+  cloudwatchEnabled: process.env.CLOUDWATCH_ENABLED || 'false',
+  cloudwatchLogGroup: process.env.CLOUDWATCH_LOG_GROUP || '/luneo/backend',
+  cloudwatchLogStream: process.env.CLOUDWATCH_LOG_STREAM,
+  awsRegion: process.env.AWS_REGION || 'eu-west-1',
 }));
 
 // Monitoring configuration
 export const monitoringConfig = registerAs('monitoring', () => ({
   sentryDsn: process.env.SENTRY_DSN,
   sentryEnvironment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
+  queueWaitThreshold: parseInt(process.env.MONITORING_QUEUE_WAIT_THRESHOLD || '100', 10),
+  queueOldestSeconds: parseInt(process.env.MONITORING_QUEUE_OLDEST_SECONDS || '120', 10),
+  queueAlertWaitThreshold: parseInt(process.env.MONITORING_QUEUE_ALERT_WAIT_THRESHOLD || '250', 10),
+  queueAlertOldestSeconds: parseInt(process.env.MONITORING_QUEUE_ALERT_OLDEST_SECONDS || '300', 10),
+  queueAlertIntervalSeconds: parseInt(process.env.MONITORING_QUEUE_ALERT_INTERVAL_SECONDS || '300', 10),
+}));
+
+export const tracingConfig = registerAs('tracing', () => ({
+  enabled: coerceBoolean(process.env.OTEL_ENABLED ?? process.env.OTEL_TRACES_ENABLED ?? 'false'),
+  exporterEndpoint: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+  exporterHeaders: process.env.OTEL_EXPORTER_OTLP_HEADERS,
+  serviceName: process.env.OTEL_SERVICE_NAME || 'luneo-backend',
+  serviceNamespace: process.env.OTEL_SERVICE_NAMESPACE || 'luneo-platform',
+  samplerRatio: Number.parseFloat(process.env.OTEL_TRACES_SAMPLER_RATIO ?? '1'),
+  debug: coerceBoolean(process.env.OTEL_DEBUG ?? 'false'),
+}));
+
+const parseFeatureFlags = (raw: string | undefined): Record<string, boolean> => {
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    if (raw.trim().startsWith('{')) {
+      const parsed = JSON.parse(raw);
+      return Object.entries(parsed).reduce<Record<string, boolean>>((acc, [key, value]) => {
+        acc[key] = coerceBoolean(value);
+        return acc;
+      }, {});
+    }
+
+    return raw.split(',').reduce<Record<string, boolean>>((acc, token) => {
+      const [key, value] = token.split(':').map((part) => part.trim());
+      if (!key) {
+        return acc;
+      }
+      acc[key] = coerceBoolean(value ?? 'true');
+      return acc;
+    }, {});
+  } catch {
+    return {};
+  }
+};
+
+const coerceBoolean = (value: unknown): boolean => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return ['1', 'true', 'on', 'yes', 'enabled'].includes(normalized);
+  }
+  return false;
+};
+
+export const featureFlagsConfig = registerAs('featureFlags', () => {
+  const raw = process.env.FEATURE_FLAGS || '';
+  return {
+    raw,
+    entries: parseFeatureFlags(raw),
+  };
+});
+
+// Shopify configuration
+export const shopifyConfig = registerAs('shopify', () => ({
+  apiKey: process.env.SHOPIFY_API_KEY,
+  apiSecret: process.env.SHOPIFY_API_SECRET,
+  scopes: process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders',
+  apiVersion: '2024-10',
 }));

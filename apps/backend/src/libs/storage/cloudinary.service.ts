@@ -22,8 +22,10 @@ export class CloudinaryService {
         (error, result) => {
           if (error) {
             reject(error);
-          } else {
+          } else if (result?.secure_url) {
             resolve(result.secure_url);
+          } else {
+            reject(new Error('Cloudinary image upload returned no secure URL'));
           }
         },
       );
@@ -42,8 +44,10 @@ export class CloudinaryService {
         (error, result) => {
           if (error) {
             reject(error);
-          } else {
+          } else if (result?.secure_url) {
             resolve(result.secure_url);
+          } else {
+            reject(new Error('Cloudinary video upload returned no secure URL'));
           }
         },
       );
@@ -68,6 +72,28 @@ export class CloudinaryService {
     return cloudinary.url(publicId, {
       sign_url: true,
       ...options,
+    });
+  }
+
+  async uploadRaw(file: Buffer, folder: string = 'luneo'): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: 'raw',
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else if (result?.secure_url) {
+            resolve(result.secure_url);
+          } else {
+            reject(new Error('Cloudinary raw upload returned no secure URL'));
+          }
+        },
+      );
+
+      uploadStream.end(file);
     });
   }
 }

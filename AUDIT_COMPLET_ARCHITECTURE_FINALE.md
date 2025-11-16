@@ -710,7 +710,7 @@ NEXT_PUBLIC_GITHUB_CLIENT_ID=Ov23liJmVOHyn8tfxgLi
 GOOGLE_CLIENT_SECRET=(secret)
 
 # Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_jL5xDF4ylCaiXVDswVAliVA3
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_publishable_key
 STRIPE_SECRET_KEY=sk_live_51DzUA1KG9MsM6fdSiwvX8rMM...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
@@ -1037,9 +1037,9 @@ Content-Security-Policy: (détaillé plus haut)
 
 **Plans configurés:**
 ```
-Professional:  €29/mois  → price_1RvB1uKG9MsM6fdSnrGm2qIo
-Business:      €59/mois  → price_1SH7SxKG9MsM6fdSetmxFnVl
-Enterprise:    €99/mois  → price_1SH7TMKG9MsM6fdSx4pebEXZ
+Professional:  €29/mois  → price_PRO_MONTHLY
+Business:      €59/mois  → price_BUSINESS_MONTHLY
+Enterprise:    €99/mois  → price_ENTERPRISE_MONTHLY
 ```
 
 **Plans annuels:**

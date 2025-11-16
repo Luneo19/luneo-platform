@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-frontend-secondary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: frontend
+    luneo.io/tier: web
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+    namespace: luneo-platform
+  source:
+    repoURL: https://github.com/luneo-platform/platform-helm.git
+    targetRevision: main
+    chart: luneo-frontend
+    helm:
+      releaseName: luneo-frontend
+      valuesObject:
+        image:
+          repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/luneo-frontend
+          tag: latest
+        replicas: 2
+        env:
+          - name: NEXT_PUBLIC_API_URL
+            value: https://api-secondary.luneo.app
+          - name: NEXT_PUBLIC_ENV
+            value: production
+        hpa:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 5
+          targetCPUUtilizationPercentage: 45
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+

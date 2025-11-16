@@ -153,7 +153,7 @@ Environments: All ✅
 
 ```
 Name: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-Value: pk_live_jL5xDF4ylCaiXVDswVAliVA3
+Value: pk_live_your_publishable_key
 Environments: All ✅
 ```
 

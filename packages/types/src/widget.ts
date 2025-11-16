@@ -28,6 +28,10 @@ export interface Design {
   status: 'queued' | 'processing' | 'completed' | 'failed';
   previewUrl?: string;
   finalUrl?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  title?: string;
+  description?: string;
   createdAt: Date;
   updatedAt: Date;
   metadata?: {
@@ -38,6 +42,8 @@ export interface Design {
       width: number;
       height: number;
     };
+    generationTime?: number;
+    format?: string;
   };
 }
 

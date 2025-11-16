@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gatekeeper-primary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: policy-engine
+    luneo.io/region: eu-west-1
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+    namespace: gatekeeper-system
+  source:
+    repoURL: https://open-policy-agent.github.io/gatekeeper/charts
+    chart: gatekeeper
+    targetRevision: 3.15.1
+    helm:
+      releaseName: gatekeeper
+      values: |
+        upgradeCRDs: true
+        replicas: 3
+        pdb:
+          enabled: true
+        enableExternalData: false
+        postInstall:
+          labelNamespace:
+            enabled: true
+        audit:
+          interval: 30
+        controllerManager:
+          manager:
+            resources:
+              requests:
+                cpu: 250m
+                memory: 512Mi
+              limits:
+                cpu: 1000m
+                memory: 1024Mi
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+

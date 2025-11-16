@@ -1,0 +1,28 @@
+groups:
+  - name: websocket-failover-rules
+    interval: 15s
+    rules:
+      - alert: ObservabilityWebsocketFailing
+        expr: rate(luneo_observability_ws_broadcast_failures_total[1m]) > 0
+        for: 2m
+        annotations:
+          summary: "Flux /observability en échec"
+          description: >
+            Le gateway WebSocket observability enregistre des échecs de diffusion
+            depuis {{ $value }} minute(s). Vérifier la boucle de broadcast,
+            l’état Redis et le process backend.
+        labels:
+          severity: warning
+          service: observability-gateway
+      - alert: ObservabilityWebsocketNoSnapshot
+        expr: (time() - luneo_observability_ws_last_snapshot_timestamp) > 120
+        for: 1m
+        annotations:
+          summary: "Flux /observability figé"
+          description: >
+            Aucun snapshot temps réel n’a été poussé depuis plus de 2 minutes.
+            Reprendre le service NestJS ou investiguer la boucle BullMQ.
+        labels:
+          severity: critical
+          service: observability-gateway
+

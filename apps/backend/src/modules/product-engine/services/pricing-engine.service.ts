@@ -1,13 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { 
-  PricingContext, 
-  PricingRules, 
+import {
+  PricingContext,
   DesignOptions,
   ProductRules,
   QuantityDiscount,
-  BulkPricing
+  BulkPricing,
+  DesignImageZoneOptions,
+  DesignTextZoneOptions,
+  DesignColorZoneOptions,
+  DesignSelectZoneOptions,
+  DesignZoneOption,
+  PricingSuggestion,
+  PricingHistoryEntry,
+  CompetitiveAnalysis,
+  MarginAnalysis,
 } from '../interfaces/product-rules.interface';
 
 @Injectable()
@@ -107,28 +115,25 @@ export class PricingEngine {
 
     let totalZonePrice = 0;
 
-    for (const [zoneId, zoneOptions] of Object.entries(options.zones)) {
-      const zone = rules.zones.find(z => z.id === zoneId);
+    for (const [zoneId, zoneOption] of Object.entries(options.zones)) {
+      const zone = rules.zones.find((z) => z.id === zoneId);
       if (!zone) continue;
 
-      // Prix de base de la zone
       const zoneBasePrice = zone.priceDeltaCents || 0;
-      
-      // Prix selon le type de zone
       let zoneTypePrice = 0;
-      
+
       switch (zone.type) {
         case 'image':
-          zoneTypePrice = this.calculateImageZonePrice(zoneOptions);
+          zoneTypePrice = this.calculateImageZonePrice(this.ensureImageZoneOptions(zoneOption));
           break;
         case 'text':
-          zoneTypePrice = this.calculateTextZonePrice(zoneOptions);
+          zoneTypePrice = this.calculateTextZonePrice(this.ensureTextZoneOptions(zoneOption));
           break;
         case 'color':
-          zoneTypePrice = this.calculateColorZonePrice(zoneOptions);
+          zoneTypePrice = this.calculateColorZonePrice(this.ensureColorZoneOptions(zoneOption));
           break;
         case 'select':
-          zoneTypePrice = this.calculateSelectZonePrice(zoneOptions);
+          zoneTypePrice = this.calculateSelectZonePrice(this.ensureSelectZoneOptions(zoneOption));
           break;
       }
 
@@ -141,7 +146,7 @@ export class PricingEngine {
   /**
    * Calcule le prix d'une zone image
    */
-  private calculateImageZonePrice(options: any): number {
+  private calculateImageZonePrice(options: DesignImageZoneOptions): number {
     let price = 0;
 
     // Prix basé sur la complexité de l'image
@@ -160,15 +165,15 @@ export class PricingEngine {
     }
 
     // Prix basé sur la résolution
-    if (options.width && options.height) {
-      const megapixels = (options.width * options.height) / 1000000;
+    if (typeof options.width === 'number' && typeof options.height === 'number') {
+      const megapixels = (options.width * options.height) / 1_000_000;
       if (megapixels > 10) {
         price += 50; // Prix supplémentaire pour haute résolution
       }
     }
 
     // Prix pour effets spéciaux
-    if (options.effects) {
+    if (Array.isArray(options.effects)) {
       price += options.effects.length * 25; // 0.25€ par effet
     }
 
@@ -178,7 +183,7 @@ export class PricingEngine {
   /**
    * Calcule le prix d'une zone texte
    */
-  private calculateTextZonePrice(options: any): number {
+  private calculateTextZonePrice(options: DesignTextZoneOptions): number {
     let price = 0;
 
     // Prix basé sur la longueur du texte
@@ -192,7 +197,7 @@ export class PricingEngine {
     }
 
     // Prix pour effets de texte
-    if (options.effects) {
+    if (Array.isArray(options.effects)) {
       price += options.effects.length * 30; // 0.30€ par effet
     }
 
@@ -202,7 +207,7 @@ export class PricingEngine {
   /**
    * Calcule le prix d'une zone couleur
    */
-  private calculateColorZonePrice(options: any): number {
+  private calculateColorZonePrice(options: DesignColorZoneOptions): number {
     let price = 0;
 
     // Prix pour couleurs métalliques ou spéciales
@@ -221,7 +226,7 @@ export class PricingEngine {
   /**
    * Calcule le prix d'une zone de sélection
    */
-  private calculateSelectZonePrice(options: any): number {
+  private calculateSelectZonePrice(options: DesignSelectZoneOptions): number {
     let price = 0;
 
     // Prix pour options premium
@@ -242,7 +247,8 @@ export class PricingEngine {
 
     for (const [material, value] of Object.entries(options.materials)) {
       const materialPrice = rules.pricing.materialPricing[material] || 0;
-      totalMaterialPrice += materialPrice * (typeof value === 'number' ? value : 1);
+      const quantity = typeof value === 'number' && Number.isFinite(value) ? value : 1;
+      totalMaterialPrice += materialPrice * quantity;
     }
 
     return totalMaterialPrice;
@@ -258,7 +264,8 @@ export class PricingEngine {
 
     for (const [finish, value] of Object.entries(options.finishes)) {
       const finishPrice = rules.pricing.finishPricing[finish] || 0;
-      totalFinishPrice += finishPrice * (typeof value === 'number' ? value : 1);
+      const quantity = typeof value === 'number' && Number.isFinite(value) ? value : 1;
+      totalFinishPrice += finishPrice * quantity;
     }
 
     return totalFinishPrice;
@@ -275,7 +282,7 @@ export class PricingEngine {
     if (!discounts.length) return 0;
 
     // Trier les remises par quantité décroissante
-    const sortedDiscounts = discounts.sort((a, b) => b.minQuantity - a.minQuantity);
+    const sortedDiscounts = [...discounts].sort((a, b) => b.minQuantity - a.minQuantity);
 
     // Trouver la remise applicable
     for (const discount of sortedDiscounts) {
@@ -298,7 +305,7 @@ export class PricingEngine {
     if (!bulkPricing.length) return unitPrice;
 
     // Trier par quantité décroissante
-    const sortedBulkPricing = bulkPricing.sort((a, b) => b.minQuantity - a.minQuantity);
+    const sortedBulkPricing = [...bulkPricing].sort((a, b) => b.minQuantity - a.minQuantity);
 
     // Trouver le prix en volume applicable
     for (const pricing of sortedBulkPricing) {
@@ -358,17 +365,12 @@ export class PricingEngine {
   /**
    * Obtient les suggestions de prix pour optimiser les ventes
    */
-  async getPricingSuggestions(productId: string): Promise<{
-    recommendedBasePrice: number;
-    competitiveAnalysis: any;
-    marginAnalysis: any;
-    priceHistory: any[];
-  }> {
+  async getPricingSuggestions(productId: string): Promise<PricingSuggestion> {
     const cacheKey = `pricing_suggestions:${productId}`;
     
     const cached = await this.cache.getSimple(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached as PricingSuggestion;
     }
 
     try {
@@ -387,67 +389,49 @@ export class PricingEngine {
       });
 
       // Calculer les statistiques de prix
-      const prices = recentSales.map(sale => sale.totalCents / 100);
-      const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-      const minPrice = Math.min(...prices);
-      const maxPrice = Math.max(...prices);
+      const prices = recentSales.map((sale) => sale.totalCents / 100);
+      const avgPrice = prices.length ? prices.reduce((sum, price) => sum + price, 0) / prices.length : 0;
+      const minPrice = prices.length ? Math.min(...prices) : 0;
+      const maxPrice = prices.length ? Math.max(...prices) : 0;
 
       // Analyse concurrentielle (simulation)
-      const competitiveAnalysis = {
-        marketAverage: avgPrice * 1.1, // +10% vs moyenne interne
+      const competitiveAnalysis: CompetitiveAnalysis = {
+        marketAverage: avgPrice * 1.1,
         priceRange: {
           min: minPrice * 0.9,
           max: maxPrice * 1.1,
         },
-        recommendations: [
-          {
-            strategy: 'competitive',
-            price: avgPrice * 0.95,
-            reasoning: 'Prix compétitif pour gagner des parts de marché',
-          },
-          {
-            strategy: 'premium',
-            price: avgPrice * 1.15,
-            reasoning: 'Positionnement premium pour maximiser les marges',
-          },
-          {
-            strategy: 'volume',
-            price: avgPrice * 0.85,
-            reasoning: 'Prix attractif pour stimuler les ventes',
-          },
+        competitors: [
+          { name: 'Acme Prints', price: avgPrice * 0.95 },
+          { name: 'DesignMax', price: avgPrice * 1.12 },
+          { name: 'Customo', price: avgPrice * 0.88 },
         ],
       };
 
       // Analyse des marges
-      const marginAnalysis = {
-        currentMargin: 0.35, // 35% (simulation)
-        targetMargin: 0.40, // 40%
-        costBreakdown: {
-          materials: 0.40,
-          labor: 0.15,
-          overhead: 0.10,
-          profit: 0.35,
-        },
+      const marginAnalysis: MarginAnalysis = {
+        currentMarginPercent: 35,
+        targetMarginPercent: 40,
+        recommendation: 'Augmentez le prix de base de 8 % pour aligner la marge sur l’objectif.',
       };
 
       // Historique des prix (simulation)
-      const priceHistory = Array.from({ length: 12 }, (_, i) => ({
-        month: new Date(Date.now() - (11 - i) * 30 * 24 * 60 * 60 * 1000),
-        price: avgPrice * (1 + (Math.random() - 0.5) * 0.1),
-        sales: Math.floor(Math.random() * 50) + 20,
+      const priceHistory: PricingHistoryEntry[] = Array.from({ length: 12 }, (_, index) => ({
+        total: avgPrice * (1 + (Math.random() - 0.5) * 0.1),
+        date: new Date(Date.now() - (11 - index) * 30 * 24 * 60 * 60 * 1000).toISOString(),
       }));
 
-      const suggestions = {
-        recommendedBasePrice: avgPrice,
+      const suggestion: PricingSuggestion = {
+        recommendedBasePrice: avgPrice * 1.05,
         competitiveAnalysis,
         marginAnalysis,
         priceHistory,
       };
 
       // Mettre en cache pour 1 heure
-      await this.cache.setSimple(cacheKey, JSON.stringify(suggestions), 3600);
+      await this.cache.setSimple(cacheKey, suggestion, 3600);
       
-      return suggestions;
+      return suggestion;
     } catch (error) {
       this.logger.error(`Error getting pricing suggestions for ${productId}:`, error);
       throw error;
@@ -518,11 +502,11 @@ export class PricingEngine {
 
     // Coût basé sur la complexité des zones
     if (options.zones) {
-      for (const [zoneId, zoneOptions] of Object.entries(options.zones)) {
-        // Coût pour zones complexes
-        if (zoneOptions.complexity === 'complex') {
+      for (const zoneOption of Object.values(options.zones)) {
+        const imageOptions = this.ensureImageZoneOptions(zoneOption);
+        if (imageOptions.complexity === 'complex') {
           cost += 150; // 1.50€
-        } else if (zoneOptions.complexity === 'medium') {
+        } else if (imageOptions.complexity === 'medium') {
           cost += 75; // 0.75€
         }
       }
@@ -539,9 +523,10 @@ export class PricingEngine {
 
     // Ajuster la marge selon la complexité
     if (options.zones) {
-      const complexZones = Object.values(options.zones).filter(
-        (zone: any) => zone.complexity === 'complex'
-      ).length;
+      const complexZones = Object.values(options.zones).filter((zoneOption) => {
+        const imageOptions = this.ensureImageZoneOptions(zoneOption);
+        return imageOptions.complexity === 'complex';
+      }).length;
       
       if (complexZones > 2) {
         margin += 0.05; // +5% pour designs très complexes
@@ -549,6 +534,34 @@ export class PricingEngine {
     }
 
     return Math.min(margin, 0.60); // Marge max 60%
+  }
+
+  private ensureImageZoneOptions(option: DesignZoneOption | undefined): DesignImageZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignImageZoneOptions;
+  }
+
+  private ensureTextZoneOptions(option: DesignZoneOption | undefined): DesignTextZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignTextZoneOptions;
+  }
+
+  private ensureColorZoneOptions(option: DesignZoneOption | undefined): DesignColorZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignColorZoneOptions;
+  }
+
+  private ensureSelectZoneOptions(option: DesignZoneOption | undefined): DesignSelectZoneOptions {
+    if (!option || typeof option !== 'object') {
+      return {};
+    }
+    return option as DesignSelectZoneOptions;
   }
 }
 

@@ -12,19 +12,19 @@
 
 ### 1. STRIPE_SECRET_KEY (DÉJÀ PRÉSENTE)
 ```
-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
+sk_live_your_secret_key
 ```
 ✅ **DÉJÀ PRÉSENTE** - Vérifiez qu'elle est complète!
 
 ### 2. NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ```
-pk_live_jL5xDF4ylCaiXVDswVAliVA3
+pk_live_your_publishable_key
 ```
 ✅ **DÉJÀ PRÉSENTE** dans votre screenshot
 
 ### 3. STRIPE_PRICE_PRO
 ```
-price_1RvB1uKG9MsM6fdSnrGm2qIo
+price_PRO_MONTHLY
 ```
 
 ### 4. STRIPE_PRICE_BUSINESS
@@ -32,7 +32,7 @@ price_1RvB1uKG9MsM6fdSnrGm2qIo
 
 ### 5. STRIPE_PRICE_ENTERPRISE
 ```
-price_1SH7TMKG9MsM6fdSx4pebEXZ
+price_ENTERPRISE_MONTHLY
 ```
 
 ### 6. NEXT_PUBLIC_APP_URL

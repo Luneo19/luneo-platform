@@ -1,11 +1,27 @@
+import 'dotenv/config';
 import { ImageGenerationWorker } from './jobs/generateImage';
 import { UpscaleWorker } from './jobs/upscale';
 import { BlendTextureWorker } from './jobs/blendTexture';
 import { ExportGLTFWorker } from './jobs/exportGLTF';
 import { ARPreviewWorker } from './jobs/arPreview';
+import { RenderJobWorker } from './jobs/render-job';
+import { createWorkerLogger, logger, serializeError } from './utils/logger';
+import { initializeTracing, shutdownTracing } from './observability/tracing';
+const REDIS_CONNECTION = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  password: process.env.REDIS_PASSWORD,
+};
+
+
+interface Worker {
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
 
 class LuneoAIWorker {
-  private workers: Array<{ name: string; worker: any }> = [];
+  private workers: Array<{ name: string; worker: Worker }> = [];
+  private readonly logger = createWorkerLogger('luneo-ai-service');
 
   constructor() {
     this.initializeWorkers();
@@ -13,14 +29,15 @@ class LuneoAIWorker {
 
   private async initializeWorkers(): Promise<void> {
     try {
-      console.log('🚀 Initializing Luneo AI Workers...');
+      this.logger.info('Initializing Luneo AI workers');
 
       // Initialize all workers
-      const imageWorker = new ImageGenerationWorker();
-      const upscaleWorker = new UpscaleWorker();
-      const blendWorker = new BlendTextureWorker();
-      const gltfWorker = new ExportGLTFWorker();
-      const arWorker = new ARPreviewWorker();
+      const imageWorker = new ImageGenerationWorker(REDIS_CONNECTION);
+      const upscaleWorker = new UpscaleWorker(REDIS_CONNECTION);
+      const blendWorker = new BlendTextureWorker(REDIS_CONNECTION);
+      const gltfWorker = new ExportGLTFWorker(REDIS_CONNECTION);
+      const arWorker = new ARPreviewWorker(REDIS_CONNECTION);
+      const renderWorker = new RenderJobWorker(REDIS_CONNECTION);
 
       this.workers = [
         { name: 'ImageGeneration', worker: imageWorker },
@@ -28,57 +45,69 @@ class LuneoAIWorker {
         { name: 'BlendTexture', worker: blendWorker },
         { name: 'ExportGLTF', worker: gltfWorker },
         { name: 'ARPreview', worker: arWorker },
+        { name: 'RenderJob', worker: renderWorker },
       ];
 
       // Start all workers
       for (const { name, worker } of this.workers) {
         await worker.start();
-        console.log(`✅ ${name} Worker started`);
+        this.logger.info('Worker started', { worker: name });
       }
 
-      console.log('🎉 All AI Workers initialized successfully');
+      this.logger.info('All AI workers initialized successfully');
 
     } catch (error) {
-      console.error('❌ Failed to initialize workers:', error);
+      this.logger.error('Failed to initialize workers', {
+        error: serializeError(error),
+      });
       process.exit(1);
     }
   }
 
   public async start(): Promise<void> {
-    console.log('🌟 Luneo AI Worker Service Starting...');
+    this.logger.info('Luneo AI worker service starting', { pid: process.pid });
     
     // Handle graceful shutdown
-    process.on('SIGINT', this.gracefulShutdown.bind(this));
-    process.on('SIGTERM', this.gracefulShutdown.bind(this));
+    process.on('SIGINT', () => this.gracefulShutdown('SIGINT'));
+    process.on('SIGTERM', () => this.gracefulShutdown('SIGTERM'));
     
-    console.log('✅ Luneo AI Worker Service is running');
+    this.logger.info('Luneo AI worker service is running');
   }
 
-  private async gracefulShutdown(signal: string): Promise<void> {
-    console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+  private async gracefulShutdown(signal: NodeJS.Signals): Promise<void> {
+    this.logger.warn('Received shutdown signal, stopping workers', { signal });
     
     try {
       // Stop all workers
       for (const { name, worker } of this.workers) {
         await worker.stop();
-        console.log(`✅ ${name} Worker stopped`);
+        this.logger.info('Worker stopped', { worker: name });
       }
       
-      console.log('✅ All workers stopped gracefully');
+      this.logger.info('All workers stopped gracefully');
+      await shutdownTracing();
       process.exit(0);
     } catch (error) {
-      console.error('❌ Error during shutdown:', error);
+      this.logger.error('Error during shutdown', {
+        error: serializeError(error),
+      });
       process.exit(1);
     }
   }
 }
 
-// Start the worker service
-const luneoWorker = new LuneoAIWorker();
-luneoWorker.start().catch((error) => {
-  console.error('❌ Failed to start Luneo AI Worker:', error);
+async function bootstrap(): Promise<void> {
+  await initializeTracing();
+  const luneoWorker = new LuneoAIWorker();
+  await luneoWorker.start();
+}
+
+bootstrap().catch(async (error) => {
+  logger.error('Failed to start Luneo AI worker', {
+    error: serializeError(error),
+  });
+  await shutdownTracing();
   process.exit(1);
 });
-
 
 

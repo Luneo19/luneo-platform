@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
+import type { ShopifyWebhook } from '../types/shopify.types';
+
 export interface WebhookSubscription {
   topic: string;
   uri: string;
@@ -14,6 +16,22 @@ export class RegisterWebhooks {
 
   constructor(private readonly configService: ConfigService) {}
 
+  private getAppUrl(): string {
+    const appUrl = this.configService.get<string>('shopify.appUrl');
+    if (!appUrl) {
+      throw new Error('shopify.appUrl non configuré');
+    }
+    return appUrl;
+  }
+
+  private getApiVersion(): string {
+    const apiVersion = this.configService.get<string>('shopify.apiVersion');
+    if (!apiVersion) {
+      throw new Error('shopify.apiVersion non configuré');
+    }
+    return apiVersion;
+  }
+
   /**
    * Enregistrer tous les webhooks nécessaires pour l'application
    */
@@ -22,7 +40,7 @@ export class RegisterWebhooks {
       this.logger.log(`Enregistrement des webhooks pour le shop: ${shop}`);
 
       const webhooks = this.getRequiredWebhooks();
-      const appUrl = this.configService.get('shopify.appUrl');
+      const appUrl = this.getAppUrl();
 
       for (const webhook of webhooks) {
         await this.registerWebhook(shop, accessToken, {
@@ -33,8 +51,8 @@ export class RegisterWebhooks {
 
       this.logger.log(`Tous les webhooks enregistrés avec succès pour le shop: ${shop}`);
     } catch (error) {
-      this.logger.error('Erreur lors de l\'enregistrement des webhooks:', error);
-      throw error;
+      this.logger.error("Erreur lors de l'enregistrement des webhooks:", error);
+      throw error instanceof Error ? error : new Error('Registration webhooks failed');
     }
   }
 
@@ -47,7 +65,7 @@ export class RegisterWebhooks {
     webhook: WebhookSubscription
   ): Promise<void> {
     try {
-      const apiUrl = `https://${shop}/admin/api/${this.configService.get('shopify.apiVersion')}/webhooks.json`;
+      const apiUrl = `https://${shop}/admin/api/${this.getApiVersion()}/webhooks.json`;
       
       const webhookData = {
         webhook: {
@@ -57,7 +75,7 @@ export class RegisterWebhooks {
         },
       };
 
-      const response = await axios.post(apiUrl, webhookData, {
+      const response = await axios.post<{ webhook: ShopifyWebhook }>(apiUrl, webhookData, {
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json',
@@ -71,7 +89,7 @@ export class RegisterWebhooks {
       }
     } catch (error) {
       this.logger.error(`Erreur lors de l'enregistrement du webhook ${webhook.topic}:`, error);
-      throw error;
+      throw error instanceof Error ? error : new Error(`Registration webhook ${webhook.topic} failed`);
     }
   }
 
@@ -83,7 +101,7 @@ export class RegisterWebhooks {
       this.logger.log(`Suppression des webhooks pour le shop: ${shop}`);
 
       const existingWebhooks = await this.getExistingWebhooks(shop, accessToken);
-      const appUrl = this.configService.get('shopify.appUrl');
+      const appUrl = this.getAppUrl();
 
       for (const webhook of existingWebhooks) {
         if (webhook.address.includes(appUrl)) {
@@ -103,7 +121,7 @@ export class RegisterWebhooks {
    */
   async deleteWebhook(shop: string, accessToken: string, webhookId: string): Promise<void> {
     try {
-      const apiUrl = `https://${shop}/admin/api/${this.configService.get('shopify.apiVersion')}/webhooks/${webhookId}.json`;
+      const apiUrl = `https://${shop}/admin/api/${this.getApiVersion()}/webhooks/${webhookId}.json`;
       
       await axios.delete(apiUrl, {
         headers: {
@@ -114,27 +132,27 @@ export class RegisterWebhooks {
       this.logger.log(`Webhook ${webhookId} supprimé avec succès`);
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression du webhook ${webhookId}:`, error);
-      throw error;
+      throw error instanceof Error ? error : new Error(`Deletion webhook ${webhookId} failed`);
     }
   }
 
   /**
    * Obtenir la liste des webhooks existants
    */
-  async getExistingWebhooks(shop: string, accessToken: string): Promise<any[]> {
+  async getExistingWebhooks(shop: string, accessToken: string): Promise<ShopifyWebhook[]> {
     try {
-      const apiUrl = `https://${shop}/admin/api/${this.configService.get('shopify.apiVersion')}/webhooks.json`;
+      const apiUrl = `https://${shop}/admin/api/${this.getApiVersion()}/webhooks.json`;
       
-      const response = await axios.get(apiUrl, {
+      const response = await axios.get<{ webhooks: ShopifyWebhook[] }>(apiUrl, {
         headers: {
           'X-Shopify-Access-Token': accessToken,
         },
       });
 
-      return response.data.webhooks || [];
+      return response.data.webhooks ?? [];
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des webhooks existants:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Récupération des webhooks existants échouée');
     }
   }
 
@@ -144,13 +162,13 @@ export class RegisterWebhooks {
   async webhookExists(shop: string, accessToken: string, topic: string): Promise<boolean> {
     try {
       const existingWebhooks = await this.getExistingWebhooks(shop, accessToken);
-      const appUrl = this.configService.get('shopify.appUrl');
+      const appUrl = this.getAppUrl();
 
       return existingWebhooks.some(webhook => 
         webhook.topic === topic && webhook.address.includes(appUrl)
       );
     } catch (error) {
-      this.logger.error('Erreur lors de la vérification de l\'existence du webhook:', error);
+      this.logger.error("Erreur lors de la vérification de l'existence du webhook:", error);
       return false;
     }
   }
@@ -269,7 +287,7 @@ export class RegisterWebhooks {
     try {
       const requiredWebhooks = this.getRequiredWebhooks();
       const existingWebhooks = await this.getExistingWebhooks(shop, accessToken);
-      const appUrl = this.configService.get('shopify.appUrl');
+      const appUrl = this.getAppUrl();
 
       let allWebhooksPresent = true;
 

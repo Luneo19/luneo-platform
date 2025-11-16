@@ -74,6 +74,25 @@ preloader.preloadCriticalRoutes(); // /dashboard, /ai-studio, etc.
 useInteractionPreloader(); // Après premier clic/touch
 ```
 
+#### 🧩 **Pages Solutions — Refactor Complet**
+- **E-commerce** : Formulaire de demande de démo connecté (`/api/emails/send-welcome`), sélection dynamique de plateforme, feedback erreurs/succès
+- **Marketing** : Orchestrateur de campagnes (objectifs, budgets, timeline, séquences email) avec génération IA simulée et envoi sandbox
+- **Social** : Social Studio (génération de captions, guidelines par plateforme, calendrier éditorial interactif, sync simulée)
+- **Branding** : Brand Kit Builder (scope, palette, tagline, guidelines auto, sauvegarde API)
+- **Visualizer / Customizer** : Intégration directe du `ProductCustomizer` en mode démo, formulaires de sauvegarde, CTA vers l’éditeur
+- **Social Media** : Orchestrateur social (choix plateforme, type de contenu, génération IA, programmation + webhook sandbox)
+- **3D Asset Hub & Configurator 3D** : CTA ancrés vers les vraies démos + alignement UX sur les sections interactives
+- **Solutions Hub** : Refonte des cartes + navigation fluide entre les 9 verticales
+
+> Toutes les pages Solutions sont désormais « live » : CTA actifs, formulaires validés, états de chargement, gestion d’erreurs, intégration API. Aucun écran purement marketing restant.
+
+#### 📊 **Dashboard – Expérience Produit**
+- **Overview** : CTA “Actions rapides” routés vers les vraies sections (`/dashboard/ai-studio`, `/dashboard/library`, `/dashboard/analytics`)
+- **Empty states** : Propositions d’étapes suivantes (ex. “Créer un premier design” renvoie vers AI Studio)
+- **Stats Cards** : Styles Tailwind explicites pour éviter les classes dynamiques cassées par le tree-shaking
+- **Monitoring CTA** : “Tout voir” sur l’activité pointe désormais vers `/dashboard/monitoring`
+- **Documentation** : Rapport d’optimisation enrichi (section Solutions + Roadmap Phases 4-7)
+
 ## 📊 **Métriques de Performance**
 
 ### Backend
@@ -104,19 +123,38 @@ useInteractionPreloader(); // Après premier clic/touch
 ## 🎯 **Prochaines Étapes**
 
 ### 🔄 **Phase 4 : Factorisation des Composants**
-- [ ] Créer des composants UI réutilisables
-- [ ] Standardiser les patterns de design
-- [ ] Optimiser les re-renders avec React.memo
+- [ ] Créer des composants UI réutilisables (CTA, formulaires, stats cards)
+- [ ] Standardiser les patterns de design des pages publiques/dash
+- [ ] Optimiser les re-renders avec React.memo / memoized selectors
+- [ ] Mutualiser les hooks (fetch, forms, télémetrie)
 
 ### 📱 **Phase 5 : Planification Mobile**
 - [ ] Architecture React Native
 - [ ] Synchronisation avec backend
 - [ ] PWA pour web mobile
+- [ ] **Script d’action** : cadrage design system mobile + POC expo + checklist offline
 
 ### 🔑 **Phase 6 : API Publique**
 - [ ] Documentation OpenAPI
 - [ ] Rate limiting et quotas
 - [ ] SDK multi-langages
+
+### 📊 **Phase 7 : Dashboard & Auth**
+- [ ] Finaliser onboarding register/login + profils
+- [ ] Ajouter feedback temps réel sur quotas/dashboard
+- [ ] Industrialiser les pages /dashboard (CTA actifs, gestion erreurs)
+- [ ] **Script d’action** :
+  1. Audit complet des pages `/dashboard/*` (Overview, Analytics, Billing, Orders, Library)
+  2. Ajout systématique des CTA → routes fonctionnelles + empty states actionnables
+  3. Intégration `useDashboardData` / hooks Supabase pour données temps réel
+  4. Harmonisation UI (cards, stats, formulaires) + gestion erreurs/chargement unifiée
+  5. Tests manuels (navigation, refresh, déconnexions)
+
+### 🚀 **Phase 8 : Déploiements & Observabilité**
+- [ ] Pipeline de déploiement Vercel (frontend, backend, workers) + checks auto
+- [ ] Feature flags pour activer/désactiver modules Solutions côté prod
+- [ ] Observabilité unifiée (logs Vercel + Supabase + métriques dashboard)
+- [ ] Runbook incident + alerting (email + Slack)
 
 ## 🏆 **Résultats**
 

@@ -1,11 +1,32 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UsageMeteringService } from './services/usage-metering.service';
-import { UsageTrackingService } from './services/usage-tracking.service';
+import {
+  UsageTrackingService,
+  UsageStatsResult,
+} from './services/usage-tracking.service';
 import { QuotasService } from './services/quotas.service';
 import { BillingCalculationService } from './services/billing-calculation.service';
-import { UsageReportingService } from './services/usage-reporting.service';
+import {
+  UsageReportingService,
+  MonthlyReport,
+  ExecutiveSummary,
+  MetricDetail,
+} from './services/usage-reporting.service';
 import { UsageMetricType } from './interfaces/usage.interface';
+import { UsageTopUpService } from './services/usage-topup.service';
+import { ConfigService } from '@nestjs/config';
+import type { Request } from 'express';
 
 /**
  * Controller pour la gestion du billing usage-based
@@ -20,6 +41,8 @@ export class UsageBillingController {
     private readonly quotasService: QuotasService,
     private readonly calculationService: BillingCalculationService,
     private readonly reportingService: UsageReportingService,
+    private readonly topUpService: UsageTopUpService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -56,6 +79,42 @@ export class UsageBillingController {
     return { brandId, usage };
   }
 
+  @Post('share')
+  @ApiOperation({ summary: 'Generate a signed quota snapshot token' })
+  @ApiResponse({ status: 201, description: 'Share token generated' })
+  async createShareToken(
+    @Req() req: Request,
+    @Body()
+    body: {
+      brandId?: string;
+      ttlMs?: number;
+      shareBaseUrl?: string;
+    },
+  ) {
+    const brandId = body.brandId ?? req.brandId ?? req.user?.brandId ?? undefined;
+    if (!brandId) {
+      throw new BadRequestException('brandId is required');
+    }
+
+    const { token, snapshot, expiresAt } = await this.quotasService.createShareToken(
+      brandId,
+      body.ttlMs,
+    );
+    const shareBase =
+      body.shareBaseUrl ??
+      this.configService.get<string>('FRONTEND_SHARE_URL') ??
+      this.configService.get<string>('FRONTEND_URL');
+    const url = shareBase ? `${shareBase.replace(/\/$/, '')}/share/quota/${token}` : undefined;
+    return { token, url, snapshot, expiresAt };
+  }
+
+  @Get('share/:token')
+  @ApiOperation({ summary: 'Resolve a signed quota snapshot token' })
+  @ApiResponse({ status: 200, description: 'Share snapshot retrieved' })
+  async getShareSnapshot(@Param('token') token: string) {
+    return this.quotasService.resolveShareToken(token);
+  }
+
   /**
    * Vérifier un quota avant action
    */
@@ -84,7 +143,23 @@ export class UsageBillingController {
   @ApiOperation({ summary: 'Get complete usage summary with quotas and alerts' })
   @ApiResponse({ status: 200, description: 'Usage summary retrieved' })
   async getUsageSummary(@Param('brandId') brandId: string) {
-    return this.quotasService.getUsageSummary(brandId);
+    return this.quotasService.getUsageSummaryWithPlan(brandId);
+  }
+
+  /**
+   * Récupérer le résumé d'usage pour le brand courant
+   */
+  @Get('summary')
+  @ApiOperation({ summary: 'Get usage summary for current brand' })
+  @ApiResponse({ status: 200, description: 'Usage summary retrieved' })
+  async getCurrentBrandUsage(@Req() req: Request) {
+    const brandId = req.brandId ?? req.user?.brandId ?? undefined;
+
+    if (!brandId) {
+      throw new BadRequestException('Unable to resolve brandId from request context');
+    }
+
+    return this.quotasService.getUsageSummaryWithPlan(brandId);
   }
 
   /**
@@ -163,6 +238,76 @@ export class UsageBillingController {
   }
 
   /**
+   * Créer une session de paiement Stripe pour acheter des crédits supplémentaires
+   */
+  @Post('topups/checkout')
+  @ApiOperation({ summary: 'Create a Stripe checkout session for quota top-up' })
+  @ApiResponse({ status: 201, description: 'Checkout session created' })
+  async createTopUpCheckout(
+    @Req() req: Request,
+    @Body()
+    body: {
+      metric: UsageMetricType;
+      units: number;
+      brandId?: string;
+      successUrl?: string;
+      cancelUrl?: string;
+    },
+  ) {
+    const brandId = body.brandId ?? req.brandId ?? req.user?.brandId ?? undefined;
+    if (!brandId) {
+      throw new BadRequestException('brandId is required');
+    }
+
+    return this.topUpService.createTopUpSession({
+      brandId,
+      metric: body.metric,
+      units: body.units,
+      userId: req.user?.id,
+      successUrl: body.successUrl,
+      cancelUrl: body.cancelUrl,
+    });
+  }
+
+  /**
+   * Simuler l’impact d’un top-up sans achat
+   */
+  @Post('topups/simulate')
+  @ApiOperation({ summary: 'Simulate quota impact before purchasing a top-up' })
+  @ApiResponse({ status: 200, description: 'Simulation calculated' })
+  async simulateTopUp(
+    @Req() req: Request,
+    @Body()
+    body: {
+      metric: UsageMetricType;
+      units: number;
+      brandId?: string;
+    },
+  ) {
+    const brandId = body.brandId ?? req.brandId ?? req.user?.brandId ?? undefined;
+    if (!brandId) {
+      throw new BadRequestException('brandId is required');
+    }
+
+    return this.quotasService.simulateTopUpImpact(brandId, body.metric, body.units ?? 0);
+  }
+
+  /**
+   * Lister les top-ups récents
+   */
+  @Get('topups/history')
+  @ApiOperation({ summary: 'List recent quota top-ups for the brand' })
+  @ApiResponse({ status: 200, description: 'Top-up history retrieved' })
+  async listTopUps(@Req() req: Request, @Query('brandId') brandId?: string) {
+    const resolvedBrandId = brandId ?? req.brandId ?? req.user?.brandId ?? undefined;
+    if (!resolvedBrandId) {
+      throw new BadRequestException('brandId is required');
+    }
+
+    return this.topUpService.listTopUps(resolvedBrandId);
+  }
+
+  /**
    * Générer un rapport mensuel
    */
   @Get('reports/monthly/:brandId')
@@ -172,7 +317,7 @@ export class UsageBillingController {
     @Param('brandId') brandId: string,
     @Query('year') year: string,
     @Query('month') month: string,
-  ) {
+  ): Promise<MonthlyReport> {
     const yearNum = parseInt(year, 10) || new Date().getFullYear();
     const monthNum = parseInt(month, 10) || new Date().getMonth() + 1;
     return this.reportingService.generateMonthlyReport(brandId, yearNum, monthNum);
@@ -207,7 +352,7 @@ export class UsageBillingController {
   @Get('reports/executive/:brandId')
   @ApiOperation({ summary: 'Generate executive summary' })
   @ApiResponse({ status: 200, description: 'Executive summary generated' })
-  async getExecutiveSummary(@Param('brandId') brandId: string) {
+  async getExecutiveSummary(@Param('brandId') brandId: string): Promise<ExecutiveSummary> {
     return this.reportingService.generateExecutiveSummary(brandId);
   }
 
@@ -222,7 +367,7 @@ export class UsageBillingController {
     @Param('metric') metric: UsageMetricType,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
-  ) {
+  ): Promise<MetricDetail> {
     const start = startDate ? new Date(startDate) : new Date();
     start.setDate(1);
     const end = endDate ? new Date(endDate) : new Date();
@@ -239,7 +384,7 @@ export class UsageBillingController {
   async getUsageStats(
     @Param('brandId') brandId: string,
     @Query('period') period: 'day' | 'month' | 'year' = 'month',
-  ) {
+  ): Promise<UsageStatsResult> {
     return this.trackingService.getUsageStats(brandId, period);
   }
 
@@ -256,5 +401,20 @@ export class UsageBillingController {
   ) {
     const limitNum = limit ? parseInt(limit, 10) : 100;
     return this.trackingService.getUsageHistory(brandId, metric, limitNum);
+  }
+
+  /**
+   * Query usage per tenant with soft-limit enforcement
+   * Returns usage data and indicates if features should be disabled
+   */
+  @Get('tenant/:brandId/usage')
+  @ApiOperation({ summary: 'Query usage per tenant with soft-limit enforcement' })
+  @ApiResponse({ status: 200, description: 'Usage query with enforcement status' })
+  async queryTenantUsage(
+    @Param('brandId') brandId: string,
+    @Query('enforceSoftLimit') enforceSoftLimit?: string,
+  ) {
+    const enforce = enforceSoftLimit === 'true';
+    return this.quotasService.queryTenantUsageWithEnforcement(brandId, enforce);
   }
 }

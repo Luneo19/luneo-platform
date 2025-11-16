@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Mailgun from 'mailgun.js';
 import FormData from 'form-data';
+import { getErrorMessage, getErrorStack } from '@/common/utils/error.utils';
 
 export interface MailgunEmailOptions {
   to: string | string[];
@@ -26,8 +27,8 @@ export interface MailgunEmailOptions {
 export class MailgunService {
   private readonly logger = new Logger(MailgunService.name);
   private mailgun: any;
-  private domain: string;
-  private defaultFrom: string;
+  private domain = '';
+  private defaultFrom = '';
 
   constructor(private configService: ConfigService) {
     this.initializeMailgun();
@@ -37,7 +38,8 @@ export class MailgunService {
     const apiKey = this.configService.get<string>('email.mailgunApiKey');
     const domain = this.configService.get<string>('email.mailgunDomain');
     const url = this.configService.get<string>('email.mailgunUrl');
-    this.defaultFrom = this.configService.get<string>('email.fromEmail');
+    const fromEmail = this.configService.get<string>('email.fromEmail');
+    this.defaultFrom = fromEmail ?? 'no-reply@luneo.app';
 
     if (!apiKey || !domain) {
       this.logger.warn('Mailgun configuration incomplete. Service will not be available.');
@@ -50,7 +52,7 @@ export class MailgunService {
       
       this.logger.log(`Mailgun initialized for domain: ${domain}`);
     } catch (error) {
-      this.logger.error('Failed to initialize Mailgun:', error);
+      this.logger.error('Failed to initialize Mailgun:', error as Error);
     }
   }
 
@@ -128,9 +130,12 @@ export class MailgunService {
       
       this.logger.log(`Email sent successfully to ${options.to}`);
       return result;
-    } catch (error) {
-      this.logger.error('Failed to send email:', error);
-      throw error;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to send email: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
+      throw error instanceof Error ? error : new Error(getErrorMessage(error));
     }
   }
 

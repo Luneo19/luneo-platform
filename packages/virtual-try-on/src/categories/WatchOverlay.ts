@@ -161,11 +161,10 @@ export class WatchOverlay {
     
     // Get key landmarks
     const wristLandmark = landmarks[HAND_LANDMARKS_INDICES.WRIST];
-    const middleMCPLandmark = landmarks[HAND_LANDMARKS_INDICES.MIDDLE_FINGER_MCP];
     const thumbCMCLandmark = landmarks[HAND_LANDMARKS_INDICES.THUMB_CMC];
     const pinkeyMCPLandmark = landmarks[HAND_LANDMARKS_INDICES.PINKY_MCP];
     
-    if (!wristLandmark || !middleMCPLandmark || !thumbCMCLandmark || !pinkeyMCPLandmark) {
+    if (!wristLandmark || !thumbCMCLandmark || !pinkeyMCPLandmark) {
       return null;
     }
     
@@ -174,12 +173,6 @@ export class WatchOverlay {
       (wristLandmark.x - 0.5) * 2,
       -(wristLandmark.y - 0.5) * 2,
       -wristLandmark.z * 2
-    );
-    
-    const middleMCP = new THREE.Vector3(
-      (middleMCPLandmark.x - 0.5) * 2,
-      -(middleMCPLandmark.y - 0.5) * 2,
-      -middleMCPLandmark.z * 2
     );
     
     const thumbCMC = new THREE.Vector3(

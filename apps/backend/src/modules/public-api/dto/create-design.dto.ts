@@ -6,7 +6,7 @@ export class CreateDesignDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ description: 'Description of the design' })
   @IsString()
@@ -18,12 +18,12 @@ export class CreateDesignDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(2000)
-  prompt: string;
+  prompt!: string;
 
   @ApiProperty({ description: 'Product ID to create design for' })
   @IsUUID()
   @IsNotEmpty()
-  productId: string;
+  productId!: string;
 
   @ApiPropertyOptional({ description: 'Customization data for the design' })
   @IsObject()

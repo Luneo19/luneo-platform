@@ -1,0 +1,9 @@
+[
+  {
+    "policyArn": "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy",
+    "accessScope": {
+      "type": "cluster"
+    }
+  }
+]
+

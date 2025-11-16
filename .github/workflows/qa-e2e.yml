@@ -1,0 +1,193 @@
+name: QA Automatisee
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  PNPM_VERSION: 10.20.0
+
+jobs:
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: true
+
+      - name: Build frontend
+        run: pnpm --filter luneo-frontend run build
+
+      - name: Start frontend
+        run: pnpm --filter luneo-frontend run start -- --hostname 0.0.0.0 --port 3000 &
+
+      - name: Wait on frontend
+        run: npx wait-on http://127.0.0.1:3000
+
+      - name: Install Lighthouse CI
+        run: pnpm add -D @lhci/cli
+
+      - name: Lighthouse audit
+        run: pnpm lhci autorun --config=apps/frontend/lhci.config.js --collect.url=http://127.0.0.1:3000
+
+  axe:
+    name: Audit a11y (Axe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Axe tests
+        run: pnpm --filter luneo-frontend run test:axe
+
+  playwright_smoke:
+    name: Playwright Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright
+        run: pnpm --filter luneo-frontend exec playwright install --with-deps
+
+      - name: Run smoke tests
+        run: pnpm --filter luneo-frontend run test:e2e --project="chromium" --config=apps/frontend/playwright.smoke.config.ts
+
+  k6_backend:
+    name: k6 Backend Load
+    needs: [playwright_smoke]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PNPM_VERSION: ${{ env.PNPM_VERSION }}
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      REDIS_URL: redis://127.0.0.1:6379
+      OTEL_ENABLED: ${{ secrets.OTEL_ENABLED }}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT }}
+      OTEL_EXPORTER_OTLP_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
+      TEMPO_OTLP_HTTP_ENDPOINT: ${{ secrets.TEMPO_OTLP_HTTP_ENDPOINT }}
+      TEMPO_TENANT_ID: ${{ secrets.TEMPO_TENANT_ID }}
+      GRAFANA_OTLP_ENDPOINT: ${{ secrets.GRAFANA_OTLP_ENDPOINT }}
+      GRAFANA_OTLP_AUTH: ${{ secrets.GRAFANA_OTLP_AUTH }}
+      NODE_ENV: test
+      PORT: 3000
+      API_PREFIX: /api/v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..10}; do
+            if pg_isready -h 127.0.0.1 -p 5432; then
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "PostgreSQL did not become ready in time" >&2
+          exit 1
+
+      - name: Run Prisma migrations
+        run: pnpm --filter @luneo/backend-vercel exec prisma migrate deploy
+
+      - name: Build backend
+        run: pnpm --filter @luneo/backend-vercel run build
+
+      - name: Start backend
+        run: |
+          pnpm --filter @luneo/backend-vercel exec node dist/main.js &
+          echo $! > backend.pid
+
+      - name: Wait for backend
+        run: npx wait-on http://127.0.0.1:3000/health
+
+      - name: Run k6 smoke test
+        env:
+          K6_BASE_URL: http://127.0.0.1:3000/api/v1
+          K6_RATE: 40
+          K6_DURATION: 3m
+          K6_VUS: 25
+          K6_MAX_VUS: 60
+          K6_SLEEP: 0.5
+          K6_API_KEY: ${{ secrets.PUBLIC_API_KEY }}
+        run: pnpm perf:k6:backend
+
+      - name: Upload k6 summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-backend-summary
+          path: tests/performance/results/backend-summary.json
+
+      - name: Stop backend
+        if: always()
+        run: |
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) || true
+          fi
+

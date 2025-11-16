@@ -1,5 +1,7 @@
 # 🚀 **LUNEO SHOPIFY APP - GUIDE DE DÉPLOIEMENT**
 
+**Last Updated:** November 16, 2025
+
 ## 📋 **PRÉREQUIS**
 
 ### **1. Compte Shopify Partner**
@@ -8,7 +10,7 @@
 - Obtenir les clés API
 
 ### **2. Environnement de développement**
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL
 - Redis
 - Compte Vercel

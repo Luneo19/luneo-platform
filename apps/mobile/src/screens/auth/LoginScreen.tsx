@@ -9,14 +9,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
 } from 'react-native';
 import { useAuthStore } from '@/store/auth';
 import { LoginForm } from '@/types';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AuthStackParamList } from '@/navigation';
 
 export const LoginScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { login, isLoading, error, clearError, authenticateWithBiometrics, biometricsEnabled } = useAuthStore();
   
   const [form, setForm] = useState<LoginForm>({
@@ -27,6 +28,9 @@ export const LoginScreen: React.FC = () => {
   });
 
   const handleLogin = async () => {
+    if (error) {
+      clearError();
+    }
     if (!form.email || !form.password) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
@@ -41,6 +45,9 @@ export const LoginScreen: React.FC = () => {
   };
 
   const handleBiometricLogin = async () => {
+    if (error) {
+      clearError();
+    }
     try {
       const success = await authenticateWithBiometrics();
       if (success) {
@@ -54,11 +61,11 @@ export const LoginScreen: React.FC = () => {
   };
 
   const handleRegister = () => {
-    navigation.navigate('Register' as never);
+    navigation.navigate('Register');
   };
 
   const handleForgotPassword = () => {
-    navigation.navigate('ForgotPassword' as never);
+    navigation.navigate('ForgotPassword');
   };
 
   return (
@@ -84,7 +91,10 @@ export const LoginScreen: React.FC = () => {
             <TextInput
               style={styles.input}
               value={form.email}
-              onChangeText={(text) => setForm({ ...form, email: text })}
+              onChangeText={(text) => {
+                if (error) clearError();
+                setForm(prev => ({ ...prev, email: text }));
+              }}
               placeholder="votre@email.com"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -98,7 +108,10 @@ export const LoginScreen: React.FC = () => {
             <TextInput
               style={styles.input}
               value={form.password}
-              onChangeText={(text) => setForm({ ...form, password: text })}
+              onChangeText={(text) => {
+                if (error) clearError();
+                setForm(prev => ({ ...prev, password: text }));
+              }}
               placeholder="Votre mot de passe"
               secureTextEntry
               autoCapitalize="none"
@@ -110,7 +123,10 @@ export const LoginScreen: React.FC = () => {
           <View style={styles.optionsContainer}>
             <TouchableOpacity 
               style={styles.checkboxContainer}
-              onPress={() => setForm({ ...form, rememberMe: !form.rememberMe })}
+              onPress={() => {
+                if (error) clearError();
+                setForm(prev => ({ ...prev, rememberMe: !prev.rememberMe }));
+              }}
             >
               <View style={[styles.checkbox, form.rememberMe && styles.checkboxChecked]}>
                 {form.rememberMe && <Text style={styles.checkmark}>✓</Text>}

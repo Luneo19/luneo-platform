@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack-secondary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: monitoring
+    luneo.io/region: us-east-1
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+    namespace: luneo-observability
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 58.3.0
+    chart: kube-prometheus-stack
+    helm:
+      releaseName: kube-prometheus-stack
+      values: |
+        namespaceOverride: luneo-observability
+        prometheus:
+          prometheusSpec:
+            retention: 7d
+            scrapeInterval: 45s
+            externalLabels:
+              region: us-east-1
+              cluster: luneo-prod-eks-secondary
+            remoteWrite:
+              - url: https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-def456/api/v1/remote_write
+                sigv4:
+                  region: us-east-1
+        alertmanager:
+          alertmanagerSpec:
+            replicas: 1
+        grafana:
+          enabled: false
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+

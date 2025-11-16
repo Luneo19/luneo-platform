@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-agent-primary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: telemetry
+    luneo.io/region: eu-west-1
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+    namespace: luneo-observability
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 0.37.0
+    chart: grafana-agent
+    helm:
+      releaseName: grafana-agent
+      values: |
+        agent:
+          mode: flow
+        controller:
+          replicas: 2
+        integrations:
+          prometheus_remote_write:
+            - url: https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-abc123/api/v1/remote_write
+              sigv4:
+                region: eu-west-1
+          metrics_instance:
+            - name: kube-state-metrics
+              remote_write:
+                - url: http://kube-prometheus-stack-kube-state-metrics:8080/metrics
+        logs:
+          positions:
+            enabled: true
+        extraObjects:
+          - apiVersion: monitoring.grafana.com/v1alpha1
+            kind: PodLogs
+            metadata:
+              name: luneo-backend
+              namespace: luneo-observability
+            spec:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: luneo-backend
+              namespaceSelector:
+                matchNames:
+                  - luneo-platform
+              pipelineStages:
+                - docker: {}
+                - labels:
+                    job: backend
+        traces:
+          configs:
+            - name: tempo
+              receivers:
+                otlp:
+                  protocols:
+                    http:
+                      endpoint: 0.0.0.0:4318
+                    grpc:
+                      endpoint: 0.0.0.0:4317
+              exporters:
+                otlp:
+                  endpoint: tempo-distributor.luneo-observability.svc.cluster.local:4317
+                  tls:
+                    insecure: true
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+

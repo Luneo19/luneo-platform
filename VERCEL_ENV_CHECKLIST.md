@@ -13,7 +13,7 @@
 
 ### **Stripe**
 - [ ] `STRIPE_SECRET_KEY` = `sk_live_51DzUAlKG9MsM6fdScqo3...`
-- [ ] `STRIPE_PUBLISHABLE_KEY` = `pk_live_jL5xDF4ylCaiXVDswVAliVA3`
+- [ ] `STRIPE_PUBLISHABLE_KEY` = `pk_live_your_publishable_key`
 - [ ] `STRIPE_WEBHOOK_SECRET` = `whsec_rgKvTaCDRSLV6Iv6yrF8fNBh9c2II3uu`
 
 ### **OpenAI**

@@ -1,41 +1,49 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import {
+  Prisma,
+  Product as PrismaProduct,
+  EcommerceIntegration as PrismaEcommerceIntegration,
+  SyncLog,
+} from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { ShopifyConnector } from '../connectors/shopify/shopify.connector';
 import { WooCommerceConnector } from '../connectors/woocommerce/woocommerce.connector';
 import { MagentoConnector } from '../connectors/magento/magento.connector';
-import { SyncResult, SyncOptions, ProductSyncRequest } from '../interfaces/ecommerce.interface';
+import { EcommerceSyncQueueService } from './ecommerce-sync-queue.service';
+import {
+  SyncResult,
+  SyncOptions,
+  ProductSyncRequest,
+  EcommerceIntegration,
+  EcommerceConfig,
+  ShopifyProduct,
+  WooCommerceProduct,
+  MagentoProduct,
+} from '../interfaces/ecommerce.interface';
 
 @Injectable()
 export class ProductSyncService {
   private readonly logger = new Logger(ProductSyncService.name);
 
   constructor(
-    @InjectQueue('ecommerce-sync') private readonly syncQueue: Queue,
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
     private readonly shopifyConnector: ShopifyConnector,
     private readonly woocommerceConnector: WooCommerceConnector,
     private readonly magentoConnector: MagentoConnector,
+    private readonly syncQueueService: EcommerceSyncQueueService,
   ) {}
 
   /**
    * Synchronise les produits d'une intégration
    */
   async syncProducts(request: ProductSyncRequest): Promise<SyncResult> {
-    const { integrationId, productIds, options } = request;
+    const { integrationId, options } = request;
 
     try {
       // Récupérer l'intégration
-      const integration = await this.prisma.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
-      }
+      const integration = await this.getIntegration(integrationId);
 
       this.logger.log(`Starting product sync for ${integration.platform} integration ${integrationId}`);
 
@@ -83,13 +91,7 @@ export class ProductSyncService {
     direction: 'import' | 'export' = 'export',
   ): Promise<void> {
     try {
-      const integration = await this.prisma.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
-      }
+      const integration = await this.getIntegration(integrationId);
 
       if (direction === 'export') {
         // Exporter le produit LUNEO vers la plateforme e-commerce
@@ -107,16 +109,10 @@ export class ProductSyncService {
   /**
    * Exporte un produit LUNEO vers la plateforme e-commerce
    */
-  private async exportProduct(integration: any, luneoProductId: string): Promise<void> {
-    const product = await this.prisma.product.findUnique({
-      where: { id: luneoProductId },
-    });
+  private async exportProduct(integration: EcommerceIntegration, luneoProductId: string): Promise<void> {
+    const product = await this.getProduct(luneoProductId);
+    const sku = product.sku ?? product.id;
 
-    if (!product) {
-      throw new Error(`Product ${luneoProductId} not found`);
-    }
-
-    // Vérifier si le produit est déjà mappé
     const mapping = await this.prisma.productMapping.findFirst({
       where: {
         integrationId: integration.id,
@@ -124,50 +120,53 @@ export class ProductSyncService {
       },
     });
 
-    const productData = this.transformLuneoProductToExternal(product, integration.platform);
-
     switch (integration.platform) {
-      case 'shopify':
+      case 'shopify': {
+        const productInput = this.transformLuneoProductToExternal(product, 'shopify');
         const shopifyProduct = await this.shopifyConnector.upsertProduct(
           integration.id,
-          productData,
+          productInput,
           mapping?.externalProductId,
         );
-        
+
         if (!mapping) {
           await this.createProductMapping(
             integration.id,
             luneoProductId,
             shopifyProduct.id,
-            product.sku,
+            sku,
           );
         }
         break;
+      }
 
-      case 'woocommerce':
+      case 'woocommerce': {
+        const productInput = this.transformLuneoProductToExternal(product, 'woocommerce');
         const wooProduct = await this.woocommerceConnector.upsertProduct(
           integration.id,
-          productData,
-          mapping ? parseInt(mapping.externalProductId) : undefined,
+          productInput,
+          mapping ? Number.parseInt(mapping.externalProductId, 10) : undefined,
         );
-        
+
         if (!mapping) {
           await this.createProductMapping(
             integration.id,
             luneoProductId,
             wooProduct.id.toString(),
-            product.sku,
+            sku,
           );
         }
         break;
+      }
 
-      case 'magento':
+      case 'magento': {
+        const productInput = this.transformLuneoProductToExternal(product, 'magento');
         const magentoProduct = await this.magentoConnector.upsertProduct(
           integration.id,
-          productData,
+          productInput,
           mapping?.externalSku,
         );
-        
+
         if (!mapping) {
           await this.createProductMapping(
             integration.id,
@@ -177,6 +176,7 @@ export class ProductSyncService {
           );
         }
         break;
+      }
     }
 
     this.logger.log(`Exported product ${luneoProductId} to ${integration.platform}`);
@@ -185,55 +185,93 @@ export class ProductSyncService {
   /**
    * Transforme un produit LUNEO en format externe
    */
-  private transformLuneoProductToExternal(product: any, platform: string): any {
+  private transformLuneoProductToExternal(
+    product: PrismaProduct,
+    platform: 'shopify',
+  ): Partial<ShopifyProduct>;
+  private transformLuneoProductToExternal(
+    product: PrismaProduct,
+    platform: 'woocommerce',
+  ): Partial<WooCommerceProduct>;
+  private transformLuneoProductToExternal(
+    product: PrismaProduct,
+    platform: 'magento',
+  ): Partial<MagentoProduct>;
+  private transformLuneoProductToExternal(
+    product: PrismaProduct,
+    platform: EcommerceIntegration['platform'],
+  ):
+    | Partial<ShopifyProduct>
+    | Partial<WooCommerceProduct>
+    | Partial<MagentoProduct> {
+    const sku = product.sku ?? product.id;
+    const priceValue = typeof product.price === 'number' ? product.price : 0;
+
     switch (platform) {
       case 'shopify':
         return {
           title: product.name,
-          body_html: product.description || '',
+          body_html: product.description ?? '',
           vendor: 'LUNEO',
           product_type: 'Customizable',
           tags: ['luneo', 'customizable'],
-          variants: [{
-            sku: product.sku,
-            price: product.price.toString(),
-            inventory_quantity: 1000,
-          }],
-          images: product.images.map((src: string, index: number) => ({
+          variants: [
+            {
+              title: product.name,
+              price: priceValue.toString(),
+              sku,
+              position: 1,
+              inventory_quantity: 1000,
+            },
+          ],
+          images: (product.images ?? []).map((src, index) => ({
             src,
             position: index + 1,
           })),
+          status: product.isActive ? 'active' : 'draft',
         };
 
       case 'woocommerce':
         return {
           name: product.name,
-          description: product.description || '',
-          short_description: '',
-          sku: product.sku,
-          regular_price: product.price.toString(),
-          status: product.isActive ? 'publish' : 'draft',
           type: 'simple',
-          images: product.images.map((src: string, index: number) => ({
+          status: product.isActive ? 'publish' : 'draft',
+          description: product.description ?? '',
+          short_description: '',
+          sku,
+          price: priceValue.toString(),
+          regular_price: priceValue.toString(),
+          sale_price: priceValue.toString(),
+          images: (product.images ?? []).map((src, index) => ({
             src,
+            name: product.name,
+            alt: product.name,
             position: index,
           })),
         };
 
       case 'magento':
         return {
-          sku: product.sku,
+          sku,
           name: product.name,
-          price: product.price,
+          price: priceValue,
           status: product.isActive ? 1 : 2,
           visibility: 4,
           type_id: 'simple',
           attribute_set_id: 4,
+          media_gallery_entries: (product.images ?? []).map((src, index) => ({
+            id: index + 1,
+            media_type: 'image',
+            label: product.name,
+            position: index,
+            disabled: false,
+            types: ['image'],
+            file: src,
+          })),
         };
-
-      default:
-        return product;
     }
+
+    return {};
   }
 
   /**
@@ -251,7 +289,7 @@ export class ProductSyncService {
         luneoProductId,
         externalProductId,
         externalSku: sku,
-        syncStatus: 'synced',
+        syncStatus: 'synced' as const,
         lastSyncedAt: new Date(),
       },
     });
@@ -261,14 +299,9 @@ export class ProductSyncService {
    * Programme une synchronisation automatique
    */
   async scheduleSyncJob(integrationId: string, interval: 'hourly' | 'daily' | 'weekly'): Promise<void> {
-    const job = await this.syncQueue.add(
-      'sync-products',
-      { integrationId },
-      {
-        repeat: {
-          cron: this.getCronExpression(interval),
-        },
-      }
+    await this.syncQueueService.scheduleProductsSync(
+      integrationId,
+      this.getCronExpression(interval),
     );
 
     this.logger.log(`Scheduled product sync job for integration ${integrationId}: ${interval}`);
@@ -277,24 +310,27 @@ export class ProductSyncService {
   /**
    * Obtient l'expression cron selon l'intervalle
    */
-  private getCronExpression(interval: string): string {
+  private getCronExpression(interval: 'hourly' | 'daily' | 'weekly'): string {
     switch (interval) {
-      case 'hourly': return '0 * * * *';
-      case 'daily': return '0 2 * * *'; // 2AM
-      case 'weekly': return '0 2 * * 0'; // Sunday 2AM
-      default: return '0 2 * * *';
+      case 'hourly':
+        return '0 * * * *';
+      case 'daily':
+        return '0 2 * * *';
+      case 'weekly':
+        return '0 2 * * 0';
     }
+    return '0 2 * * *';
   }
 
   /**
    * Obtient les statistiques de synchronisation
    */
-  async getSyncStats(integrationId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<any> {
+  async getSyncStats(integrationId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<SyncStats> {
     const cacheKey = `sync_stats:${integrationId}:${period}`;
     
     const cached = await this.cache.getSimple(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached as SyncStats;
     }
 
     try {
@@ -324,19 +360,21 @@ export class ProductSyncService {
         orderBy: { createdAt: 'desc' },
       });
 
-      const stats = {
+      const totalDuration = syncLogs.reduce((sum, log) => sum + log.duration, 0);
+
+      const stats: SyncStats = {
         period,
         totalSyncs: syncLogs.length,
-        successfulSyncs: syncLogs.filter(log => log.status === 'success').length,
-        failedSyncs: syncLogs.filter(log => log.status === 'failed').length,
-        partialSyncs: syncLogs.filter(log => log.status === 'partial').length,
+        successfulSyncs: syncLogs.filter((log) => log.status === 'success').length,
+        failedSyncs: syncLogs.filter((log) => log.status === 'failed').length,
+        partialSyncs: syncLogs.filter((log) => log.status === 'partial').length,
         totalItemsProcessed: syncLogs.reduce((sum, log) => sum + log.itemsProcessed, 0),
         totalItemsFailed: syncLogs.reduce((sum, log) => sum + log.itemsFailed, 0),
-        averageDuration: syncLogs.reduce((sum, log) => sum + log.duration, 0) / syncLogs.length,
-        lastSync: syncLogs[0],
+        averageDuration: syncLogs.length > 0 ? totalDuration / syncLogs.length : 0,
+        lastSync: syncLogs[0] ?? null,
       };
 
-      await this.cache.setSimple(cacheKey, JSON.stringify(stats), 300);
+      await this.cache.setSimple(cacheKey, stats, 300);
       
       return stats;
     } catch (error) {
@@ -344,6 +382,92 @@ export class ProductSyncService {
       throw error;
     }
   }
+
+  private async getIntegration(integrationId: string): Promise<EcommerceIntegration> {
+    const record = await this.prisma.ecommerceIntegration.findUnique({
+      where: { id: integrationId },
+    });
+
+    if (!record) {
+      throw new Error(`Integration ${integrationId} not found`);
+    }
+
+    return this.mapIntegration(record);
+  }
+
+  private async getProduct(productId: string): Promise<PrismaProduct> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      throw new Error(`Product ${productId} not found`);
+    }
+
+    return product;
+  }
+
+  private mapIntegration(record: PrismaEcommerceIntegration): EcommerceIntegration {
+    return {
+      id: record.id,
+      brandId: record.brandId,
+      platform: record.platform as EcommerceIntegration['platform'],
+      shopDomain: record.shopDomain,
+      accessToken: record.accessToken ?? undefined,
+      refreshToken: record.refreshToken ?? undefined,
+      config: this.parseConfig(record.config),
+      status: record.status as EcommerceIntegration['status'],
+      lastSyncAt: record.lastSyncAt ?? undefined,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
+  private parseConfig(config: Prisma.JsonValue | null): EcommerceConfig {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return {};
+    }
+
+    const record = config as Record<string, unknown>;
+
+    return {
+      apiKey: typeof record.apiKey === 'string' ? record.apiKey : undefined,
+      apiSecret: typeof record.apiSecret === 'string' ? record.apiSecret : undefined,
+      webhookSecret: typeof record.webhookSecret === 'string' ? record.webhookSecret : undefined,
+      scopes: this.ensureStringArray(record.scopes),
+      features: this.ensureStringArray(record.features),
+      customFields: this.ensureRecord(record.customFields),
+    };
+  }
+
+  private ensureStringArray(value: unknown): string[] | undefined {
+    if (!value || !Array.isArray(value)) {
+      return undefined;
+    }
+
+    const items = value.filter((entry): entry is string => typeof entry === 'string');
+    return items.length > 0 ? items : undefined;
+  }
+
+  private ensureRecord(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    return value as Record<string, unknown>;
+  }
+}
+
+interface SyncStats {
+  period: 'day' | 'week' | 'month';
+  totalSyncs: number;
+  successfulSyncs: number;
+  failedSyncs: number;
+  partialSyncs: number;
+  totalItemsProcessed: number;
+  totalItemsFailed: number;
+  averageDuration: number;
+  lastSync: SyncLog | null;
 }
 
 

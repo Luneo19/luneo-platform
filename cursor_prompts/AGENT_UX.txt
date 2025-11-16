@@ -1,0 +1,20 @@
+AGENT_UX — Product & onboarding polish
+
+Tâches:
+
+1. Review widget UX flow: initial load, selection, prompt input, previews, AR entry.
+
+2. Propose microcopy improvements for prompts and error messages.
+
+3. Add onboarding overlay for store owners: how to install widget, permissions needed.
+
+4. Create simple A/B test plan to measure conversion (preview->AR->checkout).
+
+Deliverables:
+
+- UX suggestions, copy, onboarding overlay components.
+
+Risk:
+
+- UX changes impacting conversion: run A/B tests.
+

@@ -5,8 +5,9 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Request,
   Get,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +20,7 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Public } from '@/common/guards/jwt-auth.guard';
+import type { Request } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -158,8 +160,9 @@ export class AuthController {
       },
     },
   })
-  async logout(@Request() req) {
-    return this.authService.logout(req.user.id);
+  async logout(@Req() req: Request) {
+    const user = this.requireUser(req);
+    return this.authService.logout(user.id);
   }
 
   @Get('me')
@@ -189,7 +192,14 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Non autorisé' })
-  async getProfile(@Request() req) {
+  async getProfile(@Req() req: Request) {
+    return this.requireUser(req);
+  }
+
+  private requireUser(req: Request) {
+    if (!req.user) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
     return req.user;
   }
 }

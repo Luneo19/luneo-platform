@@ -37,7 +37,7 @@ export class OAuthController {
       }
 
       // Validation du format du shop
-      if (!shop.match(/^[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com$/)) {
+      if (!/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/.test(shop)) {
         throw new HttpException('Format de shop invalide', HttpStatus.BAD_REQUEST);
       }
 
@@ -127,7 +127,8 @@ export class OAuthController {
     } catch (error) {
       this.logger.error('Erreur lors du callback OAuth:', error);
       
-      const errorUrl = `${this.configService.get('shopify.appUrl')}/error?message=${encodeURIComponent(error.message)}`;
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorUrl = `${this.configService.get('shopify.appUrl')}/error?message=${encodeURIComponent(errorMessage)}`;
       res.redirect(errorUrl);
     }
   }
@@ -151,7 +152,7 @@ export class OAuthController {
         message: 'Token rafraîchi avec succès',
         data: {
           shop,
-          expires_at: newTokenData.expires_at,
+          expires_in: newTokenData.expires_in ?? null,
         },
       };
     } catch (error) {

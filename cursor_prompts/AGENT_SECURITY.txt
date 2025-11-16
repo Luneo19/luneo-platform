@@ -1,0 +1,24 @@
+AGENT_SECURITY — Global security guardrails
+
+Tâches:
+
+1. Add rate-limiter middleware per tenant (Redis-backed).
+
+2. Add JWT rotation plan & route to rotate/expire embed keys.
+
+3. Implement webhook HMAC verify utility with replay protection (nonce + timestamp).
+
+4. Add secrets encryption integration pattern (KMS usage example in Terraform).
+
+5. Add OWASP ZAP baseline script integration in CI (scripts/security/run-zap-baseline.sh).
+
+6. Add check in PR pipeline to scan for secrets in commits (pre-commit hook template).
+
+Deliverables:
+
+- Middleware, utilities, CI step.
+
+Risk:
+
+- Performance impact: use token buckets with leaky-bucket approach.
+

@@ -1,0 +1,15 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sDenyLatestTag
+metadata:
+  name: forbid-latest-tag-secondary
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+  parameters:
+    excludedRegistries:
+      - 123456789012.dkr.ecr.us-east-1.amazonaws.com/internal-base-images
+

@@ -1,182 +1,66 @@
 // Types de base pour l'app mobile Luneo Enterprise
 
-export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  avatar?: string;
-  role: UserRole;
-  brandId?: string;
-  preferences: UserPreferences;
-  createdAt: string;
-  updatedAt: string;
-}
+import type {
+  User as SharedUser,
+  UserRole as SharedUserRole,
+  UserPreferences as SharedUserPreferences,
+  Brand as SharedBrand,
+  BrandStatus as SharedBrandStatus,
+  BrandSettings as SharedBrandSettings,
+  Product as SharedProduct,
+  ProductVariant as SharedProductVariant,
+  Design as SharedDesign,
+  DesignStatus as SharedDesignStatus,
+  DesignMetadata as SharedDesignMetadata,
+  Order as SharedOrder,
+  OrderItem as SharedOrderItem,
+  OrderStatus as SharedOrderStatus,
+  PaymentStatus as SharedPaymentStatus,
+  Address as SharedAddress,
+  PaymentMethod as SharedPaymentMethod,
+  Pagination as SharedPagination,
+  ProductRecord as SharedProductRecord,
+  ProductVariantRecord as SharedProductVariantRecord,
+  OrderSummary as SharedOrderSummary,
+  OrderItemSummary as SharedOrderItemSummary,
+  DesignSummary as SharedDesignSummary,
+  ApiKeySummary as SharedApiKeySummary,
+  AnalyticsOverview as SharedAnalyticsOverview,
+  ApiResponse as SharedApiResponse,
+  PaginatedResponse as SharedPaginatedResponse,
+  Notification as SharedNotification,
+} from '@luneo/types';
 
-export enum UserRole {
-  PLATFORM_ADMIN = 'PLATFORM_ADMIN',
-  BRAND_ADMIN = 'BRAND_ADMIN',
-  BRAND_USER = 'BRAND_USER',
-  CUSTOMER = 'CUSTOMER',
-}
+export type User = SharedUser;
+export type UserRole = SharedUserRole;
+export type UserPreferences = SharedUserPreferences;
+export type Brand = SharedBrand;
+export type BrandStatus = SharedBrandStatus;
+export type BrandSettings = SharedBrandSettings;
+export type Product = SharedProduct;
+export type ProductVariant = SharedProductVariant;
+export type Design = SharedDesign;
+export type DesignStatus = SharedDesignStatus;
+export type DesignMetadata = SharedDesignMetadata;
+export type DesignSummary = SharedDesignSummary;
+export type ProductRecord = SharedProductRecord;
+export type ProductVariantRecord = SharedProductVariantRecord;
+export type Order = SharedOrder;
+export type OrderItem = SharedOrderItem;
+export type OrderStatus = SharedOrderStatus;
+export type PaymentStatus = SharedPaymentStatus;
+export type Address = SharedAddress;
+export type PaymentMethod = SharedPaymentMethod;
+export type Pagination = SharedPagination;
+export type OrderSummary = SharedOrderSummary;
+export type OrderItemSummary = SharedOrderItemSummary;
+export type ApiKeySummary = SharedApiKeySummary;
+export type AnalyticsOverview = SharedAnalyticsOverview;
+export type ApiResponse<T = unknown> = SharedApiResponse<T>;
+export type PaginatedResponse<T = unknown> = SharedPaginatedResponse<T>;
+export type Notification = SharedNotification;
 
-export interface UserPreferences {
-  theme: 'light' | 'dark' | 'system';
-  language: string;
-  notifications: {
-    push: boolean;
-    email: boolean;
-    sms: boolean;
-  };
-  biometrics: boolean;
-  autoSync: boolean;
-}
-
-export interface Brand {
-  id: string;
-  name: string;
-  description?: string;
-  logo?: string;
-  website?: string;
-  status: BrandStatus;
-  settings: BrandSettings;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export enum BrandStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-}
-
-export interface BrandSettings {
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-  };
-  fonts: {
-    primary: string;
-    secondary: string;
-  };
-  currency: string;
-  timezone: string;
-}
-
-export interface Product {
-  id: string;
-  brandId: string;
-  name: string;
-  description?: string;
-  price: number;
-  currency: string;
-  images: string[];
-  variants: ProductVariant[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ProductVariant {
-  id: string;
-  name: string;
-  price: number;
-  attributes: Record<string, string>;
-  stock?: number;
-  images: string[];
-}
-
-export interface Design {
-  id: string;
-  brandId: string;
-  userId: string;
-  name: string;
-  description?: string;
-  prompt?: string;
-  imageUrl: string;
-  thumbnailUrl: string;
-  status: DesignStatus;
-  tags: string[];
-  metadata: DesignMetadata;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export enum DesignStatus {
-  DRAFT = 'DRAFT',
-  GENERATING = 'GENERATING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  ARCHIVED = 'ARCHIVED',
-}
-
-export interface DesignMetadata {
-  width: number;
-  height: number;
-  format: string;
-  size: number;
-  aiModel?: string;
-  generationTime?: number;
-  iterations?: number;
-}
-
-export interface Order {
-  id: string;
-  brandId: string;
-  userId: string;
-  items: OrderItem[];
-  status: OrderStatus;
-  totalAmount: number;
-  currency: string;
-  shippingAddress: Address;
-  billingAddress: Address;
-  paymentMethod: PaymentMethod;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrderItem {
-  id: string;
-  productId: string;
-  designId?: string;
-  variantId?: string;
-  quantity: number;
-  price: number;
-  total: number;
-  customization?: Record<string, any>;
-}
-
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  PROCESSING = 'PROCESSING',
-  SHIPPED = 'SHIPPED',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED',
-}
-
-export interface Address {
-  firstName: string;
-  lastName: string;
-  company?: string;
-  address1: string;
-  address2?: string;
-  city: string;
-  state?: string;
-  postalCode: string;
-  country: string;
-  phone?: string;
-}
-
-export interface PaymentMethod {
-  type: 'card' | 'apple_pay' | 'google_pay' | 'paypal';
-  last4?: string;
-  brand?: string;
-  expiryMonth?: number;
-  expiryYear?: number;
-}
+// Domain types are re-exported from @luneo/types (see aliases above)
 
 // Types pour l'interface mobile
 export interface NavigationProps {
@@ -213,34 +97,7 @@ export interface ContactForm {
   message: string;
 }
 
-// Types pour les API responses
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-export interface PaginatedResponse<T = any> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
-
-// Types pour les notifications
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  read: boolean;
-  createdAt: string;
-  data?: Record<string, any>;
-}
+// Types pour les API responses et notifications sont fournis par @luneo/types
 
 // Types pour les métriques
 export interface DashboardMetrics {

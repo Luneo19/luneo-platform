@@ -1,0 +1,24 @@
+AGENT_COMPLIANCE — GDPR & data controls
+
+Tâches:
+
+1. Add export & delete endpoints for user data (per GDPR):
+
+   - POST /api/data/export?userId=
+
+   - DELETE /api/data/erase?userId=
+
+2. Ensure logs do not contain PII; implement log scrubbing utility.
+
+3. Document retention policies and data lifecycle under docs/compliance.md.
+
+4. Add e2e test for export/delete.
+
+Deliverables:
+
+- Endpoints, documentation, tests.
+
+Risk:
+
+- Partial deletes across backups; include runbook.
+

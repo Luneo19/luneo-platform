@@ -11,9 +11,9 @@
     }
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch",
-    "preview": "vite preview",
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "preview": "echo \"Preview not available for library build\"",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
     "lint": "eslint src/"
@@ -36,7 +36,8 @@
     "typescript": "^5.0.0",
     "vite": "^5.0.0",
     "@vitejs/plugin-react": "^4.0.0",
-    "eslint": "^8.0.0"
+    "eslint": "^8.0.0",
+    "tsup": "^7.3.0"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

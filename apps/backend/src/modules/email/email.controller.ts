@@ -3,10 +3,11 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { EmailService } from './email.service';
 import { MailgunService } from './mailgun.service';
 import { SendGridService } from './sendgrid.service';
+import { getErrorMessage } from '@/common/utils/error.utils';
 
 export class SendEmailDto {
-  to: string | string[];
-  subject: string;
+  to!: string | string[];
+  subject!: string;
   text?: string;
   html?: string;
   from?: string;
@@ -16,7 +17,7 @@ export class SendEmailDto {
 }
 
 export class TestEmailDto {
-  email: string;
+  email!: string;
   name?: string;
   provider?: 'sendgrid' | 'mailgun' | 'auto';
 }

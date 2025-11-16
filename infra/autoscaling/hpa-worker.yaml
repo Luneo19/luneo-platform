@@ -1,0 +1,110 @@
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: luneo-worker-hpa
+  namespace: luneo-production
+  labels:
+    app: luneo-worker
+    component: render-worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: luneo-worker-ia
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    # CPU-based scaling (workers are CPU-intensive)
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+    # Memory-based scaling
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 85
+    # Custom metric: Queue depth per worker
+    - type: Pods
+      pods:
+        metric:
+          name: bullmq_queue_depth
+        target:
+          type: AverageValue
+          averageValue: "50"  # 50 jobs per worker before scaling
+    # Custom metric: Active jobs per worker
+    - type: Pods
+      pods:
+        metric:
+          name: bullmq_active_jobs
+        target:
+          type: AverageValue
+          averageValue: "10"  # 10 active jobs per worker
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 120  # 2 minutes before scaling up
+      policies:
+        - type: Percent
+          value: 50   # Increase by 50%
+          periodSeconds: 120
+        - type: Pods
+          value: 2   # Or add 2 pods
+          periodSeconds: 120
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 600  # 10 minutes before scaling down (jobs may be long-running)
+      policies:
+        - type: Percent
+          value: 25   # Reduce by 25%
+          periodSeconds: 600
+        - type: Pods
+          value: 1   # Or remove 1 pod
+          periodSeconds: 600
+      selectPolicy: Min
+
+---
+# Vertical Pod Autoscaler for worker optimization
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: luneo-worker-vpa
+  namespace: luneo-production
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: luneo-worker-ia
+  updatePolicy:
+    updateMode: "Auto"  # Automatically apply recommendations
+  resourcePolicy:
+    containerPolicies:
+      - containerName: worker
+        minAllowed:
+          cpu: "500m"
+          memory: "1Gi"
+        maxAllowed:
+          cpu: "8"
+          memory: "16Gi"
+        controlledResources: ["cpu", "memory"]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: luneo-worker-metrics
+  namespace: luneo-production
+  labels:
+    app: luneo-worker
+spec:
+  ports:
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: metrics
+  selector:
+    app: luneo-worker-ia

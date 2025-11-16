@@ -1,11 +1,23 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { WebhookService } from './webhooks.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { QuotaGuard } from '@/common/guards/quota.guard';
+import { RequireQuota } from '@/common/decorators/quota.decorator';
 
 @ApiTags('Webhooks')
 @Controller('webhooks')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, QuotaGuard)
 @ApiBearerAuth()
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
@@ -14,6 +26,7 @@ export class WebhookController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Test webhook endpoint' })
   @ApiResponse({ status: 200, description: 'Webhook test completed' })
+  @RequireQuota({ metric: 'webhook_deliveries' })
   async testWebhook(
     @Body('url') url: string,
     @Body('secret') secret?: string,
@@ -27,6 +40,7 @@ export class WebhookController {
   @ApiResponse({ status: 200, description: 'Webhook history retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @RequireQuota({ metric: 'api_calls' })
   async getHistory(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
@@ -40,6 +54,7 @@ export class WebhookController {
   @ApiOperation({ summary: 'Retry failed webhook' })
   @ApiResponse({ status: 200, description: 'Webhook retry completed' })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
+  @RequireQuota({ metric: 'webhook_deliveries' })
   async retryWebhook(@Param('id') id: string) {
     return this.webhookService.retryWebhook(id);
   }

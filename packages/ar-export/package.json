@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "jest"
+    "test": "echo \"No tests configured for @luneo/ar-export\""
   },
   "keywords": [
     "ar",

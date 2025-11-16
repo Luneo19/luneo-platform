@@ -1,19 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { Prisma, EcommerceIntegration as PrismaEcommerceIntegration } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { ShopifyConnector } from '../connectors/shopify/shopify.connector';
 import { WooCommerceConnector } from '../connectors/woocommerce/woocommerce.connector';
 import { MagentoConnector } from '../connectors/magento/magento.connector';
-import { SyncResult, OrderSyncRequest } from '../interfaces/ecommerce.interface';
+import {
+  SyncResult,
+  OrderSyncRequest,
+  SyncError,
+  ShopifyOrder,
+  WooCommerceOrder,
+  MagentoOrder,
+} from '../interfaces/ecommerce.interface';
 
 @Injectable()
 export class OrderSyncService {
   private readonly logger = new Logger(OrderSyncService.name);
 
   constructor(
-    @InjectQueue('ecommerce-sync') private readonly syncQueue: Queue,
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
     private readonly shopifyConnector: ShopifyConnector,
@@ -27,7 +32,7 @@ export class OrderSyncService {
   async syncOrders(request: OrderSyncRequest): Promise<SyncResult> {
     const { integrationId, orderIds, options } = request;
     const startTime = Date.now();
-    const errors: any[] = [];
+    const errors: SyncError[] = [];
     let itemsProcessed = 0;
     let itemsFailed = 0;
 
@@ -43,7 +48,7 @@ export class OrderSyncService {
       this.logger.log(`Starting order sync for ${integration.platform} integration ${integrationId}`);
 
       // Récupérer les commandes selon la plateforme
-      let orders: any[] = [];
+      let orders: PlatformOrder[] = [];
 
       switch (integration.platform) {
         case 'shopify':
@@ -61,30 +66,38 @@ export class OrderSyncService {
 
       // Traiter chaque commande
       for (const order of orders) {
+        const orderId = this.getOrderIdentifier(order);
+        if (orderIds && orderIds.length > 0 && !orderIds.includes(orderId)) {
+          continue;
+        }
+
         try {
           await this.processOrder(integration, order);
           itemsProcessed++;
         } catch (error) {
           this.logger.error(`Error processing order:`, error);
           errors.push({
-            itemId: order.id.toString(),
+            itemId: orderId,
             code: 'PROCESS_ERROR',
-            message: error.message,
+            message: error instanceof Error ? error.message : 'Unknown error',
           });
           itemsFailed++;
         }
       }
 
       // Sauvegarder le log
+      const syncStatus: SyncResult['status'] =
+        itemsFailed === 0 ? 'success' : itemsProcessed === 0 ? 'failed' : 'partial';
+
       const syncLog = await this.prisma.syncLog.create({
         data: {
           integrationId,
           type: 'order',
           direction: 'import',
-          status: itemsFailed === 0 ? 'success' : itemsFailed < itemsProcessed ? 'partial' : 'failed',
+          status: syncStatus,
           itemsProcessed,
           itemsFailed,
-          errors,
+          errors: this.toJson(errors),
           duration: Date.now() - startTime,
         },
       });
@@ -94,7 +107,7 @@ export class OrderSyncService {
         platform: integration.platform,
         type: 'order',
         direction: 'import',
-        status: syncLog.status as any,
+        status: syncStatus,
         itemsProcessed,
         itemsFailed,
         duration: Date.now() - startTime,
@@ -105,7 +118,7 @@ export class OrderSyncService {
           deleted: 0,
           skipped: itemsFailed,
         },
-        createdAt: new Date(),
+        createdAt: syncLog.createdAt,
       };
     } catch (error) {
       this.logger.error(`Order sync failed:`, error);
@@ -116,9 +129,12 @@ export class OrderSyncService {
   /**
    * Traite une commande
    */
-  private async processOrder(integration: any, order: any): Promise<void> {
-    // Logique spécifique déjà implémentée dans les connecteurs
-    this.logger.log(`Processing order ${order.id} from ${integration.platform}`);
+  private async processOrder(
+    integration: PrismaEcommerceIntegration,
+    order: PlatformOrder,
+  ): Promise<void> {
+    // Logique métier à implémenter : pour l'instant, simple journalisation
+    this.logger.log(`Processing order ${this.getOrderIdentifier(order)} from ${integration.platform}`);
   }
 
   /**
@@ -154,26 +170,31 @@ export class OrderSyncService {
         return;
       }
 
-      const metadata = order.metadata as any;
+      const metadata = this.parseOrderMetadata(order.metadata);
       const externalStatus = this.mapLuneoStatusToExternal(status, integration.platform);
 
       // Mettre à jour selon la plateforme
       switch (integration.platform) {
         case 'shopify':
-          if (metadata.shopifyOrderId) {
+          if (metadata.shopifyOrderId !== undefined && metadata.shopifyOrderId !== null) {
             await this.shopifyConnector.updateOrderStatus(
               integration.id,
-              metadata.shopifyOrderId,
+              String(metadata.shopifyOrderId),
               externalStatus,
             );
           }
           break;
 
         case 'woocommerce':
-          if (metadata.woocommerceOrderId) {
+          if (metadata.woocommerceOrderId !== undefined && metadata.woocommerceOrderId !== null) {
+            const orderIdNumber = Number(metadata.woocommerceOrderId);
+            if (!Number.isFinite(orderIdNumber)) {
+              this.logger.warn(`Invalid WooCommerce order id in metadata for ${luneoOrderId}`);
+              break;
+            }
             await this.woocommerceConnector.updateOrderStatus(
               integration.id,
-              metadata.woocommerceOrderId,
+              orderIdNumber,
               externalStatus,
             );
           }
@@ -227,7 +248,7 @@ export class OrderSyncService {
   /**
    * Obtient les commandes récentes d'une intégration
    */
-  async getRecentOrders(integrationId: string, limit: number = 50): Promise<any[]> {
+  async getRecentOrders(integrationId: string, limit: number = 50): Promise<RecentOrder[]> {
     try {
       const orders = await this.prisma.order.findMany({
         where: {
@@ -244,7 +265,7 @@ export class OrderSyncService {
         },
       });
 
-      return orders;
+      return orders as RecentOrder[];
     } catch (error) {
       this.logger.error(`Error fetching recent orders:`, error);
       throw error;
@@ -254,12 +275,15 @@ export class OrderSyncService {
   /**
    * Obtient les statistiques de commandes
    */
-  async getOrderStats(integrationId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<any> {
+  async getOrderStats(
+    integrationId: string,
+    period: 'day' | 'week' | 'month' = 'week',
+  ): Promise<OrderStats> {
     const cacheKey = `order_stats:${integrationId}:${period}`;
     
     const cached = await this.cache.getSimple(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached as OrderStats;
     }
 
     try {
@@ -295,7 +319,7 @@ export class OrderSyncService {
         },
       });
 
-      const stats = {
+      const stats: OrderStats = {
         period,
         totalOrders: orders.length,
         totalRevenue: orders.reduce((sum, order) => sum + order.totalCents, 0) / 100,
@@ -308,7 +332,7 @@ export class OrderSyncService {
           : 0,
       };
 
-      await this.cache.setSimple(cacheKey, JSON.stringify(stats), 300);
+      await this.cache.setSimple(cacheKey, stats, 300);
       
       return stats;
     } catch (error) {
@@ -316,6 +340,67 @@ export class OrderSyncService {
       throw error;
     }
   }
+
+  private parseOrderMetadata(metadata: Prisma.JsonValue | null): OrderIntegrationMetadata {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      return {};
+    }
+
+    const record = metadata as Record<string, unknown>;
+
+    return {
+      integrationId: typeof record.integrationId === 'string' ? record.integrationId : undefined,
+      shopifyOrderId: record.shopifyOrderId,
+      woocommerceOrderId: record.woocommerceOrderId,
+      lineItemId: record.lineItemId,
+      customProperties: record.customProperties,
+      customMeta: record.customMeta,
+    };
+  }
+
+  private getOrderIdentifier(order: PlatformOrder): string {
+    if (isShopifyOrder(order)) {
+      return order.id.toString();
+    }
+
+    if (isWooCommerceOrder(order)) {
+      return order.id.toString();
+    }
+
+    return order.entity_id.toString();
+  }
+
+  private toJson(value: unknown): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
+  }
 }
 
+type PlatformOrder = ShopifyOrder | WooCommerceOrder | MagentoOrder;
+
+interface OrderIntegrationMetadata {
+  integrationId?: string;
+  shopifyOrderId?: unknown;
+  woocommerceOrderId?: unknown;
+  lineItemId?: unknown;
+  customProperties?: unknown;
+  customMeta?: unknown;
+}
+
+interface OrderStats {
+  period: 'day' | 'week' | 'month';
+  totalOrders: number;
+  totalRevenue: number;
+  ordersByStatus: Record<string, number>;
+  averageOrderValue: number;
+}
+
+type RecentOrder = Prisma.OrderGetPayload<{ include: { product: true; design: true } }>;
+
+function isShopifyOrder(order: PlatformOrder): order is ShopifyOrder {
+  return 'order_number' in order;
+}
+
+function isWooCommerceOrder(order: PlatformOrder): order is WooCommerceOrder {
+  return 'line_items' in order && 'billing' in order && 'shipping' in order;
+}
 

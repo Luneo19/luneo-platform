@@ -1,7 +1,16 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { ApiResponse, PaginatedResponse, User, LoginForm, RegisterForm } from '@/types';
+import {
+  PaginatedResponse,
+  User,
+  LoginForm,
+  RegisterForm,
+  Design,
+  Product,
+  Order,
+  Notification,
+} from '@/types';
 
 // Configuration de base
 const API_BASE_URL = __DEV__ 
@@ -68,7 +77,7 @@ class ApiService {
       this.token = await SecureStore.getItemAsync('access_token');
       this.refreshToken = await SecureStore.getItemAsync('refresh_token');
     } catch (error) {
-      console.error('Failed to load tokens:', error);
+      if (__DEV__) console.error('Failed to load tokens:', error);
     }
   }
 
@@ -79,7 +88,7 @@ class ApiService {
       this.token = accessToken;
       this.refreshToken = refreshToken;
     } catch (error) {
-      console.error('Failed to save tokens:', error);
+      if (__DEV__) console.error('Failed to save tokens:', error);
     }
   }
 
@@ -109,7 +118,7 @@ class ApiService {
       this.token = null;
       this.refreshToken = null;
     } catch (error) {
-      console.error('Failed to logout:', error);
+      if (__DEV__) console.error('Failed to logout:', error);
     }
   }
 
@@ -150,17 +159,17 @@ class ApiService {
     return response.data;
   }
 
-  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.post(url, data, config);
     return response.data;
   }
 
-  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.put(url, data, config);
     return response.data;
   }
 
-  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.patch(url, data, config);
     return response.data;
   }
@@ -171,9 +180,9 @@ class ApiService {
   }
 
   // Upload de fichiers
-  async uploadFile(file: any, onProgress?: (progress: number) => void): Promise<{ url: string }> {
+  async uploadFile(file: { uri: string; type: string; name: string }, onProgress?: (progress: number) => void): Promise<{ url: string }> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file as any); // FormData accept any in React Native
 
     const response = await this.client.post('/upload', formData, {
       headers: {
@@ -193,7 +202,7 @@ class ApiService {
   // Méthodes avec pagination
   async getPaginated<T>(
     url: string,
-    params?: { page?: number; limit?: number; [key: string]: any }
+    params?: { page?: number; limit?: number; [key: string]: string | number | boolean | undefined }
   ): Promise<PaginatedResponse<T>> {
     const response = await this.client.get(url, { params });
     return response.data;
@@ -209,29 +218,33 @@ class ApiService {
   }
 
   // Gestion des erreurs
-  isNetworkError(error: any): boolean {
-    return !error.response && error.request;
+  isNetworkError(error: unknown): boolean {
+    return (error as any)?.request && !(error as any)?.response;
   }
 
-  isServerError(error: any): boolean {
-    return error.response && error.response.status >= 500;
+  isServerError(error: unknown): boolean {
+    const err = error as any;
+    return err?.response && err.response.status >= 500;
   }
 
-  isClientError(error: any): boolean {
-    return error.response && error.response.status >= 400 && error.response.status < 500;
+  isClientError(error: unknown): boolean {
+    const err = error as any;
+    return err?.response && err.response.status >= 400 && err.response.status < 500;
   }
 
-  getErrorMessage(error: any): string {
+  getErrorMessage(error: unknown): string {
+    const err = error as any;
+    
     if (this.isNetworkError(error)) {
       return 'Erreur de connexion. Vérifiez votre connexion internet.';
     }
 
-    if (error.response?.data?.message) {
-      return error.response.data.message;
+    if (err?.response?.data?.message) {
+      return err.response.data.message;
     }
 
-    if (error.message) {
-      return error.message;
+    if (err?.message) {
+      return err.message;
     }
 
     return 'Une erreur inattendue s\'est produite.';
@@ -252,37 +265,41 @@ export const authApi = {
 
 export const designsApi = {
   list: (params?: { page?: number; limit?: number; search?: string }) =>
-    apiService.getPaginated('/designs', params),
-  get: (id: string) => apiService.get(`/designs/${id}`),
-  create: (data: any) => apiService.post('/designs', data),
-  update: (id: string, data: any) => apiService.patch(`/designs/${id}`, data),
-  delete: (id: string) => apiService.delete(`/designs/${id}`),
-  generate: (prompt: string, options?: any) =>
-    apiService.post('/designs/generate', { prompt, ...options }),
+    apiService.getPaginated<Design>('/designs', params),
+  get: (id: string) => apiService.get<Design>(`/designs/${id}`),
+  create: (data: { name: string; description?: string; prompt?: string }) =>
+    apiService.post<Design>('/designs', data),
+  update: (id: string, data: Partial<Design>) =>
+    apiService.patch<Design>(`/designs/${id}`, data),
+  delete: (id: string) => apiService.delete<void>(`/designs/${id}`),
+  generate: (prompt: string, options?: Record<string, unknown>) =>
+    apiService.post<Design>('/designs/generate', { prompt, ...options }),
 };
 
 export const productsApi = {
   list: (params?: { page?: number; limit?: number; search?: string; brandId?: string }) =>
-    apiService.getPaginated('/products', params),
-  get: (id: string) => apiService.get(`/products/${id}`),
-  search: (query: string) => apiService.get(`/products/search?q=${encodeURIComponent(query)}`),
-  scan: (qrCode: string) => apiService.post('/products/scan', { qrCode }),
+    apiService.getPaginated<Product>('/products', params),
+  get: (id: string) => apiService.get<Product>(`/products/${id}`),
+  search: (query: string) =>
+    apiService.get<Product[]>(`/products/search?q=${encodeURIComponent(query)}`),
+  scan: (qrCode: string) => apiService.post<Product>('/products/scan', { qrCode }),
 };
 
 export const ordersApi = {
   list: (params?: { page?: number; limit?: number; status?: string }) =>
-    apiService.getPaginated('/orders', params),
-  get: (id: string) => apiService.get(`/orders/${id}`),
-  create: (data: any) => apiService.post('/orders', data),
-  update: (id: string, data: any) => apiService.patch(`/orders/${id}`, data),
-  cancel: (id: string) => apiService.post(`/orders/${id}/cancel`),
+    apiService.getPaginated<Order>('/orders', params),
+  get: (id: string) => apiService.get<Order>(`/orders/${id}`),
+  create: (data: Partial<Order>) => apiService.post<Order>('/orders', data),
+  update: (id: string, data: Partial<Order>) =>
+    apiService.patch<Order>(`/orders/${id}`, data),
+  cancel: (id: string) => apiService.post<Order>(`/orders/${id}/cancel`),
 };
 
 export const notificationsApi = {
   list: (params?: { page?: number; limit?: number; read?: boolean }) =>
-    apiService.getPaginated('/notifications', params),
-  markAsRead: (id: string) => apiService.patch(`/notifications/${id}/read`),
-  markAllAsRead: () => apiService.patch('/notifications/read-all'),
+    apiService.getPaginated<Notification>('/notifications', params),
+  markAsRead: (id: string) => apiService.patch<void>(`/notifications/${id}/read`),
+  markAllAsRead: () => apiService.patch<void>('/notifications/read-all'),
 };
 
 export default apiService;

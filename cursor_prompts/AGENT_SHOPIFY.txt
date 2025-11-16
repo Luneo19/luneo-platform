@@ -1,0 +1,38 @@
+AGENT_SHOPIFY — Shopify onboarding, OAuth, webhooks, Prisma migration
+
+Tâches:
+
+1. Create Prisma migration for ShopifyInstall table:
+
+   fields: id, shopDomain, accessToken, webhookSecret, installedAt, scopes, status, brandId (FK)
+
+2. Implement NestJS module at apps/backend/src/modules/ecommerce/shopify:
+
+   - Controller: GET /api/shopify/install -> redirect to Shopify OAuth install URL
+
+   - Controller: GET /api/shopify/callback -> exchange code, store tokens, enable webhooks
+
+   - Controller: POST /api/shopify/webhooks/products -> verify HMAC and process product updates
+
+3. Add service ShopifyService to manage installs and signature verification.
+
+4. Add sample app block snippet at apps/shopify/snippets/widget-inject.liquid:
+
+   - Loads CDN script with data-shop attribute and signed nonce parameter
+
+5. Add unit tests for HMAC verification and integration tests mocking OAuth exchange.
+
+6. Add docs/apps/shopify/README.md with env vars required.
+
+Safety:
+
+- Use HMAC verify, replay protection, store webhookSecret encrypted.
+
+- Validate scopes before install.
+
+PR:
+
+Title: feat(shopify): onboarding + webhooks + prisma migration
+
+Include migration, controller, service, tests, README
+

@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-render-secondary
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: render
+    luneo.io/tier: async
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:us-east-1:123456789012:cluster/luneo-prod-eks-secondary
+    namespace: luneo-platform
+  source:
+    repoURL: https://github.com/luneo-platform/platform-helm.git
+    targetRevision: main
+    chart: luneo-render
+    helm:
+      releaseName: luneo-render
+      valuesObject:
+        image:
+          repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/luneo-render
+          tag: latest
+        replicas: 2
+        gpu:
+          enabled: false
+        nodeSelector:
+          lifecycle: on-demand
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+

@@ -9,9 +9,9 @@
 
 ### Variables Vercel Configurées ✅
 - ✅ `STRIPE_SECRET_KEY` - Configuré
-- ✅ `STRIPE_PRICE_PRO` - Configuré (`price_1RvB1uKG9MsM6fdSnrGm2qIo`)
+- ✅ `STRIPE_PRICE_PRO` - Configuré (`price_PRO_MONTHLY`)
 - ✅ `STRIPE_PRICE_BUSINESS` - Configuré
-- ✅ `STRIPE_PRICE_ENTERPRISE` - Configuré (`price_1SH7TMKG9MsM6fdSx4pebEXZ`)
+- ✅ `STRIPE_PRICE_ENTERPRISE` - Configuré (`price_ENTERPRISE_MONTHLY`)
 - ✅ `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Configuré
 - ✅ `NEXT_PUBLIC_API_URL` - Configuré
 

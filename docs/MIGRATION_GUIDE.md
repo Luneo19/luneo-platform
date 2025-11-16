@@ -37,7 +37,7 @@ luneo-refonte/
 
 ### Prérequis
 
-- Node.js 18+
+- Node.js 20+
 - npm ou yarn
 - Compte Supabase
 - Clés API (OpenAI, Cloudinary, Stripe)

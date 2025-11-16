@@ -4,8 +4,8 @@
  */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import type { Logger } from '../utils/Logger';
 
 /**
@@ -158,9 +158,11 @@ export class ModelLoader {
         },
         
         // onError
-        (error) => {
+        (error: unknown) => {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           this.logger.error('Model loading failed', { url, error });
-          reject(new Error(`Failed to load model: ${error.message || error}`));
+          reject(new Error(`Failed to load model: ${errorMessage}`));
         }
       );
     });

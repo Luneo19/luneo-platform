@@ -1,6 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma, Design, Order, UsageMetric, Brand, UserConsent } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AuditLogsService, AuditEventType } from './audit-logs.service';
+import { AuditLogRecord } from '../interfaces/audit.interface';
+
+const userWithBrand = Prisma.validator<Prisma.UserArgs>()({
+  include: { brand: true },
+});
+
+type UserWithBrand = Prisma.UserGetPayload<typeof userWithBrand>;
 
 /**
  * Service GDPR (Conformité RGPD)
@@ -19,24 +27,27 @@ export class GDPRService {
    * Exporter toutes les données d'un utilisateur (Right to access)
    */
   async exportUserData(userId: string): Promise<{
-    user: any;
-    designs: any[];
-    orders: any[];
-    auditLogs: any[];
-    usageMetrics: any[];
+    user: UserWithBrand;
+    designs: Design[];
+    orders: Order[];
+    auditLogs: AuditLogRecord[];
+    usageMetrics: UsageMetric[];
     exportedAt: Date;
   }> {
     try {
       this.logger.log(`Exporting data for user ${userId}`);
 
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: userWithBrand.include,
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
       // Récupérer toutes les données de l'utilisateur
-      const [user, designs, orders, auditLogs, usageMetrics] = await Promise.all([
-        this.prisma.user.findUnique({
-          where: { id: userId },
-          include: {
-            brand: true,
-          },
-        }),
+      const [designs, orders, auditLogs, usageMetrics] = await Promise.all([
         this.prisma.design.findMany({
           where: { userId },
         }),
@@ -57,9 +68,9 @@ export class GDPRService {
       ]);
 
       // Anonymiser les données sensibles dans l'export
-      const sanitizedUser = { ...user };
-      if (sanitizedUser.password) {
-        delete sanitizedUser.password;
+      const sanitizedUser: UserWithBrand = { ...user };
+      if ('password' in sanitizedUser && sanitizedUser.password) {
+        sanitizedUser.password = null;
       }
 
       const exportData = {
@@ -77,7 +88,7 @@ export class GDPRService {
         'User data exported',
         {
           userId,
-          userEmail: user?.email,
+          userEmail: user.email,
           metadata: {
             itemsCount: {
               designs: designs.length,
@@ -148,8 +159,8 @@ export class GDPRService {
         'User data deleted (GDPR)',
         {
           userId,
-          userEmail: user.email,
-          brandId: user.brandId,
+          userEmail: user.email ?? undefined,
+          brandId: user.brandId ?? undefined,
           metadata: {
             reason,
             itemsDeleted: {
@@ -270,7 +281,7 @@ export class GDPRService {
   /**
    * Récupérer l'historique des consentements
    */
-  async getConsentHistory(userId: string): Promise<any[]> {
+  async getConsentHistory(userId: string): Promise<UserConsent[]> {
     try {
       return await this.prisma.userConsent.findMany({
         where: { userId },
@@ -289,7 +300,7 @@ export class GDPRService {
    * Générer un rapport de conformité GDPR pour un brand
    */
   async generateComplianceReport(brandId: string): Promise<{
-    brand: any;
+    brand: Brand;
     usersCount: number;
     consentsCount: number;
     dataExportsCount: number;
@@ -322,17 +333,32 @@ export class GDPRService {
         }),
       ]);
 
+      if (!brand) {
+        throw new Error('Brand not found');
+      }
+
+      const settingsValue = brand.settings;
+      const settings =
+        settingsValue && typeof settingsValue === 'object' && !Array.isArray(settingsValue)
+          ? (settingsValue as Record<string, unknown>)
+          : {};
+
+      const getSetting = (key: 'privacyPolicyUrl' | 'termsOfServiceUrl'): string | null => {
+        const value = settings[key];
+        return typeof value === 'string' && value.trim().length > 0 ? value : null;
+      };
+
       // Calculer un score de conformité (simplifié)
       let complianceScore = 100;
       const recommendations: string[] = [];
 
       // Vérifier les politiques
-      if (!(brand as any)?.privacyPolicyUrl) {
+      if (!getSetting('privacyPolicyUrl')) {
         complianceScore -= 20;
         recommendations.push('❌ Add a privacy policy URL');
       }
 
-      if (!(brand as any)?.termsOfServiceUrl) {
+      if (!getSetting('termsOfServiceUrl')) {
         complianceScore -= 10;
         recommendations.push('❌ Add terms of service URL');
       }

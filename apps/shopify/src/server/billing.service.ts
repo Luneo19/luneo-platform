@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 
 export interface BillingPlan {
   id: string;
@@ -70,6 +69,20 @@ export class BillingService {
   private readonly logger = new Logger(BillingService.name);
 
   constructor(private readonly configService: ConfigService) {}
+
+  private extractErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Erreur inconnue';
+    }
+  }
 
   /**
    * Obtenir la liste des plans de facturation
@@ -149,7 +162,7 @@ export class BillingService {
       return plans;
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des plans:', error);
-      throw new Error(`Impossible de récupérer les plans: ${error.message}`);
+      throw new Error(`Impossible de récupérer les plans: ${this.extractErrorMessage(error)}`);
     }
   }
 
@@ -176,14 +189,17 @@ export class BillingService {
       };
     } catch (error) {
       this.logger.error('Erreur lors de la récupération de l\'abonnement:', error);
-      throw new Error(`Impossible de récupérer l'abonnement: ${error.message}`);
+      throw new Error(`Impossible de récupérer l'abonnement: ${this.extractErrorMessage(error)}`);
     }
   }
 
   /**
    * Créer un nouvel abonnement
    */
-  async createSubscription(shop: string, subscriptionData: any): Promise<Subscription> {
+  async createSubscription(shop: string, subscriptionData: {
+    plan_id: string;
+    trial_days?: number;
+  }): Promise<Subscription> {
     try {
       this.logger.log(`Création d'un abonnement pour le shop: ${shop}`);
       
@@ -227,14 +243,14 @@ export class BillingService {
       return subscription;
     } catch (error) {
       this.logger.error('Erreur lors de la création de l\'abonnement:', error);
-      throw new Error(`Impossible de créer l'abonnement: ${error.message}`);
+      throw new Error(`Impossible de créer l'abonnement: ${this.extractErrorMessage(error)}`);
     }
   }
 
   /**
    * Mettre à jour l'abonnement
    */
-  async updateSubscription(shop: string, subscriptionData: any): Promise<Subscription> {
+  async updateSubscription(shop: string, subscriptionData: Partial<Subscription>): Promise<Subscription> {
     try {
       this.logger.log(`Mise à jour de l'abonnement pour le shop: ${shop}`);
       
@@ -257,7 +273,7 @@ export class BillingService {
       return updatedSubscription;
     } catch (error) {
       this.logger.error('Erreur lors de la mise à jour de l\'abonnement:', error);
-      throw new Error(`Impossible de mettre à jour l'abonnement: ${error.message}`);
+      throw new Error(`Impossible de mettre à jour l'abonnement: ${this.extractErrorMessage(error)}`);
     }
   }
 
@@ -284,14 +300,19 @@ export class BillingService {
       this.logger.log(`Abonnement annulé avec succès pour le shop: ${shop}`);
     } catch (error) {
       this.logger.error('Erreur lors de l\'annulation de l\'abonnement:', error);
-      throw new Error(`Impossible d'annuler l'abonnement: ${error.message}`);
+      throw new Error(`Impossible d'annuler l'abonnement: ${this.extractErrorMessage(error)}`);
     }
   }
 
   /**
    * Enregistrer l'utilisation du service
    */
-  async recordUsage(shop: string, usageData: any): Promise<Usage> {
+  async recordUsage(shop: string, usageData: {
+    ai_generations?: number;
+    ar_views?: number;
+    widget_embeds?: number;
+    storage_used_gb?: number;
+  }): Promise<Usage> {
     try {
       this.logger.log(`Enregistrement de l'utilisation pour le shop: ${shop}`);
       
@@ -331,7 +352,7 @@ export class BillingService {
       return usage;
     } catch (error) {
       this.logger.error('Erreur lors de l\'enregistrement de l\'utilisation:', error);
-      throw new Error(`Impossible d'enregistrer l'utilisation: ${error.message}`);
+      throw new Error(`Impossible d'enregistrer l'utilisation: ${this.extractErrorMessage(error)}`);
     }
   }
 
@@ -360,7 +381,7 @@ export class BillingService {
       ];
     } catch (error) {
       this.logger.error('Erreur lors de la récupération de l\'utilisation:', error);
-      throw new Error(`Impossible de récupérer l'utilisation: ${error.message}`);
+      throw new Error(`Impossible de récupérer l'utilisation: ${this.extractErrorMessage(error)}`);
     }
   }
 
@@ -374,7 +395,7 @@ export class BillingService {
       // TODO: Récupérer les factures depuis la base de données
       // Pour l'instant, retourner des factures factices
       
-      return [
+      const invoices: Invoice[] = [
         {
           id: `inv_${shop}_${Date.now()}`,
           shop,
@@ -386,9 +407,11 @@ export class BillingService {
           created_at: new Date(),
         },
       ];
+
+      return invoices.slice(0, limit);
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des factures:', error);
-      throw new Error(`Impossible de récupérer les factures: ${error.message}`);
+      throw new Error(`Impossible de récupérer les factures: ${this.extractErrorMessage(error)}`);
     }
   }
 
@@ -413,14 +436,19 @@ export class BillingService {
       };
     } catch (error) {
       this.logger.error('Erreur lors de la récupération de la facture:', error);
-      throw new Error(`Impossible de récupérer la facture: ${error.message}`);
+      throw new Error(`Impossible de récupérer la facture: ${this.extractErrorMessage(error)}`);
     }
   }
 
   /**
    * Créer une charge Shopify
    */
-  async createCharge(shop: string, chargeData: any): Promise<Charge> {
+  async createCharge(shop: string, chargeData: {
+    name: string;
+    price: number;
+    currency: string;
+    return_url: string;
+  }): Promise<Charge> {
     try {
       this.logger.log(`Création d'une charge pour le shop: ${shop}`);
       
@@ -446,7 +474,7 @@ export class BillingService {
       return charge;
     } catch (error) {
       this.logger.error('Erreur lors de la création de la charge:', error);
-      throw new Error(`Impossible de créer la charge: ${error.message}`);
+      throw new Error(`Impossible de créer la charge: ${this.extractErrorMessage(error)}`);
     }
   }
 
@@ -472,14 +500,14 @@ export class BillingService {
       };
     } catch (error) {
       this.logger.error('Erreur lors de la récupération de la charge:', error);
-      throw new Error(`Impossible de récupérer la charge: ${error.message}`);
+      throw new Error(`Impossible de récupérer la charge: ${this.extractErrorMessage(error)}`);
     }
   }
 
   /**
    * Gérer les webhooks de facturation Shopify
    */
-  async handleBillingWebhook(shop: string, topic: string, data: any): Promise<void> {
+  async handleBillingWebhook(shop: string, topic: string, data: Record<string, unknown>): Promise<void> {
     try {
       this.logger.log(`Traitement du webhook de facturation ${topic} pour le shop: ${shop}`);
       
@@ -511,32 +539,32 @@ export class BillingService {
     }
   }
 
-  private async handleSubscriptionCreated(shop: string, data: any): Promise<void> {
+  private async handleSubscriptionCreated(shop: string, _data: Record<string, unknown>): Promise<void> {
     this.logger.log(`Abonnement créé pour le shop: ${shop}`);
     // TODO: Traiter la création d'abonnement
   }
 
-  private async handleSubscriptionUpdated(shop: string, data: any): Promise<void> {
+  private async handleSubscriptionUpdated(shop: string, _data: Record<string, unknown>): Promise<void> {
     this.logger.log(`Abonnement mis à jour pour le shop: ${shop}`);
     // TODO: Traiter la mise à jour d'abonnement
   }
 
-  private async handleSubscriptionCancelled(shop: string, data: any): Promise<void> {
+  private async handleSubscriptionCancelled(shop: string, _data: Record<string, unknown>): Promise<void> {
     this.logger.log(`Abonnement annulé pour le shop: ${shop}`);
     // TODO: Traiter l'annulation d'abonnement
   }
 
-  private async handleSubscriptionExpired(shop: string, data: any): Promise<void> {
+  private async handleSubscriptionExpired(shop: string, _data: Record<string, unknown>): Promise<void> {
     this.logger.log(`Abonnement expiré pour le shop: ${shop}`);
     // TODO: Traiter l'expiration d'abonnement
   }
 
-  private async handleSubscriptionFrozen(shop: string, data: any): Promise<void> {
+  private async handleSubscriptionFrozen(shop: string, _data: Record<string, unknown>): Promise<void> {
     this.logger.log(`Abonnement gelé pour le shop: ${shop}`);
     // TODO: Traiter le gel d'abonnement
   }
 
-  private async handleSubscriptionUnfrozen(shop: string, data: any): Promise<void> {
+  private async handleSubscriptionUnfrozen(shop: string, _data: Record<string, unknown>): Promise<void> {
     this.logger.log(`Abonnement dégelé pour le shop: ${shop}`);
     // TODO: Traiter le dégel d'abonnement
   }

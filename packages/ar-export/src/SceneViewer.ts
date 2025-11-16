@@ -24,6 +24,9 @@ export interface SceneViewerConfig {
   
   /** Son d'ambiance */
   soundUrl?: string;
+  
+  /** Endpoint analytics personnalisé */
+  analyticsEndpoint?: string;
 }
 
 /**
@@ -49,10 +52,14 @@ export interface SceneViewerConfig {
  * ```
  */
 export class SceneViewer {
+  private readonly defaultAnalyticsEndpoint = '/api/analytics/ar-launch';
   /**
    * Vérifie si Scene Viewer est supporté
    */
   isSupported(): boolean {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+      return false;
+    }
     // Check Android
     const isAndroid = /Android/.test(navigator.userAgent);
     
@@ -128,21 +135,18 @@ export class SceneViewer {
       params.append('sound', config.soundUrl);
     }
     
-    const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?${params.toString()}`;
+    const fallback = config.fallbackUrl || (typeof window !== 'undefined' ? window.location.href : '');
     
-    // Intent URL pour Android
-    const intentUrl = [
+    return [
       'intent://arvr.google.com/scene-viewer/1.0',
       `?${params.toString()}`,
       '#Intent',
       'scheme=https',
       'package=com.google.android.googlequicksearchbox',
       'action=android.intent.action.VIEW',
-      `S.browser_fallback_url=${encodeURIComponent(config.fallbackUrl || window.location.href)}`,
-      'end'
+      `S.browser_fallback_url=${encodeURIComponent(fallback)}`,
+      'end',
     ].join(';');
-    
-    return intentUrl;
   }
 
   /**
@@ -157,11 +161,14 @@ export class SceneViewer {
    * Gère le fallback si AR pas supporté
    */
   private handleFallback(config: SceneViewerConfig): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
     if (config.fallbackUrl) {
       window.location.href = config.fallbackUrl;
-    } else {
-      alert('AR not supported on this device. Please use an Android device with Chrome.');
+      return;
     }
+    alert('AR not supported on this device. Please use an Android device with Chrome.');
   }
 
   /**
@@ -169,7 +176,8 @@ export class SceneViewer {
    */
   private async trackLaunch(config: SceneViewerConfig): Promise<void> {
     try {
-      await fetch('/api/analytics/ar-launch', {
+      const endpoint = config.analyticsEndpoint || this.defaultAnalyticsEndpoint;
+      await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

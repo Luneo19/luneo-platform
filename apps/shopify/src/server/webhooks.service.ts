@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { 
+  ShopifyOrder, 
+  ShopifyProduct, 
+  ShopifyCustomer, 
+  ShopifyInventoryLevel 
+} from './types/shopify.types';
 
 @Injectable()
 export class WebhooksService {
@@ -11,7 +17,7 @@ export class WebhooksService {
   /**
    * Gérer la désinstallation de l'application
    */
-  async handleAppUninstalled(shopDomain: string, data: any): Promise<void> {
+  async handleAppUninstalled(shopDomain: string, _data: Record<string, unknown>): Promise<void> {
     try {
       this.logger.log(`Traitement de la désinstallation pour le shop: ${shopDomain}`);
       
@@ -31,7 +37,7 @@ export class WebhooksService {
   /**
    * Gérer la création de commande
    */
-  async handleOrderCreated(shopDomain: string, orderData: any): Promise<void> {
+  async handleOrderCreated(shopDomain: string, orderData: ShopifyOrder): Promise<void> {
     try {
       this.logger.log(`Traitement de la création de commande pour le shop: ${shopDomain}`);
       
@@ -53,7 +59,7 @@ export class WebhooksService {
   /**
    * Gérer la mise à jour de commande
    */
-  async handleOrderUpdated(shopDomain: string, orderData: any): Promise<void> {
+  async handleOrderUpdated(shopDomain: string, orderData: ShopifyOrder): Promise<void> {
     try {
       this.logger.log(`Traitement de la mise à jour de commande pour le shop: ${shopDomain}`);
       
@@ -72,7 +78,7 @@ export class WebhooksService {
   /**
    * Gérer le paiement de commande
    */
-  async handleOrderPaid(shopDomain: string, orderData: any): Promise<void> {
+  async handleOrderPaid(shopDomain: string, orderData: ShopifyOrder): Promise<void> {
     try {
       this.logger.log(`Traitement du paiement de commande pour le shop: ${shopDomain}`);
       
@@ -94,7 +100,7 @@ export class WebhooksService {
   /**
    * Gérer l'annulation de commande
    */
-  async handleOrderCancelled(shopDomain: string, orderData: any): Promise<void> {
+  async handleOrderCancelled(shopDomain: string, orderData: ShopifyOrder): Promise<void> {
     try {
       this.logger.log(`Traitement de l'annulation de commande pour le shop: ${shopDomain}`);
       
@@ -116,7 +122,7 @@ export class WebhooksService {
   /**
    * Gérer la livraison de commande
    */
-  async handleOrderFulfilled(shopDomain: string, orderData: any): Promise<void> {
+  async handleOrderFulfilled(shopDomain: string, orderData: ShopifyOrder): Promise<void> {
     try {
       this.logger.log(`Traitement de la livraison de commande pour le shop: ${shopDomain}`);
       
@@ -138,7 +144,7 @@ export class WebhooksService {
   /**
    * Gérer la création de produit
    */
-  async handleProductCreated(shopDomain: string, productData: any): Promise<void> {
+  async handleProductCreated(shopDomain: string, productData: ShopifyProduct): Promise<void> {
     try {
       this.logger.log(`Traitement de la création de produit pour le shop: ${shopDomain}`);
       
@@ -160,7 +166,7 @@ export class WebhooksService {
   /**
    * Gérer la mise à jour de produit
    */
-  async handleProductUpdated(shopDomain: string, productData: any): Promise<void> {
+  async handleProductUpdated(shopDomain: string, productData: ShopifyProduct): Promise<void> {
     try {
       this.logger.log(`Traitement de la mise à jour de produit pour le shop: ${shopDomain}`);
       
@@ -179,7 +185,7 @@ export class WebhooksService {
   /**
    * Gérer la suppression de produit
    */
-  async handleProductDeleted(shopDomain: string, productData: any): Promise<void> {
+  async handleProductDeleted(shopDomain: string, productData: ShopifyProduct): Promise<void> {
     try {
       this.logger.log(`Traitement de la suppression de produit pour le shop: ${shopDomain}`);
       
@@ -198,7 +204,7 @@ export class WebhooksService {
   /**
    * Gérer la création de client
    */
-  async handleCustomerCreated(shopDomain: string, customerData: any): Promise<void> {
+  async handleCustomerCreated(shopDomain: string, customerData: ShopifyCustomer): Promise<void> {
     try {
       this.logger.log(`Traitement de la création de client pour le shop: ${shopDomain}`);
       
@@ -217,7 +223,7 @@ export class WebhooksService {
   /**
    * Gérer la mise à jour de client
    */
-  async handleCustomerUpdated(shopDomain: string, customerData: any): Promise<void> {
+  async handleCustomerUpdated(shopDomain: string, customerData: ShopifyCustomer): Promise<void> {
     try {
       this.logger.log(`Traitement de la mise à jour de client pour le shop: ${shopDomain}`);
       
@@ -236,7 +242,7 @@ export class WebhooksService {
   /**
    * Gérer la suppression de client
    */
-  async handleCustomerDeleted(shopDomain: string, customerData: any): Promise<void> {
+  async handleCustomerDeleted(shopDomain: string, customerData: ShopifyCustomer): Promise<void> {
     try {
       this.logger.log(`Traitement de la suppression de client pour le shop: ${shopDomain}`);
       
@@ -255,7 +261,7 @@ export class WebhooksService {
   /**
    * Gérer la mise à jour des niveaux de stock
    */
-  async handleInventoryLevelsUpdated(shopDomain: string, inventoryData: any): Promise<void> {
+  async handleInventoryLevelsUpdated(shopDomain: string, inventoryData: ShopifyInventoryLevel): Promise<void> {
     try {
       this.logger.log(`Traitement de la mise à jour des niveaux de stock pour le shop: ${shopDomain}`);
       
@@ -303,7 +309,7 @@ export class WebhooksService {
     }
   }
 
-  private async analyzeOrderForAI(shopDomain: string, order: any): Promise<void> {
+  private async analyzeOrderForAI(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       // Analyser les produits de la commande pour l'IA
       const products = order.line_items || [];
@@ -317,7 +323,7 @@ export class WebhooksService {
     }
   }
 
-  private async syncOrderWithLuneo(shopDomain: string, order: any): Promise<void> {
+  private async syncOrderWithLuneo(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -348,7 +354,7 @@ export class WebhooksService {
     }
   }
 
-  private async updateOrderInLuneo(shopDomain: string, order: any): Promise<void> {
+  private async updateOrderInLuneo(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -369,7 +375,7 @@ export class WebhooksService {
     }
   }
 
-  private async processPostPayment(shopDomain: string, order: any): Promise<void> {
+  private async processPostPayment(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       // TODO: Implémenter les processus post-paiement
       this.logger.log(`Traitement post-paiement pour la commande ${order.id}`);
@@ -378,7 +384,7 @@ export class WebhooksService {
     }
   }
 
-  private async notifyLuneoPayment(shopDomain: string, order: any): Promise<void> {
+  private async notifyLuneoPayment(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -401,7 +407,7 @@ export class WebhooksService {
     }
   }
 
-  private async cancelOrderProcesses(shopDomain: string, order: any): Promise<void> {
+  private async cancelOrderProcesses(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       // TODO: Implémenter l'annulation des processus
       this.logger.log(`Annulation des processus pour la commande ${order.id}`);
@@ -410,7 +416,7 @@ export class WebhooksService {
     }
   }
 
-  private async notifyLuneoCancellation(shopDomain: string, order: any): Promise<void> {
+  private async notifyLuneoCancellation(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -432,7 +438,7 @@ export class WebhooksService {
     }
   }
 
-  private async finalizeOrderProcesses(shopDomain: string, order: any): Promise<void> {
+  private async finalizeOrderProcesses(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       // TODO: Implémenter la finalisation des processus
       this.logger.log(`Finalisation des processus pour la commande ${order.id}`);
@@ -441,7 +447,7 @@ export class WebhooksService {
     }
   }
 
-  private async notifyLuneoFulfillment(shopDomain: string, order: any): Promise<void> {
+  private async notifyLuneoFulfillment(shopDomain: string, order: ShopifyOrder): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -463,7 +469,7 @@ export class WebhooksService {
     }
   }
 
-  private async analyzeProductForAI(shopDomain: string, product: any): Promise<void> {
+  private async analyzeProductForAI(shopDomain: string, product: ShopifyProduct): Promise<void> {
     try {
       // TODO: Implémenter l'analyse IA du produit
       this.logger.log(`Analyse IA du produit ${product.id}`);
@@ -472,7 +478,7 @@ export class WebhooksService {
     }
   }
 
-  private async syncProductWithLuneo(shopDomain: string, product: any): Promise<void> {
+  private async syncProductWithLuneo(shopDomain: string, product: ShopifyProduct): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -502,7 +508,7 @@ export class WebhooksService {
     }
   }
 
-  private async updateProductInLuneo(shopDomain: string, product: any): Promise<void> {
+  private async updateProductInLuneo(shopDomain: string, product: ShopifyProduct): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -523,7 +529,7 @@ export class WebhooksService {
     }
   }
 
-  private async deleteProductFromLuneo(shopDomain: string, product: any): Promise<void> {
+  private async deleteProductFromLuneo(shopDomain: string, product: ShopifyProduct): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -543,7 +549,7 @@ export class WebhooksService {
     }
   }
 
-  private async syncCustomerWithLuneo(shopDomain: string, customer: any): Promise<void> {
+  private async syncCustomerWithLuneo(shopDomain: string, customer: ShopifyCustomer): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -572,7 +578,7 @@ export class WebhooksService {
     }
   }
 
-  private async updateCustomerInLuneo(shopDomain: string, customer: any): Promise<void> {
+  private async updateCustomerInLuneo(shopDomain: string, customer: ShopifyCustomer): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -593,7 +599,7 @@ export class WebhooksService {
     }
   }
 
-  private async deleteCustomerFromLuneo(shopDomain: string, customer: any): Promise<void> {
+  private async deleteCustomerFromLuneo(shopDomain: string, customer: ShopifyCustomer): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');
@@ -613,7 +619,7 @@ export class WebhooksService {
     }
   }
 
-  private async updateInventoryLevelsInLuneo(shopDomain: string, inventory: any): Promise<void> {
+  private async updateInventoryLevelsInLuneo(shopDomain: string, inventory: ShopifyInventoryLevel): Promise<void> {
     try {
       const luneoApiUrl = this.configService.get('luneo.apiUrl');
       const luneoApiKey = this.configService.get('luneo.apiKey');

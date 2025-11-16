@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { AiGenerationWorker } from './worker';
 import { DesignWorker } from './workers/design/design.worker';
 import { RenderWorker } from './workers/render/render.worker';
@@ -10,6 +10,8 @@ import { S3Module } from '@/libs/s3/s3.module';
 import { AiModule } from '@/modules/ai/ai.module';
 import { ProductEngineModule } from '@/modules/product-engine/product-engine.module';
 import { RenderModule } from '@/modules/render/render.module';
+import { QueueNames } from './queue.constants';
+import { QueueHealthService } from './services/queue-health.service';
 
 @Module({
   imports: [
@@ -20,16 +22,37 @@ import { RenderModule } from '@/modules/render/render.module';
     ProductEngineModule,
     RenderModule,
     BullModule.registerQueue({
-      name: 'ai-generation',
+      name: QueueNames.AI_GENERATION,
     }),
     BullModule.registerQueue({
-      name: 'design-generation',
+      name: QueueNames.IMAGE_GENERATION,
     }),
     BullModule.registerQueue({
-      name: 'render-processing',
+      name: QueueNames.IMAGE_UPSCALE,
     }),
     BullModule.registerQueue({
-      name: 'production-processing',
+      name: QueueNames.TEXTURE_BLEND,
+    }),
+    BullModule.registerQueue({
+      name: QueueNames.EXPORT_GLTF,
+    }),
+    BullModule.registerQueue({
+      name: QueueNames.AR_PREVIEW,
+    }),
+    BullModule.registerQueue({
+      name: QueueNames.DESIGN_GENERATION,
+    }),
+    BullModule.registerQueue({
+      name: QueueNames.RENDER_PROCESSING,
+    }),
+    BullModule.registerQueue({
+      name: QueueNames.RENDER_2D,
+    }),
+    BullModule.registerQueue({
+      name: QueueNames.RENDER_3D,
+    }),
+    BullModule.registerQueue({
+      name: QueueNames.PRODUCTION_PROCESSING,
     }),
   ],
   providers: [
@@ -37,7 +60,8 @@ import { RenderModule } from '@/modules/render/render.module';
     DesignWorker,
     RenderWorker,
     ProductionWorker,
+    QueueHealthService,
   ],
-  exports: [BullModule],
+  exports: [BullModule, QueueHealthService],
 })
 export class JobsModule {}

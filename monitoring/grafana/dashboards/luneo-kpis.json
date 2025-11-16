@@ -1,0 +1,289 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Luneo - KPIs Monitoring",
+    "tags": ["luneo", "kpis", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Worker Queue Wait Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(luneo_worker_queue_wait_time_seconds_bucket[5m]))",
+            "legendFormat": "P95 - {{queue_name}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(luneo_worker_queue_wait_time_seconds_bucket[5m]))",
+            "legendFormat": "P50 - {{queue_name}}"
+          },
+          {
+            "expr": "luneo_worker_queue_wait_time_current_seconds",
+            "legendFormat": "Current - {{queue_name}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 60,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "OpenAI Request Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(luneo_openai_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 - {{model}} {{operation}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(luneo_openai_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50 - {{model}} {{operation}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "OpenAI Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(luneo_openai_requests_total[5m])",
+            "legendFormat": "{{model}} {{operation}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "OpenAI Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(luneo_openai_requests_error_total[5m]) / rate(luneo_openai_requests_total[5m])",
+            "legendFormat": "Error Rate - {{model}} {{operation}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Error Rate",
+            "min": 0,
+            "max": 1,
+            "format": "percentunit"
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 0.01,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Render Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(luneo_render_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 - {{render_type}} {{quality}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(luneo_render_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50 - {{render_type}} {{quality}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Embed Handshake Failures",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(luneo_embed_handshake_failures_total[5m])",
+            "legendFormat": "{{failure_reason}} - {{shop_domain}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Failures/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "AR Conversion Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(luneo_ar_conversion_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 - {{conversion_type}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(luneo_ar_conversion_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50 - {{conversion_type}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 8,
+        "title": "AI Cost vs Baseline",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "luneo_ai_cost_current_cents{time_window=\"1h\"}",
+            "legendFormat": "Current Cost (1h)"
+          },
+          {
+            "expr": "luneo_ai_cost_baseline_cents{time_window=\"1h\"}",
+            "legendFormat": "Baseline Cost (1h)"
+          },
+          {
+            "expr": "luneo_ai_cost_current_cents{time_window=\"1h\"} / luneo_ai_cost_baseline_cents{time_window=\"1h\"}",
+            "legendFormat": "Cost Ratio"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Cents",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 2.0,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
+      },
+      {
+        "id": 9,
+        "title": "Overall Error Rate",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "format": "percentunit",
+        "thresholds": "0,0.01",
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 32
+        }
+      },
+      {
+        "id": 10,
+        "title": "Queue Wait Time > 60s",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "luneo_worker_queue_wait_time_current_seconds > 60",
+            "legendFormat": "Queues with wait > 60s"
+          }
+        ],
+        "format": "none",
+        "thresholds": "0,1",
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 32
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  }
+}

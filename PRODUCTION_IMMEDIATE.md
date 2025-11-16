@@ -100,7 +100,7 @@ NEXT_PUBLIC_GITHUB_CLIENT_ID
 → Ov23liJmVOHyn8tfxgLi
 
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-→ pk_live_jL5xDF4ylCaiXVDswVAliVA3
+→ pk_live_your_publishable_key
 
 OPENAI_API_KEY
 → [Votre clé OpenAI - à ajouter]

@@ -10,7 +10,7 @@
 
 ```bash
 # Vérifier Node.js
-node --version  # Doit être v18+ ou v20+
+node --version  # Doit être v20+ (LTS requise)
 
 # Vérifier PostgreSQL
 psql --version

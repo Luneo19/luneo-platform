@@ -159,11 +159,11 @@ const session = await stripe.checkout.sessions.create({
 
 **Production:**
 ```env
-STRIPE_SECRET_KEY=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
-STRIPE_PRICE_PRO=price_1RvB1uKG9MsM6fdSnrGm2qIo
+STRIPE_SECRET_KEY=sk_live_your_secret_key
+STRIPE_PRICE_PRO=price_PRO_MONTHLY
 STRIPE_PRICE_BUSINESS=(à compléter)
-STRIPE_PRICE_ENTERPRISE=price_1SH7TMKG9MsM6fdSx4pebEXZ
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_jL5xDF4ylCaiXVDswVAliVA3
+STRIPE_PRICE_ENTERPRISE=price_ENTERPRISE_MONTHLY
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_publishable_key
 NEXT_PUBLIC_APP_URL=https://app.luneo.app
 ```
 

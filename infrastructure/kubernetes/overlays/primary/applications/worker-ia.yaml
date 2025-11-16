@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-worker-ia
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: worker-ia
+    luneo.io/tier: async
+spec:
+  project: default
+  destination:
+    name: arn:aws:eks:eu-west-1:123456789012:cluster/luneo-prod-eks-primary
+    namespace: luneo-platform
+  source:
+    repoURL: https://github.com/luneo-platform/platform-helm.git
+    targetRevision: main
+    chart: luneo-worker-ia
+    helm:
+      releaseName: luneo-worker-ia
+      valuesObject:
+        image:
+          repository: 123456789012.dkr.ecr.eu-west-1.amazonaws.com/luneo-worker-ia
+          tag: latest
+        replicas: 5
+        queue:
+          name: ai-generation
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 2048Mi
+          limits:
+            cpu: 3000m
+            memory: 4096Mi
+        env:
+          - name: REDIS_HOST
+            valueFrom:
+              secretKeyRef:
+                name: backend-secrets
+                key: redis_host
+          - name: OPENAI_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: backend-secrets
+                key: openai_api_key
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+

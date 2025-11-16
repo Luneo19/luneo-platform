@@ -125,7 +125,11 @@ export class HandTracker {
       // Créer Hands
       this.hands = new Hands({
         locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+          // CDN MediaPipe (configurable via env or fallback)
+          const cdnUrl = typeof process !== 'undefined' && process.env.MEDIAPIPE_CDN_URL
+            ? process.env.MEDIAPIPE_CDN_URL
+            : 'https://cdn.jsdelivr.net/npm/@mediapipe/hands';
+          return `${cdnUrl}/${file}`;
         }
       });
       
@@ -247,9 +251,20 @@ export class HandTracker {
   /**
    * Event: hand detected
    */
-  on(event: 'handDetected', callback: (result: HandTrackingResult) => void): void;
-  on(event: 'handLost', callback: (handedness: 'Left' | 'Right') => void): void;
-  on(event: string, callback: Function): void {
+  on(
+    event: 'handDetected',
+    callback: (result: HandTrackingResult) => void
+  ): void;
+  on(
+    event: 'handLost',
+    callback: (handedness: 'Left' | 'Right') => void
+  ): void;
+  on(
+    event: 'handDetected' | 'handLost',
+    callback:
+      | ((result: HandTrackingResult) => void)
+      | ((handedness: 'Left' | 'Right') => void)
+  ): void {
     if (event === 'handDetected') {
       this.onHandDetectedCallback = callback as any;
     } else if (event === 'handLost') {

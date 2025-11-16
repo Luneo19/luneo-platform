@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { 
-  ProductZone, 
+import {
+  ProductZone,
   ProductRules,
-  DesignOptions
+  DesignOptions,
+  DesignZoneOption,
+  CompatibilityRule,
 } from '../interfaces/product-rules.interface';
 
 @Injectable()
@@ -30,11 +33,10 @@ export class ZonesService {
         throw new Error(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
-      
-      // Générer un ID unique pour la zone
-      const zoneId = `zone_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+      const rules = this.parseRules(product.rulesJson);
+
+      const zoneId = this.generateZoneId();
+
       const newZone: ProductZone = {
         ...zone,
         id: zoneId,
@@ -42,10 +44,9 @@ export class ZonesService {
 
       rules.zones.push(newZone);
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: this.serializeRules(rules) },
       });
 
       // Invalider le cache
@@ -74,8 +75,8 @@ export class ZonesService {
         throw new Error(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
-      const zoneIndex = rules.zones.findIndex(z => z.id === zoneId);
+      const rules = this.parseRules(product.rulesJson);
+      const zoneIndex = rules.zones.findIndex((z) => z.id === zoneId);
 
       if (zoneIndex === -1) {
         throw new Error(`Zone ${zoneId} not found`);
@@ -85,13 +86,12 @@ export class ZonesService {
       rules.zones[zoneIndex] = {
         ...rules.zones[zoneIndex],
         ...updates,
-        id: zoneId, // Préserver l'ID
+        id: zoneId,
       };
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: this.serializeRules(rules) },
       });
 
       // Invalider le cache
@@ -120,8 +120,8 @@ export class ZonesService {
         throw new Error(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
-      const zoneIndex = rules.zones.findIndex(z => z.id === zoneId);
+      const rules = this.parseRules(product.rulesJson);
+      const zoneIndex = rules.zones.findIndex((z) => z.id === zoneId);
 
       if (zoneIndex === -1) {
         throw new Error(`Zone ${zoneId} not found`);
@@ -130,10 +130,9 @@ export class ZonesService {
       // Supprimer la zone
       rules.zones.splice(zoneIndex, 1);
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: this.serializeRules(rules) },
       });
 
       // Invalider le cache
@@ -160,15 +159,15 @@ export class ZonesService {
         throw new Error(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
-      const originalZone = rules.zones.find(z => z.id === zoneId);
+      const rules = this.parseRules(product.rulesJson);
+      const originalZone = rules.zones.find((z) => z.id === zoneId);
 
       if (!originalZone) {
         throw new Error(`Zone ${zoneId} not found`);
       }
 
       // Créer une copie avec un nouvel ID
-      const newZoneId = `zone_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newZoneId = this.generateZoneId();
       const duplicatedZone: ProductZone = {
         ...originalZone,
         id: newZoneId,
@@ -179,10 +178,9 @@ export class ZonesService {
 
       rules.zones.push(duplicatedZone);
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: this.serializeRules(rules) },
       });
 
       // Invalider le cache
@@ -207,12 +205,12 @@ export class ZonesService {
         select: { rulesJson: true },
       });
 
-      if (!product || !product.rulesJson) {
+      if (!product) {
         return [];
       }
 
-      const rules = product.rulesJson as any;
-      return rules.zones || [];
+      const rules = this.parseRules(product.rulesJson);
+      return rules.zones;
     } catch (error) {
       this.logger.error(`Error getting zones for product ${productId}:`, error);
       throw error;
@@ -246,19 +244,17 @@ export class ZonesService {
         throw new Error(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
-      
-      // Réorganiser les zones selon l'ordre fourni
+      const rules = this.parseRules(product.rulesJson);
+
       const reorderedZones: ProductZone[] = [];
-      
+
       for (const zoneId of zoneIds) {
-        const zone = rules.zones.find(z => z.id === zoneId);
+        const zone = rules.zones.find((z) => z.id === zoneId);
         if (zone) {
           reorderedZones.push(zone);
         }
       }
 
-      // Ajouter les zones non spécifiées à la fin
       for (const zone of rules.zones) {
         if (!zoneIds.includes(zone.id)) {
           reorderedZones.push(zone);
@@ -267,10 +263,9 @@ export class ZonesService {
 
       rules.zones = reorderedZones;
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: this.serializeRules(rules) },
       });
 
       // Invalider le cache
@@ -412,17 +407,15 @@ export class ZonesService {
   /**
    * Obtient les statistiques d'usage des zones
    */
-  async getZoneUsageStats(productId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<Record<string, {
-    usageCount: number;
-    successRate: number;
-    averagePrice: number;
-    popularOptions: Array<{ option: string; count: number }>;
-  }>> {
+  async getZoneUsageStats(
+    productId: string,
+    period: 'day' | 'week' | 'month' = 'week',
+  ): Promise<Record<string, ZoneUsageStats>> {
     const cacheKey = `zone_usage_stats:${productId}:${period}`;
     
     const cached = await this.cache.getSimple(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached as Record<string, ZoneUsageStats>;
     }
 
     try {
@@ -458,64 +451,62 @@ export class ZonesService {
       });
 
       const zones = await this.getZones(productId);
-      const stats: Record<string, any> = {};
 
-      // Initialiser les stats pour chaque zone
-      for (const zone of zones) {
-        stats[zone.id] = {
-          usageCount: 0,
-          successRate: 0,
-          averagePrice: 0,
-          popularOptions: [],
-        };
-      }
+      const accumulators: Record<string, ZoneUsageAccumulator> = zones.reduce(
+        (acc, zone) => {
+          acc[zone.id] = {
+            usageCount: 0,
+            successCount: 0,
+            optionCounts: new Map<string, number>(),
+          };
+          return acc;
+        },
+        {} as Record<string, ZoneUsageAccumulator>,
+      );
 
-      // Analyser l'usage des zones
       for (const design of designs) {
-        const options = design.optionsJson as any;
-        if (!options.zones) continue;
+        const options = this.ensureDesignOptions(design.optionsJson);
+        const zoneOptionsMap = options.zones ?? {};
 
-        for (const [zoneId, zoneOptions] of Object.entries(options.zones)) {
-          if (stats[zoneId]) {
-            stats[zoneId].usageCount++;
-            
-            if (design.status === 'COMPLETED') {
-              stats[zoneId].successRate++;
-            }
+        for (const [zoneId, zoneOption] of Object.entries(zoneOptionsMap)) {
+          const accumulator = accumulators[zoneId];
+          if (!accumulator) continue;
 
-            // Analyser les options populaires
-            for (const [optionKey, optionValue] of Object.entries(zoneOptions)) {
-              const existingOption = stats[zoneId].popularOptions.find(
-                (opt: any) => opt.option === optionKey
-              );
-              
-              if (existingOption) {
-                existingOption.count++;
-              } else {
-                stats[zoneId].popularOptions.push({
-                  option: optionKey,
-                  count: 1,
-                });
-              }
-            }
+          accumulator.usageCount += 1;
+
+          if (design.status === 'COMPLETED') {
+            accumulator.successCount += 1;
+          }
+
+          for (const optionKey of Object.keys(zoneOption as Record<string, unknown>)) {
+            const currentCount = accumulator.optionCounts.get(optionKey) ?? 0;
+            accumulator.optionCounts.set(optionKey, currentCount + 1);
           }
         }
       }
 
-      // Calculer les taux de succès
-      for (const zoneId of Object.keys(stats)) {
-        if (stats[zoneId].usageCount > 0) {
-          stats[zoneId].successRate = (stats[zoneId].successRate / stats[zoneId].usageCount) * 100;
-        }
-        
-        // Trier les options populaires
-        stats[zoneId].popularOptions.sort((a: any, b: any) => b.count - a.count);
-        stats[zoneId].popularOptions = stats[zoneId].popularOptions.slice(0, 5); // Top 5
+      const stats: Record<string, ZoneUsageStats> = {};
+
+      for (const [zoneId, accumulator] of Object.entries(accumulators)) {
+        const successRate = accumulator.usageCount
+          ? (accumulator.successCount / accumulator.usageCount) * 100
+          : 0;
+
+        const popularOptions = Array.from(accumulator.optionCounts.entries())
+          .sort(([, countA], [, countB]) => countB - countA)
+          .slice(0, 5)
+          .map(([option, count]) => ({ option, count }));
+
+        stats[zoneId] = {
+          usageCount: accumulator.usageCount,
+          successRate,
+          averagePrice: 0,
+          popularOptions,
+        };
       }
 
-      // Mettre en cache pour 30 minutes
-      await this.cache.setSimple(cacheKey, JSON.stringify(stats), 1800);
-      
+      await this.cache.setSimple(cacheKey, stats, 1800);
+
       return stats;
     } catch (error) {
       this.logger.error(`Error getting zone usage stats for ${productId}:`, error);
@@ -546,9 +537,12 @@ export class ZonesService {
 
       for (const zone of zones) {
         const stats = usageStats[zone.id];
+        if (!stats) {
+          continue;
+        }
         
         // Zone peu utilisée
-        if (stats && stats.usageCount < 5) {
+        if (stats.usageCount < 5) {
           suggestions.push({
             zoneId: zone.id,
             zoneLabel: zone.label,
@@ -559,7 +553,7 @@ export class ZonesService {
         }
 
         // Zone avec faible taux de succès
-        if (stats && stats.successRate < 70) {
+        if (stats.successRate < 70) {
           suggestions.push({
             zoneId: zone.id,
             zoneLabel: zone.label,
@@ -598,6 +592,187 @@ export class ZonesService {
       throw error;
     }
   }
+
+  private parseRules(rulesJson: Prisma.JsonValue | null): ProductRules {
+    if (!rulesJson || typeof rulesJson !== 'object' || Array.isArray(rulesJson)) {
+      return { zones: [] };
+    }
+
+    const raw = rulesJson as Partial<ProductRules> & Record<string, unknown>;
+    const zones = Array.isArray(raw.zones)
+      ? raw.zones.map((zone) => this.ensureProductZone(zone))
+      : [];
+
+    return {
+      zones,
+      compatibilityRules: Array.isArray(raw.compatibilityRules)
+        ? raw.compatibilityRules
+            .map((rule) => this.ensureCompatibilityRule(rule))
+            .filter((rule): rule is CompatibilityRule => rule !== undefined)
+        : undefined,
+      globalConstraints: raw.globalConstraints,
+      pricing: raw.pricing,
+      metadata: this.ensureRecord(raw.metadata),
+    };
+  }
+
+  private serializeRules(rules: ProductRules): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(rules)) as Prisma.InputJsonValue;
+  }
+
+  private ensureProductZone(zone: unknown): ProductZone {
+    if (!zone || typeof zone !== 'object') {
+      return {
+        id: this.generateZoneId(),
+        label: 'Zone',
+        type: 'image',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      };
+    }
+
+    const raw = zone as Partial<ProductZone> & Record<string, unknown>;
+
+    return {
+      id: typeof raw.id === 'string' ? raw.id : this.generateZoneId(),
+      label: typeof raw.label === 'string' ? raw.label : 'Zone',
+      type: this.ensureZoneType(raw.type),
+      x: typeof raw.x === 'number' ? raw.x : 0,
+      y: typeof raw.y === 'number' ? raw.y : 0,
+      width: typeof raw.width === 'number' ? raw.width : 100,
+      height: typeof raw.height === 'number' ? raw.height : 100,
+      allowedMime: Array.isArray(raw.allowedMime)
+        ? raw.allowedMime.filter((mime): mime is string => typeof mime === 'string')
+        : undefined,
+      maxResolution: this.ensureResolution(raw.maxResolution),
+      priceDeltaCents: typeof raw.priceDeltaCents === 'number' ? raw.priceDeltaCents : undefined,
+      constraints:
+        raw.constraints && typeof raw.constraints === 'object'
+          ? (raw.constraints as ProductZone['constraints'])
+          : undefined,
+      metadata: this.ensureRecord(raw.metadata),
+    };
+  }
+
+  private ensureZoneType(type: unknown): ProductZone['type'] {
+    if (type === 'text' || type === 'color' || type === 'select') {
+      return type;
+    }
+    return 'image';
+  }
+
+  private ensureRecord(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private ensureDesignOptions(data: Prisma.JsonValue | null): DesignOptions {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return {};
+    }
+
+    const record = data as Record<string, unknown>;
+
+    return {
+      zones: this.ensureZoneOptionsRecord(record.zones),
+      materials: this.ensureNumberRecord(record.materials),
+      finishes: this.ensureNumberRecord(record.finishes),
+      quantity: typeof record.quantity === 'number' ? record.quantity : undefined,
+      customizations: this.ensureRecord(record.customizations),
+    };
+  }
+
+  private ensureZoneOptionsRecord(value: unknown): Record<string, DesignZoneOption> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const entries = Object.entries(value as Record<string, unknown>);
+    const result: Record<string, DesignZoneOption> = {};
+
+    for (const [key, zoneOption] of entries) {
+      if (zoneOption && typeof zoneOption === 'object') {
+        result[key] = zoneOption as DesignZoneOption;
+      }
+    }
+
+    return result;
+  }
+
+  private ensureNumberRecord(value: unknown): Record<string, number> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const entries = Object.entries(value as Record<string, unknown>);
+    const result: Record<string, number> = {};
+
+    for (const [key, val] of entries) {
+      if (typeof val === 'number' && Number.isFinite(val)) {
+        result[key] = val;
+      }
+    }
+
+    return result;
+  }
+
+  private ensureResolution(value: unknown): { w: number; h: number } | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const record = value as Record<string, unknown>;
+    const width = record.w;
+    const height = record.h;
+
+    if (typeof width === 'number' && Number.isFinite(width) && typeof height === 'number' && Number.isFinite(height)) {
+      return { w: width, h: height };
+    }
+
+    return undefined;
+  }
+
+  private ensureCompatibilityRule(rule: unknown): CompatibilityRule | undefined {
+    if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
+      return undefined;
+    }
+
+    const raw = rule as Partial<CompatibilityRule> & Record<string, unknown>;
+    if (!raw.if || typeof raw.if !== 'object' || Array.isArray(raw.if)) {
+      return undefined;
+    }
+
+    return {
+      if: raw.if as CompatibilityRule['if'],
+      deny: Array.isArray(raw.deny) ? raw.deny.filter((item): item is string => typeof item === 'string') : undefined,
+      allow: Array.isArray(raw.allow) ? raw.allow.filter((item): item is string => typeof item === 'string') : undefined,
+      require: Array.isArray(raw.require)
+        ? raw.require.filter((item): item is string => typeof item === 'string')
+        : undefined,
+      priceMultiplier: typeof raw.priceMultiplier === 'number' ? raw.priceMultiplier : undefined,
+    };
+  }
+
+  private generateZoneId(): string {
+    return `zone_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  }
+}
+
+interface ZoneUsageAccumulator {
+  usageCount: number;
+  successCount: number;
+  optionCounts: Map<string, number>;
+}
+
+interface ZoneUsageStats {
+  usageCount: number;
+  successRate: number;
+  averagePrice: number;
+  popularOptions: Array<{ option: string; count: number }>;
 }
 
 

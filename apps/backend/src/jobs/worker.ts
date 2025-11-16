@@ -1,96 +1,142 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Process, Processor } from '@nestjs/bull';
-import { Job } from 'bull';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Job, Queue, QueueEvents } from 'bullmq';
+import { Prisma, DesignStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AiService } from '@/modules/ai/ai.service';
-import { DesignStatus } from '@prisma/client';
-
-export interface GenerateDesignJob {
-  designId: string;
-  prompt: string;
-  options: any;
-  userId: string;
-  brandId: string;
-}
-
-export interface GenerateHighResJob {
-  designId: string;
-  prompt: string;
-  options: any;
-  userId: string;
-}
+import { getErrorMessage, getErrorStack } from '@/common/utils/error.utils';
+import { ConfigService } from '@nestjs/config';
+import type { RedisOptions } from 'ioredis';
+import type { ConnectionOptions as TlsConnectionOptions } from 'tls';
+import { QueueNames } from './queue.constants';
+import { JobNames } from './job.constants';
+import {
+  GenerateDesignJob,
+  GenerateHighResJob,
+  GenerateImageJobPayload,
+  GenerateImageResult,
+  UpscaleJobPayload,
+  UpscaleResult,
+} from './interfaces/ai-jobs.interface';
 
 @Injectable()
-@Processor('ai-generation')
-export class AiGenerationWorker {
+@Processor(QueueNames.AI_GENERATION)
+export class AiGenerationWorker extends WorkerHost implements OnModuleDestroy {
   private readonly logger = new Logger(AiGenerationWorker.name);
+  private readonly imageQueueEvents: QueueEvents;
+  private readonly upscaleQueueEvents: QueueEvents;
 
   constructor(
     private prisma: PrismaService,
     private aiService: AiService,
-  ) {}
+    @InjectQueue(QueueNames.IMAGE_GENERATION) private readonly imageQueue: Queue,
+    @InjectQueue(QueueNames.IMAGE_UPSCALE) private readonly imageUpscaleQueue: Queue,
+    private readonly configService: ConfigService,
+  ) {
+    super();
+    this.imageQueueEvents = this.createQueueEvents(QueueNames.IMAGE_GENERATION);
+    this.upscaleQueueEvents = this.createQueueEvents(QueueNames.IMAGE_UPSCALE);
+  }
 
-  @Process('generate-design')
-  async handleGenerateDesign(job: Job<GenerateDesignJob>) {
+  async process(job: Job<GenerateDesignJob | GenerateHighResJob>): Promise<unknown> {
+    if (job.name === JobNames.AI_GENERATION.GENERATE_HIGH_RES) {
+      return this.processGenerateHighRes(job as Job<GenerateHighResJob>);
+    }
+
+    return this.processGenerateDesign(job as Job<GenerateDesignJob>);
+  }
+
+  private async processGenerateDesign(job: Job<GenerateDesignJob>) {
     const { designId, prompt, options, userId, brandId } = job.data;
+    const normalizedOptions = this.cloneOptions(options);
     
     this.logger.log(`Processing design generation for design ${designId}`);
     
     try {
-      // Update design status to processing
       await this.prisma.design.update({
         where: { id: designId },
         data: { status: DesignStatus.PROCESSING },
       });
 
-      // Check user quota (simplified for now)
-      const hasQuota = await this.aiService.checkUserQuota(userId, 1);
+      const estimatedCost = await this.aiService.estimateCost(prompt, normalizedOptions);
+      const hasQuota = await this.aiService.checkUserQuota(userId, estimatedCost);
+
       if (!hasQuota) {
         throw new Error('Quota exceeded');
       }
 
-      // Simulate AI generation (replace with actual AI provider call)
-      await this.simulateAiGeneration(2000); // 2 seconds
+      const generationJob = await this.imageQueue.add(
+        JobNames.IMAGE_GENERATION.GENERATE,
+        this.buildImageGenerationPayload(designId, prompt, normalizedOptions, userId),
+        {
+          jobId: designId,
+          attempts: 2,
+          removeOnComplete: 200,
+          removeOnFail: 50,
+        },
+      );
 
-      // Generate mock image URLs
-      const previewUrl = `https://cdn.example.com/designs/${designId}/preview.png`;
-      const modelUrl = `https://cdn.example.com/designs/${designId}/model.glb`;
+      const result = (await generationJob.waitUntilFinished(
+        this.imageQueueEvents,
+        10 * 60 * 1000,
+      )) as GenerateImageResult;
+
+      if (!result?.success || !result.imageUrl) {
+        throw new Error(result?.error ?? 'Image generation failed');
+      }
+
       const metadata = {
         prompt,
-        options,
-        generatedAt: new Date().toISOString(),
-        aiProvider: 'mock',
-        costCents: 50, // Mock cost
+        options: normalizedOptions,
+        generation: result.metadata,
+        assets: {
+          previewUrl: result.imageUrl,
+          thumbnailUrl: result.thumbnailUrl ?? null,
+        },
+        completedAt: new Date().toISOString(),
       };
 
-      // Update design with results
       await this.prisma.design.update({
         where: { id: designId },
         data: {
           status: DesignStatus.COMPLETED,
-          previewUrl,
-          metadata,
+          previewUrl: result.imageUrl,
+          metadata: this.toJsonValue(metadata),
         },
       });
 
-      // Record AI cost
-      await this.aiService.recordAICost(brandId, 'mock', 'mock-model', 50, { tokens: 100, duration: 2000 });
+      await Promise.all([
+        this.aiService.recordAICost(brandId, 'openai', this.resolveModel(normalizedOptions), estimatedCost, {
+          tokens: this.resolveTokenEstimate(normalizedOptions),
+          duration: result.metadata?.generationTime ?? 0,
+        }),
+        this.aiService.updateUserQuota(userId, estimatedCost),
+      ]);
 
-      this.logger.log(`Design ${designId} generated successfully`);
+      this.logger.log(`Design ${designId} generated successfully via worker`);
       
-      return { success: true, designId, previewUrl, modelUrl };
-    } catch (error) {
-      this.logger.error(`Failed to generate design ${designId}:`, error);
+      return {
+        success: true,
+        designId,
+        previewUrl: result.imageUrl,
+        thumbnailUrl: result.thumbnailUrl,
+        metadata: result.metadata,
+      };
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      this.logger.error(`Failed to generate design ${designId}: ${message}`, getErrorStack(error));
       
       // Update design status to failed
       await this.prisma.design.update({
         where: { id: designId },
         data: { 
           status: DesignStatus.FAILED,
-          metadata: {
-            error: error.message,
+          metadata: this.toJsonValue({
+            ...normalizedOptions,
+            error: message,
             failedAt: new Date().toISOString(),
-          },
+          }),
         },
       });
 
@@ -98,14 +144,14 @@ export class AiGenerationWorker {
     }
   }
 
-  @Process('generate-high-res')
-  async handleGenerateHighRes(job: Job<GenerateHighResJob>) {
+  private async processGenerateHighRes(job: Job<GenerateHighResJob>) {
     const { designId, prompt, options, userId } = job.data;
+    const normalizedOptions = this.cloneOptions(options);
+    const estimationOptions = { ...normalizedOptions, highRes: true } as Record<string, unknown>;
     
     this.logger.log(`Processing high-res generation for design ${designId}`);
     
     try {
-      // Get current design
       const design = await this.prisma.design.findUnique({
         where: { id: designId },
       });
@@ -114,48 +160,233 @@ export class AiGenerationWorker {
         throw new Error(`Design ${designId} not found`);
       }
 
-      // Check user quota for high-res (simplified for now)
-      const hasQuota = await this.aiService.checkUserQuota(userId, 1);
+      if (!design.previewUrl) {
+        throw new Error(`Design ${designId} has no preview to upscale`);
+      }
+
+      const estimatedCost = await this.aiService.estimateCost(prompt, estimationOptions);
+      const hasQuota = await this.aiService.checkUserQuota(userId, estimatedCost);
       if (!hasQuota) {
         throw new Error('High-res quota exceeded');
       }
 
-      // Simulate high-res generation
-      await this.simulateAiGeneration(5000); // 5 seconds for high-res
+      const upscaleJob = await this.imageUpscaleQueue.add(
+        JobNames.IMAGE_UPSCALE.UPSCALE,
+        this.buildUpscalePayload(designId, design.previewUrl, userId, normalizedOptions),
+        {
+          jobId: `${designId}:highres`,
+          attempts: 2,
+          removeOnComplete: 200,
+          removeOnFail: 50,
+        },
+      );
 
-      // Generate high-res URLs
-      const highResUrl = `https://cdn.example.com/designs/${designId}/high-res.png`;
-      const highResModelUrl = `https://cdn.example.com/designs/${designId}/high-res-model.glb`;
-      
+      const result = (await upscaleJob.waitUntilFinished(
+        this.upscaleQueueEvents,
+        10 * 60 * 1000,
+      )) as UpscaleResult;
+
+      if (!result?.success || !result.imageUrl) {
+        throw new Error(result?.error ?? 'High-res generation failed');
+      }
+
       const updatedMetadata = {
-        ...(design.metadata as any || {}),
+        ...(design.metadata as Record<string, unknown> | null ?? {}),
         highResGenerated: true,
         highResGeneratedAt: new Date().toISOString(),
-        highResCostCents: 200, // Higher cost for high-res
+        highResMetadata: result.metadata,
       };
 
-      // Update design with high-res results
       await this.prisma.design.update({
         where: { id: designId },
         data: {
-          highResUrl,
-          metadata: updatedMetadata,
+          highResUrl: result.imageUrl,
+          metadata: this.toJsonValue(updatedMetadata),
         },
       });
 
-      // Record high-res AI cost
-      await this.aiService.recordAICost(design.brandId, 'mock', 'mock-model-highres', 200, { tokens: 200, duration: 5000 });
+      await Promise.all([
+        this.aiService.recordAICost(
+          design.brandId,
+          'openai',
+          this.resolveModel(normalizedOptions),
+          estimatedCost,
+          {
+            tokens: this.resolveTokenEstimate(normalizedOptions),
+            duration: result.metadata?.fileSize ?? 0,
+          },
+        ),
+        this.aiService.updateUserQuota(userId, estimatedCost),
+      ]);
 
-      this.logger.log(`High-res design ${designId} generated successfully`);
+      this.logger.log(`High-res design ${designId} generated successfully via worker`);
       
-      return { success: true, designId, highResUrl, highResModelUrl };
-    } catch (error) {
-      this.logger.error(`Failed to generate high-res design ${designId}:`, error);
-      throw error;
+      return { success: true, designId, highResUrl: result.imageUrl };
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      this.logger.error(`Failed to generate high-res design ${designId}: ${message}`, getErrorStack(error));
+      throw error instanceof Error ? error : new Error(message);
     }
   }
 
-  private async simulateAiGeneration(delayMs: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, delayMs));
+  async onModuleDestroy(): Promise<void> {
+    await Promise.allSettled([
+      this.imageQueueEvents.close(),
+      this.upscaleQueueEvents.close(),
+    ]);
+  }
+
+  private buildImageGenerationPayload(
+    designId: string,
+    prompt: string,
+    options: Record<string, unknown>,
+    userId: string,
+  ): GenerateImageJobPayload {
+    return {
+      prompt,
+      style: this.resolveStyle(options),
+      dimensions: this.resolveDimensions(options),
+      quality: this.resolveQuality(options),
+      userId,
+      designId,
+    };
+  }
+
+  private buildUpscalePayload(
+    designId: string,
+    imageUrl: string,
+    userId: string,
+    options: Record<string, unknown>,
+  ): UpscaleJobPayload {
+    return {
+      imageUrl,
+      designId,
+      userId,
+      scale: this.getNumberOption(options, 'scale', 2, 1, 4),
+      format: this.resolveFormat(options),
+    };
+  }
+
+  private resolveStyle(options?: Record<string, unknown>): string {
+    const style = this.getStringOption(options, 'style');
+    return typeof style === 'string' && style.trim().length > 0 ? style.trim() : 'professionnel';
+  }
+
+  private resolveDimensions(options?: Record<string, unknown>): string {
+    const width = this.getNumberOption(options, 'width', 1024, 1);
+    const height = this.getNumberOption(options, 'height', 1024, 1);
+    const safeWidth = Number.isFinite(width) && width > 0 ? width : 1024;
+    const safeHeight = Number.isFinite(height) && height > 0 ? height : 1024;
+    return `${safeWidth}x${safeHeight}`;
+  }
+
+  private resolveQuality(options?: Record<string, unknown>): 'standard' | 'hd' {
+    return this.getStringOption(options, 'quality') === 'hd' ? 'hd' : 'standard';
+  }
+
+  private resolveFormat(options?: Record<string, unknown>): UpscaleJobPayload['format'] {
+    const format = this.getStringOption(options, 'format');
+    if (format === 'jpg' || format === 'jpeg' || format === 'png' || format === 'webp') {
+      return format;
+    }
+    return 'png';
+  }
+
+  private resolveModel(options?: Record<string, unknown>): string {
+    const model = this.getStringOption(options, 'model');
+    if (model.length > 0) {
+      return model;
+    }
+    return this.resolveQuality(options) === 'hd' ? 'dall-e-3' : 'dall-e-2';
+  }
+
+  private resolveTokenEstimate(options?: Record<string, unknown>): number {
+    const value = this.getNumberOption(options, 'tokenEstimate', 0);
+    return value >= 0 ? value : 0;
+  }
+
+  private cloneOptions(options?: Record<string, unknown>): Record<string, unknown> {
+    if (!options) {
+      return {};
+    }
+    return JSON.parse(JSON.stringify(options)) as Record<string, unknown>;
+  }
+
+  private getStringOption(options: Record<string, unknown> | undefined, key: string): string {
+    if (!options || !(key in options)) {
+      return '';
+    }
+    const value = options[key];
+    return typeof value === 'string' ? value : '';
+  }
+
+  private getNumberOption(
+    options: Record<string, unknown> | undefined,
+    key: string,
+    fallback: number,
+    min?: number,
+    max?: number,
+  ): number {
+    if (!options || !(key in options)) {
+      return fallback;
+    }
+
+    const candidate = options[key];
+    const numeric = typeof candidate === 'number' ? candidate : Number(candidate);
+
+    if (!Number.isFinite(numeric)) {
+      return fallback;
+    }
+
+    let clamped = numeric;
+    if (typeof min === 'number') {
+      clamped = Math.max(min, clamped);
+    }
+    if (typeof max === 'number') {
+      clamped = Math.min(max, clamped);
+    }
+
+    return clamped;
+  }
+
+  private toJsonValue(value: unknown): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  }
+
+  private createQueueEvents(queueName: string): QueueEvents {
+    const events = new QueueEvents(queueName, {
+      connection: this.getRedisConnectionOptions(),
+      prefix: 'luneo',
+    });
+
+    events.on('error', (error) => {
+      this.logger.error(`QueueEvents error for ${queueName}`, getErrorStack(error));
+    });
+
+    return events;
+  }
+
+  private getRedisConnectionOptions(): RedisOptions {
+    const redisUrl = this.configService.get<string>('redis.url') ?? 'redis://localhost:6379';
+    const parsed = new URL(redisUrl);
+
+    const options: RedisOptions = {
+      host: parsed.hostname,
+      port: Number(parsed.port || '6379'),
+    };
+
+    if (parsed.password) {
+      options.password = parsed.password;
+    }
+
+    if (parsed.username) {
+      options.username = parsed.username;
+    }
+
+    if (parsed.protocol === 'rediss:') {
+      options.tls = {} as TlsConnectionOptions;
+    }
+
+    return options;
   }
 }

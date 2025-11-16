@@ -83,6 +83,7 @@ export const AVAILABLE_FONTS = {
 export class TextEngraver {
   private fontLoader: FontLoader;
   private fontsCache: Map<string, Font> = new Map();
+  private materialsCache: Set<THREE.Material> = new Set();
 
   constructor() {
     this.fontLoader = new FontLoader();
@@ -166,6 +167,7 @@ export class TextEngraver {
       metalness: 0.5,
       roughness: 0.5,
     });
+    this.materialsCache.add(material);
     
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
@@ -224,9 +226,11 @@ export class TextEngraver {
       
       // Créer geometry pour le caractère
       // (Simplified - en production utiliser TextGeometry pour chaque char)
+      const charMaterial = new THREE.MeshStandardMaterial({ color: options.color || '#ffffff' });
+      this.materialsCache.add(charMaterial);
       const charMesh = new THREE.Mesh(
         new THREE.BoxGeometry(0.1, 0.1, options.depth || 0.05),
-        new THREE.MeshStandardMaterial({ color: options.color || '#ffffff' })
+        charMaterial
       );
       
       charMesh.position.copy(point);

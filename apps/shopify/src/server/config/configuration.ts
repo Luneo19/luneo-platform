@@ -1,5 +1,10 @@
-export default () => ({
-  port: parseInt(process.env.PORT, 10) || 3001,
+const toInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const configuration = () => ({
+  port: toInt(process.env.PORT, 3001),
   nodeEnv: process.env.NODE_ENV || 'development',
   
   // Shopify Configuration
@@ -112,7 +117,7 @@ export default () => ({
   database: {
     url: process.env.DATABASE_URL,
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT, 10) || 5432,
+    port: toInt(process.env.DB_PORT, 5432),
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'password',
     database: process.env.DB_NAME || 'luneo_shopify',
@@ -121,9 +126,9 @@ export default () => ({
   // Redis Configuration
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+    port: toInt(process.env.REDIS_PORT, 6379),
     password: process.env.REDIS_PASSWORD,
-    db: parseInt(process.env.REDIS_DB, 10) || 0,
+    db: toInt(process.env.REDIS_DB, 0),
   },
   
   // JWT Configuration
@@ -153,10 +158,12 @@ export default () => ({
   
   // Rate Limiting
   rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+    windowMs: toInt(process.env.RATE_LIMIT_WINDOW_MS, 900_000),
+    max: toInt(process.env.RATE_LIMIT_MAX, 100),
   },
 });
+
+export default configuration;
 
 
 

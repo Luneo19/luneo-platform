@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: luneo-worker-ia-secondary
+spec:
+  source:
+    helm:
+      valuesObject:
+        autoscaling:
+          enabled: true
+          minReplicas: 2
+          maxReplicas: 6
+          metrics:
+            - type: Pods
+              pods:
+                metric:
+                  name: bullmq_waiting_jobs
+                target:
+                  type: AverageValue
+                  averageValue: "10"
+        nodeSelector:
+          lifecycle: on-demand
+        tolerations:
+          - key: dedicated
+            operator: Equal
+            value: standby
+            effect: NoSchedule
+

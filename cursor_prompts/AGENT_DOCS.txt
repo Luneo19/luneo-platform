@@ -1,0 +1,28 @@
+AGENT_DOCS — Architecture docs & READMEs
+
+Tâches:
+
+1. Generate or update README.md for each module created/modified.
+
+2. Create ARCHITECTURE.md top-level that diagrams:
+
+   - Shopify install flow
+
+   - Widget handshake flow
+
+   - Worker render pipeline
+
+   - AR conversion flow
+
+3. Generate runbooks for common ops: deploy worker, convert AR, rollback DB migration.
+
+4. Add quickstart for dev: make setup, make dev, make build.
+
+Deliverables:
+
+- Readmes, architecture diagrams (mermaid), runbooks.
+
+Risk:
+
+- Outdated docs: include last-updated header.
+

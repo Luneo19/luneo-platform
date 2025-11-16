@@ -1,0 +1,77 @@
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: luneo-backend-hpa
+  namespace: luneo-production
+  labels:
+    app: luneo-backend
+    component: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: luneo-backend
+  minReplicas: 3
+  maxReplicas: 50
+  metrics:
+    # CPU-based scaling
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Memory-based scaling
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    # Custom metric: Request rate per pod
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "1000"  # 1000 req/s per pod
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100  # Double replicas
+          periodSeconds: 60
+        - type: Pods
+          value: 5    # Or add 5 pods
+          periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 minutes before scaling down
+      policies:
+        - type: Percent
+          value: 50   # Reduce by 50%
+          periodSeconds: 300
+        - type: Pods
+          value: 2    # Or remove 2 pods
+          periodSeconds: 300
+      selectPolicy: Min
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: luneo-backend-metrics
+  namespace: luneo-production
+  labels:
+    app: luneo-backend
+spec:
+  ports:
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: metrics
+  selector:
+    app: luneo-backend

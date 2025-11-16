@@ -10,7 +10,7 @@ export interface ProductZone {
   maxResolution?: { w: number; h: number };
   priceDeltaCents?: number;
   constraints?: ZoneConstraints;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ZoneConstraints {
@@ -24,8 +24,10 @@ export interface ZoneConstraints {
   pattern?: string; // Regex for text validation
 }
 
+export type CompatibilityCondition = Record<string, unknown>;
+
 export interface CompatibilityRule {
-  if: Record<string, any>;
+  if: CompatibilityCondition;
   deny?: string[];
   allow?: string[];
   require?: string[];
@@ -33,11 +35,12 @@ export interface CompatibilityRule {
 }
 
 export interface ProductRules {
+  [key: string]: unknown;
   zones: ProductZone[];
   compatibilityRules?: CompatibilityRule[];
   globalConstraints?: GlobalConstraints;
   pricing?: PricingRules;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface GlobalConstraints {
@@ -70,12 +73,57 @@ export interface BulkPricing {
 }
 
 export interface DesignOptions {
-  zones: Record<string, any>;
-  materials?: Record<string, any>;
-  finishes?: Record<string, any>;
+  [key: string]: unknown;
+  zones?: Record<string, DesignZoneOption>;
+  materials?: Record<string, number>;
+  finishes?: Record<string, number>;
   quantity?: number;
-  customizations?: Record<string, any>;
+  quality?: 'standard' | 'high' | 'ultra';
+  numImages?: number;
+  size?: string;
+  style?: string;
+  steps?: number;
+  cfgScale?: number;
+  seed?: number;
+  effects?: string[];
+  zoneTypes?: string[];
+  customizations?: {
+    effects?: string[];
+  } & Record<string, unknown>;
 }
+
+export interface DesignImageZoneOptions {
+  imageUrl?: string;
+  imageFile?: unknown;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  hasTransparency?: boolean;
+  quality?: number;
+  complexity?: 'simple' | 'medium' | 'complex';
+  effects?: string[];
+}
+
+export interface DesignTextZoneOptions {
+  text?: string;
+  font?: string;
+  effects?: string[];
+}
+
+export interface DesignColorZoneOptions {
+  color?: string;
+  gradient?: boolean;
+}
+
+export interface DesignSelectZoneOptions {
+  value?: string;
+}
+
+export type DesignZoneOption =
+  | DesignImageZoneOptions
+  | DesignTextZoneOptions
+  | DesignColorZoneOptions
+  | DesignSelectZoneOptions;
 
 export interface ValidationResult {
   isValid: boolean;
@@ -83,6 +131,7 @@ export interface ValidationResult {
   warnings: ValidationWarning[];
   price: number;
   estimatedProductionTime?: number;
+  [key: string]: unknown;
 }
 
 export interface ValidationError {
@@ -118,6 +167,44 @@ export interface PricingContext {
   rules: ProductRules;
   brandTier?: 'basic' | 'professional' | 'enterprise';
   quantity: number;
+}
+
+export interface PricingSuggestion {
+  recommendedBasePrice: number;
+  competitiveAnalysis: CompetitiveAnalysis;
+  marginAnalysis: MarginAnalysis;
+  priceHistory: PricingHistoryEntry[];
+}
+
+export interface CompetitiveAnalysis {
+  marketAverage: number;
+  priceRange: {
+    min: number;
+    max: number;
+  };
+  competitors: Array<{
+    name: string;
+    price: number;
+  }>;
+}
+
+export interface MarginAnalysis {
+  currentMarginPercent: number;
+  targetMarginPercent: number;
+  recommendation: string;
+}
+
+export interface PricingHistoryEntry {
+  total: number;
+  date: string;
+}
+
+export interface RulesUsageStats {
+  period: 'day' | 'week' | 'month';
+  startDate: string;
+  endDate: string;
+  designs: Record<string, number>;
+  orders: number;
 }
 
 

@@ -6,14 +6,15 @@ import { PricingEngine } from './services/pricing-engine.service';
 import { ValidationEngine } from './services/validation-engine.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
+import { QueueNames } from '@/jobs/queue.constants';
 
 @Module({
   imports: [
     PrismaModule,
     SmartCacheModule,
     BullModule.registerQueue({
-      name: 'product-engine',
+      name: QueueNames.PRODUCT_ENGINE,
     }),
   ],
   controllers: [ProductEngineController],

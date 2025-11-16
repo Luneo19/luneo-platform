@@ -18,7 +18,7 @@ export interface EcommerceConfig {
   webhookSecret?: string;
   scopes?: string[];
   features?: string[];
-  customFields?: Record<string, any>;
+  customFields?: Record<string, unknown>;
 }
 
 export interface ProductMapping {
@@ -29,7 +29,7 @@ export interface ProductMapping {
   externalSku: string;
   syncStatus: 'synced' | 'pending' | 'failed' | 'conflict';
   lastSyncedAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SyncLog {
@@ -49,7 +49,7 @@ export interface SyncError {
   itemId: string;
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 export interface ShopifyProduct {
@@ -69,8 +69,8 @@ export interface ShopifyProduct {
 }
 
 export interface ShopifyVariant {
-  id: string;
-  product_id: string;
+  id?: string;
+  product_id?: string;
   title: string;
   price: string;
   sku: string;
@@ -83,13 +83,13 @@ export interface ShopifyVariant {
 }
 
 export interface ShopifyImage {
-  id: string;
-  product_id: string;
+  id?: string;
+  product_id?: string;
   src: string;
   position: number;
   alt?: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 }
 
 export interface ShopifyOption {
@@ -179,7 +179,7 @@ export interface WooCommerceProduct {
 }
 
 export interface WooCommerceImage {
-  id: number;
+  id?: number;
   src: string;
   name: string;
   alt: string;
@@ -219,7 +219,7 @@ export interface WooCommerceLineItem {
   price: string;
   total: string;
   sku: string;
-  meta_data: Array<{ key: string; value: any }>;
+  meta_data: Array<{ key: string; value: unknown }>;
 }
 
 export interface WooCommerceAddress {
@@ -245,14 +245,14 @@ export interface MagentoProduct {
   type_id: string;
   price: number;
   attribute_set_id: number;
-  extension_attributes?: any;
+  extension_attributes?: unknown;
   custom_attributes: MagentoAttribute[];
   media_gallery_entries: MagentoMediaEntry[];
 }
 
 export interface MagentoAttribute {
   attribute_code: string;
-  value: any;
+  value: unknown;
 }
 
 export interface MagentoMediaEntry {
@@ -339,8 +339,19 @@ export interface WebhookPayload {
   id: string;
   topic: string;
   shop_domain?: string;
-  payload: any;
+  payload: Record<string, unknown>;
   created_at: string;
+}
+
+export type ShopifyWebhookPayload = Record<string, unknown>;
+export type WooCommerceWebhookPayload = Record<string, unknown>;
+
+export interface WebhookStats {
+  period: 'day' | 'week' | 'month';
+  totalWebhooks: number;
+  webhooksByTopic: Record<string, number>;
+  webhooksByStatus: Record<string, number>;
+  successRate: number;
 }
 
 export interface ProductSyncRequest {
@@ -353,6 +364,20 @@ export interface OrderSyncRequest {
   integrationId: string;
   orderIds?: string[];
   options?: SyncOptions;
+}
+
+export interface EcommerceSyncJobPayload {
+  integrationId: string;
+  scope?: 'products' | 'orders' | 'inventory';
+  forceFullSync?: boolean;
+}
+
+export interface EcommerceWebhookJobPayload {
+  integrationId: string;
+  topic: string;
+  payload: Record<string, unknown>;
+  shopDomain?: string;
+  signature?: string;
 }
 
 

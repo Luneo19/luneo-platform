@@ -10,9 +10,9 @@
 
 **Dans Stripe Dashboard Workbench, VOUS AVEZ 3 CLÉS:**
 
-1. ✅ **Clé publique:** `pk_live_jL5xDF4ylCaiXVDswVAliVA3`
-2. ❌ **Clé secrète:** `sk_live_...W2jE` (celle que vous utilisez actuellement - INVALIDE)
-3. ⚠️ **Clé Secrète - Luneo projet:** `sk_live_...3V0h` (différente!)
+1. ✅ **Clé publique:** `pk_live_your_publishable_key`
+2. ❌ **Clé secrète (exemple invalide):** `sk_live_invalid_placeholder`
+3. ⚠️ **Clé secrète à utiliser:** `sk_live_your_secret_key`
 
 ---
 

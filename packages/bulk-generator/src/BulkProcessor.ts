@@ -6,6 +6,7 @@
 import { Queue, Worker, Job, QueueEvents } from 'bullmq';
 import { Redis } from 'ioredis';
 import OpenAI from 'openai';
+import { sanitizePrompt, hashPrompt, maskPromptForLogs, type PromptRedaction } from '@luneo/ai-safety';
 
 /**
  * Job data pour bulk generation
@@ -50,6 +51,12 @@ export interface BulkGenerationResult {
   
   /** Succès */
   success: boolean;
+  
+  /** Hash anonymisé du prompt */
+  promptHash?: string;
+  
+  /** Redactions appliquées */
+  redactions?: PromptRedaction[];
   
   /** Erreur si échec */
   error?: string;
@@ -214,20 +221,28 @@ export class BulkProcessor {
       try {
         // Construire prompt avec variations
         const fullPrompt = this.buildPrompt(basePrompt, variation.modifiers);
+        const sanitizedPrompt = sanitizePrompt(fullPrompt, { maxLength: 1600 });
+
+        if (sanitizedPrompt.blocked) {
+          throw new Error(`Prompt rejeté (données sensibles) pour variation ${variation.id}`);
+        }
+
+        const safePrompt = sanitizedPrompt.prompt;
+        const promptHash = hashPrompt(fullPrompt);
         
         // Générer avec OpenAI DALL-E 3
         const varStartTime = Date.now();
         
         const response = await this.openai.images.generate({
           model: 'dall-e-3',
-          prompt: fullPrompt,
+          prompt: safePrompt,
           n: 1,
           size: (options?.size || '1024x1024') as any,
           quality: (options?.quality || 'standard') as any,
           style: (options?.style || 'vivid') as any,
         });
         
-        const imageUrl = response.data[0]?.url;
+        const imageUrl = response.data?.[0]?.url;
         
         if (!imageUrl) {
           throw new Error('No image URL returned');
@@ -240,9 +255,14 @@ export class BulkProcessor {
           imageUrl,
           generationTime,
           success: true,
+          promptHash,
+          redactions: sanitizedPrompt.redactions,
         });
         
-        console.log(`  ✅ Variation ${i + 1}/${variations.length} completed (${generationTime}ms)`);
+        console.log(
+          `  ✅ Variation ${i + 1}/${variations.length} completed (${generationTime}ms)`,
+          maskPromptForLogs(safePrompt),
+        );
         
       } catch (error: any) {
         console.error(`  ❌ Variation ${i + 1}/${variations.length} failed:`, error.message);

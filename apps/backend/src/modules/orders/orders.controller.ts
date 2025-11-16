@@ -1,19 +1,15 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
+import type { Request } from 'express';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -27,7 +23,8 @@ export class OrdersController {
     status: 201,
     description: 'Commande créée avec URL de paiement',
   })
-  async create(@Body() createOrderDto: any, @Request() req) {
+  @ApiBody({ type: CreateOrderDto })
+  async create(@Body() createOrderDto: CreateOrderDto, @Req() req: Request) {
     return this.ordersService.create(createOrderDto, req.user);
   }
 
@@ -38,7 +35,7 @@ export class OrdersController {
     status: 200,
     description: 'Détails de la commande',
   })
-  async findOne(@Param('id') id: string, @Request() req) {
+  async findOne(@Param('id') id: string, @Req() req: Request) {
     return this.ordersService.findOne(id, req.user);
   }
 
@@ -49,7 +46,7 @@ export class OrdersController {
     status: 200,
     description: 'Commande annulée',
   })
-  async cancel(@Param('id') id: string, @Request() req) {
+  async cancel(@Param('id') id: string, @Req() req: Request) {
     return this.ordersService.cancel(id, req.user);
   }
 }

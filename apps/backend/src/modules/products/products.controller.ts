@@ -6,7 +6,7 @@ import {
   Patch,
   Body,
   Query,
-  Request,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { Public } from '@/common/guards/jwt-auth.guard';
+import type { Request } from 'express';
 
 @ApiTags('products')
 @Controller('products')
@@ -58,7 +59,7 @@ export class ProductsController {
     status: 201,
     description: 'Produit créé',
   })
-  async create(@Param('brandId') brandId: string, @Body() createProductDto: any, @Request() req) {
+  async create(@Param('brandId') brandId: string, @Body() createProductDto: any, @Req() req: Request) {
     return this.productsService.create(brandId, createProductDto, req.user);
   }
 
@@ -71,7 +72,7 @@ export class ProductsController {
     status: 200,
     description: 'Produit mis à jour',
   })
-  async update(@Param('brandId') brandId: string, @Param('id') id: string, @Body() updateProductDto: any, @Request() req) {
+  async update(@Param('brandId') brandId: string, @Param('id') id: string, @Body() updateProductDto: any, @Req() req: Request) {
     return this.productsService.update(brandId, id, updateProductDto, req.user);
   }
 }

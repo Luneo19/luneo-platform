@@ -1,3 +1,13 @@
+import type {
+  PlanDefinition,
+  PlanQuotaDefinition,
+  PlanTier,
+  UsageMetricType,
+} from '@luneo/billing-plans';
+
+export type UsageMetadataValue = string | number | boolean | null;
+export type UsageMetadata = Record<string, UsageMetadataValue>;
+
 export interface UsageMetric {
   id: string;
   brandId: string;
@@ -5,36 +15,15 @@ export interface UsageMetric {
   value: number;
   unit: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: UsageMetadata;
 }
 
-export type UsageMetricType = 
-  | 'designs_created'
-  | 'renders_2d'
-  | 'renders_3d'
-  | 'exports_gltf'
-  | 'exports_usdz'
-  | 'ai_generations'
-  | 'storage_gb'
-  | 'bandwidth_gb'
-  | 'api_calls'
-  | 'webhook_deliveries'
-  | 'custom_domains'
-  | 'team_members';
+export type { UsageMetricType };
 
-export interface UsageQuota {
-  metric: UsageMetricType;
-  limit: number;
-  period: 'hour' | 'day' | 'month';
-  overage: 'block' | 'charge';
-  overageRate?: number; // Prix par unité supplémentaire en cents
-}
+export interface UsageQuota extends PlanQuotaDefinition {}
 
-export interface PlanLimits {
-  plan: 'starter' | 'professional' | 'business' | 'enterprise';
-  quotas: UsageQuota[];
-  features: string[];
-  basePrice: number; // Prix mensuel de base en cents
+export interface PlanLimits extends PlanDefinition {
+  plan: PlanTier;
 }
 
 export interface UsageRecord {
@@ -81,6 +70,7 @@ export interface UsageSummary {
     message: string;
     metric: UsageMetricType;
     threshold: number;
+    timestamp: Date;
   }>;
 }
 

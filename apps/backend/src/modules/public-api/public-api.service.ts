@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Prisma, OrderStatus, DesignStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { CreateDesignDto, CreateOrderDto, GetAnalyticsDto } from './dto';
@@ -19,10 +20,7 @@ export class PublicApiService {
     const cacheKey = 'brand:info';
     return this.cache.getOrSet(cacheKey, async () => {
       // Get brand info from request context (set by API key guard)
-      const brandId = this.getCurrentBrandId();
-      if (!brandId) {
-        throw new UnauthorizedException('Brand context not found');
-      }
+      const brandId = this.requireCurrentBrandId();
 
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
@@ -48,7 +46,7 @@ export class PublicApiService {
   }
 
   async getProducts(page: number = 1, limit: number = 10) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     const skip = (page - 1) * limit;
     
     const [products, total] = await Promise.all([
@@ -87,7 +85,7 @@ export class PublicApiService {
   }
 
   async getProduct(id: string) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     
     const product = await this.prisma.product.findFirst({
       where: { 
@@ -120,7 +118,7 @@ export class PublicApiService {
   }
 
   async createDesign(createDesignDto: CreateDesignDto) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     
     // Validate product exists and belongs to brand
     const product = await this.prisma.product.findFirst({
@@ -140,11 +138,11 @@ export class PublicApiService {
         name: createDesignDto.name,
         description: createDesignDto.description,
         prompt: createDesignDto.prompt,
-        status: 'PENDING',
+        status: DesignStatus.PENDING,
         productId: createDesignDto.productId,
         brandId,
-        options: createDesignDto.customizationData || {},
-        metadata: createDesignDto.metadata,
+        options: this.toJson(createDesignDto.customizationData ?? {}),
+        metadata: this.toJson(createDesignDto.metadata ?? {}),
       },
       select: {
         id: true,
@@ -167,7 +165,7 @@ export class PublicApiService {
   }
 
   async getDesign(id: string) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     
     const design = await this.prisma.design.findFirst({
       where: { 
@@ -203,7 +201,7 @@ export class PublicApiService {
   }
 
   async createOrder(createOrderDto: CreateOrderDto) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     
     // Validate design exists and belongs to brand
     const design = await this.prisma.design.findFirst({
@@ -224,7 +222,7 @@ export class PublicApiService {
     const order = await this.prisma.order.create({
       data: {
         orderNumber: crypto.randomBytes(8).toString('hex'),
-        status: 'CREATED',
+        status: OrderStatus.CREATED,
         totalCents: Math.round(Number(design.product.price) * 100),
         subtotalCents: Math.round(Number(design.product.price) * 100),
         currency: design.product.currency,
@@ -239,7 +237,7 @@ export class PublicApiService {
         },
         customerEmail: createOrderDto.customerEmail,
         customerName: createOrderDto.customerName,
-        shippingAddress: createOrderDto.shippingAddress as any,
+        shippingAddress: this.toJson(createOrderDto.shippingAddress),
       },
       select: {
         id: true,
@@ -268,7 +266,7 @@ export class PublicApiService {
   }
 
   async getOrder(id: string) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     
     const order = await this.prisma.order.findFirst({
       where: { 
@@ -303,12 +301,13 @@ export class PublicApiService {
   }
 
   async getOrders(page: number = 1, limit: number = 10, status?: string) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     const skip = (page - 1) * limit;
     
-    const where: any = { brandId };
-    if (status) {
-      where.status = status;
+    const where: Prisma.OrderWhereInput = { brandId };
+    const normalizedStatus = this.normalizeOrderStatus(status);
+    if (normalizedStatus) {
+      where.status = normalizedStatus;
     }
     
     const [orders, total] = await Promise.all([
@@ -348,13 +347,38 @@ export class PublicApiService {
   }
 
   async getAnalytics(query: GetAnalyticsDto) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     return this.analyticsService.getAnalytics(brandId, query);
   }
 
   async testWebhook(payload: any) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.requireCurrentBrandId();
     return this.webhookService.sendWebhook('test' as any, payload, brandId);
+  }
+
+  private toJson(value: unknown): Prisma.InputJsonValue | Prisma.NullTypes.JsonNull {
+    if (value === undefined || value === null) {
+      return Prisma.JsonNull;
+    }
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  }
+
+  private normalizeOrderStatus(value?: string): OrderStatus | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const match = (Object.values(OrderStatus) as string[]).find(
+      (enumValue) => enumValue.toLowerCase() === value.toLowerCase(),
+    );
+    return match as OrderStatus | undefined;
+  }
+
+  private requireCurrentBrandId(): string {
+    const brandId = this.getCurrentBrandId();
+    if (!brandId) {
+      throw new UnauthorizedException('Brand context not found');
+    }
+    return brandId;
   }
 
   private getCurrentBrandId(): string | null {
