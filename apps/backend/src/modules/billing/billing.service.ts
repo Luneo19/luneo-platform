@@ -184,6 +184,30 @@ export class BillingService {
       throw new BadRequestException('Invalid Stripe webhook signature');
     }
 
+    // Idempotency check: prevent duplicate processing
+    const existingEvent = await this.prisma.stripeWebhookEvent.findUnique({
+      where: { stripeEventId: event.id },
+    });
+
+    if (existingEvent?.processed) {
+      this.logger.log(`Webhook event ${event.id} already processed, skipping`);
+      return;
+    }
+
+    // Create or update webhook event record
+    await this.prisma.stripeWebhookEvent.upsert({
+      where: { stripeEventId: event.id },
+      create: {
+        stripeEventId: event.id,
+        eventType: event.type,
+        payload: event as unknown as Record<string, unknown>,
+        processed: false,
+      },
+      update: {
+        retryCount: { increment: 1 },
+      },
+    });
+
     try {
       switch (event.type) {
         case 'checkout.session.completed':
@@ -229,8 +253,26 @@ export class BillingService {
         default:
           this.logger.debug(`Stripe webhook ${event.type} non géré`);
       }
+
+      // Mark event as processed on success
+      await this.prisma.stripeWebhookEvent.update({
+        where: { stripeEventId: event.id },
+        data: {
+          processed: true,
+          processedAt: new Date(),
+        },
+      });
     } catch (error) {
       this.logger.error(`Erreur traitement webhook Stripe (${event.type})`, error as Error);
+      
+      // Record error but don't mark as processed
+      await this.prisma.stripeWebhookEvent.update({
+        where: { stripeEventId: event.id },
+        data: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      
       throw error;
     }
   }

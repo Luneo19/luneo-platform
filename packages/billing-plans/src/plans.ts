@@ -37,6 +37,8 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
         overage: 'charge',
         overageRate: 20,
         unit: 'render',
+        creditCost: 1, // 1 credit per 2D render
+        baseCostCents: 20, // Base cost: 20 cents per render
       }),
       quota({
         metric: 'renders_3d',
@@ -47,6 +49,8 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
         overage: 'charge',
         overageRate: 100,
         unit: 'render',
+        creditCost: 5, // 5 credits per 3D render
+        baseCostCents: 100, // Base cost: 100 cents per render
       }),
       quota({
         metric: 'ai_generations',
@@ -141,6 +145,8 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
         overage: 'charge',
         overageRate: 15,
         unit: 'render',
+        creditCost: 1,
+        baseCostCents: 15,
       }),
       quota({
         metric: 'renders_3d',
@@ -151,6 +157,8 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
         overage: 'charge',
         overageRate: 80,
         unit: 'render',
+        creditCost: 5,
+        baseCostCents: 80,
       }),
       quota({
         metric: 'ai_generations',
@@ -250,6 +258,8 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
         overage: 'charge',
         overageRate: 10,
         unit: 'render',
+        creditCost: 1,
+        baseCostCents: 10,
       }),
       quota({
         metric: 'renders_3d',
@@ -260,6 +270,8 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
         overage: 'charge',
         overageRate: 60,
         unit: 'render',
+        creditCost: 5,
+        baseCostCents: 60,
       }),
       quota({
         metric: 'ai_generations',
@@ -375,6 +387,8 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
         overage: 'charge',
         overageRate: 5,
         unit: 'render',
+        creditCost: 1,
+        baseCostCents: 5,
       }),
       quota({
         metric: 'renders_3d',
@@ -385,6 +399,8 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
         overage: 'charge',
         overageRate: 40,
         unit: 'render',
+        creditCost: 5,
+        baseCostCents: 40,
       }),
       quota({
         metric: 'ai_generations',

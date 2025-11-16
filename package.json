@@ -17,6 +17,7 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "deploy": "turbo run deploy",
     "setup": "npm install && npm run build",
+    "prepare": "husky install",
     "dev:frontend": "turbo run dev --filter=@luneo/frontend",
     "dev:backend": "turbo run dev --filter=@luneo/backend",
     "dev:mobile": "turbo run dev --filter=@luneo/mobile",
@@ -54,6 +55,8 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-unused-imports": "^4.3.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
     "next": "^15.0.0",
     "prettier": "^3.2.5",
     "tsx": "^4.20.6",
@@ -77,5 +80,14 @@
       "lodash.template": "^4.5.0",
       "camera-controls": "^2.10.1"
     }
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

@@ -194,6 +194,107 @@ export class QuotasService {
   }
 
   /**
+   * Query tenant usage with soft-limit enforcement
+   * Returns usage data and indicates if features should be disabled
+   */
+  async queryTenantUsageWithEnforcement(
+    brandId: string,
+    enforceSoftLimit: boolean = false,
+  ): Promise<{
+    brandId: string;
+    plan: PlanTier;
+    usage: Record<UsageMetricType, { current: number; limit: number; percentage: number }>;
+    totalCostCents: number;
+    featuresDisabled: string[];
+    softLimitReached: boolean;
+    recommendations: string[];
+  }> {
+    const summary = await this.getUsageSummaryWithPlan(brandId);
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: brandId },
+      select: { plan: true, stripeSubscriptionId: true },
+    });
+
+    if (!brand) {
+      throw new BadRequestException('Brand not found');
+    }
+
+    const plan = PLAN_DEFINITIONS[brand.plan as PlanTier] || PLAN_DEFINITIONS.starter;
+    const currentUsage = await this.meteringService.getCurrentUsage(brandId);
+    
+    // Calculate usage percentages and check soft limits
+    const usage: Record<UsageMetricType, { current: number; limit: number; percentage: number }> = {} as any;
+    const featuresDisabled: string[] = [];
+    let softLimitReached = false;
+    const recommendations: string[] = [];
+
+    for (const quota of plan.quotas) {
+      const current = currentUsage[quota.metric] || 0;
+      const limit = quota.limit;
+      const percentage = limit > 0 ? (current / limit) * 100 : 0;
+      
+      usage[quota.metric] = { current, limit, percentage };
+
+      // Soft limit: disable features at 95% usage
+      if (percentage >= 95) {
+        softLimitReached = true;
+        
+        if (enforceSoftLimit) {
+          // Disable heavy features based on metric
+          if (quota.metric === 'renders_2d' || quota.metric === 'renders_3d') {
+            featuresDisabled.push('render');
+          }
+          if (quota.metric === 'ai_generations') {
+            featuresDisabled.push('ai_generation');
+          }
+          if (quota.metric === 'storage_gb') {
+            featuresDisabled.push('storage_upload');
+          }
+        }
+
+        recommendations.push(
+          `${quota.label}: ${percentage.toFixed(1)}% used. Consider upgrading plan or purchasing top-up.`,
+        );
+      }
+
+      // Hard limit: block at 100%
+      if (percentage >= 100 && quota.overage === 'block') {
+        if (quota.metric === 'renders_2d' || quota.metric === 'renders_3d') {
+          featuresDisabled.push('render');
+        }
+        if (quota.metric === 'ai_generations') {
+          featuresDisabled.push('ai_generation');
+        }
+      }
+    }
+
+    // Calculate total cost from render audit logs
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const renderAuditLogs = await this.prisma.renderAuditLog.findMany({
+      where: {
+        brandId,
+        createdAt: { gte: startOfMonth },
+      },
+      select: { costCents: true },
+    });
+
+    const totalCostCents = renderAuditLogs.reduce((sum, log) => sum + log.costCents, 0);
+
+    return {
+      brandId,
+      plan: brand.plan as PlanTier,
+      usage,
+      totalCostCents,
+      featuresDisabled: [...new Set(featuresDisabled)], // Remove duplicates
+      softLimitReached,
+      recommendations,
+    };
+  }
+
+  /**
    * Récupérer le résumé d'usage complet
    */
   async getUsageSummary(brandId: string): Promise<UsageSummary> {

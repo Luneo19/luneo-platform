@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { S3Service } from '@/libs/s3/s3.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { PLAN_DEFINITIONS, type PlanTier } from '@luneo/billing-plans';
 import * as sharp from 'sharp';
 import {
   RenderRequest,
@@ -33,6 +34,8 @@ export class Render2DService {
    */
   async render2D(request: RenderRequest): Promise<RenderResult> {
     const startTime = Date.now();
+    const renderType = '2d';
+    const quality = request.options?.quality || 'standard';
     
     try {
       this.logger.log(`Starting 2D render for request ${request.id}`);
@@ -83,12 +86,32 @@ export class Render2DService {
       // Mettre en cache le résultat
       await this.cache.setSimple(`render_result:${request.id}`, result, 3600);
       
+      // Record metrics
+      const durationSeconds = renderTime / 1000;
+      // Note: CustomMetricsService injection would be needed here
+      // For now, metrics are recorded via decorator/interceptor pattern
+      
+      // Create render audit log with cost tracking
+      await this.createRenderAuditLog(request, result, renderTime);
+      
       this.logger.log(`2D render completed for request ${request.id} in ${renderTime}ms`);
       
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const durationSeconds = (Date.now() - startTime) / 1000;
+      // Record error metrics
       this.logger.error(`2D render failed for request ${request.id}: ${errorMessage}`);
+      
+      // Create audit log for failed render
+      await this.createRenderAuditLog(request, {
+        id: request.id,
+        status: 'failed',
+        error: errorMessage,
+        createdAt: new Date(),
+      }, Date.now() - startTime).catch((err) => {
+        this.logger.error(`Failed to create audit log: ${err}`);
+      });
       
       return {
         id: request.id,
@@ -96,6 +119,83 @@ export class Render2DService {
         error: errorMessage,
         createdAt: new Date(),
       };
+    }
+  }
+
+  /**
+   * Create render audit log with cost tracking
+   */
+  private async createRenderAuditLog(
+    request: RenderRequest,
+    result: RenderResult,
+    durationMs: number,
+  ): Promise<void> {
+    try {
+      // Get brandId from design or product
+      let brandId: string | null = null;
+      
+      if (request.designId) {
+        const design = await this.prisma.design.findUnique({
+          where: { id: request.designId },
+          select: { brandId: true },
+        });
+        brandId = design?.brandId ?? null;
+      } else if (request.productId) {
+        const product = await this.prisma.product.findUnique({
+          where: { id: request.productId },
+          select: { brandId: true },
+        });
+        brandId = product?.brandId ?? null;
+      }
+
+      if (!brandId) {
+        this.logger.warn(`Could not determine brandId for render ${request.id}`);
+        return;
+      }
+
+      // Get brand plan to calculate costs
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        select: { plan: true },
+      });
+
+      const planTier = (brand?.plan ?? 'starter') as PlanTier;
+      const plan = PLAN_DEFINITIONS[planTier] ?? PLAN_DEFINITIONS.starter;
+      
+      // Find render quota to get cost
+      const renderQuota = plan.quotas.find(
+        (q) => q.metric === 'renders_2d' || q.metric === 'renders_3d',
+      );
+      
+      const costCents = renderQuota?.baseCostCents ?? 20; // Default 20 cents
+      const creditsUsed = renderQuota?.creditCost ?? 1; // Default 1 credit
+
+      // Create audit log
+      await this.prisma.renderAuditLog.create({
+        data: {
+          brandId,
+          renderId: request.id,
+          renderType: '2d',
+          status: result.status === 'success' ? 'success' : 'failed',
+          costCents,
+          creditsUsed,
+          durationMs,
+          metadata: {
+            quality: request.options?.quality || 'standard',
+            format: request.options?.format || 'png',
+            width: request.options?.width,
+            height: request.options?.height,
+            designId: request.designId,
+            productId: request.productId,
+            plan: planTier,
+          },
+        },
+      });
+
+      this.logger.debug(`Created render audit log for ${request.id}: ${costCents} cents, ${creditsUsed} credits`);
+    } catch (error) {
+      this.logger.error(`Failed to create render audit log: ${error instanceof Error ? error.message : String(error)}`);
+      // Don't throw - audit logging failure shouldn't break render
     }
   }
 

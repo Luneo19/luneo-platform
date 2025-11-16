@@ -4,6 +4,8 @@ import { RBACService } from './services/rbac.service';
 import { AuditLogsService, AuditEventType } from './services/audit-logs.service';
 import { AuditSearchQuery } from './interfaces/audit.interface';
 import { GDPRService } from './services/gdpr.service';
+import { RateLimiterService } from './services/rate-limiter.service';
+import { JwtRotationService } from './services/jwt-rotation.service';
 import { Role, Permission } from './interfaces/rbac.interface';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { RequirePermissions } from './decorators/require-permissions.decorator';
@@ -19,6 +21,8 @@ export class SecurityController {
     private readonly rbacService: RBACService,
     private readonly auditLogs: AuditLogsService,
     private readonly gdprService: GDPRService,
+    private readonly rateLimiter: RateLimiterService,
+    private readonly jwtRotation: JwtRotationService,
   ) {}
 
   private getQueryValue(value?: string | string[]): string | undefined {
@@ -305,6 +309,110 @@ export class SecurityController {
   @ApiResponse({ status: 200, description: 'Retention scheduled' })
   async scheduleDataRetention(@Body() body: { days?: number }) {
     return this.gdprService.scheduleDataRetention(body.days);
+  }
+
+  // ==================== RATE LIMITING ====================
+
+  @Get('rate-limit/status/:tenantId')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.AUDIT_READ)
+  @ApiOperation({ summary: 'Get rate limit status for a tenant' })
+  @ApiResponse({ status: 200, description: 'Rate limit status retrieved' })
+  async getRateLimitStatus(@Param('tenantId') tenantId: string) {
+    return this.rateLimiter.getRateLimitStatus(tenantId);
+  }
+
+  @Post('rate-limit/reset/:tenantId')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Reset rate limit for a tenant' })
+  @ApiResponse({ status: 200, description: 'Rate limit reset' })
+  async resetRateLimit(@Param('tenantId') tenantId: string) {
+    await this.rateLimiter.resetRateLimit(tenantId);
+    return { success: true, tenantId };
+  }
+
+  // ==================== JWT ROTATION ====================
+
+  @Post('jwt/rotation/plan')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Create JWT rotation plan' })
+  @ApiResponse({ status: 201, description: 'Rotation plan created' })
+  async createRotationPlan() {
+    const plan = await this.jwtRotation.createRotationPlan();
+    return {
+      success: true,
+      plan: {
+        rotationStartAt: plan.rotationStartAt,
+        gracePeriodEndAt: plan.gracePeriodEndAt,
+        rotationCompleteAt: plan.rotationCompleteAt,
+        // Don't expose secrets in response
+      },
+    };
+  }
+
+  @Get('jwt/rotation/status')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.AUDIT_READ)
+  @ApiOperation({ summary: 'Get current JWT rotation plan status' })
+  @ApiResponse({ status: 200, description: 'Rotation status retrieved' })
+  async getRotationStatus() {
+    const plan = await this.jwtRotation.getRotationPlanStatus();
+    if (!plan) {
+      return { active: false };
+    }
+    return {
+      active: true,
+      rotationStartAt: plan.rotationStartAt,
+      gracePeriodEndAt: plan.gracePeriodEndAt,
+      rotationCompleteAt: plan.rotationCompleteAt,
+      inGracePeriod: new Date() < plan.gracePeriodEndAt,
+    };
+  }
+
+  @Post('jwt/rotation/complete')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Complete JWT rotation (after grace period)' })
+  @ApiResponse({ status: 200, description: 'Rotation completed' })
+  async completeRotation() {
+    await this.jwtRotation.completeRotation();
+    return { success: true };
+  }
+
+  @Post('jwt/embed-key/rotate')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Rotate embed key for a brand/shop' })
+  @ApiResponse({ status: 200, description: 'Embed key rotated' })
+  async rotateEmbedKey(
+    @Body() body: { brandId: string; shopDomain?: string },
+  ) {
+    const result = await this.jwtRotation.rotateEmbedKey(body.brandId, body.shopDomain);
+    return {
+      success: true,
+      oldKeyId: result.oldKeyId,
+      newKeyId: result.newKeyId,
+      expiresAt: result.expiresAt,
+      // Token is returned but should be stored securely by client
+    };
+  }
+
+  @Post('jwt/embed-key/expire')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Expire/revoke embed keys for a brand' })
+  @ApiResponse({ status: 200, description: 'Embed keys expired' })
+  async expireEmbedKeys(
+    @Body() body: { brandId: string; shopDomain?: string },
+  ) {
+    const count = await this.jwtRotation.expireEmbedKeys(body.brandId, body.shopDomain);
+    return {
+      success: true,
+      expiredCount: count,
+      brandId: body.brandId,
+    };
   }
 }
 

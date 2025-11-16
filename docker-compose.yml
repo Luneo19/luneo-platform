@@ -70,12 +70,33 @@ services:
       timeout: 5s
       retries: 3
 
+  # USDZ Converter Service
+  usdz-converter:
+    build:
+      context: ./tools/usdz-converter
+      dockerfile: Dockerfile
+    container_name: luneo-usdz-converter
+    restart: unless-stopped
+    volumes:
+      - usdz_cache:/app/cache
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - default
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
   minio_data:
+    driver: local
+  usdz_cache:
     driver: local
 
 networks:

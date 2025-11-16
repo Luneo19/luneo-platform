@@ -25,9 +25,12 @@ export interface PlanQuotaDefinition {
   limit: number;
   period: UsagePeriod;
   overage: OverageBehavior;
-  overageRate?: number;
+  overageRate?: number; // Cost per unit in cents for overage
   unit: string;
   notificationThresholds?: number[];
+  // Per-unit credit cost (for usage billing)
+  creditCost?: number; // Credits consumed per unit
+  baseCostCents?: number; // Base cost per unit in cents (for render billing)
 }
 
 export interface PlanFeatureDefinition {

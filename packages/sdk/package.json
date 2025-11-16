@@ -16,7 +16,12 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --sourcemap",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@luneo/types": "workspace:*",

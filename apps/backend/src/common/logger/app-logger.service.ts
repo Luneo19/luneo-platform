@@ -2,6 +2,7 @@ import { Injectable, LoggerService } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
+import { scrubLogData, scrubLogMessage, scrubPIIKeys } from '../utils/log-scrubber.util';
 
 export enum LogLevel {
   DEBUG = 'debug',
@@ -88,12 +89,16 @@ export class AppLoggerService implements LoggerService {
     context?: string,
     data?: Record<string, unknown>,
   ): void {
+    // Scrub PII from log data before writing
+    const scrubbedMessage = scrubLogMessage(message);
+    const scrubbedData = data ? scrubPIIKeys(data) : undefined;
+
     const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
       context,
-      message,
-      data,
+      message: scrubbedMessage,
+      data: scrubbedData,
     };
 
     // Console output (format lisible)

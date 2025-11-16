@@ -402,4 +402,19 @@ export class UsageBillingController {
     const limitNum = limit ? parseInt(limit, 10) : 100;
     return this.trackingService.getUsageHistory(brandId, metric, limitNum);
   }
+
+  /**
+   * Query usage per tenant with soft-limit enforcement
+   * Returns usage data and indicates if features should be disabled
+   */
+  @Get('tenant/:brandId/usage')
+  @ApiOperation({ summary: 'Query usage per tenant with soft-limit enforcement' })
+  @ApiResponse({ status: 200, description: 'Usage query with enforcement status' })
+  async queryTenantUsage(
+    @Param('brandId') brandId: string,
+    @Query('enforceSoftLimit') enforceSoftLimit?: string,
+  ) {
+    const enforce = enforceSoftLimit === 'true';
+    return this.quotasService.queryTenantUsageWithEnforcement(brandId, enforce);
+  }
 }

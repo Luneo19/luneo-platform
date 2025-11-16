@@ -7,6 +7,7 @@ import {
   Registry,
 } from 'prom-client';
 import * as os from 'os';
+import { CustomMetricsService } from './custom-metrics.service';
 
 const REFRESH_INTERVAL_MS = 15_000;
 
@@ -42,7 +43,10 @@ export class QueueMetricsService implements OnModuleInit {
   private readonly queueLastFailureGauge: Gauge<string>;
   private lastUpdated = 0;
 
-  constructor(private readonly queueHealthService: QueueHealthService) {
+  constructor(
+    private readonly queueHealthService: QueueHealthService,
+    private readonly customMetrics?: CustomMetricsService,
+  ) {
     collectDefaultMetrics({ register: this.registry });
 
     this.jobCountsGauge = new Gauge({
@@ -108,6 +112,11 @@ export class QueueMetricsService implements OnModuleInit {
           ? Math.max(0, (now - new Date(queue.oldestWaitingAt).getTime()) / 1000)
           : 0;
         this.queueOldestWaitingGauge.labels(queue.name).set(oldestWaitingSeconds);
+        
+        // Record queue wait time metric for Prometheus alerts
+        if (this.customMetrics && oldestWaitingSeconds > 0) {
+          this.customMetrics.recordQueueWaitTime(queue.name, oldestWaitingSeconds);
+        }
 
         const lastFailureTimestamp = queue.lastFailedAt
           ? new Date(queue.lastFailedAt).getTime() / 1000

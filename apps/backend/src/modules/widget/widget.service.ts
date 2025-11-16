@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
+import { CustomMetricsService } from '@/modules/observability/custom-metrics.service';
 import { randomBytes } from 'crypto';
 
 @Injectable()
@@ -16,6 +17,8 @@ export class WidgetService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisOptimizedService,
+    @Inject(forwardRef(() => CustomMetricsService))
+    private readonly customMetrics?: CustomMetricsService,
   ) {}
 
   /**
@@ -27,7 +30,9 @@ export class WidgetService {
     nonce: string;
     expiresIn: number;
   }> {
-    // Validate shop installation
+    const startTime = Date.now();
+    try {
+      // Validate shop installation
     const installation = await this.prisma.shopifyInstall.findUnique({
       where: { shopDomain },
       include: { brand: true },
@@ -65,11 +70,21 @@ export class WidgetService {
 
     this.logger.log(`Generated embed token for shop: ${shopDomain}, nonce: ${nonce.substring(0, 8)}...`);
 
+    const duration = (Date.now() - startTime) / 1000;
+    this.customMetrics?.recordEmbedHandshakeSuccess(duration);
+
     return {
       token,
       nonce,
       expiresIn: this.embedTokenExpiry,
     };
+    } catch (error) {
+      const duration = (Date.now() - startTime) / 1000;
+      const reason = error instanceof NotFoundException ? 'shop_not_found' : 
+                     error instanceof Error ? error.message : 'unknown';
+      this.customMetrics?.recordEmbedHandshakeFailure(reason, shopDomain, duration);
+      throw error;
+    }
   }
 
   /**
@@ -79,26 +94,38 @@ export class WidgetService {
     shopDomain: string;
     valid: boolean;
   }> {
+    const startTime = Date.now();
     const nonceKey = `embed:nonce:${nonce}`;
-    const nonceData = await this.redisService.get<{
-      shopDomain: string;
-      origin: string;
-      createdAt: number;
-      used: boolean;
-    }>(nonceKey, 'session');
+    let shopDomain = 'unknown';
+    
+    try {
+      const nonceData = await this.redisService.get<{
+        shopDomain: string;
+        origin: string;
+        createdAt: number;
+        used: boolean;
+      }>(nonceKey, 'session');
 
-    if (!nonceData) {
-      throw new BadRequestException('Invalid or expired nonce');
-    }
+      if (!nonceData) {
+        const duration = (Date.now() - startTime) / 1000;
+        this.customMetrics?.recordEmbedHandshakeFailure('invalid_nonce', 'unknown', duration);
+        throw new BadRequestException('Invalid or expired nonce');
+      }
 
-    if (nonceData.used) {
-      throw new BadRequestException('Nonce already used (replay attack prevented)');
-    }
+      shopDomain = nonceData.shopDomain;
 
-    // Verify origin matches (allow wildcard for development)
-    if (nonceData.origin !== '*' && nonceData.origin !== origin) {
-      throw new BadRequestException('Origin mismatch');
-    }
+      if (nonceData.used) {
+        const duration = (Date.now() - startTime) / 1000;
+        this.customMetrics?.recordEmbedHandshakeFailure('nonce_reused', shopDomain, duration);
+        throw new BadRequestException('Nonce already used (replay attack prevented)');
+      }
+
+      // Verify origin matches (allow wildcard for development)
+      if (nonceData.origin !== '*' && nonceData.origin !== origin) {
+        const duration = (Date.now() - startTime) / 1000;
+        this.customMetrics?.recordEmbedHandshakeFailure('origin_mismatch', shopDomain, duration);
+        throw new BadRequestException('Origin mismatch');
+      }
 
     // Mark nonce as used
     await this.redisService.set(nonceKey, {
@@ -106,12 +133,24 @@ export class WidgetService {
       used: true,
     }, 'session', { ttl: this.nonceExpiry });
 
-    this.logger.log(`Validated and consumed nonce: ${nonce.substring(0, 8)}... for shop: ${nonceData.shopDomain}`);
+      this.logger.log(`Validated and consumed nonce: ${nonce.substring(0, 8)}... for shop: ${shopDomain}`);
 
-    return {
-      shopDomain: nonceData.shopDomain,
-      valid: true,
-    };
+      const duration = (Date.now() - startTime) / 1000;
+      this.customMetrics?.recordEmbedHandshakeSuccess(duration);
+
+      return {
+        shopDomain,
+        valid: true,
+      };
+    } catch (error) {
+      const duration = (Date.now() - startTime) / 1000;
+      const reason = error instanceof BadRequestException ? 
+                     (error.message.includes('replay') ? 'nonce_reused' :
+                      error.message.includes('Origin') ? 'origin_mismatch' : 'invalid_nonce') :
+                     'unknown';
+      this.customMetrics?.recordEmbedHandshakeFailure(reason, shopDomain, duration);
+      throw error;
+    }
   }
 
   /**

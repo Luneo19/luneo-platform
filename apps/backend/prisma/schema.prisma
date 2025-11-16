@@ -192,6 +192,7 @@ model Brand {
   shopifyInstalls       ShopifyInstall[]
   usageMetrics          UsageMetric[]
   usageTopUps           UsageTopUp[]
+  renderAuditLogs       RenderAuditLog[]
 
   @@index([slug])
   @@index([status])
@@ -264,10 +265,12 @@ model Design {
   highResUrl String? // High-res result
   imageUrl   String? // Main image URL
   renderUrl  String? // Render URL
+  compositeTextureUrl String? // Composite texture URL for renders
   metadata   Json? // AI generation metadata
 
   // Cost tracking
   costCents Int     @default(0)
+  costTokens Int    @default(0) // Tokens used for AI generation
   provider  String? // AI provider used
 
   createdAt   DateTime  @default(now())
@@ -744,6 +747,46 @@ model UsageMetric {
   @@index([brandId])
   @@index([metric])
   @@index([timestamp])
+}
+
+model StripeWebhookEvent {
+  id              String   @id @default(cuid())
+  stripeEventId   String   @unique // Stripe event ID for idempotency
+  eventType       String
+  processed       Boolean  @default(false)
+  processedAt     DateTime?
+  payload         Json
+  error           String?
+  retryCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([stripeEventId])
+  @@index([eventType])
+  @@index([processed])
+  @@index([createdAt])
+}
+
+model RenderAuditLog {
+  id              String   @id @default(cuid())
+  brandId         String
+  renderId        String
+  renderType      String // '2d', '3d', 'preview'
+  status          String // 'success', 'failed', 'cancelled'
+  costCents       Int      @default(0) // Cost in cents
+  creditsUsed     Int      @default(0) // Credits consumed
+  durationMs      Int? // Render duration in milliseconds
+  metadata        Json? // Additional render metadata
+  createdAt       DateTime @default(now())
+
+  // Relations
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([renderId])
+  @@index([renderType])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ========================================

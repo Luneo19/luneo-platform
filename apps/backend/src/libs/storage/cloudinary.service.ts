@@ -74,4 +74,26 @@ export class CloudinaryService {
       ...options,
     });
   }
+
+  async uploadRaw(file: Buffer, folder: string = 'luneo'): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: 'raw',
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else if (result?.secure_url) {
+            resolve(result.secure_url);
+          } else {
+            reject(new Error('Cloudinary raw upload returned no secure URL'));
+          }
+        },
+      );
+
+      uploadStream.end(file);
+    });
+  }
 }
