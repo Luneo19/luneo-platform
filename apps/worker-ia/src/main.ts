@@ -4,6 +4,7 @@ import { UpscaleWorker } from './jobs/upscale';
 import { BlendTextureWorker } from './jobs/blendTexture';
 import { ExportGLTFWorker } from './jobs/exportGLTF';
 import { ARPreviewWorker } from './jobs/arPreview';
+import { RenderJobWorker } from './jobs/render-job';
 import { createWorkerLogger, logger, serializeError } from './utils/logger';
 import { initializeTracing, shutdownTracing } from './observability/tracing';
 const REDIS_CONNECTION = {
@@ -36,6 +37,7 @@ class LuneoAIWorker {
       const blendWorker = new BlendTextureWorker(REDIS_CONNECTION);
       const gltfWorker = new ExportGLTFWorker(REDIS_CONNECTION);
       const arWorker = new ARPreviewWorker(REDIS_CONNECTION);
+      const renderWorker = new RenderJobWorker(REDIS_CONNECTION);
 
       this.workers = [
         { name: 'ImageGeneration', worker: imageWorker },
@@ -43,6 +45,7 @@ class LuneoAIWorker {
         { name: 'BlendTexture', worker: blendWorker },
         { name: 'ExportGLTF', worker: gltfWorker },
         { name: 'ARPreview', worker: arWorker },
+        { name: 'RenderJob', worker: renderWorker },
       ];
 
       // Start all workers
