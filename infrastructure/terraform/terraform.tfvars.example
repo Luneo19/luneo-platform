@@ -1,168 +1,193 @@
 # ╔═══════════════════════════════════════════════════════════════════╗
-# ║  📝 EXEMPLE DE CONFIGURATION TERRAFORM - LUNEO ENTERPRISE        ║
+# ║  📝 EXEMPLE DE CONFIGURATION TERRAFORM - LUNEO AWS               ║
 # ║     Copiez ce fichier vers terraform.tfvars et adaptez           ║
 # ╚═══════════════════════════════════════════════════════════════════╝
 
 # ========================================
-# CONFIGURATION OBLIGATOIRE
+# CONFIGURATION GLOBALE
 # ========================================
 
-# Token Hetzner Cloud (OBLIGATOIRE)
-# Obtenez-le depuis : https://console.hetzner.cloud/projects
-hetzner_token = "your-hetzner-cloud-token-here"
+project     = "luneo"
+environment = "staging" # ou "prod" ou "dev"
 
-# Domaine principal de l'application
-domain = "api.luneo.app"
-
-# Environnement de déploiement
-environment = "prod" # ou "staging" ou "dev"
+# Régions AWS
+primary_region   = "eu-west-1"
+secondary_region = "us-east-1"
 
 # ========================================
-# MOTS DE PASSE (OBLIGATOIRES)
+# RÉSEAUX
 # ========================================
 
-# Mot de passe PostgreSQL (minimum 16 caractères)
-postgres_password = "your-secure-postgres-password-here"
-
-# Mot de passe Redis (minimum 8 caractères)
-redis_password = "your-secure-redis-password-here"
-
-# ========================================
-# CONFIGURATION INFRASTRUCTURE
-# ========================================
-
-# Région Hetzner (recommandé: nbg1 pour l'Europe)
-region = "nbg1"
-
-# Types d'instances
-instance_type        = "cpx31"  # 4 vCPU, 8GB RAM pour API
-worker_instance_type = "cpx41"  # 8 vCPU, 16GB RAM pour workers AI
-render_instance_type = "cpx51"  # 16 vCPU, 32GB RAM pour rendu 3D
+vpc_primary_cidr   = "10.10.0.0/16"
+vpc_secondary_cidr  = "10.20.0.0/16"
+primary_az_count    = 3
+secondary_az_count  = 3
 
 # ========================================
-# SÉCURITÉ
+# EKS
 # ========================================
 
-# IPs autorisées pour SSH (RESTREIGNEZ EN PRODUCTION!)
-allowed_ssh_ips = [
-  "0.0.0.0/0"  # ⚠️ À changer pour vos IPs spécifiques
-]
+kubernetes_version = "1.29"
 
-# Configuration SSH
-enable_ssh_key = true
-ssh_key_name   = "luneo-deploy-key"
+# Région primaire
+eks_primary_instance_types        = ["m6i.large"]
+eks_primary_min_size             = 2
+eks_primary_max_size             = 6
+eks_primary_desired_size         = 2
+eks_primary_spot_instance_types  = ["m6i.large", "m5.large"]
+eks_primary_spot_min_size        = 0
+eks_primary_spot_max_size        = 4
+eks_primary_spot_desired_size    = 1
 
-# ========================================
-# RÉSEAUX PRIVÉS
-# ========================================
+# Région secondaire
+eks_secondary_instance_types        = ["m6i.large"]
+eks_secondary_min_size             = 1
+eks_secondary_max_size             = 4
+eks_secondary_desired_size         = 1
+eks_secondary_spot_instance_types  = ["m6i.large", "m5.large"]
+eks_secondary_spot_min_size        = 0
+eks_secondary_spot_max_size        = 2
+eks_secondary_spot_desired_size    = 0
 
-# CIDR du réseau privé principal
-private_network_cidr = "10.0.0.0/16"
-
-# Sous-réseaux (généralement pas besoin de changer)
-api_subnet_cidr    = "10.0.1.0/24"
-worker_subnet_cidr = "10.0.2.0/24"
-db_subnet_cidr     = "10.0.3.0/24"
-
-# ========================================
-# STOCKAGE
-# ========================================
-
-# Tailles des volumes persistants
-postgres_volume_size = 100  # 100GB pour PostgreSQL
-redis_volume_size    = 20   # 20GB pour Redis
+create_kubernetes_resources = false # Mettre à true après configuration kubeconfig
 
 # ========================================
-# MONITORING & LOGS
+# RDS POSTGRESQL
 # ========================================
 
-# Monitoring
-enable_monitoring = true
-enable_logging    = true
-log_retention_days = 30
+db_engine_version         = "15.4"
+db_name                   = "luneo"
+db_master_username        = "luneo_admin"
+db_master_password        = "CHANGE_ME_SECURE_PASSWORD_MIN_16_CHARS" # ⚠️ À changer!
+
+db_primary_instance_class   = "db.t3.medium"
+db_secondary_instance_class  = "db.t3.small"
+db_primary_reader_count      = 1
+db_backup_retention_days     = 7
+db_backup_window            = "04:00-05:00"
+db_maintenance_window       = "mon:05:00-mon:06:00"
 
 # ========================================
-# SAUVEGARDES
+# S3 + CLOUDFRONT (Assets)
 # ========================================
 
-# Configuration des sauvegardes
-enable_backups         = true
-backup_retention_days  = 30
-backup_schedule        = "0 2 * * *"  # Tous les jours à 2h
+artifact_bucket_suffix = "assets"
+
+# Configuration CloudFront
+cloudfront_price_class              = "PriceClass_100" # PriceClass_All, PriceClass_200, PriceClass_100
+cloudfront_cache_default_ttl        = 86400
+cloudfront_cache_min_ttl            = 0
+cloudfront_cache_max_ttl            = 31536000
+cloudfront_enable_ipv6              = true
+cloudfront_default_root_object      = "index.html"
 
 # ========================================
-# SCALING
+# REDIS (ElastiCache)
 # ========================================
 
-# Configuration du scaling
-min_api_instances   = 2
-max_api_instances   = 5
-enable_auto_scaling = false  # À activer après mise en place des métriques
+redis_engine_version              = "7.0"
+redis_node_type                   = "cache.t3.micro"
+redis_num_cache_clusters          = 1
+redis_automatic_failover_enabled   = false
+redis_multi_az_enabled            = false
+redis_snapshot_retention_limit    = 7
+redis_snapshot_window             = "03:00-05:00"
+redis_at_rest_encryption_enabled  = true
+redis_transit_encryption_enabled   = false
+redis_auth_token                  = null # Requis si transit_encryption_enabled = true
 
 # ========================================
-# APPLICATION
+# ECR (Container Registry)
 # ========================================
 
-# Configuration de l'application
-app_port              = 3001
-health_check_path     = "/health"
-health_check_interval = 15
+# Les repositories seront créés automatiquement:
+# - luneo-worker-ia
+# - luneo-usdz-converter
+
+ecr_image_tag_mutability           = "MUTABLE"
+ecr_scan_on_push                   = true
+ecr_encryption_type                = "AES256"
+ecr_keep_last_n_images             = 10
+ecr_untagged_image_expiration_days = 7
 
 # ========================================
-# TAGS & MÉTADONNÉES
+# KMS (Secrets Management)
 # ========================================
 
-# Tags pour l'organisation
-project_name  = "luneo"
-owner_email   = "admin@luneo.app"
-cost_center   = "engineering"
+# Clés KMS seront créées automatiquement pour:
+# - Secrets généraux
+# - RDS encryption
+# - Redis encryption
+# - S3 encryption (si nécessaire)
+
+kms_deletion_window_days = 30
+kms_enable_key_rotation = true
 
 # ========================================
-# FONCTIONNALITÉS
+# ROUTE53 & DNS
 # ========================================
 
-# Feature flags
-enable_ar_features      = false  # Fonctionnalités AR/3D
-enable_ai_features      = true   # Fonctionnalités IA
-enable_webhook_features = true   # Webhooks
-enable_sso_features     = false  # SSO (à activer si nécessaire)
+api_domain_name              = "api.luneo.app"
+primary_ingress_hostname      = "CHANGE_ME" # Hostname du load balancer EKS primaire
+secondary_ingress_hostname    = "CHANGE_ME" # Hostname du load balancer EKS secondaire
+primary_health_check_domain   = "api-primary.luneo.app"
+secondary_health_check_domain = "api-secondary.luneo.app"
+health_check_path             = "/health"
+health_check_port             = 443
 
 # ========================================
-# VAULT (OPTIONNEL)
+# MONITORING & ALERTES
 # ========================================
 
-# Configuration Vault pour la gestion des secrets
-# vault_address = "https://vault.luneo.app"
-# vault_token   = "your-vault-token-here"
+db_replication_lag_threshold      = 45
+s3_replication_pending_threshold  = 524288000 # 500 MB
 
 # ========================================
-# EXEMPLES POUR DIFFÉRENTS ENVIRONNEMENTS
+# TAGS
 # ========================================
 
-# Pour l'environnement de développement :
-# environment = "dev"
-# instance_type = "cx21"        # Plus petit
-# worker_instance_type = "cpx31" # Plus petit
-# min_api_instances = 1
-# max_api_instances = 2
-# postgres_volume_size = 20
-# redis_volume_size = 10
+# Tags seront automatiquement ajoutés à toutes les ressources:
+# Project = "luneo"
+# Environment = <environment>
+# ManagedBy = "Terraform"
+# Provisioner = "AWS"
 
-# Pour l'environnement de staging :
+# ========================================
+# BACKEND CONFIGURATION
+# ========================================
+
+# Le backend S3 est configuré dans main.tf:
+# bucket         = "luneo-terraform-state"
+# key            = "global/multi-region/terraform.tfstate"
+# region         = "eu-west-1"
+# dynamodb_table = "luneo-terraform-locks"
+# encrypt        = true
+
+# ⚠️ IMPORTANT: Créez ces ressources manuellement avant le premier terraform init:
+# 1. S3 bucket: luneo-terraform-state
+# 2. DynamoDB table: luneo-terraform-locks (avec partition_key = LockID)
+
+# ========================================
+# EXEMPLES PAR ENVIRONNEMENT
+# ========================================
+
+# STAGING:
 # environment = "staging"
-# instance_type = "cpx21"       # Moyen
-# worker_instance_type = "cpx31" # Moyen
-# min_api_instances = 1
-# max_api_instances = 3
-# postgres_volume_size = 50
-# redis_volume_size = 15
+# eks_primary_desired_size = 2
+# eks_primary_min_size = 1
+# eks_primary_max_size = 4
+# db_primary_instance_class = "db.t3.small"
+# redis_node_type = "cache.t3.micro"
+# redis_num_cache_clusters = 1
 
-# Pour l'environnement de production :
+# PRODUCTION:
 # environment = "prod"
-# instance_type = "cpx31"       # Plus gros
-# worker_instance_type = "cpx41" # Plus gros
-# min_api_instances = 2
-# max_api_instances = 10
-# postgres_volume_size = 100
-# redis_volume_size = 20
-
+# eks_primary_desired_size = 3
+# eks_primary_min_size = 3
+# eks_primary_max_size = 9
+# db_primary_instance_class = "db.r6g.large"
+# redis_node_type = "cache.r6g.large"
+# redis_num_cache_clusters = 2
+# redis_automatic_failover_enabled = true
+# redis_multi_az_enabled = true
+# db_backup_retention_days = 30
