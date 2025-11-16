@@ -145,3 +145,5 @@ dist/
 output/
 *.glb 
 .vercel
+.terraform/
+.terraform.lock.hcl
