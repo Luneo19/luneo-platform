@@ -91,6 +91,12 @@ const envSchema = z.object({
   
   // Feature flags
   FEATURE_FLAGS: z.string().optional(),
+  
+  // Shopify
+  SHOPIFY_API_KEY: z.string().optional(),
+  SHOPIFY_API_SECRET: z.string().optional(),
+  SHOPIFY_SCOPES: z.string().optional(),
+  MASTER_ENCRYPTION_KEY: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -273,3 +279,11 @@ export const featureFlagsConfig = registerAs('featureFlags', () => {
     entries: parseFeatureFlags(raw),
   };
 });
+
+// Shopify configuration
+export const shopifyConfig = registerAs('shopify', () => ({
+  apiKey: process.env.SHOPIFY_API_KEY,
+  apiSecret: process.env.SHOPIFY_API_SECRET,
+  scopes: process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders',
+  apiVersion: '2024-10',
+}));

@@ -1,0 +1,22 @@
+AGENT_MONITORING — Prometheus, Grafana, Sentry integration
+
+Tâches:
+
+1. Add Prometheus instrumentation to:
+
+   - worker queue time, openai request duration, render durations, embed handshake failures, ar conversion time
+
+2. Add Grafana dashboard JSON skeleton under monitoring/grafana/
+
+3. Confirm Sentry integration for backend + worker + frontend (source maps)
+
+4. Add alerts: queue_time>60s, error_rate>1% 5m, cost_spike > 2x baseline.
+
+Deliverables:
+
+- Instrumentation snippets, dashboard skeleton, alert rules.
+
+Risk:
+
+- Too many metrics: focus on key KPIs.
+

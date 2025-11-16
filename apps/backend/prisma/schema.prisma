@@ -189,6 +189,7 @@ model Brand {
   apiKeys               ApiKey[]
   aiCosts               AICost[]
   ecommerceIntegrations EcommerceIntegration[]
+  shopifyInstalls       ShopifyInstall[]
   usageMetrics          UsageMetric[]
   usageTopUps           UsageTopUp[]
 
@@ -641,6 +642,26 @@ model WebhookLog {
   @@index([shopDomain])
   @@index([status])
   @@index([createdAt])
+}
+
+model ShopifyInstall {
+  id            String    @id @default(cuid())
+  shopDomain    String    @unique
+  accessToken    String    // Encrypted access token
+  webhookSecret String?    // Encrypted webhook secret
+  installedAt    DateTime  @default(now())
+  scopes         String[]  // Array of granted scopes
+  status         String    @default("active") // active, revoked, suspended
+  brandId        String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([shopDomain])
+  @@index([status])
 }
 
 // ========================================

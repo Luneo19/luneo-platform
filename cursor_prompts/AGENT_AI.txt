@@ -1,0 +1,36 @@
+AGENT_AI — Worker IA pipeline (inpainting & renders)
+
+Tâches:
+
+1. Implement worker job 'design-render' in apps/worker-ia/src/jobs/render-job.ts:
+
+   Input: designId, prompt, maskUrl, baseTextureUrl, renderOptions
+
+2. Steps:
+
+   - sanitize prompt using @luneo/ai-safety
+
+   - download base texture & mask
+
+   - call OpenAI Image Edit (if enabled) or local diffusion container (fallback)
+
+   - create preview (512) and high-res (2048)
+
+   - optionally generate normal/roughness maps (advanced)
+
+   - upload to Cloudinary/S3 and update Prisma Design record: compositeTextureUrl, status, costTokens
+
+   - emit websocket event (tenant channel) and optionally webhook to store
+
+3. Add token & cost accounting: store tokens used or estimated cost in DB.
+
+4. Add retries, circuit breaker, and per-tenant concurrency limit via BullMQ.
+
+Deliverables:
+
+- Worker code, tests (mock OpenAI), DB updates.
+
+Risk:
+
+- Cost explosion: cap tokens, dry-run mode available.
+

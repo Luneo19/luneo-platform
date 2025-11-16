@@ -1,0 +1,27 @@
+{% comment %}
+  Luneo Widget Inject Snippet
+  Loads the Luneo customization widget with secure nonce parameter
+  Usage: {% render 'widget-inject', shop: shop %}
+{% endcomment %}
+
+{%- if shop -%}
+  {%- assign cdn_url = 'https://cdn.luneo.app/widget.js' -%}
+  {%- assign shop_domain = shop.domain | escape -%}
+  
+  {%- comment -%} Generate signed nonce for security {%- endcomment -%}
+  {%- assign timestamp = 'now' | date: '%s' -%}
+  {%- assign nonce = shop.id | append: timestamp | hmac_sha256: shop.permanent_domain -%}
+  
+  <script
+    src="{{ cdn_url }}"
+    data-shop="{{ shop_domain }}"
+    data-nonce="{{ nonce }}"
+    data-timestamp="{{ timestamp }}"
+    async
+    defer
+  ></script>
+  
+  <noscript>
+    <p>Please enable JavaScript to use the Luneo customization widget.</p>
+  </noscript>
+{%- endif -%}

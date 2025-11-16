@@ -1,0 +1,28 @@
+AGENT_3D — Selection tool (raycast) & UV mask generation
+
+Tâches:
+
+1. Add SelectionTool component at apps/frontend/src/components/3d/SelectionTool.tsx:
+
+   - react-three-fiber: raycast picking + paint brush to mark faces
+
+   - export mask PNG with same resolution as current texture
+
+   - produce metadata: uvBBox, selectedFaceIndices
+
+2. Add server endpoint POST /api/designs/:id/masks to accept mask PNG and metadata:
+
+   - validate JWT, check size limits, store to S3 or Cloudinary
+
+3. Add back-end utility to reproject mask onto model UVs (server-side correction)
+
+4. Add Playwright e2e test that simulates selection and upload.
+
+Deliverables:
+
+- SelectionTool, mask API, server reprojector, tests.
+
+Risk:
+
+- UV mismatches: provide fallback reprojection and user prompt.
+

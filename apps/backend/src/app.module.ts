@@ -25,6 +25,7 @@ import {
   monitoringConfig,
   featureFlagsConfig,
   tracingConfig,
+  shopifyConfig,
 } from './config/configuration';
 
 // Modules
@@ -47,6 +48,7 @@ import { ProductEngineModule } from './modules/product-engine/product-engine.mod
 import { RenderModule } from './modules/render/render.module';
 import { ProductionModule } from './modules/production/production.module';
 import { EcommerceModule } from './modules/ecommerce/ecommerce.module';
+import { ShopifyModule } from './modules/ecommerce/shopify/shopify.module';
 import { UsageBillingModule } from './modules/usage-billing/usage-billing.module';
 import { SecurityModule } from './modules/security/security.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
@@ -85,6 +87,7 @@ import { HttpMetricsInterceptor } from './modules/observability/http-metrics.int
         monitoringConfig,
         featureFlagsConfig,
         tracingConfig,
+        shopifyConfig,
       ],
       cache: true,
     }),
@@ -177,6 +180,7 @@ import { HttpMetricsInterceptor } from './modules/observability/http-metrics.int
     RenderModule,
     ProductionModule,
     EcommerceModule,
+    ShopifyModule,
     UsageBillingModule,
     SecurityModule,
     AnalyticsModule,

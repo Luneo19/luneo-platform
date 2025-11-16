@@ -1,0 +1,22 @@
+AGENT_CI — GitHub Actions & quality gates
+
+Tâches:
+
+1. Add/ensure .github/workflows/ci.yml has steps:
+
+   - install pnpm, install deps, lint, typecheck, build, unit tests, e2e smoke, zap baseline
+
+2. Add branch protection rules recommendations in docs.
+
+3. Add per-package test scripts in package.json workspaces if missing.
+
+4. Add pre-commit hook template (husky) for lint-staged.
+
+Deliverables:
+
+- CI config, pre-commit template, workflow improvements.
+
+Risk:
+
+- Long CI time: split tests into fast smoke vs full pipelines (PR vs nightly).
+

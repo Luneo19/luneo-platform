@@ -1,0 +1,28 @@
+AGENT_SCALING — Load tests & autoscaling
+
+Tâches:
+
+1. Create load testing scripts (k6 or Artillery) for:
+
+   - embed load on product page (concurrent users)
+
+   - worker render pipeline (concurrent jobs)
+
+2. Define autoscaling policy:
+
+   - worker concurrency per CPU/RAM
+
+   - horizontal pod autoscaler sample for EKS
+
+3. Simulate 10k concurrent users for read-only flows and 500 concurrent renders for worker load.
+
+4. Provide cost estimate sheet for scale target.
+
+Deliverables:
+
+- load scripts, autoscaler config, cost estimate.
+
+Risk:
+
+- Cost vs performance: tune LRU caches and preview routing.
+

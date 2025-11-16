@@ -28,6 +28,7 @@ async function bootstrap() {
 
   const apiPrefix = configService.get<string>('app.apiPrefix') ?? '/api/v1';
   app.use(`${apiPrefix}/billing/webhook`, bodyParser.raw({ type: 'application/json' }));
+  app.use(`${apiPrefix}/shopify/webhooks`, bodyParser.raw({ type: 'application/json' }));
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
 
