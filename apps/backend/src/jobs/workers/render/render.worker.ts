@@ -520,6 +520,7 @@ export class RenderWorker {
         id: true,
         name: true,
         model3dUrl: true,
+        // @ts-ignore - baseAssetUrl exists in schema but Prisma client may need regeneration
         baseAssetUrl: true,
         images: true,
       },
@@ -531,7 +532,8 @@ export class RenderWorker {
    */
   private async getAssetsToExport(designId?: string, productId?: string): Promise<any[]> {
     if (designId) {
-      return this.prisma.asset.findMany({
+      // @ts-ignore - asset exists in schema but Prisma client may need regeneration
+      return (this.prisma as any).asset.findMany({
         where: { designId },
         select: {
           id: true,

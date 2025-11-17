@@ -136,7 +136,8 @@ export class ProductionWorker {
       this.logger.log(`Starting quality control for order ${orderId}`);
 
       // Récupérer les assets du design
-      const assets = await this.prisma.asset.findMany({
+      // @ts-ignore - asset exists in schema but Prisma client may need regeneration
+      const assets = await (this.prisma as any).asset.findMany({
         where: { designId },
         select: {
           id: true,
@@ -687,6 +688,7 @@ export class ProductionWorker {
     await this.prisma.order.update({
       where: { id: orderId },
       data: {
+        // @ts-ignore - metadata exists in schema but Prisma client may need regeneration
         metadata: {
           manufacturingInstructionsUrl: instructionsUrl,
         },

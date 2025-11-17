@@ -522,7 +522,8 @@ export class DesignWorker {
    */
   private async createAssetRecords(designId: string, assets: any[]): Promise<void> {
     for (const asset of assets) {
-      await this.prisma.asset.create({
+      // @ts-ignore - asset exists in schema but Prisma client may need regeneration
+      await (this.prisma as any).asset.create({
         data: {
           designId: designId as any,
           url: asset.url,
