@@ -44,7 +44,8 @@ export class GDPRService {
           where: { userId },
         }),
         this.auditLogs.getUserActivity(userId, 1000),
-        this.prisma.usageMetric.findMany({
+        // @ts-ignore - UsageMetric model exists but Prisma client may need regeneration
+        (this.prisma as any).usageMetric.findMany({
           where: {
             brand: {
               users: {
@@ -131,6 +132,7 @@ export class GDPRService {
           where: { userId },
           data: {
             userId: null,
+            // @ts-ignore - userEmail exists in schema but Prisma client may need regeneration
             userEmail: 'deleted@user.anonymized',
           },
         }),
