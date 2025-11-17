@@ -68,7 +68,7 @@ const envSchema = z.object({
   // App
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(Number).default('3000'),
-  API_PREFIX: z.string().default('/api/v1'),
+  API_PREFIX: z.string().default('/api'),
   
   // Security
   CORS_ORIGIN: z.string().default('*'),
@@ -175,7 +175,7 @@ export const emailDomainConfig = registerAs('emailDomain', () => ({
 export const appConfig = registerAs('app', () => ({
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3000', 10),
-  apiPrefix: process.env.API_PREFIX || '/api/v1',
+  apiPrefix: process.env.API_PREFIX || '/api',
   corsOrigin: process.env.CORS_ORIGIN || '*',
   rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
   rateLimitLimit: parseInt(process.env.RATE_LIMIT_LIMIT || '100', 10),
