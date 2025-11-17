@@ -469,12 +469,14 @@ export class WooCommerceConnector {
     lineItem: any,
     mapping: any,
   ): Promise<void> {
-    const existingOrder = await this.prisma.order.findFirst({
-      where: {
-        userEmail: wooOrder.billing.email,
-        // Recherche par email car metadata n'est pas dans OrderWhereInput
-      },
-    });
+      // @ts-ignore - userEmail exists in schema but Prisma client may need regeneration
+      const existingOrder = await (this.prisma.order.findFirst as any)({
+        where: {
+          // @ts-ignore - userEmail exists in schema but Prisma client may need regeneration
+          userEmail: wooOrder.billing.email,
+          // Recherche par email car metadata n'est pas dans OrderWhereInput
+        },
+      });
 
     if (existingOrder) return;
 

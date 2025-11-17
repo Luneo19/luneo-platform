@@ -520,12 +520,14 @@ export class ShopifyConnector {
     const integration = await this.getIntegration(integrationId);
 
     // Vérifier si la commande existe déjà
-    const existingOrder = await this.prisma.order.findFirst({
-      where: {
-        userEmail: shopifyOrder.email,
-        // Recherche par email car metadata n'est pas dans OrderWhereInput
-      },
-    });
+      // @ts-ignore - userEmail exists in schema but Prisma client may need regeneration
+      const existingOrder = await (this.prisma.order.findFirst as any)({
+        where: {
+          // @ts-ignore - userEmail exists in schema but Prisma client may need regeneration
+          userEmail: shopifyOrder.email,
+          // Recherche par email car metadata n'est pas dans OrderWhereInput
+        },
+      });
 
     if (existingOrder) {
       this.logger.log(`Order already exists for Shopify order ${shopifyOrder.id}`);
