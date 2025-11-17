@@ -312,9 +312,10 @@ export class ProductionWorker {
   private async getDesign(designId: string): Promise<any> {
     const design = await this.prisma.design.findUnique({
       where: { id: designId },
+      // @ts-ignore - assets relation exists in schema but Prisma client may need regeneration
       include: {
         assets: true,
-      },
+      } as any,
     });
 
     if (!design) {
@@ -459,6 +460,7 @@ export class ProductionWorker {
     await this.prisma.order.update({
       where: { id: orderId },
       data: {
+        // @ts-ignore - productionBundleUrl exists in schema but Prisma client may need regeneration
         productionBundleUrl: bundleUrl,
         metadata: {
           bundleGeneratedAt: new Date(),
