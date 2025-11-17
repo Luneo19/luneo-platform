@@ -138,3 +138,4 @@ output/
 .env.bak
 .env.production
 .env.supabase*
+.env.staging
