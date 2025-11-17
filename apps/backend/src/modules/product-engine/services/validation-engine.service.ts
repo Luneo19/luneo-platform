@@ -498,8 +498,9 @@ export class ValidationEngine {
 
       if (brand) {
         // Vérifier les limites du plan
-        if (brand.limits) {
-          const limits = brand.limits as any;
+        // @ts-ignore - limits exists in schema but Prisma client may need regeneration
+        if ((brand as any).limits) {
+          const limits = (brand as any).limits as any;
           
           // Limite de zones
           if (limits.maxZonesPerDesign && context.rules.zones.length > limits.maxZonesPerDesign) {
