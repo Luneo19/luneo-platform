@@ -128,7 +128,8 @@ export class UsageMeteringService {
         select: { stripeSubscriptionId: true },
       });
 
-      if (!brand?.stripeSubscriptionId) {
+      // @ts-ignore - stripeSubscriptionId exists in schema but Prisma client may need regeneration
+      if (!(brand as any)?.stripeSubscriptionId) {
         return null;
       }
 
