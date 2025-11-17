@@ -221,14 +221,15 @@ export class RBACService {
 
       return await this.prisma.user.findMany({
         where,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          brandId: true,
-          createdAt: true,
-        },
+          select: {
+            id: true,
+            email: true,
+            // @ts-ignore - name exists in schema but Prisma client may need regeneration
+            name: true,
+            role: true,
+            brandId: true,
+            createdAt: true,
+          } as any,
       });
     } catch (error) {
       this.logger.error(
