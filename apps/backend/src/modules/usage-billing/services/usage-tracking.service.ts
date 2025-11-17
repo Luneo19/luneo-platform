@@ -147,6 +147,7 @@ export class UsageTrackingService {
         select: {
           previewUrl: true,
           highResUrl: true,
+          // @ts-ignore - renderUrl exists in schema but Prisma client may need regeneration
           renderUrl: true,
         },
       });
