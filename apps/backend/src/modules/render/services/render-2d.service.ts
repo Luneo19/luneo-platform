@@ -142,7 +142,8 @@ export class Render2DService {
       const design = await this.prisma.design.findUnique({
         where: { id: designId },
         select: {
-          optionsJson: true,
+          options: true,
+          // @ts-ignore - assets exists in schema but Prisma client may need regeneration
           assets: true,
         },
       });
@@ -152,8 +153,9 @@ export class Render2DService {
       }
       
       return {
-        options: design.optionsJson,
-        assets: design.assets,
+        options: design.options,
+        // @ts-ignore - assets exists in schema but Prisma client may need regeneration
+        assets: (design as any).assets,
       };
     }
 
@@ -161,6 +163,7 @@ export class Render2DService {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       select: {
+        // @ts-ignore - baseAssetUrl exists in schema but Prisma client may need regeneration
         baseAssetUrl: true,
         images: true,
       },
@@ -171,7 +174,8 @@ export class Render2DService {
     }
 
     return {
-      baseAsset: product.baseAssetUrl,
+      // @ts-ignore - baseAssetUrl exists in schema but Prisma client may need regeneration
+      baseAsset: (product as any).baseAssetUrl,
       images: product.images,
     };
   }

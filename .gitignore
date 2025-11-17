@@ -135,3 +135,15 @@ dist/
 output/
 *.glb 
 .vercel
+.env.bak
+.env.production
+.env.supabase*
+.env.staging
+
+# Terraform providers and modules
+**/.terraform/**
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example

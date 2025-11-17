@@ -452,7 +452,7 @@ export class ZonesService {
           },
         },
         select: {
-          optionsJson: true,
+          options: true,
           status: true,
         },
       });
@@ -472,7 +472,7 @@ export class ZonesService {
 
       // Analyser l'usage des zones
       for (const design of designs) {
-        const options = design.optionsJson as any;
+        const options = design.options as any;
         if (!options.zones) continue;
 
         for (const [zoneId, zoneOptions] of Object.entries(options.zones)) {
