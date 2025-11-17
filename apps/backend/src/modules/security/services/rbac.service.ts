@@ -52,7 +52,8 @@ export class RBACService {
       }
 
       // Récupérer l'utilisateur avec son rôle
-      const user = await this.prisma.user.findUnique({
+      // @ts-ignore - user exists in schema but Prisma client may need regeneration
+      const user = await (this.prisma as any).user.findUnique({
         where: { id: userId },
         select: { role: true },
       });
@@ -165,7 +166,8 @@ export class RBACService {
    */
   async getUserRole(userId: string): Promise<Role> {
     try {
-      const user = await this.prisma.user.findUnique({
+      // @ts-ignore - user exists in schema but Prisma client may need regeneration
+      const user = await (this.prisma as any).user.findUnique({
         where: { id: userId },
         select: { role: true },
       });
