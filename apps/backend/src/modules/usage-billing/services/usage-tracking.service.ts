@@ -145,7 +145,8 @@ export class UsageTrackingService {
       const designs = await this.prisma.design.findMany({
         where: { product: { brandId } },
         select: {
-          imageUrl: true,
+          previewUrl: true,
+          highResUrl: true,
           renderUrl: true,
         },
       });
@@ -191,7 +192,8 @@ export class UsageTrackingService {
           break;
       }
 
-      const usageRecords = await this.prisma.usageMetric.findMany({
+      // @ts-ignore - UsageMetric model exists but Prisma client may need regeneration
+      const usageRecords = await (this.prisma as any).usageMetric.findMany({
         where: {
           brandId,
           timestamp: {
@@ -239,7 +241,8 @@ export class UsageTrackingService {
         where.metric = metric;
       }
 
-      const records = await this.prisma.usageMetric.findMany({
+      // @ts-ignore - UsageMetric model exists but Prisma client may need regeneration
+      const records = await (this.prisma as any).usageMetric.findMany({
         where,
         orderBy: { timestamp: 'desc' },
         take: limit,

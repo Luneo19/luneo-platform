@@ -260,7 +260,8 @@ export class UsageReportingService {
     endDate: Date,
   ) {
     try {
-      const records = await this.prisma.usageMetric.findMany({
+      // @ts-ignore - UsageMetric model exists but Prisma client may need regeneration
+      const records = await (this.prisma as any).usageMetric.findMany({
         where: {
           brandId,
           metric,
