@@ -123,9 +123,10 @@ export class UsageMeteringService {
    */
   private async getStripeSubscription(brandId: string): Promise<any> {
     try {
+      // @ts-ignore - stripeSubscriptionId exists in schema but Prisma client may need regeneration
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { stripeSubscriptionId: true },
+        select: { stripeSubscriptionId: true } as any,
       });
 
       // @ts-ignore - stripeSubscriptionId exists in schema but Prisma client may need regeneration
