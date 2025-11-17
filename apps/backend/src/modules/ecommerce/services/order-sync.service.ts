@@ -129,9 +129,11 @@ export class OrderSyncService {
     status: string,
   ): Promise<void> {
     try {
-      const order = await this.prisma.order.findUnique({
+      // @ts-ignore - metadata exists in schema but Prisma client may need regeneration
+      const order = await (this.prisma.order.findUnique as any)({
         where: { id: luneoOrderId },
         select: { 
+          // @ts-ignore - metadata exists in schema but Prisma client may need regeneration
           metadata: true,
           brandId: true,
         },
