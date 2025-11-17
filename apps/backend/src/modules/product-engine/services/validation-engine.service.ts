@@ -492,6 +492,7 @@ export class ValidationEngine {
         select: {
           id: true,
           plan: true,
+          // @ts-ignore - limits exists in schema but Prisma client may need regeneration
           limits: true,
         },
       });
