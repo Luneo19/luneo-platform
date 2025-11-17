@@ -230,7 +230,7 @@ export class OrderSyncService {
   async getRecentOrders(integrationId: string, limit: number = 50): Promise<any[]> {
     try {
       // @ts-ignore - metadata exists in schema but Prisma client may need regeneration
-      const orders = await this.prisma.order.findMany({
+      const orders = await (this.prisma.order.findMany as any)({
         where: {
           // @ts-ignore - metadata exists in schema but Prisma client may need regeneration
           metadata: {
