@@ -8,7 +8,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
-import { HealthController } from './health.controller';
 
 // Configuration
 import {
@@ -146,7 +145,7 @@ import { JobsModule } from './jobs/jobs.module';
     // Job processing
     JobsModule,
   ],
-  controllers: [HealthController],
+  controllers: [],
   providers: [
     {
       provide: APP_FILTER,
