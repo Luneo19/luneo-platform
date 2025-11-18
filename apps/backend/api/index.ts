@@ -1,3 +1,6 @@
+// Register tsconfig-paths before any imports
+import 'tsconfig-paths/register';
+
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from '../src/app.module';
