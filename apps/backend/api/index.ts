@@ -1,23 +1,17 @@
-// Register tsconfig-paths before any imports
-// Use explicit path resolution for Vercel
-import { register } from 'tsconfig-paths';
+// Register module-alias before any imports
+// This works better with compiled JavaScript on Vercel
+import * as moduleAlias from 'module-alias';
 import * as path from 'path';
 
-// On Vercel, the code is in /var/task/, so baseUrl should be /var/task/
-// But __dirname in compiled JS will be /var/task/api/, so we go up one level
-const baseUrl = path.resolve(__dirname, '..');
-register({
-  baseUrl,
-  paths: {
-    '@/*': ['src/*'],
-    '@/common/*': ['src/common/*'],
-    '@/modules/*': ['src/modules/*'],
-    '@/config/*': ['src/config/*'],
-    '@/libs/*': ['src/libs/*'],
-    '@/jobs/*': ['src/jobs/*'],
-  },
-  // Add this to help with module resolution
-  addMatchAll: false,
+// On Vercel, the code is in /var/task/, so we need to resolve from there
+const rootPath = path.resolve(__dirname, '..');
+moduleAlias.addAliases({
+  '@': path.join(rootPath, 'src'),
+  '@/common': path.join(rootPath, 'src/common'),
+  '@/modules': path.join(rootPath, 'src/modules'),
+  '@/config': path.join(rootPath, 'src/config'),
+  '@/libs': path.join(rootPath, 'src/libs'),
+  '@/jobs': path.join(rootPath, 'src/jobs'),
 });
 
 import { NestFactory } from '@nestjs/core';
