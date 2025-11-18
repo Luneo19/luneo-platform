@@ -30,8 +30,8 @@ async function bootstrap() {
 
   try {
     logger.log('Creating NestJS application...');
-      const configService = app.get(ConfigService);
-
+    const app = await NestFactory.create(AppModule);
+    const configService = app.get(ConfigService);
     logger.log('NestJS application created');
     
     // Security middleware - production ready
@@ -96,12 +96,16 @@ async function bootstrap() {
     setupSwagger(app);
   }
 
-  const port = configService.get('app.port');
-  await app.listen(port);
-
-  logger.log(`🚀 Application is running on: http://localhost:${port}`);
-  logger.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
-  logger.log(`🔍 Health check: http://localhost:${port}/health`);
+    const port = configService.get('app.port');
+    logger.log(`Starting server on port ${port}...`);
+    await app.listen(port);
+    logger.log(`🚀 Application is running on: http://localhost:${port}`);
+    logger.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
+    logger.log(`🔍 Health check: http://localhost:${port}/health`);
+  } catch (error) {
+    logger.error(`Failed to start application: ${error.message}`, error.stack);
+    throw error;
+  }
 }
 
 bootstrap().catch((error) => {
