@@ -30,18 +30,23 @@ export class RedisOptimizedService {
   };
 
   constructor(private configService: ConfigService) {
-    this.redis = new Redis(this.configService.get('redis.url'), {
+    const redisUrl = this.configService.get('redis.url') || 'redis://localhost:6379';
+    this.redis = new Redis(redisUrl, {
       retryDelayOnFailover: 50,
       keepAlive: 30000,
       lazyConnect: true,
       // Connection pooling optimisé
       family: 4,
-      connectTimeout: 10000,
-      commandTimeout: 5000,
+      connectTimeout: 5000, // Réduit à 5s pour éviter les timeouts longs
+      commandTimeout: 3000, // Réduit à 3s
+      maxRetriesPerRequest: 1, // Limiter les retries
+      enableOfflineQueue: false, // Ne pas mettre en queue si déconnecté
     } as any);
 
     this.setupEventListeners();
-    this.initializeCacheConfigs();
+    // Ne pas appeler initializeCacheConfigs() dans le constructeur pour éviter de bloquer
+    // Il sera appelé de manière asynchrone si nécessaire
+    setTimeout(() => this.initializeCacheConfigs(), 0);
   }
 
   private setupEventListeners() {
@@ -60,14 +65,25 @@ export class RedisOptimizedService {
 
   private async initializeCacheConfigs() {
     try {
+      // Ne pas bloquer le démarrage si Redis n'est pas disponible
+      // Cette méthode est appelée de manière asynchrone et ne bloque pas le constructeur
+      const isConnected = await this.redis.ping().catch(() => false);
+      if (!isConnected) {
+        this.logger.warn('Redis not available, cache will work in degraded mode');
+        return;
+      }
+      
       // Configurer les politiques de mémoire pour chaque type de cache
       for (const [type, config] of Object.entries(this.cacheConfigs)) {
         const key = `cache:${type}:*`;
-        await this.redis.config('SET', 'maxmemory-policy', 'allkeys-lru');
+        await this.redis.config('SET', 'maxmemory-policy', 'allkeys-lru').catch(() => {
+          // Ignorer les erreurs de configuration Redis
+        });
         this.logger.log(`Cache config initialized for ${type}: TTL=${config.ttl}s, MaxMemory=${config.maxMemory}`);
       }
     } catch (error) {
-      this.logger.error('Failed to initialize cache configs:', error);
+      this.logger.warn('Redis cache config initialization failed, continuing without cache:', error.message);
+      // Ne pas throw l'erreur pour ne pas bloquer le démarrage
     }
   }
 
