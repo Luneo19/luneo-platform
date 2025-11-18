@@ -16,18 +16,30 @@ import { AppModule } from './app.module';
 import { validateEnv } from './config/configuration';
 
 async function bootstrap() {
-  // Validate environment variables
-  validateEnv();
-
-  const app = await NestFactory.create(AppModule);
-  const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
-
-  // Security middleware - production ready
-  app.use(helmet());
   
-  // Enable compression and security middleware in production
-  if (configService.get('app.nodeEnv') === 'production') {
+  try {
+    // Validate environment variables
+    logger.log('Validating environment variables...');
+    validateEnv();
+    logger.log('Environment variables validated');
+  } catch (error) {
+    logger.error(`Environment validation failed: ${error.message}`, error.stack);
+    throw error;
+  }
+
+  try {
+    logger.log('Creating NestJS application...');
+      const configService = app.get(ConfigService);
+
+    logger.log('NestJS application created');
+    
+    // Security middleware - production ready
+    app.use(helmet());
+    logger.log('Security middleware configured');
+    
+    // Enable compression and security middleware in production
+    if (configService.get('app.nodeEnv') === 'production') {
     const compression = require('compression');
     const hpp = require('hpp');
     const rateLimit = require('express-rate-limit');
