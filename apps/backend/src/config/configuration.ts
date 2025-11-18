@@ -6,7 +6,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   
   // Redis
-  REDIS_URL: z.string().url().optional().or(z.literal('redis://localhost:6379')),
+  REDIS_URL: z.string().optional(),
   
   // JWT
   JWT_SECRET: z.string().min(32),
@@ -21,7 +21,7 @@ const envSchema = z.object({
   GITHUB_CLIENT_SECRET: z.string().optional(),
   
   // Stripe
-  STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
+  STRIPE_SECRET_KEY: z.string().startsWith('sk_').optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   
   // Cloudinary
