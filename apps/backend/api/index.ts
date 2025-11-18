@@ -1,5 +1,20 @@
 // Register tsconfig-paths before any imports
-import 'tsconfig-paths/register';
+// Use explicit path resolution for Vercel
+import { register } from 'tsconfig-paths';
+import * as path from 'path';
+
+const baseUrl = path.resolve(__dirname, '..');
+register({
+  baseUrl,
+  paths: {
+    '@/*': ['src/*'],
+    '@/common/*': ['src/common/*'],
+    '@/modules/*': ['src/modules/*'],
+    '@/config/*': ['src/config/*'],
+    '@/libs/*': ['src/libs/*'],
+    '@/jobs/*': ['src/jobs/*'],
+  },
+});
 
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
