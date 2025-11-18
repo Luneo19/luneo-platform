@@ -82,6 +82,12 @@ export const validateEnv = (): EnvConfig => {
   try {
     return envSchema.parse(process.env);
   } catch (error) {
+    // Log les détails de l'erreur pour debugging
+    console.error('Environment validation error details:', {
+      message: error.message,
+      issues: error.issues || [],
+      input: Object.keys(process.env).filter(key => key.startsWith('DATABASE') || key.startsWith('JWT') || key.startsWith('STRIPE')),
+    });
     throw new Error(`Environment validation failed: ${error.message}`);
   }
 };
