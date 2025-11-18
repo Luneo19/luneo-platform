@@ -3,6 +3,8 @@
 import { register } from 'tsconfig-paths';
 import * as path from 'path';
 
+// On Vercel, the code is in /var/task/, so baseUrl should be /var/task/
+// But __dirname in compiled JS will be /var/task/api/, so we go up one level
 const baseUrl = path.resolve(__dirname, '..');
 register({
   baseUrl,
@@ -14,6 +16,8 @@ register({
     '@/libs/*': ['src/libs/*'],
     '@/jobs/*': ['src/jobs/*'],
   },
+  // Add this to help with module resolution
+  addMatchAll: false,
 });
 
 import { NestFactory } from '@nestjs/core';
