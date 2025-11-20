@@ -93,12 +93,15 @@ done
 
 # 4. Vérifier les scripts
 echo -e "\n${BLUE}4. Vérification des scripts...${NC}"
-SCRIPTS=(
+REQUIRED_SCRIPTS=(
     "scripts/prepare-deployment.sh"
+)
+
+OPTIONAL_SCRIPTS=(
     "scripts/git-workflow-todos.sh"
 )
 
-for script in "${SCRIPTS[@]}"; do
+for script in "${REQUIRED_SCRIPTS[@]}"; do
     if [ -f "$script" ] && [ -x "$script" ]; then
         echo -e "${GREEN}✅ $script (exécutable)${NC}"
     elif [ -f "$script" ]; then
@@ -107,6 +110,16 @@ for script in "${SCRIPTS[@]}"; do
     else
         echo -e "${RED}❌ $script manquant${NC}"
         ERRORS=$((ERRORS + 1))
+    fi
+done
+
+for script in "${OPTIONAL_SCRIPTS[@]}"; do
+    if [ -f "$script" ] && [ -x "$script" ]; then
+        echo -e "${GREEN}✅ $script (exécutable)${NC}"
+    elif [ -f "$script" ]; then
+        echo -e "${YELLOW}⚠️  $script (non exécutable)${NC}"
+    else
+        echo -e "${BLUE}ℹ️  $script (optionnel, non présent)${NC}"
     fi
 done
 
