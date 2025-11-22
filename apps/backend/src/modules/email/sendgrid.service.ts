@@ -185,8 +185,30 @@ export class SendGridService {
 
   /**
    * Envoyer un email de bienvenue
+   * Utilise le template SendGrid si configuré, sinon HTML inline
    */
   async sendWelcomeEmail(userEmail: string, userName: string): Promise<any> {
+    const templateId = this.configService.get<string>('emailDomain.emailTemplates.welcome');
+    
+    // Si un template ID est configuré et n'est pas le placeholder, utiliser le template
+    if (templateId && templateId !== 'd-welcome-template-id' && templateId.startsWith('d-')) {
+      return this.sendTemplateEmail(
+        userEmail,
+        templateId,
+        {
+          userName,
+          welcomeMessage: `Bienvenue ${userName} !`,
+          nextSteps: [
+            'Complétez votre profil',
+            'Explorez nos fonctionnalités',
+            'Créez votre premier design',
+          ],
+        },
+        'Bienvenue chez Luneo ! 🎉'
+      );
+    }
+    
+    // Fallback vers HTML inline si template non configuré
     return this.sendSimpleMessage({
       to: userEmail,
       subject: 'Bienvenue chez Luneo ! 🎉',
@@ -397,6 +419,167 @@ export class SendGridService {
     // Validation basique d'email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  }
+
+  /**
+   * Envoyer un email de confirmation de commande
+   * TODO-027: Utilise le template SendGrid Order Confirmation
+   */
+  async sendOrderConfirmationEmail(
+    userEmail: string,
+    orderData: {
+      orderId: string;
+      orderNumber: string;
+      totalAmount: number;
+      currency: string;
+      items: Array<{
+        name: string;
+        quantity: number;
+        price: number;
+      }>;
+      shippingAddress?: string;
+      estimatedDelivery?: string;
+    }
+  ): Promise<any> {
+    const templateId = this.configService.get<string>('emailDomain.emailTemplates.orderConfirmation');
+    
+    // Si un template ID est configuré et n'est pas le placeholder, utiliser le template
+    if (templateId && templateId !== 'd-order-confirmation-template-id' && templateId.startsWith('d-')) {
+      return this.sendTemplateEmail(
+        userEmail,
+        templateId,
+        {
+          orderId: orderData.orderId,
+          orderNumber: orderData.orderNumber,
+          totalAmount: orderData.totalAmount.toFixed(2),
+          currency: orderData.currency,
+          items: orderData.items,
+          shippingAddress: orderData.shippingAddress || 'Non spécifié',
+          estimatedDelivery: orderData.estimatedDelivery || 'Sous peu',
+          orderDate: new Date().toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+        },
+        `Confirmation de commande #${orderData.orderNumber}`
+      );
+    }
+    
+    // Fallback vers HTML inline si template non configuré
+    const itemsHtml = orderData.items.map(item => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${item.price.toFixed(2)} ${orderData.currency}</td>
+      </tr>
+    `).join('');
+    
+    return this.sendSimpleMessage({
+      to: userEmail,
+      subject: `Confirmation de commande #${orderData.orderNumber}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #333;">Confirmation de commande</h1>
+          <p>Merci pour votre commande !</p>
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Numéro de commande:</strong> #${orderData.orderNumber}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+            <p><strong>Total:</strong> ${orderData.totalAmount.toFixed(2)} ${orderData.currency}</p>
+          </div>
+          <h3>Articles commandés:</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background-color: #f5f5f5;">
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Article</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Quantité</th>
+                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Prix</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+          ${orderData.shippingAddress ? `<p><strong>Adresse de livraison:</strong> ${orderData.shippingAddress}</p>` : ''}
+          ${orderData.estimatedDelivery ? `<p><strong>Livraison estimée:</strong> ${orderData.estimatedDelivery}</p>` : ''}
+          <p>Cordialement,<br>L'équipe Luneo</p>
+        </div>
+      `,
+      categories: ['order', 'confirmation'],
+    });
+  }
+
+  /**
+   * Envoyer un email de production prête
+   * TODO-028: Utilise le template SendGrid Production Ready
+   */
+  async sendProductionReadyEmail(
+    userEmail: string,
+    productionData: {
+      orderId: string;
+      orderNumber: string;
+      productName: string;
+      downloadLinks: Array<{
+        name: string;
+        url: string;
+        format: string;
+        size?: string;
+      }>;
+      previewImageUrl?: string;
+    }
+  ): Promise<any> {
+    const templateId = this.configService.get<string>('emailDomain.emailTemplates.productionReady');
+    
+    // Si un template ID est configuré et n'est pas le placeholder, utiliser le template
+    if (templateId && templateId !== 'd-production-ready-template-id' && templateId.startsWith('d-')) {
+      return this.sendTemplateEmail(
+        userEmail,
+        templateId,
+        {
+          orderId: productionData.orderId,
+          orderNumber: productionData.orderNumber,
+          productName: productionData.productName,
+          downloadLinks: productionData.downloadLinks,
+          previewImageUrl: productionData.previewImageUrl || '',
+          productionDate: new Date().toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+        },
+        `Votre commande #${productionData.orderNumber} est prête !`
+      );
+    }
+    
+    // Fallback vers HTML inline si template non configuré
+    const linksHtml = productionData.downloadLinks.map(link => `
+      <div style="margin: 10px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+        <p><strong>${link.name}</strong> (${link.format})${link.size ? ` - ${link.size}` : ''}</p>
+        <a href="${link.url}" 
+           style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">
+          Télécharger
+        </a>
+      </div>
+    `).join('');
+    
+    return this.sendSimpleMessage({
+      to: userEmail,
+      subject: `Votre commande #${productionData.orderNumber} est prête !`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #28a745;">🎉 Votre commande est prête !</h1>
+          <p>Votre commande <strong>#${productionData.orderNumber}</strong> pour <strong>${productionData.productName}</strong> est maintenant prête à être téléchargée.</p>
+          ${productionData.previewImageUrl ? `<img src="${productionData.previewImageUrl}" alt="Aperçu" style="max-width: 100%; margin: 20px 0; border-radius: 5px;">` : ''}
+          <h3>Fichiers disponibles:</h3>
+          ${linksHtml}
+          <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
+            Les liens de téléchargement sont valides pendant 30 jours.
+          </p>
+          <p>Cordialement,<br>L'équipe Luneo</p>
+        </div>
+      `,
+      categories: ['production', 'ready'],
+    });
   }
 
   /**

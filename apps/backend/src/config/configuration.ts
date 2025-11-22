@@ -60,6 +60,8 @@ const envSchema = z.object({
   EMAIL_TEMPLATE_EMAIL_CONFIRMATION: z.string().optional(),
   EMAIL_TEMPLATE_INVOICE: z.string().optional(),
   EMAIL_TEMPLATE_NEWSLETTER: z.string().optional(),
+  EMAIL_TEMPLATE_ORDER_CONFIRMATION: z.string().optional(),
+  EMAIL_TEMPLATE_PRODUCTION_READY: z.string().optional(),
   
   // Monitoring
   SENTRY_DSN: z.string().url().optional().or(z.literal('')),
@@ -170,6 +172,8 @@ export const emailDomainConfig = registerAs('emailDomain', () => ({
   dmarcRecord: process.env.DMARC_RECORD,
   emailTemplates: {
     welcome: process.env.EMAIL_TEMPLATE_WELCOME || 'd-welcome-template-id',
+    orderConfirmation: process.env.EMAIL_TEMPLATE_ORDER_CONFIRMATION || 'd-order-confirmation-template-id',
+    productionReady: process.env.EMAIL_TEMPLATE_PRODUCTION_READY || 'd-production-ready-template-id',
     passwordReset: process.env.EMAIL_TEMPLATE_PASSWORD_RESET || 'd-password-reset-template-id',
     emailConfirmation: process.env.EMAIL_TEMPLATE_EMAIL_CONFIRMATION || 'd-email-confirmation-template-id',
     invoice: process.env.EMAIL_TEMPLATE_INVOICE || 'd-invoice-template-id',

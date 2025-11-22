@@ -69,6 +69,10 @@
 - **[QUICK_START_OPTIMIZED.md](./QUICK_START_OPTIMIZED.md)** - Guide démarrage rapide optimisé
 - **[CURSOR_START_GUIDE.md](./CURSOR_START_GUIDE.md)** - Guide démarrage Cursor
 
+### **Guides Complets**
+- **[USER_GUIDE_COMPLETE.md](./USER_GUIDE_COMPLETE.md)** - Guide utilisateur complet (400+ lignes)
+- **[ADMIN_GUIDE_COMPLETE.md](./ADMIN_GUIDE_COMPLETE.md)** - Guide administrateur complet (500+ lignes)
+
 ### **Migration**
 - **[MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md)** - Guide de migration
 - **[REFONTE_MIGRATION_GUIDE.md](./REFONTE_MIGRATION_GUIDE.md)** - Guide migration refonte
@@ -88,6 +92,16 @@
 ### **Mobile**
 - **[MOBILE_APP_ARCHITECTURE.md](./MOBILE_APP_ARCHITECTURE.md)** - Architecture app mobile
 
+### **Sécurité**
+- **[SECURITY_AUDIT_COMPLETE.md](./SECURITY_AUDIT_COMPLETE.md)** - Audit sécurité complet (Score 99%)
+
+### **Performance**
+- **[PERFORMANCE_BUNDLE_ANALYSIS.md](./PERFORMANCE_BUNDLE_ANALYSIS.md)** - Guide analyse bundle
+- **[PERFORMANCE_IMAGE_OPTIMIZATION.md](./PERFORMANCE_IMAGE_OPTIMIZATION.md)** - Guide optimisation images
+
+### **Features**
+- **[DESIGN_VERSIONING_SYSTEM.md](./DESIGN_VERSIONING_SYSTEM.md)** - Système versioning designs
+
 ---
 
 ## 📝 Instructions et Résumés
@@ -96,6 +110,7 @@
 - **[EXECUTIVE_SUMMARY.md](./EXECUTIVE_SUMMARY.md)** - Résumé exécutif
 - **[FINAL_PROJECT_REPORT.md](./FINAL_PROJECT_REPORT.md)** - Rapport final projet
 - **[OPTIMIZATION_REPORT.md](./OPTIMIZATION_REPORT.md)** - Rapport optimisation
+- **[SESSION_COMPLETE_38_TODOS.md](./SESSION_COMPLETE_38_TODOS.md)** - Résumé session complète (38/60 TODOs)
 
 ---
 

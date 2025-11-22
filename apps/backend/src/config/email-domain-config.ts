@@ -27,6 +27,8 @@ const emailDomainSchema = z.object({
     emailConfirmation: z.string().optional(),
     invoice: z.string().optional(),
     newsletter: z.string().optional(),
+    orderConfirmation: z.string().optional(),
+    productionReady: z.string().optional(),
   }).optional(),
 });
 
@@ -59,6 +61,8 @@ export const emailDomainConfig = registerAs('emailDomain', () => {
       emailConfirmation: process.env.EMAIL_TEMPLATE_EMAIL_CONFIRMATION || 'd-email-confirmation-template-id',
       invoice: process.env.EMAIL_TEMPLATE_INVOICE || 'd-invoice-template-id',
       newsletter: process.env.EMAIL_TEMPLATE_NEWSLETTER || 'd-newsletter-template-id',
+      orderConfirmation: process.env.EMAIL_TEMPLATE_ORDER_CONFIRMATION || 'd-order-confirmation-template-id',
+      productionReady: process.env.EMAIL_TEMPLATE_PRODUCTION_READY || 'd-production-ready-template-id',
     },
   };
 
@@ -87,6 +91,8 @@ export const validateEmailDomainConfig = (): EmailDomainConfig => {
         emailConfirmation: process.env.EMAIL_TEMPLATE_EMAIL_CONFIRMATION,
         invoice: process.env.EMAIL_TEMPLATE_INVOICE,
         newsletter: process.env.EMAIL_TEMPLATE_NEWSLETTER,
+        orderConfirmation: process.env.EMAIL_TEMPLATE_ORDER_CONFIRMATION,
+        productionReady: process.env.EMAIL_TEMPLATE_PRODUCTION_READY,
       },
     });
   } catch (error) {
