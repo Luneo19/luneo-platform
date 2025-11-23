@@ -1,0 +1,26 @@
+export const metadata = { title: 'Jewelry Industry - Luneo' };
+export default function JewelryIndustryPage() {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-20">
+      <h1 className="text-5xl font-bold mb-6">Jewelry & Luxury</h1>
+      <p className="text-xl text-gray-600 mb-8">Visualisation 3D ultra-réaliste pour bijoux</p>
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="bg-gray-50 rounded-xl p-6">
+          <h3 className="font-bold mb-2">PBR Materials</h3>
+          <p className="text-gray-600 text-sm">Rendu photoréaliste</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-6">
+          <h3 className="font-bold mb-2">Virtual Try-On</h3>
+          <p className="text-gray-600 text-sm">Essayage AR bijoux</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-6">
+          <h3 className="font-bold mb-2">Configurator</h3>
+          <p className="text-gray-600 text-sm">Personnalisation pierres, métaux</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+

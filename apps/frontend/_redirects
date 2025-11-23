@@ -1,0 +1,8 @@
+# API redirects
+/api/* https://api.luneo.app/api/:splat 200
+
+# SPA fallback
+/* /index.html 200
+
+
+

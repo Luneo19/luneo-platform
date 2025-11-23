@@ -1,0 +1,638 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { 
+  Box, Upload, Eye, Download, Trash2, Search, Grid, List, Play, RotateCw, Minimize, Share2, Copy, CheckCircle,
+  Smartphone, Package, Zap
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
+import { logger } from '@/lib/logger';
+
+interface ARModel {
+  id: string;
+  name: string;
+  type: 'glasses' | 'watch' | 'jewelry' | 'furniture' | 'shoes' | 'other';
+  thumbnail: string;
+  fileSize: string;
+  format: 'USDZ' | 'GLB' | 'Both';
+  status: 'active' | 'processing' | 'error';
+  views: number;
+  tryOns: number;
+  createdAt: string;
+}
+
+export default function ARStudioPage() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [selectedModel, setSelectedModel] = useState<ARModel | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const [models, setModels] = useState<ARModel[]>([
+    {
+      id: '1',
+      name: 'Lunettes Ray-Ban Aviator',
+      type: 'glasses',
+      thumbnail: '/models/glasses-1.jpg',
+      fileSize: '2.4 MB',
+      format: 'Both',
+      status: 'active',
+      views: 1240,
+      tryOns: 342,
+      createdAt: '2025-10-15'
+    },
+    {
+      id: '2',
+      name: 'Montre Rolex Submariner',
+      type: 'watch',
+      thumbnail: '/models/watch-1.jpg',
+      fileSize: '3.1 MB',
+      format: 'Both',
+      status: 'active',
+      views: 980,
+      tryOns: 278,
+      createdAt: '2025-10-20'
+    },
+    {
+      id: '3',
+      name: 'Collier diamant',
+      type: 'jewelry',
+      thumbnail: '/models/jewelry-1.jpg',
+      fileSize: '1.8 MB',
+      format: 'GLB',
+      status: 'processing',
+      views: 0,
+      tryOns: 0,
+      createdAt: '2025-11-01'
+    },
+    {
+      id: '4',
+      name: 'Chaussures Nike Air Max',
+      type: 'shoes',
+      thumbnail: '/models/shoes-1.jpg',
+      fileSize: '4.2 MB',
+      format: 'Both',
+      status: 'active',
+      views: 1580,
+      tryOns: 445,
+      createdAt: '2025-10-10'
+    }
+  ]);
+
+  const modelTypes = [
+    { value: 'all', label: 'Tous', icon: <Package className="w-4 h-4" /> },
+    { value: 'glasses', label: 'Lunettes', icon: <Eye className="w-4 h-4" /> },
+    { value: 'watch', label: 'Montres', icon: <Box className="w-4 h-4" /> },
+    { value: 'jewelry', label: 'Bijoux', icon: <Zap className="w-4 h-4" /> },
+    { value: 'shoes', label: 'Chaussures', icon: <Box className="w-4 h-4" /> },
+    { value: 'furniture', label: 'Meubles', icon: <Box className="w-4 h-4" /> }
+  ];
+
+  useEffect(() => {
+    loadModels();
+  }, []);
+
+  const loadModels = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/ar/upload');
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Erreur lors du chargement des modèles');
+      }
+
+      const apiModels = result.data?.models || result.models || [];
+      const transformedModels: ARModel[] = apiModels.map((model: any) => ({
+        id: model.id,
+        name: model.name || 'Modèle sans nom',
+        type: model.category || 'other',
+        thumbnail: model.thumbnail_url || model.preview_url || model.model_url || '/placeholder-model.jpg',
+        fileSize: model.file_size ? `${(model.file_size / 1024 / 1024).toFixed(1)} MB` : '0 MB',
+        format: model.usdz_url ? 'Both' : 'GLB',
+        status: model.status || 'active',
+        views: model.views_count || 0,
+        tryOns: model.try_ons_count || 0,
+        createdAt: model.created_at || new Date().toISOString(),
+      }));
+      
+      setModels(transformedModels);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      logger.error('Error loading AR models', {
+        error,
+        message: errorMessage,
+      });
+      toast({
+        title: 'Erreur',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async (file: File) => {
+    setUploadProgress(0);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', file.name.replace(/\.[^/.]+$/, ''));
+      formData.append('category', 'other');
+
+      const response = await fetch('/api/ar/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Erreur lors de l\'upload');
+      }
+
+      // Simuler progression pour UX
+      for (let i = 0; i <= 100; i += 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        setUploadProgress(i);
+      }
+
+      toast({
+        title: "Modèle uploadé",
+        description: `Votre modèle "${file.name}" a été uploadé avec succès`,
+      });
+
+      // Recharger les modèles
+      await loadModels();
+      setShowUploadModal(false);
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      logger.error('Error uploading AR model', {
+        error,
+        fileName: file.name,
+        message: errorMessage,
+      });
+      toast({
+        title: 'Erreur',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      setUploadProgress(0);
+    }
+  };
+
+  const handleDelete = async (modelId: string, modelName: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${modelName}" ?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/ar-studio/models?id=${modelId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete model');
+      }
+
+      setModels(models.filter(m => m.id !== modelId));
+      
+      toast({
+        title: "Modèle supprimé",
+        description: "Le modèle a été supprimé avec succès",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le modèle",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExport = async (model: ARModel) => {
+    try {
+      toast({
+        title: "Export en cours",
+        description: `Export de ${model.name} au format ${model.format}`,
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      toast({
+        title: "Export réussi",
+        description: "Le fichier a été téléchargé",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'exporter le modèle",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyEmbed = (modelId: string) => {
+    const embedCode = `<luneo-ar model="${modelId}"></luneo-ar>`;
+    navigator.clipboard.writeText(embedCode);
+    
+    toast({
+      title: "Code copié",
+      description: "Le code d'intégration a été copié dans le presse-papier",
+    });
+  };
+
+  const filteredModels = models.filter(m => {
+    const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'all' || m.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  const stats = {
+    total: models.length,
+    active: models.filter(m => m.status === 'active').length,
+    processing: models.filter(m => m.status === 'processing').length,
+    totalViews: models.reduce((sum, m) => sum + m.views, 0),
+    totalTryOns: models.reduce((sum, m) => sum + m.tryOns, 0)
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <span className="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded-full">Actif</span>;
+      case 'processing':
+        return <span className="px-2 py-1 bg-yellow-500/10 text-yellow-400 text-xs rounded-full">En traitement</span>;
+      case 'error':
+        return <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs rounded-full">Erreur</span>;
+      default:
+        return null;
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    const typeData = modelTypes.find(t => t.value === type);
+    return typeData ? typeData.icon : <Package className="w-4 h-4" />;
+  };
+
+  return (
+    <div className="space-y-6 pb-10">
+      {loading && (
+        <Card className="p-6 bg-gray-900/70 border border-blue-500/30 text-center text-gray-300 animate-pulse">
+          Synchronisation de vos modèles AR...
+        </Card>
+      )}
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">AR Studio</h1>
+          <p className="text-gray-400">Gérez vos modèles 3D et expériences AR</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            onClick={() => setShowUploadModal(true)}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Uploader un modèle
+          </Button>
+          <Link href="/demo/virtual-try-on">
+            <Button
+              variant="outline"
+              className="border-cyan-500/50 hover:bg-cyan-500/10 w-full sm:w-auto"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Essayer Virtual Try-On
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {[
+          { label: 'Total modèles', value: stats.total, icon: <Box className="w-5 h-5" />, color: 'blue' },
+          { label: 'Actifs', value: stats.active, icon: <CheckCircle className="w-5 h-5" />, color: 'green' },
+          { label: 'En traitement', value: stats.processing, icon: <RotateCw className="w-5 h-5" />, color: 'yellow' },
+          { label: 'Vues totales', value: stats.totalViews, icon: <Eye className="w-5 h-5" />, color: 'purple' },
+          { label: 'Essais AR', value: stats.totalTryOns, icon: <Play className="w-5 h-5" />, color: 'pink' }
+        ].map((stat, i) => (
+          <Card key={i} className="p-4 bg-gray-800/50 border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 mb-1">{stat.label}</p>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+              </div>
+              <div className={`p-3 rounded-lg bg-${stat.color}-500/10 text-${stat.color}-400`}>
+                {stat.icon}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Input
+            placeholder="Rechercher un modèle..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-gray-800 border-gray-700 text-white"
+          />
+        </div>
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+        >
+          {modelTypes.map(type => (
+            <option key={type.value} value={type.value}>{type.label}</option>
+          ))}
+        </select>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="icon"
+            onClick={() => setViewMode('grid')}
+            className="border-gray-700"
+          >
+            <Grid className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="icon"
+            onClick={() => setViewMode('list')}
+            className="border-gray-700"
+          >
+            <List className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Models Grid/List */}
+      <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+        {filteredModels.map((model, index) => (
+          <motion.div
+            key={model.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="p-6 bg-gray-800/50 border-gray-700 hover:border-blue-500/50 transition-all">
+              {/* Thumbnail */}
+              <div className="relative mb-4 aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Box className="w-16 h-16 text-gray-700" />
+                </div>
+                <div className="absolute top-2 right-2 flex gap-2">
+                  {getStatusBadge(model.status)}
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="mb-4">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-lg font-bold text-white">{model.name}</h3>
+                  <div className="text-blue-400">
+                    {getTypeIcon(model.type)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-400">
+                  <span>{model.fileSize}</span>
+                  <span>•</span>
+                  <span>{model.format}</span>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-gray-900/50 rounded-lg">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Vues</p>
+                  <p className="text-white font-bold">{model.views}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Essais</p>
+                  <p className="text-white font-bold">{model.tryOns}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedModel(model);
+                    setShowPreview(true);
+                  }}
+                  className="flex-1 border-gray-700"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Prévisualiser
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleExport(model)}
+                  className="border-gray-700"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCopyEmbed(model.id)}
+                  className="border-gray-700"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleDelete(model.id, model.name)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {filteredModels.length === 0 && (
+        <Card className="p-12 bg-gray-800/50 border-gray-700 text-center">
+          <Box className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">Aucun modèle trouvé</h3>
+          <p className="text-gray-400 mb-4">
+            {searchTerm || filterType !== 'all' 
+              ? 'Essayez de modifier vos filtres'
+              : 'Commencez par uploader votre premier modèle 3D'
+            }
+          </p>
+          {!searchTerm && filterType === 'all' && (
+            <Button onClick={() => setShowUploadModal(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Uploader un modèle
+            </Button>
+          )}
+        </Card>
+      )}
+
+      {/* Upload Modal */}
+      <AnimatePresence>
+        {showUploadModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowUploadModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gray-800 rounded-lg p-6 max-w-lg w-full border border-gray-700"
+            >
+              <h3 className="text-xl font-bold text-white mb-4">Uploader un modèle 3D</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Nom du modèle
+                  </label>
+                  <Input
+                    placeholder="Ex: Lunettes Aviator"
+                    className="bg-gray-900 border-gray-600 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Type de produit
+                  </label>
+                  <select className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white">
+                    {modelTypes.filter(t => t.value !== 'all').map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Fichier 3D
+                  </label>
+                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-white mb-1">Cliquez ou glissez un fichier</p>
+                    <p className="text-sm text-gray-400">GLB, USDZ, FBX, OBJ (max 50MB)</p>
+                  </div>
+                </div>
+
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Upload en cours...</span>
+                      <span className="text-white">{uploadProgress}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-900 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${uploadProgress}%` }}
+                        className="h-full bg-gradient-to-r from-blue-600 to-purple-600"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    onClick={() => handleUpload(new File([], 'test.glb'))}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+                    disabled={uploadProgress > 0 && uploadProgress < 100}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Uploader
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowUploadModal(false);
+                      setUploadProgress(0);
+                    }}
+                    className="border-gray-600"
+                  >
+                    Annuler
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {showPreview && selectedModel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPreview(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full border border-gray-700"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-white">{selectedModel.name}</h3>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowPreview(false)}
+                  className="border-gray-600"
+                >
+                  <Minimize className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center mb-4">
+                <Box className="w-32 h-32 text-gray-700" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Button variant="outline" className="border-gray-600">
+                  <Smartphone className="w-4 h-4 mr-2" />
+                  Essayer sur mobile
+                </Button>
+                <Button variant="outline" className="border-gray-600">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Partager
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

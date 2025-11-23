@@ -1,0 +1,660 @@
+'use client';
+
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, ChevronDown, MessageCircle, Star, Users, Zap, Shield, Globe, Clock, Palette } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import Link from 'next/link';
+
+// SEO Metadata (sera utilisé dans le layout parent)
+export const metadata = {
+  title: 'Tarifs et Plans | Luneo',
+  description: 'Choisissez le plan Luneo adapté à vos besoins. Plans flexibles pour créateurs, équipes et entreprises. Essai gratuit 14 jours, sans engagement.',
+};
+
+const plans = [
+  {
+    name: 'Starter',
+    price: 0,
+    period: 'gratuit',
+    description: 'Parfait pour découvrir Luneo',
+    features: [
+      { name: '10 designs par mois', included: true },
+      { name: 'Templates de base', included: true },
+      { name: 'Support par email', included: true },
+      { name: 'Export standard (PNG)', included: true },
+      { name: 'Marque Luneo visible', included: true },
+      { name: 'Collaboration équipe', included: false },
+      { name: 'Export HD/PDF', included: false },
+      { name: 'API access', included: false },
+      { name: 'Templates premium', included: false },
+      { name: 'Support prioritaire', included: false },
+      { name: 'Analytics avancés', included: false },
+      { name: 'Intégrations avancées', included: false },
+      { name: 'Formation personnalisée', included: false },
+    ],
+    cta: 'Commencer gratuitement',
+    href: '/register',
+    popular: false
+  },
+  {
+    name: 'Professional',
+    price: 29,
+    period: '/mois',
+    description: 'Pour les créateurs professionnels',
+    features: [
+      { name: '100 designs par mois', included: true },
+      { name: 'Templates premium', included: true },
+      { name: 'Support prioritaire', included: true },
+      { name: 'Export HD/PDF', included: true },
+      { name: 'Marque Luneo masquée', included: true },
+      { name: 'Collaboration équipe (5 membres)', included: true },
+      { name: 'API access complet', included: true },
+      { name: 'Intégrations de base', included: true },
+      { name: 'Stockage cloud 10GB', included: true },
+      { name: 'Historique des versions', included: true },
+      { name: 'Analytics de base', included: true },
+      { name: 'Formation vidéo', included: false },
+      { name: 'Support dédié', included: false },
+    ],
+    cta: 'Essayer maintenant',
+    href: '/subscribe?plan=professional',
+    popular: true
+  },
+  {
+    name: 'Business',
+    price: 59,
+    period: '/mois',
+    description: 'Pour les équipes en croissance',
+    features: [
+      { name: '500 designs par mois', included: true },
+      { name: 'Templates premium + exclusifs', included: true },
+      { name: 'Support prioritaire + chat', included: true },
+      { name: 'Export HD/PDF/SVG', included: true },
+      { name: 'Marque Luneo masquée', included: true },
+      { name: 'Collaboration équipe (15 membres)', included: true },
+      { name: 'API access avancé', included: true },
+      { name: 'Intégrations complètes', included: true },
+      { name: 'Stockage cloud 50GB', included: true },
+      { name: 'Historique des versions', included: true },
+      { name: 'Analytics avancés', included: true },
+      { name: 'Formation personnalisée', included: true },
+      { name: 'Support dédié', included: false },
+    ],
+    cta: 'Essayer maintenant',
+    href: '/subscribe?plan=business',
+    popular: false
+  },
+  {
+    name: 'Enterprise',
+    price: 99,
+    period: '/mois',
+    description: 'Pour les grandes équipes',
+    features: [
+      { name: 'Designs illimités', included: true },
+      { name: 'Templates exclusifs', included: true },
+      { name: 'Support dédié 24/7', included: true },
+      { name: 'Export personnalisé', included: true },
+      { name: 'Marque Luneo masquée', included: true },
+      { name: 'Collaboration équipe illimitée', included: true },
+      { name: 'API access avancé', included: true },
+      { name: 'Intégrations avancées', included: true },
+      { name: 'Stockage cloud illimité', included: true },
+      { name: 'Historique des versions', included: true },
+      { name: 'Analytics enterprise', included: true },
+      { name: 'Formation personnalisée', included: true },
+      { name: 'SLA 99.9%', included: true },
+    ],
+    cta: 'Nous contacter',
+    href: '/contact',
+    popular: false
+  }
+];
+
+const faqs = [
+  {
+    question: "Comment fonctionne la facturation ?",
+    answer: "Vous êtes facturé mensuellement ou annuellement selon votre choix. Vous pouvez changer ou annuler votre plan à tout moment."
+  },
+  {
+    question: "Puis-je changer de plan à tout moment ?",
+    answer: "Oui, vous pouvez upgrader ou downgrader votre plan à tout moment. Les changements prennent effet immédiatement."
+  },
+  {
+    question: "Y a-t-il des frais de configuration ?",
+    answer: "Non, aucun frais de configuration. Vous ne payez que l'abonnement mensuel ou annuel."
+  },
+  {
+    question: "Que se passe-t-il si je dépasse mes limites ?",
+    answer: "Nous vous préviendrons avant d'atteindre vos limites. Vous pourrez upgrader votre plan ou acheter des crédits supplémentaires."
+  },
+  {
+    question: "Puis-je essayer gratuitement ?",
+    answer: "Oui, le plan Starter est entièrement gratuit et vous permet de découvrir toutes les fonctionnalités de base de Luneo."
+  },
+  {
+    question: "Qu'est-ce qui est inclus dans l'API ?",
+    answer: "L'API vous permet d'intégrer Luneo dans vos applications existantes, d'automatiser la création de designs et de synchroniser vos données."
+  }
+];
+
+const testimonials = [
+  {
+    name: "Marie Dubois",
+    role: "Directrice Marketing, TechCorp",
+    avatar: "M",
+    quote: "Luneo a révolutionné notre processus de création. Nous créons maintenant 10x plus de designs en un temps record.",
+    rating: 5
+  },
+  {
+    name: "Thomas Martin",
+    role: "CEO, StartupXYZ",
+    avatar: "T",
+    quote: "L'intégration avec nos outils existants est parfaite. L'API est robuste et la documentation excellente.",
+    rating: 5
+  },
+  {
+    name: "Sarah Johnson",
+    role: "Designer, CreativeAgency",
+    avatar: "S",
+    quote: "La qualité des designs générés par l'IA est impressionnante. C'est comme avoir un designer senior 24/7.",
+    rating: 5
+  }
+];
+
+export default function PricingPage() {
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Navigation déjà incluse via le layout */}
+      
+      {/* Hero Section avec proposition de valeur */}
+      <div className="relative overflow-hidden">
+        {/* Background avec formes géométriques */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 right-20 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 left-20 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="relative max-w-6xl mx-auto px-4 py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">
+              Tarification qui évolue avec vous
+            </h1>
+            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+              Vous n'êtes jamais facturé pour les utilisateurs inactifs. Vos premiers 100 designs et 5 membres d'équipe sont gratuits.
+            </p>
+            <p className="text-sm text-gray-400 mb-12">
+              Toutes les fonctionnalités gratuites en mode développement
+            </p>
+          </motion.div>
+        </div>
+      </div>
+
+
+      {/* Section des Plans */}
+      <div className="bg-gray-900 py-8">
+        <div className="max-w-7xl mx-auto px-4">
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center space-x-4 mb-6">
+            <span className={`text-sm ${billingCycle === 'monthly' ? 'text-white' : 'text-gray-400'}`}>
+              Mensuel
+            </span>
+            <button
+              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                billingCycle === 'yearly' ? 'bg-blue-600' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  billingCycle === 'yearly' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className={`text-sm ${billingCycle === 'yearly' ? 'text-white' : 'text-gray-400'}`}>
+              Annuel <span className="text-green-400 font-medium">(-20%)</span>
+            </span>
+          </div>
+
+          {/* Cartes des Plans */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {plans.map((plan, index) => (
+              <motion.div
+                key={plan.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="relative"
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center">
+                      <Star className="h-4 w-4 mr-1" />
+                      Populaire
+                    </div>
+                  </div>
+                )}
+                
+                <div className={`bg-gray-800 rounded-lg p-8 h-full border-2 ${
+                  plan.popular ? 'border-blue-500' : 'border-gray-700'
+                }`}>
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                    <p className="text-gray-400 mb-4">{plan.description}</p>
+                    <div className="flex items-baseline justify-center">
+                      <span className="text-5xl font-bold">
+                        {plan.price === 0 ? 'Gratuit' : `€${billingCycle === 'yearly' ? Math.round(plan.price * 0.8) : plan.price}`}
+                      </span>
+                      {plan.price > 0 && (
+                        <span className="text-gray-400 ml-1">{plan.period}</span>
+                      )}
+                    </div>
+                    {plan.price > 0 && billingCycle === 'yearly' && (
+                      <div className="text-sm text-green-400 font-medium mt-2">
+                        Économisez €{Math.round((plan.price * 12) * 0.2)}/an
+                      </div>
+                    )}
+                  </div>
+
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center">
+                        {feature.included ? (
+                          <Check className="h-5 w-5 text-green-400 mr-3 flex-shrink-0" />
+                        ) : (
+                          <div className="h-5 w-5 mr-3 flex-shrink-0"></div>
+                        )}
+                        <span className={feature.included ? 'text-gray-300' : 'text-gray-600'}>{feature.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    onClick={async () => {
+                      if (plan.name === 'Starter') {
+                        // Plan gratuit - redirection vers register
+                        window.location.href = '/register';
+                        return;
+                      }
+                      
+                      if (plan.name === 'Enterprise') {
+                        // Plan Enterprise - redirection vers contact
+                        window.location.href = '/contact';
+                        return;
+                      }
+
+                      // Plans payants - appel direct à Stripe
+                      try {
+                        const response = await fetch('https://api.luneo.app/api/billing/create-checkout-session', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            planId: plan.name.toLowerCase(),
+                            email: 'user@example.com' // Vous pouvez récupérer l'email de l'utilisateur connecté
+                          }),
+                        });
+
+                        if (!response.ok) {
+                          throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        console.log('Réponse API billing:', data);
+                        
+                        // Vérifier si c'est un succès avec URL
+                        if (data.success && data.data && data.data.url) {
+                          window.location.href = data.data.url;
+                          return;
+                        }
+                        
+                        // Fallback pour l'ancien format
+                        if (data.success && data.url) {
+                          window.location.href = data.url;
+                          return;
+                        }
+                        
+                        // Gestion des erreurs
+                        console.error('Réponse API invalide:', data);
+                        const errorMessage = data.data?.error || data.error || 'Session de paiement non créée';
+                        
+                        if (errorMessage.includes('pas encore configuré') || errorMessage.includes('configuré dans Stripe')) {
+                          alert('Ce plan sera bientôt disponible ! Contactez-nous pour un devis personnalisé.');
+                          window.location.href = '/contact';
+                        } else {
+                          alert(`Erreur: ${errorMessage}`);
+                        }
+                      } catch (error) {
+                        console.error('Erreur complète:', error);
+                        alert('Erreur de connexion. Veuillez réessayer.');
+                      }
+                    }}
+                    className={`w-full ${
+                      plan.popular
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+                        : plan.price === 0
+                        ? 'bg-gray-600 hover:bg-gray-500'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {plan.cta}
+                    {plan.popular && <Zap className="h-4 w-4 ml-2" />}
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tableau de Comparaison Détaillé */}
+      <div className="bg-gray-800 py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl font-bold mb-4">Comparaison détaillée des plans</h2>
+            <p className="text-xl text-gray-300">
+              Comparez toutes les fonctionnalités pour choisir le plan qui vous convient
+            </p>
+          </motion.div>
+
+          {/* Tableau de comparaison */}
+          <div className="bg-gray-700 rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-600">
+                    <th className="text-left p-6 font-semibold text-gray-300">Fonctionnalités</th>
+                    <th className="text-center p-6 font-semibold text-gray-300">Starter</th>
+                    <th className="text-center p-6 font-semibold text-blue-400">Professional</th>
+                    <th className="text-center p-6 font-semibold text-green-400">Business</th>
+                    <th className="text-center p-6 font-semibold text-purple-400">Enterprise</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Prix mensuel</td>
+                    <td className="p-6 text-center">
+                      <span className="text-2xl font-bold">Gratuit</span>
+                    </td>
+                    <td className="p-6 text-center">
+                      <span className="text-2xl font-bold text-blue-400">€29</span>
+                    </td>
+                    <td className="p-6 text-center">
+                      <span className="text-2xl font-bold text-green-400">€59</span>
+                    </td>
+                    <td className="p-6 text-center">
+                      <span className="text-2xl font-bold text-purple-400">€99</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Designs par mois</td>
+                    <td className="p-6 text-center">10</td>
+                    <td className="p-6 text-center">100</td>
+                    <td className="p-6 text-center">500</td>
+                    <td className="p-6 text-center">Illimités</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Templates</td>
+                    <td className="p-6 text-center">Base</td>
+                    <td className="p-6 text-center">Premium</td>
+                    <td className="p-6 text-center">Premium + Exclusifs</td>
+                    <td className="p-6 text-center">Exclusifs</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Support</td>
+                    <td className="p-6 text-center">Email</td>
+                    <td className="p-6 text-center">Prioritaire</td>
+                    <td className="p-6 text-center">Prioritaire + Chat</td>
+                    <td className="p-6 text-center">Dédié 24/7</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Export</td>
+                    <td className="p-6 text-center">PNG standard</td>
+                    <td className="p-6 text-center">HD/PDF</td>
+                    <td className="p-6 text-center">HD/PDF/SVG</td>
+                    <td className="p-6 text-center">Personnalisé</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Marque Luneo</td>
+                    <td className="p-6 text-center">Visible</td>
+                    <td className="p-6 text-center">Masquée</td>
+                    <td className="p-6 text-center">Masquée</td>
+                    <td className="p-6 text-center">Masquée</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Collaboration équipe</td>
+                    <td className="p-6 text-center">
+                      <span className="text-gray-500">-</span>
+                    </td>
+                    <td className="p-6 text-center">5 membres</td>
+                    <td className="p-6 text-center">15 membres</td>
+                    <td className="p-6 text-center">Illimitée</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">API Access</td>
+                    <td className="p-6 text-center">
+                      <span className="text-gray-500">-</span>
+                    </td>
+                    <td className="p-6 text-center">Complet</td>
+                    <td className="p-6 text-center">Avancé</td>
+                    <td className="p-6 text-center">Avancé</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Intégrations</td>
+                    <td className="p-6 text-center">Basiques</td>
+                    <td className="p-6 text-center">De base</td>
+                    <td className="p-6 text-center">Complètes</td>
+                    <td className="p-6 text-center">Avancées</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Stockage cloud</td>
+                    <td className="p-6 text-center">1GB</td>
+                    <td className="p-6 text-center">10GB</td>
+                    <td className="p-6 text-center">50GB</td>
+                    <td className="p-6 text-center">Illimité</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Analytics</td>
+                    <td className="p-6 text-center">
+                      <span className="text-gray-500">-</span>
+                    </td>
+                    <td className="p-6 text-center">De base</td>
+                    <td className="p-6 text-center">Avancés</td>
+                    <td className="p-6 text-center">Enterprise</td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Historique des versions</td>
+                    <td className="p-6 text-center">
+                      <span className="text-gray-500">-</span>
+                    </td>
+                    <td className="p-6 text-center">
+                      <Check className="w-5 h-5 text-green-400 mx-auto" />
+                    </td>
+                    <td className="p-6 text-center">
+                      <Check className="w-5 h-5 text-green-400 mx-auto" />
+                    </td>
+                    <td className="p-6 text-center">
+                      <Check className="w-5 h-5 text-green-400 mx-auto" />
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-600">
+                    <td className="p-6 font-medium">Formation</td>
+                    <td className="p-6 text-center">
+                      <span className="text-gray-500">-</span>
+                    </td>
+                    <td className="p-6 text-center">Vidéo</td>
+                    <td className="p-6 text-center">Personnalisée</td>
+                    <td className="p-6 text-center">Personnalisée</td>
+                  </tr>
+                  <tr>
+                    <td className="p-6 font-medium">SLA</td>
+                    <td className="p-6 text-center">
+                      <span className="text-gray-500">-</span>
+                    </td>
+                    <td className="p-6 text-center">
+                      <span className="text-gray-500">-</span>
+                    </td>
+                    <td className="p-6 text-center">
+                      <span className="text-gray-500">-</span>
+                    </td>
+                    <td className="p-6 text-center">99.9%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Témoignages avec bulle - DÉPLACÉE APRÈS */}
+      <div className="bg-gray-900 py-20">
+        <div className="max-w-6xl mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
+          >
+            {/* Bulle Témoignages */}
+            <div className="inline-flex items-center bg-green-500/20 border border-green-500/30 rounded-full px-4 py-2 mb-8">
+              <MessageCircle className="w-4 h-4 text-green-400 mr-2" />
+              <span className="text-green-400 text-sm font-medium">Témoignages</span>
+            </div>
+            
+            <h2 className="text-4xl font-bold mb-4">
+              Nos clients nous font confiance
+            </h2>
+            <p className="text-xl text-gray-300 mb-12">
+              Découvrez comment Luneo transforme la façon dont les entreprises créent leurs designs
+            </p>
+
+            {/* Cartes de témoignages */}
+            <div className="grid md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="bg-gray-700 rounded-lg p-6"
+                >
+                  <div className="flex items-center mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                      {testimonial.avatar}
+                    </div>
+                    <div>
+                      <div className="font-semibold">{testimonial.name}</div>
+                      <div className="text-sm text-gray-400">{testimonial.role}</div>
+                    </div>
+                  </div>
+                  <p className="text-gray-300 mb-4">"{testimonial.quote}"</p>
+                  <div className="flex text-yellow-400">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" />
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Section FAQ avec arrière-plan */}
+      <div className="bg-gray-800 py-20 relative overflow-hidden">
+        {/* Arrière-plan avec formes géométriques */}
+        <div className="absolute inset-0">
+          <div className="absolute top-10 right-10 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 left-10 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="relative max-w-4xl mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl font-bold mb-8">Questions fréquemment posées</h2>
+          </motion.div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-gray-700 rounded-lg"
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                >
+                  <span className="text-lg font-medium">{faq.question}</span>
+                  <ChevronDown 
+                    className={`w-5 h-5 transition-transform ${
+                      openFaq === index ? 'rotate-180' : ''
+                    }`} 
+                  />
+                </button>
+                <AnimatePresence>
+                  {openFaq === index && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pb-4 text-gray-300">
+                        {faq.answer}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+
+      {/* Section Trusted By */}
+      <div className="bg-gray-800 py-16">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="text-left md:text-left mb-8 md:mb-0">
+              <p className="text-xl text-gray-300">
+                Fait confiance par des entreprises en croissance rapide dans le monde entier.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center md:justify-end space-x-8 opacity-60">
+              <div className="text-gray-400 font-semibold">TechCorp</div>
+              <div className="text-gray-400 font-semibold">StartupXYZ</div>
+              <div className="text-gray-400 font-semibold">CreativeAgency</div>
+              <div className="text-gray-400 font-semibold">DesignStudio</div>
+              <div className="text-gray-400 font-semibold">BrandCo</div>
+              <div className="text-gray-400 font-semibold">InnovateLab</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
