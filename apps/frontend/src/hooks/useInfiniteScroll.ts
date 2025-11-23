@@ -58,13 +58,13 @@ export function useInfiniteScroll({
 
   // Composant sentinelle à placer à la fin de la liste
   const Sentinel: React.FC = () => {
-    const marginTopPx = threshold.toString() + 'px';
-    const sentinelStyle: React.CSSProperties = { marginTop: marginTopPx };
+    const marginValue = String(threshold) + 'px';
+    const divStyle = { marginTop: marginValue };
     return (
       <div
         ref={elementRef}
         className="h-1 w-full"
-        style={sentinelStyle}
+        style={divStyle}
         aria-hidden="true"
       />
     );
