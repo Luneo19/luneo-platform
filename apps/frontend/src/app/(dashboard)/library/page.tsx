@@ -139,20 +139,6 @@ export default function LibraryPage() {
     { value: 'card', label: 'Cartes', icon: <Book className="w-4 h-4" />, count: templates.filter(t => t.category === 'card').length }
   ];
 
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
-    loadTemplates(1, false);
-  }, [categoryFilter, searchTerm, sortBy]);
-
-  // Infinite scroll
-  const { Sentinel } = useInfiniteScroll({
-    hasMore,
-    loading: loadingMore,
-    onLoadMore: loadMoreTemplates,
-    threshold: 200,
-  });
-
   const loadTemplates = async (pageNum: number = 1, append: boolean = false) => {
     if (append) {
       setLoadingMore(true);
@@ -208,6 +194,20 @@ export default function LibraryPage() {
     setPage(nextPage);
     await loadTemplates(nextPage, true);
   };
+
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+    loadTemplates(1, false);
+  }, [categoryFilter, searchTerm, sortBy]);
+
+  // Infinite scroll
+  const { Sentinel } = useInfiniteScroll({
+    hasMore,
+    loading: loadingMore,
+    onLoadMore: loadMoreTemplates,
+    threshold: 200,
+  });
 
   const handleToggleFavorite = async (templateId: string) => {
     try {
