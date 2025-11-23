@@ -383,7 +383,7 @@ export default function DesignDetailPage() {
         <VersionTimeline
           designId={designId}
           versions={versions}
-          currentVersionId={currentVersionId}
+          currentVersionId={currentVersionId || undefined}
           onRestore={handleRestore}
           onDelete={handleDeleteVersion}
           onView={handleViewVersion}
