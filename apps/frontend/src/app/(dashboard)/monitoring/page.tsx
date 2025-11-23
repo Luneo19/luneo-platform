@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { ObservabilityDashboard } from '@/components/dashboard/ObservabilityDashboard';
+import ObservabilityDashboard from '@/components/dashboard/ObservabilityDashboard';
 
 export default function MonitoringPage() {
   return (
