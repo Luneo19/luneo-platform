@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import Sidebar from '@/components/dashboard/Sidebar';
 import { Header } from '@/components/dashboard/Header';
 import { logger } from '@/lib/logger';
 
