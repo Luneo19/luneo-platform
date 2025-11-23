@@ -58,11 +58,13 @@ export function useInfiniteScroll({
 
   // Composant sentinelle à placer à la fin de la liste
   const Sentinel: React.FC = () => {
+    // threshold est une prop du hook, pas du composant, donc pas besoin dans les deps
     const sentinelStyle = useMemo<React.CSSProperties>(() => {
       const pxValue = 'px';
       const marginValue = String(threshold) + pxValue;
       return { marginTop: marginValue };
-    }, [threshold]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     
     return React.createElement(
       'div',
