@@ -170,7 +170,7 @@ export default function LibraryPage() {
         error,
         page,
         searchTerm,
-        category,
+        categoryFilter,
         append,
         message: error.message || 'Unknown error',
       });
