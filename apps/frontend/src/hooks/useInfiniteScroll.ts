@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 
 interface UseInfiniteScrollOptions {
   hasMore: boolean;
@@ -58,13 +58,16 @@ export function useInfiniteScroll({
 
   // Composant sentinelle à placer à la fin de la liste
   const Sentinel: React.FC = () => {
-    const marginValue = String(threshold) + 'px';
-    const divStyle = { marginTop: marginValue };
+    const sentinelStyle = useMemo(() => {
+      const marginTopValue = threshold.toString();
+      return { marginTop: marginTopValue + 'px' };
+    }, [threshold]);
+    
     return (
       <div
         ref={elementRef}
         className="h-1 w-full"
-        style={divStyle}
+        style={sentinelStyle}
         aria-hidden="true"
       />
     );
