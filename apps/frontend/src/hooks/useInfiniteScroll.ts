@@ -58,18 +58,20 @@ export function useInfiniteScroll({
 
   // Composant sentinelle à placer à la fin de la liste
   const Sentinel: React.FC = () => {
-    const sentinelStyle = useMemo(() => {
-      const marginTopValue = threshold.toString();
-      return { marginTop: marginTopValue + 'px' };
+    const sentinelStyle = useMemo<React.CSSProperties>(() => {
+      const pxValue = 'px';
+      const marginValue = String(threshold) + pxValue;
+      return { marginTop: marginValue };
     }, [threshold]);
     
-    return (
-      <div
-        ref={elementRef}
-        className="h-1 w-full"
-        style={sentinelStyle}
-        aria-hidden="true"
-      />
+    return React.createElement(
+      'div',
+      {
+        ref: elementRef,
+        className: 'h-1 w-full',
+        style: sentinelStyle,
+        'aria-hidden': 'true',
+      }
     );
   };
 
