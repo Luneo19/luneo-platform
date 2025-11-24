@@ -120,7 +120,7 @@ export async function PUT(request: NextRequest) {
     // Récupérer le profil
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('stripe_subscription_id, stripe_customer_id')
+      .select('stripe_subscription_id, stripe_customer_id, subscription_status')
       .eq('id', user.id)
       .single();
 
