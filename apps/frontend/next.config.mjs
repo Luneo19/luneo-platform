@@ -17,6 +17,8 @@ const nextConfig = {
     optimizeCss: true,
     scrollRestoration: true,
   },
+  // Exclure les packages optionnels du bundling
+  serverComponentsExternalPackages: ['@aws-sdk/client-s3'],
   images: {
     remotePatterns: [
       {

@@ -130,8 +130,15 @@ async function uploadToS3(
   options: UploadOptions = {}
 ): Promise<UploadResult> {
   try {
-    // Check if AWS SDK is available
-    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+    // Check if AWS SDK is available - use dynamic import with error handling
+    let S3Client, PutObjectCommand;
+    try {
+      const awsSdk = await import('@aws-sdk/client-s3');
+      S3Client = awsSdk.S3Client;
+      PutObjectCommand = awsSdk.PutObjectCommand;
+    } catch (importError) {
+      throw new Error('AWS S3 SDK not available. Install @aws-sdk/client-s3 to use S3 storage.');
+    }
     
     const s3Client = new S3Client({
       region: process.env.AWS_REGION || 'us-east-1',
@@ -279,7 +286,15 @@ async function deleteFromCloudinary(publicId: string): Promise<DeleteResult> {
  */
 async function deleteFromS3(path: string): Promise<DeleteResult> {
   try {
-    const { S3Client, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+    // Check if AWS SDK is available - use dynamic import with error handling
+    let S3Client, DeleteObjectCommand;
+    try {
+      const awsSdk = await import('@aws-sdk/client-s3');
+      S3Client = awsSdk.S3Client;
+      DeleteObjectCommand = awsSdk.DeleteObjectCommand;
+    } catch (importError) {
+      throw new Error('AWS S3 SDK not available. Install @aws-sdk/client-s3 to use S3 storage.');
+    }
     
     const s3Client = new S3Client({
       region: process.env.AWS_REGION || 'us-east-1',

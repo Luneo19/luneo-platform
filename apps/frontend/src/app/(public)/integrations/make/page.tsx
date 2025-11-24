@@ -91,7 +91,6 @@ import {
   Signal,
   Battery,
   PowerOff,
-  Lightning,
   Sun,
   Moon,
   CloudRain,
