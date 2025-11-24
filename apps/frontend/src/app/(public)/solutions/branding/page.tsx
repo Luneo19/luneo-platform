@@ -101,7 +101,7 @@ export default function BrandingPage() {
     } catch (error) {
       logger.error('Save brand kit failed', {
         error,
-        kitName: brandKit.name,
+        kitName: logoName || 'unknown',
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       setKitStatus('error');
