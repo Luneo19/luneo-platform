@@ -130,8 +130,8 @@ export async function POST(request: NextRequest) {
         // Conversion GLB → USDZ avec service de conversion
         const conversionResult = await convertGLBToUSDZ(modelUrl, {
           optimize,
-          include_textures: include_textures,
-          compression_level: compression_level,
+          includeTextures: include_textures,
+          compressionLevel: compression_level,
         });
 
         if (!conversionResult.success || !conversionResult.usdzUrl) {
