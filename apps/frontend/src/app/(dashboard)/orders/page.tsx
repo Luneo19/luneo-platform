@@ -238,9 +238,8 @@ export default function OrdersPage() {
         throw new Error(result.error || 'Failed to update order status');
       }
       
-      setOrders(orders.map(o => 
-        o.id === orderId ? { ...o, status: newStatus } : o
-      ));
+      // Recharger les données pour refléter le changement
+      refresh();
 
       toast({
         title: "Statut mis à jour",
