@@ -118,7 +118,6 @@ import {
   Power,
   PowerOff,
   Zap as ZapIcon,
-  Lightning,
   Sun,
   Moon,
   CloudRain,
