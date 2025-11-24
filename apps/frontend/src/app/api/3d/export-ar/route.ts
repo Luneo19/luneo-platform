@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { ApiResponseBuilder } from '@/lib/api-response';
+import { ApiResponseBuilder, ApiResponse } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { exportARConfigurationSchema } from '@/lib/validation/zod-schemas';
 import { z } from 'zod';
@@ -14,7 +14,7 @@ cloudinary.config({
 });
 
 export async function POST(request: NextRequest) {
-  return ApiResponseBuilder.validateWithZod(exportARConfigurationSchema, request, async (validatedData) => {
+  return ApiResponseBuilder.validateWithZod(exportARConfigurationSchema, request, async (validatedData): Promise<NextResponse<ApiResponse<any>>> => {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
