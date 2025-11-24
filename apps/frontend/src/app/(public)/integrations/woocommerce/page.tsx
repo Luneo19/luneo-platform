@@ -45,7 +45,6 @@ import {
   Smartphone,
   Tablet,
   Chrome,
-  Firefox,
   Safari,
   Edge,
   CheckSquare,
