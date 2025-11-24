@@ -81,7 +81,6 @@ import {
   Camera,
   FileImage,
   FileJson,
-  FileXml,
   FileType,
   Folder,
   Archive,

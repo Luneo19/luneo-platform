@@ -95,7 +95,6 @@ import {
   ImageIcon,
   FileImage,
   FileJson,
-  FileXml,
   FileType,
   FileText as FileTextIcon,
   Folder,
