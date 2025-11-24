@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const { name, category, image_url, svg_data, tags, is_premium = false } = validation.data;
+    const { name, category, image_url, tags, is_premium = false } = validation.data;
 
     if (name.length > 200) {
       throw {
