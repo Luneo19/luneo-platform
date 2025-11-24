@@ -80,7 +80,7 @@ import {
   Camera,
   FileImage,
   FileJson,
-  FileXml,
+  FileCode,
   FileType,
   Folder,
   Archive,
