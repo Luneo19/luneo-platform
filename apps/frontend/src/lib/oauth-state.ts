@@ -97,27 +97,8 @@ async function storeOAuthState(state: string, oauthState: OAuthState): Promise<v
       return;
     }
 
-    // Try generic Redis URL
-    if (process.env.REDIS_URL) {
-      const redis = require('redis');
-      const client = redis.createClient({
-        url: process.env.REDIS_URL,
-      });
-
-      await client.connect();
-
-      const key = `oauth:state:${state}`;
-      const ttl = Math.floor((oauthState.expiresAt - Date.now()) / 1000);
-
-      await client.setEx(key, ttl, JSON.stringify(oauthState));
-      await client.quit();
-
-      logger.debug('OAuth state stored in Redis', {
-        state,
-        ttl,
-      });
-      return;
-    }
+    // Generic Redis support removed - using Upstash Redis only
+    // If you need generic Redis support, install 'redis' package and uncomment this section
 
     // No Redis available, will use memory store
   } catch (error) {
@@ -241,25 +222,8 @@ async function getOAuthStateFromRedis(state: string): Promise<OAuthState | null>
       return JSON.parse(data) as OAuthState;
     }
 
-    // Try generic Redis
-    if (process.env.REDIS_URL) {
-      const redis = require('redis');
-      const client = redis.createClient({
-        url: process.env.REDIS_URL,
-      });
-
-      await client.connect();
-
-      const key = `oauth:state:${state}`;
-      const data = await client.get(key);
-      await client.quit();
-
-      if (!data) {
-        return null;
-      }
-
-      return JSON.parse(data) as OAuthState;
-    }
+    // Generic Redis support removed - using Upstash Redis only
+    // If you need generic Redis support, install 'redis' package and uncomment this section
 
     return null;
   } catch (error) {
@@ -293,16 +257,8 @@ export async function deleteOAuthState(state: string): Promise<void> {
 
         const key = `oauth:state:${state}`;
         await redis.del(key);
-      } else if (process.env.REDIS_URL) {
-        const redis = require('redis');
-        const client = redis.createClient({
-          url: process.env.REDIS_URL,
-        });
-
-        await client.connect();
-        await client.del(`oauth:state:${state}`);
-        await client.quit();
       }
+      // Generic Redis support removed - using Upstash Redis only
     } catch (error) {
       // Ignore Redis errors
     }

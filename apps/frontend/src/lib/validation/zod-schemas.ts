@@ -5,6 +5,9 @@
 
 import { z } from 'zod';
 
+// Réexporter z pour permettre l'import depuis ce fichier
+export { z };
+
 /**
  * Schéma de base pour les IDs
  */

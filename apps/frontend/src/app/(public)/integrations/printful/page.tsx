@@ -87,7 +87,6 @@ import {
   Signal,
   Battery,
   PowerOff,
-  Flash,
   Lightning,
   Sun,
   Moon,
