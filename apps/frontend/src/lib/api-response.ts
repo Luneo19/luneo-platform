@@ -238,11 +238,11 @@ export class ApiResponseBuilder {
    * Valide le corps de la requête avec un schéma Zod.
    * Si la validation échoue, renvoie une réponse d'erreur 400.
    */
-  static async validateWithZod<T>(
+  static async validateWithZod<T, R = any>(
     schema: z.ZodSchema<T>,
     request: NextRequest,
-    handler: (validatedData: T) => Promise<NextResponse<ApiResponse<T>>>
-  ): Promise<NextResponse<ApiResponse<T>>> {
+    handler: (validatedData: T) => Promise<NextResponse<ApiResponse<R>>>
+  ): Promise<NextResponse<ApiResponse<R>>> {
     try {
       const body = await request.json();
       const validatedData = schema.parse(body);
