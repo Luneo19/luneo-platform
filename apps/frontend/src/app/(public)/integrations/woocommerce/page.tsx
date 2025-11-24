@@ -44,7 +44,6 @@ import {
   Monitor,
   Smartphone,
   Tablet,
-  Globe,
   CheckSquare,
   X,
   Info,

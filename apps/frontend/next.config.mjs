@@ -16,9 +16,8 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
+    serverComponentsExternalPackages: ['@aws-sdk/client-s3'],
   },
-  // Exclure les packages optionnels du bundling
-  serverComponentsExternalPackages: ['@aws-sdk/client-s3'],
   images: {
     remotePatterns: [
       {
