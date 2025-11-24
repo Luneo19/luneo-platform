@@ -32,16 +32,17 @@ export async function GET(request: NextRequest, { params }: ClipartRouteContext)
     }
 
     // Incrémenter usage_count (non bloquant)
-    await supabase
+    const { error: updateError } = await supabase
       .from('cliparts')
       .update({ usage_count: (clipart.usage_count || 0) + 1 })
-      .eq('id', id)
-      .catch((updateError) => {
-        logger.warn('Failed to increment clipart usage count', {
-          clipartId: id,
-          error: updateError,
-        });
+      .eq('id', id);
+
+    if (updateError) {
+      logger.warn('Failed to increment clipart usage count', {
+        clipartId: id,
+        error: updateError,
       });
+    }
 
     logger.info('Clipart accessed', {
       clipartId: id,
