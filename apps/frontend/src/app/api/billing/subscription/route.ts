@@ -190,18 +190,19 @@ export async function PUT(request: NextRequest) {
       newStatus = 'active';
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({
         subscription_status: newStatus,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', user.id)
-      .catch((updateError) => {
-        logger.dbError('update subscription status', updateError, {
-          userId: user.id,
-        });
+      .eq('id', user.id);
+
+    if (updateError) {
+      logger.dbError('update subscription status', updateError, {
+        userId: user.id,
       });
+    }
 
     logger.info('Subscription updated', {
       userId: user.id,
