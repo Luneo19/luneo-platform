@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const validatedData = validation.data as {
-      action: 'cancel' | 'resume' | 'change_plan' | 'update_payment_method';
+      action: 'cancel' | 'resume' | 'change_plan' | 'update_payment_method' | 'upgrade' | 'downgrade';
       planId?: string;
       cancelAtPeriodEnd?: boolean;
     };
