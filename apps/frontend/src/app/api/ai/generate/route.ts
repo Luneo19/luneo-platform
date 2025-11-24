@@ -170,8 +170,8 @@ export async function POST(request: Request) {
         n: 1,
       });
 
-      imageUrl = response.data[0]?.url || '';
-      revisedPrompt = response.data[0]?.revised_prompt;
+      imageUrl = response.data?.[0]?.url || '';
+      revisedPrompt = response.data?.[0]?.revised_prompt;
 
       if (!imageUrl) {
         throw new Error('Aucune image générée par DALL-E 3');
