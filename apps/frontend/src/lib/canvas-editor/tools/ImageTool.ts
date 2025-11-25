@@ -157,7 +157,7 @@ export class ImageTool {
     } catch (error) {
       logger.error('Error adding image', {
         error,
-        imageUrl: typeof imageUrl === 'string' ? imageUrl.substring(0, 100) : 'object',
+        imageUrl: typeof src === 'string' ? src.substring(0, 100) : 'object',
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
