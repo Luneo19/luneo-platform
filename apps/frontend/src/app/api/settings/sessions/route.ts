@@ -26,7 +26,7 @@ export async function GET(_request: NextRequest) {
     const sessions = session
       ? [
           {
-            id: session.id || 'current',
+            id: session.access_token?.substring(0, 20) || 'current',
             user_id: user.id,
             created_at: session.created_at || new Date().toISOString(),
             expires_at: session.expires_at || new Date(Date.now() + 3600 * 1000).toISOString(),
