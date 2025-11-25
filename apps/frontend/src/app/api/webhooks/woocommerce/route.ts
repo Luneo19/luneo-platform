@@ -337,9 +337,7 @@ async function handleOrderCreated(
     };
   } catch (error: unknown) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
-    logger.webhookError('woocommerce', 'order.created', errorObj, {
-      orderId: orderData.id,
-    });
+    logger.webhookError('woocommerce', `order.created - orderId: ${orderData.id}`, errorObj);
     throw error;
   }
 }
