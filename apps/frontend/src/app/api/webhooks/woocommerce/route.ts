@@ -331,7 +331,7 @@ async function handleOrderCreated(
     });
 
     return { 
-      orderId: orderData.id, 
+      orderId: orderData.id.toString(), 
       luneoOrderId: orderResult.id,
       action: existingOrder ? 'updated' : 'created' 
     };
