@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     const exportData = await exportResponse.json();
 
     // Enregistrer l'export dans l'historique
-    await supabase
+    const { error: insertError } = await supabase
       .from('design_exports')
       .insert({
         design_id: designId,
@@ -119,14 +119,15 @@ export async function POST(request: NextRequest) {
           width: design.width || 1920,
           height: design.height || 1080,
         },
-      })
-      .catch((insertError: unknown) => {
-        logger.warn('Failed to log design export', {
-          userId: user.id,
-          designId,
-          error: insertError,
-        });
       });
+
+    if (insertError) {
+      logger.warn('Failed to log design export', {
+        userId: user.id,
+        designId,
+        error: insertError,
+      });
+    }
 
     logger.info('Design exported for print', {
       userId: user.id,
