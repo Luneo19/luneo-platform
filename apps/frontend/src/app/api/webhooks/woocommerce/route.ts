@@ -159,23 +159,23 @@ export async function POST(request: NextRequest) {
     let result: WooCommerceWebhookResult | undefined;
     switch (topic) {
       case 'order.created':
-        result = await handleOrderCreated(supabase, data, integration);
+        result = await handleOrderCreated(supabase, data as WooCommerceOrder, integration);
         break;
 
       case 'order.updated':
-        result = await handleOrderUpdated(supabase, data, integration);
+        result = await handleOrderUpdated(supabase, data as WooCommerceOrder, integration);
         break;
 
       case 'order.paid':
-        result = await handleOrderPaid(supabase, data, integration);
+        result = await handleOrderPaid(supabase, data as WooCommerceOrder, integration);
         break;
 
       case 'order.completed':
-        result = await handleOrderCompleted(supabase, data, integration);
+        result = await handleOrderCompleted(supabase, data as WooCommerceOrder, integration);
         break;
 
       case 'order.cancelled':
-        result = await handleOrderCancelled(supabase, data, integration);
+        result = await handleOrderCancelled(supabase, data as WooCommerceOrder, integration);
         break;
 
       case 'order.refunded':
