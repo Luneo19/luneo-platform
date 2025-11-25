@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enregistrer la suppression dans les audit logs
-    await supabase
+    const { error: insertError } = await supabase
       .from('audit_logs')
       .insert({
         user_id: user.id,
@@ -102,13 +102,14 @@ export async function POST(request: NextRequest) {
         description: 'Suppression définitive du compte utilisateur (RGPD Article 17)',
         status: 'success',
         sensitivity: 'high',
-      })
-      .catch((insertError) => {
-        logger.warn('Failed to log account deletion', {
-          userId: user.id,
-          error: insertError,
-        });
       });
+
+    if (insertError) {
+      logger.warn('Failed to log account deletion', {
+        userId: user.id,
+        error: insertError,
+      });
+    }
 
     logger.warn('Account deleted successfully', {
       userId: user.id,

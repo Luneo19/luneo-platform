@@ -183,19 +183,20 @@ export async function GET(request: NextRequest) {
     };
 
     // Enregistrer la demande d'export GDPR
-    await supabase
+    const { error: insertError } = await supabase
       .from('gdpr_export_requests')
       .insert({
         user_id: user.id,
         exported_at: new Date().toISOString(),
         data_size: JSON.stringify(exportData).length,
-      })
-      .catch((insertError) => {
-        logger.warn('Failed to log GDPR export request', {
-          userId: user.id,
-          error: insertError,
-        });
       });
+
+    if (insertError) {
+      logger.warn('Failed to log GDPR export request', {
+        userId: user.id,
+        error: insertError,
+      });
+    }
 
     logger.info('GDPR export completed', {
       userId: user.id,

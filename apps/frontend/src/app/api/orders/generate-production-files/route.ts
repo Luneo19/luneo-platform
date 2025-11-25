@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log production files generation
-    await supabase
+    const { error: logError } = await supabase
       .from('audit_logs')
       .insert({
         user_id: user.id,
@@ -307,14 +307,15 @@ export async function POST(request: NextRequest) {
           totalFiles: Object.keys(files).length,
           totalSize,
         },
-      })
-      .catch((logError) => {
-        logger.warn('Failed to log production files generation', {
-          orderId,
-          userId: user.id,
-          error: logError,
-        });
       });
+
+    if (logError) {
+      logger.warn('Failed to log production files generation', {
+        orderId,
+        userId: user.id,
+        error: logError,
+      });
+    }
 
     logger.info('Production files generated', {
       orderId,
@@ -499,21 +500,22 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Log deletion
-    await supabase
+    const { error: logError } = await supabase
       .from('audit_logs')
       .insert({
         user_id: user.id,
         action: 'production_files_deleted',
         resource_type: 'order',
         resource_id: orderId,
-      })
-      .catch((logError) => {
-        logger.warn('Failed to log production files deletion', {
-          orderId,
-          userId: user.id,
-          error: logError,
-        });
       });
+
+    if (logError) {
+      logger.warn('Failed to log production files deletion', {
+        orderId,
+        userId: user.id,
+        error: logError,
+      });
+    }
 
     logger.info('Production files deleted', {
       orderId,

@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enregistrer le webhook dans les logs
-    await supabase
+    const { error: insertError } = await supabase
       .from('webhook_logs')
       .insert({
         source: 'stripe',
@@ -118,13 +118,14 @@ export async function POST(request: NextRequest) {
         processed: processed,
         processed_at: processed ? new Date().toISOString() : null,
         result: result || null,
-      })
-      .catch((insertError) => {
-        logger.warn('Failed to log Stripe webhook', {
-          eventId: event.id,
-          error: insertError,
-        });
       });
+
+    if (insertError) {
+      logger.warn('Failed to log Stripe webhook', {
+        eventId: event.id,
+        error: insertError,
+      });
+    }
 
     logger.info('Stripe webhook processed', {
       eventType: event.type,
@@ -251,7 +252,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<a
   }
 
   // Enregistrer le paiement réussi
-  await supabase
+  const { error: insertError } = await supabase
     .from('audit_logs')
     .insert({
       user_id: null, // Sera mis à jour si on trouve l'utilisateur
@@ -265,13 +266,14 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<a
         currency: invoice.currency,
         customer_id: invoice.customer,
       },
-    })
-    .catch((insertError) => {
-      logger.warn('Failed to log payment success', {
-        invoiceId: invoice.id,
-        error: insertError,
-      });
     });
+
+  if (insertError) {
+    logger.warn('Failed to log payment success', {
+      invoiceId: invoice.id,
+      error: insertError,
+    });
+  }
 
   return {
     message: 'Paiement réussi',
@@ -290,7 +292,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<any>
   }
 
   // Enregistrer l'échec de paiement
-  await supabase
+  const { error: insertError } = await supabase
     .from('audit_logs')
     .insert({
       user_id: null,
@@ -304,13 +306,14 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<any>
         currency: invoice.currency,
         customer_id: invoice.customer,
       },
-    })
-    .catch((insertError) => {
-      logger.warn('Failed to log payment failure', {
-        invoiceId: invoice.id,
-        error: insertError,
-      });
     });
+
+  if (insertError) {
+    logger.warn('Failed to log payment failure', {
+      invoiceId: invoice.id,
+      error: insertError,
+    });
+  }
 
   return {
     message: 'Échec de paiement enregistré',
