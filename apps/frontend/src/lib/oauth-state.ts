@@ -230,7 +230,8 @@ async function getOAuthStateFromRedis(state: string): Promise<OAuthState | null>
   } catch (error) {
     // Redis not available or error
     if (error instanceof Error && !error.message.includes('MODULE_NOT_FOUND')) {
-      logger.warn('Redis retrieval error', error instanceof Error ? error : new Error(String(error)), {
+      logger.warn('Redis retrieval error', {
+        error: error.message,
         state,
       });
     }
