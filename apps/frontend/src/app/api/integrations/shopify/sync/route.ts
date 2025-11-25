@@ -285,6 +285,7 @@ export async function GET(request: Request) {
     }
 
     // Récupérer les logs de sync
+    const validatedIntegrationId = idValidation.data.integration_id;
     const { data: logs, error: logsError, count } = await supabase
       .from('sync_logs')
       .select('*', { count: 'exact' })
