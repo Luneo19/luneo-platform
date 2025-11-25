@@ -305,10 +305,12 @@ async function handleOrderCreated(
       }
       orderResult = updated;
     } else {
-      orderPayload.created_at = new Date().toISOString();
       const { data: created, error: insertError } = await supabase
         .from('orders')
-        .insert(orderPayload)
+        .insert({
+          ...orderPayload,
+          created_at: new Date().toISOString(),
+        })
         .select()
         .single();
 
