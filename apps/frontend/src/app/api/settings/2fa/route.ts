@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { ApiResponseBuilder } from '@/lib/api-response';
+import { ApiResponseBuilder, ApiResponse } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { manage2FASchema } from '@/lib/validation/zod-schemas';
 import * as speakeasy from 'speakeasy';
