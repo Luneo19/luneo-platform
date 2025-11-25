@@ -28,8 +28,8 @@ export async function GET(_request: NextRequest) {
           {
             id: session.access_token?.substring(0, 20) || 'current',
             user_id: user.id,
-            created_at: session.created_at || new Date().toISOString(),
-            expires_at: session.expires_at || new Date(Date.now() + 3600 * 1000).toISOString(),
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
             ip_address: null, // À récupérer depuis les headers si disponible
             user_agent: null, // À récupérer depuis les headers si disponible
             is_current: true,
