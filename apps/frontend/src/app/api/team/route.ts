@@ -119,8 +119,14 @@ export async function POST(request: Request) {
     };
     const { email, role = 'member', permissions = [] } = validatedData;
 
-    // Vérifier si l'utilisateur existe déjà
-    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email).catch(() => ({ data: null }));
+    // Vérifier si l'utilisateur existe déjà (via profiles table)
+    const { data: existingUserProfile } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .eq('email', email)
+      .single();
+    
+    const existingUser = existingUserProfile ? { id: existingUserProfile.id, email: existingUserProfile.email } : null;
 
     // Vérifier si l'invitation existe déjà
     const { data: existingInvitation } = await supabase
