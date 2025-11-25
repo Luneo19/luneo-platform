@@ -234,31 +234,6 @@ export default function SelectionTool({
     });
   }, [maskCanvas, textureWidth, textureHeight]);
 
-  const handlePointerDown = useCallback((event: React.PointerEvent) => {
-    if (!groupRef.current) return;
-    
-    isDraggingRef.current = true;
-    const rect = (event.target as HTMLElement).getBoundingClientRect();
-    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    
-    performSelection();
-  }, [performSelection]);
-
-  const handlePointerMove = useCallback((event: React.PointerEvent) => {
-    if (!isDraggingRef.current || !groupRef.current) return;
-    
-    const rect = (event.target as HTMLElement).getBoundingClientRect();
-    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    
-    performSelection();
-  }, [performSelection]);
-
-  const handlePointerUp = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
-
   const performSelection = useCallback(() => {
     if (!raycasterRef.current || !camera || !groupRef.current) return;
 
@@ -315,6 +290,31 @@ export default function SelectionTool({
     // Update mask canvas
     updateMaskCanvas(meshState);
   }, [selectedMeshes, brushSize, isErasing, camera, findNearbyFaces, updateMeshVisualization, updateMaskCanvas]);
+
+  const handlePointerDown = useCallback((event: React.PointerEvent) => {
+    if (!groupRef.current) return;
+    
+    isDraggingRef.current = true;
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    performSelection();
+  }, [performSelection]);
+
+  const handlePointerMove = useCallback((event: React.PointerEvent) => {
+    if (!isDraggingRef.current || !groupRef.current) return;
+    
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    performSelection();
+  }, [performSelection]);
+
+  const handlePointerUp = useCallback(() => {
+    isDraggingRef.current = false;
+  }, []);
 
   const exportMask = useCallback(() => {
     if (!maskCanvas) return;
