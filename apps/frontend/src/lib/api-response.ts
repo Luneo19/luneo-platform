@@ -274,7 +274,11 @@ export function validateWithZodSchema<T>(
   data: unknown
 ): { valid: true; data: T } | { valid: false; errors: string[] } {
   const result = validateWithZod(schema, data);
-  return result as { valid: true; data: T } | { valid: false; errors: string[] };
+  if (result.success) {
+    return { valid: true, data: result.data };
+  } else {
+    return { valid: false, errors: result.errors };
+  }
 }
 
 /**
