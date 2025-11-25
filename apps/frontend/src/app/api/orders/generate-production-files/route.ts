@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderId, designId, format = 'pdf', quality = 'high' } = validation.data;
-    const { includeFormats = [format] } = body as ProductionFilesRequest;
+    const includeFormats: ('pdf' | 'dxf' | 'png' | 'svg')[] = (body as ProductionFilesRequest).includeFormats || [format as 'pdf' | 'dxf' | 'png' | 'svg'];
 
     // Fetch order details
     const { data: order, error: orderError } = await supabase
