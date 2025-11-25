@@ -331,9 +331,9 @@ async function handleOrderCreated(
     });
 
     return { 
-      orderId: orderData.id.toString(), 
-      luneoOrderId: orderResult.id,
-      action: existingOrder ? 'updated' : 'created' 
+      success: true,
+      orderId: orderData.id.toString(),
+      message: existingOrder ? 'Order updated successfully' : 'Order created successfully',
     };
   } catch (error: unknown) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
