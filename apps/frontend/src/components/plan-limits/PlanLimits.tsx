@@ -64,7 +64,6 @@ export function PlanLimits() {
     } catch (error) {
       logger.error('Erreur lors de la récupération des données du plan', {
         error,
-        planId,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
