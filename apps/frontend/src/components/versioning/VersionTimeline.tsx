@@ -164,10 +164,7 @@ export function VersionTimeline({
                       </div>
                       <p className="text-sm text-gray-400 flex items-center gap-2">
                         <Clock className="w-3 h-3" />
-                        {formatDistanceToNow(new Date(version.created_at), {
-                          addSuffix: true,
-                          locale: fr,
-                        })}
+                        {formatDistanceToNow(new Date(version.created_at))}
                       </p>
                       {version.metadata?.notes && (
                         <p className="text-sm text-gray-500 mt-2 italic">
