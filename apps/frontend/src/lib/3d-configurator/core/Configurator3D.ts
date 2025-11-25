@@ -181,13 +181,13 @@ export class Configurator3D {
             progress: progressPercent.toFixed(1) + '%',
             loaded: progress.loaded,
             total: progress.total,
-            modelUrl,
+            modelUrl: url,
           });
         },
         (error) => {
           logger.error('Error loading model', {
             error,
-            modelUrl,
+            modelUrl: url,
             message: error instanceof Error ? error.message : 'Unknown error',
           });
           reject(error);
