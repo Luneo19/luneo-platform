@@ -145,6 +145,9 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    // Extract print specs from body
+    const { printSpecs } = body;
+    
     // Default print specs if not provided
     const defaultPrintSpecs: PrintSpecs = printSpecs || pdfExporter.getStandardPrintSpecs('flyer');
 
