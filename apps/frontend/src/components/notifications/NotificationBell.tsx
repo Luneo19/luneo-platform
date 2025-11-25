@@ -294,7 +294,7 @@ export function NotificationBell({ className, variant = 'ghost', size = 'md' }: 
     <div className={cn('relative', className)}>
       <Button
         variant={variant}
-        size={size}
+        size={size === 'md' ? 'sm' : size}
         onClick={() => setIsOpen(!isOpen)}
         className={cn('relative', sizeClasses[size])}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} non lues)` : ''}`}
