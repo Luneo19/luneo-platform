@@ -107,11 +107,7 @@ export async function POST(request: NextRequest) {
       .digest('base64');
 
     if (hash !== signature) {
-      logger.webhookError('woocommerce', topic || 'unknown', new Error('Invalid signature'), {
-        integrationId: integration.id,
-        storeUrl,
-        topic,
-      });
+      logger.webhookError('woocommerce', topic || 'unknown', new Error(`Invalid signature - integrationId: ${integration.id}, storeUrl: ${storeUrl}`));
       throw {
         status: 401,
         message: 'Signature invalide',
