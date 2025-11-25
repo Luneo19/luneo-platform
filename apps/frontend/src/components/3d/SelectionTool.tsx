@@ -251,7 +251,7 @@ export default function SelectionTool({
 
     const { geometry, uvAttribute } = meshState;
     const faceIndex = intersection.faceIndex;
-    if (faceIndex === undefined) return;
+    if (faceIndex === undefined || faceIndex === null) return;
 
     // Get face vertices
     const positionAttribute = geometry.getAttribute('position') as THREE.BufferAttribute;
