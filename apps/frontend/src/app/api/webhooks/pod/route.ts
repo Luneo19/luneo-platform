@@ -124,20 +124,21 @@ export async function POST(request: NextRequest) {
 
     // Mettre à jour le log du webhook
     if (webhookRecord) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('webhook_logs')
         .update({
           processed: processed,
           processed_at: processed ? new Date().toISOString() : null,
           result: result || null,
         })
-        .eq('id', webhookRecord.id)
-        .catch((updateError) => {
-          logger.warn('Failed to update POD webhook log', {
-            webhookId: webhookRecord.id,
-            error: updateError,
-          });
+        .eq('id', webhookRecord.id);
+
+      if (updateError) {
+        logger.warn('Failed to update POD webhook log', {
+          webhookId: webhookRecord.id,
+          error: updateError,
         });
+      }
     }
 
     logger.info('POD webhook processed', {
@@ -167,7 +168,7 @@ async function processPrintfulWebhook(payload: any, eventType: string): Promise<
   // Mettre à jour le statut de la commande si nécessaire
   if (payload.order?.id) {
     const supabase = await createClient();
-    await supabase
+    const { error: updateError } = await supabase
       .from('orders')
       .update({
         status: mapPrintfulStatus(payload.order.status),
@@ -178,13 +179,14 @@ async function processPrintfulWebhook(payload: any, eventType: string): Promise<
           pod_event: eventType,
         },
       })
-      .eq('external_id', payload.order.id.toString())
-      .catch((updateError) => {
-        logger.warn('Failed to update order from Printful webhook', {
-          orderId: payload.order.id,
-          error: updateError,
-        });
+      .eq('external_id', payload.order.id.toString());
+
+    if (updateError) {
+      logger.warn('Failed to update order from Printful webhook', {
+        orderId: payload.order.id,
+        error: updateError,
       });
+    }
   }
 
   return {
@@ -206,7 +208,7 @@ async function processPrintifyWebhook(payload: any, eventType: string): Promise<
   // Mettre à jour le statut de la commande si nécessaire
   if (payload.order?.id) {
     const supabase = await createClient();
-    await supabase
+    const { error: updateError } = await supabase
       .from('orders')
       .update({
         status: mapPrintifyStatus(payload.order.status),
@@ -217,13 +219,14 @@ async function processPrintifyWebhook(payload: any, eventType: string): Promise<
           pod_event: eventType,
         },
       })
-      .eq('external_id', payload.order.id.toString())
-      .catch((updateError) => {
-        logger.warn('Failed to update order from Printify webhook', {
-          orderId: payload.order.id,
-          error: updateError,
-        });
+      .eq('external_id', payload.order.id.toString());
+
+    if (updateError) {
+      logger.warn('Failed to update order from Printify webhook', {
+        orderId: payload.order.id,
+        error: updateError,
       });
+    }
   }
 
   return {
@@ -246,7 +249,7 @@ async function processGelatoWebhook(payload: any, eventType: string): Promise<an
   const orderId = payload.orderId || payload.order?.id;
   if (orderId) {
     const supabase = await createClient();
-    await supabase
+    const { error: updateError } = await supabase
       .from('orders')
       .update({
         status: mapGelatoStatus(payload.status || payload.order?.status),
@@ -257,13 +260,14 @@ async function processGelatoWebhook(payload: any, eventType: string): Promise<an
           pod_event: eventType,
         },
       })
-      .eq('external_id', orderId.toString())
-      .catch((updateError) => {
-        logger.warn('Failed to update order from Gelato webhook', {
-          orderId,
-          error: updateError,
-        });
+      .eq('external_id', orderId.toString());
+
+    if (updateError) {
+      logger.warn('Failed to update order from Gelato webhook', {
+        orderId,
+        error: updateError,
       });
+    }
   }
 
   return {

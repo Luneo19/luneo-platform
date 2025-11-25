@@ -98,19 +98,20 @@ export async function POST(request: NextRequest) {
     const syncData = await syncResponse.json();
 
     // Mettre à jour la date de dernière synchronisation
-    await supabase
+    const { error: updateError } = await supabase
       .from('integrations')
       .update({
         last_sync: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', integration.id)
-      .catch((updateError) => {
-        logger.warn('Failed to update integration last_sync', {
-          integrationId: integration.id,
-          error: updateError,
-        });
+      .eq('id', integration.id);
+
+    if (updateError) {
+      logger.warn('Failed to update integration last_sync', {
+        integrationId: integration.id,
+        error: updateError,
       });
+    }
 
     logger.info('WooCommerce sync completed', {
       userId: user.id,

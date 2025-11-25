@@ -32,16 +32,17 @@ export async function GET(request: NextRequest, { params }: TemplateRouteContext
     }
 
     // Incrémenter usage_count (non bloquant)
-    await supabase
+    const { error: updateError } = await supabase
       .from('templates')
       .update({ usage_count: (template.usage_count || 0) + 1 })
-      .eq('id', id)
-      .catch((updateError) => {
-        logger.warn('Failed to increment template usage count', {
-          templateId: id,
-          error: updateError,
-        });
+      .eq('id', id);
+
+    if (updateError) {
+      logger.warn('Failed to increment template usage count', {
+        templateId: id,
+        error: updateError,
       });
+    }
 
     logger.info('Template accessed', {
       templateId: id,

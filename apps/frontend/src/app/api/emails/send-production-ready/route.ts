@@ -97,20 +97,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Mettre à jour le statut de la commande
-    await supabase
+    const { error: updateError } = await supabase
       .from('orders')
       .update({
         status: 'production_ready',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', orderId)
-      .catch((updateError) => {
-        logger.warn('Failed to update order status to production_ready', {
-          orderId,
-          userId: user.id,
-          error: updateError,
-        });
+      .eq('id', orderId);
+
+    if (updateError) {
+      logger.warn('Failed to update order status to production_ready', {
+        orderId,
+        userId: user.id,
+        error: updateError,
       });
+    }
 
     logger.info('Production ready email sent', {
       userId: user.id,

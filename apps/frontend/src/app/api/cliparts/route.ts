@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         category: category || null,
         image_url: image_url,
-        svg_data: svg_data || null,
+        svg_data: null,
         tags: Array.isArray(tags) ? tags : [],
         is_premium: is_premium || false,
         is_published: false, // Par défaut, non publié
