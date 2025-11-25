@@ -104,7 +104,8 @@ async function storeOAuthState(state: string, oauthState: OAuthState): Promise<v
   } catch (error) {
     // Redis not available or error, will use memory store
     if (error instanceof Error && !error.message.includes('MODULE_NOT_FOUND')) {
-      logger.warn('Redis storage error', error, {
+      logger.warn('Redis storage error', {
+        error: error.message,
         state,
       });
     }
