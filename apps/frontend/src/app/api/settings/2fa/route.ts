@@ -10,7 +10,7 @@ import * as speakeasy from 'speakeasy';
  * Active ou désactive la 2FA pour l'utilisateur
  */
 export async function POST(request: NextRequest) {
-  return ApiResponseBuilder.validateWithZod(manage2FASchema, request, async (validatedData) => {
+  return ApiResponseBuilder.validateWithZod(manage2FASchema, request, async (validatedData): Promise<NextResponse<ApiResponse<any>>> => {
     const supabase = await createClient();
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
