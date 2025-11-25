@@ -53,7 +53,9 @@ export async function convertGLBToUSDZ(
     try {
       return await convertWithInternalService(glbUrl, options);
     } catch (internalError) {
-      logger.warn('Internal USDZ conversion failed, trying CloudConvert', internalError);
+      logger.warn('Internal USDZ conversion failed, trying CloudConvert', {
+        error: internalError instanceof Error ? internalError.message : String(internalError),
+      });
       // Fallback sur CloudConvert si service interne échoue
       if (process.env.CLOUDCONVERT_API_KEY) {
         return await convertWithCloudConvert(glbUrl, options);
