@@ -579,10 +579,12 @@ async function handleProductUpdated(
         .update(productPayload)
         .eq('id', existingProduct.id);
     } else {
-      productPayload.created_at = new Date().toISOString();
       await supabase
         .from('products')
-        .insert(productPayload);
+        .insert({
+          ...productPayload,
+          created_at: new Date().toISOString(),
+        });
     }
     
     return {
