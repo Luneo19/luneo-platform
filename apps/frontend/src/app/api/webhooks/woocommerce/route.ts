@@ -270,7 +270,7 @@ async function handleOrderCreated(
       platform: 'woocommerce',
       integration_id: integration.id,
       status: luneoStatus,
-      customer_email: orderData.billing?.email || orderData.customer_email,
+      customer_email: orderData.billing?.email || '',
       customer_name: `${orderData.billing?.first_name || ''} ${orderData.billing?.last_name || ''}`.trim(),
       total_amount: parseFloat(orderData.total || '0'),
       currency: orderData.currency || 'EUR',
