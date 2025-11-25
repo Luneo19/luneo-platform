@@ -237,7 +237,7 @@ export default function SelectionTool({
   const performSelection = useCallback(() => {
     if (!raycasterRef.current || !camera || !groupRef.current) return;
 
-    raycasterRef.current.setFromCamera(mouseRef.current, camera as THREE.Camera);
+    raycasterRef.current.setFromCamera(mouseRef.current, camera as unknown as THREE.Camera);
     const intersects = raycasterRef.current.intersectObjects(groupRef.current.children, true);
 
     if (intersects.length === 0) return;
