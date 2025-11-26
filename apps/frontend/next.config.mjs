@@ -12,11 +12,14 @@ const nextConfig = {
   distDir: '.next',
   // Note: i18n configuration is not supported in App Router
   // Use middleware-based internationalization instead
+  
+  // Moved from experimental (deprecated location)
+  serverExternalPackages: ['@aws-sdk/client-s3', 'cloudinary'],
+  
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
-    serverComponentsExternalPackages: ['@aws-sdk/client-s3'],
   },
   images: {
     remotePatterns: [

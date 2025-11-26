@@ -3,7 +3,7 @@ import React from 'react';
 
 // Lazy load heavy components for better performance
 
-// Customizer components
+// Customizer components (export nommé)
 export const ProductCustomizer = dynamic(
   () => import('@/components/Customizer/ProductCustomizer').then(mod => ({ default: mod.ProductCustomizer })),
   {
@@ -12,7 +12,7 @@ export const ProductCustomizer = dynamic(
   }
 );
 
-// 3D Configurator components
+// 3D Configurator components (export par défaut)
 export const ProductConfigurator3D = dynamic(
   () => import('@/components/3d-configurator/ProductConfigurator3D'),
   {
@@ -21,9 +21,9 @@ export const ProductConfigurator3D = dynamic(
   }
 );
 
-// Virtual Try-On components
+// Virtual Try-On components (exports par défaut)
 export const EyewearTryOn = dynamic(
-  () => import('@/components/virtual-tryon/EyewearTryOn').then((mod) => ({ default: mod.EyewearTryOn })),
+  () => import('@/components/virtual-tryon/EyewearTryOn'),
   {
     loading: () => React.createElement('div', {}, "Loading Try-On..."),
     ssr: false,
@@ -31,7 +31,7 @@ export const EyewearTryOn = dynamic(
 );
 
 export const WatchTryOn = dynamic(
-  () => import('@/components/virtual-tryon/WatchTryOn').then((mod) => ({ default: mod.WatchTryOn })),
+  () => import('@/components/virtual-tryon/WatchTryOn'),
   {
     loading: () => React.createElement('div', {}, "Loading Try-On..."),
     ssr: false,
@@ -39,14 +39,14 @@ export const WatchTryOn = dynamic(
 );
 
 export const JewelryTryOn = dynamic(
-  () => import('@/components/virtual-tryon/JewelryTryOn').then((mod) => ({ default: mod.JewelryTryOn })),
+  () => import('@/components/virtual-tryon/JewelryTryOn'),
   {
     loading: () => React.createElement('div', {}, "Loading Try-On..."),
     ssr: false,
   }
 );
 
-// Template & Clipart browsers
+// Template & Clipart browsers (exports nommés)
 export const TemplateGallery = dynamic(
   () => import('@/components/TemplateGallery').then((mod) => ({ default: mod.TemplateGallery })),
   {
@@ -63,7 +63,7 @@ export const ClipartBrowser = dynamic(
   }
 );
 
-// AR components
+// AR components (exports nommés)
 export const ViewInAR = dynamic(
   () => import('@/components/ar/ViewInAR').then((mod) => ({ default: mod.ViewInAR })),
   {
@@ -79,4 +79,3 @@ export const ARScreenshot = dynamic(
     ssr: false,
   }
 );
-
