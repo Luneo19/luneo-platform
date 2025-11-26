@@ -43,20 +43,24 @@ export async function POST(request: NextRequest) {
     });
 
     // Configuration des Price IDs depuis les variables d'environnement
-    // Ces IDs sont créés via le script setup-stripe-products.ts
-    const planPrices: Record<string, { monthly: string | null; yearly: string | null }> = {
+    // Prix mensuels: utilisent des Price IDs (price_xxx)
+    // Prix annuels: utilisent des lookup keys (xxx-annual)
+    const planPrices: Record<string, { monthly: string | null; yearly: string | null; yearlyIsLookupKey?: boolean }> = {
       starter: { monthly: null, yearly: null }, // Plan gratuit, pas de paiement
       professional: {
-        monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || null,
-        yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY || null,
+        monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || 'price_1RvB1uKG9MM6fdSnrGm2qIo',
+        yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY || 'professional-annual',
+        yearlyIsLookupKey: !process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY,
       },
       business: {
-        monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || null,
-        yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY || null,
+        monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || 'price_1SH7SxKG9MM6fdSetmxFnVl',
+        yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY || 'business-annual',
+        yearlyIsLookupKey: !process.env.STRIPE_PRICE_BUSINESS_YEARLY,
       },
       enterprise: {
-        monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || null,
-        yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || null,
+        monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || 'price_1SH7TMKG9MM6fdSx4pebEXZ',
+        yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || 'enterprise-annual',
+        yearlyIsLookupKey: !process.env.STRIPE_PRICE_ENTERPRISE_YEARLY,
       },
     };
 
@@ -71,6 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     const priceId = billing === 'yearly' ? priceConfig.yearly : priceConfig.monthly;
+    const useLookupKey = billing === 'yearly' && priceConfig.yearlyIsLookupKey;
 
     // Si priceId est null pour starter, c'est normal
     if (planId === 'starter' && !priceId) {
@@ -111,14 +116,20 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
-      payment_method_types: ['card'],
-      line_items: [
-        {
+    // Configuration des line_items selon que c'est un Price ID ou un lookup key
+    const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = useLookupKey
+      ? {
+          price: priceId, // Stripe résoudra le lookup key automatiquement
+          quantity: 1,
+        }
+      : {
           price: priceId,
           quantity: 1,
-        },
-      ],
+        };
+
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+      payment_method_types: ['card'],
+      line_items: [lineItem],
       mode: 'subscription',
       ...(email && { customer_email: email }),
       success_url: `${baseUrl}/dashboard/billing?session_id={CHECKOUT_SESSION_ID}`,
