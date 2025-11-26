@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "installCommand": "echo 'Installation handled by build script'",
   "buildCommand": "bash ./vercel-build.sh",
   "outputDirectory": ".next",
   "headers": [
