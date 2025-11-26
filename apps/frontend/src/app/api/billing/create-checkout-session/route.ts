@@ -46,19 +46,19 @@ export async function POST(request: NextRequest) {
     const planPrices: Record<string, { monthly: string | null; yearly: string | null; yearlyIsLookupKey?: boolean }> = {
       starter: { monthly: null, yearly: null }, // Plan gratuit, pas de paiement
       professional: {
-        monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || 'price_1RvB1uKG9MM6fdSnrGm2qIo',
-        yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY || 'professional-annual',
-        yearlyIsLookupKey: !process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY,
+        monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
+        yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY || 'price_1SLTrAKG9MsM6fdSSZ8Q4FcZ',
+        yearlyIsLookupKey: false,
       },
       business: {
-        monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || 'price_1SH7SxKG9MM6fdSetmxFnVl',
-        yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY || 'business-annual',
-        yearlyIsLookupKey: !process.env.STRIPE_PRICE_BUSINESS_YEARLY,
+        monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || 'price_1SH7SxKG9MsM6fdSetmxFnVl',
+        yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY || 'price_1SLTrAKG9MsM6fdSUnQO91lq',
+        yearlyIsLookupKey: false,
       },
       enterprise: {
-        monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || 'price_1SH7TMKG9MM6fdSx4pebEXZ',
-        yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || 'enterprise-annual',
-        yearlyIsLookupKey: !process.env.STRIPE_PRICE_ENTERPRISE_YEARLY,
+        monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
+        yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || 'price_1SLTrBKG9MsM6fdSCrWZoLQ0',
+        yearlyIsLookupKey: false,
       },
     };
 
