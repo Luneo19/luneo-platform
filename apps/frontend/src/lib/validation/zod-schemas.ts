@@ -260,7 +260,10 @@ export const connectIntegrationSchema = z.object({
   service: z.enum(['shopify', 'woocommerce', 'stripe', 'sendgrid', 'cloudinary'], {
     errorMap: () => ({ message: 'Service invalide. Services supportés: shopify, woocommerce, stripe, sendgrid, cloudinary' }),
   }),
-  credentials: z.record(z.string(), z.any()).min(1, 'Les credentials sont requis'),
+  credentials: z.record(z.string(), z.any()).refine(
+    (obj) => Object.keys(obj).length >= 1,
+    { message: 'Les credentials sont requis' }
+  ),
   config: z.record(z.any()).optional(),
 });
 
