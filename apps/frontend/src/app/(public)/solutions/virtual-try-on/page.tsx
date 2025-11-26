@@ -42,10 +42,12 @@ import {
   BarChart3,
   ShieldCheck,
   Server,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { logger } from '@/lib/logger';
+import { useSolutionData } from '@/lib/hooks/useSolutionData';
 
 // Types
 interface Product {
@@ -138,6 +140,9 @@ const faqItems = [
 ];
 
 export default function VirtualTryOnPage() {
+  // Récupérer les données dynamiques depuis l'API
+  const { data: solutionData, loading: solutionLoading } = useSolutionData('virtual-try-on');
+
   // Demo states
   const [cameraActive, setCameraActive] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
@@ -160,6 +165,35 @@ export default function VirtualTryOnPage() {
 
   // FAQ state
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  // Fusionner les témoignages dynamiques avec les statiques
+  const dynamicTestimonials = useMemo(() => {
+    if (solutionData?.testimonials?.length) {
+      return solutionData.testimonials.map((t) => ({
+        name: t.author,
+        role: t.role,
+        company: t.company,
+        avatar: '/images/testimonials/default.jpg',
+        content: t.quote,
+        rating: 5,
+        category: 'Général',
+        metric: t.result,
+      }));
+    }
+    return testimonials;
+  }, [solutionData]);
+
+  // Fusionner les stats dynamiques avec les statiques
+  const dynamicStats = useMemo(() => {
+    if (solutionData?.stats?.length) {
+      return solutionData.stats;
+    }
+    return [
+      { value: '+40%', label: 'Conversions' },
+      { value: '-60%', label: 'Retours' },
+      { value: '2M+', label: 'Essayages/mois' },
+    ];
+  }, [solutionData]);
 
   // Features data
   const features = useMemo(() => [
@@ -1256,7 +1290,7 @@ export default function VirtualTryOnPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
+            {dynamicTestimonials.map((testimonial, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}

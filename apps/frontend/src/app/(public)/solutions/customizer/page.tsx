@@ -73,9 +73,11 @@ import {
   Award,
   BadgeCheck,
   Headphones,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useSolutionData } from '@/lib/hooks/useSolutionData';
 
 // ============================================
 // TYPES
@@ -881,6 +883,37 @@ export default function CustomizerPage() {
   const [showFullDemo, setShowFullDemo] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
+  // Récupérer les données dynamiques depuis l'API
+  const { data: solutionData, loading: solutionLoading } = useSolutionData('customizer');
+
+  // Fusionner les témoignages dynamiques avec les statiques
+  const testimonials = useMemo(() => {
+    if (solutionData?.testimonials?.length) {
+      return solutionData.testimonials.map((t, i) => ({
+        quote: t.quote,
+        author: t.author,
+        role: t.role,
+        company: t.company,
+        avatar: t.avatar,
+        metric: t.result.split(' ')[0] || '+100%',
+        metricLabel: t.result.split(' ').slice(1).join(' ') || 'Amélioration',
+      }));
+    }
+    return TESTIMONIALS;
+  }, [solutionData]);
+
+  // Fusionner les stats dynamiques avec les statiques
+  const stats = useMemo(() => {
+    if (solutionData?.stats?.length) {
+      return solutionData.stats;
+    }
+    return [
+      { value: '+340%', label: 'Conversions' },
+      { value: '-45%', label: 'Retours' },
+      { value: '2.5x', label: 'Temps sur page' },
+    ];
+  }, [solutionData]);
+
   const toggleFAQ = useCallback((index: number) => {
     setOpenFaqIndex(prev => prev === index ? null : index);
   }, []);
@@ -1199,7 +1232,7 @@ export default function CustomizerPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((testimonial, i) => (
+            {testimonials.map((testimonial, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
