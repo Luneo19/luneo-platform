@@ -20,11 +20,12 @@ function getRedis(): RedisType | null {
   try {
     // Dynamic import to avoid build-time initialization
     const { Redis } = require('@upstash/redis');
-    redisInstance = new Redis({
+    const instance = new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL!.trim(),
       token: process.env.UPSTASH_REDIS_REST_TOKEN!.trim(),
     });
-    return redisInstance;
+    redisInstance = instance;
+    return instance;
   } catch (error) {
     logger.warn('Failed to initialize Redis', error);
     redisInstance = null;
