@@ -193,7 +193,7 @@ export function validateObject<T extends Record<string, any>>(
     for (const validator of validators) {
       const result = validator(value);
       if (!result.valid) {
-        errors.push(...result.errors.map((err) => ({
+        errors.push(...result.errors.map((err: ValidationError) => ({
           ...err,
           field: err.field === 'value' ? field : err.field,
         })));
@@ -324,7 +324,7 @@ export function validateSchema<T extends Record<string, any>>(
     if (rules.custom) {
       const customResult = rules.custom(value);
       if (!customResult.valid) {
-        errors.push(...customResult.errors.map((err) => ({
+        errors.push(...customResult.errors.map((err: ValidationError) => ({
           ...err,
           field: err.field === 'value' ? field : err.field,
         })));
