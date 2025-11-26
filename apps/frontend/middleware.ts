@@ -52,26 +52,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================
-  // 1. RATE LIMITING (si Upstash est configuré)
+  // 1. RATE LIMITING - Désactivé pour Edge compatibility
+  // TODO: Réactiver avec implémentation Edge-compatible
   // ============================================
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    try {
-      const { rateLimitMiddleware } = await import('./src/middleware-rate-limit');
-      const rateLimitResponse = await rateLimitMiddleware(request);
-      if (rateLimitResponse) {
-        if (requestedLocale && supportedLocaleSet.has(requestedLocale as (typeof SUPPORTED_LOCALES)[number])) {
-          rateLimitResponse.cookies.set(LOCALE_COOKIE, requestedLocale, {
-            path: '/',
-            maxAge: 60 * 60 * 24 * 365,
-            sameSite: 'lax',
-          });
-        }
-        return rateLimitResponse;
-      }
-    } catch (error) {
-      console.warn('⚠️ Rate limiting non disponible:', error);
-    }
-  }
 
   // ============================================
   // 2. AUTHENTICATION (Supabase)
