@@ -30,7 +30,6 @@ function getRedis(): RedisType | null {
 
   try {
     // Dynamic import to avoid build-time initialization
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Redis } = require('@upstash/redis');
     redisInstance = new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL!.trim(),
