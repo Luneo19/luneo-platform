@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
@@ -45,10 +45,12 @@ import {
   Gift,
   Dumbbell,
   CircleDot,
-  ExternalLink
+  ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useMarketingData, useMarketingStats } from '@/lib/hooks/useMarketingData';
 
 // Types
 interface FAQ {
@@ -172,6 +174,15 @@ export default function HomePage() {
   const [openFAQIndex, setOpenFAQIndex] = useState<number | null>(0);
   const [activeTab, setActiveTab] = useState<'monthly' | 'yearly'>('yearly');
 
+  // Récupérer les données marketing depuis l'API
+  const { 
+    testimonials: apiTestimonials, 
+    stats: apiStats, 
+    integrations: apiIntegrations,
+    industries: apiIndustries,
+    loading: marketingLoading 
+  } = useMarketingData();
+
   // Memoized data
   const gridItems = useMemo(() => Array.from({ length: 96 }, (_, i) => i), []);
   
@@ -186,60 +197,98 @@ export default function HomePage() {
     []
   );
 
+  // Fusionner les statistiques dynamiques avec les fallbacks
   const topStats = useMemo(
-    () => [
-      { value: '10,000+', label: 'Créateurs actifs', icon: <Users className="w-5 h-5" /> },
-      { value: '500M+', label: 'Designs générés', icon: <Sparkles className="w-5 h-5" /> },
-      { value: '3.2s', label: 'Temps moyen génération', icon: <Zap className="w-5 h-5" /> },
-      { value: '150+', label: 'Pays', icon: <Globe className="w-5 h-5" /> },
-    ],
-    []
+    () => {
+      if (apiStats.length > 0) {
+        return apiStats.map((stat, i) => ({
+          value: stat.value,
+          label: stat.description || stat.label,
+          icon: i === 0 ? <Users className="w-5 h-5" /> : 
+                i === 1 ? <Sparkles className="w-5 h-5" /> : 
+                i === 2 ? <Zap className="w-5 h-5" /> : 
+                <Globe className="w-5 h-5" />,
+        }));
+      }
+      return [
+        { value: '10,000+', label: 'Créateurs actifs', icon: <Users className="w-5 h-5" /> },
+        { value: '500M+', label: 'Designs générés', icon: <Sparkles className="w-5 h-5" /> },
+        { value: '3.2s', label: 'Temps moyen génération', icon: <Zap className="w-5 h-5" /> },
+        { value: '150+', label: 'Pays', icon: <Globe className="w-5 h-5" /> },
+      ];
+    },
+    [apiStats]
   );
 
+  // Fusionner les témoignages dynamiques avec les fallbacks
   const successStories: SuccessStory[] = useMemo(
-    () => [
-      {
-        metric: '+500%',
-        label: 'Croissance',
-        company: 'LA FABRIQUE À SACHETS',
-        quote: 'De 100 à 600 commandes/mois sans embaucher. Luneo a permis notre scale et automatisé notre production de designs print-ready.',
-        author: 'Marie Bertrand',
-        role: 'CEO & Fondatrice',
-        avatar: 'MB',
-        gradient: 'from-blue-500 to-cyan-500',
-      },
-      {
-        metric: '100%',
-        label: 'Sell-out',
-        company: 'DESIGN ITALIAN SHOES',
-        quote: 'La visualisation 3D premium a éliminé le besoin d\'échantillons physiques. 100% de sell-out sur notre dernière collection.',
-        author: 'Francesco Colombo',
-        role: 'Chief Operating Officer',
-        avatar: 'FC',
-        gradient: 'from-purple-500 to-pink-500',
-      },
-      {
-        metric: '-80%',
-        label: 'Temps production',
-        company: 'KAZE CLUB',
-        quote: 'Les fichiers print-ready automatiques ont été un game-changer. Plus de 80% de temps de workflow économisé.',
-        author: 'Christian Martinez',
-        role: 'Creative Director',
-        avatar: 'CM',
-        gradient: 'from-green-500 to-emerald-500',
-      },
-      {
-        metric: '+45%',
-        label: 'Conversions',
-        company: 'OPTIQUE PARIS',
-        quote: 'Le virtual try-on a transformé notre e-commerce. +45% de conversions et -60% de retours produits.',
-        author: 'Sophie Leclerc',
-        role: 'Directrice E-commerce',
-        avatar: 'SL',
-        gradient: 'from-orange-500 to-red-500',
-      },
-    ],
-    []
+    () => {
+      const gradients = [
+        'from-blue-500 to-cyan-500',
+        'from-purple-500 to-pink-500',
+        'from-green-500 to-emerald-500',
+        'from-orange-500 to-red-500',
+      ];
+
+      // Si des témoignages de l'API sont disponibles, les utiliser
+      if (apiTestimonials.length > 0) {
+        return apiTestimonials.map((t, i) => ({
+          metric: `${t.rating}★`,
+          label: 'Note client',
+          company: t.company,
+          quote: t.quote,
+          author: t.author,
+          role: t.company,
+          avatar: t.author.split(' ').map(n => n[0]).join(''),
+          gradient: gradients[i % gradients.length],
+        }));
+      }
+
+      // Fallback aux données statiques
+      return [
+        {
+          metric: '+500%',
+          label: 'Croissance',
+          company: 'LA FABRIQUE À SACHETS',
+          quote: 'De 100 à 600 commandes/mois sans embaucher. Luneo a permis notre scale et automatisé notre production de designs print-ready.',
+          author: 'Marie Bertrand',
+          role: 'CEO & Fondatrice',
+          avatar: 'MB',
+          gradient: 'from-blue-500 to-cyan-500',
+        },
+        {
+          metric: '100%',
+          label: 'Sell-out',
+          company: 'DESIGN ITALIAN SHOES',
+          quote: 'La visualisation 3D premium a éliminé le besoin d\'échantillons physiques. 100% de sell-out sur notre dernière collection.',
+          author: 'Francesco Colombo',
+          role: 'Chief Operating Officer',
+          avatar: 'FC',
+          gradient: 'from-purple-500 to-pink-500',
+        },
+        {
+          metric: '-80%',
+          label: 'Temps production',
+          company: 'KAZE CLUB',
+          quote: 'Les fichiers print-ready automatiques ont été un game-changer. Plus de 80% de temps de workflow économisé.',
+          author: 'Christian Martinez',
+          role: 'Creative Director',
+          avatar: 'CM',
+          gradient: 'from-green-500 to-emerald-500',
+        },
+        {
+          metric: '+45%',
+          label: 'Conversions',
+          company: 'OPTIQUE PARIS',
+          quote: 'Le virtual try-on a transformé notre e-commerce. +45% de conversions et -60% de retours produits.',
+          author: 'Sophie Leclerc',
+          role: 'Directrice E-commerce',
+          avatar: 'SL',
+          gradient: 'from-orange-500 to-red-500',
+        },
+      ];
+    },
+    [apiTestimonials]
   );
 
   const howItWorksSteps = useMemo(
@@ -314,32 +363,80 @@ export default function HomePage() {
     []
   );
 
+  // Fusionner les industries dynamiques avec les fallbacks
   const industries = useMemo(
-    () => [
-      { name: 'Impression', slug: 'printing', icon: <Package className="w-6 h-6" />, color: 'from-blue-500 to-blue-600' },
-      { name: 'Mode & Textile', slug: 'fashion', icon: <Shirt className="w-6 h-6" />, color: 'from-pink-500 to-pink-600' },
-      { name: 'Sport', slug: 'sports', icon: <Dumbbell className="w-6 h-6" />, color: 'from-green-500 to-green-600' },
-      { name: 'E-commerce', slug: 'ecommerce', icon: <ShoppingCart className="w-6 h-6" />, color: 'from-purple-500 to-purple-600' },
-      { name: 'Bijouterie', slug: 'jewellery', icon: <Gem className="w-6 h-6" />, color: 'from-yellow-500 to-yellow-600' },
-      { name: 'Mobilier', slug: 'furniture', icon: <Sofa className="w-6 h-6" />, color: 'from-orange-500 to-orange-600' },
-      { name: 'Food & Beverage', slug: 'food-beverage', icon: <UtensilsCrossed className="w-6 h-6" />, color: 'from-red-500 to-red-600' },
-      { name: 'Cadeaux', slug: 'gifting', icon: <Gift className="w-6 h-6" />, color: 'from-cyan-500 to-cyan-600' },
-    ],
-    []
+    () => {
+      const iconMap: Record<string, React.ReactNode> = {
+        'Package': <Package className="w-6 h-6" />,
+        'Shirt': <Shirt className="w-6 h-6" />,
+        'Dumbbell': <Dumbbell className="w-6 h-6" />,
+        'ShoppingCart': <ShoppingCart className="w-6 h-6" />,
+        'Gem': <Gem className="w-6 h-6" />,
+        'Sofa': <Sofa className="w-6 h-6" />,
+        'UtensilsCrossed': <UtensilsCrossed className="w-6 h-6" />,
+        'Gift': <Gift className="w-6 h-6" />,
+        'Car': <Box className="w-6 h-6" />,
+        'Laptop': <Box className="w-6 h-6" />,
+      };
+
+      const colorMap = [
+        'from-blue-500 to-blue-600',
+        'from-pink-500 to-pink-600',
+        'from-green-500 to-green-600',
+        'from-purple-500 to-purple-600',
+        'from-yellow-500 to-yellow-600',
+        'from-orange-500 to-orange-600',
+        'from-red-500 to-red-600',
+        'from-cyan-500 to-cyan-600',
+      ];
+
+      if (apiIndustries.length > 0) {
+        return apiIndustries.map((ind, i) => ({
+          name: ind.name,
+          slug: ind.link.replace('/industries/', ''),
+          icon: iconMap[ind.icon] || <Box className="w-6 h-6" />,
+          color: colorMap[i % colorMap.length],
+        }));
+      }
+
+      return [
+        { name: 'Impression', slug: 'printing', icon: <Package className="w-6 h-6" />, color: 'from-blue-500 to-blue-600' },
+        { name: 'Mode & Textile', slug: 'fashion', icon: <Shirt className="w-6 h-6" />, color: 'from-pink-500 to-pink-600' },
+        { name: 'Sport', slug: 'sports', icon: <Dumbbell className="w-6 h-6" />, color: 'from-green-500 to-green-600' },
+        { name: 'E-commerce', slug: 'ecommerce', icon: <ShoppingCart className="w-6 h-6" />, color: 'from-purple-500 to-purple-600' },
+        { name: 'Bijouterie', slug: 'jewellery', icon: <Gem className="w-6 h-6" />, color: 'from-yellow-500 to-yellow-600' },
+        { name: 'Mobilier', slug: 'furniture', icon: <Sofa className="w-6 h-6" />, color: 'from-orange-500 to-orange-600' },
+        { name: 'Food & Beverage', slug: 'food-beverage', icon: <UtensilsCrossed className="w-6 h-6" />, color: 'from-red-500 to-red-600' },
+        { name: 'Cadeaux', slug: 'gifting', icon: <Gift className="w-6 h-6" />, color: 'from-cyan-500 to-cyan-600' },
+      ];
+    },
+    [apiIndustries]
   );
 
+  // Fusionner les intégrations dynamiques avec les fallbacks
   const integrations: Integration[] = useMemo(
-    () => [
-      { name: 'Shopify', category: 'E-commerce', logo: '/logos/shopify.svg', description: 'Intégration native' },
-      { name: 'WooCommerce', category: 'E-commerce', logo: '/logos/woocommerce.svg', description: 'Plugin officiel' },
-      { name: 'Magento', category: 'E-commerce', logo: '/logos/magento.svg', description: 'Extension complète' },
-      { name: 'PrestaShop', category: 'E-commerce', logo: '/logos/prestashop.svg', description: 'Module certifié' },
-      { name: 'Printful', category: 'POD', logo: '/logos/printful.svg', description: 'Sync automatique' },
-      { name: 'Gelato', category: 'POD', logo: '/logos/gelato.svg', description: 'Production globale' },
-      { name: 'Stripe', category: 'Paiement', logo: '/logos/stripe.svg', description: 'Checkout intégré' },
-      { name: 'Zapier', category: 'Automation', logo: '/logos/zapier.svg', description: '1000+ apps' },
-    ],
-    []
+    () => {
+      if (apiIntegrations.length > 0) {
+        return apiIntegrations.map((int) => ({
+          name: int.name,
+          category: int.description,
+          logo: `/logos/${int.name.toLowerCase()}.svg`,
+          description: int.description,
+        }));
+      }
+
+      return [
+        { name: 'Shopify', category: 'E-commerce', logo: '/logos/shopify.svg', description: 'Intégration native' },
+        { name: 'WooCommerce', category: 'E-commerce', logo: '/logos/woocommerce.svg', description: 'Plugin officiel' },
+        { name: 'Magento', category: 'E-commerce', logo: '/logos/magento.svg', description: 'Extension complète' },
+        { name: 'PrestaShop', category: 'E-commerce', logo: '/logos/prestashop.svg', description: 'Module certifié' },
+        { name: 'Printful', category: 'POD', logo: '/logos/printful.svg', description: 'Sync automatique' },
+        { name: 'Gelato', category: 'POD', logo: '/logos/gelato.svg', description: 'Production globale' },
+        { name: 'Stripe', category: 'Paiement', logo: '/logos/stripe.svg', description: 'Checkout intégré' },
+        { name: 'Zapier', category: 'Automation', logo: '/logos/zapier.svg', description: '1000+ apps' },
+      ];
+    },
+    [apiIntegrations]
   );
 
   const faqs: FAQ[] = useMemo(
