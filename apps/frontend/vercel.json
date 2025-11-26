@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "installCommand": "echo 'Installation handled by build script'",
-  "buildCommand": "bash ./vercel-build.sh",
-  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install --legacy-peer-deps && mkdir -p node_modules/@luneo/billing-plans node_modules/@luneo/ai-safety node_modules/@luneo/types && cp -r src/lib/packages/billing-plans/* node_modules/@luneo/billing-plans/ && cp -r src/lib/packages/ai-safety/* node_modules/@luneo/ai-safety/ && cp -r src/lib/packages/types/* node_modules/@luneo/types/",
+  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/(.*)",
