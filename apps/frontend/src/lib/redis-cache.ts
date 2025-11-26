@@ -1,13 +1,37 @@
-import { Redis } from '@upstash/redis';
+import type { Redis as RedisType } from '@upstash/redis';
 import { logger } from '@/lib/logger';
 
-// Initialize Upstash Redis client
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  : null;
+// Lazy initialization to avoid build-time errors
+let redisInstance: RedisType | null | undefined = undefined;
+
+function getRedis(): RedisType | null {
+  if (redisInstance !== undefined) {
+    return redisInstance;
+  }
+
+  const hasRedisConfig =
+    Boolean(process.env.UPSTASH_REDIS_REST_URL) && Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
+
+  if (!hasRedisConfig) {
+    redisInstance = null;
+    return null;
+  }
+
+  try {
+    // Dynamic import to avoid build-time initialization
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Redis } = require('@upstash/redis');
+    redisInstance = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!.trim(),
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!.trim(),
+    });
+    return redisInstance;
+  } catch (error) {
+    logger.warn('Failed to initialize Redis', error);
+    redisInstance = null;
+    return null;
+  }
+}
 
 /**
  * Cache configuration for different data types
@@ -26,6 +50,7 @@ export const CACHE_TTL = {
  * Get cached data
  */
 export async function getCache<T>(key: string): Promise<T | null> {
+  const redis = getRedis();
   if (!redis) {
     logger.warn('Redis not configured, skipping cache get', { key });
     return null;
@@ -50,9 +75,10 @@ export async function getCache<T>(key: string): Promise<T | null> {
  */
 export async function setCache(
   key: string,
-  value: any,
+  value: unknown,
   ttl: number = CACHE_TTL.DASHBOARD_STATS
 ): Promise<boolean> {
+  const redis = getRedis();
   if (!redis) {
     logger.warn('Redis not configured, skipping cache set', { key, ttl });
     return false;
@@ -75,6 +101,7 @@ export async function setCache(
  * Delete cache key
  */
 export async function delCache(key: string): Promise<boolean> {
+  const redis = getRedis();
   if (!redis) {
     logger.warn('Redis not configured, skipping cache delete', { key });
     return false;
@@ -96,6 +123,7 @@ export async function delCache(key: string): Promise<boolean> {
  * Delete cache keys by pattern
  */
 export async function delCachePattern(pattern: string): Promise<boolean> {
+  const redis = getRedis();
   if (!redis) {
     logger.warn('Redis not configured, skipping cache delete pattern', { pattern });
     return false;
@@ -172,4 +200,3 @@ export async function invalidateUserCache(userId: string, resource?: string): Pr
   await delCachePattern(pattern);
   logger.info('Invalidated cache', { pattern, userId, resource });
 }
-

@@ -1,16 +1,38 @@
 import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import type { Redis as RedisType } from '@upstash/redis';
 import { logger } from './logger';
 
-const hasRedisConfig =
-  Boolean(process.env.UPSTASH_REDIS_REST_URL) && Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
+// Lazy initialization to avoid build-time errors
+let redisInstance: RedisType | null | undefined = undefined;
 
-const redis = hasRedisConfig
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  : null;
+function getRedis(): RedisType | null {
+  if (redisInstance !== undefined) {
+    return redisInstance;
+  }
+
+  const hasRedisConfig =
+    Boolean(process.env.UPSTASH_REDIS_REST_URL) && Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
+
+  if (!hasRedisConfig) {
+    redisInstance = null;
+    return null;
+  }
+
+  try {
+    // Dynamic import to avoid build-time initialization
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Redis } = require('@upstash/redis');
+    redisInstance = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!.trim(),
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!.trim(),
+    });
+    return redisInstance;
+  } catch (error) {
+    logger.warn('Failed to initialize Redis', error);
+    redisInstance = null;
+    return null;
+  }
+}
 
 type RateLimiterResult = Awaited<ReturnType<Ratelimit['limit']>>;
 export type RateLimiter = Pick<Ratelimit, 'limit'>;
@@ -29,11 +51,18 @@ const createNoopLimiter = (): RateLimiter => ({
   },
 });
 
+// Lazy-created limiters
+let apiRateLimitInstance: RateLimiter | null = null;
+let authRateLimitInstance: RateLimiter | null = null;
+let aiGenerateRateLimitInstance: RateLimiter | null = null;
+let stripeWebhookRateLimitInstance: RateLimiter | null = null;
+
 const createSlidingWindowLimiter = (
   points: number,
   window: SlidingWindowInterval,
   prefix: string
 ): RateLimiter => {
+  const redis = getRedis();
   if (!redis) {
     if (process.env.NODE_ENV !== 'production') {
       logger.warn('Upstash Redis non configuré - rate limiting désactivé', {
@@ -53,15 +82,40 @@ const createSlidingWindowLimiter = (
   });
 };
 
-// Rate limiters pour différentes routes
-export const apiRateLimit = createSlidingWindowLimiter(100, '1 m', 'ratelimit:api'); // 100 requêtes / minute
-export const authRateLimit = createSlidingWindowLimiter(5, '15 m', 'ratelimit:auth'); // 5 tentatives / 15 min
-export const aiGenerateRateLimit = createSlidingWindowLimiter(10, '1 h', 'ratelimit:ai'); // 10 générations / heure
-export const stripeWebhookRateLimit = createSlidingWindowLimiter(
-  1000,
-  '1 m',
-  'ratelimit:stripe'
-); // 1000 webhooks / minute
+// Getter functions for lazy initialization
+export const getApiRateLimit = (): RateLimiter => {
+  if (!apiRateLimitInstance) {
+    apiRateLimitInstance = createSlidingWindowLimiter(100, '1 m', 'ratelimit:api');
+  }
+  return apiRateLimitInstance;
+};
+
+export const getAuthRateLimit = (): RateLimiter => {
+  if (!authRateLimitInstance) {
+    authRateLimitInstance = createSlidingWindowLimiter(5, '15 m', 'ratelimit:auth');
+  }
+  return authRateLimitInstance;
+};
+
+export const getAiGenerateRateLimit = (): RateLimiter => {
+  if (!aiGenerateRateLimitInstance) {
+    aiGenerateRateLimitInstance = createSlidingWindowLimiter(10, '1 h', 'ratelimit:ai');
+  }
+  return aiGenerateRateLimitInstance;
+};
+
+export const getStripeWebhookRateLimit = (): RateLimiter => {
+  if (!stripeWebhookRateLimitInstance) {
+    stripeWebhookRateLimitInstance = createSlidingWindowLimiter(1000, '1 m', 'ratelimit:stripe');
+  }
+  return stripeWebhookRateLimitInstance;
+};
+
+// Legacy exports for backwards compatibility (use getters when possible)
+export const apiRateLimit = { limit: async (identifier: string) => getApiRateLimit().limit(identifier) };
+export const authRateLimit = { limit: async (identifier: string) => getAuthRateLimit().limit(identifier) };
+export const aiGenerateRateLimit = { limit: async (identifier: string) => getAiGenerateRateLimit().limit(identifier) };
+export const stripeWebhookRateLimit = { limit: async (identifier: string) => getStripeWebhookRateLimit().limit(identifier) };
 
 /**
  * Fonction helper pour vérifier le rate limit
@@ -71,7 +125,7 @@ export const stripeWebhookRateLimit = createSlidingWindowLimiter(
  */
 export async function checkRateLimit(
   identifier: string,
-  limiter: RateLimiter = apiRateLimit
+  limiter: RateLimiter = getApiRateLimit()
 ) {
   const { success, limit, remaining, reset } = await limiter.limit(identifier);
 
@@ -103,4 +157,3 @@ export function getClientIdentifier(request: Request, userId?: string): string {
   
   return 'ip:unknown';
 }
-

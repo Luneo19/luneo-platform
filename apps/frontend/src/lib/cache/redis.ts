@@ -9,18 +9,40 @@
  * - Métriques de cache hit/miss
  */
 
-import { Redis } from '@upstash/redis';
+import type { Redis as RedisType } from '@upstash/redis';
 import { logger } from '@/lib/logger';
 
-const hasRedisConfig =
-  Boolean(process.env.UPSTASH_REDIS_REST_URL) && Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
+// Lazy initialization to avoid build-time errors
+let redisInstance: RedisType | null | undefined = undefined;
 
-const redis = hasRedisConfig
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  : null;
+function getRedis(): RedisType | null {
+  if (redisInstance !== undefined) {
+    return redisInstance;
+  }
+
+  const hasRedisConfig =
+    Boolean(process.env.UPSTASH_REDIS_REST_URL) && Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
+
+  if (!hasRedisConfig) {
+    redisInstance = null;
+    return null;
+  }
+
+  try {
+    // Dynamic import to avoid build-time initialization
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Redis } = require('@upstash/redis');
+    redisInstance = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!.trim(),
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!.trim(),
+    });
+    return redisInstance;
+  } catch (error) {
+    logger.warn('Failed to initialize Redis', error);
+    redisInstance = null;
+    return null;
+  }
+}
 
 interface CacheOptions {
   ttl?: number; // Time to live en secondes
@@ -47,6 +69,7 @@ class CacheService {
    * Get value from cache
    */
   async get<T>(key: string): Promise<T | null> {
+    const redis = getRedis();
     if (!redis) {
       this.metrics.misses++;
       return null;
@@ -75,20 +98,15 @@ class CacheService {
    * Set value in cache
    */
   async set<T>(key: string, value: T, options: CacheOptions = {}): Promise<boolean> {
+    const redis = getRedis();
     if (!redis) {
       return false;
     }
 
     try {
-      const { ttl = 3600, compress = false } = options;
+      const { ttl = 3600 } = options;
       
-      let valueToStore: T | string = value;
-      
-      // Compression pour grandes valeurs (optionnel)
-      if (compress && typeof value === 'string' && value.length > 1000) {
-        // En production, utiliser compression réelle (gzip)
-        valueToStore = value; // Placeholder
-      }
+      const valueToStore: T | string = value;
 
       if (ttl > 0) {
         await redis.setex(key, ttl, valueToStore);
@@ -109,6 +127,7 @@ class CacheService {
    * Delete value from cache
    */
   async delete(key: string): Promise<boolean> {
+    const redis = getRedis();
     if (!redis) {
       return false;
     }
@@ -128,6 +147,7 @@ class CacheService {
    * Delete multiple keys
    */
   async deleteMany(keys: string[]): Promise<number> {
+    const redis = getRedis();
     if (!redis || keys.length === 0) {
       return 0;
     }
@@ -147,6 +167,7 @@ class CacheService {
    * Invalidate by pattern (utilise SCAN pour grandes listes)
    */
   async invalidatePattern(pattern: string): Promise<number> {
+    const redis = getRedis();
     if (!redis) {
       return 0;
     }
@@ -185,7 +206,7 @@ class CacheService {
    * Check if Redis is configured
    */
   isConfigured(): boolean {
-    return hasRedisConfig;
+    return getRedis() !== null;
   }
 }
 
@@ -233,4 +254,3 @@ export const cacheTTL = {
   templates: 3600, // 1 heure
   products: 600, // 10 minutes
 };
-
