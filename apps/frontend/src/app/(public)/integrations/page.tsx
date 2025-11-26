@@ -25,9 +25,15 @@ import {
   ExternalLink,
   Users,
   TrendingUp,
+  Loader2,
+  ShoppingCart,
+  Printer,
+  GitBranch,
+  Store,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useAllIntegrations } from '@/lib/hooks/useIntegrationData';
 
 // Integration type definition
 interface Integration {
@@ -177,15 +183,72 @@ export default function IntegrationsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Récupérer les données dynamiques depuis l'API
+  const { integrations: apiIntegrations, loading: integrationsLoading } = useAllIntegrations();
+
+  // Emoji mapping pour les intégrations
+  const emojiMap: Record<string, string> = useMemo(() => ({
+    'shopify': '🛍️',
+    'woocommerce': '🔌',
+    'printful': '🖨️',
+    'stripe': '💳',
+    'zapier': '⚡',
+    'make': '🔗',
+    'magento': '🏪',
+    'prestashop': '🛒',
+  }), []);
+
+  // Category mapping
+  const categoryMap: Record<string, 'ecommerce' | 'payment' | 'pod' | 'automation' | 'api'> = useMemo(() => ({
+    'E-commerce': 'ecommerce',
+    'Paiement': 'payment',
+    'Print-on-Demand': 'pod',
+    'Automation': 'automation',
+  }), []);
+
+  // Gradient mapping
+  const gradientMap: Record<string, string> = useMemo(() => ({
+    'shopify': 'from-green-500 to-emerald-600',
+    'woocommerce': 'from-purple-500 to-violet-600',
+    'printful': 'from-blue-500 to-cyan-600',
+    'stripe': 'from-indigo-500 to-blue-600',
+    'zapier': 'from-orange-500 to-amber-600',
+    'make': 'from-violet-500 to-purple-600',
+    'magento': 'from-orange-500 to-red-600',
+    'prestashop': 'from-pink-500 to-rose-600',
+  }), []);
+
+  // Fusionner les données dynamiques avec les statiques
+  const dynamicIntegrations = useMemo(() => {
+    if (apiIntegrations.length > 0) {
+      return apiIntegrations.map((int) => ({
+        id: int.id,
+        name: int.name,
+        description: int.tagline,
+        longDescription: int.description,
+        icon: emojiMap[int.id] || '🔌',
+        color: 'text-purple-500',
+        gradient: gradientMap[int.id] || 'from-purple-500 to-violet-600',
+        category: categoryMap[int.category] || 'api',
+        href: `/integrations/${int.slug}`,
+        features: int.features.slice(0, 4).map(f => f.title),
+        popular: int.popular,
+        new: int.status === 'beta',
+        stats: { users: '1,000+', rating: 4.8 },
+      }));
+    }
+    return integrations;
+  }, [apiIntegrations, emojiMap, gradientMap, categoryMap]);
+
   // Filtered integrations
   const filteredIntegrations = useMemo(() => {
-    return integrations.filter((integration) => {
+    return dynamicIntegrations.filter((integration) => {
       const matchesCategory = selectedCategory === 'all' || integration.category === selectedCategory;
       const matchesSearch = integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           integration.description.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, dynamicIntegrations]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">

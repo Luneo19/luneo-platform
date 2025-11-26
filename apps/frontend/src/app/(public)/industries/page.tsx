@@ -24,9 +24,13 @@ import {
   Target,
   Zap,
   Quote,
+  Loader2,
+  Package,
+  Printer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useAllIndustries } from '@/lib/hooks/useIndustryData';
 
 // Industry type definition
 interface Industry {
@@ -176,10 +180,62 @@ const testimonials = [
 export default function IndustriesPage() {
   const [hoveredIndustry, setHoveredIndustry] = useState<string | null>(null);
 
+  // Récupérer les données dynamiques depuis l'API
+  const { industries: apiIndustries, loading: industriesLoading } = useAllIndustries();
+
+  // Icon mapping pour les industries dynamiques
+  const iconMap: Record<string, React.ReactNode> = useMemo(() => ({
+    'Shirt': <Shirt className="w-8 h-8" />,
+    'Sofa': <Sofa className="w-8 h-8" />,
+    'Gem': <Gem className="w-8 h-8" />,
+    'Car': <Car className="w-8 h-8" />,
+    'Dumbbell': <Dumbbell className="w-8 h-8" />,
+    'Printer': <Printer className="w-8 h-8" />,
+    'Package': <Package className="w-8 h-8" />,
+    'Smartphone': <Smartphone className="w-8 h-8" />,
+    'Building': <Building className="w-8 h-8" />,
+  }), []);
+
+  // Gradient mapping pour les industries
+  const gradientMap: Record<string, string> = useMemo(() => ({
+    'fashion': 'from-pink-500 to-rose-600',
+    'furniture': 'from-amber-500 to-orange-600',
+    'jewelry': 'from-purple-500 to-violet-600',
+    'automotive': 'from-blue-500 to-cyan-600',
+    'sports': 'from-green-500 to-emerald-600',
+    'printing': 'from-indigo-500 to-blue-600',
+  }), []);
+
+  // Fusionner les données dynamiques avec les statiques
+  const dynamicIndustries = useMemo(() => {
+    if (apiIndustries.length > 0) {
+      return apiIndustries.map((ind) => ({
+        id: ind.id,
+        name: ind.name,
+        subtitle: ind.tagline,
+        description: ind.description,
+        icon: iconMap[ind.icon] || <Building className="w-8 h-8" />,
+        emoji: '🏭',
+        color: 'text-purple-500',
+        gradient: gradientMap[ind.id] || 'from-purple-500 to-violet-600',
+        href: `/industries/${ind.slug}`,
+        stats: {
+          conversion: ind.stats[0]?.value || '+30%',
+          returns: ind.stats[1]?.value || '-40%',
+          engagement: ind.stats[2]?.value || 'x2.5',
+        },
+        useCases: ind.features.slice(0, 4).map(f => f.title),
+        clients: [],
+        featured: ind.id === 'fashion' || ind.id === 'jewelry',
+      }));
+    }
+    return industries;
+  }, [apiIndustries, iconMap, gradientMap]);
+
   // Featured industries
   const featuredIndustries = useMemo(() => 
-    industries.filter(i => i.featured), 
-    []
+    dynamicIndustries.filter(i => i.featured), 
+    [dynamicIndustries]
   );
 
   return (
@@ -326,7 +382,7 @@ export default function IndustriesPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {industries.map((industry, index) => (
+            {dynamicIndustries.map((industry, index) => (
               <motion.div
                 key={industry.id}
                 initial={{ opacity: 0, y: 20 }}
