@@ -32,6 +32,9 @@
   },
   "packageManager": "pnpm@8.10.0",
   "dependencies": {
+    "next": "^15.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "stripe": "^19.1.0"
   }
 }
