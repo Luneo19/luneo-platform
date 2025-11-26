@@ -174,23 +174,23 @@ function ResetPasswordPageContent() {
       >
         <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500/10 rounded-full mb-6">
           <CheckCircle className="w-10 h-10 text-green-400" />
-        </div>
-        
+              </div>
+              
         <h1 className="text-2xl font-bold text-white mb-3">
           Mot de passe modifié ! 🎉
-        </h1>
-        
+              </h1>
+              
         <p className="text-slate-400 mb-6">
           Votre mot de passe a été réinitialisé avec succès.
           <br />
           Vous allez être redirigé vers la connexion...
-        </p>
+              </p>
 
         <Link href="/login">
           <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-11 px-6">
-            Se connecter maintenant
+                Se connecter maintenant
           </Button>
-        </Link>
+              </Link>
       </motion.div>
     );
   }
@@ -206,7 +206,7 @@ function ResetPasswordPageContent() {
       >
         <div className="inline-flex items-center justify-center w-20 h-20 bg-red-500/10 rounded-full mb-6">
           <AlertCircle className="w-10 h-10 text-red-400" />
-        </div>
+            </div>
         
         <h1 className="text-2xl font-bold text-white mb-3">
           Lien expiré
@@ -244,26 +244,26 @@ function ResetPasswordPageContent() {
       transition={{ duration: 0.4 }}
     >
       {/* Back Link */}
-      <Link
-        href="/login"
+          <Link
+            href="/login"
         className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
+          >
+            <ArrowLeft className="w-4 h-4" />
         Retour à la connexion
-      </Link>
+          </Link>
 
-      {/* Header */}
-      <div className="text-center mb-8">
+          {/* Header */}
+          <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-500/10 rounded-2xl mb-6">
           <KeyRound className="w-8 h-8 text-cyan-400" />
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">
-          Nouveau mot de passe
-        </h1>
+              Nouveau mot de passe
+            </h1>
         <p className="text-slate-400">
           Choisissez un mot de passe sécurisé pour votre compte.
-        </p>
-      </div>
+            </p>
+          </div>
 
       {/* Error Message */}
       {error && isReady && (
@@ -275,36 +275,36 @@ function ResetPasswordPageContent() {
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-red-300">{error}</p>
         </motion.div>
-      )}
+            )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* New Password */}
-        <div className="space-y-2">
+            <div className="space-y-2">
           <Label htmlFor="password" className="text-sm font-medium text-slate-300">
-            Nouveau mot de passe
+                Nouveau mot de passe
           </Label>
-          <div className="relative">
+              <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
             <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
               placeholder="Créez un mot de passe sécurisé"
               className="pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-12"
               disabled={loading || !isReady}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               tabIndex={-1}
-            >
+                >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
+                </button>
           </div>
 
           {/* Password Strength Indicator */}
@@ -360,36 +360,36 @@ function ResetPasswordPageContent() {
               </div>
             </motion.div>
           )}
-        </div>
+            </div>
 
         {/* Confirm Password */}
-        <div className="space-y-2">
+            <div className="space-y-2">
           <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">
-            Confirmer le mot de passe
+                Confirmer le mot de passe
           </Label>
-          <div className="relative">
+              <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
             <Input
-              id="confirmPassword"
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              placeholder="Confirmez votre mot de passe"
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  placeholder="Confirmez votre mot de passe"
               className={`pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-12 ${
                 confirmPassword && !passwordsMatch ? 'border-red-500/50' : ''
               }`}
               disabled={loading || !isReady}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               tabIndex={-1}
-            >
+                >
               {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
+                </button>
+              </div>
           {confirmPassword && !passwordsMatch && (
             <p className="text-xs text-red-400">Les mots de passe ne correspondent pas</p>
           )}
@@ -398,24 +398,24 @@ function ResetPasswordPageContent() {
               <Check className="w-3 h-3" /> Les mots de passe correspondent
             </p>
           )}
-        </div>
+            </div>
 
         {/* Submit Button */}
         <Button
-          type="submit"
+              type="submit"
           disabled={loading || !isReady || !isFormValid}
           className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-12 font-medium shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-        >
-          {loading ? (
-            <>
+            >
+              {loading ? (
+                <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Réinitialisation...
-            </>
-          ) : (
-            'Réinitialiser mon mot de passe'
-          )}
+                  Réinitialisation...
+                </>
+              ) : (
+                'Réinitialiser mon mot de passe'
+              )}
         </Button>
-      </form>
+          </form>
     </motion.div>
   );
 }

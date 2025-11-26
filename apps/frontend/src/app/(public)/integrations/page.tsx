@@ -598,7 +598,7 @@ console.log(files.url);`}</code>
                   <Users className="w-5 h-5 mr-2" />
                   Parler à un Expert
                 </Button>
-              </Link>
+            </Link>
             </div>
             <p className="text-sm text-slate-500 mt-6">
               Aucune carte de crédit requise • Essai gratuit 14 jours • Support inclus

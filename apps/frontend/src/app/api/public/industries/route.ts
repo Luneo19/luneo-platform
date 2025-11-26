@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { cacheService, cacheTTL } from '@/lib/cache/redis';
+import { createClient } from '@/lib/supabase/server';
 
 // Types
 interface IndustryFeature {
@@ -35,38 +36,22 @@ interface IndustryData {
   recommendedSolutions: string[];
 }
 
-// Industries data
-const INDUSTRIES_DATA: Record<string, IndustryData> = {
+// Fallback industries data
+const FALLBACK_INDUSTRIES: Record<string, IndustryData> = {
   fashion: {
     id: 'fashion',
     name: 'Mode & Textile',
     slug: 'fashion',
     tagline: 'Personnalisation textile à grande échelle',
-    description: 'De la fast-fashion au luxe, Luneo accompagne les marques de mode dans leur transformation digitale avec des outils de personnalisation et de visualisation produit.',
+    description: 'De la fast-fashion au luxe, Luneo accompagne les marques de mode.',
     heroImage: '/industries/fashion-hero.jpg',
     icon: 'Shirt',
     features: [
-      { title: 'Personnalisation textile', description: 'T-shirts, sweats, casquettes personnalisables', icon: 'Palette' },
-      { title: 'Visualisation 3D vêtements', description: 'Rendu réaliste des tissus et coupes', icon: 'Box' },
-      { title: 'Size guide AR', description: 'Guide des tailles en réalité augmentée', icon: 'Ruler' },
-      { title: 'Print-ready automatique', description: 'Fichiers optimisés pour DTG, sérigraphie', icon: 'Printer' },
+      { title: 'Personnalisation textile', description: 'T-shirts, sweats, casquettes', icon: 'Palette' },
+      { title: 'Visualisation 3D', description: 'Rendu réaliste des tissus', icon: 'Box' },
     ],
-    caseStudies: [
-      {
-        company: 'FastStyle Co.',
-        challenge: 'Gérer 500+ références personnalisables sans multiplier les SKUs',
-        solution: 'Configurateur produit avec génération automatique des fichiers de production',
-        results: ['+180% de références sans stock supplémentaire', '-70% de temps de mise en prod', '+40% de panier moyen'],
-        quote: 'Luneo nous a permis de proposer la personnalisation sans complexifier notre logistique.',
-        author: 'Julie M.',
-        role: 'Head of E-commerce',
-      },
-    ],
-    stats: [
-      { value: '+180%', label: 'Références produits' },
-      { value: '-70%', label: 'Temps de production' },
-      { value: '+40%', label: 'Panier moyen' },
-    ],
+    caseStudies: [],
+    stats: [{ value: '+180%', label: 'Références' }, { value: '-70%', label: 'Temps prod' }],
     recommendedSolutions: ['customizer', 'configurator-3d'],
   },
   furniture: {
@@ -74,31 +59,15 @@ const INDUSTRIES_DATA: Record<string, IndustryData> = {
     name: 'Mobilier & Décoration',
     slug: 'furniture',
     tagline: 'Visualisez vos meubles en situation',
-    description: 'Le configurateur 3D et la réalité augmentée révolutionnent la vente de mobilier en permettant aux clients de visualiser les produits chez eux avant achat.',
+    description: 'Le configurateur 3D révolutionne la vente de mobilier.',
     heroImage: '/industries/furniture-hero.jpg',
     icon: 'Sofa',
     features: [
-      { title: 'Configurateur 3D interactif', description: 'Changez couleurs, tissus, dimensions', icon: 'Settings' },
+      { title: 'Configurateur 3D', description: 'Changez couleurs, tissus, dimensions', icon: 'Settings' },
       { title: 'AR Room Planner', description: 'Placez les meubles dans votre espace', icon: 'Smartphone' },
-      { title: 'Rendu photoréaliste', description: 'Qualité studio photo sans shooting', icon: 'Camera' },
-      { title: 'Vues 360° HDR', description: 'Rotation complète avec éclairage naturel', icon: 'RotateCw' },
     ],
-    caseStudies: [
-      {
-        company: 'HomeDesign Plus',
-        challenge: 'Réduire le taux de retour élevé (25%) sur les canapés',
-        solution: 'Configurateur 3D avec AR pour visualiser le canapé dans le salon du client',
-        results: ['-55% de retours', '+30% de conversions', '-€200K de coûts logistiques'],
-        quote: 'Nos clients comprennent enfin les dimensions et proportions avant d\'acheter.',
-        author: 'Marc D.',
-        role: 'CEO',
-      },
-    ],
-    stats: [
-      { value: '-55%', label: 'Retours produits' },
-      { value: '+30%', label: 'Conversions' },
-      { value: '3x', label: 'Temps sur page' },
-    ],
+    caseStudies: [],
+    stats: [{ value: '-55%', label: 'Retours' }, { value: '+30%', label: 'Conversions' }],
     recommendedSolutions: ['configurator-3d'],
   },
   jewelry: {
@@ -106,134 +75,22 @@ const INDUSTRIES_DATA: Record<string, IndustryData> = {
     name: 'Bijouterie & Horlogerie',
     slug: 'jewelry',
     tagline: 'L\'essayage virtuel pour bijoux et montres',
-    description: 'Virtual try-on et configurateur 3D permettent aux clients d\'essayer et personnaliser bijoux et montres de luxe sans se déplacer en boutique.',
+    description: 'Virtual try-on et configurateur 3D pour bijoux et montres.',
     heroImage: '/industries/jewelry-hero.jpg',
     icon: 'Gem',
     features: [
       { title: 'Virtual Try-On bijoux', description: 'Essayage bagues, boucles, colliers', icon: 'Sparkles' },
-      { title: 'Hand tracking précis', description: '21 points de tracking pour bagues', icon: 'Hand' },
-      { title: 'Configurateur gravure', description: 'Personnalisation et gravure en temps réel', icon: 'PenTool' },
-      { title: 'Rendu gemmes réaliste', description: 'Réfraction et brillance des pierres', icon: 'Diamond' },
+      { title: 'Hand tracking', description: '21 points de tracking pour bagues', icon: 'Hand' },
     ],
-    caseStudies: [
-      {
-        company: 'LuxJewels',
-        challenge: 'Vendre des bagues de fiançailles en ligne sans essayage physique',
-        solution: 'Virtual try-on avec hand tracking et configurateur de pierres',
-        results: ['+65% de conversions', '-40% de retours', '+€150 de panier moyen'],
-        quote: 'Le virtual try-on a ouvert un nouveau canal de vente pour nos bagues de luxe.',
-        author: 'Caroline B.',
-        role: 'Directrice Digital',
-      },
-    ],
-    stats: [
-      { value: '+65%', label: 'Conversions' },
-      { value: '-40%', label: 'Retours' },
-      { value: '+€150', label: 'Panier moyen' },
-    ],
+    caseStudies: [],
+    stats: [{ value: '+65%', label: 'Conversions' }, { value: '-40%', label: 'Retours' }],
     recommendedSolutions: ['virtual-try-on', 'configurator-3d'],
-  },
-  automotive: {
-    id: 'automotive',
-    name: 'Automobile',
-    slug: 'automotive',
-    tagline: 'Configurez votre véhicule en 3D',
-    description: 'Des jantes aux accessoires, en passant par la personnalisation intérieure, Luneo permet de visualiser toutes les options de votre véhicule.',
-    heroImage: '/industries/automotive-hero.jpg',
-    icon: 'Car',
-    features: [
-      { title: 'Configurateur véhicule', description: 'Couleurs, jantes, options en temps réel', icon: 'Settings' },
-      { title: 'Rendu extérieur/intérieur', description: 'Visualisation complète du véhicule', icon: 'Camera' },
-      { title: 'AR parking', description: 'Visualisez le véhicule devant chez vous', icon: 'Smartphone' },
-      { title: 'Comparaison d\'options', description: 'Comparez les finitions côte à côte', icon: 'Columns' },
-    ],
-    caseStudies: [
-      {
-        company: 'AutoParts Premium',
-        challenge: 'Permettre aux clients de visualiser les jantes sur leur véhicule',
-        solution: 'Configurateur 3D avec bibliothèque de véhicules et jantes',
-        results: ['+90% d\'engagement', '+35% de conversions', '-25% de demandes SAV'],
-        quote: 'Les clients peuvent enfin voir le rendu final avant d\'acheter.',
-        author: 'Philippe R.',
-        role: 'Fondateur',
-      },
-    ],
-    stats: [
-      { value: '+90%', label: 'Engagement' },
-      { value: '+35%', label: 'Conversions' },
-      { value: '-25%', label: 'Demandes SAV' },
-    ],
-    recommendedSolutions: ['configurator-3d'],
-  },
-  sports: {
-    id: 'sports',
-    name: 'Sport & Outdoor',
-    slug: 'sports',
-    tagline: 'Équipements sportifs personnalisés',
-    description: 'De la personnalisation de maillots aux équipements techniques, Luneo aide les marques de sport à offrir des expériences de personnalisation uniques.',
-    heroImage: '/industries/sports-hero.jpg',
-    icon: 'Dumbbell',
-    features: [
-      { title: 'Personnalisation maillots', description: 'Noms, numéros, logos d\'équipe', icon: 'Shirt' },
-      { title: 'Configurateur équipement', description: 'Chaussures, raquettes, vélos', icon: 'Settings' },
-      { title: 'Team builder', description: 'Création de tenues d\'équipe complètes', icon: 'Users' },
-      { title: 'Export fichiers flocage', description: 'Fichiers optimisés pour flocage/broderie', icon: 'FileOutput' },
-    ],
-    caseStudies: [
-      {
-        company: 'TeamGear Pro',
-        challenge: 'Gérer les commandes d\'équipes avec personnalisation individuelle',
-        solution: 'Team builder avec gestion des tailles et personnalisation par joueur',
-        results: ['+200% de commandes équipes', '-80% de temps de saisie', '+50% de panier moyen'],
-        quote: 'Les coachs adorent notre outil. Ils configurent toute l\'équipe en 10 minutes.',
-        author: 'Thomas L.',
-        role: 'CEO',
-      },
-    ],
-    stats: [
-      { value: '+200%', label: 'Commandes équipes' },
-      { value: '-80%', label: 'Temps de saisie' },
-      { value: '+50%', label: 'Panier moyen' },
-    ],
-    recommendedSolutions: ['customizer'],
-  },
-  printing: {
-    id: 'printing',
-    name: 'Impression & Print-on-Demand',
-    slug: 'printing',
-    tagline: 'Production print-ready automatisée',
-    description: 'Générez automatiquement des fichiers d\'impression optimisés pour tous vos produits personnalisés. DTG, sérigraphie, sublimation, découpe laser.',
-    heroImage: '/industries/printing-hero.jpg',
-    icon: 'Printer',
-    features: [
-      { title: 'Export multi-formats', description: 'PDF/X-4, TIFF, PNG 300 DPI', icon: 'FileOutput' },
-      { title: 'Profils couleur ICC', description: 'CMYK, Pantone, profils custom', icon: 'Palette' },
-      { title: 'Marques de coupe auto', description: 'Bleed, crop marks, zones sécurisées', icon: 'Scissors' },
-      { title: 'Intégration POD', description: 'Printful, Printify, Gooten, Gelato', icon: 'Link' },
-    ],
-    caseStudies: [
-      {
-        company: 'PrintMaster Shop',
-        challenge: 'Réduire les erreurs de fichiers et les reprises de production',
-        solution: 'Workflow automatisé avec validation et export print-ready',
-        results: ['-95% d\'erreurs fichiers', '-60% de temps de prépresse', '+30% de marge'],
-        quote: 'Plus aucun fichier mal préparé ne passe en production.',
-        author: 'Sarah K.',
-        role: 'Responsable Production',
-      },
-    ],
-    stats: [
-      { value: '-95%', label: 'Erreurs fichiers' },
-      { value: '-60%', label: 'Temps prépresse' },
-      { value: '+30%', label: 'Marge' },
-    ],
-    recommendedSolutions: ['customizer'],
   },
 };
 
 /**
  * GET /api/public/industries
- * Récupère les données d'une industrie spécifique ou toutes les industries
+ * Récupère les données d'une industrie depuis Supabase avec fallback
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
@@ -254,18 +111,95 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    let data: IndustryData | IndustryData[] | null;
+    let data: IndustryData | IndustryData[] | null = null;
 
-    if (industryId) {
-      data = INDUSTRIES_DATA[industryId] || null;
-      if (!data) {
-        return NextResponse.json(
-          { success: false, error: 'Industry not found' },
-          { status: 404 }
-        );
+    try {
+      const supabase = await createClient();
+
+      if (industryId) {
+        // Récupérer une industrie spécifique
+        const { data: industry, error } = await supabase
+          .from('industries')
+          .select('*')
+          .eq('id', industryId)
+          .eq('is_published', true)
+          .single();
+
+        if (!error && industry) {
+          data = {
+            id: industry.id,
+            name: industry.name,
+            slug: industry.slug,
+            tagline: industry.tagline || '',
+            description: industry.description,
+            heroImage: industry.hero_image || `/industries/${industry.slug}-hero.jpg`,
+            icon: industry.icon || 'Building',
+            features: industry.features || [],
+            caseStudies: industry.case_studies || [],
+            stats: industry.stats || [],
+            recommendedSolutions: industry.recommended_solutions || [],
+          };
+
+          // Récupérer les case studies liées à cette industrie
+          const { data: caseStudies } = await supabase
+            .from('case_studies')
+            .select('title, client_name, client_logo, excerpt, metrics')
+            .eq('industry', industryId)
+            .eq('is_published', true)
+            .limit(3);
+
+          if (caseStudies?.length) {
+            data.caseStudies = caseStudies.map((cs) => ({
+              company: cs.client_name,
+              logo: cs.client_logo,
+              challenge: cs.excerpt || '',
+              solution: '',
+              results: (cs.metrics || []).map((m: any) => `${m.label}: ${m.value}`),
+            }));
+          }
+        }
+      } else {
+        // Récupérer toutes les industries
+        const { data: industries, error } = await supabase
+          .from('industries')
+          .select('*')
+          .eq('is_published', true)
+          .order('display_order', { ascending: true });
+
+        if (!error && industries?.length) {
+          data = industries.map((industry) => ({
+            id: industry.id,
+            name: industry.name,
+            slug: industry.slug,
+            tagline: industry.tagline || '',
+            description: industry.description,
+            heroImage: industry.hero_image || `/industries/${industry.slug}-hero.jpg`,
+            icon: industry.icon || 'Building',
+            features: industry.features || [],
+            caseStudies: industry.case_studies || [],
+            stats: industry.stats || [],
+            recommendedSolutions: industry.recommended_solutions || [],
+          }));
+        }
       }
-    } else {
-      data = Object.values(INDUSTRIES_DATA);
+    } catch (error) {
+      logger.error('Error fetching industries from Supabase', { error, industryId });
+    }
+
+    // Fallback aux données statiques si Supabase échoue
+    if (!data) {
+      if (industryId) {
+        data = FALLBACK_INDUSTRIES[industryId] || null;
+        if (!data) {
+          return NextResponse.json(
+            { success: false, error: 'Industry not found' },
+            { status: 404 }
+          );
+        }
+      } else {
+        data = Object.values(FALLBACK_INDUSTRIES);
+      }
+      logger.info('Industries using fallback data', { industryId });
     }
 
     // Mettre en cache
@@ -277,4 +211,3 @@ export async function GET(request: NextRequest) {
     return response;
   }, '/api/public/industries', 'GET');
 }
-

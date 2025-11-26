@@ -192,7 +192,7 @@ export default function RegisterPage() {
         if (signUpError.message.includes('already registered')) {
           setError('Un compte existe déjà avec cette adresse email. Essayez de vous connecter.');
         } else {
-          setError(signUpError.message);
+        setError(signUpError.message);
         }
         return;
       }
@@ -288,12 +288,12 @@ export default function RegisterPage() {
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       className="w-full"
-    >
+      >
       {/* Header */}
       <div className="text-center mb-6">
         <motion.div
@@ -310,10 +310,10 @@ export default function RegisterPage() {
         <p className="text-slate-400">
           Commencez gratuitement pendant 14 jours
         </p>
-      </div>
+          </div>
 
-      {/* Error Message */}
-      {error && (
+          {/* Error Message */}
+          {error && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -322,10 +322,10 @@ export default function RegisterPage() {
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-red-300">{error}</p>
         </motion.div>
-      )}
+          )}
 
-      {/* Success Message */}
-      {success && (
+          {/* Success Message */}
+          {success && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -335,102 +335,102 @@ export default function RegisterPage() {
           <div>
             <p className="text-sm text-green-300">{success}</p>
             <p className="text-xs text-green-400/70 mt-1">Redirection vers la connexion...</p>
-          </div>
+            </div>
         </motion.div>
-      )}
+          )}
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
         {/* Full Name */}
         <div className="space-y-2">
           <Label htmlFor="fullName" className="text-sm font-medium text-slate-300">
             Nom complet <span className="text-red-400">*</span>
-          </Label>
+              </Label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <Input
-              id="fullName"
-              type="text"
-              placeholder="Jean Dupont"
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Jean Dupont"
               className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
-              value={formData.fullName}
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-              required
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  required
               disabled={isLoading}
-            />
+                />
             {formData.fullName.length >= 2 && (
               <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-400 w-5 h-5" />
             )}
-          </div>
-        </div>
+              </div>
+            </div>
 
         {/* Email */}
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-slate-300">
             Email professionnel <span className="text-red-400">*</span>
-          </Label>
+              </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <Input
-              id="email"
-              type="email"
+                <Input
+                  id="email"
+                  type="email"
               placeholder="votre@entreprise.com"
               className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
               disabled={isLoading}
-            />
+                />
             {formData.email && isValidEmail(formData.email) && (
               <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-400 w-5 h-5" />
             )}
-          </div>
-        </div>
+              </div>
+            </div>
 
         {/* Company */}
         <div className="space-y-2">
           <Label htmlFor="company" className="text-sm font-medium text-slate-300">
             Entreprise <span className="text-slate-500">(optionnel)</span>
-          </Label>
+              </Label>
           <div className="relative">
             <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <Input
-              id="company"
-              type="text"
-              placeholder="Votre entreprise"
+                <Input
+                  id="company"
+                  type="text"
+                  placeholder="Votre entreprise"
               className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               disabled={isLoading}
-            />
-          </div>
-        </div>
+                />
+              </div>
+            </div>
 
         {/* Password */}
         <div className="space-y-2">
           <Label htmlFor="password" className="text-sm font-medium text-slate-300">
             Mot de passe <span className="text-red-400">*</span>
-          </Label>
+              </Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
               placeholder="Créez un mot de passe sécurisé"
               className="pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
               disabled={isLoading}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               tabIndex={-1}
-            >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
           </div>
 
           {/* Password Strength Indicator */}
@@ -488,27 +488,27 @@ export default function RegisterPage() {
               </div>
             </motion.div>
           )}
-        </div>
+            </div>
 
         {/* Confirm Password */}
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">
             Confirmer le mot de passe <span className="text-red-400">*</span>
-          </Label>
+              </Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <Input
-              id="confirmPassword"
+                <Input
+                  id="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirmez votre mot de passe"
               className={`pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11 ${
                 formData.confirmPassword && !passwordsMatch ? 'border-red-500/50' : ''
               }`}
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              required
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  required
               disabled={isLoading}
-            />
+                />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -517,7 +517,7 @@ export default function RegisterPage() {
             >
               {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
-          </div>
+              </div>
           {formData.confirmPassword && !passwordsMatch && (
             <p className="text-xs text-red-400">Les mots de passe ne correspondent pas</p>
           )}
@@ -526,69 +526,69 @@ export default function RegisterPage() {
               <Check className="w-3 h-3" /> Les mots de passe correspondent
             </p>
           )}
-        </div>
+            </div>
 
         {/* Terms acceptance */}
         <div className="flex items-start gap-3 pt-2">
-          <input
-            id="terms"
-            type="checkbox"
+              <input
+                id="terms"
+                type="checkbox"
             checked={acceptedTerms}
             onChange={(e) => setAcceptedTerms(e.target.checked)}
             className="w-4 h-4 mt-0.5 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500/20 focus:ring-offset-0"
-            required
-          />
+                required
+              />
           <Label htmlFor="terms" className="text-sm text-slate-400 cursor-pointer leading-relaxed">
             J&apos;accepte les{' '}
             <Link href="/legal/terms" className="text-cyan-400 hover:text-cyan-300 underline">
               conditions d&apos;utilisation
-            </Link>{' '}
-            et la{' '}
+                </Link>{' '}
+                et la{' '}
             <Link href="/legal/privacy" className="text-cyan-400 hover:text-cyan-300 underline">
-              politique de confidentialité
-            </Link>
-          </Label>
-        </div>
+                  politique de confidentialité
+                </Link>
+              </Label>
+            </div>
 
         {/* Submit Button */}
-        <Button
-          type="submit"
+            <Button
+              type="submit"
           disabled={isLoading || !isFormValid}
           className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-12 text-base font-medium shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-        >
-          {isLoading ? (
-            <>
+            >
+              {isLoading ? (
+                <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Création du compte...
-            </>
-          ) : (
-            <>
+                  Création du compte...
+                </>
+              ) : (
+                <>
               Créer mon compte gratuit
               <ArrowRight className="w-5 h-5 ml-2" />
-            </>
-          )}
-        </Button>
-      </form>
+                </>
+              )}
+            </Button>
+          </form>
 
-      {/* Divider */}
+          {/* Divider */}
       <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
+              <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-slate-700" />
-        </div>
-        <div className="relative flex justify-center text-sm">
+              </div>
+              <div className="relative flex justify-center text-sm">
           <span className="px-4 bg-slate-900 text-slate-500">ou s&apos;inscrire avec</span>
-        </div>
-      </div>
+            </div>
+          </div>
 
-      {/* Social Register */}
+          {/* Social Register */}
       <div className="grid grid-cols-2 gap-3">
-        <Button
-          type="button"
-          variant="outline"
+            <Button
+              type="button"
+              variant="outline"
           className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-11"
-          onClick={() => handleOAuthRegister('google')}
+              onClick={() => handleOAuthRegister('google')}
           disabled={isLoading || oauthLoading !== null}
-        >
+            >
           {oauthLoading === 'google' ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
@@ -597,15 +597,15 @@ export default function RegisterPage() {
               <span className="ml-2">Google</span>
             </>
           )}
-        </Button>
+            </Button>
 
-        <Button
-          type="button"
-          variant="outline"
+            <Button
+              type="button"
+              variant="outline"
           className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-11"
-          onClick={() => handleOAuthRegister('github')}
+              onClick={() => handleOAuthRegister('github')}
           disabled={isLoading || oauthLoading !== null}
-        >
+            >
           {oauthLoading === 'github' ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
@@ -614,21 +614,21 @@ export default function RegisterPage() {
               <span className="ml-2">GitHub</span>
             </>
           )}
-        </Button>
-      </div>
+            </Button>
+          </div>
 
-      {/* Sign in link */}
+          {/* Sign in link */}
       <div className="mt-6 text-center">
         <p className="text-sm text-slate-400">
-          Vous avez déjà un compte ?{' '}
+              Vous avez déjà un compte ?{' '}
           <Link
             href="/login"
             className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
           >
-            Se connecter
-          </Link>
-        </p>
-      </div>
+                Se connecter
+              </Link>
+            </p>
+          </div>
 
       {/* Trial info */}
       <div className="mt-6 pt-4 border-t border-slate-800">
@@ -647,6 +647,6 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
-    </motion.div>
+      </motion.div>
   );
 }

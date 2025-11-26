@@ -103,7 +103,7 @@ export default function LoginPage() {
         } else if (signInError.message.includes('Email not confirmed')) {
           setError("Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte de réception.");
         } else {
-          setError(signInError.message);
+        setError(signInError.message);
         }
         return;
       }
@@ -121,7 +121,7 @@ export default function LoginPage() {
         
         // Small delay for UX
         setTimeout(() => {
-          router.push('/dashboard/overview');
+        router.push('/dashboard/overview');
         }, 500);
       }
     } catch (err: unknown) {
@@ -177,14 +177,14 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       className="w-full"
-    >
+      >
       {/* Header */}
-      <div className="text-center mb-8">
+          <div className="text-center mb-8">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -195,14 +195,14 @@ export default function LoginPage() {
         </motion.div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2" data-testid="login-title">
           Bon retour ! 👋
-        </h1>
+            </h1>
         <p className="text-slate-400" data-testid="login-subtitle">
           Connectez-vous à votre espace Luneo
-        </p>
-      </div>
+            </p>
+          </div>
 
-      {/* Error Message */}
-      {error && (
+          {/* Error Message */}
+          {error && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -224,40 +224,40 @@ export default function LoginPage() {
           <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-green-300">{success}</p>
         </motion.div>
-      )}
+          )}
 
-      {/* Form */}
+          {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Email */}
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-slate-300">
             Adresse email
-          </Label>
+              </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <Input
-              id="email"
-              type="email"
-              placeholder="votre@email.com"
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="votre@email.com"
               className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-12"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
               disabled={isLoading}
-              data-testid="login-email"
-            />
+                  data-testid="login-email"
+                />
             {formData.email && isValidEmail(formData.email) && (
               <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-400 w-5 h-5" />
             )}
-          </div>
-        </div>
+              </div>
+            </div>
 
         {/* Password */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password" className="text-sm font-medium text-slate-300">
-              Mot de passe
-            </Label>
+                Mot de passe
+              </Label>
             <Link 
               href="/forgot-password" 
               className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
@@ -268,90 +268,90 @@ export default function LoginPage() {
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
               className="pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-12"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
               disabled={isLoading}
-              data-testid="login-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
+                  data-testid="login-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               tabIndex={-1}
-              data-testid="login-toggle-password"
-            >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
+                  data-testid="login-toggle-password"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
 
         {/* Remember me */}
-        <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <input
-              id="remember"
-              type="checkbox"
+                <input
+                  id="remember"
+                  type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
               className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500/20 focus:ring-offset-0"
-              data-testid="login-remember"
-            />
+                  data-testid="login-remember"
+                />
             <Label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer">
               Rester connecté
-            </Label>
-          </div>
+                </Label>
+              </div>
           <div className="flex items-center gap-1 text-xs text-slate-500">
             <Shield className="w-3 h-3" />
             <span>Connexion sécurisée</span>
           </div>
-        </div>
+            </div>
 
         {/* Submit Button */}
-        <Button
-          type="submit"
+            <Button
+              type="submit"
           disabled={isLoading || !formData.email || !formData.password}
           className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-12 text-base font-medium shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
-          data-testid="login-submit"
-        >
-          {isLoading ? (
-            <>
+              data-testid="login-submit"
+            >
+              {isLoading ? (
+                <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Connexion...
-            </>
-          ) : (
-            <>
-              Se connecter
+                  Connexion...
+                </>
+              ) : (
+                <>
+                  Se connecter
               <ArrowRight className="w-5 h-5 ml-2" />
-            </>
-          )}
-        </Button>
-      </form>
+                </>
+              )}
+            </Button>
+          </form>
 
-      {/* Divider */}
+          {/* Divider */}
       <div className="relative my-8">
-        <div className="absolute inset-0 flex items-center">
+              <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-slate-700" />
-        </div>
-        <div className="relative flex justify-center text-sm">
+              </div>
+              <div className="relative flex justify-center text-sm">
           <span className="px-4 bg-slate-900 text-slate-500">ou continuer avec</span>
-        </div>
-      </div>
+            </div>
+          </div>
 
-      {/* Social Login */}
+          {/* Social Login */}
       <div className="grid grid-cols-2 gap-3">
-        <Button
-          type="button"
-          variant="outline"
+            <Button
+              type="button"
+              variant="outline"
           className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-12"
-          onClick={() => handleOAuthLogin('google')}
+              onClick={() => handleOAuthLogin('google')}
           disabled={isLoading || oauthLoading !== null}
-        >
+            >
           {oauthLoading === 'google' ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
@@ -360,15 +360,15 @@ export default function LoginPage() {
               <span className="ml-2">Google</span>
             </>
           )}
-        </Button>
+            </Button>
 
-        <Button
-          type="button"
-          variant="outline"
+            <Button
+              type="button"
+              variant="outline"
           className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-12"
-          onClick={() => handleOAuthLogin('github')}
+              onClick={() => handleOAuthLogin('github')}
           disabled={isLoading || oauthLoading !== null}
-        >
+            >
           {oauthLoading === 'github' ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
@@ -377,21 +377,21 @@ export default function LoginPage() {
               <span className="ml-2">GitHub</span>
             </>
           )}
-        </Button>
-      </div>
+            </Button>
+          </div>
 
-      {/* Sign up link */}
+          {/* Sign up link */}
       <div className="mt-8 text-center">
         <p className="text-sm text-slate-400">
-          Pas encore de compte ?{' '}
-          <Link
-            href="/register"
+              Pas encore de compte ?{' '}
+              <Link
+                href="/register"
             className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
-            data-testid="login-switch-register"
-          >
+                data-testid="login-switch-register"
+              >
             Créer un compte gratuitement
-          </Link>
-        </p>
+              </Link>
+            </p>
       </div>
 
       {/* Security indicators */}
@@ -411,6 +411,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </motion.div>
+      </motion.div>
   );
 }

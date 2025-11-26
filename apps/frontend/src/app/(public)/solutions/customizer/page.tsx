@@ -206,51 +206,51 @@ const EXPORT_FORMATS = [
 ];
 
 const FEATURES = [
-  {
-    icon: <Palette className="w-6 h-6" />,
+    {
+      icon: <Palette className="w-6 h-6" />,
     title: 'Éditeur Canvas Professionnel',
     description: 'Interface Konva.js optimisée avec multi-layers, groupes, masques et blend modes. Performance 60 FPS garantie.',
     highlight: 'Konva.js',
-  },
-  {
-    icon: <Type className="w-6 h-6" />,
-    title: 'Texte Avancé',
+    },
+    {
+      icon: <Type className="w-6 h-6" />,
+      title: 'Texte Avancé',
     description: 'Google Fonts (1000+ polices), courbes de Bézier, effets outline/shadow/glow, déformation 3D, texte sur chemin.',
     highlight: '1000+ polices',
-  },
-  {
-    icon: <ImageIcon className="w-6 h-6" />,
-    title: 'Images & Cliparts',
+    },
+    {
+      icon: <ImageIcon className="w-6 h-6" />,
+      title: 'Images & Cliparts',
     description: 'Upload drag & drop, bibliothèque 15,000+ cliparts, filtres Instagram-style, crop intelligent, remove background IA.',
     highlight: '15K+ cliparts',
-  },
-  {
-    icon: <Square className="w-6 h-6" />,
-    title: 'Formes Vectorielles',
+    },
+    {
+      icon: <Square className="w-6 h-6" />,
+      title: 'Formes Vectorielles',
     description: 'Rectangles, cercles, polygones, courbes Bézier personnalisées, import/export SVG avec édition point par point.',
     highlight: 'Import SVG',
-  },
-  {
-    icon: <Layers className="w-6 h-6" />,
+    },
+    {
+      icon: <Layers className="w-6 h-6" />,
     title: 'Layers Pro',
     description: 'Gestion Photoshop-style avec groupes, verrouillage, visibilité, blend modes (multiply, screen, overlay...).',
     highlight: 'Blend modes',
-  },
-  {
-    icon: <Eye className="w-6 h-6" />,
+    },
+    {
+      icon: <Eye className="w-6 h-6" />,
     title: 'Preview 3D Temps Réel',
     description: 'Visualisez votre design sur 75+ mockups 3D (t-shirts, mugs, affiches, packaging) avec rotation 360°.',
     highlight: '75+ mockups',
-  },
-  {
-    icon: <Download className="w-6 h-6" />,
-    title: 'Export Print-Ready',
+    },
+    {
+      icon: <Download className="w-6 h-6" />,
+      title: 'Export Print-Ready',
     description: 'PNG/PDF/SVG 300 DPI, conversion CMYK automatique, bleed 3mm, crop marks, profils ICC (ISO Coated v2).',
     highlight: 'CMYK auto',
-  },
-  {
+    },
+    {
     icon: <Users className="w-6 h-6" />,
-    title: 'Collaboration Temps Réel',
+      title: 'Collaboration Temps Réel',
     description: 'Multi-utilisateurs simultanés via WebSocket, curseurs visibles, chat intégré, commentaires sur éléments.',
     highlight: 'WebSocket',
   },
@@ -437,11 +437,11 @@ function DemoCanvas() {
         {/* Left Toolbar */}
         <div className="lg:col-span-1 bg-gray-950 p-2 flex lg:flex-col gap-1 border-b lg:border-b-0 lg:border-r border-gray-800">
           {TOOL_CATEGORIES.map((tool) => (
-            <button
-              key={tool.id}
+                    <button
+                      key={tool.id}
               onClick={() => setActiveTool(tool.id)}
               className={`p-2 lg:p-3 rounded-lg transition-all relative group ${
-                activeTool === tool.id
+                        activeTool === tool.id
                   ? 'bg-purple-600 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
@@ -451,8 +451,8 @@ function DemoCanvas() {
               <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 hidden lg:block">
                 {tool.name}
               </span>
-            </button>
-          ))}
+                    </button>
+                  ))}
 
           <div className="h-px lg:h-auto lg:w-px bg-gray-700 my-1 lg:my-2 lg:mx-auto" />
 
@@ -472,9 +472,9 @@ function DemoCanvas() {
           >
             <Redo2 className="w-5 h-5" />
           </button>
-        </div>
+              </div>
 
-        {/* Canvas Area */}
+              {/* Canvas Area */}
         <div className="lg:col-span-8 bg-gray-800/50 p-4 lg:p-6 flex flex-col">
           {/* Canvas Header */}
           <div className="flex items-center justify-between mb-4">
@@ -513,7 +513,7 @@ function DemoCanvas() {
 
             {/* Elements */}
             {elements.map((element) => (
-              <motion.div
+                      <motion.div
                 key={element.id}
                 className={`absolute cursor-move ${
                   selectedElement === element.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''
@@ -570,7 +570,7 @@ function DemoCanvas() {
                     {element.content}
                   </div>
                 )}
-              </motion.div>
+                      </motion.div>
             ))}
 
             {/* Empty State */}
@@ -580,47 +580,47 @@ function DemoCanvas() {
                   <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
                   <p className="font-medium">Cliquez sur un outil pour commencer</p>
                   <p className="text-sm mt-1">ou glissez une image ici</p>
-                </div>
+                  </div>
               </div>
             )}
-          </div>
+                </div>
 
           {/* Canvas Footer */}
           <div className="flex items-center justify-between mt-4 text-sm text-gray-400">
             <span>Canvas: 800 × 600 px</span>
             <span>{elements.length} élément{elements.length > 1 ? 's' : ''}</span>
-          </div>
-        </div>
+                </div>
+              </div>
 
         {/* Right Panel */}
         <div className="lg:col-span-3 bg-gray-900 p-4 border-t lg:border-t-0 lg:border-l border-gray-800 overflow-y-auto">
           <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
             <Settings className="w-4 h-4 text-purple-400" />
-            Propriétés
-          </h3>
+                  Propriétés
+                </h3>
 
           {/* Tool-specific options */}
-          {activeTool === 'text' && (
-            <div className="space-y-4">
-              <div>
+                {activeTool === 'text' && (
+                  <div className="space-y-4">
+                    <div>
                 <label className="text-xs text-gray-400 mb-2 block">Police</label>
-                <select className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm">
+                      <select className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm">
                   {FONTS.map(font => (
                     <option key={font} value={font}>{font}</option>
                   ))}
-                </select>
-              </div>
-              <div>
+                      </select>
+                    </div>
+                    <div>
                 <label className="text-xs text-gray-400 mb-2 block">Taille: {fontSize}px</label>
-                <input
-                  type="range"
-                  min="12"
-                  max="120"
+                      <input
+                        type="range"
+                        min="12"
+                        max="120"
                   value={fontSize}
                   onChange={(e) => setFontSize(Number(e.target.value))}
                   className="w-full accent-purple-500"
-                />
-              </div>
+                      />
+                    </div>
               <Button
                 onClick={() => addElement('text')}
                 className="w-full bg-blue-600 hover:bg-blue-700"
@@ -628,16 +628,16 @@ function DemoCanvas() {
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter Texte
               </Button>
-            </div>
-          )}
+                  </div>
+                )}
 
-          {activeTool === 'shapes' && (
+                {activeTool === 'shapes' && (
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-gray-400 mb-2 block">Type de forme</label>
                 <div className="grid grid-cols-3 gap-2">
                   {SHAPES.map(shape => (
-                    <button
+                      <button
                       key={shape.id}
                       onClick={() => setSelectedShape(shape.id)}
                       className={`p-3 rounded-lg border transition-all ${
@@ -647,8 +647,8 @@ function DemoCanvas() {
                       }`}
                     >
                       {shape.icon}
-                    </button>
-                  ))}
+                      </button>
+                    ))}
                 </div>
               </div>
               <Button
@@ -658,8 +658,8 @@ function DemoCanvas() {
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter Forme
               </Button>
-            </div>
-          )}
+                  </div>
+                )}
 
           {activeTool === 'clipart' && (
             <div className="space-y-4">
@@ -668,15 +668,15 @@ function DemoCanvas() {
                 <div className="grid grid-cols-4 gap-2">
                   {CLIPARTS.map((emoji, i) => (
                     <button
-                      key={i}
+                        key={i}
                       onClick={() => addElement('clipart', { content: emoji })}
                       className="p-3 text-2xl bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
-                    >
+                      >
                       {emoji}
-                    </button>
+                          </button>
                   ))}
-                </div>
-              </div>
+                        </div>
+                      </div>
               <Button variant="outline" className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
                 <FolderOpen className="w-4 h-4 mr-2" />
                 Bibliothèque (15K+)
@@ -712,8 +712,8 @@ function DemoCanvas() {
                   }`}
                   style={{ backgroundColor: color }}
                 />
-              ))}
-            </div>
+                    ))}
+                  </div>
             <input
               type="color"
               value={currentColor}
@@ -745,8 +745,8 @@ function DemoCanvas() {
               <Download className="w-4 h-4 mr-2" />
               Exporter Design
             </Button>
-          </div>
-        </div>
+              </div>
+            </div>
       </div>
     </Card>
   );
@@ -1048,7 +1048,7 @@ export default function CustomizerPage() {
             <DemoCanvas />
           </motion.div>
 
-          {/* Export Formats */}
+            {/* Export Formats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1056,19 +1056,19 @@ export default function CustomizerPage() {
             className="mt-8"
           >
             <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2 justify-center">
-              <Download className="w-5 h-5 text-green-400" />
+                <Download className="w-5 h-5 text-green-400" />
               Formats d'Export Professionnels
-            </h4>
+              </h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
               {EXPORT_FORMATS.map((format, i) => (
                 <Card key={i} className="bg-gray-800/50 border-gray-700/50 p-4 text-center hover:border-purple-500/50 transition-colors">
                   <div className="text-purple-400 mb-2 flex justify-center">{format.icon}</div>
-                  <p className="font-semibold text-white">{format.format}</p>
+                    <p className="font-semibold text-white">{format.format}</p>
                   <p className="text-xs text-gray-400">{format.dpi}</p>
                   <p className="text-xs text-purple-400 mt-1">{format.description}</p>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
           </motion.div>
         </div>
       </section>
@@ -1159,20 +1159,20 @@ export default function CustomizerPage() {
                   <div className="flex items-start gap-4">
                     <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${useCase.gradient} flex items-center justify-center text-white flex-shrink-0`}>
                       {useCase.icon}
-                    </div>
+                  </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-xl font-bold text-white">{useCase.title}</h3>
                         <span className="px-2 py-0.5 bg-gray-700/50 rounded text-xs text-gray-400">{useCase.industry}</span>
-                      </div>
+                  </div>
                       <p className="text-gray-400 text-sm mb-4">{useCase.description}</p>
                       <div className={`inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r ${useCase.gradient} bg-opacity-20 rounded-full`}>
                         <TrendingUp className="w-4 h-4 text-white" />
                         <span className="text-sm font-semibold text-white">{useCase.metrics}</span>
-                      </div>
-                    </div>
                   </div>
-                </Card>
+                  </div>
+                  </div>
+            </Card>
               </motion.div>
             ))}
           </div>
@@ -1248,7 +1248,7 @@ export default function CustomizerPage() {
                     <div>
                       <p className="font-semibold text-white">{testimonial.author}</p>
                       <p className="text-sm text-gray-400">{testimonial.role}, {testimonial.company}</p>
-                    </div>
+                  </div>
                   </div>
                   <p className="text-gray-300 text-sm italic mb-4">"{testimonial.quote}"</p>
                   <div className="pt-4 border-t border-gray-700/50">
@@ -1376,17 +1376,17 @@ export default function CustomizerPage() {
 {`// Option 1: SDK JavaScript
 import { LuneoCustomizer } from '@luneo/customizer';
 
-const customizer = new LuneoCustomizer({
-  container: '#customizer',
-  productType: 'tshirt',
-  tools: ['text', 'image', 'shapes', 'cliparts'],
-  export: {
-    format: 'pdf',
-    dpi: 300,
+  const customizer = new LuneoCustomizer({
+    container: '#customizer',
+    productType: 'tshirt',
+    tools: ['text', 'image', 'shapes', 'cliparts'],
+    export: {
+      format: 'pdf',
+      dpi: 300,
     colorSpace: 'cmyk',
-    bleed: 3 // mm
-  },
-  onSave: async (design) => {
+      bleed: 3 // mm
+    },
+    onSave: async (design) => {
     // Envoi automatique vers votre backend
     await saveDesign(design);
   }
@@ -1399,7 +1399,7 @@ const customizer = new LuneoCustomizer({
   height="800"
 />`}
               </pre>
-            </Card>
+          </Card>
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
@@ -1418,7 +1418,7 @@ const customizer = new LuneoCustomizer({
               <p className="font-semibold text-white">CDN Global</p>
               <p className="text-xs text-gray-400">&lt;50ms latence</p>
             </Card>
-          </div>
+            </div>
         </div>
       </section>
 
@@ -1493,7 +1493,7 @@ const customizer = new LuneoCustomizer({
             <Sparkles className="w-16 h-16 text-white mx-auto mb-6" />
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
               Lancez Votre Customizer Aujourd'hui
-            </h2>
+          </h2>
             <p className="text-lg text-purple-100 mb-10 max-w-2xl mx-auto">
               Rejoignez des milliers d'entreprises qui utilisent Luneo pour offrir une expérience de personnalisation exceptionnelle.
             </p>
@@ -1502,9 +1502,9 @@ const customizer = new LuneoCustomizer({
               <Link href="/register">
                 <Button size="lg" className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 font-bold px-10 py-6 text-lg shadow-2xl">
                   Essai gratuit 14 jours
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </Link>
               <Link href="/contact">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto bg-white/10 border-2 border-white/40 text-white hover:bg-white/20 font-bold px-10 py-6 text-lg">
                   <Headphones className="mr-2 w-5 h-5" />
