@@ -1,6 +1,32 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/middleware';
-import { LOCALE_COOKIE, SUPPORTED_LOCALES } from '@/i18n/config';
+import { createServerClient } from '@supabase/ssr';
+
+// Inline config to avoid Edge import issues
+const SUPPORTED_LOCALES = ['en', 'fr', 'de'] as const;
+const LOCALE_COOKIE = 'luneo_locale';
+
+// Inline Supabase client creation for Edge
+function createClient(request: NextRequest, response: NextResponse) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: Record<string, unknown>) {
+          request.cookies.set({ name, value, ...options });
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: Record<string, unknown>) {
+          request.cookies.set({ name, value: '', ...options });
+          response.cookies.set({ name, value: '', ...options });
+        },
+      },
+    }
+  );
+}
 
 const supportedLocaleSet = new Set(SUPPORTED_LOCALES);
 
@@ -30,7 +56,7 @@ export async function middleware(request: NextRequest) {
   // ============================================
   if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
     try {
-      const { rateLimitMiddleware } = await import('@/middleware-rate-limit');
+      const { rateLimitMiddleware } = await import('./src/middleware-rate-limit');
       const rateLimitResponse = await rateLimitMiddleware(request);
       if (rateLimitResponse) {
         if (requestedLocale && supportedLocaleSet.has(requestedLocale as (typeof SUPPORTED_LOCALES)[number])) {
