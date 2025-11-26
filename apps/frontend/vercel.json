@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "framework": "nextjs",
   "installCommand": "echo 'Installation handled by build script'",
   "buildCommand": "bash ./vercel-build.sh",
+  "outputDirectory": ".next",
   "headers": [
     {
       "source": "/(.*)",
