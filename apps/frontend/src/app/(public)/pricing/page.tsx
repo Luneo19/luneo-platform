@@ -32,7 +32,7 @@ import {
   Gift,
   Target,
   BarChart3,
-  Infinity,
+  Infinity as InfinityIcon,
   Phone,
   Loader2,
   AlertCircle,
