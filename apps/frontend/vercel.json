@@ -1,8 +1,7 @@
 {
   "version": 2,
-  "framework": "nextjs",
-  "installCommand": "cd ../.. && npm install -g pnpm@8 && pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm run build",
+  "buildCommand": "bash ./vercel-build.sh",
+  "outputDirectory": ".next",
   "headers": [
     {
       "source": "/(.*)",
