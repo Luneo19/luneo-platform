@@ -5,10 +5,16 @@ import { logger } from '@/lib/logger';
 import { managePaymentMethodSchema } from '@/lib/validation/zod-schemas';
 import Stripe from 'stripe';
 
-// Initialiser Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-10-29.clover',
-});
+// Initialisation paresseuse de Stripe
+let stripeInstance: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      apiVersion: '2025-10-29.clover',
+    });
+  }
+  return stripeInstance;
+}
 
 /**
  * GET /api/billing/payment-methods
@@ -40,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Récupérer les méthodes de paiement depuis Stripe
     try {
-      const paymentMethods = await stripe.paymentMethods.list({
+      const paymentMethods = await getStripe().paymentMethods.list({
         customer: profile.stripe_customer_id,
         type: 'card',
       });
@@ -120,7 +126,7 @@ export async function POST(request: NextRequest) {
     // Créer un customer Stripe si nécessaire
     if (!customerId) {
       try {
-        const customer = await stripe.customers.create({
+        const customer = await getStripe().customers.create({
           email: user.email || undefined,
           metadata: {
             user_id: user.id,
@@ -146,13 +152,13 @@ export async function POST(request: NextRequest) {
 
     // Attacher la méthode de paiement au customer
     try {
-      await stripe.paymentMethods.attach(paymentMethodId, {
+      await getStripe().paymentMethods.attach(paymentMethodId, {
         customer: customerId,
       });
 
       // Définir comme méthode par défaut si demandé
       if (setAsDefault) {
-        await stripe.customers.update(customerId, {
+        await getStripe().customers.update(customerId, {
           invoice_settings: {
             default_payment_method: paymentMethodId,
           },
@@ -215,7 +221,7 @@ export async function DELETE(request: NextRequest) {
 
     // Détacher la méthode de paiement
     try {
-      await stripe.paymentMethods.detach(paymentMethodId);
+      await getStripe().paymentMethods.detach(paymentMethodId);
 
       logger.info('Payment method removed', {
         userId: user.id,

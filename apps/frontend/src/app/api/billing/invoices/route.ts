@@ -4,10 +4,16 @@ import { ApiResponseBuilder, getPaginationParams } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import Stripe from 'stripe';
 
-// Initialiser Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-10-29.clover',
-});
+// Initialisation paresseuse de Stripe
+let stripeInstance: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      apiVersion: '2025-10-29.clover',
+    });
+  }
+  return stripeInstance;
+}
 
 /**
  * GET /api/billing/invoices
@@ -52,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     // Récupérer les factures depuis Stripe
     try {
-      const invoices = await stripe.invoices.list({
+      const invoices = await getStripe().invoices.list({
         customer: profile.stripe_customer_id,
         limit: limit,
         starting_after: offset > 0 ? undefined : undefined, // Stripe utilise starting_after pour la pagination

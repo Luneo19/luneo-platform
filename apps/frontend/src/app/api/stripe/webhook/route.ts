@@ -4,10 +4,16 @@ import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
-// Initialiser Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-10-29.clover',
-});
+// Initialisation paresseuse de Stripe
+let stripeInstance: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      apiVersion: '2025-10-29.clover',
+    });
+  }
+  return stripeInstance;
+}
 
 /**
  * POST /api/stripe/webhook
@@ -38,7 +44,7 @@ export async function POST(request: NextRequest) {
         throw new Error('STRIPE_WEBHOOK_SECRET not configured');
       }
 
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
       logger.warn('Invalid Stripe webhook signature', {
         error: err.message,
