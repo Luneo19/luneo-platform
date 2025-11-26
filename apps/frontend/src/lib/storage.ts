@@ -133,6 +133,7 @@ async function uploadToS3(
     // Check if AWS SDK is available - use dynamic import with error handling
     let S3Client, PutObjectCommand;
     try {
+      // @ts-expect-error - Optional dependency, may not be installed
       const awsSdk = await import('@aws-sdk/client-s3');
       S3Client = awsSdk.S3Client;
       PutObjectCommand = awsSdk.PutObjectCommand;
@@ -289,6 +290,7 @@ async function deleteFromS3(path: string): Promise<DeleteResult> {
     // Check if AWS SDK is available - use dynamic import with error handling
     let S3Client, DeleteObjectCommand;
     try {
+      // @ts-expect-error - Optional dependency, may not be installed
       const awsSdk = await import('@aws-sdk/client-s3');
       S3Client = awsSdk.S3Client;
       DeleteObjectCommand = awsSdk.DeleteObjectCommand;
