@@ -1,10 +1,8 @@
 {
   "version": 2,
-  "framework": "nextjs",
   "buildCommand": "cd apps/frontend && bash vercel-build.sh",
   "installCommand": "echo 'Installation gérée par build script'",
   "outputDirectory": "apps/frontend/.next",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD apps/frontend/",
   "headers": [
     {
       "source": "/(.*)",
