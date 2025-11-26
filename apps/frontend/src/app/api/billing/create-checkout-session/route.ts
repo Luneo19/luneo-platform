@@ -38,9 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialiser Stripe
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-10-29.clover',
-    });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     // Configuration des Price IDs depuis les variables d'environnement
     // Prix mensuels: utilisent des Price IDs (price_xxx)
