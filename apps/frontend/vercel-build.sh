@@ -20,9 +20,9 @@ npm install --legacy-peer-deps 2>&1 | tail -100 || {
   npm install --legacy-peer-deps --force 2>&1 | tail -100
 }
 
-# Restaurer package.json
-mv package.json.backup package.json
-rm -f package.json.bak
+# Ne pas restaurer package.json car Vercel fait un npm install post-build
+# Le fichier sera restauré par git après le déploiement
+rm -f package.json.backup package.json.bak
 
 # Créer les dossiers pour les packages locaux APRÈS npm install
 echo "📁 Setting up local packages..."
