@@ -91,3 +91,4 @@ const nextConfig = {
 };
 
 export default withBundleAnalyzer(nextConfig);
+// Force rebuild Wed Nov 26 14:47:51 CET 2025
