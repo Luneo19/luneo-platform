@@ -42,20 +42,21 @@ export async function POST(request: NextRequest) {
       apiVersion: '2025-10-29.clover',
     });
 
-    // Configuration des Price IDs pour mensuel ET annuel
+    // Configuration des Price IDs depuis les variables d'environnement
+    // Ces IDs sont créés via le script setup-stripe-products.ts
     const planPrices: Record<string, { monthly: string | null; yearly: string | null }> = {
-      starter: { monthly: null, yearly: null },
+      starter: { monthly: null, yearly: null }, // Plan gratuit, pas de paiement
       professional: {
-        monthly: process.env.STRIPE_PRICE_PRO || 'price_PRO_MONTHLY',
-        yearly: 'price_PRO_MONTHLY', // Utilise le même Price ID mensuel, prix annuel sera créé dynamiquement
+        monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || null,
+        yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY || null,
       },
       business: {
-        monthly: 'price_BUSINESS_MONTHLY',
-        yearly: 'price_BUSINESS_MONTHLY',
+        monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || null,
+        yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY || null,
       },
       enterprise: {
-        monthly: 'price_ENTERPRISE_MONTHLY',
-        yearly: 'price_ENTERPRISE_MONTHLY',
+        monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || null,
+        yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || null,
       },
     };
 
@@ -131,50 +132,8 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Pour annuel, créer un prix custom avec le montant annuel correct
-    if (billing === 'yearly' && priceId && planId !== 'starter' && sessionConfig.line_items) {
-      try {
-        // Récupérer le Product ID depuis le Price ID existant
-        const priceDetails = await stripe.prices.retrieve(priceId);
-        const productId =
-          typeof priceDetails.product === 'string' ? priceDetails.product : priceDetails.product.id;
-
-        // Montants annuels avec -20%
-        const yearlyAmounts: Record<string, number> = {
-          professional: 27840, // 278.40€ en centimes
-          business: 56640, // 566.40€ en centimes
-          enterprise: 95040, // 950.40€ en centimes
-        };
-
-        const yearlyAmount = yearlyAmounts[planId as keyof typeof yearlyAmounts];
-
-        if (productId && yearlyAmount && sessionConfig.line_items[0]) {
-          // Créer un prix annuel avec le bon montant
-          const yearlyPrice = await stripe.prices.create({
-            product: productId,
-            unit_amount: yearlyAmount,
-            currency: 'eur',
-            recurring: {
-              interval: 'year',
-              interval_count: 1,
-            },
-            nickname: `${planId}-yearly-${Date.now()}`,
-          });
-
-          // Utiliser ce prix annuel
-          sessionConfig.line_items[0].price = yearlyPrice.id;
-        }
-      } catch (stripeError: any) {
-        logger.error('Error creating yearly price', stripeError, {
-          planId,
-          priceId,
-        });
-        // Continuer avec le prix mensuel si la création du prix annuel échoue
-        logger.warn('Falling back to monthly price for yearly subscription', {
-          planId,
-        });
-      }
-    }
+    // Les prix annuels sont maintenant pré-configurés dans Stripe
+    // Plus besoin de les créer dynamiquement
 
     // Créer la session
     let session: Stripe.Checkout.Session;
