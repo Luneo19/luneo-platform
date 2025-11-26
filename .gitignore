@@ -84,6 +84,8 @@ dist
 # Gatsby files
 .cache/
 public
+# But not api/public routes
+!apps/frontend/src/app/api/public/
 
 # Storybook build outputs
 .out
