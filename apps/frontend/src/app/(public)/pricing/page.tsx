@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check,
@@ -34,6 +34,8 @@ import {
   BarChart3,
   Infinity,
   Phone,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -44,6 +46,7 @@ import {
   type PlanTier,
 } from '@luneo/billing-plans';
 import { logger } from '@/lib/logger';
+import { usePricingPlans } from '@/lib/hooks/useMarketingData';
 
 // ============================================
 // TYPES
@@ -667,12 +670,67 @@ function PricingCard({
 export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-  const [loading, setLoading] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  // Récupérer les plans depuis l'API (Stripe ou fallback)
+  const { 
+    plans: dynamicPlans, 
+    loading: plansLoading, 
+    error: plansError,
+    stripeEnabled,
+    refresh: refreshPlans 
+  } = usePricingPlans({ interval: billingPeriod });
+
+  // Fusionner les plans dynamiques avec les données marketing statiques
+  const mergedPlans = useMemo(() => {
+    if (dynamicPlans.length === 0) {
+      // Fallback aux plans statiques si l'API échoue
+      return PLANS;
+    }
+
+    // Mapper les plans dynamiques avec les présentations marketing
+    return dynamicPlans.map((dynamicPlan) => {
+      // Trouver le plan statique correspondant
+      const staticPlan = PLANS.find(
+        (p) => p.tier === dynamicPlan.id || p.name.toLowerCase() === dynamicPlan.name.toLowerCase()
+      );
+
+      if (staticPlan) {
+        // Fusionner les prix dynamiques avec les données marketing statiques
+        return {
+          ...staticPlan,
+          priceMonthly: dynamicPlan.price.monthly ?? staticPlan.priceMonthly,
+          yearlyPrice: dynamicPlan.price.yearly ?? staticPlan.yearlyPrice,
+          // Garder les features du plan statique si dynamique n'en a pas
+          features: dynamicPlan.features.length > 0 
+            ? dynamicPlan.features.map((f) => ({ name: f.name, included: f.included }))
+            : staticPlan.features,
+        };
+      }
+
+      // Si pas de correspondance, créer un nouveau plan
+      return {
+        tier: dynamicPlan.id as PlanTier,
+        name: dynamicPlan.name,
+        icon: <Sparkles className="w-6 h-6" />,
+        description: dynamicPlan.description,
+        gradient: 'from-gray-500 to-gray-600',
+        cta: 'Commencer',
+        planId: dynamicPlan.id,
+        priceMonthly: dynamicPlan.price.monthly ?? 0,
+        yearlyPrice: dynamicPlan.price.yearly ?? 0,
+        yearlyDiscount: 0.2,
+        features: dynamicPlan.features.map((f) => ({ name: f.name, included: f.included })),
+        quotas: [],
+        popular: dynamicPlan.popular,
+      };
+    });
+  }, [dynamicPlans]);
 
   const handleCheckout = useCallback(async (planId: string, isYearly: boolean) => {
-    if (!planId || loading === planId) return;
+    if (!planId || checkoutLoading === planId) return;
 
-    setLoading(planId);
+    setCheckoutLoading(planId);
     
     try {
       let userEmail: string | undefined;
@@ -685,7 +743,7 @@ export default function PricingPage() {
         logger.debug('Utilisateur non connecté', { planId });
       }
 
-      logger.info('Création session checkout', { planId, billing: isYearly ? 'yearly' : 'monthly' });
+      logger.info('Création session checkout', { planId, billing: isYearly ? 'yearly' : 'monthly', stripeEnabled });
 
       const response = await fetch('/api/billing/create-checkout-session', {
         method: 'POST',
@@ -706,19 +764,20 @@ export default function PricingPage() {
       const checkoutUrl = data.url || (data.success && data.url);
       
       if (checkoutUrl) {
-        setLoading(null);
+        setCheckoutLoading(null);
         setTimeout(() => {
           window.location.href = checkoutUrl;
         }, 100);
       } else {
         throw new Error('URL de checkout non reçue');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       logger.error('Erreur checkout', { error, planId });
-      setLoading(null);
-      alert(`Erreur: ${error.message}\n\nSi le problème persiste, contactez le support.`);
+      setCheckoutLoading(null);
+      alert(`Erreur: ${errorMessage}\n\nSi le problème persiste, contactez le support.`);
     }
-  }, [loading]);
+  }, [checkoutLoading, stripeEnabled]);
 
   const toggleFAQ = useCallback((index: number) => {
     setOpenFaqIndex(prev => prev === index ? null : index);
@@ -807,23 +866,57 @@ export default function PricingPage() {
           </motion.div>
 
           {/* Plans Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4 xl:gap-6">
-            {PLANS.map((plan, index) => (
-              <motion.div
-                key={plan.tier}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
+          {plansLoading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-4" />
+              <p className="text-gray-400">Chargement des plans...</p>
+            </div>
+          ) : plansError ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+              <p className="text-gray-400 mb-4">Erreur lors du chargement des plans</p>
+              <Button 
+                onClick={() => refreshPlans()}
+                variant="outline"
+                className="border-purple-500/50 text-purple-400"
               >
-                <PricingCard
-                  plan={plan}
-                  billingPeriod={billingPeriod}
-                  loading={loading}
-                  onCheckout={handleCheckout}
-                />
-              </motion.div>
-            ))}
-          </div>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Réessayer
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4 xl:gap-6">
+              {mergedPlans.map((plan, index) => (
+                <motion.div
+                  key={plan.tier}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
+                >
+                  <PricingCard
+                    plan={plan}
+                    billingPeriod={billingPeriod}
+                    loading={checkoutLoading}
+                    onCheckout={handleCheckout}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* Stripe Status Badge */}
+          {stripeEnabled && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-6 flex justify-center"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-xs text-green-400">Paiements sécurisés par Stripe</span>
+              </div>
+            </motion.div>
+          )}
 
           {/* Enterprise CTA */}
           <motion.div

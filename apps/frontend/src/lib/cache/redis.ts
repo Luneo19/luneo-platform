@@ -253,4 +253,6 @@ export const cacheTTL = {
   dashboardStats: 300, // 5 minutes
   templates: 3600, // 1 heure
   products: 600, // 10 minutes
+  publicMarketing: 3600, // 1 heure pour les données marketing publiques
+  pricingPlans: 3600, // 1 heure pour les plans de pricing
 };
