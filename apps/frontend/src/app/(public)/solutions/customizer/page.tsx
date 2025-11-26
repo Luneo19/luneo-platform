@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Palette,
   Type,
@@ -18,7 +18,6 @@ import {
   Share2,
   Square,
   Circle,
-  Triangle,
   Star,
   Heart,
   Settings,
@@ -27,236 +26,954 @@ import {
   Trash2,
   Play,
   FileText,
+  Code,
+  Webhook,
+  Users,
+  Building2,
+  ShoppingCart,
+  Shirt,
+  Package,
+  CreditCard,
+  TrendingUp,
+  Clock,
+  Shield,
+  Globe,
+  Smartphone,
+  Monitor,
+  Tablet,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  MousePointer,
+  Minus,
+  Plus,
+  Undo2,
+  Redo2,
+  Grid3X3,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  Move,
+  Crop,
+  Paintbrush,
+  Wand2,
+  Upload,
+  FolderOpen,
+  Save,
+  Printer,
+  Hexagon,
+  Triangle,
+  Pentagon,
+  Octagon,
+  MessageCircle,
+  Calculator,
+  BarChart3,
+  Gift,
+  Award,
+  BadgeCheck,
+  Headphones,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-const DemoCustomizer = dynamic(
-  () => import('@/components/Customizer/ProductCustomizer').then((mod) => ({ default: mod.ProductCustomizer })),
-  { ssr: false }
-);
+// ============================================
+// TYPES
+// ============================================
 
-const toolColorStyles = {
-  blue: { border: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400' },
-  purple: { border: 'border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-400' },
-  green: { border: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
-  orange: { border: 'border-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-400' },
-  pink: { border: 'border-pink-500', bg: 'bg-pink-500/10', text: 'text-pink-400' },
-  cyan: { border: 'border-cyan-500', bg: 'bg-cyan-500/10', text: 'text-cyan-400' },
-};
+interface CanvasElement {
+  id: string;
+  type: 'text' | 'shape' | 'image' | 'clipart';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  content?: string;
+  color?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  shapeType?: string;
+}
 
-type ToolColor = keyof typeof toolColorStyles;
+interface FAQ {
+  question: string;
+  answer: string;
+}
 
-export default function CustomizerPage() {
-  const [activeTool, setActiveTool] = useState<string>('text');
-  const [canvasElements, setCanvasElements] = useState<number>(0);
-  const [lastAddedElement, setLastAddedElement] = useState<string | null>(null);
-  const [showDemo, setShowDemo] = useState(false);
-  const demoProductImage =
-    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=1200&auto=format&fit=crop&q=80';
+interface UseCase {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  metrics: string;
+  industry: string;
+  gradient: string;
+}
 
-  const features = [
-    {
-      icon: <Palette className="w-6 h-6" />,
-      title: 'Éditeur Visuel Puissant',
-      description: 'Interface Konva.js intuitive pour personnaliser produits 2D en temps réel avec multi-layers.',
-    },
-    {
-      icon: <Type className="w-6 h-6" />,
-      title: 'Texte Avancé',
-      description: 'Polices Google Fonts, courbes Bézier, effets outline/shadow, transformation 3D.',
-    },
-    {
-      icon: <ImageIcon className="w-6 h-6" />,
-      title: 'Images & Cliparts',
-      description: 'Upload photos, bibliothèque 10,000+ cliparts, filtres, masques, blend modes.',
-    },
-    {
-      icon: <Square className="w-6 h-6" />,
-      title: 'Formes Vectorielles',
-      description: 'Rectangles, cercles, polygones, courbes Bézier, import SVG avec édition.',
-    },
-    {
-      icon: <Layers className="w-6 h-6" />,
-      title: 'Layers Professionnel',
-      description: 'Gestion layers Photoshop-style, groupes, lock, visibilité, ordre z-index.',
-    },
-    {
-      icon: <Eye className="w-6 h-6" />,
-      title: 'Preview 3D Mockup',
-      description: 'Aperçu temps réel sur mockup 3D T-shirt, mug, affiche, 50+ templates.',
-    },
-    {
-      icon: <Download className="w-6 h-6" />,
-      title: 'Export Print-Ready',
-      description: 'PNG/PDF 300 DPI, CMYK conversion, bleed 3mm, crop marks pour imprimeurs.',
-    },
-    {
-      icon: <Share2 className="w-6 h-6" />,
-      title: 'Collaboration Temps Réel',
-      description: 'Multi-users editing simultané avec WebSockets, cursors visibles, chat intégré.',
-    },
-  ];
+interface Testimonial {
+  quote: string;
+  author: string;
+  role: string;
+  company: string;
+  avatar: string;
+  metric: string;
+  metricLabel: string;
+}
 
-  const tools: Array<{ id: string; name: string; icon: React.ReactNode; color: ToolColor }> = [
-    { id: 'text', name: 'Texte', icon: <Type className="w-5 h-5" />, color: 'blue' },
-    { id: 'image', name: 'Image', icon: <ImageIcon className="w-5 h-5" />, color: 'purple' },
-    { id: 'shapes', name: 'Formes', icon: <Square className="w-5 h-5" />, color: 'green' },
-    { id: 'clipart', name: 'Cliparts', icon: <Star className="w-5 h-5" />, color: 'orange' },
-    { id: 'filter', name: 'Filtres', icon: <Sparkles className="w-5 h-5" />, color: 'pink' },
-    { id: 'layers', name: 'Layers', icon: <Layers className="w-5 h-5" />, color: 'cyan' },
-  ];
+// ============================================
+// CONSTANTS
+// ============================================
 
-  const shapes = [
-    { Icon: Square, name: 'Rectangle' },
-    { Icon: Circle, name: 'Cercle' },
-    { Icon: Triangle, name: 'Triangle' },
-    { Icon: Star, name: 'Étoile' },
-    { Icon: Heart, name: 'Coeur' },
-  ];
+const TOOL_CATEGORIES = [
+  {
+    id: 'select',
+    name: 'Sélection',
+    icon: <MousePointer className="w-5 h-5" />,
+    color: 'gray',
+    shortcut: 'V',
+  },
+  {
+    id: 'text',
+    name: 'Texte',
+    icon: <Type className="w-5 h-5" />,
+    color: 'blue',
+    shortcut: 'T',
+  },
+  {
+    id: 'image',
+    name: 'Image',
+    icon: <ImageIcon className="w-5 h-5" />,
+    color: 'purple',
+    shortcut: 'I',
+  },
+  {
+    id: 'shapes',
+    name: 'Formes',
+    icon: <Square className="w-5 h-5" />,
+    color: 'green',
+    shortcut: 'S',
+  },
+  {
+    id: 'clipart',
+    name: 'Cliparts',
+    icon: <Star className="w-5 h-5" />,
+    color: 'orange',
+    shortcut: 'C',
+  },
+  {
+    id: 'brush',
+    name: 'Pinceau',
+    icon: <Paintbrush className="w-5 h-5" />,
+    color: 'pink',
+    shortcut: 'B',
+  },
+];
 
-  const exportFormats = [
-    { format: 'PNG', dpi: '300 DPI', use: 'Web & Print' },
-    { format: 'PDF', dpi: '300 DPI', use: 'Print Pro' },
-    { format: 'SVG', dpi: 'Vector', use: 'Scalable' },
-    { format: 'PDF/X-4', dpi: '300 DPI', use: 'Imprimeurs' },
-  ];
+const SHAPES = [
+  { id: 'rectangle', name: 'Rectangle', icon: <Square className="w-5 h-5" /> },
+  { id: 'circle', name: 'Cercle', icon: <Circle className="w-5 h-5" /> },
+  { id: 'triangle', name: 'Triangle', icon: <Triangle className="w-5 h-5" /> },
+  { id: 'star', name: 'Étoile', icon: <Star className="w-5 h-5" /> },
+  { id: 'heart', name: 'Cœur', icon: <Heart className="w-5 h-5" /> },
+  { id: 'hexagon', name: 'Hexagone', icon: <Hexagon className="w-5 h-5" /> },
+];
 
-  const benefits = [
-    {
-      title: 'Engagement',
-      stat: 'x5',
-      description: 'Temps sur site',
-      color: 'from-blue-500 to-cyan-500',
-    },
-    {
-      title: 'Conversions',
-      stat: '+45%',
-      description: 'Taux achat',
-      color: 'from-purple-500 to-pink-500',
-    },
-    {
-      title: 'Panier',
-      stat: '+32%',
-      description: 'Valeur moyenne',
-      color: 'from-green-500 to-teal-500',
-    },
-    {
-      title: 'Retours',
-      stat: '-48%',
-      description: 'Moins erreurs',
-      color: 'from-orange-500 to-red-500',
-    },
-  ];
+const CLIPARTS = ['🎨', '⭐', '💎', '🔥', '🚀', '💪', '👑', '🎯', '💡', '🎵', '🌟', '❤️'];
 
-  const pricingPlans = [
-    {
-      name: 'Starter',
-      price: '29',
-      designs: '100',
-      features: ['Éditeur basique', 'Texte + Images', 'Export PNG', 'Templates (10)', 'Support email'],
-    },
-    {
-      name: 'Pro',
-      price: '79',
-      designs: '1000',
-      features: ['Tout Starter +', 'Toutes formes + cliparts', 'Export PDF/SVG print', 'Templates (100)', 'Collaboration temps réel', 'Analytics', 'Support prioritaire'],
-      popular: true,
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      designs: 'Illimité',
-      features: ['Tout Pro +', 'White-label complet', 'API custom', 'Intégration CRM/ERP', 'Workflow automation', 'SLA 99.99%', 'Support dédié 24/7'],
-    },
-  ];
+const FONTS = [
+  'Arial',
+  'Helvetica',
+  'Georgia',
+  'Times New Roman',
+  'Courier New',
+  'Verdana',
+  'Impact',
+  'Comic Sans MS',
+];
 
-  const handleAddElement = (type: string) => {
-    setCanvasElements(prev => prev + 1);
-    setLastAddedElement(type);
-  };
+const COLORS = [
+  '#000000', '#FFFFFF', '#EF4444', '#F97316', '#EAB308', 
+  '#22C55E', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280',
+];
+
+const EXPORT_FORMATS = [
+  { format: 'PNG', dpi: '300 DPI', description: 'Web & Print haute qualité', icon: <ImageIcon className="w-5 h-5" /> },
+  { format: 'PDF', dpi: '300 DPI', description: 'Documents professionnels', icon: <FileText className="w-5 h-5" /> },
+  { format: 'SVG', dpi: 'Vectoriel', description: 'Scalable à l\'infini', icon: <Wand2 className="w-5 h-5" /> },
+  { format: 'PDF/X-4', dpi: 'CMYK', description: 'Standard imprimeurs', icon: <Printer className="w-5 h-5" /> },
+];
+
+const FEATURES = [
+  {
+    icon: <Palette className="w-6 h-6" />,
+    title: 'Éditeur Canvas Professionnel',
+    description: 'Interface Konva.js optimisée avec multi-layers, groupes, masques et blend modes. Performance 60 FPS garantie.',
+    highlight: 'Konva.js',
+  },
+  {
+    icon: <Type className="w-6 h-6" />,
+    title: 'Texte Avancé',
+    description: 'Google Fonts (1000+ polices), courbes de Bézier, effets outline/shadow/glow, déformation 3D, texte sur chemin.',
+    highlight: '1000+ polices',
+  },
+  {
+    icon: <ImageIcon className="w-6 h-6" />,
+    title: 'Images & Cliparts',
+    description: 'Upload drag & drop, bibliothèque 15,000+ cliparts, filtres Instagram-style, crop intelligent, remove background IA.',
+    highlight: '15K+ cliparts',
+  },
+  {
+    icon: <Square className="w-6 h-6" />,
+    title: 'Formes Vectorielles',
+    description: 'Rectangles, cercles, polygones, courbes Bézier personnalisées, import/export SVG avec édition point par point.',
+    highlight: 'Import SVG',
+  },
+  {
+    icon: <Layers className="w-6 h-6" />,
+    title: 'Layers Pro',
+    description: 'Gestion Photoshop-style avec groupes, verrouillage, visibilité, blend modes (multiply, screen, overlay...).',
+    highlight: 'Blend modes',
+  },
+  {
+    icon: <Eye className="w-6 h-6" />,
+    title: 'Preview 3D Temps Réel',
+    description: 'Visualisez votre design sur 75+ mockups 3D (t-shirts, mugs, affiches, packaging) avec rotation 360°.',
+    highlight: '75+ mockups',
+  },
+  {
+    icon: <Download className="w-6 h-6" />,
+    title: 'Export Print-Ready',
+    description: 'PNG/PDF/SVG 300 DPI, conversion CMYK automatique, bleed 3mm, crop marks, profils ICC (ISO Coated v2).',
+    highlight: 'CMYK auto',
+  },
+  {
+    icon: <Users className="w-6 h-6" />,
+    title: 'Collaboration Temps Réel',
+    description: 'Multi-utilisateurs simultanés via WebSocket, curseurs visibles, chat intégré, commentaires sur éléments.',
+    highlight: 'WebSocket',
+  },
+];
+
+const USE_CASES: UseCase[] = [
+  {
+    icon: <Shirt className="w-8 h-8" />,
+    title: 'Print-on-Demand',
+    description: 'Permettez à vos clients de personnaliser t-shirts, hoodies, mugs. Export auto vers Printful/Printify.',
+    metrics: '+340% conversions',
+    industry: 'E-commerce POD',
+    gradient: 'from-blue-500 to-cyan-500',
+  },
+  {
+    icon: <CreditCard className="w-8 h-8" />,
+    title: 'Cartes de Visite',
+    description: 'Éditeur de cartes professionnelles avec templates, bleed automatique et export PDF/X-4.',
+    metrics: '2M+ cartes/mois',
+    industry: 'Imprimerie',
+    gradient: 'from-purple-500 to-pink-500',
+  },
+  {
+    icon: <Package className="w-8 h-8" />,
+    title: 'Packaging Custom',
+    description: 'Personnalisation de boîtes, étiquettes, emballages avec aperçu 3D du packaging final.',
+    metrics: '-60% erreurs',
+    industry: 'Packaging',
+    gradient: 'from-green-500 to-teal-500',
+  },
+  {
+    icon: <Gift className="w-8 h-8" />,
+    title: 'Cadeaux Personnalisés',
+    description: 'Gravure et impression sur bijoux, verres, plaques avec prévisualisation réaliste.',
+    metrics: '+85% panier moyen',
+    industry: 'Cadeaux',
+    gradient: 'from-orange-500 to-red-500',
+  },
+];
+
+const TESTIMONIALS: Testimonial[] = [
+  {
+    quote: "Le customizer Luneo a transformé notre business. Nos clients adorent créer leurs propres designs et le taux de retour a chuté de 45%.",
+    author: 'Marie Dupont',
+    role: 'CEO',
+    company: 'PrintShop Pro',
+    avatar: 'MD',
+    metric: '+340%',
+    metricLabel: 'Conversions',
+  },
+  {
+    quote: "L'intégration avec notre Shopify a pris 2 heures. Maintenant nos clients personnalisent 500+ produits par jour sans aucun souci.",
+    author: 'Thomas Bernard',
+    role: 'CTO',
+    company: 'CustomTees France',
+    avatar: 'TB',
+    metric: '2h',
+    metricLabel: 'Intégration',
+  },
+  {
+    quote: "Le support technique est exceptionnel. Chaque fois que j'ai eu une question, j'ai eu une réponse en moins d'une heure.",
+    author: 'Sophie Martin',
+    role: 'E-commerce Manager',
+    company: 'GiftBox',
+    avatar: 'SM',
+    metric: '<1h',
+    metricLabel: 'Réponse support',
+  },
+];
+
+const FAQS: FAQ[] = [
+  {
+    question: "Quels types de produits puis-je personnaliser ?",
+    answer: "Notre customizer supporte 75+ types de produits : t-shirts, hoodies, mugs, affiches, cartes de visite, stickers, coques téléphone, tote bags, packaging, et bien plus. Vous pouvez aussi créer vos propres templates personnalisés avec notre éditeur de mockups.",
+  },
+  {
+    question: "Mes clients peuvent-ils uploader leurs propres images ?",
+    answer: "Absolument ! Upload illimité d'images via drag & drop avec validation automatique (format, taille min/max, résolution). Notre IA optimise automatiquement les images pour l'impression (upscaling 300 DPI) et peut même supprimer les arrière-plans.",
+  },
+  {
+    question: "Comment fonctionne la collaboration temps réel ?",
+    answer: "Grâce aux WebSockets, plusieurs utilisateurs peuvent éditer le même design simultanément. Vous voyez les curseurs des autres en temps réel, pouvez commenter des éléments spécifiques, et chatter. Parfait pour les équipes créatives et les revues client.",
+  },
+  {
+    question: "L'export print est-il vraiment professionnel ?",
+    answer: "Oui ! Nos exports respectent les standards de l'industrie : PDF/X-4 avec CMYK (profil ISO Coated v2), 300 DPI minimum, bleed 3mm automatique, crop marks et registration marks. Accepté par 99% des imprimeurs professionnels.",
+  },
+  {
+    question: "Quelles intégrations e-commerce supportez-vous ?",
+    answer: "Intégrations natives avec Shopify, WooCommerce, Magento 2, PrestaShop, BigCommerce. Pour les autres plateformes, notre API REST complète et nos webhooks permettent une intégration custom en quelques heures.",
+  },
+  {
+    question: "Puis-je personnaliser l'interface pour ma marque ?",
+    answer: "Avec le plan Business et Enterprise, vous avez accès au white-label complet : logo, couleurs, domaine personnalisé, suppression des mentions Luneo. L'éditeur s'intègre parfaitement à votre identité visuelle.",
+  },
+];
+
+const COMPARISON_FEATURES = [
+  { name: 'Canvas Engine', luneo: 'Konva.js Pro', zakeke: 'Non spécifié', canva: 'Propriétaire' },
+  { name: 'Outils disponibles', luneo: '12+ outils', zakeke: '6 outils', canva: '20+ outils' },
+  { name: 'Collaboration temps réel', luneo: true, zakeke: false, canva: true },
+  { name: 'Versioning designs', luneo: true, zakeke: false, canva: 'Limité' },
+  { name: 'Export PDF/X-4 CMYK', luneo: true, zakeke: 'Basique', canva: false },
+  { name: 'Preview 3D Mockups', luneo: '75+ mockups', zakeke: 'Basique', canva: false },
+  { name: 'API complète', luneo: true, zakeke: true, canva: 'Limité' },
+  { name: 'White-label', luneo: true, zakeke: true, canva: false },
+  { name: 'Intégration POD', luneo: 'Printful, Gelato, etc.', zakeke: 'Limité', canva: false },
+  { name: 'Prix / mois', luneo: 'À partir de 29€', zakeke: 'À partir de 99€', canva: '12€ (pas POD)' },
+];
+
+// ============================================
+// COMPONENTS
+// ============================================
+
+// Interactive Demo Canvas
+function DemoCanvas() {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [activeTool, setActiveTool] = useState('select');
+  const [selectedShape, setSelectedShape] = useState('rectangle');
+  const [elements, setElements] = useState<CanvasElement[]>([
+    { id: '1', type: 'text', x: 200, y: 150, width: 200, height: 50, rotation: 0, content: 'Votre Texte', color: '#8B5CF6', fontSize: 32, fontFamily: 'Arial' },
+  ]);
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
+  const [currentColor, setCurrentColor] = useState('#8B5CF6');
+  const [fontSize, setFontSize] = useState(32);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const addElement = useCallback((type: string, options?: Partial<CanvasElement>) => {
+    const newElement: CanvasElement = {
+      id: `${type}-${Date.now()}`,
+      type: type as CanvasElement['type'],
+      x: 150 + Math.random() * 100,
+      y: 150 + Math.random() * 100,
+      width: type === 'text' ? 200 : 100,
+      height: type === 'text' ? 50 : 100,
+      rotation: 0,
+      color: currentColor,
+      ...options,
+    };
+
+    if (type === 'text') {
+      newElement.content = 'Nouveau Texte';
+      newElement.fontSize = fontSize;
+      newElement.fontFamily = 'Arial';
+    } else if (type === 'shape') {
+      newElement.shapeType = selectedShape;
+    } else if (type === 'clipart') {
+      newElement.content = options?.content || '⭐';
+      newElement.fontSize = 48;
+    }
+
+    setElements(prev => [...prev, newElement]);
+    setSelectedElement(newElement.id);
+    setCanUndo(true);
+  }, [currentColor, fontSize, selectedShape]);
+
+  const deleteSelected = useCallback(() => {
+    if (selectedElement) {
+      setElements(prev => prev.filter(el => el.id !== selectedElement));
+      setSelectedElement(null);
+      setCanUndo(true);
+    }
+  }, [selectedElement]);
+
+  const duplicateSelected = useCallback(() => {
+    const element = elements.find(el => el.id === selectedElement);
+    if (element) {
+      const newElement = {
+        ...element,
+        id: `${element.type}-${Date.now()}`,
+        x: element.x + 20,
+        y: element.y + 20,
+      };
+      setElements(prev => [...prev, newElement]);
+      setSelectedElement(newElement.id);
+      setCanUndo(true);
+    }
+  }, [elements, selectedElement]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8">
+    <Card className="bg-gray-900/80 border-purple-500/30 backdrop-blur-sm overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
+        {/* Left Toolbar */}
+        <div className="lg:col-span-1 bg-gray-950 p-2 flex lg:flex-col gap-1 border-b lg:border-b-0 lg:border-r border-gray-800">
+          {TOOL_CATEGORIES.map((tool) => (
+            <button
+              key={tool.id}
+              onClick={() => setActiveTool(tool.id)}
+              className={`p-2 lg:p-3 rounded-lg transition-all relative group ${
+                activeTool === tool.id
+                  ? 'bg-purple-600 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+              title={`${tool.name} (${tool.shortcut})`}
+            >
+              {tool.icon}
+              <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 hidden lg:block">
+                {tool.name}
+              </span>
+            </button>
+          ))}
+
+          <div className="h-px lg:h-auto lg:w-px bg-gray-700 my-1 lg:my-2 lg:mx-auto" />
+
+          {/* Quick Actions */}
+          <button
+            onClick={() => setCanUndo(false)}
+            disabled={!canUndo}
+            className="p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Annuler (Ctrl+Z)"
+          >
+            <Undo2 className="w-5 h-5" />
+          </button>
+          <button
+            disabled={!canRedo}
+            className="p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Rétablir (Ctrl+Y)"
+          >
+            <Redo2 className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Canvas Area */}
+        <div className="lg:col-span-8 bg-gray-800/50 p-4 lg:p-6 flex flex-col">
+          {/* Canvas Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-gray-400 px-2">100%</span>
+              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+                <ZoomIn className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+                <Maximize2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Canvas */}
+          <div 
+            ref={canvasRef}
+            className="flex-1 bg-white rounded-lg relative overflow-hidden shadow-2xl"
+            style={{ minHeight: '400px' }}
+            onClick={(e) => {
+              if (e.target === canvasRef.current) {
+                setSelectedElement(null);
+              }
+            }}
+          >
+            {/* Grid Pattern */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:20px_20px]" />
+
+            {/* Elements */}
+            {elements.map((element) => (
+              <motion.div
+                key={element.id}
+                className={`absolute cursor-move ${
+                  selectedElement === element.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                }`}
+                style={{
+                  left: element.x,
+                  top: element.y,
+                  transform: `rotate(${element.rotation}deg)`,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedElement(element.id);
+                }}
+                drag
+                dragMomentum={false}
+                onDragEnd={(_, info) => {
+                  setElements(prev => prev.map(el => 
+                    el.id === element.id 
+                      ? { ...el, x: el.x + info.offset.x, y: el.y + info.offset.y }
+                      : el
+                  ));
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {element.type === 'text' && (
+                  <div
+                    style={{
+                      color: element.color,
+                      fontSize: element.fontSize,
+                      fontFamily: element.fontFamily,
+                    }}
+                    className="font-bold whitespace-nowrap select-none"
+                  >
+                    {element.content}
+                  </div>
+                )}
+                {element.type === 'shape' && (
+                  <div
+                    style={{
+                      width: element.width,
+                      height: element.height,
+                      backgroundColor: element.color,
+                      borderRadius: element.shapeType === 'circle' ? '50%' : element.shapeType === 'rectangle' ? '8px' : '0',
+                      clipPath: element.shapeType === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 
+                                element.shapeType === 'star' ? 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' :
+                                element.shapeType === 'heart' ? 'path("M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z")' :
+                                undefined,
+                    }}
+                  />
+                )}
+                {element.type === 'clipart' && (
+                  <div style={{ fontSize: element.fontSize }} className="select-none">
+                    {element.content}
+                  </div>
+                )}
+              </motion.div>
+            ))}
+
+            {/* Empty State */}
+            {elements.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                <div className="text-center">
+                  <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="font-medium">Cliquez sur un outil pour commencer</p>
+                  <p className="text-sm mt-1">ou glissez une image ici</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Canvas Footer */}
+          <div className="flex items-center justify-between mt-4 text-sm text-gray-400">
+            <span>Canvas: 800 × 600 px</span>
+            <span>{elements.length} élément{elements.length > 1 ? 's' : ''}</span>
+          </div>
+        </div>
+
+        {/* Right Panel */}
+        <div className="lg:col-span-3 bg-gray-900 p-4 border-t lg:border-t-0 lg:border-l border-gray-800 overflow-y-auto">
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+            <Settings className="w-4 h-4 text-purple-400" />
+            Propriétés
+          </h3>
+
+          {/* Tool-specific options */}
+          {activeTool === 'text' && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Police</label>
+                <select className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm">
+                  {FONTS.map(font => (
+                    <option key={font} value={font}>{font}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Taille: {fontSize}px</label>
+                <input
+                  type="range"
+                  min="12"
+                  max="120"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(Number(e.target.value))}
+                  className="w-full accent-purple-500"
+                />
+              </div>
+              <Button
+                onClick={() => addElement('text')}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter Texte
+              </Button>
+            </div>
+          )}
+
+          {activeTool === 'shapes' && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Type de forme</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {SHAPES.map(shape => (
+                    <button
+                      key={shape.id}
+                      onClick={() => setSelectedShape(shape.id)}
+                      className={`p-3 rounded-lg border transition-all ${
+                        selectedShape === shape.id
+                          ? 'border-green-500 bg-green-500/10 text-green-400'
+                          : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                      }`}
+                    >
+                      {shape.icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button
+                onClick={() => addElement('shape', { shapeType: selectedShape })}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter Forme
+              </Button>
+            </div>
+          )}
+
+          {activeTool === 'clipart' && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Cliparts populaires</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {CLIPARTS.map((emoji, i) => (
+                    <button
+                      key={i}
+                      onClick={() => addElement('clipart', { content: emoji })}
+                      className="p-3 text-2xl bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button variant="outline" className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Bibliothèque (15K+)
+              </Button>
+            </div>
+          )}
+
+          {activeTool === 'image' && (
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-purple-500 transition-colors cursor-pointer">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-500" />
+                <p className="text-sm text-gray-400">Glissez une image ou</p>
+                <p className="text-purple-400 text-sm font-medium">parcourir</p>
+              </div>
+              <p className="text-xs text-gray-500 text-center">
+                PNG, JPG, SVG jusqu'à 10MB
+              </p>
+            </div>
+          )}
+
+          {/* Color Picker - Always visible */}
+          <div className="mt-6 pt-6 border-t border-gray-800">
+            <label className="text-xs text-gray-400 mb-2 block">Couleur</label>
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              {COLORS.map(color => (
+                <button
+                  key={color}
+                  onClick={() => setCurrentColor(color)}
+                  className={`aspect-square rounded-lg border-2 transition-all ${
+                    currentColor === color
+                      ? 'border-white scale-110'
+                      : 'border-transparent hover:border-gray-600'
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+            <input
+              type="color"
+              value={currentColor}
+              onChange={(e) => setCurrentColor(e.target.value)}
+              className="w-full h-10 rounded-lg cursor-pointer"
+            />
+          </div>
+
+          {/* Element Actions */}
+          {selectedElement && (
+            <div className="mt-6 pt-6 border-t border-gray-800 space-y-2">
+              <p className="text-xs text-gray-400 mb-2">Actions élément</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={duplicateSelected} className="border-gray-700">
+                  <Copy className="w-4 h-4 mr-1" />
+                  Dupliquer
+                </Button>
+                <Button variant="outline" size="sm" onClick={deleteSelected} className="border-red-500/50 text-red-400 hover:bg-red-500/10">
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Supprimer
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Export */}
+          <div className="mt-6 pt-6 border-t border-gray-800">
+            <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+              <Download className="w-4 h-4 mr-2" />
+              Exporter Design
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ROI Calculator Component
+function ROICalculator() {
+  const [ordersPerMonth, setOrdersPerMonth] = useState(500);
+  const [avgOrderValue, setAvgOrderValue] = useState(45);
+  const [conversionIncrease, setConversionIncrease] = useState(35);
+
+  const calculations = useMemo(() => {
+    const additionalRevenue = ordersPerMonth * avgOrderValue * (conversionIncrease / 100);
+    const planCost = 79; // Pro plan
+    const roi = ((additionalRevenue - planCost) / planCost) * 100;
+    const yearlyRevenue = additionalRevenue * 12;
+
+    return {
+      additionalRevenue: Math.round(additionalRevenue),
+      roi: Math.round(roi),
+      yearlyRevenue: Math.round(yearlyRevenue),
+    };
+  }, [ordersPerMonth, avgOrderValue, conversionIncrease]);
+
+  return (
+    <Card className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-500/20 p-6 sm:p-8">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+          <Calculator className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-white">Calculateur de ROI</h3>
+          <p className="text-sm text-gray-400">Estimez l'impact du customizer sur votre business</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label className="block text-sm text-gray-400 mb-2">
+            Commandes/mois actuelles
+          </label>
+          <input
+            type="number"
+            value={ordersPerMonth}
+            onChange={(e) => setOrdersPerMonth(Number(e.target.value))}
+            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+            min="1"
+          />
+        </div>
+        <div>
+          <label className="block text-sm text-gray-400 mb-2">
+            Panier moyen (€)
+          </label>
+          <input
+            type="number"
+            value={avgOrderValue}
+            onChange={(e) => setAvgOrderValue(Number(e.target.value))}
+            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+            min="1"
+          />
+        </div>
+        <div>
+          <label className="block text-sm text-gray-400 mb-2">
+            Augmentation conversions (%)
+          </label>
+          <input
+            type="number"
+            value={conversionIncrease}
+            onChange={(e) => setConversionIncrease(Number(e.target.value))}
+            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+            min="1"
+            max="100"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-gray-800/50 rounded-xl p-4 text-center">
+          <TrendingUp className="w-6 h-6 text-green-400 mx-auto mb-2" />
+          <div className="text-2xl font-bold text-white">+{calculations.additionalRevenue}€</div>
+          <div className="text-xs text-gray-400">revenu additionnel/mois</div>
+        </div>
+        <div className="bg-gray-800/50 rounded-xl p-4 text-center">
+          <BarChart3 className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+          <div className="text-2xl font-bold text-white">{calculations.roi}%</div>
+          <div className="text-xs text-gray-400">ROI mensuel</div>
+        </div>
+        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl p-4 text-center border border-green-500/30">
+          <Gift className="w-6 h-6 text-green-400 mx-auto mb-2" />
+          <div className="text-2xl font-bold text-green-400">+{calculations.yearlyRevenue.toLocaleString('fr-FR')}€</div>
+          <div className="text-xs text-green-300">revenu additionnel/an</div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// FAQ Item Component
+function FAQItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggle: () => void }) {
+  return (
+    <div className="border border-gray-700/50 rounded-xl overflow-hidden bg-gray-800/30 backdrop-blur-sm">
+      <button
+        onClick={onToggle}
+        className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-gray-800/50 transition-colors"
+      >
+        <span className="font-semibold text-white text-sm sm:text-base pr-4">{faq.question}</span>
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="w-5 h-5 text-purple-400 flex-shrink-0" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="px-6 pb-5 text-gray-300 text-sm leading-relaxed border-t border-gray-700/50 pt-4">
+              {faq.answer}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+export default function CustomizerPage() {
+  const [showFullDemo, setShowFullDemo] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  const toggleFAQ = useCallback((index: number) => {
+    setOpenFaqIndex(prev => prev === index ? null : index);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-white">
+      {/* ============================================ */}
+      {/* HERO SECTION */}
+      {/* ============================================ */}
+      <section className="relative overflow-hidden py-16 sm:py-20 lg:py-28">
         {/* Animated Background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.1),transparent_50%)]" />
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(168,85,247,0.15),transparent_50%)]" />
           <motion.div
             className="absolute inset-0"
             animate={{
               background: [
-                'radial-gradient(circle at 20% 50%, rgba(168, 85, 247, 0.15) 0%, transparent 50%)',
-                'radial-gradient(circle at 80% 50%, rgba(236, 72, 153, 0.15) 0%, transparent 50%)',
-                'radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
-                'radial-gradient(circle at 20% 50%, rgba(168, 85, 247, 0.15) 0%, transparent 50%)',
+                'radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%)',
+                'radial-gradient(circle at 70% 50%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
+                'radial-gradient(circle at 50% 70%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
+                'radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%)',
               ],
             }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
           />
         </div>
 
-        <div className="relative max-w-7xl mx-auto text-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
+            className="text-center mb-12"
           >
+            {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-6">
               <Palette className="w-4 h-4 text-purple-400" />
               <span className="text-sm font-medium text-purple-400">Visual Product Customizer</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-              Personnalisation Produits
+            {/* Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 leading-tight">
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+                Personnalisation Produits
+              </span>
               <br />
-              Sans Limites
+              <span className="text-white">Sans Limites</span>
             </h1>
 
+            {/* Subtitle */}
             <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Éditeur visuel professionnel avec texte, images, formes, cliparts.
-              <br className="hidden sm:block" />
+              Éditeur canvas professionnel avec texte, images, formes, cliparts.{' '}
               <span className="text-purple-400 font-semibold">Export print 300 DPI</span> et{' '}
               <span className="text-pink-400 font-semibold">collaboration temps réel</span>.
             </p>
 
+            {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button
-                size="lg"
-                onClick={() => setShowDemo(true)}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg group"
-              >
-                <Play className="mr-2 w-5 h-5" />
-                Lancer la démo interactive
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Link href="/auth/register">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-purple-500/50 hover:bg-purple-500/10 px-8 py-6 text-lg"
-                >
-                  Commencer Gratuitement
+              <Link href="/register">
+                <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg font-semibold shadow-lg shadow-purple-500/25">
+                  Essai gratuit 14 jours
+                  <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => setShowFullDemo(true)}
+                className="w-full sm:w-auto border-purple-500/50 hover:bg-purple-500/10 px-8 py-6 text-lg"
+              >
+                <Play className="mr-2 w-5 h-5" />
+                Voir la démo live
+              </Button>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              {benefits.map((benefit, index) => (
+              {[
+                { stat: 'x5', label: 'Engagement', description: 'temps sur site' },
+                { stat: '+45%', label: 'Conversions', description: 'taux d\'achat' },
+                { stat: '+32%', label: 'Panier', description: 'valeur moyenne' },
+                { stat: '-48%', label: 'Retours', description: 'moins d\'erreurs' },
+              ].map((item, i) => (
                 <motion.div
-                  key={index}
+                  key={i}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
+                  transition={{ delay: 0.2 + i * 0.1 }}
                   className="text-center"
                 >
-                  <div className={`text-3xl sm:text-4xl font-bold bg-gradient-to-r ${benefit.color} bg-clip-text text-transparent mb-2`}>
-                    {benefit.stat}
-                  </div>
-                  <div className="text-sm font-semibold text-white mb-1">{benefit.title}</div>
-                  <div className="text-xs text-gray-400">{benefit.description}</div>
+                  <div className="text-3xl sm:text-4xl font-bold text-white mb-1">{item.stat}</div>
+                  <div className="text-sm font-semibold text-purple-400">{item.label}</div>
+                  <div className="text-xs text-gray-500">{item.description}</div>
                 </motion.div>
               ))}
             </div>
@@ -264,737 +981,523 @@ export default function CustomizerPage() {
         </div>
       </section>
 
-      {/* Interactive Canvas Demo */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
+      {/* ============================================ */}
+      {/* INTERACTIVE DEMO */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-7xl mx-auto">
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-10"
           >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Éditeur Interactif
-            </h2>
-            <p className="text-xl text-gray-300">
-              Cliquez sur les outils pour ajouter des éléments au canvas
-            </p>
-          </motion.div>
-
-          <Card className="bg-gray-900/50 border-purple-500/20 p-8 backdrop-blur-sm">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Tools Sidebar */}
-              <div className="lg:col-span-1 space-y-4">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-purple-400" />
-                  Outils
-                </h3>
-                <div className="space-y-2">
-                  {tools.map((tool) => (
-                    <button
-                      key={tool.id}
-                      onClick={() => {
-                        setActiveTool(tool.id);
-                        handleAddElement(tool.id);
-                      }}
-                      className={`w-full p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-                        activeTool === tool.id
-                          ? `${toolColorStyles[tool.color].border} ${toolColorStyles[tool.color].bg}`
-                          : 'border-gray-700 hover:border-gray-600 bg-gray-800/50'
-                      }`}
-                    >
-                      <div className={toolColorStyles[tool.color].text}>{tool.icon}</div>
-                      <span className="text-white font-medium text-sm">{tool.name}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Element Counter */}
-                <Card className="bg-purple-500/10 border-purple-500/30 p-4 mt-6 space-y-1">
-                  <p className="text-sm text-purple-400 font-medium">
-                    Éléments sur canvas:{' '}
-                    <span className="text-white font-bold">{canvasElements}</span>
-                  </p>
-                  {lastAddedElement && (
-                    <p className="text-xs text-purple-200">
-                      Dernier ajout : <span className="font-semibold">{lastAddedElement}</span>
-                    </p>
-                  )}
-                </Card>
-              </div>
-
-              {/* Canvas Area */}
-              <div className="lg:col-span-2 space-y-4">
-                <div className="aspect-square bg-white rounded-lg border-2 border-purple-500/30 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] bg-[size:20px_20px]" />
-                  
-                  {/* Demo elements */}
-                  <div className="relative z-10 text-center p-8">
-                    {canvasElements === 0 ? (
-                      <>
-                        <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 font-medium">
-                          Cliquez sur un outil pour commencer
-                        </p>
-                        <p className="text-xs text-gray-400 mt-2">
-                          Canvas 800x800px
-                        </p>
-                      </>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="space-y-4"
-                      >
-                        {activeTool === 'text' && (
-                          <p className="text-4xl font-bold text-purple-600">
-                            Votre Texte
-                          </p>
-                        )}
-                        {activeTool === 'image' && (
-                          <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg mx-auto" />
-                        )}
-                        {activeTool === 'shapes' && (
-                          <div className="w-32 h-32 bg-blue-500 rounded-full mx-auto" />
-                        )}
-                        {activeTool === 'clipart' && (
-                          <Star className="w-32 h-32 text-orange-500 mx-auto" />
-                        )}
-                        <p className="text-sm text-gray-600">
-                          Élément ajouté !
-                        </p>
-                      </motion.div>
-                    )}
-                  </div>
-
-                  {/* Canvas Controls */}
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <button className="w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-300 rounded-lg flex items-center justify-center hover:bg-white transition-colors">
-                      <RotateCw className="w-4 h-4 text-gray-700" />
-                    </button>
-                    <button className="w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-300 rounded-lg flex items-center justify-center hover:bg-white transition-colors">
-                      <Copy className="w-4 h-4 text-gray-700" />
-                    </button>
-                    <button className="w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-300 rounded-lg flex items-center justify-center hover:bg-white transition-colors">
-                      <Trash2 className="w-4 h-4 text-gray-700" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Button
-                    variant="outline"
-                    className="border-purple-500/50 hover:bg-purple-500/10"
-                  >
-                    <Eye className="mr-2 w-4 h-4" />
-                    Preview 3D
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-pink-500/50 hover:bg-pink-500/10"
-                  >
-                    <Download className="mr-2 w-4 h-4" />
-                    Export
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-blue-500/50 hover:bg-blue-500/10"
-                  >
-                    <Share2 className="mr-2 w-4 h-4" />
-                    Partager
-                  </Button>
-                </div>
-              </div>
-
-              {/* Properties Panel */}
-              <div className="lg:col-span-1 space-y-4">
-                <h3 className="text-lg font-bold text-white mb-4">
-                  Propriétés
-                </h3>
-
-                {activeTool === 'text' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-2">Police</label>
-                      <select className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm">
-                        <option>Arial</option>
-                        <option>Helvetica</option>
-                        <option>Georgia</option>
-                        <option>Courier</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-2">Taille (px)</label>
-                      <input
-                        type="range"
-                        min="12"
-                        max="120"
-                        defaultValue="48"
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-2">Couleur</label>
-                      <input
-                        type="color"
-                        defaultValue="#A855F7"
-                        className="w-full h-10 rounded-lg"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {activeTool === 'shapes' && (
-                  <div className="space-y-3">
-                    <label className="text-xs text-gray-400 block mb-2">Type de forme:</label>
-                    {shapes.map((shape, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleAddElement('shape')}
-                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg hover:border-green-500/50 transition-all flex items-center gap-3"
-                      >
-                        <shape.Icon className="w-5 h-5 text-green-400" />
-                        <span className="text-white text-sm">{shape.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {activeTool === 'layers' && (
-                  <div className="space-y-2">
-                    <label className="text-xs text-gray-400 block mb-2">Layers (3):</label>
-                    {['Background', 'Texte principal', 'Clipart star'].map((layer, i) => (
-                      <div
-                        key={i}
-                        className="p-3 bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-between"
-                      >
-                        <span className="text-white text-sm">{layer}</span>
-                        <div className="flex gap-2">
-                          <button className="text-gray-400 hover:text-white">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="text-gray-400 hover:text-white">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
+              <Sparkles className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium text-blue-400">Démo Interactive</span>
             </div>
-
-            {/* Export Formats */}
-            <div className="mt-8 pt-8 border-t border-gray-700">
-              <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Download className="w-5 h-5 text-green-400" />
-                Formats d&apos;Export
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {exportFormats.map((format, i) => (
-                  <Card key={i} className="bg-gray-800/50 border-gray-700 p-4 text-center">
-                    <FileText className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                    <p className="font-semibold text-white">{format.format}</p>
-                    <p className="text-xs text-gray-400 mb-1">{format.dpi}</p>
-                    <p className="text-xs text-purple-400">{format.use}</p>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Fonctionnalités Complètes
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+              Testez l'Éditeur en{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Action
+              </span>
             </h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Tout ce dont vous avez besoin pour personnaliser produits professionnellement
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Utilisez les outils pour créer votre design. Tout fonctionne en temps réel !
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="bg-gray-900/50 border-purple-500/20 p-6 h-full hover:border-purple-500/50 hover:bg-gray-900/70 transition-all group">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <div className="text-purple-400">{feature.icon}</div>
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2 text-white">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">
-                    {feature.description}
-                  </p>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Print Automation */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Export Print Professionnel
-            </h2>
-            <p className="text-xl text-gray-300">
-              Fichiers prêts pour impression avec standards professionnels
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="bg-gray-900/50 border-purple-500/20 p-8">
-              <h3 className="text-xl font-bold mb-6 text-white flex items-center gap-2">
-                <Download className="w-6 h-6 text-purple-400" />
-                Spécifications Print
-              </h3>
-              <ul className="space-y-4 text-sm text-gray-300">
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white mb-1">300 DPI (Print Quality)</p>
-                    <p className="text-gray-400">Résolution professionnelle pour impression offset</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white mb-1">CMYK Conversion</p>
-                    <p className="text-gray-400">Couleurs optimisées pour imprimantes industrielles</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white mb-1">Bleed + Crop Marks</p>
-                    <p className="text-gray-400">Marges perdues 3mm et repères de coupe automatiques</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white mb-1">PDF/X-4 Standard</p>
-                    <p className="text-gray-400">Format universel accepté par tous imprimeurs</p>
-                  </div>
-                </li>
-              </ul>
-            </Card>
-
-            <Card className="bg-gray-900/50 border-pink-500/20 p-8">
-              <h3 className="text-xl font-bold mb-6 text-white flex items-center gap-2">
-                <Zap className="w-6 h-6 text-pink-400" />
-                Workflow Automatisé
-              </h3>
-              <ul className="space-y-4 text-sm text-gray-300">
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white mb-1">Print-on-Demand</p>
-                    <p className="text-gray-400">Envoi auto aux POD providers (Printful, Printify)</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white mb-1">Webhooks</p>
-                    <p className="text-gray-400">Notifications temps réel design créé/modifié</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white mb-1">Batch Export</p>
-                    <p className="text-gray-400">Exportez 100+ designs simultanément</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white mb-1">Versioning</p>
-                    <p className="text-gray-400">Historique designs avec rollback</p>
-                  </div>
-                </li>
-              </ul>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Comparison */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Pourquoi Choisir Luneo ?
-            </h2>
-            <p className="text-xl text-gray-300">
-              Comparaison avec Zakeke Visual Customizer
-            </p>
-          </motion.div>
-
-          <Card className="bg-gray-900/50 border-purple-500/20 p-8 overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="pb-4 text-gray-400 font-semibold">Feature</th>
-                  <th className="pb-4 text-gray-400 font-semibold">Zakeke Customizer</th>
-                  <th className="pb-4 text-purple-400 font-semibold">Luneo Customizer</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                <tr className="border-b border-gray-800">
-                  <td className="py-4 text-gray-300">Canvas Engine</td>
-                  <td className="py-4 text-gray-400">Non spécifié</td>
-                  <td className="py-4 text-white font-semibold">
-                    ✅ Konva.js professionnel
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-800">
-                  <td className="py-4 text-gray-300">Outils</td>
-                  <td className="py-4 text-gray-400">Texte, Images</td>
-                  <td className="py-4 text-white font-semibold">
-                    ✅ + Formes, Cliparts, Filtres, Layers
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-800">
-                  <td className="py-4 text-gray-300">Collaboration</td>
-                  <td className="py-4 text-gray-400">Non mentionné</td>
-                  <td className="py-4 text-white font-semibold">
-                    ✅ Real-time multi-users (WebSockets)
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-800">
-                  <td className="py-4 text-gray-300">Versioning</td>
-                  <td className="py-4 text-gray-400">Non mentionné</td>
-                  <td className="py-4 text-white font-semibold">
-                    ✅ Historique complet + rollback
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-800">
-                  <td className="py-4 text-gray-300">Export Print</td>
-                  <td className="py-4 text-gray-400">PDF basique</td>
-                  <td className="py-4 text-white font-semibold">
-                    ✅ PDF/X-4 + CMYK + Bleed + Crop marks
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-800">
-                  <td className="py-4 text-gray-300">Preview 3D</td>
-                  <td className="py-4 text-gray-400">Basique</td>
-                  <td className="py-4 text-white font-semibold">
-                    ✅ Real-time 3D mockup (50+ templates)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 text-gray-300">Prix</td>
-                  <td className="py-4 text-gray-400">Custom quote</td>
-                  <td className="py-4 text-white font-semibold">
-                    ✅ $79/mois (Pro plan transparent)
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Tarifs Transparents
-            </h2>
-            <p className="text-xl text-gray-300">
-              Plans flexibles pour toutes tailles d&apos;entreprise
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card
-                  className={`p-8 h-full ${
-                    plan.popular
-                      ? 'bg-gradient-to-b from-purple-900/30 to-pink-900/30 border-purple-500'
-                      : 'bg-gray-900/50 border-gray-700'
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="inline-block px-3 py-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-xs font-semibold mb-4">
-                      POPULAIRE
-                    </div>
-                  )}
-                  <h3 className="text-2xl font-bold mb-2 text-white">
-                    {plan.name}
-                  </h3>
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold text-white">
-                      {plan.price === 'Custom' ? '' : '$'}
-                      {plan.price}
-                    </span>
-                    {plan.price !== 'Custom' && (
-                      <span className="text-gray-400">/mois</span>
-                    )}
-                  </div>
-                  <div className="space-y-2 mb-6 text-sm">
-                    <p className="text-gray-300">
-                      <span className="font-semibold text-white">
-                        {plan.designs}
-                      </span>{' '}
-                      designs/mois
-                    </p>
-                  </div>
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href={plan.price === 'Custom' ? '/contact' : '/auth/register'}>
-                    <Button
-                      className={`w-full ${
-                        plan.popular
-                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
-                          : 'bg-gray-800 hover:bg-gray-700 border border-gray-700'
-                      }`}
-                    >
-                      {plan.price === 'Custom' ? 'Contactez-nous' : 'Commencer'}
-                    </Button>
-                  </Link>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Integration */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Intégration Simple
-            </h2>
-            <p className="text-xl text-gray-300">
-              Embed le customizer sur votre site en 2 minutes
-            </p>
-          </motion.div>
-
-          <Card className="bg-gray-900/50 border-purple-500/20 p-8">
-            <div className="bg-black/50 rounded-lg p-6 font-mono text-sm text-gray-300 overflow-x-auto">
-              <pre>{`<!-- Embed iframe -->
-<iframe
-  src="https://app.luneo.app/customizer?product=tshirt"
-  width="100%"
-  height="800"
-  frameborder="0"
-></iframe>
-
-<!-- Ou SDK JavaScript -->
-<script src="https://cdn.luneo.app/customizer.js"></script>
-
-<div id="customizer"></div>
-
-<script>
-  const customizer = new LuneoCustomizer({
-    container: '#customizer',
-    productType: 'tshirt',
-    tools: ['text', 'image', 'shapes', 'cliparts'],
-    export: {
-      format: 'pdf',
-      dpi: 300,
-      cmyk: true,
-      bleed: 3 // mm
-    },
-    onSave: async (design) => {
-      // Send to your backend
-      await fetch('/api/designs', {
-        method: 'POST',
-        body: JSON.stringify(design)
-      });
-    }
-  });
-</script>`}</pre>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      {/* CTA Final */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-black via-purple-900/20 to-black">
-        <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Sparkles className="w-16 h-16 text-purple-400 mx-auto mb-6" />
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-              Lancez Votre Customizer Aujourd&apos;hui
-            </h2>
-            <p className="text-xl text-gray-300 mb-8">
-              Des milliers d&apos;entreprises font confiance à Luneo pour leur
-              personnalisation produits.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/demo/customizer">
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg group"
-                >
-                  <Play className="mr-2 w-5 h-5" />
-                  Voir Démo Interactive
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <Link href="/contact">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-purple-500/50 hover:bg-purple-500/10 px-8 py-6 text-lg"
-                >
-                  Parler à un Expert
-                </Button>
-              </Link>
+            <DemoCanvas />
+          </motion.div>
+
+          {/* Export Formats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-8"
+          >
+            <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2 justify-center">
+              <Download className="w-5 h-5 text-green-400" />
+              Formats d'Export Professionnels
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+              {EXPORT_FORMATS.map((format, i) => (
+                <Card key={i} className="bg-gray-800/50 border-gray-700/50 p-4 text-center hover:border-purple-500/50 transition-colors">
+                  <div className="text-purple-400 mb-2 flex justify-center">{format.icon}</div>
+                  <p className="font-semibold text-white">{format.format}</p>
+                  <p className="text-xs text-gray-400">{format.dpi}</p>
+                  <p className="text-xs text-purple-400 mt-1">{format.description}</p>
+                </Card>
+              ))}
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
-        <div className="max-w-4xl mx-auto">
+      {/* ============================================ */}
+      {/* FEATURES GRID */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Questions Fréquentes
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+              Fonctionnalités{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Complètes
+              </span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Tout ce dont vous avez besoin pour offrir une expérience de personnalisation professionnelle
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {FEATURES.map((feature, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <Card className="h-full bg-gray-800/30 border-gray-700/50 p-6 hover:border-purple-500/50 hover:bg-gray-800/50 transition-all group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center mb-4 text-purple-400 group-hover:scale-110 transition-transform">
+                    {feature.icon}
+                  </div>
+                  <div className="inline-block px-2 py-0.5 bg-purple-500/20 rounded text-xs text-purple-300 font-medium mb-2">
+                    {feature.highlight}
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* USE CASES */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full mb-6">
+              <Building2 className="w-4 h-4 text-green-400" />
+              <span className="text-sm font-medium text-green-400">Cas d'Usage</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+              Adapté à{' '}
+              <span className="bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text text-transparent">
+                Votre Business
+              </span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Notre customizer s'adapte à tous les secteurs d'activité
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {USE_CASES.map((useCase, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Card className={`h-full bg-gradient-to-br ${useCase.gradient.replace('from-', 'from-').replace('to-', 'to-')}/10 border-gray-700/50 p-6 hover:border-white/20 transition-all`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${useCase.gradient} flex items-center justify-center text-white flex-shrink-0`}>
+                      {useCase.icon}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-xl font-bold text-white">{useCase.title}</h3>
+                        <span className="px-2 py-0.5 bg-gray-700/50 rounded text-xs text-gray-400">{useCase.industry}</span>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-4">{useCase.description}</p>
+                      <div className={`inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r ${useCase.gradient} bg-opacity-20 rounded-full`}>
+                        <TrendingUp className="w-4 h-4 text-white" />
+                        <span className="text-sm font-semibold text-white">{useCase.metrics}</span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* ROI CALCULATOR */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Calculez votre{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                ROI
+              </span>
+            </h2>
+            <p className="text-gray-400">
+              Estimez l'impact du customizer sur vos ventes
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <ROICalculator />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* TESTIMONIALS */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-6">
+              <Star className="w-4 h-4 text-yellow-400 fill-current" />
+              <span className="text-sm font-medium text-yellow-400">Témoignages</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Ils Utilisent Notre Customizer
             </h2>
           </motion.div>
 
-          <div className="space-y-4">
-            <Card className="bg-gray-900/50 border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Quels types de produits puis-je personnaliser ?
-              </h3>
-              <p className="text-gray-400">
-                T-shirts, mugs, affiches, cartes de visite, stickers, coques téléphone, tote bags, 
-                et 50+ autres produits. Ou ajoutez vos propres templates avec notre éditeur.
-              </p>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((testimonial, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Card className="h-full bg-gray-800/30 border-gray-700/50 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                      {testimonial.avatar}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">{testimonial.author}</p>
+                      <p className="text-sm text-gray-400">{testimonial.role}, {testimonial.company}</p>
+                    </div>
+                  </div>
+                  <p className="text-gray-300 text-sm italic mb-4">"{testimonial.quote}"</p>
+                  <div className="pt-4 border-t border-gray-700/50">
+                    <div className="text-2xl font-bold text-purple-400">{testimonial.metric}</div>
+                    <div className="text-xs text-gray-500">{testimonial.metricLabel}</div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <Card className="bg-gray-900/50 border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Mes clients peuvent-ils uploader leurs propres images ?
-              </h3>
-              <p className="text-gray-400">
-                Oui ! Upload illimité d&apos;images avec validation automatique (format, taille, résolution). 
-                Nous optimisons les images pour impression (300 DPI) automatiquement.
-              </p>
-            </Card>
+      {/* ============================================ */}
+      {/* COMPARISON TABLE */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-full mb-6">
+              <Award className="w-4 h-4 text-orange-400" />
+              <span className="text-sm font-medium text-orange-400">Comparatif</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Pourquoi Choisir{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Luneo
+              </span>
+              ?
+            </h2>
+          </motion.div>
 
-            <Card className="bg-gray-900/50 border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Comment fonctionne la collaboration temps réel ?
-              </h3>
-              <p className="text-gray-400">
-                WebSockets pour sync instantanée. Plusieurs utilisateurs peuvent éditer le même design 
-                simultanément, voir les cursors des autres, et chatter. Parfait pour équipes design.
-              </p>
-            </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="overflow-x-auto"
+          >
+            <table className="w-full min-w-[600px] border-collapse">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="py-4 px-4 text-left text-sm font-semibold text-gray-400">Feature</th>
+                  <th className="py-4 px-4 text-center text-sm font-semibold text-purple-400 bg-purple-500/10 rounded-t-lg">Luneo</th>
+                  <th className="py-4 px-4 text-center text-sm font-semibold text-gray-400">Zakeke</th>
+                  <th className="py-4 px-4 text-center text-sm font-semibold text-gray-400">Canva</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON_FEATURES.map((feature, i) => (
+                  <tr key={i} className="border-b border-gray-700/50">
+                    <td className="py-3 px-4 text-sm text-gray-300">{feature.name}</td>
+                    <td className="py-3 px-4 text-center bg-purple-500/5">
+                      {typeof feature.luneo === 'boolean' ? (
+                        feature.luneo ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-red-400 mx-auto" />
+                      ) : (
+                        <span className="text-white font-medium">{feature.luneo}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {typeof feature.zakeke === 'boolean' ? (
+                        feature.zakeke ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-600 mx-auto" />
+                      ) : (
+                        <span className="text-gray-400 text-sm">{feature.zakeke}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {typeof feature.canva === 'boolean' ? (
+                        feature.canva ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-600 mx-auto" />
+                      ) : (
+                        <span className="text-gray-400 text-sm">{feature.canva}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </motion.div>
+        </div>
+      </section>
 
-            <Card className="bg-gray-900/50 border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-white mb-2">
-                L&apos;export print est-il vraiment pro ?
-              </h3>
-              <p className="text-gray-400">
-                Oui ! PDF/X-4 standard avec CMYK, 300 DPI, bleed 3mm, crop marks. Accepté par tous 
-                les imprimeurs professionnels. Nous avons des centaines de clients POD qui l&apos;utilisent.
-              </p>
+      {/* ============================================ */}
+      {/* API & SDK */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full mb-6">
+              <Code className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-medium text-cyan-400">Développeurs</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Intégration{' '}
+              <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                Simple
+              </span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Intégrez le customizer sur votre site en quelques minutes avec notre SDK
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Card className="bg-gray-900/80 border-cyan-500/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 bg-gray-950 border-b border-gray-800">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="ml-4 text-xs text-gray-500 font-mono">integration.js</span>
+              </div>
+              <pre className="p-6 text-sm text-gray-300 overflow-x-auto font-mono">
+{`// Option 1: SDK JavaScript
+import { LuneoCustomizer } from '@luneo/customizer';
+
+const customizer = new LuneoCustomizer({
+  container: '#customizer',
+  productType: 'tshirt',
+  tools: ['text', 'image', 'shapes', 'cliparts'],
+  export: {
+    format: 'pdf',
+    dpi: 300,
+    colorSpace: 'cmyk',
+    bleed: 3 // mm
+  },
+  onSave: async (design) => {
+    // Envoi automatique vers votre backend
+    await saveDesign(design);
+  }
+});
+
+// Option 2: Iframe simple
+<iframe
+  src="https://app.luneo.app/embed/customizer?product=tshirt"
+  width="100%"
+  height="800"
+/>`}
+              </pre>
+            </Card>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+            <Card className="bg-gray-800/30 border-gray-700/50 p-4 text-center">
+              <Code className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
+              <p className="font-semibold text-white">REST API</p>
+              <p className="text-xs text-gray-400">Documentation complète</p>
+            </Card>
+            <Card className="bg-gray-800/30 border-gray-700/50 p-4 text-center">
+              <Webhook className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
+              <p className="font-semibold text-white">Webhooks</p>
+              <p className="text-xs text-gray-400">Events temps réel</p>
+            </Card>
+            <Card className="bg-gray-800/30 border-gray-700/50 p-4 text-center">
+              <Globe className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
+              <p className="font-semibold text-white">CDN Global</p>
+              <p className="text-xs text-gray-400">&lt;50ms latence</p>
             </Card>
           </div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-purple-900/20 via-pink-900/20 to-purple-900/20">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white">
-            Essai Gratuit 14 Jours
-          </h2>
-          <p className="text-gray-300 mb-6">
-            Aucune carte requise · Tous features Pro inclus · Support premium
-          </p>
-          <Link href="/auth/register">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4"
-            >
-              Créer un Compte Gratuit
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
+      {/* ============================================ */}
+      {/* FAQ */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-6">
+              <MessageCircle className="w-4 h-4 text-purple-400" />
+              <span className="text-sm font-medium text-purple-400">FAQ</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Questions Fréquentes
+            </h2>
+          </motion.div>
+
+          <div className="space-y-3">
+            {FAQS.map((faq, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <FAQItem
+                  faq={faq}
+                  isOpen={openFaqIndex === index}
+                  onToggle={() => toggleFAQ(index)}
+                />
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
-      {showDemo && (
-        <DemoCustomizer
-          productId="demo-product"
-          productImage={demoProductImage}
-          productName="T-shirt Premium"
-          mode="demo"
-          onClose={() => setShowDemo(false)}
-        />
-      )}
+
+      {/* ============================================ */}
+      {/* FINAL CTA */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-600 via-pink-600 to-purple-600 relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 opacity-30">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-white rounded-full"
+              animate={{ y: [0, -600], opacity: [0, 1, 0] }}
+              transition={{ 
+                duration: 4 + Math.random() * 2, 
+                repeat: Infinity, 
+                delay: Math.random() * 4,
+                ease: 'linear'
+              }}
+              style={{ left: `${Math.random() * 100}%`, top: '100%' }}
+            />
+          ))}
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Sparkles className="w-16 h-16 text-white mx-auto mb-6" />
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
+              Lancez Votre Customizer Aujourd'hui
+            </h2>
+            <p className="text-lg text-purple-100 mb-10 max-w-2xl mx-auto">
+              Rejoignez des milliers d'entreprises qui utilisent Luneo pour offrir une expérience de personnalisation exceptionnelle.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+              <Link href="/register">
+                <Button size="lg" className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 font-bold px-10 py-6 text-lg shadow-2xl">
+                  Essai gratuit 14 jours
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto bg-white/10 border-2 border-white/40 text-white hover:bg-white/20 font-bold px-10 py-6 text-lg">
+                  <Headphones className="mr-2 w-5 h-5" />
+                  Parler à un expert
+                </Button>
+              </Link>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="flex flex-wrap items-center justify-center gap-6 text-white/80 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-green-300" />
+                <span>Sans carte bancaire</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-green-300" />
+                <span>Installation en 2 min</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-green-300" />
+                <span>Support français 24/7</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
     </div>
   );
 }
