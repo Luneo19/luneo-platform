@@ -109,6 +109,12 @@ ADD COLUMN IF NOT EXISTS total_commissions DECIMAL(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS iban TEXT,
 ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 
+-- 10. Ajouter colonnes manquantes à la table notifications existante
+ALTER TABLE public.notifications 
+ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS action_url TEXT,
+ADD COLUMN IF NOT EXISTS action_label TEXT;
+
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================
@@ -121,6 +127,19 @@ ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.commissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.withdrawals ENABLE ROW LEVEL SECURITY;
+
+-- Supprimer les policies existantes avant de les recréer
+DROP POLICY IF EXISTS "Users can view own tickets" ON public.support_tickets;
+DROP POLICY IF EXISTS "Users can create tickets" ON public.support_tickets;
+DROP POLICY IF EXISTS "Users can update own tickets" ON public.support_tickets;
+DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Users can delete own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Users can view own referrals" ON public.referrals;
+DROP POLICY IF EXISTS "Anyone can create referral" ON public.referrals;
+DROP POLICY IF EXISTS "Users can view own commissions" ON public.commissions;
+DROP POLICY IF EXISTS "Users can view own withdrawals" ON public.withdrawals;
+DROP POLICY IF EXISTS "Users can create withdrawals" ON public.withdrawals;
 
 -- Politiques pour support_tickets
 CREATE POLICY "Users can view own tickets" ON public.support_tickets
