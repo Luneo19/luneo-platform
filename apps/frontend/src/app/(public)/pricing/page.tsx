@@ -761,7 +761,9 @@ export default function PricingPage() {
       }
 
       const data = await response.json();
-      const checkoutUrl = data.url || (data.success && data.url);
+      
+      // L'API retourne { success: true, data: { url: "...", sessionId: "..." } }
+      const checkoutUrl = data.data?.url || data.url;
       
       if (checkoutUrl) {
         setCheckoutLoading(null);
@@ -769,6 +771,8 @@ export default function PricingPage() {
           window.location.href = checkoutUrl;
         }, 100);
       } else {
+        // Log détaillé pour debug
+        logger.error('Réponse checkout invalide', { data, planId });
         throw new Error('URL de checkout non reçue');
       }
     } catch (error: unknown) {
