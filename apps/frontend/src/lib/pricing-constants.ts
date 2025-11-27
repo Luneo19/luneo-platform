@@ -7,31 +7,36 @@
 
 export const PRICING = {
   starter: {
-    monthly: 0,
-    yearly: 0,
-    name: 'Starter',
-    stripePriceId: null,
-  },
-  professional: {
     monthly: 29,
     yearly: 278.40, // 29 * 12 * 0.8 = -20%
     yearlyMonthly: 23.20, // 278.40 / 12
+    name: 'Starter',
+    stripePriceId: 'price_1SY2bqKG9MsM6fdSlgkR5hNX',
+    stripePriceIdYearly: 'price_1SY2bxKG9MsM6fdSe78TX8fZ',
+  },
+  professional: {
+    monthly: 49,
+    yearly: 470.40, // 49 * 12 * 0.8 = -20%
+    yearlyMonthly: 39.20, // 470.40 / 12
     name: 'Professional',
-    stripePriceId: process.env.STRIPE_PRICE_PRO || 'price_PRO_MONTHLY',
+    stripePriceId: 'price_1SY2cEKG9MsM6fdSTKND31Ti',
+    stripePriceIdYearly: 'price_1SY2cEKG9MsM6fdSDKL1gPye',
   },
   business: {
-    monthly: 59,
-    yearly: 566.40, // 59 * 12 * 0.8 = -20%
-    yearlyMonthly: 47.20, // 566.40 / 12
-    name: 'Business',
-    stripePriceId: process.env.STRIPE_PRICE_BUSINESS || 'price_BUSINESS_MONTHLY',
-  },
-  enterprise: {
     monthly: 99,
     yearly: 950.40, // 99 * 12 * 0.8 = -20%
     yearlyMonthly: 79.20, // 950.40 / 12
+    name: 'Business',
+    stripePriceId: 'price_1SY2cTKG9MsM6fdSwoQu1S5I',
+    stripePriceIdYearly: 'price_1SY2cUKG9MsM6fdShCcJvXO7',
+  },
+  enterprise: {
+    monthly: 0, // Sur demande
+    yearly: 0,
+    yearlyMonthly: 0,
     name: 'Enterprise',
-    stripePriceId: process.env.STRIPE_PRICE_ENTERPRISE || 'price_ENTERPRISE_MONTHLY',
+    stripePriceId: null, // Sur demande - pas de prix Stripe
+    stripePriceIdYearly: null,
   },
 } as const;
 
