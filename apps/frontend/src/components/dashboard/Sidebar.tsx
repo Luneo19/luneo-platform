@@ -139,19 +139,32 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
     ]
   },
   {
-    title: 'Support',
+    title: 'Plus',
     items: [
+      {
+        name: 'Notifications',
+        href: '/dashboard/notifications',
+        icon: Bell,
+        description: 'Alertes et messages'
+      },
+      {
+        name: 'Parrainage',
+        href: '/dashboard/referral',
+        icon: Users,
+        description: 'Programme d\'affiliation',
+        badge: 'Nouveau'
+      },
+      {
+        name: 'Support',
+        href: '/dashboard/support',
+        icon: MessageSquare,
+        description: 'Tickets et assistance'
+      },
       {
         name: 'Documentation',
         href: '/help/documentation',
         icon: BookOpen,
         description: 'Guides et tutoriels'
-      },
-      {
-        name: 'Support',
-        href: '/support',
-        icon: MessageSquare,
-        description: 'Aide et assistance'
       }
     ]
   }

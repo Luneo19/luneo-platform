@@ -5,10 +5,10 @@ import { logger } from '@/lib/logger';
 export const runtime = 'nodejs';
 
 /**
- * DELETE /api/notifications/[id]
- * Supprime une notification
+ * POST /api/notifications/[id]/read
+ * Marque une notification comme lue
  */
-export async function DELETE(
+export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -25,16 +25,15 @@ export async function DELETE(
 
     const { error } = await supabase
       .from('notifications')
-      .delete()
+      .update({ read: true })
       .eq('id', id)
       .eq('user_id', user.id);
 
     if (error) {
-      logger.warn('Error deleting notification', { error, notificationId: id });
+      logger.warn('Error marking notification as read', { error, notificationId: id });
     }
 
-    logger.info('Notification deleted', { notificationId: id, userId: user.id });
-
     return { success: true };
-  }, '/api/notifications/[id]', 'DELETE');
+  }, '/api/notifications/[id]/read', 'POST');
 }
+

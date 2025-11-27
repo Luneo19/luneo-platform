@@ -5,16 +5,11 @@ import { logger } from '@/lib/logger';
 export const runtime = 'nodejs';
 
 /**
- * DELETE /api/notifications/[id]
- * Supprime une notification
+ * POST /api/notifications/read-all
+ * Marque toutes les notifications comme lues
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const { id } = await params;
-    
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -25,16 +20,17 @@ export async function DELETE(
 
     const { error } = await supabase
       .from('notifications')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
 
     if (error) {
-      logger.warn('Error deleting notification', { error, notificationId: id });
+      logger.warn('Error marking all notifications as read', { error, userId: user.id });
     }
 
-    logger.info('Notification deleted', { notificationId: id, userId: user.id });
+    logger.info('All notifications marked as read', { userId: user.id });
 
     return { success: true };
-  }, '/api/notifications/[id]', 'DELETE');
+  }, '/api/notifications/read-all', 'POST');
 }
+
