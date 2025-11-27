@@ -46,36 +46,49 @@ export async function POST(request: NextRequest) {
       messageLength: message.length,
     });
 
-    // Option 1: Envoyer via Resend/SendGrid si configuré
-    if (process.env.RESEND_API_KEY) {
+    // Option 1: Envoyer via SendGrid si configuré
+    if (process.env.SENDGRID_API_KEY) {
       try {
-        const response = await fetch('https://api.resend.com/emails', {
+        const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Luneo Contact <contact@luneo.app>',
-            to: ['contact@luneo.app'],
-            reply_to: email,
-            subject: `[Contact ${type}] ${subject}`,
-            html: `
-              <h2>Nouveau message de contact</h2>
-              <p><strong>Nom:</strong> ${name}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              ${company ? `<p><strong>Entreprise:</strong> ${company}</p>` : ''}
-              <p><strong>Type:</strong> ${type}</p>
-              <p><strong>Sujet:</strong> ${subject}</p>
-              <hr/>
-              <p><strong>Message:</strong></p>
-              <p>${message.replace(/\n/g, '<br/>')}</p>
-            `,
+            personalizations: [{
+              to: [{ email: 'contact@luneo.app' }],
+              subject: `[Contact ${type}] ${subject}`,
+            }],
+            from: { email: 'noreply@luneo.app', name: 'Luneo Contact' },
+            reply_to: { email: email, name: name },
+            content: [{
+              type: 'text/html',
+              value: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #3b82f6;">Nouveau message de contact</h2>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Nom:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${name}</td></tr>
+                    <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Email:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${email}</td></tr>
+                    ${company ? `<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Entreprise:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${company}</td></tr>` : ''}
+                    <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Type:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${type}</td></tr>
+                    <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Sujet:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${subject}</td></tr>
+                  </table>
+                  <h3 style="color: #374151; margin-top: 20px;">Message:</h3>
+                  <div style="background: #f9fafb; padding: 16px; border-radius: 8px; white-space: pre-wrap;">${message}</div>
+                  <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;">
+                  <p style="color: #6b7280; font-size: 12px;">Envoyé depuis le formulaire de contact Luneo</p>
+                </div>
+              `,
+            }],
           }),
         });
 
         if (!response.ok) {
-          logger.warn('Resend API error', { status: response.status });
+          const errorText = await response.text();
+          logger.warn('SendGrid API error', { status: response.status, error: errorText });
+        } else {
+          logger.info('Contact email sent via SendGrid', { to: 'contact@luneo.app', from: email });
         }
       } catch (emailError) {
         logger.error('Email sending failed', { error: emailError });
