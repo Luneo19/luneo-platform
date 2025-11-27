@@ -142,3 +142,8 @@ temp/
 # Turbo
 .turbo
 
+
+# Playwright
+.playwright/
+playwright-report/
+test-results/
