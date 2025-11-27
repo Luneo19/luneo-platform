@@ -1,4 +1,14 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
-
+  - 'apps/frontend'
+  - 'apps/backend'
+  - 'packages/billing-plans'
+  - 'packages/shared'
+  # Temporairement exclus - problèmes de dépendances
+  # - 'apps/mobile'
+  # - 'apps/ar-viewer'
+  # - 'packages/virtual-try-on'
+  # - 'packages/ui'
+  # - 'packages/3d-engine'
+  # - 'packages/design-editor'
+  # - 'packages/print-export'
+  # - 'packages/integrations'
