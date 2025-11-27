@@ -149,7 +149,7 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
       },
       {
         name: 'Parrainage',
-        href: '/dashboard/referral',
+        href: '/dashboard/affiliate',
         icon: Users,
         description: 'Programme d\'affiliation',
         badge: 'Nouveau'
