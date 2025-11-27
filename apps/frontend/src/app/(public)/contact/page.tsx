@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, CheckCircle, ArrowLeft, MessageSquare } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle, ArrowLeft, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 
 const contactInfo = [
   {
@@ -52,16 +53,48 @@ export default function ContactPage() {
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    setTimeout(() => setIsSubmitted(false), 3000);
-  };
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          type: 'general',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Erreur lors de l\'envoi');
+      }
+
+      setIsSubmitted(true);
+      setFormData({ name: '', email: '', company: '', subject: '', message: '' });
+      
+      // Reset success message after 5 seconds
+      setTimeout(() => setIsSubmitted(false), 5000);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
+      logger.error('Contact form error', { error: err, formData: { ...formData, message: '[REDACTED]' } });
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (error) setError(null); // Clear error on input change
   };
 
   return (
@@ -178,11 +211,36 @@ export default function ContactPage() {
                   />
                 </div>
 
+                {/* Error message */}
+                {error && (
+                  <div className="p-4 bg-red-900/30 border border-red-500/50 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-300">{error}</p>
+                  </div>
+                )}
+
+                {/* Success message */}
+                {isSubmitted && (
+                  <div className="p-4 bg-green-900/30 border border-green-500/50 rounded-lg flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-green-300">Message envoyé avec succès !</p>
+                      <p className="text-xs text-green-400/70 mt-1">Nous vous répondrons sous 24h.</p>
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold h-12"
+                  disabled={isSubmitting || isSubmitted}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold h-12 disabled:opacity-50"
                 >
-                  {isSubmitted ? (
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Envoi en cours...
+                    </span>
+                  ) : isSubmitted ? (
                     <span className="flex items-center justify-center">
                       <CheckCircle className="w-5 h-5 mr-2" />
                       Message envoyé !
