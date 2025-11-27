@@ -40,25 +40,27 @@ export async function POST(request: NextRequest) {
     // Initialiser Stripe
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-    // Configuration des Price IDs depuis les variables d'environnement
-    // Prix mensuels: utilisent des Price IDs (price_xxx)
-    // Prix annuels: utilisent des lookup keys (xxx-annual)
-    const planPrices: Record<string, { monthly: string | null; yearly: string | null; yearlyIsLookupKey?: boolean }> = {
-      starter: { monthly: null, yearly: null }, // Plan gratuit, pas de paiement
+    // Configuration des Price IDs Stripe - Tarifs Luneo 2025
+    // Starter: 29€/mois, 278.40€/an (-20%)
+    // Professional: 49€/mois, 470.40€/an (-20%)
+    // Business: 99€/mois, 950.40€/an (-20%)
+    // Enterprise: Sur demande
+    const planPrices: Record<string, { monthly: string | null; yearly: string | null }> = {
+      starter: {
+        monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY || 'price_1SY2bqKG9MsM6fdSlgkR5hNX',
+        yearly: process.env.STRIPE_PRICE_STARTER_YEARLY || 'price_1SY2bxKG9MsM6fdSe78TX8fZ',
+      },
       professional: {
-        monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || 'price_1RvB1uKG9MsM6fdSnrGm2qIo',
-        yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY || 'price_1SLTrAKG9MsM6fdSSZ8Q4FcZ',
-        yearlyIsLookupKey: false,
+        monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || 'price_1SY2cEKG9MsM6fdSTKND31Ti',
+        yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY || 'price_1SY2cEKG9MsM6fdSDKL1gPye',
       },
       business: {
-        monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || 'price_1SH7SxKG9MsM6fdSetmxFnVl',
-        yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY || 'price_1SLTrAKG9MsM6fdSUnQO91lq',
-        yearlyIsLookupKey: false,
+        monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || 'price_1SY2cTKG9MsM6fdSwoQu1S5I',
+        yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY || 'price_1SY2cUKG9MsM6fdShCcJvXO7',
       },
       enterprise: {
-        monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || 'price_1SH7TMKG9MsM6fdSx4pebEXZ',
-        yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || 'price_1SLTrBKG9MsM6fdSCrWZoLQ0',
-        yearlyIsLookupKey: false,
+        monthly: null, // Sur demande
+        yearly: null,  // Sur demande
       },
     };
 
@@ -73,19 +75,19 @@ export async function POST(request: NextRequest) {
     }
 
     const priceId = billing === 'yearly' ? priceConfig.yearly : priceConfig.monthly;
-    const useLookupKey = billing === 'yearly' && priceConfig.yearlyIsLookupKey;
 
-    // Si priceId est null pour starter, c'est normal
-    if (planId === 'starter' && !priceId) {
+    // Plan Enterprise : sur demande uniquement
+    if (planId === 'enterprise') {
       throw {
         status: 400,
-        message: 'Le plan Starter est gratuit. Veuillez vous inscrire sans paiement.',
-        code: 'STARTER_PLAN_FREE',
+        message: 'Le plan Enterprise est disponible sur demande. Veuillez nous contacter.',
+        code: 'ENTERPRISE_CONTACT_REQUIRED',
+        contactUrl: 'https://luneo.app/contact',
       };
     }
 
-    // Pour les autres plans, vérifier qu'on a un Price ID
-    if (!priceId && planId !== 'starter') {
+    // Vérifier qu'on a un Price ID valide
+    if (!priceId) {
       logger.error('Price ID missing for plan', new Error('Price ID not configured'), {
         planId,
         billing,
@@ -95,35 +97,16 @@ export async function POST(request: NextRequest) {
         status: 400,
         message: `Plan ${planId} non configuré`,
         code: 'PLAN_NOT_CONFIGURED',
-        debug: {
-          availablePlans: ['starter', 'professional', 'business', 'enterprise'],
-          requestedPlan: planId,
-          configuredPrices: planPrices,
-        },
       };
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
-    // Vérifier que priceId n'est pas null avant de créer la session
-    if (!priceId) {
-      throw {
-        status: 400,
-        message: `Price ID manquant pour le plan ${planId}`,
-        code: 'PRICE_ID_MISSING',
-      };
-    }
-
-    // Configuration des line_items selon que c'est un Price ID ou un lookup key
-    const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = useLookupKey
-      ? {
-          price: priceId, // Stripe résoudra le lookup key automatiquement
-          quantity: 1,
-        }
-      : {
-          price: priceId,
-          quantity: 1,
-        };
+    // Configuration des line_items
+    const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
+      price: priceId,
+      quantity: 1,
+    };
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],

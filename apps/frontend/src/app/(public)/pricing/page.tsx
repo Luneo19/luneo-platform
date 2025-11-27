@@ -546,9 +546,9 @@ function PricingCard({
         <div className="mb-6">
           <div className="flex items-baseline gap-1">
             <span className="text-4xl sm:text-5xl font-bold text-white">
-              {price === 0 ? 'Gratuit' : `${formatPrice(price)}€`}
+              {plan.tier === 'enterprise' ? 'Sur demande' : price === 0 ? 'Gratuit' : `${formatPrice(price)}€`}
             </span>
-            {price > 0 && <span className="text-gray-400">/mois</span>}
+            {price > 0 && plan.tier !== 'enterprise' && <span className="text-gray-400">/mois</span>}
           </div>
           
           {billingPeriod === 'yearly' && plan.yearlyDiscount > 0 && (

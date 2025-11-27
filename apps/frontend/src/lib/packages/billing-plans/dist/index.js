@@ -9,7 +9,7 @@ var PLAN_DEFINITIONS = {
     id: "starter",
     name: "Starter",
     headline: "Id\xE9al pour les \xE9quipes qui d\xE9marrent",
-    basePriceCents: 2900,
+    basePriceCents: 2900, // 29€/mois
     quotas: [
       quota({
         metric: "designs_created",
@@ -121,7 +121,7 @@ var PLAN_DEFINITIONS = {
     id: "professional",
     name: "Professional",
     headline: "Pour les \xE9quipes qui acc\xE9l\xE8rent",
-    basePriceCents: 9900,
+    basePriceCents: 4900, // 49€/mois
     quotas: [
       quota({
         metric: "designs_created",
@@ -234,7 +234,7 @@ var PLAN_DEFINITIONS = {
     id: "business",
     name: "Business",
     headline: "Scale-up et \xE9quipes internationales",
-    basePriceCents: 29900,
+    basePriceCents: 9900, // 99€/mois
     quotas: [
       quota({
         metric: "designs_created",
@@ -363,7 +363,7 @@ var PLAN_DEFINITIONS = {
     id: "enterprise",
     name: "Enterprise",
     headline: "Programmes sur-mesure & multi-division",
-    basePriceCents: 99900,
+    basePriceCents: 0, // Sur demande
     quotas: [
       quota({
         metric: "designs_created",
