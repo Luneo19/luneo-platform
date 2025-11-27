@@ -7,7 +7,6 @@ import { CheckCircle, Loader2, ArrowRight, Sparkles, Crown, Gift, Shield } from 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-// Confetti sera chargé dynamiquement
 import { logger } from '@/lib/logger';
 
 interface SessionData {
@@ -45,19 +44,6 @@ export default function BillingSuccessPage() {
         }
 
         setSessionData(data.data);
-        
-        // Trigger confetti celebration! 🎉
-        if (typeof window !== 'undefined') {
-          import('canvas-confetti').then((confettiModule) => {
-            confettiModule.default({
-              particleCount: 100,
-              spread: 70,
-              origin: { y: 0.6 }
-            });
-          }).catch(() => {
-            // Confetti not available, that's ok
-          });
-        }
 
         logger.info('Payment success page loaded', { sessionId, plan: data.data?.planName });
       } catch (err: unknown) {
