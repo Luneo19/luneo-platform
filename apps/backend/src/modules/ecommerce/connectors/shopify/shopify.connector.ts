@@ -270,7 +270,7 @@ export class ShopifyConnector {
         )
       );
 
-      return response.data.orders;
+      return (response.data as any)?.orders || [];
     } catch (error) {
       this.logger.error(`Error fetching Shopify orders:`, error);
       throw error;
@@ -307,7 +307,7 @@ export class ShopifyConnector {
         )
       );
 
-      return response.data.order;
+      return (response.data as any)?.order || null;
     } catch (error) {
       this.logger.error(`Error updating Shopify order status:`, error);
       throw error;

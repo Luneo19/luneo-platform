@@ -24,6 +24,7 @@
     "@nestjs/schedule": "^4.0.0",
     "@nestjs/passport": "^10.0.2",
     "@nestjs/jwt": "^10.2.0",
+    "@nestjs/axios": "^3.0.1",
     "@sentry/nestjs": "^10.22.0",
     "@sentry/node": "^7.91.0",
     "passport": "^0.7.0",
