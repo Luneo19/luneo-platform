@@ -1,4 +1,9 @@
 import bundleAnalyzer from '@next/bundle-analyzer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
@@ -72,23 +77,26 @@ const nextConfig = {
       };
     }
     
+    // Alias pour les packages internes
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@luneo/billing-plans': path.resolve(__dirname, 'src/lib/packages/billing-plans/dist'),
+    };
+    
     // Exclure les fichiers de test de la compilation
-    config.module.rules.push({
-      test: /\.test\.(ts|tsx|js|jsx)$/,
-      loader: 'ignore-loader',
-    });
-    config.module.rules.push({
-      test: /\.spec\.(ts|tsx|js|jsx)$/,
-      loader: 'ignore-loader',
-    });
-    config.module.rules.push({
-      test: /setup\.ts$/,
-      loader: 'ignore-loader',
-    });
+    // Next.js gère déjà l'exclusion via tsconfig.json
+    // On utilise une approche simple sans loader externe
+    const originalExclude = config.module.rules.find((rule: any) => rule.test && rule.test.toString().includes('tsx'));
+    if (originalExclude) {
+      originalExclude.exclude = [
+        ...(Array.isArray(originalExclude.exclude) ? originalExclude.exclude : [originalExclude.exclude || /node_modules/]),
+        /\.(test|spec)\.(ts|tsx|js|jsx)$/,
+        /setup\.ts$/,
+      ].filter(Boolean);
+    }
     
     return config;
   },
 };
 
 export default withBundleAnalyzer(nextConfig);
-// Force rebuild Wed Nov 26 14:47:51 CET 2025
