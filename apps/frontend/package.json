@@ -23,8 +23,8 @@
     "test:e2e:smoke": "playwright test --config=playwright.smoke.config.ts --project=chromium",
     "test:all": "npm run test:unit && npm run test:e2e",
     "test:ci": "vitest run --coverage --reporter=json --outputFile=./coverage/test-results.json",
-    "prepare": "husky install",
-    "postinstall": "husky install",
+    "prepare": "husky install || true",
+    "postinstall": "husky install || true",
     "test:axe": "vitest run src/components/__a11y__/**/*.axe.ts"
   },
   "dependencies": {
