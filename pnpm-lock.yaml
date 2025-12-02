@@ -33,6 +33,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@nestjs/axios':
+        specifier: ^3.0.1
+        version: 3.1.3(@nestjs/common@10.4.20)(axios@1.13.2)(rxjs@7.8.2)
       '@nestjs/bull':
         specifier: ^10.0.1
         version: 10.2.3(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(bull@4.16.5)
@@ -65,7 +68,7 @@ importers:
         version: 7.4.2(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.1.14)
       '@nestjs/terminus':
         specifier: ^10.2.0
-        version: 10.3.0(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(@prisma/client@5.22.0)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+        version: 10.3.0(@nestjs/axios@3.1.3)(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(@prisma/client@5.22.0)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@nestjs/throttler':
         specifier: ^5.0.1
         version: 5.2.0(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(reflect-metadata@0.1.14)
@@ -2489,6 +2492,18 @@ packages:
     dev: true
     optional: true
 
+  /@nestjs/axios@3.1.3(@nestjs/common@10.4.20)(axios@1.13.2)(rxjs@7.8.2):
+    resolution: {integrity: sha512-RZ/63c1tMxGLqyG3iOCVt7A72oy4x1eM6QEhd4KzCYpaVWW0igq0WSREeRoEZhIxRcZfDfIIkvsOMiM7yfVGZQ==}
+    peerDependencies:
+      '@nestjs/common': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0
+      axios: ^1.3.1
+      rxjs: ^6.0.0 || ^7.0.0
+    dependencies:
+      '@nestjs/common': 10.4.20(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      axios: 1.13.2
+      rxjs: 7.8.2
+    dev: false
+
   /@nestjs/bull-shared@10.2.3(@nestjs/common@10.4.20)(@nestjs/core@10.4.20):
     resolution: {integrity: sha512-XcgAjNOgq6b5DVCytxhR5BKiwWo7hsusVeyE7sfFnlXRHeEtIuC2hYWBr/ZAtvL/RH0/O0tqtq0rVl972nbhJw==}
     peerDependencies:
@@ -2758,7 +2773,7 @@ packages:
       swagger-ui-dist: 5.17.14
     dev: false
 
-  /@nestjs/terminus@10.3.0(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(@prisma/client@5.22.0)(reflect-metadata@0.1.14)(rxjs@7.8.2):
+  /@nestjs/terminus@10.3.0(@nestjs/axios@3.1.3)(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(@prisma/client@5.22.0)(reflect-metadata@0.1.14)(rxjs@7.8.2):
     resolution: {integrity: sha512-vOJGCwt1OgrFuuxWQwPoaHqy9m9CfIk2qMUX2mosZLK5dFVJSEjHXrklkh3/Fw9PiUnfzvYFfiAdJRzUaxx+5Q==}
     peerDependencies:
       '@grpc/grpc-js': '*'
@@ -2806,6 +2821,7 @@ packages:
       typeorm:
         optional: true
     dependencies:
+      '@nestjs/axios': 3.1.3(@nestjs/common@10.4.20)(axios@1.13.2)(rxjs@7.8.2)
       '@nestjs/common': 10.4.20(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@nestjs/core': 10.4.20(@nestjs/common@10.4.20)(@nestjs/platform-express@10.4.20)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@prisma/client': 5.22.0(prisma@5.22.0)
