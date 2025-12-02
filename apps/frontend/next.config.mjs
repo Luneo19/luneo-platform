@@ -84,16 +84,7 @@ const nextConfig = {
     };
     
     // Exclure les fichiers de test de la compilation
-    // Next.js gère déjà l'exclusion via tsconfig.json
-    // On utilise une approche simple sans loader externe
-    const originalExclude = config.module.rules.find((rule: any) => rule.test && rule.test.toString().includes('tsx'));
-    if (originalExclude) {
-      originalExclude.exclude = [
-        ...(Array.isArray(originalExclude.exclude) ? originalExclude.exclude : [originalExclude.exclude || /node_modules/]),
-        /\.(test|spec)\.(ts|tsx|js|jsx)$/,
-        /setup\.ts$/,
-      ].filter(Boolean);
-    }
+    // Next.js gère déjà l'exclusion via tsconfig.json, pas besoin de règles webpack supplémentaires
     
     return config;
   },
