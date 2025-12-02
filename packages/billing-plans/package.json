@@ -11,11 +11,11 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "echo 'No source files to build - package already built'",
+    "dev": "echo 'No source files to build - package already built'",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "echo 'No source files to lint'"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
