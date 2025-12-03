@@ -78,6 +78,10 @@
     "**/*.spec.tsx",
     "__tests__",
     "**/__tests__/**",
-    "storybook-static"
+    "storybook-static",
+    "**/playwright.config.*",
+    "**/vitest.config.*",
+    "**/vitest.setup.*",
+    "e2e/**"
   ]
 }
