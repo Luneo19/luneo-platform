@@ -8,6 +8,8 @@
     ],
     "allowJs": true,
     "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "types": [],
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
@@ -62,6 +64,7 @@
     "out/types/**/*.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "types/**/*.ts",
     "../../.next/types/**/*.ts"
   ],
   "exclude": [
@@ -69,6 +72,12 @@
     ".next",
     "dist",
     "build",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "__tests__",
+    "**/__tests__/**",
     "storybook-static"
   ]
 }
