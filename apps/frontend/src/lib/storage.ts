@@ -23,7 +23,8 @@ if (
   });
 }
 
-export type StorageProvider = 'cloudinary' | 's3' | 'auto';
+// ⚠️ AWS DÉSACTIVÉ - Seul Cloudinary est disponible (coût AWS: 1200$/mois)
+export type StorageProvider = 'cloudinary' | 'auto';
 
 export interface UploadOptions {
   folder?: string;
@@ -121,7 +122,8 @@ async function uploadToCloudinary(
 
 /**
  * Upload un fichier vers AWS S3
- * Note: Nécessite @aws-sdk/client-s3 installé
+ * ⚠️ AWS DÉSACTIVÉ - Cette fonction redirige vers Cloudinary
+ * AWS a coûté 1200$/mois, nous utilisons Cloudinary gratuit à la place
  */
 async function uploadToS3(
   base64Data: string,
@@ -129,76 +131,12 @@ async function uploadToS3(
   mimeType: string,
   options: UploadOptions = {}
 ): Promise<UploadResult> {
-  try {
-    // Check if AWS SDK is available - use dynamic import with error handling
-    let S3Client, PutObjectCommand;
-    try {
-      // @ts-expect-error - Optional dependency, may not be installed
-      const awsSdk = await import('@aws-sdk/client-s3');
-      S3Client = awsSdk.S3Client;
-      PutObjectCommand = awsSdk.PutObjectCommand;
-    } catch (importError) {
-      throw new Error('AWS S3 SDK not available. Install @aws-sdk/client-s3 to use S3 storage.');
-    }
-    
-    const s3Client = new S3Client({
-      region: process.env.AWS_REGION || 'us-east-1',
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-      },
-    });
-
-    const bucketName = process.env.AWS_S3_BUCKET_NAME || 'luneo-storage';
-    const base64Clean = base64Data.replace(/^data:[^;]+;base64,/, '');
-    const buffer = Buffer.from(base64Clean, 'base64');
-
-    const folder = options.folder || 'production-files';
-    const key = `${folder}/${path}`;
-
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-      Body: buffer,
-      ContentType: mimeType,
-      ACL: 'public-read', // Or 'private' based on requirements
-      Metadata: options.context || {},
-    });
-
-    await s3Client.send(command);
-
-    const url = `https://${bucketName}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
-
-    logger.info('File uploaded to S3', {
-      bucket: bucketName,
-      key,
-      contentType: mimeType,
-      size: buffer.length,
-    });
-
-    return {
-      url,
-      secureUrl: url,
-      format: mimeType.split('/')[1] || 'unknown',
-      bytes: buffer.length,
-      provider: 's3',
-    };
-  } catch (error) {
-    // If AWS SDK is not installed, fallback to Cloudinary
-    if ((error as any)?.code === 'MODULE_NOT_FOUND') {
-      logger.warn('AWS SDK not installed, falling back to Cloudinary', {
-        path,
-        mimeType,
-      });
-      return uploadToCloudinary(base64Data, options);
-    }
-
-    logger.error('S3 upload error', error instanceof Error ? error : new Error(String(error)), {
-      path,
-      mimeType,
-    });
-    throw new Error(`Échec de l'upload S3: ${error instanceof Error ? error.message : String(error)}`);
-  }
+  // AWS DÉSACTIVÉ - Rediriger vers Cloudinary
+  logger.warn('AWS S3 est désactivé (coût: 1200$/mois). Utilisation de Cloudinary à la place.', {
+    path,
+    mimeType,
+  });
+  return uploadToCloudinary(base64Data, options);
 }
 
 /**
@@ -213,6 +151,7 @@ export async function uploadFile(
 ): Promise<UploadResult> {
   try {
     // Auto-detect provider based on environment
+    // ⚠️ AWS DÉSACTIVÉ - Forcer Cloudinary uniquement
     if (provider === 'auto') {
       if (
         process.env.CLOUDINARY_CLOUD_NAME &&
@@ -220,31 +159,22 @@ export async function uploadFile(
         process.env.CLOUDINARY_API_SECRET
       ) {
         provider = 'cloudinary';
-      } else if (
-        process.env.AWS_ACCESS_KEY_ID &&
-        process.env.AWS_SECRET_ACCESS_KEY &&
-        process.env.AWS_S3_BUCKET_NAME
-      ) {
-        provider = 's3';
       } else {
-        throw new Error('Aucun provider de stockage configuré (Cloudinary ou S3)');
+        throw new Error('Aucun provider de stockage configuré. AWS est désactivé (coût: 1200$/mois). Configurez Cloudinary.');
       }
     }
-
-    switch (provider) {
-      case 'cloudinary':
-        return uploadToCloudinary(base64Data, {
-          ...options,
-          folder: options.folder || 'luneo/production-files',
-          publicId: options.publicId || path.replace(/\.[^/.]+$/, ''), // Remove extension
-        });
-
-      case 's3':
-        return uploadToS3(base64Data, path, mimeType, options);
-
-      default:
-        throw new Error(`Provider de stockage non supporté: ${provider}`);
+    
+    // ⚠️ AWS DÉSACTIVÉ - Seul Cloudinary est supporté
+    // Toute tentative d'utiliser 's3' est automatiquement redirigée vers Cloudinary
+    if (provider === 'cloudinary' || provider === 'auto') {
+      return uploadToCloudinary(base64Data, {
+        ...options,
+        folder: options.folder || 'luneo/production-files',
+        publicId: options.publicId || path.replace(/\.[^/.]+$/, ''), // Remove extension
+      });
     }
+
+    throw new Error(`Provider de stockage non supporté: ${provider}. AWS est désactivé (coût: 1200$/mois).`);
   } catch (error) {
     logger.error('File upload error', error instanceof Error ? error : new Error(String(error)), {
       path,
@@ -284,60 +214,21 @@ async function deleteFromCloudinary(publicId: string): Promise<DeleteResult> {
 
 /**
  * Supprimer un fichier de S3
+ * ⚠️ AWS DÉSACTIVÉ - Cette fonction redirige vers Cloudinary
+ * AWS a coûté 1200$/mois, nous utilisons Cloudinary gratuit à la place
  */
 async function deleteFromS3(path: string): Promise<DeleteResult> {
-  try {
-    // Check if AWS SDK is available - use dynamic import with error handling
-    let S3Client, DeleteObjectCommand;
-    try {
-      // @ts-expect-error - Optional dependency, may not be installed
-      const awsSdk = await import('@aws-sdk/client-s3');
-      S3Client = awsSdk.S3Client;
-      DeleteObjectCommand = awsSdk.DeleteObjectCommand;
-    } catch (importError) {
-      throw new Error('AWS S3 SDK not available. Install @aws-sdk/client-s3 to use S3 storage.');
-    }
-    
-    const s3Client = new S3Client({
-      region: process.env.AWS_REGION || 'us-east-1',
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-      },
-    });
-
-    const bucketName = process.env.AWS_S3_BUCKET_NAME || 'luneo-storage';
-
-    const command = new DeleteObjectCommand({
-      Bucket: bucketName,
-      Key: path,
-    });
-
-    await s3Client.send(command);
-
-    logger.info('File deleted from S3', {
-      bucket: bucketName,
-      key: path,
-    });
-
-    return {
-      success: true,
-      provider: 's3',
-    };
-  } catch (error) {
-    // If AWS SDK is not installed, try Cloudinary
-    if ((error as any)?.code === 'MODULE_NOT_FOUND') {
-      logger.warn('AWS SDK not installed, trying Cloudinary', { path });
-      // Extract public_id from S3 path if possible
-      const publicId = path.split('/').pop()?.replace(/\.[^/.]+$/, '');
-      if (publicId) {
-        return deleteFromCloudinary(publicId);
-      }
-    }
-
-    logger.error('S3 delete error', error instanceof Error ? error : new Error(String(error)), { path });
-    throw new Error(`Échec de la suppression S3: ${error instanceof Error ? error.message : String(error)}`);
+  // AWS DÉSACTIVÉ - Rediriger vers Cloudinary
+  logger.warn('AWS S3 est désactivé (coût: 1200$/mois). Tentative de suppression via Cloudinary.', { path });
+  // Extract public_id from S3 path if possible
+  const publicId = path.split('/').pop()?.replace(/\.[^/.]+$/, '');
+  if (publicId) {
+    return deleteFromCloudinary(publicId);
   }
+  return {
+    success: false,
+    provider: 'cloudinary', // AWS désactivé, retour cloudinary même en cas d'échec
+  };
 }
 
 /**
@@ -352,17 +243,23 @@ export async function deleteFiles(
     const results: DeleteResult[] = [];
 
     // Auto-detect provider from URL
+    // ⚠️ AWS DÉSACTIVÉ - Forcer Cloudinary uniquement
     if (provider === 'auto') {
       const firstUrl = urls[0];
       if (firstUrl.includes('cloudinary.com') || firstUrl.includes('res.cloudinary.com')) {
         provider = 'cloudinary';
       } else if (firstUrl.includes('.s3.') || firstUrl.includes('amazonaws.com')) {
-        provider = 's3';
+        // AWS DÉSACTIVÉ - Rediriger vers Cloudinary
+        logger.warn('URL S3 détectée mais AWS est désactivé. Tentative via Cloudinary.');
+        provider = 'cloudinary';
       } else {
-        // Try Cloudinary first, fallback to S3
+        // Utiliser Cloudinary par défaut
         provider = 'cloudinary';
       }
     }
+    
+    // ⚠️ AWS DÉSACTIVÉ - Seul Cloudinary est supporté
+    // provider est déjà 'cloudinary' à ce stade (défini dans le bloc if précédent)
 
     for (const url of urls) {
       try {
@@ -381,19 +278,28 @@ export async function deleteFiles(
               provider: 'cloudinary',
             });
           }
-        } else if (provider === 's3') {
-          // Extract key from S3 URL
-          // Format: https://{bucket}.s3.{region}.amazonaws.com/{key}
+        } else {
+          // ⚠️ AWS DÉSACTIVÉ - Tenter via Cloudinary pour les URLs S3 détectées
+          logger.warn('URL S3 détectée mais AWS est désactivé. Tentative via Cloudinary.', { url });
+          // Extract public_id from S3 URL if possible
           const s3Match = url.match(/amazonaws\.com\/(.+)/);
           if (s3Match && s3Match[1]) {
-            const key = s3Match[1].split('?')[0]; // Remove query params
-            const result = await deleteFromS3(key);
-            results.push(result);
+            const key = s3Match[1].split('?')[0];
+            const publicId = key.split('/').pop()?.replace(/\.[^/.]+$/, '');
+            if (publicId) {
+              const result = await deleteFromCloudinary(publicId);
+              results.push(result);
+            } else {
+              results.push({
+                success: false,
+                provider: 'cloudinary',
+              });
+            }
           } else {
             logger.warn('Could not extract key from S3 URL', { url });
             results.push({
               success: false,
-              provider: 's3',
+              provider: 'cloudinary',
             });
           }
         }
@@ -427,5 +333,6 @@ export function getPublicUrl(url: string): string {
   }
   return url;
 }
+
 
 

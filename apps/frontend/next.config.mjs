@@ -19,7 +19,8 @@ const nextConfig = {
   // Use middleware-based internationalization instead
   
   // Moved from experimental (deprecated location)
-  serverExternalPackages: ['@aws-sdk/client-s3', 'cloudinary'],
+  // ⚠️ AWS DÉSACTIVÉ - Retiré @aws-sdk/client-s3 (coût: 1200$/mois)
+  serverExternalPackages: ['cloudinary'],
   
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
