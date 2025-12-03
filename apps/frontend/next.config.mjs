@@ -83,8 +83,22 @@ const nextConfig = {
       '@luneo/billing-plans': path.resolve(__dirname, 'src/lib/packages/billing-plans/dist'),
     };
     
-    // Exclure les fichiers de test de la compilation
-    // Next.js gère déjà l'exclusion via tsconfig.json, pas besoin de règles webpack supplémentaires
+    // Exclure explicitement les fichiers de test et d'accessibilité du build
+    config.module.rules.push({
+      test: /\.(ts|tsx)$/,
+      include: [
+        path.resolve(__dirname, 'src'),
+      ],
+      exclude: [
+        /node_modules/,
+        /\.test\.(ts|tsx)$/,
+        /\.spec\.(ts|tsx)$/,
+        /__tests__/,
+        /__a11y__/,
+        /\.axe\.(ts|tsx)$/,
+        /e2e/,
+      ],
+    });
     
     return config;
   },
