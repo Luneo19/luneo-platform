@@ -9,6 +9,7 @@ declare module 'speakeasy' {
     base32: string;
     otpauth_url: string;
     qr_code?: string;
+    secret?: string;
   }
 
   export interface VerifyOptions {
@@ -18,8 +19,20 @@ declare module 'speakeasy' {
     window?: number;
   }
 
+  export interface TotpVerifyOptions {
+    secret: string;
+    encoding?: 'ascii' | 'hex' | 'base32' | 'base64';
+    token: string;
+    window?: number;
+  }
+
+  export const totp: {
+    verify(options: TotpVerifyOptions): boolean | null;
+    generate(options: { secret: string; encoding?: string }): string;
+  };
+
   export function generateSecret(options: GenerateSecretOptions): GenerateSecretResponse;
-  export function verify(options: VerifyOptions): boolean;
+  export function verify(options: VerifyOptions): boolean | null;
   export function generateSecretASCII(options: GenerateSecretOptions): GenerateSecretResponse;
   export function otpauthURL(options: {
     secret: string;
