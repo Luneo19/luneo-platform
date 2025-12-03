@@ -304,7 +304,7 @@ export default function RegisterPage() {
         >
           <span className="text-white font-bold text-2xl">L</span>
         </motion.div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+        <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-white mb-2">
           Créer un compte 🚀
         </h1>
         <p className="text-slate-400">
@@ -350,6 +350,7 @@ export default function RegisterPage() {
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
                 <Input
                   id="fullName"
+                  data-testid="register-name"
                   type="text"
                   placeholder="Jean Dupont"
               className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
@@ -373,6 +374,7 @@ export default function RegisterPage() {
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
                 <Input
                   id="email"
+                  data-testid="register-email"
                   type="email"
               placeholder="votre@entreprise.com"
               className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
@@ -415,6 +417,7 @@ export default function RegisterPage() {
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
                 <Input
                   id="password"
+                  data-testid="register-password"
                   type={showPassword ? 'text' : 'password'}
               placeholder="Créez un mot de passe sécurisé"
               className="pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
@@ -499,6 +502,7 @@ export default function RegisterPage() {
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
                 <Input
                   id="confirmPassword"
+                  data-testid="register-confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirmez votre mot de passe"
               className={`pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11 ${
@@ -553,6 +557,7 @@ export default function RegisterPage() {
         {/* Submit Button */}
             <Button
               type="submit"
+              data-testid="register-submit"
           disabled={isLoading || !isFormValid}
           className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-12 text-base font-medium shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
             >
@@ -585,6 +590,8 @@ export default function RegisterPage() {
             <Button
               type="button"
               variant="outline"
+              data-testid="register-oauth-google"
+              aria-label="S'inscrire avec Google"
           className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-11"
               onClick={() => handleOAuthRegister('google')}
           disabled={isLoading || oauthLoading !== null}
@@ -602,6 +609,8 @@ export default function RegisterPage() {
             <Button
               type="button"
               variant="outline"
+              data-testid="register-oauth-github"
+              aria-label="S'inscrire avec GitHub"
           className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-11"
               onClick={() => handleOAuthRegister('github')}
           disabled={isLoading || oauthLoading !== null}
@@ -623,6 +632,7 @@ export default function RegisterPage() {
               Vous avez déjà un compte ?{' '}
           <Link
             href="/login"
+            data-testid="register-switch-login"
             className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
           >
                 Se connecter

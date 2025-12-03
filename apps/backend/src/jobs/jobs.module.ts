@@ -6,7 +6,7 @@ import { RenderWorker } from './workers/render/render.worker';
 import { ProductionWorker } from './workers/production/production.worker';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
-import { S3Module } from '@/libs/s3/s3.module';
+import { StorageModule } from '@/libs/storage/storage.module';
 import { AiModule } from '@/modules/ai/ai.module';
 import { ProductEngineModule } from '@/modules/product-engine/product-engine.module';
 import { RenderModule } from '@/modules/render/render.module';
@@ -15,7 +15,7 @@ import { RenderModule } from '@/modules/render/render.module';
   imports: [
     PrismaModule,
     SmartCacheModule,
-    S3Module,
+    StorageModule,
     AiModule,
     ProductEngineModule,
     RenderModule,

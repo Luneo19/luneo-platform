@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, UserRole } from '@luneo/types';
+import type { User, UserRole } from '@/lib/types';
 import { logger } from '@/lib/logger';
 
 type AuthUser = Pick<User, 'id' | 'email' | 'firstName' | 'lastName' | 'avatar' | 'name'> & {

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { endpoints, type AuthSessionResponse } from '../api/client';
 import { useRouter } from 'next/navigation';
-import type { LoginCredentials, RegisterData, User } from '@luneo/types';
+import type { LoginCredentials, RegisterData, User } from '@/lib/types';
 import { logger } from '@/lib/logger';
 
 /**

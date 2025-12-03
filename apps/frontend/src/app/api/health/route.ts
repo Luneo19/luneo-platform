@@ -1,55 +1,75 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
-
 /**
- * GET /api/health
- * Health check endpoint pour monitoring
+ * Health Check API
+ * MON-001: Endpoint de health check pour monitoring
  */
-export async function GET(_request: NextRequest) {
-  return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
 
-    const health = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: 'unknown',
-        api: 'healthy',
-      },
+import { NextRequest, NextResponse } from 'next/server';
+import { monitoringService } from '@/lib/monitoring/MonitoringService';
+
+// Cache health check for 10 seconds
+let cachedHealth: { data: any; timestamp: number } | null = null;
+const CACHE_TTL = 10000;
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const detailed = searchParams.get('detailed') === 'true';
+
+  try {
+    // Check cache
+    if (cachedHealth && Date.now() - cachedHealth.timestamp < CACHE_TTL) {
+      return NextResponse.json(cachedHealth.data);
+    }
+
+    // Perform health check
+    const health = await monitoringService.performHealthCheck();
+
+    // Simple response for load balancers
+    if (!detailed) {
+      const response = {
+        status: health.status,
+        timestamp: health.timestamp,
+      };
+      
+      cachedHealth = { data: response, timestamp: Date.now() };
+      
+      return NextResponse.json(response, {
+        status: health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503,
+      });
+    }
+
+    // Detailed response
+    const response = {
+      status: health.status,
+      timestamp: health.timestamp,
+      uptime: health.uptime,
+      version: health.version,
+      services: health.services.map((s) => ({
+        name: s.name,
+        status: s.status,
+        latency: s.latency,
+        message: s.message,
+      })),
+      metrics: monitoringService.getDashboardMetrics(),
     };
 
-    // Vérifier la connexion à la base de données
-    try {
-      const { count, error } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .limit(1);
+    cachedHealth = { data: response, timestamp: Date.now() };
 
-      if (error) {
-        logger.dbError('health check database', error);
-        health.services.database = 'unhealthy';
-        health.status = 'degraded';
-      } else {
-        health.services.database = 'healthy';
-      }
-    } catch (error: any) {
-      logger.error('Health check database error', error);
-      health.services.database = 'unhealthy';
-      health.status = 'degraded';
-    }
-
-    // Déterminer le statut global
-    if (health.services.database === 'unhealthy') {
-      health.status = 'unhealthy';
-    }
-
-    logger.debug('Health check performed', {
-      status: health.status,
-      database: health.services.database,
+    return NextResponse.json(response, {
+      status: health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503,
     });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        status: 'unhealthy',
+        error: 'Health check failed',
+        timestamp: Date.now(),
+      },
+      { status: 503 }
+    );
+  }
+}
 
-    return health;
-  }, '/api/health', 'GET');
+// Liveness probe (Kubernetes)
+export async function HEAD() {
+  return new NextResponse(null, { status: 200 });
 }

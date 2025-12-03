@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { OrderSummary } from '@luneo/types';
+import type { OrderSummary } from '@/lib/types';
 import { logger } from '@/lib/logger';
 type Order = OrderSummary;
 

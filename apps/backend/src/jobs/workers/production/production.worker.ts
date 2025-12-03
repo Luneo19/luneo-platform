@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { S3Service } from '@/libs/s3/s3.service';
+import { StorageService } from '@/libs/storage/storage.service';
 
 interface ProductionJobData {
   orderId: string;
@@ -51,7 +51,7 @@ export class ProductionWorker {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
-    private readonly s3Service: S3Service,
+    private readonly storageService: StorageService,
   ) {}
 
   @Process('create-production-bundle')
@@ -437,7 +437,7 @@ export class ProductionWorker {
     const bundleData = JSON.stringify(bundle, null, 2);
     const filename = `production-bundles/${bundle.orderId}/bundle.json`;
 
-    const uploadResult = await this.s3Service.uploadBuffer(
+    const uploadResult = await this.storageService.uploadBuffer(
       Buffer.from(bundleData),
       filename,
       {
@@ -668,7 +668,7 @@ export class ProductionWorker {
   private async uploadInstructions(instructionsBuffer: Buffer, orderId: string): Promise<string> {
     const filename = `instructions/${orderId}/manufacturing-instructions.json`;
 
-    const uploadResult = await this.s3Service.uploadBuffer(
+    const uploadResult = await this.storageService.uploadBuffer(
       instructionsBuffer,
       filename,
       {

@@ -1,0 +1,255 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "retry": "Réessayer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "all": "Tout",
+    "more": "Plus",
+    "less": "Moins",
+    "yes": "Oui",
+    "no": "Non",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "close": "Fermer",
+    "open": "Ouvrir",
+    "download": "Télécharger",
+    "upload": "Uploader",
+    "share": "Partager",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "submit": "Soumettre",
+    "send": "Envoyer",
+    "view": "Voir",
+    "viewAll": "Voir tout",
+    "learnMore": "En savoir plus",
+    "getStarted": "Commencer",
+    "free": "Gratuit",
+    "premium": "Premium",
+    "new": "Nouveau",
+    "popular": "Populaire",
+    "featured": "En vedette"
+  },
+  "nav": {
+    "home": "Accueil",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "marketplace": "Marketplace",
+    "solutions": "Solutions",
+    "resources": "Ressources",
+    "blog": "Blog",
+    "docs": "Documentation",
+    "support": "Support",
+    "contact": "Contact",
+    "login": "Connexion",
+    "register": "Inscription",
+    "logout": "Déconnexion",
+    "dashboard": "Tableau de bord",
+    "settings": "Paramètres",
+    "profile": "Profil"
+  },
+  "auth": {
+    "login": {
+      "title": "Bon retour !",
+      "subtitle": "Connectez-vous à votre compte",
+      "email": "Adresse email",
+      "password": "Mot de passe",
+      "rememberMe": "Se souvenir de moi",
+      "forgotPassword": "Mot de passe oublié ?",
+      "submitButton": "Se connecter",
+      "noAccount": "Pas encore de compte ?",
+      "signUp": "S'inscrire",
+      "orContinueWith": "Ou continuer avec",
+      "google": "Google",
+      "github": "GitHub"
+    },
+    "register": {
+      "title": "Créer un compte",
+      "subtitle": "Commencez votre essai gratuit de 14 jours",
+      "fullName": "Nom complet",
+      "email": "Adresse email",
+      "company": "Entreprise (optionnel)",
+      "password": "Mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "terms": "J'accepte les",
+      "termsLink": "Conditions d'utilisation",
+      "andThe": "et la",
+      "privacyLink": "Politique de confidentialité",
+      "submitButton": "Créer mon compte",
+      "alreadyHaveAccount": "Déjà un compte ?",
+      "signIn": "Se connecter",
+      "passwordRequirements": {
+        "title": "Le mot de passe doit contenir :",
+        "length": "Au moins 8 caractères",
+        "uppercase": "Une lettre majuscule",
+        "lowercase": "Une lettre minuscule",
+        "number": "Un chiffre"
+      }
+    },
+    "forgotPassword": {
+      "title": "Réinitialiser votre mot de passe",
+      "subtitle": "Entrez votre email et nous vous enverrons un lien de réinitialisation",
+      "email": "Adresse email",
+      "submitButton": "Envoyer le lien",
+      "backToLogin": "Retour à la connexion",
+      "success": "Vérifiez votre boîte mail pour le lien de réinitialisation"
+    }
+  },
+  "dashboard": {
+    "overview": "Vue d'ensemble",
+    "designs": "Designs",
+    "products": "Produits",
+    "orders": "Commandes",
+    "analytics": "Analytiques",
+    "billing": "Facturation",
+    "integrations": "Intégrations",
+    "settings": "Paramètres",
+    "support": "Support",
+    "notifications": "Notifications",
+    "stats": {
+      "totalDesigns": "Total Designs",
+      "activeProjects": "Projets actifs",
+      "conversions": "Conversions",
+      "revenue": "Revenus"
+    },
+    "recentActivity": "Activité récente",
+    "quickActions": "Actions rapides",
+    "createDesign": "Créer un design",
+    "viewReports": "Voir les rapports"
+  },
+  "marketplace": {
+    "title": "Marketplace de Templates",
+    "subtitle": "Découvrez des designs professionnels créés par notre communauté",
+    "searchPlaceholder": "Rechercher des templates...",
+    "categories": {
+      "all": "Toutes catégories",
+      "apparel": "Vêtements",
+      "accessories": "Accessoires",
+      "home": "Maison & Déco",
+      "print": "Impression",
+      "packaging": "Packaging",
+      "digital": "Digital",
+      "marketing": "Marketing",
+      "social": "Réseaux sociaux"
+    },
+    "sortBy": {
+      "popular": "Plus populaires",
+      "newest": "Plus récents",
+      "priceAsc": "Prix croissant",
+      "priceDesc": "Prix décroissant",
+      "rating": "Mieux notés"
+    },
+    "filters": {
+      "title": "Filtres",
+      "priceRange": "Fourchette de prix",
+      "freeOnly": "Templates gratuits uniquement",
+      "tags": "Tags populaires"
+    },
+    "template": {
+      "downloads": "Téléchargements",
+      "views": "Vues",
+      "likes": "J'aime",
+      "rating": "Note",
+      "reviews": "Avis",
+      "buyNow": "Acheter",
+      "addToCart": "Ajouter au panier",
+      "preview": "Aperçu",
+      "byCreator": "Par",
+      "verifiedCreator": "Créateur vérifié"
+    },
+    "noResults": "Aucun template trouvé",
+    "noResultsDesc": "Essayez de modifier vos filtres ou votre recherche"
+  },
+  "pricing": {
+    "title": "Tarification simple et transparente",
+    "subtitle": "Choisissez le plan qui vous convient",
+    "monthly": "Mensuel",
+    "yearly": "Annuel",
+    "savePercent": "Économisez {{percent}}%",
+    "perMonth": "/mois",
+    "perYear": "/an",
+    "billedYearly": "Facturé annuellement",
+    "currentPlan": "Plan actuel",
+    "selectPlan": "Choisir ce plan",
+    "startTrial": "Essai gratuit",
+    "contactSales": "Contacter les ventes",
+    "features": "Fonctionnalités",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Parfait pour les individus qui débutent"
+      },
+      "professional": {
+        "name": "Professionnel",
+        "description": "Pour les équipes et entreprises en croissance"
+      },
+      "business": {
+        "name": "Business",
+        "description": "Pour les entreprises qui scalent"
+      },
+      "enterprise": {
+        "name": "Entreprise",
+        "description": "Solutions personnalisées pour grandes organisations"
+      }
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "q1": "Puis-je changer de plan plus tard ?",
+      "a1": "Oui, vous pouvez upgrader ou downgrader votre plan à tout moment.",
+      "q2": "Quels moyens de paiement acceptez-vous ?",
+      "a2": "Nous acceptons toutes les cartes bancaires et PayPal.",
+      "q3": "Y a-t-il un essai gratuit ?",
+      "a3": "Oui, tous les plans incluent un essai gratuit de 14 jours."
+    }
+  },
+  "contact": {
+    "title": "Contactez-nous",
+    "subtitle": "Nous serions ravis d'avoir de vos nouvelles",
+    "form": {
+      "name": "Votre nom",
+      "email": "Adresse email",
+      "company": "Entreprise",
+      "subject": "Sujet",
+      "message": "Message",
+      "submit": "Envoyer le message"
+    },
+    "success": "Message envoyé avec succès !",
+    "error": "Échec de l'envoi du message. Veuillez réessayer."
+  },
+  "footer": {
+    "description": "La plateforme tout-en-un pour la personnalisation de produits",
+    "product": "Produit",
+    "company": "Entreprise",
+    "resources": "Ressources",
+    "legal": "Légal",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "cookies": "Politique de cookies",
+    "copyright": "© {{year}} Luneo. Tous droits réservés."
+  },
+  "errors": {
+    "404": {
+      "title": "Page non trouvée",
+      "description": "La page que vous cherchez n'existe pas ou a été déplacée.",
+      "backHome": "Retour à l'accueil"
+    },
+    "500": {
+      "title": "Erreur serveur",
+      "description": "Quelque chose s'est mal passé de notre côté. Veuillez réessayer plus tard.",
+      "retry": "Réessayer"
+    },
+    "network": "Erreur réseau. Vérifiez votre connexion.",
+    "unauthorized": "Vous devez être connecté pour accéder à cette page.",
+    "forbidden": "Vous n'avez pas les droits pour accéder à cette ressource."
+  }
+}
+
+

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { ApiKeySummary } from '@luneo/types';
+import type { ApiKeySummary } from '@/lib/types';
 import { logger } from '@/lib/logger';
 
 type ApiKey = ApiKeySummary;

@@ -3,7 +3,7 @@
  * Exécuté une seule fois avant tous les tests
  */
 
-import { chromium, FullConfig } from '@playwright/test';
+import { FullConfig } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
@@ -16,44 +16,30 @@ async function globalSetup(config: FullConfig) {
     fs.mkdirSync(authDir, { recursive: true });
   }
   
-  // Lancer un navigateur pour des vérifications préliminaires
-  const browser = await chromium.launch();
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  
-  try {
-    // Vérifier que le serveur est accessible
-    const baseURL = config.projects[0].use?.baseURL || 'http://localhost:3000';
-    console.log(`📡 Vérification de ${baseURL}...`);
-    
-    const response = await page.goto(baseURL, { timeout: 30000 });
-    
-    if (response?.ok()) {
-      console.log('✅ Serveur accessible\n');
-    } else {
-      console.warn(`⚠️ Serveur accessible mais status: ${response?.status()}\n`);
-    }
-    
-    // Vérifier les routes critiques
-    const criticalRoutes = ['/login', '/register', '/pricing'];
-    for (const route of criticalRoutes) {
-      try {
-        const routeResponse = await page.goto(`${baseURL}${route}`, { timeout: 10000 });
-        const status = routeResponse?.status() || 'N/A';
-        console.log(`  ${status === 200 ? '✓' : '✗'} ${route} (${status})`);
-      } catch {
-        console.log(`  ✗ ${route} (timeout)`);
-      }
-    }
-    
-  } catch (error) {
-    console.error('❌ Erreur lors du setup:', error);
-    throw error;
-  } finally {
-    await browser.close();
+  const screenshotsDir = path.join(__dirname, '../../test-results/screenshots');
+  if (!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir, { recursive: true });
   }
   
-  console.log('\n✅ Global Setup terminé\n');
+  const baseURL = config.projects[0]?.use?.baseURL || 'http://localhost:3000';
+  console.log(`📡 BaseURL configuré: ${baseURL}`);
+  
+  // Attendre que le serveur soit prêt (via fetch simple)
+  const maxRetries = 10;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(baseURL, { method: 'HEAD' });
+      if (response.ok || response.status < 500) {
+        console.log('✅ Serveur prêt\n');
+        break;
+      }
+    } catch {
+      console.log(`⏳ Attente du serveur... (${i + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  
+  console.log('✅ Global Setup terminé\n');
 }
 
 export default globalSetup;

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { endpoints } from '../api/client';
 
-export type { AnalyticsOverview } from '@luneo/types';
+export type { AnalyticsOverview } from '@/lib/types';
 
 /**
  * Hook to get analytics overview

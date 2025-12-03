@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { S3Service } from '@/libs/s3/s3.service';
+import { StorageService } from '@/libs/storage/storage.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import * as sharp from 'sharp';
 import { 
@@ -17,7 +17,7 @@ export class Render2DService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3Service: S3Service,
+    private readonly storageService: StorageService,
     private readonly cache: SmartCacheService,
   ) {}
 
@@ -477,7 +477,7 @@ export class Render2DService {
   private async uploadRender(imageBuffer: Buffer, request: RenderRequest): Promise<{ url: string; size: number }> {
     const filename = `renders/2d/${request.id}.${request.options.format || 'png'}`;
     
-    const uploadResult = await this.s3Service.uploadBuffer(
+    const uploadResult = await this.storageService.uploadBuffer(
       imageBuffer,
       filename,
       {
@@ -510,7 +510,7 @@ export class Render2DService {
 
     const filename = `thumbnails/2d/${request.id}.png`;
     
-    const uploadResult = await this.s3Service.uploadBuffer(
+    const uploadResult = await this.storageService.uploadBuffer(
       thumbnailBuffer,
       filename,
       {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { ProductRecord } from '@luneo/types';
+import type { ProductRecord } from '@/lib/types';
 import { logger } from '@/lib/logger';
 
 type Product = ProductRecord;

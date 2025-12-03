@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type { PlanDefinition } from '@luneo/billing-plans';
+import type { PlanDefinition } from '@/lib/billing-plans';
 import type { UsageSummaryPayload } from '@/lib/hooks/useUsageSummary';
 
 export interface RealtimeQueueMetric {

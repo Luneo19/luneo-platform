@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { S3Service } from '@/libs/s3/s3.service';
+import { StorageService } from '@/libs/storage/storage.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { ExportSettings, AssetInfo } from '../interfaces/render.interface';
 
@@ -10,7 +10,7 @@ export class ExportService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3Service: S3Service,
+    private readonly storageService: StorageService,
     private readonly cache: SmartCacheService,
   ) {}
 

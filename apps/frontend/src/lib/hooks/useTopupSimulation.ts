@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { UsageMetricType } from '@luneo/billing-plans';
+import type { UsageMetricType } from '@/lib/billing-plans';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 

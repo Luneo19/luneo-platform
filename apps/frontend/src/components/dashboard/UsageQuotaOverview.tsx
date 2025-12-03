@@ -10,7 +10,7 @@ import {
   type PlanQuotaDefinition,
   type PlanTier,
   type UsageMetricType,
-} from '@luneo/billing-plans';
+} from '@/lib/billing-plans';
 import {
   AlertCircle,
   AlertTriangle,

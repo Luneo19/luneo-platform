@@ -7,13 +7,13 @@ import { ExportService } from './services/export.service';
 import { RenderWorker } from './workers/render.worker';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
-import { S3Module } from '@/libs/s3/s3.module';
+import { StorageModule } from '@/libs/storage/storage.module';
 
 @Module({
   imports: [
     PrismaModule,
     SmartCacheModule,
-    S3Module,
+    StorageModule,
     BullModule.registerQueue({
       name: 'render-2d',
     }),

@@ -6,7 +6,7 @@ import { generateAISchema } from '@/lib/validation/zod-schemas';
 import OpenAI from 'openai';
 import { v2 as cloudinary } from 'cloudinary';
 import { checkRateLimit, getClientIdentifier, aiGenerateRateLimit } from '@/lib/rate-limit';
-import { sanitizePrompt, hashPrompt, maskPromptForLogs } from '@luneo/ai-safety';
+import { sanitizePrompt, hashPrompt, maskPromptForLogs } from '@/lib/ai-safety';
 
 // Configuration OpenAI (lazy init pour éviter erreur au build)
 let openai: OpenAI | null = null;

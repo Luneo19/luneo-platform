@@ -44,7 +44,7 @@ import {
   PLAN_CATALOG,
   PLAN_DEFINITIONS,
   type PlanTier,
-} from '@luneo/billing-plans';
+} from '@/lib/billing-plans';
 import { logger } from '@/lib/logger';
 import { usePricingPlans } from '@/lib/hooks/useMarketingData';
 

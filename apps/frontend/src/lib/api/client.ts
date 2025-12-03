@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import type { Design, DesignSummary, LoginCredentials, RegisterData, User } from '@luneo/types';
+import type { Design, DesignSummary, LoginCredentials, RegisterData, User } from '@/lib/types';
 import { logger } from '@/lib/logger';
 
 interface AuthSessionResponse {

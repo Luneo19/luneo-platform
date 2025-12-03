@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { S3Service } from '@/libs/s3/s3.service';
+import { StorageService } from '@/libs/storage/storage.service';
 import { ProductRulesService } from '@/modules/product-engine/services/product-rules.service';
 import { ValidationEngine } from '@/modules/product-engine/services/validation-engine.service';
 
@@ -49,7 +49,7 @@ export class DesignWorker {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
-    private readonly s3Service: S3Service,
+    private readonly storageService: StorageService,
     private readonly productRulesService: ProductRulesService,
     private readonly validationEngine: ValidationEngine,
   ) {}
@@ -474,7 +474,7 @@ export class DesignWorker {
         
         // Uploader vers S3
         const filename = `designs/${designId}/image_${i + 1}.${image.format}`;
-        const uploadResult = await this.s3Service.uploadBuffer(
+        const uploadResult = await this.storageService.uploadBuffer(
           imageBuffer,
           filename,
           {
