@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   TrendingUp,
   TrendingDown,
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   Share2,
   ExternalLink,
+  BarChart3,
 } from 'lucide-react';
 import { UsageQuotaOverview } from '@/components/dashboard/UsageQuotaOverview';
 import { logger } from '@/lib/logger';
@@ -240,34 +242,44 @@ export default function AnalyticsPage() {
           description="Vous n'avez pas encore de données analytics. Créez des designs et recevez des commandes pour voir vos statistiques."
         />
       )}
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Header - Enhanced with animations */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+      >
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Analytics</h1>
-          <p className="text-gray-400">Vue d'ensemble de vos performances</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-400" />
+            Analytics
+          </h1>
+          <p className="text-gray-400">Vue d'ensemble de vos performances en temps réel</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as any)}
-            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
-          >
-            <option value="7d">7 derniers jours</option>
-            <option value="30d">30 derniers jours</option>
-            <option value="90d">90 derniers jours</option>
-            <option value="1y">1 an</option>
-          </select>
+          <Select value={timeRange} onValueChange={(value) => setTimeRange(value as any)}>
+            <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="7d">7 derniers jours</SelectItem>
+              <SelectItem value="30d">30 derniers jours</SelectItem>
+              <SelectItem value="90d">90 derniers jours</SelectItem>
+              <SelectItem value="1y">1 an</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="border-gray-700"
+            className="border-slate-700 hover:bg-slate-800"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Actualiser
           </Button>
           <Button
             variant="outline"
-            className="border-gray-700 min-w-[140px]"
+            className="border-slate-700 hover:bg-slate-800 min-w-[140px]"
             onClick={handleExport}
             disabled={exporting}
           >
@@ -276,8 +288,10 @@ export default function AnalyticsPage() {
           </Button>
           <Button
             variant="outline"
-            className={`border-gray-700 ${shareStatus === 'success' ? 'text-green-400 border-green-500/50' : ''} ${
-              shareStatus === 'error' ? 'text-red-400 border-red-500/50' : ''
+            className={`border-slate-700 hover:bg-slate-800 ${
+              shareStatus === 'success' ? 'text-green-400 border-green-500/50 bg-green-500/10' : ''
+            } ${
+              shareStatus === 'error' ? 'text-red-400 border-red-500/50 bg-red-500/10' : ''
             }`}
             onClick={handleShareSnapshot}
           >
@@ -285,14 +299,14 @@ export default function AnalyticsPage() {
             Partager
           </Button>
           <Button
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-            onClick={() => router.push('/dashboard/overview')}
+            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25"
+            onClick={() => router.push('/overview')}
           >
             <ExternalLink className="w-4 h-4 mr-2" />
-            Ouvrir Overview
+            Overview
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {shareStatus === 'success' && (
         <p className="text-sm text-green-400">Lien copié ! Partagez cette vue analytics à votre équipe.</p>
@@ -461,7 +475,7 @@ export default function AnalyticsPage() {
                   <td colSpan={5} className="py-6 text-center text-gray-400">
                     Aucune page suivie pour le moment.
                     <div className="mt-4">
-                      <Button onClick={() => router.push('/dashboard/overview')} variant="outline">
+                      <Button onClick={() => router.push('/overview')} variant="outline">
                         Ajouter un premier tracking
                       </Button>
                     </div>

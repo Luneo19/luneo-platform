@@ -184,7 +184,7 @@ export default function RegisterPage() {
             full_name: formData.fullName,
             company: formData.company || undefined,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard/overview`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/overview`,
         },
       });
 
@@ -217,24 +217,52 @@ export default function RegisterPage() {
           });
         }
 
-        setSuccess(
-          '🎉 Compte créé avec succès ! Vérifiez votre email pour activer votre compte.'
-        );
+        // Check if user has a session (email confirmation might be disabled)
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Reset form
-        setFormData({
-          fullName: '',
-          email: '',
-          company: '',
-          password: '',
-          confirmPassword: '',
-        });
-        setAcceptedTerms(false);
+        if (session && data.session) {
+          // User is automatically logged in (email confirmation disabled)
+          // Store token for API calls
+          if (data.session.access_token) {
+            localStorage.setItem('accessToken', data.session.access_token);
+          }
+          
+          setSuccess('🎉 Compte créé avec succès ! Redirection...');
+          
+          // Wait for session to be fully established
+          setTimeout(async () => {
+            // Verify session is available before redirecting
+            const { data: { session: verifySession } } = await supabase.auth.getSession();
+            if (verifySession) {
+              // Use window.location for a full page reload to ensure cookies are set
+              window.location.href = '/overview';
+            } else {
+              // Fallback: try router.push if session verification fails
+              router.push('/overview');
+              router.refresh();
+            }
+          }, 800);
+        } else {
+          // Email confirmation required
+          setSuccess(
+            '🎉 Compte créé avec succès ! Vérifiez votre email pour activer votre compte.'
+          );
+          
+          // Reset form
+          setFormData({
+            fullName: '',
+            email: '',
+            company: '',
+            password: '',
+            confirmPassword: '',
+          });
+          setAcceptedTerms(false);
 
-        // Redirect to login after delay
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
+          // Redirect to login after delay
+          setTimeout(() => {
+            router.push('/login');
+          }, 3000);
+        }
       }
     } catch (err: unknown) {
       logger.error('Registration error', {
@@ -259,7 +287,7 @@ export default function RegisterPage() {
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 
         (typeof window !== 'undefined' ? window.location.origin : 'https://app.luneo.app');
-      const redirectTo = `${appUrl}/auth/callback?next=/dashboard/overview`;
+      const redirectTo = `${appUrl}/auth/callback?next=/overview`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -307,7 +335,7 @@ export default function RegisterPage() {
         <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-white mb-2">
           Créer un compte 🚀
         </h1>
-        <p className="text-slate-400">
+        <p className="text-slate-300">
           Commencez gratuitement pendant 14 jours
         </p>
           </div>
@@ -343,17 +371,17 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
         {/* Full Name */}
         <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-sm font-medium text-slate-300">
+          <Label htmlFor="fullName" className="text-sm font-medium text-slate-200 block mb-1.5">
             Nom complet <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="fullName"
                   data-testid="register-name"
                   type="text"
                   placeholder="Jean Dupont"
-              className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
+              className="pl-10 bg-slate-800 border-2 border-slate-600 text-white placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
@@ -367,17 +395,17 @@ export default function RegisterPage() {
 
         {/* Email */}
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+          <Label htmlFor="email" className="text-sm font-medium text-slate-200 block mb-1.5">
             Email professionnel <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="email"
                   data-testid="register-email"
                   type="email"
               placeholder="votre@entreprise.com"
-              className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
+              className="pl-10 bg-slate-800 border-2 border-slate-600 text-white placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -391,16 +419,16 @@ export default function RegisterPage() {
 
         {/* Company */}
         <div className="space-y-2">
-          <Label htmlFor="company" className="text-sm font-medium text-slate-300">
-            Entreprise <span className="text-slate-500">(optionnel)</span>
+          <Label htmlFor="company" className="text-sm font-medium text-slate-200 block mb-1.5">
+            Entreprise <span className="text-slate-400">(optionnel)</span>
               </Label>
           <div className="relative">
-            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="company"
                   type="text"
                   placeholder="Votre entreprise"
-              className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
+              className="pl-10 bg-slate-800 border-2 border-slate-600 text-white placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               disabled={isLoading}
@@ -410,17 +438,17 @@ export default function RegisterPage() {
 
         {/* Password */}
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-slate-300">
+          <Label htmlFor="password" className="text-sm font-medium text-slate-200 block mb-1.5">
             Mot de passe <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="password"
                   data-testid="register-password"
                   type={showPassword ? 'text' : 'password'}
               placeholder="Créez un mot de passe sécurisé"
-              className="pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11"
+              className="pl-10 pr-12 bg-slate-800 border-2 border-slate-600 text-white placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -429,7 +457,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors z-10"
               tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -495,18 +523,20 @@ export default function RegisterPage() {
 
         {/* Confirm Password */}
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">
+          <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-200 block mb-1.5">
             Confirmer le mot de passe <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="confirmPassword"
                   data-testid="register-confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirmez votre mot de passe"
-              className={`pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-11 ${
-                formData.confirmPassword && !passwordsMatch ? 'border-red-500/50' : ''
+              className={`pl-10 pr-12 bg-slate-800 border-2 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base ${
+                formData.confirmPassword && !passwordsMatch 
+                  ? 'border-red-500 focus:border-red-500' 
+                  : 'border-slate-600 focus:border-cyan-500'
               }`}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
@@ -516,7 +546,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors z-10"
               tabIndex={-1}
             >
               {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -539,16 +569,16 @@ export default function RegisterPage() {
                 type="checkbox"
             checked={acceptedTerms}
             onChange={(e) => setAcceptedTerms(e.target.checked)}
-            className="w-4 h-4 mt-0.5 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500/20 focus:ring-offset-0"
+            className="w-5 h-5 mt-0.5 rounded border-2 border-slate-600 bg-slate-800 text-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:ring-offset-0 cursor-pointer"
                 required
               />
-          <Label htmlFor="terms" className="text-sm text-slate-400 cursor-pointer leading-relaxed">
+          <Label htmlFor="terms" className="text-sm text-slate-300 cursor-pointer leading-relaxed flex-1">
             J&apos;accepte les{' '}
-            <Link href="/legal/terms" className="text-cyan-400 hover:text-cyan-300 underline">
+            <Link href="/legal/terms" className="text-cyan-400 hover:text-cyan-300 underline font-medium">
               conditions d&apos;utilisation
                 </Link>{' '}
                 et la{' '}
-            <Link href="/legal/privacy" className="text-cyan-400 hover:text-cyan-300 underline">
+            <Link href="/legal/privacy" className="text-cyan-400 hover:text-cyan-300 underline font-medium">
                   politique de confidentialité
                 </Link>
               </Label>
@@ -578,10 +608,10 @@ export default function RegisterPage() {
           {/* Divider */}
       <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-700" />
+          <div className="w-full border-t border-slate-600" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-slate-900 text-slate-500">ou s&apos;inscrire avec</span>
+          <span className="px-4 bg-slate-900 text-slate-400">ou s&apos;inscrire avec</span>
             </div>
           </div>
 
@@ -592,7 +622,7 @@ export default function RegisterPage() {
               variant="outline"
               data-testid="register-oauth-google"
               aria-label="S'inscrire avec Google"
-          className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-11"
+          className="bg-slate-800 border-2 border-slate-600 hover:bg-slate-700 hover:border-slate-500 text-white h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('google')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -601,7 +631,7 @@ export default function RegisterPage() {
           ) : (
             <>
               <GoogleIcon />
-              <span className="ml-2">Google</span>
+              <span className="ml-2 hidden sm:inline">Google</span>
             </>
           )}
             </Button>
@@ -611,7 +641,7 @@ export default function RegisterPage() {
               variant="outline"
               data-testid="register-oauth-github"
               aria-label="S'inscrire avec GitHub"
-          className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-11"
+          className="bg-slate-800 border-2 border-slate-600 hover:bg-slate-700 hover:border-slate-500 text-white h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('github')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -620,7 +650,7 @@ export default function RegisterPage() {
           ) : (
             <>
               <GitHubIcon />
-              <span className="ml-2">GitHub</span>
+              <span className="ml-2 hidden sm:inline">GitHub</span>
             </>
           )}
             </Button>
