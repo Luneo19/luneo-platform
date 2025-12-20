@@ -8,8 +8,14 @@
   "main": "api/index.js",
   "scripts": {
     "build": "nest build",
+    "vercel-build": "bash -c 'source scripts/vercel-build-optimized.sh'",
+    "postinstall": "echo 'Skipping postinstall in CI' || true",
     "start": "node api/index.js",
-    "vercel-build": "npm run build"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "test:unit": "jest --testPathPattern=spec"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -64,7 +70,8 @@
     "nodemailer": "^6.9.7",
     "cloudinary": "^1.41.0",
     "tsconfig-paths": "^4.2.0",
-    "module-alias": "^2.2.3"
+    "module-alias": "^2.2.3",
+    "openai": "^4.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
