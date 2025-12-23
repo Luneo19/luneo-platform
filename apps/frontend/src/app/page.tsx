@@ -1,3 +1,5 @@
-// Root page - re-export from public homepage
+// Root page - Import and render HomePage directly
 // This ensures Next.js recognizes the root route correctly
-export { default } from '@/app/(public)/page';
+import HomePage from '@/app/(public)/page';
+
+export default HomePage;
