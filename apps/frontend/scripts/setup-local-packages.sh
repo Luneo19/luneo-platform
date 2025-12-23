@@ -16,28 +16,53 @@ copy_package() {
   
   if [ -d "$source_dir" ]; then
     echo "📦 Copying @luneo/$package_name..."
-    # Copier tous les fichiers
-    cp -r "$source_dir"/* "$target_dir/" 2>/dev/null || true
+    # Créer le dossier cible
+    mkdir -p "$target_dir"
     
-    # S'assurer que package.json existe
-    if [ ! -f "$target_dir/package.json" ]; then
-      echo "⚠️ package.json manquant pour @luneo/$package_name, création..."
+    # Copier package.json en premier (important pour la résolution)
+    if [ -f "$source_dir/package.json" ]; then
+      cp "$source_dir/package.json" "$target_dir/package.json"
+      echo "  ✅ package.json copié"
+    else
+      echo "  ⚠️ package.json manquant, création..."
       cat > "$target_dir/package.json" <<EOF
 {
   "name": "@luneo/$package_name",
   "version": "1.0.0",
-  "main": "index.js",
-  "types": "index.d.ts"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  }
 }
 EOF
     fi
     
-    # Créer index.js si nécessaire (pour compatibilité)
-    if [ ! -f "$target_dir/index.js" ] && [ -f "$target_dir/index.ts" ]; then
-      echo "📝 Creating index.js from index.ts for @luneo/$package_name..."
-      # Copier index.ts comme index.js (TypeScript sera compilé)
-      cp "$target_dir/index.ts" "$target_dir/index.js" 2>/dev/null || true
+    # Copier le dossier dist/ si existe (fichiers compilés)
+    if [ -d "$source_dir/dist" ]; then
+      echo "  📦 Copie du dossier dist/..."
+      cp -r "$source_dir/dist" "$target_dir/dist"
+      echo "  ✅ dist/ copié"
     fi
+    
+    # Copier les fichiers source si dist/ n'existe pas
+    if [ ! -d "$source_dir/dist" ]; then
+      echo "  📦 Copie des fichiers source..."
+      cp -r "$source_dir"/* "$target_dir/" 2>/dev/null || true
+    fi
+    
+    # Vérifier que les fichiers principaux existent
+    if [ ! -f "$target_dir/dist/index.js" ] && [ ! -f "$target_dir/index.js" ]; then
+      echo "  ⚠️ Aucun index.js trouvé, création depuis index.ts..."
+      if [ -f "$source_dir/index.ts" ]; then
+        cp "$source_dir/index.ts" "$target_dir/index.js" 2>/dev/null || true
+      fi
+    fi
+  else
+    echo "  ❌ Dossier source non trouvé: $source_dir"
   fi
 }
 
