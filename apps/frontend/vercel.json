@@ -1,8 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm run build",
-  "outputDirectory": ".next",
   "framework": "nextjs",
+  "installCommand": "corepack enable && corepack prepare pnpm@8.10.0 --activate && pnpm install",
+  "buildCommand": "chmod +x scripts/setup-local-packages.sh && bash scripts/setup-local-packages.sh && pnpm run build",
+  "outputDirectory": ".next",
   "regions": ["cdg1"],
   "crons": [
     {
@@ -96,3 +97,4 @@
     }
   ]
 }
+

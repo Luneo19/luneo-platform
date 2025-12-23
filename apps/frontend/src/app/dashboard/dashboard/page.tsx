@@ -1,6 +1,0 @@
-import { redirect } from 'next/navigation';
-
-export default function DashboardDashboardPage() {
-  redirect('/dashboard/overview');
-}
-
