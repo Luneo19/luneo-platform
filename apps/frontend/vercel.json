@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "bash scripts/setup-local-packages.sh && pnpm run build",
+  "buildCommand": "chmod +x scripts/setup-local-packages.sh && bash scripts/setup-local-packages.sh && pnpm run build",
   "outputDirectory": ".next",
   "regions": ["cdg1"],
   "crons": [
