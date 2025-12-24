@@ -260,7 +260,7 @@ function StatusPageContent() {
         <div className="mt-8 text-center text-sm text-slate-500">
           <p>
             Problème ? Contactez le{' '}
-            <a href="/support" className="text-blue-400 hover:underline">
+            <a href="/help/support" className="text-blue-400 hover:underline">
               support
             </a>{' '}
             ou consultez notre{' '}

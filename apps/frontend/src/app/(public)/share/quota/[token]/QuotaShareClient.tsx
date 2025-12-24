@@ -131,7 +131,7 @@ function QuotaShareClientContent({ sharedData }: QuotaShareClientProps) {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="outline" className="border-gray-700 text-gray-200">
-              <Link href="/analytics">
+              <Link href="/dashboard/analytics">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Ouvrir le dashboard complet
               </Link>
@@ -255,7 +255,7 @@ function QuotaShareClientContent({ sharedData }: QuotaShareClientProps) {
                 <Link href="/pricing">Comparer les plans</Link>
               </Button>
               <Button asChild>
-                <Link href="/analytics">Ouvrir le cockpit sécurisé</Link>
+                <Link href="/dashboard/analytics">Ouvrir le cockpit sécurisé</Link>
               </Button>
             </div>
           </Card>

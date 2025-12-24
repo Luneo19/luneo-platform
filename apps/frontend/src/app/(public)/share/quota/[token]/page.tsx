@@ -74,7 +74,7 @@ export default async function QuotaSharePage({ params }: QuotaSharePageProps) {
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Button asChild variant="outline" className="border-gray-700 text-gray-200">
-                <Link href="/analytics">
+                <Link href="/dashboard/analytics">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Retour au cockpit
                 </Link>
