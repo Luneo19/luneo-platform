@@ -104,26 +104,22 @@
 .navLogo {
   display: flex;
   align-items: center;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+  z-index: 101;
 }
 
-.logoSphere {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(147, 197, 253, 0.5) 100%);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-  animation: pulse 3s ease-in-out infinite;
+.navLogo:hover {
+  opacity: 0.9;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.7;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
+.logoImage {
+  height: auto;
+  width: auto;
+  max-height: 60px;
+  max-width: 200px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
 .navLinks {

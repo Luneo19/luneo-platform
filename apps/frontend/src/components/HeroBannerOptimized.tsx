@@ -15,6 +15,7 @@
 
 import React, { useMemo } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './HeroBannerOptimized.module.css';
 
 // Import direct pour performance (les composants sont déjà légers avec SVG/CSS)
@@ -98,9 +99,16 @@ export function HeroBannerOptimized({
 
       {/* Navigation bar */}
       <nav className={styles.navBar}>
-        <div className={styles.navLogo}>
-          <div className={styles.logoSphere} />
-        </div>
+        <Link href="/" className={styles.navLogo}>
+          <Image
+            src="/logo.png"
+            alt="Luneo Logo"
+            width={150}
+            height={60}
+            className={styles.logoImage}
+            priority
+          />
+        </Link>
         {/* Navigation links supprimés selon demande */}
         {/* Join waitlist button supprimé selon demande */}
       </nav>
