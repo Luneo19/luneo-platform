@@ -6,7 +6,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { getRedis } from '@/lib/cache/redis';
+import { cacheService } from '@/lib/cache/redis';
 import { track } from '@vercel/analytics';
 import * as Sentry from '@sentry/nextjs';
 
@@ -57,14 +57,10 @@ export async function checkAndDeductCredits(
   supabaseClient: any // Passer le client Supabase depuis l'appelant
 ): Promise<{ success: boolean; balance: number; error?: string }> {
   const cacheKey = `credits:${userId}`;
-  const redis = getRedis();
 
   try {
     // Vérifier cache Redis
-    let balance: string | null = null;
-    if (redis) {
-      balance = await redis.get(cacheKey);
-    }
+    const balance = await cacheService.get<string>(cacheKey);
 
     if (!balance) {
       // Cache miss: fetch from DB
@@ -82,12 +78,10 @@ export async function checkAndDeductCredits(
       balance = String(profile?.ai_credits ?? profile?.metadata?.aiCredits ?? 0);
 
       // Cache pour 60 secondes
-      if (redis) {
-        await redis.set(cacheKey, balance, { EX: 60 });
-      }
+      await cacheService.set(cacheKey, balance, { ttl: 60 });
     }
 
-    const currentBalance = parseInt(balance, 10);
+    const currentBalance = parseInt(balance || '0', 10);
 
     if (currentBalance < required) {
       return {
@@ -113,9 +107,7 @@ export async function checkAndDeductCredits(
 
     // Mettre à jour cache
     const newBalance = currentBalance - required;
-    if (redis) {
-      await redis.set(cacheKey, String(newBalance), { EX: 60 });
-    }
+    await cacheService.set(cacheKey, String(newBalance), { ttl: 60 });
 
     // Logger transaction
     logger.info('Credits deducted', {
