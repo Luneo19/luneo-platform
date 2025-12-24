@@ -983,7 +983,7 @@ function HomePageContent() {
             viewport={{ once: true }}
             className="text-center mt-10"
           >
-            <Link href="/integrations">
+            <Link href="/integrations-overview">
               <Button variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10">
                 Voir toutes les intégrations (50+)
                 <ArrowRight className="w-4 h-4 ml-2" />
