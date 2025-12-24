@@ -569,7 +569,7 @@ function LibraryPageContent() {
               <h3 className="text-lg font-semibold text-red-400 mb-2">Erreur de chargement</h3>
               <p className="text-sm text-red-300">{error}</p>
             </div>
-            <Button onClick={() => loadTemplates(1, false)} variant="outline" className="border-red-500/50 text-red-400">
+            <Button onClick={() => templatesQuery.refetch()} variant="outline" className="border-red-500/50 text-red-400">
               Réessayer
             </Button>
           </div>
