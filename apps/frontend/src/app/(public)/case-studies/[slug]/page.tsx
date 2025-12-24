@@ -108,10 +108,10 @@ function CaseStudyDetailContent() {
 
   if (!caseStudy) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Case Study non trouvé</h1>
-          <p className="text-gray-600 mb-8">Le cas d'étude demandé n'existe pas.</p>
+          <h1 className="text-4xl font-bold text-white mb-4">Case Study non trouvé</h1>
+          <p className="text-gray-300 mb-8">Le cas d'étude demandé n'existe pas.</p>
           <Link href="/case-studies">
             <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
               Retour aux case studies
@@ -123,7 +123,7 @@ function CaseStudyDetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       {/* Header */}
       <section className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4">
