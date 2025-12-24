@@ -295,7 +295,7 @@ function ProductPage() {
                             </span>
                           )}
                           {link.time && (
-                            <span className="text-xs text-gray-500">{link.time}</span>
+                            <span className="text-xs text-gray-400">{link.time}</span>
                           )}
                         </Link>
                       </li>
