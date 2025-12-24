@@ -119,19 +119,19 @@ logger.info('Version:', client.version);`}
             <div className="flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-blue-400 mt-0.5" />
               <div>
-                <p className="text-white font-medium">React 18+ <span className="text-gray-500 text-sm">(pour composants UI)</span></p>
+                <p className="text-white font-medium">React 18+ <span className="text-gray-400 text-sm">(pour composants UI)</span></p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-blue-400 mt-0.5" />
               <div>
-                <p className="text-white font-medium">Next.js 14+ <span className="text-gray-500 text-sm">(recommandé)</span></p>
+                <p className="text-white font-medium">Next.js 14+ <span className="text-gray-400 text-sm">(recommandé)</span></p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-blue-400 mt-0.5" />
               <div>
-                <p className="text-white font-medium">TypeScript <span className="text-gray-500 text-sm">(types inclus)</span></p>
+                <p className="text-white font-medium">TypeScript <span className="text-gray-400 text-sm">(types inclus)</span></p>
               </div>
             </div>
           </div>
