@@ -97,18 +97,9 @@ export function HeroBannerOptimized({
         </div>
       )}
 
-      {/* Navigation bar */}
+      {/* Navigation bar - Logo supprimé, présent uniquement dans le menu principal */}
       <nav className={styles.navBar}>
-        <Link href="/" className={styles.navLogo}>
-          <Image
-            src="/logo.png"
-            alt="Luneo Logo"
-            width={1000}
-            height={400}
-            className={styles.logoImage}
-            priority
-          />
-        </Link>
+        {/* Logo supprimé - présent uniquement dans ZakekeStyleNav */}
         {/* Navigation links supprimés selon demande */}
         {/* Join waitlist button supprimé selon demande */}
       </nav>
