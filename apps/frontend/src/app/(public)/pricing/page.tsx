@@ -625,9 +625,9 @@ function PricingCard({
                 {feature.included ? (
                   <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
                 ) : (
-                  <X className="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5" />
+                  <X className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
                 )}
-                <span className={`text-sm ${feature.included ? 'text-gray-300' : 'text-gray-600'}`}>
+                <span className={`text-sm ${feature.included ? 'text-gray-300' : 'text-gray-500'}`}>
                   {feature.name}
                 </span>
               </div>

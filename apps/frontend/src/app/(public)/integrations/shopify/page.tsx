@@ -374,13 +374,13 @@ Vérifiez dans Orders > [Order ID] > Production Files.`,
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Fonctionnalités Complètes
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               Tout ce dont vous avez besoin pour transformer votre boutique Shopify en expérience de personnalisation premium
             </p>
           </div>
@@ -392,12 +392,12 @@ Vérifiez dans Orders > [Order ID] > Production Files.`,
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="p-6 h-full hover:shadow-lg transition-shadow border-2 hover:border-green-500/50">
+                <Card className="p-6 h-full bg-gray-800/50 border-gray-700 hover:border-green-500/50 transition-all">
                   <div className={`w-12 h-12 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center text-white mb-4`}>
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.description}</p>
+                  <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+                  <p className="text-gray-300">{feature.description}</p>
                 </Card>
               </motion.div>
             ))}
@@ -406,7 +406,7 @@ Vérifiez dans Orders > [Order ID] > Production Files.`,
       </section>
 
       {/* Main Content Tabs */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-800/30">
         <div className="max-w-7xl mx-auto">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-8">
@@ -436,45 +436,45 @@ Vérifiez dans Orders > [Order ID] > Production Files.`,
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-8">
-              <Card className="p-6 md:p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Pourquoi choisir Luneo pour Shopify ?</h3>
+              <Card className="p-6 md:p-8 bg-gray-800/50 border-gray-700">
+                <h3 className="text-2xl font-bold text-white mb-6">Pourquoi choisir Luneo pour Shopify ?</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
                       Augmentation des conversions
                     </h4>
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-gray-300 mb-4">
                       Les boutiques avec personnalisation Luneo voient une augmentation moyenne de 35% de leur taux de conversion.
                       Les clients peuvent voir exactement ce qu'ils achètent avant de commander.
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
                       Réduction des retours
                     </h4>
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-gray-300 mb-4">
                       Réduisez les retours de 40% en moyenne. Les clients sont satisfaits car ils voient exactement
                       le produit personnalisé avant l'achat.
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
                       Intégration native
                     </h4>
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-gray-300 mb-4">
                       Intégration 100% native avec Shopify. Synchronisation automatique des produits, commandes,
                       et inventaire. Aucune configuration complexe requise.
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
                       Support premium
                     </h4>
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-gray-300 mb-4">
                       Support dédié 7j/7 avec réponse sous 2h. Onboarding gratuit et sessions de formation
                       pour votre équipe.
                     </p>
@@ -482,35 +482,35 @@ Vérifiez dans Orders > [Order ID] > Production Files.`,
                 </div>
               </Card>
 
-              <Card className="p-6 md:p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Statistiques de Performance</h3>
+              <Card className="p-6 md:p-8 bg-gray-800/50 border-gray-700">
+                <h3 className="text-2xl font-bold text-white mb-6">Statistiques de Performance</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 mb-2">+35%</div>
-                    <div className="text-sm text-gray-600">Conversion</div>
+                    <div className="text-3xl font-bold text-green-400 mb-2">+35%</div>
+                    <div className="text-sm text-gray-400">Conversion</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600 mb-2">-40%</div>
-                    <div className="text-sm text-gray-600">Retours</div>
+                    <div className="text-3xl font-bold text-blue-400 mb-2">-40%</div>
+                    <div className="text-sm text-gray-400">Retours</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-600 mb-2">+28%</div>
-                    <div className="text-sm text-gray-600">Panier moyen</div>
+                    <div className="text-3xl font-bold text-purple-400 mb-2">+28%</div>
+                    <div className="text-sm text-gray-400">Panier moyen</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-orange-600 mb-2">2min</div>
-                    <div className="text-sm text-gray-600">Installation</div>
+                    <div className="text-3xl font-bold text-orange-400 mb-2">2min</div>
+                    <div className="text-sm text-gray-400">Installation</div>
                   </div>
                 </div>
               </Card>
 
               {/* Test Connection Widget */}
-              <Card className="p-6 md:p-8 border-2 border-green-500/20">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Zap className="w-6 h-6 text-green-600" />
+              <Card className="p-6 md:p-8 bg-gray-800/50 border-2 border-green-500/20 border-gray-700">
+                <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Zap className="w-6 h-6 text-green-400" />
                   Test de Connexion
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-gray-300 mb-6">
                   Testez votre connexion Shopify pour vérifier que tout est correctement configuré.
                 </p>
                 <div className="space-y-4">
@@ -568,24 +568,24 @@ Vérifiez dans Orders > [Order ID] > Production Files.`,
 
             {/* Setup Tab */}
             <TabsContent value="setup" className="space-y-6">
-              <Card className="p-6 md:p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Guide d'Installation Étape par Étape</h3>
+              <Card className="p-6 md:p-8 bg-gray-800/50 border-gray-700">
+                <h3 className="text-2xl font-bold text-white mb-6">Guide d'Installation Étape par Étape</h3>
                 <div className="space-y-6">
                   <div className="border-l-4 border-green-500 pl-6">
-                    <h4 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <h4 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
                       <span className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
                       Installer l'app depuis le Shopify App Store
                     </h4>
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-gray-300 mb-4">
                       Rendez-vous sur le{' '}
-                      <Link href="https://apps.shopify.com/luneo" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline font-semibold">
+                      <Link href="https://apps.shopify.com/luneo" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 hover:underline font-semibold">
                         Shopify App Store
                       </Link>
                       {' '}et cliquez sur "Installer". L'app demandera les permissions nécessaires pour fonctionner.
                     </p>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600 mb-2 font-semibold">Permissions requises:</p>
-                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                    <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                      <p className="text-sm text-gray-300 mb-2 font-semibold">Permissions requises:</p>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-300">
                         <li>read_products - Lire vos produits</li>
                         <li>write_products - Modifier vos produits</li>
                         <li>read_orders - Lire vos commandes</li>
