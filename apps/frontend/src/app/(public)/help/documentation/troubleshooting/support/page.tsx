@@ -48,7 +48,7 @@ function SupportPageContent() {
               {channel.icon}
               <h3 className="text-lg font-bold text-white mb-2">{channel.title}</h3>
               <p className="text-sm text-gray-400 mb-4">{channel.contact}</p>
-              <p className="text-xs text-gray-500 mb-4">{channel.description}</p>
+              <p className="text-xs text-gray-400 mb-4">{channel.description}</p>
               {channel.link && (
                 <Link href={channel.link}>
                   <Button size="sm" variant="outline" className="border-gray-600 text-white">
