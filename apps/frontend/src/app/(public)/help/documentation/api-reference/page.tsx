@@ -115,7 +115,7 @@ function APIReferencePageContent() {
               Nouveau sur l'API Luneo ? Commencez par notre guide de démarrage rapide.
             </p>
             <Link href="/help/quick-start">
-              <button className="bg-white text-blue-600 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors">
+              <button className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white hover:bg-white/20 px-6 py-3 rounded-lg font-semibold transition-colors">
                 Guide de démarrage
                 <ArrowRight className="w-4 h-4 ml-2 inline" />
               </button>
