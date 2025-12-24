@@ -150,12 +150,12 @@ function BillingPageContent() {
   // RENDER
   // ========================================
 
-  if (subscriptionQuery.isLoading || usageQuery.isLoading || limitsQuery.isLoading) {
+  if (subscriptionQuery.isPending || usageQuery.isPending || limitsQuery.isPending || invoicesQuery.isPending || paymentMethodsQuery.isPending) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
+          <p className="mt-4 text-gray-300">Chargement...</p>
         </div>
       </div>
     );
@@ -168,10 +168,10 @@ function BillingPageContent() {
   const paymentMethods = paymentMethodsQuery.data || [];
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 bg-gray-900 min-h-screen">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Facturation</h1>
-        <p className="text-gray-600">Gérez votre abonnement et vos factures</p>
+        <h1 className="text-3xl font-bold mb-2 text-white">Facturation</h1>
+        <p className="text-gray-300">Gérez votre abonnement et vos factures</p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
@@ -223,14 +223,14 @@ function BillingPageContent() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Période actuelle</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-sm text-gray-300">Période actuelle</span>
+                    <span className="text-sm font-medium text-white">
                       {formatDate(subscription.currentPeriodStart)} -{' '}
                       {formatDate(subscription.currentPeriodEnd)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Statut</span>
+                    <span className="text-sm text-gray-300">Statut</span>
                     <Badge
                       variant={
                         subscription.status === 'active' ? 'default' : 'secondary'
@@ -257,10 +257,10 @@ function BillingPageContent() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium">Personnalisations</span>
+                    <Package className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-white">Personnalisations</span>
                   </div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-300">
                     {usage?.customizations || 0} / {limits?.monthlyCustomizations || 0}
                   </span>
                 </div>
@@ -274,10 +274,10 @@ function BillingPageContent() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium">Rendus</span>
+                    <Zap className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-white">Rendus</span>
                   </div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-300">
                     {usage?.renders || 0} / {limits?.monthlyRenders || 0}
                   </span>
                 </div>
@@ -288,10 +288,10 @@ function BillingPageContent() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium">Appels API</span>
+                    <TrendingUp className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-white">Appels API</span>
                   </div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-300">
                     {usage?.apiCalls || 0} / {limits?.monthlyApiCalls || 0}
                   </span>
                 </div>
@@ -302,10 +302,10 @@ function BillingPageContent() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Database className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium">Stockage</span>
+                    <Database className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-white">Stockage</span>
                   </div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-300">
                     {formatBytes(usage?.storageBytes || 0)} /{' '}
                     {formatBytes(limits?.storageBytes || 0)}
                   </span>
@@ -327,7 +327,7 @@ function BillingPageContent() {
               {invoices.length === 0 ? (
                 <div className="text-center py-12">
                   <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-600">Aucune facture trouvée</p>
+                  <p className="text-gray-300">Aucune facture trouvée</p>
                 </div>
               ) : (
                 <Table>
