@@ -14,7 +14,7 @@ const roadmapItems = [
 
 function RoadmapPageContent() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Map className="w-16 h-16 mx-auto mb-6" />
@@ -26,30 +26,30 @@ function RoadmapPageContent() {
       <section className="max-w-5xl mx-auto px-4 py-20">
         <div className="space-y-6">
           {roadmapItems.map((item, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow-lg p-6 flex items-start gap-4">
+            <div key={idx} className="bg-gray-800/50 rounded-xl shadow-lg p-6 flex items-start gap-4 border border-gray-700">
               <div className="flex-shrink-0">
-                {item.status === 'completed' && <Check className="w-8 h-8 text-green-600" />}
-                {item.status === 'in-progress' && <Clock className="w-8 h-8 text-blue-600 animate-pulse" />}
-                {item.status === 'planned' && <Circle className="w-8 h-8 text-gray-400" />}
+                {item.status === 'completed' && <Check className="w-8 h-8 text-green-400" />}
+                {item.status === 'in-progress' && <Clock className="w-8 h-8 text-blue-400 animate-pulse" />}
+                {item.status === 'planned' && <Circle className="w-8 h-8 text-gray-500" />}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xl font-bold text-gray-900">{item.title}</h3>
-                  <span className="text-sm font-semibold text-gray-600">{item.quarter}</span>
+                  <h3 className="text-xl font-bold text-white">{item.title}</h3>
+                  <span className="text-sm font-semibold text-gray-400">{item.quarter}</span>
                 </div>
-                <p className="text-gray-600">{item.desc}</p>
+                <p className="text-gray-300">{item.desc}</p>
                 {item.status === 'completed' && (
-                  <span className="inline-block mt-2 bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="inline-block mt-2 bg-green-500/20 text-green-400 text-xs font-semibold px-3 py-1 rounded-full border border-green-500/30">
                     ✓ Terminé
                   </span>
                 )}
                 {item.status === 'in-progress' && (
-                  <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="inline-block mt-2 bg-blue-500/20 text-blue-400 text-xs font-semibold px-3 py-1 rounded-full border border-blue-500/30">
                     🚧 En cours
                   </span>
                 )}
                 {item.status === 'planned' && (
-                  <span className="inline-block mt-2 bg-gray-100 text-gray-700 text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="inline-block mt-2 bg-gray-500/20 text-gray-400 text-xs font-semibold px-3 py-1 rounded-full border border-gray-500/30">
                     📋 Planifié
                   </span>
                 )}

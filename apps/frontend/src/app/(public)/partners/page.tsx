@@ -14,7 +14,7 @@ function PartnersPageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-24">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <Handshake className="w-16 h-16 mx-auto mb-6" />
@@ -29,13 +29,13 @@ function PartnersPageContent() {
       </section>
 
       <section className="max-w-7xl mx-auto px-4 py-20">
-        <h2 className="text-4xl font-bold text-center mb-12">Avantages Partenaires</h2>
+        <h2 className="text-4xl font-bold text-center mb-12 text-white">Avantages Partenaires</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {benefits.map((benefit) => (
-            <div key={benefit.title} className="bg-gray-50 rounded-xl p-6 text-center">
-              <benefit.icon className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="font-bold text-gray-900 mb-2">{benefit.title}</h3>
-              <p className="text-gray-600 text-sm">{benefit.desc}</p>
+            <div key={benefit.title} className="bg-gray-800/50 rounded-xl p-6 text-center border border-gray-700">
+              <benefit.icon className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+              <h3 className="font-bold text-white mb-2">{benefit.title}</h3>
+              <p className="text-gray-300 text-sm">{benefit.desc}</p>
             </div>
           ))}
         </div>
