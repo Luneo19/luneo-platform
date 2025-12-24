@@ -310,7 +310,7 @@ function ProductPage() {
 
       <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-8 sm:mb-12">
             Exemple: Intégrer le Customizer en 5 minutes
           </h2>
           

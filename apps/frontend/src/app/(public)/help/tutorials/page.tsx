@@ -13,7 +13,7 @@ function TutorialsPageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <BookOpen className="w-16 h-16 mx-auto mb-6" />
@@ -26,12 +26,12 @@ function TutorialsPageContent() {
           {tutorials.map((tuto, idx) => {
             const Icon = tuto.icon;
             return (
-              <div key={idx} className="bg-white rounded-xl shadow-lg p-6 flex items-start gap-4">
-                <Icon className="w-10 h-10 text-blue-600 flex-shrink-0" />
+              <div key={idx} className="bg-gray-800/50 rounded-xl shadow-lg p-6 flex items-start gap-4 border border-gray-700">
+                <Icon className="w-10 h-10 text-blue-400 flex-shrink-0" />
                 <div className="flex-1">
-                  <span className="text-xs font-semibold text-blue-600 uppercase">{tuto.category}</span>
-                  <h3 className="font-bold text-lg mt-1 mb-2">{tuto.title}</h3>
-                  <span className="text-sm text-gray-500">{tuto.duration}</span>
+                  <span className="text-xs font-semibold text-blue-400 uppercase">{tuto.category}</span>
+                  <h3 className="font-bold text-lg mt-1 mb-2 text-white">{tuto.title}</h3>
+                  <span className="text-sm text-gray-400">{tuto.duration}</span>
                 </div>
               </div>
             );
