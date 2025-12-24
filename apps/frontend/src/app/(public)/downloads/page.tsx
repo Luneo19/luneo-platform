@@ -13,7 +13,7 @@ function DownloadsPageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Download className="w-16 h-16 mx-auto mb-6" />
@@ -24,10 +24,10 @@ function DownloadsPageContent() {
       <section className="max-w-5xl mx-auto px-4 py-20">
         <div className="space-y-4">
           {downloads.map((item, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow-lg p-6 flex items-center justify-between">
+            <div key={idx} className="bg-gray-800/50 rounded-xl shadow-lg p-6 flex items-center justify-between border border-gray-700">
               <div>
-                <h3 className="font-bold text-xl">{item.name}</h3>
-                <p className="text-gray-600">{item.version} • {item.platform}</p>
+                <h3 className="font-bold text-xl text-white">{item.name}</h3>
+                <p className="text-gray-300">{item.version} • {item.platform}</p>
               </div>
               <button className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">Download</button>
             </div>
