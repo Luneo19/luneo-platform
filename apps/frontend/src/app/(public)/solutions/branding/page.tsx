@@ -335,7 +335,7 @@ export default function BrandingPage() {
                 {kitError}
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-4">
+            <p className="text-xs text-gray-400 mt-4">
               ⚡️ Export direct vers Figma + générateur de brand book PDF (bientôt).
             </p>
           </Card>
@@ -388,7 +388,7 @@ export default function BrandingPage() {
                   >
                     <div>
                       <p>{pair.title}</p>
-                      <p className="text-xs uppercase tracking-wide text-gray-500">{pair.tags}</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-400">{pair.tags}</p>
                     </div>
                     <Button size="sm" variant="outline" className="text-xs h-8 border-gray-700 text-white">
                       Prévisualiser
@@ -396,7 +396,7 @@ export default function BrandingPage() {
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-gray-500 mt-4">
+              <p className="text-xs text-gray-400 mt-4">
                 Automatisation : export templates socials + cartes de visite en 1 clic (format Figma/Canva).
               </p>
             </Card>

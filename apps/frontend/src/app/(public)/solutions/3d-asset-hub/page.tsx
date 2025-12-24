@@ -496,7 +496,7 @@ export default function AssetHubPage() {
                 <p className="text-xs text-gray-400">GLB, FBX, OBJ...</p>
               </div>
 
-              <ArrowRight className="w-8 h-8 text-gray-600 rotate-90 md:rotate-0" />
+              <ArrowRight className="w-8 h-8 text-gray-400 rotate-90 md:rotate-0" />
 
               <div className="text-center">
                 <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-3 mx-auto">
@@ -506,7 +506,7 @@ export default function AssetHubPage() {
                 <p className="text-xs text-gray-400">AI + LODs</p>
               </div>
 
-              <ArrowRight className="w-8 h-8 text-gray-600 rotate-90 md:rotate-0" />
+              <ArrowRight className="w-8 h-8 text-gray-400 rotate-90 md:rotate-0" />
 
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-3 mx-auto">
@@ -516,7 +516,7 @@ export default function AssetHubPage() {
                 <p className="text-xs text-gray-400">15+ formats</p>
               </div>
 
-              <ArrowRight className="w-8 h-8 text-gray-600 rotate-90 md:rotate-0" />
+              <ArrowRight className="w-8 h-8 text-gray-400 rotate-90 md:rotate-0" />
 
               <div className="text-center">
                 <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-3 mx-auto">

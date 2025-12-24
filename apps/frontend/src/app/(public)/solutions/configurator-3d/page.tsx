@@ -536,7 +536,7 @@ function Demo3DViewer() {
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={activeTab === option.id ? 'text-blue-400' : 'text-gray-500'}>{option.icon}</span>
+                  <span className={activeTab === option.id ? 'text-blue-400' : 'text-gray-400'}>{option.icon}</span>
                   <span className="text-sm font-semibold">{option.name}</span>
                 </div>
                 <span className="text-xs opacity-70">{option.count}</span>
@@ -624,7 +624,7 @@ function Demo3DViewer() {
                     className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
                     maxLength={20}
                   />
-                  <p className="text-xs text-gray-500 mt-1">{engravingText.length}/20 caractères</p>
+                  <p className="text-xs text-gray-400 mt-1">{engravingText.length}/20 caractères</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -968,7 +968,7 @@ function Configurator3DPageContent() {
                 >
                   <div className="text-3xl sm:text-4xl font-bold text-white mb-1">{item.stat}</div>
                   <div className="text-sm font-semibold text-blue-400">{item.label}</div>
-                  <div className="text-xs text-gray-500">{item.description}</div>
+                  <div className="text-xs text-gray-400">{item.description}</div>
                 </motion.div>
               ))}
             </div>
@@ -1099,7 +1099,7 @@ function Configurator3DPageContent() {
                     <div className="flex-1">
                       <h3 className="text-xl font-bold text-white mb-2">{useCase.title}</h3>
                       <p className="text-gray-400 text-sm mb-3">{useCase.description}</p>
-                      <p className="text-xs text-gray-500 mb-3">Ex: {useCase.examples}</p>
+                      <p className="text-xs text-gray-400 mb-3">Ex: {useCase.examples}</p>
                       <div className={`inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r ${useCase.gradient} bg-opacity-20 rounded-full`}>
                         <TrendingUp className="w-4 h-4 text-white" />
                         <span className="text-sm font-semibold text-white">{useCase.metrics}</span>
@@ -1187,7 +1187,7 @@ function Configurator3DPageContent() {
                   <p className="text-gray-300 text-sm italic mb-4">"{testimonial.quote}"</p>
                   <div className="pt-4 border-t border-gray-700/50">
                     <div className="text-2xl font-bold text-blue-400">{testimonial.metric}</div>
-                    <div className="text-xs text-gray-500">{testimonial.metricLabel}</div>
+                    <div className="text-xs text-gray-400">{testimonial.metricLabel}</div>
                   </div>
                 </Card>
               </motion.div>
@@ -1302,14 +1302,14 @@ function Configurator3DPageContent() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       {typeof feature.zakeke === 'boolean' ? (
-                        feature.zakeke ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-600 mx-auto" />
+                        feature.zakeke ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-400 mx-auto" />
                       ) : (
                         <span className="text-gray-400 text-sm">{feature.zakeke}</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-center">
                       {typeof feature.threekit === 'boolean' ? (
-                        feature.threekit ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-600 mx-auto" />
+                        feature.threekit ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-400 mx-auto" />
                       ) : (
                         <span className="text-gray-400 text-sm">{feature.threekit}</span>
                       )}
@@ -1355,7 +1355,7 @@ function Configurator3DPageContent() {
                 <div className="w-3 h-3 rounded-full bg-red-500" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
                 <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="ml-4 text-xs text-gray-500 font-mono">configurator-3d.js</span>
+                <span className="ml-4 text-xs text-gray-400 font-mono">configurator-3d.js</span>
               </div>
               <pre className="p-6 text-sm text-gray-300 overflow-x-auto font-mono">
 {`import { Configurator3D } from '@luneo/configurator';

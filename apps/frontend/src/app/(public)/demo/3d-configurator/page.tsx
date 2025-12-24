@@ -71,7 +71,7 @@ function Configurator3DDemoPageContent() {
                     {stat.value}{' '}
                   </div>{' '}
                   <div className="text-sm text-gray-300">{stat.label}</div>{' '}
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-400">
                     {stat.sublabel}
                   </div>{' '}
                 </div>
