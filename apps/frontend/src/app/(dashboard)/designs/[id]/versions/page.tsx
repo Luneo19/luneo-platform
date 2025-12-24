@@ -252,13 +252,13 @@ function DesignVersionsPageContent() {
     );
   }
 
-  if (error && versions.length === 0) {
+  if (versionsQuery.error && versions.length === 0) {
     return (
       <div className="min-h-screen bg-gray-900 p-6">
         <EmptyState
           icon={<AlertCircle className="w-16 h-16" />}
           title="Erreur de chargement"
-          description={error}
+          description={versionsQuery.error.message || 'Une erreur est survenue'}
           action={{
             label: 'Réessayer',
             onClick: () => versionsQuery.refetch(),

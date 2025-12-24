@@ -139,21 +139,21 @@ function ChangelogPageContent() {
         {/* Releases */}
         <div className="space-y-8">
           {releases.map((release, idx) => (
-            <div key={release.version} className="bg-white rounded-xl shadow-lg p-8">
+            <div key={release.version} className="bg-gray-800/50 rounded-xl shadow-lg p-8 border border-gray-700">
               {/* Release Header */}
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-3xl font-bold text-gray-900">
+                    <h2 className="text-3xl font-bold text-white">
                       v{release.version}
                     </h2>
                     {idx === 0 && (
-                      <span className="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
+                      <span className="bg-green-500/20 text-green-400 text-xs font-semibold px-3 py-1 rounded-full border border-green-500/30">
                         Dernière version
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-600">
+                  <p className="text-gray-400">
                     {new Date(release.date).toLocaleDateString('fr-FR', {
                       day: 'numeric',
                       month: 'long',
@@ -171,10 +171,10 @@ function ChangelogPageContent() {
                       {getTypeIcon(change.type)}
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                      <span className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
                         {getTypeLabel(change.type)}
                       </span>
-                      <p className="text-gray-700">{change.text}</p>
+                      <p className="text-gray-300">{change.text}</p>
                     </div>
                   </li>
                 ))}
@@ -185,9 +185,9 @@ function ChangelogPageContent() {
 
         {/* Archive Link */}
         <div className="mt-12 text-center">
-          <p className="text-gray-600">
+          <p className="text-gray-400">
             Voir l'historique complet sur{' '}
-            <a href="https://github.com/luneo/releases" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 font-semibold underline">
+            <a href="https://github.com/luneo/releases" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold underline">
               GitHub
             </a>
           </p>
