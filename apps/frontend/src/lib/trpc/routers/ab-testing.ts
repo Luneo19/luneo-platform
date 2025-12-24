@@ -7,8 +7,7 @@ import { router, protectedProcedure } from '../server';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
-
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 const ExperimentStatusSchema = z.enum(['draft', 'running', 'paused', 'completed']);
 
