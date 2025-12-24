@@ -36,7 +36,7 @@ function ComparePageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <GitCompare className="w-16 h-16 mx-auto mb-6" />
@@ -45,23 +45,23 @@ function ComparePageContent() {
         </div>
       </section>
       <section className="max-w-7xl mx-auto px-4 py-20">
-        <div className="bg-white rounded-xl shadow-lg overflow-x-auto">
+        <div className="bg-gray-800/50 rounded-xl shadow-lg overflow-x-auto border border-gray-700">
           <table className="min-w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-800/70">
               <tr>
-                <th className="px-6 py-4 text-left font-bold">Feature</th>
-                <th className="px-6 py-4 text-center font-bold">Starter</th>
-                <th className="px-6 py-4 text-center font-bold">Pro</th>
-                <th className="px-6 py-4 text-center font-bold">Business</th>
-                <th className="px-6 py-4 text-center font-bold">Enterprise</th>
+                <th className="px-6 py-4 text-left font-bold text-white">Feature</th>
+                <th className="px-6 py-4 text-center font-bold text-white">Starter</th>
+                <th className="px-6 py-4 text-center font-bold text-white">Pro</th>
+                <th className="px-6 py-4 text-center font-bold text-white">Business</th>
+                <th className="px-6 py-4 text-center font-bold text-white">Enterprise</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-700">
               {planRows.map((row) => (
                 <tr key={row.feature}>
-                  <td className="px-6 py-4 font-semibold">{row.feature}</td>
+                  <td className="px-6 py-4 font-semibold text-white">{row.feature}</td>
                   {row.values.map((value, index) => (
-                    <td key={`${row.feature}-${index}`} className="px-6 py-4 text-center">
+                    <td key={`${row.feature}-${index}`} className="px-6 py-4 text-center text-gray-300">
                       {value}
                     </td>
                   ))}
