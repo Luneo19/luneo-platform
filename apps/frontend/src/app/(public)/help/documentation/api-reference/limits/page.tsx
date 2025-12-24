@@ -82,8 +82,8 @@ X-RateLimit-Reset: 1699564800`, []);
       <div className="space-y-4 mb-8">
         {plans.map((plan, index) => (
           <div key={index} className={`border ${plan.border} rounded-lg p-6 ${plan.bg}`}>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
-            <ul className="space-y-2 text-gray-600 dark:text-gray-300">
+            <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+            <ul className="space-y-2 text-gray-300">
               {plan.limits.map((limit, i) => (
                 <li key={i}>• {limit}</li>
               ))}
@@ -98,7 +98,7 @@ X-RateLimit-Reset: 1699564800`, []);
       </div>
 
       <h2 className="text-2xl font-bold mt-8 mb-4">Codes d'Erreur</h2>
-      <ul className="space-y-3 text-gray-600 dark:text-gray-300">
+      <ul className="space-y-3 text-gray-300">
         {errorCodes.map((error, index) => (
           <li key={index}>
             <strong>{error.code}</strong> - {error.description}

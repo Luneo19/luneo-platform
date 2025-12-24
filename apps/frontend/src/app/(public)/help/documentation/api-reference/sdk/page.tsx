@@ -82,8 +82,8 @@ luneo assets optimize model.glb`,
       ]}
     >
       {sdks.map((sdk, index) => (
-        <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        <div key={index} className="bg-gray-800/50 rounded-xl shadow-lg p-8 mb-6 border border-gray-700">
+          <h2 className="text-2xl font-bold text-white mb-4">
             {sdk.name}
           </h2>
           
@@ -95,7 +95,7 @@ luneo assets optimize model.glb`,
             <pre className="text-sm text-green-400">{sdk.example}</pre>
           </div>
 
-          <Link href={sdk.docLink} className="inline-block mt-4 text-purple-600 hover:text-purple-700">
+          <Link href={sdk.docLink} className="inline-block mt-4 text-purple-400 hover:text-purple-300">
             {sdk.docLabel} →
           </Link>
         </div>

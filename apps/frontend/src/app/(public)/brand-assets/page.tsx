@@ -44,8 +44,8 @@ function BrandAssetsPageContent() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+        <div className="bg-gray-800/50 rounded-xl shadow-lg p-8 border border-gray-700">
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
             <Palette className="w-6 h-6" />
             Couleurs
           </h2>
