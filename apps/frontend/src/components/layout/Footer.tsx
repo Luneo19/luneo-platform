@@ -62,12 +62,12 @@ const footerLinks = {
   resources: {
     title: 'Ressources',
     links: [
-      { label: 'Documentation', href: '/docs' },
+      { label: 'Documentation', href: '/help/documentation' },
       { label: 'Guides', href: '/docs/guides' },
       { label: 'Blog', href: '/blog' },
       { label: 'Webinaires', href: '/webinars' },
       { label: 'Case Studies', href: '/case-studies' },
-      { label: 'Templates', href: '/templates' },
+      { label: 'Templates', href: '/templates/t-shirts' },
     ],
   },
   company: {
