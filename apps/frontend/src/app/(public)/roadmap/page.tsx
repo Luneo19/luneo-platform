@@ -30,7 +30,7 @@ function RoadmapPageContent() {
               <div className="flex-shrink-0">
                 {item.status === 'completed' && <Check className="w-8 h-8 text-green-400" />}
                 {item.status === 'in-progress' && <Clock className="w-8 h-8 text-blue-400 animate-pulse" />}
-                {item.status === 'planned' && <Circle className="w-8 h-8 text-gray-500" />}
+                {item.status === 'planned' && <Circle className="w-8 h-8 text-gray-400" />}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">

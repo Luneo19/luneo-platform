@@ -379,7 +379,7 @@ ${platformGuidelines.hook}
                 )}
               </Button>
             </div>
-            <div className="mt-4 text-xs text-gray-500">
+            <div className="mt-4 text-xs text-gray-400">
               Raccourcis : Cmd+Enter pour régénérer · Support hooking Meta/TikTok API
             </div>
           </Card>

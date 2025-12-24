@@ -385,7 +385,7 @@ export default function MarketingPage() {
             <Card className="p-6 bg-gray-900/70 border border-white/5">
               <h3 className="text-white font-semibold mb-4">Timeline</h3>
               {timeline.length === 0 ? (
-                <p className="text-sm text-gray-500">Cliquez sur "Générer le plan" pour construire la timeline.</p>
+                <p className="text-sm text-gray-400">Cliquez sur "Générer le plan" pour construire la timeline.</p>
               ) : (
                 <ul className="space-y-3">
                   {timeline.map((item, index) => (

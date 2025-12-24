@@ -688,11 +688,11 @@ function DemoCanvas() {
           {activeTool === 'image' && (
             <div className="space-y-4">
               <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-purple-500 transition-colors cursor-pointer">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-500" />
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                 <p className="text-sm text-gray-400">Glissez une image ou</p>
                 <p className="text-purple-400 text-sm font-medium">parcourir</p>
               </div>
-              <p className="text-xs text-gray-500 text-center">
+              <p className="text-xs text-gray-400 text-center">
                 PNG, JPG, SVG jusqu'à 10MB
               </p>
             </div>
@@ -1007,7 +1007,7 @@ function CustomizerPageContent() {
                 >
                   <div className="text-3xl sm:text-4xl font-bold text-white mb-1">{item.stat}</div>
                   <div className="text-sm font-semibold text-purple-400">{item.label}</div>
-                  <div className="text-xs text-gray-500">{item.description}</div>
+                  <div className="text-xs text-gray-400">{item.description}</div>
                 </motion.div>
               ))}
             </div>
@@ -1254,7 +1254,7 @@ function CustomizerPageContent() {
                   <p className="text-gray-300 text-sm italic mb-4">"{testimonial.quote}"</p>
                   <div className="pt-4 border-t border-gray-700/50">
                     <div className="text-2xl font-bold text-purple-400">{testimonial.metric}</div>
-                    <div className="text-xs text-gray-500">{testimonial.metricLabel}</div>
+                    <div className="text-xs text-gray-400">{testimonial.metricLabel}</div>
                   </div>
                 </Card>
               </motion.div>
@@ -1315,14 +1315,14 @@ function CustomizerPageContent() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       {typeof feature.zakeke === 'boolean' ? (
-                        feature.zakeke ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-600 mx-auto" />
+                        feature.zakeke ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-400 mx-auto" />
                       ) : (
                         <span className="text-gray-400 text-sm">{feature.zakeke}</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-center">
                       {typeof feature.canva === 'boolean' ? (
-                        feature.canva ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-600 mx-auto" />
+                        feature.canva ? <Check className="w-5 h-5 text-green-400 mx-auto" /> : <X className="w-5 h-5 text-gray-400 mx-auto" />
                       ) : (
                         <span className="text-gray-400 text-sm">{feature.canva}</span>
                       )}
@@ -1371,7 +1371,7 @@ function CustomizerPageContent() {
                 <div className="w-3 h-3 rounded-full bg-red-500" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
                 <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="ml-4 text-xs text-gray-500 font-mono">integration.js</span>
+                <span className="ml-4 text-xs text-gray-400 font-mono">integration.js</span>
               </div>
               <pre className="p-6 text-sm text-gray-300 overflow-x-auto font-mono">
 {`// Option 1: SDK JavaScript
