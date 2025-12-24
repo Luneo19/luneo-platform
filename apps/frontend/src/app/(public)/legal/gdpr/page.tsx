@@ -105,28 +105,28 @@ function GDPRPageContent() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">4. Vos Droits RGPD</h2>
             <div className="space-y-4">
-              <div className="bg-blue-50 border-l-4 border-blue-600 p-4">
-                <h3 className="font-semibold text-gray-900 mb-2">✓ Droit d'accès</h3>
+              <div className="bg-blue-500/20 border-l-4 border-blue-400 p-4 border border-blue-500/30">
+                <h3 className="font-semibold text-white mb-2">✓ Droit d'accès</h3>
                 <p className="text-gray-300 text-sm">Accédez à toutes vos données via votre dashboard</p>
               </div>
 
-              <div className="bg-green-50 border-l-4 border-green-600 p-4">
-                <h3 className="font-semibold text-gray-900 mb-2">✓ Droit de rectification</h3>
+              <div className="bg-green-500/20 border-l-4 border-green-400 p-4 border border-green-500/30">
+                <h3 className="font-semibold text-white mb-2">✓ Droit de rectification</h3>
                 <p className="text-gray-300 text-sm">Modifiez vos informations dans Settings → Profile</p>
               </div>
 
-              <div className="bg-purple-50 border-l-4 border-purple-600 p-4">
-                <h3 className="font-semibold text-gray-900 mb-2">✓ Droit à l'effacement</h3>
+              <div className="bg-purple-500/20 border-l-4 border-purple-400 p-4 border border-purple-500/30">
+                <h3 className="font-semibold text-white mb-2">✓ Droit à l'effacement</h3>
                 <p className="text-gray-300 text-sm">Supprimez votre compte dans Settings → Delete Account</p>
               </div>
 
-              <div className="bg-orange-50 border-l-4 border-orange-600 p-4">
-                <h3 className="font-semibold text-gray-900 mb-2">✓ Droit à la portabilité</h3>
+              <div className="bg-orange-500/20 border-l-4 border-orange-400 p-4 border border-orange-500/30">
+                <h3 className="font-semibold text-white mb-2">✓ Droit à la portabilité</h3>
                 <p className="text-gray-300 text-sm">Exportez vos données en JSON via Settings → Export Data</p>
               </div>
 
-              <div className="bg-red-50 border-l-4 border-red-600 p-4">
-                <h3 className="font-semibold text-gray-900 mb-2">✓ Droit d'opposition</h3>
+              <div className="bg-red-500/20 border-l-4 border-red-400 p-4 border border-red-500/30">
+                <h3 className="font-semibold text-white mb-2">✓ Droit d'opposition</h3>
                 <p className="text-gray-300 text-sm">Refusez le marketing dans Settings → Communication</p>
               </div>
             </div>
@@ -145,29 +145,29 @@ function GDPRPageContent() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">6. Conservation des Données</h2>
-            <table className="min-w-full border border-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full border border-gray-700">
+              <thead className="bg-gray-800/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Type de données</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Durée</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-white">Type de données</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-white">Durée</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-700">
                 <tr>
-                  <td className="px-4 py-3 text-sm text-gray-700">Compte actif</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">Durée de l'abonnement</td>
+                  <td className="px-4 py-3 text-sm text-gray-300">Compte actif</td>
+                  <td className="px-4 py-3 text-sm text-gray-300">Durée de l'abonnement</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm text-gray-700">Designs</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">Tant que le compte existe</td>
+                  <td className="px-4 py-3 text-sm text-gray-300">Designs</td>
+                  <td className="px-4 py-3 text-sm text-gray-300">Tant que le compte existe</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm text-gray-700">Logs</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">90 jours</td>
+                  <td className="px-4 py-3 text-sm text-gray-300">Logs</td>
+                  <td className="px-4 py-3 text-sm text-gray-300">90 jours</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm text-gray-700">Facturation</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">10 ans (obligation légale)</td>
+                  <td className="px-4 py-3 text-sm text-gray-300">Facturation</td>
+                  <td className="px-4 py-3 text-sm text-gray-300">10 ans (obligation légale)</td>
                 </tr>
               </tbody>
             </table>
@@ -187,11 +187,11 @@ function GDPRPageContent() {
               <p className="text-gray-300 mb-2">
                 Pour toute question RGPD ou exercer vos droits :
               </p>
-              <p className="text-gray-900 font-semibold">
-                📧 Email : <a href="mailto:dpo@luneo.app" className="text-blue-600 hover:text-blue-700 underline">dpo@luneo.app</a>
+              <p className="text-white font-semibold">
+                📧 Email : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
               </p>
               <p className="text-gray-300 mt-4 text-sm">
-                Vous pouvez également contacter la CNIL en cas de litige : <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 underline">www.cnil.fr</a>
+                Vous pouvez également contacter la CNIL en cas de litige : <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">www.cnil.fr</a>
               </p>
             </div>
           </section>
