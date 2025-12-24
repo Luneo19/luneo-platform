@@ -103,8 +103,8 @@ export function HeroBannerOptimized({
           <Image
             src="/logo.png"
             alt="Luneo Logo"
-            width={150}
-            height={60}
+            width={1000}
+            height={400}
             className={styles.logoImage}
             priority
           />

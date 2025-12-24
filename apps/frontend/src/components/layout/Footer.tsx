@@ -318,9 +318,9 @@ function FooterContent() {
                   <Image
                     src="/logo.png"
                     alt="Luneo Logo"
-                    width={180}
-                    height={72}
-                    className="h-12 w-auto object-contain"
+                    width={900}
+                    height={360}
+                    className="h-24 md:h-32 lg:h-40 w-auto object-contain"
                     priority
                   />
                 </Link>
