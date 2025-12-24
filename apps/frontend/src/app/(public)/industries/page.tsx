@@ -519,7 +519,7 @@ function IndustriesPageContent() {
               Luneo s&apos;adapte à tous les secteurs. Contactez-nous pour discuter de vos besoins spécifiques.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/register">
+              <Link href="/register">
                 <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 px-8 py-6 text-lg">
                   Essai Gratuit 14 Jours
                   <ArrowRight className="w-5 h-5 ml-2" />

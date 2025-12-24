@@ -364,7 +364,7 @@ function ProductPage() {
                 Contacter le support
               </Button>
             </Link>
-            <Link href="/help">
+            <Link href="/help/support">
               <Button size="lg" variant="outline" className="bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 w-full sm:w-auto">
                 Centre d'aide
               </Button>
