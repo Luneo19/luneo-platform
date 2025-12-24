@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Gradient principal: teal/cyan vers magenta/purple -->
+    <linearGradient id="moonGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d946ef;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient pour la sphère centrale -->
+    <radialGradient id="sphereGradient" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Fond avec gradient (optionnel, peut être transparent) -->
+  <rect width="512" height="512" rx="100" fill="url(#moonGradient)" opacity="0.1"/>
+  
+  <!-- Croissant de lune centré -->
+  <g transform="translate(256, 256)">
+    <path d="M 0 -150 
+             C 150 -150, 300 -75, 300 0
+             C 300 75, 150 150, 0 150
+             C -150 150, -300 75, -300 0
+             C -300 -75, -150 -150, 0 -150 Z
+             M 0 -120
+             C -120 -120, -240 -60, -240 0
+             C -240 60, -120 120, 0 120
+             C 120 120, 240 60, 240 0
+             C 240 -60, 120 -120, 0 -120 Z" 
+          fill="url(#moonGradient)"/>
+    
+    <!-- Motif d'empreinte digitale -->
+    <g opacity="0.4">
+      <path d="M 0 -120 Q -20 -100 0 -80 Q 20 -100 0 -120" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="8"/>
+      <path d="M 0 -80 Q -30 -60 0 -40 Q 30 -60 0 -80" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="8"/>
+      <path d="M 0 -40 Q -40 -20 0 0 Q 40 -20 0 -40" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="8"/>
+      <path d="M 0 0 Q -50 20 0 40 Q 50 20 0 0" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="8"/>
+    </g>
+    
+    <!-- Sphère centrale -->
+    <circle cx="0" cy="0" r="40" fill="url(#sphereGradient)" opacity="0.9"/>
+    <circle cx="-8" cy="-8" r="12" fill="rgba(255,255,255,0.6)"/>
+  </g>
+  
+  <!-- Éléments de circuit numérique subtils -->
+  <g opacity="0.3">
+    <circle cx="100" cy="100" r="8" fill="#00d4ff"/>
+    <circle cx="412" cy="100" r="8" fill="#00d4ff"/>
+    <circle cx="100" cy="412" r="8" fill="#d946ef"/>
+    <circle cx="412" cy="412" r="8" fill="#d946ef"/>
+    <line x1="100" y1="100" x2="150" y2="100" stroke="#00d4ff" stroke-width="4"/>
+    <line x1="362" y1="100" x2="412" y2="100" stroke="#00d4ff" stroke-width="4"/>
+    <line x1="100" y1="412" x2="150" y2="412" stroke="#d946ef" stroke-width="4"/>
+    <line x1="362" y1="412" x2="412" y2="412" stroke="#d946ef" stroke-width="4"/>
+  </g>
+</svg>

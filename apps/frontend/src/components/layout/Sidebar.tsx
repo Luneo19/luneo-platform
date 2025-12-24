@@ -1,0 +1,344 @@
+'use client';
+
+import React, { useState, useCallback, useMemo, memo } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { 
+  LayoutDashboard, 
+  Palette, 
+  BarChart3, 
+  Package, 
+  CreditCard, 
+  Settings, 
+  Users, 
+  HelpCircle, 
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Crown,
+  FileText,
+  Globe,
+  Shield
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Logo } from '@/components/Logo';
+
+const navigationItems = useMemo(() => [
+  {
+    title: 'Tableau de bord',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    badge: null,
+    description: 'Vue d\'ensemble de votre activité'
+  },
+  {
+    title: 'AI Studio',
+    href: '/ai-studio',
+    icon: Palette,
+    badge: 'Nouveau',
+    description: 'Création de designs avec l\'IA'
+  },
+  {
+    title: 'Analytics',
+    href: '/analytics',
+    icon: BarChart3,
+    badge: null,
+    description: 'Analyses et performances'
+  },
+  {
+    title: 'Produits',
+    href: '/products',
+    icon: Package,
+    badge: '247',
+    description: 'Gestion de vos designs'
+  }
+], []);
+
+const businessItems = useMemo(() => [
+  {
+    title: 'Facturation',
+    href: '/billing',
+    icon: CreditCard,
+    badge: null,
+    description: 'Gestion des abonnements'
+  },
+  {
+    title: 'Équipe',
+    href: '/team',
+    icon: Users,
+    badge: '5',
+    description: 'Collaboration et permissions'
+  },
+  {
+    title: 'Intégrations',
+    href: '/integrations',
+    icon: Globe,
+    badge: null,
+    description: 'Connexions externes'
+  },
+  {
+    title: 'Sécurité',
+    href: '/security',
+    icon: Shield,
+    badge: null,
+    description: 'Paramètres de sécurité'
+  }
+], []);
+
+const supportItems = useMemo(() => [
+  {
+    title: 'Aide',
+    href: '/help',
+    icon: HelpCircle,
+    badge: null,
+    description: 'Centre d\'aide et support'
+  },
+  {
+    title: 'Documentation',
+    href: '/docs',
+    icon: FileText,
+    badge: null,
+    description: 'Guides et API'
+  },
+  {
+    title: 'Statut',
+    href: '/status',
+    icon: Bell,
+    badge: 'OK',
+    description: 'État des services'
+  }
+], []);
+
+interface SidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
+  const pathname = usePathname();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  const handleItemHover = useCallback((href: string | null) => {
+    setHoveredItem(href);
+  }, []);
+
+  const NavItem = ({ item, showDescription = true }: { item: any; showDescription?: boolean }) => {
+    const isActive = pathname === item.href;
+    const Icon = item.icon;
+
+    return (
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onMouseEnter={() => handleItemHover(item.href)}
+        onMouseLeave={() => handleItemHover(null)}
+      >
+        <Link
+          href={item.href}
+          className={cn(
+            'flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative',
+            isActive
+              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+          )}
+        >
+          <div className="flex-shrink-0">
+            <Icon className={cn(
+              'h-5 w-5 transition-colors',
+              isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-700'
+            )} />
+          </div>
+          
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="font-medium truncate">{item.title}</span>
+                {item.badge && (
+                  <span className={cn(
+                    'px-2 py-0.5 text-xs rounded-full font-medium',
+                    isActive 
+                      ? 'bg-white/20 text-white' 
+                      : item.badge === 'Nouveau' 
+                        ? 'bg-green-100 text-green-700'
+                        : item.badge === 'OK'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-blue-100 text-blue-700'
+                  )}>
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+              {showDescription && (
+                <p className="text-xs text-gray-500 group-hover:text-gray-600 truncate">
+                  {item.description}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Tooltip pour mode collapsed */}
+          {isCollapsed && hoveredItem === item.href && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap"
+            >
+              <div className="font-medium">{item.title}</div>
+              <div className="text-xs text-gray-300">{item.description}</div>
+            </motion.div>
+          )}
+        </Link>
+      </motion.div>
+    );
+  };
+
+  return (
+    <motion.div
+      initial={false}
+      animate={{ width: isCollapsed ? '4rem' : '16rem' }}
+      className="bg-white border-r border-gray-200 flex flex-col h-full shadow-sm"
+    >
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          {!isCollapsed && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center space-x-3"
+            >
+              <Logo href="/overview" size="default" showText={false} variant="light" />
+              <div>
+                <h1 className="font-bold text-gray-900">Luneo</h1>
+                <p className="text-xs text-gray-500">Enterprise</p>
+              </div>
+            </motion.div>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggle}
+            className="h-8 w-8 p-0 hover:bg-gray-100"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Navigation Content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Plan Status */}
+        {!isCollapsed && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200"
+          >
+            <div className="flex items-center space-x-3 mb-2">
+              <Crown className="h-5 w-5 text-blue-600" />
+              <span className="font-medium text-gray-900">Plan Professional</span>
+            </div>
+            <p className="text-sm text-gray-600 mb-3">Accès complet à toutes les fonctionnalités</p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Utilisation ce mois</span>
+              <span className="font-medium text-blue-600">68%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-1.5 rounded-full" style={{ width: '68%' }}></div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Main Navigation */}
+        <div className="space-y-2">
+          {!isCollapsed && (
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Navigation
+            </h3>
+          )}
+          {navigationItems.map((item) => (
+            <NavItem key={item.href} item={item} />
+          ))}
+        </div>
+
+        {/* Business Section */}
+        <div className="space-y-2">
+          {!isCollapsed && (
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Business
+            </h3>
+          )}
+          {businessItems.map((item) => (
+            <NavItem key={item.href} item={item} />
+          ))}
+        </div>
+
+        {/* Support Section */}
+        <div className="space-y-2">
+          {!isCollapsed && (
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Support
+            </h3>
+          )}
+          {supportItems.map((item) => (
+            <NavItem key={item.href} item={item} />
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-200">
+        {!isCollapsed ? (
+          <div className="space-y-3">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="text-center p-2 bg-gray-50 rounded-lg">
+                <div className="font-semibold text-gray-900">2.8K</div>
+                <div className="text-gray-500">Designs</div>
+              </div>
+              <div className="text-center p-2 bg-gray-50 rounded-lg">
+                <div className="font-semibold text-gray-900">€8.4K</div>
+                <div className="text-gray-500">Revenus</div>
+              </div>
+            </div>
+            
+            {/* Settings */}
+            <NavItem item={{
+              title: 'Paramètres',
+              href: '/settings',
+              icon: Settings,
+              badge: null,
+              description: 'Configuration du compte'
+            }} showDescription={false} />
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <Link href="/settings">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+const SidebarContentMemo = memo(SidebarContent);
+
+export function Sidebar(props: SidebarProps) {
+  return (
+    <ErrorBoundary componentName="Sidebar">
+      <SidebarContentMemo {...props} />
+    </ErrorBoundary>
+  );
+}

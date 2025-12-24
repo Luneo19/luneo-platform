@@ -1,0 +1,72 @@
+/**
+ * FloatingProducts.module.css
+ * Produits 3D flottants optimisés
+ */
+
+.productContainer {
+  position: absolute;
+  z-index: 7;
+  will-change: transform, opacity;
+  animation: floatProduct 20s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform: translateZ(0);
+  contain: layout style paint;
+  pointer-events: none;
+}
+
+.productSvg {
+  width: 100%;
+  height: 100%;
+  max-width: 120px;
+  max-height: 120px;
+  transform: translateZ(0);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+/* Animation de flottement optimisée avec trajectoire intelligente */
+@keyframes floatProduct {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) translateZ(0) rotate(0deg) scale(1);
+    opacity: 0.7;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+  }
+  20% {
+    transform: translate3d(6px, -8px, 0) translateZ(0) rotate(1.5deg) scale(1.02);
+    opacity: 0.8;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+  }
+  40% {
+    transform: translate3d(8px, -12px, 0) translateZ(0) rotate(2deg) scale(1.03);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.6));
+  }
+  60% {
+    transform: translate3d(-4px, -10px, 0) translateZ(0) rotate(-1deg) scale(1.01);
+    opacity: 0.75;
+    filter: drop-shadow(0 0 9px rgba(255, 255, 255, 0.45));
+  }
+  80% {
+    transform: translate3d(-6px, -6px, 0) translateZ(0) rotate(-1.5deg) scale(1);
+    opacity: 0.72;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .productContainer {
+    opacity: 0.4;
+  }
+
+  .productSvg {
+    max-width: 80px;
+    max-height: 80px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .productContainer {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+

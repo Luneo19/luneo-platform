@@ -1,0 +1,109 @@
+/**
+ * CodePanels.module.css
+ * Panneaux de code optimisés
+ */
+
+.codePanel {
+  position: absolute;
+  width: 200px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  z-index: 9;
+  will-change: transform, opacity;
+  animation: floatPanel 22s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform: translateZ(0);
+  contain: layout style paint;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.codePanelHeader {
+  height: 8px;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 197, 253, 0.2) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.codePanelContent {
+  padding: 0.75rem;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.codeLine {
+  color: rgba(147, 197, 253, 0.7);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  text-shadow: 0 0 4px rgba(147, 197, 253, 0.3);
+}
+
+.codeLine:last-child {
+  margin-bottom: 0;
+}
+
+.promptButton {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(147, 197, 253, 0.4);
+  border-radius: 4px;
+  color: rgba(147, 197, 253, 0.9);
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-shadow: 0 0 4px rgba(147, 197, 253, 0.3);
+}
+
+.promptButton:hover {
+  background: rgba(59, 130, 246, 0.4);
+  border-color: rgba(147, 197, 253, 0.6);
+  box-shadow: 0 0 8px rgba(147, 197, 253, 0.3);
+}
+
+/* Animation de flottement optimisée */
+@keyframes floatPanel {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) translateZ(0) rotate(0deg) scale(1);
+    opacity: 0.55;
+  }
+  20% {
+    transform: translate3d(4px, -6px, 0) translateZ(0) rotate(0.8deg) scale(1.01);
+    opacity: 0.65;
+  }
+  40% {
+    transform: translate3d(5px, -8px, 0) translateZ(0) rotate(1deg) scale(1.02);
+    opacity: 0.7;
+  }
+  60% {
+    transform: translate3d(-3px, -7px, 0) translateZ(0) rotate(-0.5deg) scale(1.01);
+    opacity: 0.6;
+  }
+  80% {
+    transform: translate3d(-4px, -5px, 0) translateZ(0) rotate(-0.8deg) scale(1);
+    opacity: 0.58;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .codePanel {
+    width: 160px;
+    opacity: 0.3;
+  }
+
+  .codePanelContent {
+    font-size: 0.6rem;
+    padding: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .codePanel {
+    animation: none;
+    opacity: 0.4;
+  }
+}
+
