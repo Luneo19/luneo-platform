@@ -91,12 +91,12 @@ const getTypeLabel = (type: string) => {
 
 function ChangelogPageContent() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Back Button */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
+          className="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Retour
@@ -104,14 +104,14 @@ function ChangelogPageContent() {
 
         {/* Header */}
         <div className="mb-12 text-center">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full mb-4">
+          <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-300 px-4 py-2 rounded-full mb-4 border border-blue-500/30">
             <Sparkles className="w-5 h-5" />
             <span className="font-semibold">Changelog</span>
           </div>
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-5xl font-bold text-white mb-4">
             Quoi de Neuf ?
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-300">
             Suivez toutes les nouvelles fonctionnalités et améliorations de Luneo
           </p>
         </div>
