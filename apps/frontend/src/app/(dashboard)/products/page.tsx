@@ -60,7 +60,7 @@ function ProductsPageContent() {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Products</h1>
           <p className="text-gray-400">{products.length} produits</p>
         </div>
-        <Link href="/products/new">
+        <Link href="/dashboard/products">
           <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
             <Plus className="w-4 h-4 mr-2" />
             Nouveau produit
@@ -118,7 +118,7 @@ function ProductsPageContent() {
               if (searchTerm) {
                 setSearchTerm('');
               } else {
-                window.location.href = '/products/new';
+                window.location.href = '/dashboard/products';
               }
             }
           }}

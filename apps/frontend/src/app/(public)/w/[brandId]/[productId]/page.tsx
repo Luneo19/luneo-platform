@@ -80,14 +80,16 @@ function WidgetPageContent() {
 
     try {
       // Get customization details
-      const customization = await trpc.customization.getById.query({ id: customizationId });
+      const { trpcVanilla } = await import('@/lib/trpc/vanilla-client');
+      const customization = await trpcVanilla.customization.getById.query({ id: customizationId });
       
       if (!customization) {
         throw new Error('Customization not found');
       }
 
       // Create order via tRPC
-      const order = await trpc.order.create.mutate({
+      const { trpcVanilla } = await import('@/lib/trpc/vanilla-client');
+      const order = await trpcVanilla.order.create.mutate({
         items: [
           {
             productId,
