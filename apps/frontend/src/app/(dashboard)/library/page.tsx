@@ -34,6 +34,7 @@ import { useRouter } from 'next/navigation';
 import { LibrarySkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/empty-states/EmptyState';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { trpc } from '@/lib/trpc/client';
 
 interface Template {
   id: string;
@@ -134,7 +135,7 @@ function LibraryPageContent() {
   useEffect(() => {
     setPage(1);
     setHasMore(true);
-    loadTemplates(1, false);
+    // Templates are loaded via templatesQuery which refetches automatically
   }, [categoryFilter, searchTerm, sortBy]);
 
   // Infinite scroll
