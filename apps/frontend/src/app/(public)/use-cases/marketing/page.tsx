@@ -18,11 +18,11 @@ function MarketingUseCasePageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-24">
         <div className="max-w-4xl mx-auto px-4">
-          <Megaphone className="w-16 h-16 mb-6" />
-          <h1 className="text-5xl font-bold mb-6">Marketing & Automation</h1>
+          <Megaphone className="w-16 h-16 mb-6 text-white" />
+          <h1 className="text-5xl font-bold mb-6 text-white">Marketing & Automation</h1>
           <p className="text-2xl text-pink-100 mb-8">
             Automatisez la création de visuels marketing avec IA. Gagnez 10h/semaine.
           </p>
@@ -33,12 +33,12 @@ function MarketingUseCasePageContent() {
       </section>
 
       <section className="max-w-7xl mx-auto px-4 py-20">
-        <h2 className="text-4xl font-bold text-center mb-12">Pour les Équipes Marketing</h2>
+        <h2 className="text-4xl font-bold text-center mb-12 text-white">Pour les Équipes Marketing</h2>
         <div className="grid md:grid-cols-2 gap-8">
           {features.map((feature) => (
             <div key={feature} className="flex items-start gap-3">
-              <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
-              <span className="text-gray-700">{feature}</span>
+              <Check className="w-6 h-6 text-green-400 flex-shrink-0" />
+              <span className="text-gray-300">{feature}</span>
             </div>
           ))}
         </div>
