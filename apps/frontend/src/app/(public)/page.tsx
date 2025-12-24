@@ -716,7 +716,7 @@ function HomePageContent() {
                     <div>
                       <div className="font-semibold text-white">{story.author}</div>
                       <div className="text-sm text-gray-400">{story.role}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{story.company}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{story.company}</div>
                     </div>
                   </div>
                 </Card>
@@ -882,7 +882,7 @@ function HomePageContent() {
                         feature.luneo ? (
                           <Check className="w-5 h-5 text-green-400 mx-auto" />
                         ) : (
-                          <Minus className="w-5 h-5 text-gray-500 mx-auto" />
+                          <Minus className="w-5 h-5 text-gray-400 mx-auto" />
                         )
                       ) : (
                         <span className="text-green-400 font-semibold">{feature.luneo}</span>
@@ -893,7 +893,7 @@ function HomePageContent() {
                         feature.zakeke ? (
                           <Check className="w-5 h-5 text-green-400 mx-auto" />
                         ) : (
-                          <Minus className="w-5 h-5 text-gray-500 mx-auto" />
+                          <Minus className="w-5 h-5 text-gray-400 mx-auto" />
                         )
                       ) : (
                         <span className="text-yellow-400 text-sm">{feature.zakeke}</span>
@@ -904,7 +904,7 @@ function HomePageContent() {
                         feature.canva ? (
                           <Check className="w-5 h-5 text-green-400 mx-auto" />
                         ) : (
-                          <Minus className="w-5 h-5 text-gray-500 mx-auto" />
+                          <Minus className="w-5 h-5 text-gray-400 mx-auto" />
                         )
                       ) : (
                         <span className="text-yellow-400 text-sm">{feature.canva}</span>
@@ -915,7 +915,7 @@ function HomePageContent() {
                         feature.adobe ? (
                           <Check className="w-5 h-5 text-green-400 mx-auto" />
                         ) : (
-                          <Minus className="w-5 h-5 text-gray-500 mx-auto" />
+                          <Minus className="w-5 h-5 text-gray-400 mx-auto" />
                         )
                       ) : (
                         <span className="text-yellow-400 text-sm">{feature.adobe}</span>
@@ -970,7 +970,7 @@ function HomePageContent() {
                     <div className="text-2xl font-bold text-gray-800">{integration.name.charAt(0)}</div>
                   </div>
                   <h3 className="font-bold text-white text-sm sm:text-base mb-1">{integration.name}</h3>
-                  <p className="text-xs text-gray-500">{integration.category}</p>
+                  <p className="text-xs text-gray-400">{integration.category}</p>
                   <p className="text-xs text-cyan-400 mt-2">{integration.description}</p>
                 </Card>
               </motion.div>
@@ -1033,7 +1033,7 @@ function HomePageContent() {
                   {feature.icon}
                 </div>
                 <h4 className="font-semibold text-white text-sm mb-1">{feature.title}</h4>
-                <p className="text-xs text-gray-500">{feature.description}</p>
+                <p className="text-xs text-gray-400">{feature.description}</p>
               </motion.div>
             ))}
           </div>
