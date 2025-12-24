@@ -14,7 +14,7 @@ function TShirtsTemplatesPageContent() {
           <Shirt className="w-16 h-16 mx-auto mb-6" />
           <h1 className="text-5xl font-bold mb-4">Templates T-Shirts</h1>
           <p className="text-xl text-blue-100 mb-6">Plus de 500 templates t-shirts prêts à personnaliser</p>
-          <Link href="/register" className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 inline-block">
+          <Link href="/register" className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block">
             Commencer gratuitement
           </Link>
         </div>

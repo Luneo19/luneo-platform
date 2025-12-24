@@ -14,7 +14,7 @@ function MugsTemplatesPageContent() {
           <Coffee className="w-16 h-16 mx-auto mb-6" />
           <h1 className="text-5xl font-bold mb-4">Templates Mugs</h1>
           <p className="text-xl text-orange-100 mb-6">Créez des mugs personnalisés avec nos templates 3D</p>
-          <Link href="/register" className="bg-white text-orange-600 px-8 py-3 rounded-lg font-semibold hover:bg-orange-50 inline-block">
+          <Link href="/register" className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block">
             Créer un mug
           </Link>
         </div>

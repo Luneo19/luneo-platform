@@ -501,7 +501,7 @@ function DemoCanvas() {
           {/* Canvas */}
           <div 
             ref={canvasRef}
-            className="flex-1 bg-white rounded-lg relative overflow-hidden shadow-2xl"
+            className="flex-1 bg-gray-800/50 rounded-lg relative overflow-hidden shadow-2xl border border-gray-700"
             style={{ minHeight: '400px' }}
             onClick={(e) => {
               if (e.target === canvasRef.current) {
@@ -1501,7 +1501,7 @@ import { LuneoCustomizer } from '@luneo/customizer';
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
               <Link href="/register">
-                <Button size="lg" className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 font-bold px-10 py-6 text-lg shadow-2xl">
+                <Button size="lg" className="w-full sm:w-auto bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 font-bold px-10 py-6 text-lg shadow-2xl">
                   Essai gratuit 14 jours
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>

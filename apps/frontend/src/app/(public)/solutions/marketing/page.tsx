@@ -481,7 +481,7 @@ export default function MarketingPage() {
           <p className="text-xl text-gray-200 mb-8">ROI x3.5 en moyenne</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
-              <Button className="bg-white text-rose-900 hover:bg-gray-100 px-8 h-12 text-lg font-semibold">
+              <Button className="bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 px-8 h-12 text-lg font-semibold">
                 <Sparkles className="w-5 h-5 mr-2" />
                 Commencer
               </Button>

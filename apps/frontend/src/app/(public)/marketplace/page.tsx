@@ -617,7 +617,7 @@ function TemplateCard({
         {/* View Button */}
         <div className="absolute bottom-3 inset-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
           <Link href={`/marketplace/${template.slug}`}>
-            <Button className="w-full bg-white text-slate-900 hover:bg-slate-100 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700">
+            <Button className="w-full bg-white/20 border-2 border-white/50 text-white hover:bg-white/30">
               <Eye className="w-4 h-4 mr-2" />
               Voir le template
             </Button>

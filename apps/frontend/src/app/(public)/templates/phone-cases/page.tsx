@@ -15,7 +15,7 @@ function PhoneCasesTemplatesPageContent() {
           <Smartphone className="w-16 h-16 mx-auto mb-6" />
           <h1 className="text-5xl font-bold mb-4">Coques Téléphone</h1>
           <p className="text-xl text-teal-100 mb-6">Designs 3D pour iPhone, Samsung, etc.</p>
-          <Link href="/register" className="bg-white text-teal-600 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 inline-block">Créer une coque</Link>
+          <Link href="/register" className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block">Créer une coque</Link>
         </div>
       </section>
       <section className="max-w-7xl mx-auto px-4 py-20">

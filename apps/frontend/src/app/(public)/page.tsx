@@ -1145,7 +1145,7 @@ function HomePageContent() {
               <Link href="/register">
                 <Button 
                   size="lg" 
-                  className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 font-bold px-10 py-6 text-lg rounded-xl shadow-2xl"
+                  className="w-full sm:w-auto bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 font-bold px-10 py-6 text-lg rounded-xl shadow-2xl"
                 >
                   Commencer gratuitement
                   <ArrowRight className="w-5 h-5 ml-2" />

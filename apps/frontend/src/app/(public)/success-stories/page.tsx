@@ -90,7 +90,7 @@ function SuccessStoriesPageContent() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Rejoignez-les !</h2>
           <Link href="/register">
-            <Button className="bg-white text-green-900 hover:bg-gray-100 px-8 h-12 text-lg font-semibold">
+            <Button className="bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 px-8 h-12 text-lg font-semibold">
               Commencer gratuitement
             </Button>
           </Link>

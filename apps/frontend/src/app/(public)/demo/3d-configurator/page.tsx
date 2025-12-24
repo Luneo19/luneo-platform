@@ -386,7 +386,7 @@ saveAs(blob, 'product-print-ready.pdf'); // Features avancées:
               {' '}
               <Button
                 size="lg"
-                className="bg-white font-bold text-orange-900 hover:bg-gray-100"
+                className="bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 font-bold"
               >
                 {' '}
                 Essayer gratuitement{' '}

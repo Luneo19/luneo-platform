@@ -22,7 +22,7 @@ function PartnersPageContent() {
           <p className="text-2xl text-blue-100 mb-8">
             Rejoignez notre réseau de partenaires et bénéficiez de commissions attractives, support dédié, et ressources exclusives.
           </p>
-          <Link href="/contact" className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 inline-block">
+          <Link href="/contact" className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block">
             Devenir partenaire
           </Link>
         </div>

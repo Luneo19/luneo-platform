@@ -1490,7 +1490,7 @@ const price = config.calculatePrice(); // €1,299`}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
               <Link href="/register">
-                <Button size="lg" className="w-full sm:w-auto bg-white text-blue-600 hover:bg-gray-100 font-bold px-10 py-6 text-lg shadow-2xl">
+                <Button size="lg" className="w-full sm:w-auto bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 font-bold px-10 py-6 text-lg shadow-2xl">
                   Essai gratuit 14 jours
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>

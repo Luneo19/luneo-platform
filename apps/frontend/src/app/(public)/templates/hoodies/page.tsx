@@ -13,7 +13,7 @@ function HoodiesTemplatesPageContent() {
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold mb-4">Templates Hoodies</h1>
           <p className="text-xl text-purple-100 mb-6">Templates 3D de hoodies personnalisables</p>
-          <Link href="/register" className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 inline-block">Créer un hoodie</Link>
+          <Link href="/register" className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block">Créer un hoodie</Link>
         </div>
       </section>
       <section className="max-w-7xl mx-auto px-4 py-20">

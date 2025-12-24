@@ -21,7 +21,7 @@ function CareersPageContent() {
           <Briefcase className="w-16 h-16 mx-auto mb-6" />
           <h1 className="text-5xl font-bold mb-6">Join Luneo</h1>
           <p className="text-2xl text-purple-100 mb-8">Construisons ensemble le futur du commerce 3D/AR</p>
-          <Link href="#positions" className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 inline-block">Voir les postes</Link>
+          <Link href="#positions" className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block">Voir les postes</Link>
         </div>
       </section>
       <section id="positions" className="max-w-5xl mx-auto px-4 py-20">

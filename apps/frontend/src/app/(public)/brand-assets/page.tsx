@@ -32,9 +32,9 @@ function BrandAssetsPageContent() {
               </button>
             </div>
 
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-              <div className="bg-white rounded-lg h-32 flex items-center justify-center mb-4 border">
-                <span className="text-purple-600 text-4xl font-bold">L</span>
+            <div className="border border-gray-700 rounded-lg p-6">
+              <div className="bg-gray-800/50 rounded-lg h-32 flex items-center justify-center mb-4 border border-gray-700">
+                <span className="text-purple-400 text-4xl font-bold">L</span>
               </div>
               <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all">
                 <Download className="w-4 h-4" />

@@ -697,7 +697,7 @@ Pour améliorer:
               <Link href="https://www.make.com" target="_blank" rel="noopener noreferrer">
                 <Button
                   size="lg"
-                  className="bg-white text-purple-600 hover:bg-purple-50 font-bold px-10 py-7 text-lg shadow-xl hover:shadow-2xl transition-all"
+                  className="bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 font-bold px-10 py-7 text-lg shadow-xl hover:shadow-2xl transition-all"
                 >
                   <Workflow className="w-5 h-5 mr-2" />
                   Créer un compte Make
