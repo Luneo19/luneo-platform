@@ -40,9 +40,9 @@ export function HeroBannerOptimized({
   children,
   alt = 'Hero background',
 }: HeroBannerOptimizedProps) {
-  // Navigation items
+  // Navigation items - Supprimés selon demande
   const navItems = useMemo(
-    () => ['Features', 'Developers', 'Company', 'Blog', 'Changelog'],
+    () => [],
     []
   );
 
@@ -101,14 +101,8 @@ export function HeroBannerOptimized({
         <div className={styles.navLogo}>
           <div className={styles.logoSphere} />
         </div>
-        <div className={styles.navLinks}>
-          {navItems.map((item) => (
-            <a key={item} href={`#${item.toLowerCase()}`} className={styles.navLink}>
-              {item}
-            </a>
-          ))}
-        </div>
-        <button className={styles.waitlistButton}>Join waitlist</button>
+        {/* Navigation links supprimés selon demande */}
+        {/* Join waitlist button supprimé selon demande */}
       </nav>
 
       {/* Contenu principal */}
