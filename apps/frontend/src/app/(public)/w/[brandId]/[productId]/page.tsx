@@ -88,7 +88,6 @@ function WidgetPageContent() {
       }
 
       // Create order via tRPC
-      const { trpcVanilla } = await import('@/lib/trpc/vanilla-client');
       const order = await trpcVanilla.order.create.mutate({
         items: [
           {

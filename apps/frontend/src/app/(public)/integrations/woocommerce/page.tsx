@@ -1479,7 +1479,7 @@ Si les traductions ne s'affichent pas:
                       Centre d'aide
                     </Button>
                   </Link>
-                  <Link href="/help/documentation/troubleshooting">
+                  <Link href="/help/documentation/troubleshooting/common-errors">
                     <Button variant="outline" className="w-full">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Guide dépannage
