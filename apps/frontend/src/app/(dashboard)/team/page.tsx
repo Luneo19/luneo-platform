@@ -14,6 +14,7 @@ import { TeamSkeleton } from '@/components/ui/skeletons';
 import { logger } from '@/lib/logger';
 import { formatRelativeTime } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { trpc } from '@/lib/trpc/client';
 
 interface TeamMember {
   id: string;

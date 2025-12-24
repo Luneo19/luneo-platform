@@ -137,8 +137,8 @@ function IntegrationsPageContent() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Intégrations E-commerce</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold mb-2 text-white">Intégrations E-commerce</h1>
+        <p className="text-gray-400">
           Connectez votre boutique en ligne à Luneo
         </p>
       </div>
