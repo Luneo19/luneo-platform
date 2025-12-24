@@ -15,7 +15,7 @@ function FAQPageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <HelpCircle className="w-16 h-16 mx-auto mb-6" />
@@ -26,18 +26,18 @@ function FAQPageContent() {
       <section className="max-w-4xl mx-auto px-4 py-20">
         <div className="space-y-4">
           {faqs.map((faq, idx) => (
-            <details key={idx} className="bg-white rounded-xl shadow-lg p-6 group">
-              <summary className="flex items-center justify-between cursor-pointer font-bold text-lg text-gray-900">
+            <details key={idx} className="bg-gray-800/50 rounded-xl shadow-lg p-6 group border border-gray-700">
+              <summary className="flex items-center justify-between cursor-pointer font-bold text-lg text-white">
                 {faq.q}
-                <ChevronDown className="w-5 h-5 group-open:rotate-180 transition-transform" />
+                <ChevronDown className="w-5 h-5 group-open:rotate-180 transition-transform text-gray-400" />
               </summary>
-              <p className="mt-4 text-gray-600">{faq.a}</p>
+              <p className="mt-4 text-gray-300">{faq.a}</p>
             </details>
           ))}
         </div>
         <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">Vous ne trouvez pas votre réponse ?</p>
-          <Link href="/contact" className="text-blue-600 hover:text-blue-700 font-semibold">
+          <p className="text-gray-300 mb-4">Vous ne trouvez pas votre réponse ?</p>
+          <Link href="/contact" className="text-blue-400 hover:text-blue-300 font-semibold">
             Contactez notre support →
           </Link>
         </div>
