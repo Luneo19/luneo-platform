@@ -13,8 +13,7 @@ import { router, protectedProcedure } from '../server';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { billingService } from '@/lib/services/BillingService';
-
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 // ========================================
 // SCHEMAS

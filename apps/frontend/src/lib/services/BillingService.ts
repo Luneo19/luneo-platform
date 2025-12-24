@@ -13,8 +13,7 @@ import { cacheService } from '@/lib/cache/CacheService';
 import { getStripe, isStripeConfigured } from '@/lib/stripe/client';
 import { trpcVanilla } from '@/lib/trpc/vanilla-client';
 import { PrismaClient } from '@prisma/client';
-
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 // ========================================
 // TYPES

@@ -112,7 +112,9 @@ function BillingPageContent() {
 
   const handleDownloadInvoice = useCallback(async (invoiceId: string) => {
     try {
-      const result = await trpc.billing.downloadInvoice.query({ id: invoiceId });
+      // Utiliser le client tRPC vanilla pour les appels depuis les handlers
+      const { trpcVanilla } = await import('@/lib/trpc/vanilla-client');
+      const result = await trpcVanilla.billing.downloadInvoice.query({ id: invoiceId });
       if (result.url) {
         window.open(result.url, '_blank');
       }
@@ -390,7 +392,7 @@ function BillingPageContent() {
               {paymentMethods.length === 0 ? (
                 <div className="text-center py-12">
                   <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-600 mb-4">Aucune méthode de paiement</p>
+                  <p className="text-gray-300 mb-4">Aucune méthode de paiement</p>
                   <Button>Ajouter une carte</Button>
                 </div>
               ) : (
@@ -398,12 +400,12 @@ function BillingPageContent() {
                   {paymentMethods.map((method) => (
                     <div
                       key={method.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex items-center justify-between p-4 border border-gray-700 rounded-lg bg-gray-800/50"
                     >
                       <div className="flex items-center gap-4">
-                        <CreditCard className="h-6 w-6 text-gray-500" />
+                        <CreditCard className="h-6 w-6 text-gray-400" />
                         <div>
-                          <div className="font-medium">
+                          <div className="font-medium text-white">
                             {method.type === 'card' ? 'Carte' : 'Compte bancaire'}
                             {method.isDefault && (
                               <Badge variant="outline" className="ml-2">
@@ -412,12 +414,12 @@ function BillingPageContent() {
                             )}
                           </div>
                           {method.last4 && (
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-gray-300">
                               •••• •••• •••• {method.last4}
                             </div>
                           )}
                           {method.expiryMonth && method.expiryYear && (
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-gray-300">
                               Expire {method.expiryMonth}/{method.expiryYear}
                             </div>
                           )}
