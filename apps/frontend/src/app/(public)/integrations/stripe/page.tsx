@@ -861,11 +861,11 @@ const { error, paymentIntent } = await stripe.confirmCardPayment(
                   <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform`}>
                     {feature.icon}
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-gray-600 mb-4 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-2xl font-bold text-white mb-3">{feature.title}</h3>
+                  <p className="text-gray-300 mb-4 leading-relaxed">{feature.description}</p>
                   <ul className="space-y-2">
                     {feature.details.map((detail, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-400">
                         <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                         <span>{detail}</span>
                       </li>

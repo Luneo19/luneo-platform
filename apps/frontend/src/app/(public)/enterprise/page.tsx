@@ -85,7 +85,7 @@ function EnterprisePageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gray-900">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="absolute inset-0 bg-grid-white/10"></div>
@@ -122,27 +122,27 @@ function EnterprisePageContent() {
       {/* Features Grid */}
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-4xl font-bold text-white mb-4">
             Pourquoi les Entreprises Choisissent Luneo
           </h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-300">
             Des outils professionnels pour des besoins professionnels
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature) => (
-            <div key={feature.title} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <feature.icon className="w-12 h-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h3>
-              <p className="text-gray-600">{feature.description}</p>
+            <div key={feature.title} className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-all">
+              <feature.icon className="w-12 h-12 text-blue-400 mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+              <p className="text-gray-300">{feature.description}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Pricing Plans */}
-      <section className="bg-gray-50 py-20">
+      <section className="bg-gray-800/30 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
