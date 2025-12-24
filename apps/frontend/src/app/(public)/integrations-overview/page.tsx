@@ -136,12 +136,12 @@ function IntegrationsOverviewPageContent() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/help/documentation/api-reference">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-50">
+              <Button size="lg" className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white hover:bg-white/20">
                 Voir la documentation API
               </Button>
             </Link>
             <Link href="/contact">
-              <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10">
+              <Button size="lg" variant="outline" className="border-2 border-white/50 text-white hover:bg-white/20">
                 Nous contacter
               </Button>
             </Link>

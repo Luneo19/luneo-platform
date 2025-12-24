@@ -107,7 +107,7 @@ function IntegrationsPageContent() {
               Construisez vos propres intégrations avec notre API REST complète et nos webhooks en temps réel.
             </p>
             <Link href="/help/documentation/api-reference">
-              <button className="bg-white text-orange-600 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors">
+              <button className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white hover:bg-white/20 px-6 py-3 rounded-lg font-semibold transition-colors">
                 Documentation API
                 <ArrowRight className="w-4 h-4 ml-2 inline" />
               </button>
