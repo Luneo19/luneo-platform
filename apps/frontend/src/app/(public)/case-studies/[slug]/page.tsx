@@ -147,22 +147,22 @@ function CaseStudyDetailContent() {
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="grid md:grid-cols-2 gap-12 mb-16">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
               <Zap className="w-8 h-8 text-yellow-500" />
               Le Défi
             </h2>
-            <p className="text-lg text-gray-700 leading-relaxed">{caseStudy.challenge}</p>
+            <p className="text-lg text-gray-300 leading-relaxed">{caseStudy.challenge}</p>
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
               <CheckCircle className="w-8 h-8 text-green-500" />
               La Solution
             </h2>
             <ul className="space-y-4">
               {caseStudy.solution.map((item, idx) => (
                 <li key={idx} className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
-                  <span className="text-gray-700">{item}</span>
+                  <CheckCircle className="w-5 h-5 text-green-400 mt-1 flex-shrink-0" />
+                  <span className="text-gray-300">{item}</span>
                 </li>
               ))}
             </ul>
@@ -170,17 +170,17 @@ function CaseStudyDetailContent() {
         </div>
 
         {/* Results */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-            <TrendingUp className="w-8 h-8 text-blue-500" />
+        <div className="bg-gray-800/50 rounded-2xl shadow-xl p-8 mb-16 border border-gray-700">
+          <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+            <TrendingUp className="w-8 h-8 text-blue-400" />
             Résultats
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {caseStudy.results.map((result, idx) => (
               <div key={idx} className="text-center">
-                <div className="text-5xl font-bold text-blue-600 mb-2">{result.value}</div>
-                <div className="text-lg font-semibold text-gray-900 mb-1">{result.metric}</div>
-                <div className="text-sm text-gray-600">{result.description}</div>
+                <div className="text-5xl font-bold text-blue-400 mb-2">{result.value}</div>
+                <div className="text-lg font-semibold text-white mb-1">{result.metric}</div>
+                <div className="text-sm text-gray-400">{result.description}</div>
               </div>
             ))}
           </div>
@@ -188,13 +188,13 @@ function CaseStudyDetailContent() {
 
         {/* Testimonial */}
         {caseStudy.testimonial && (
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-16">
+          <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-2xl p-8 mb-16 border border-blue-500/20">
             <div className="max-w-3xl mx-auto">
               <div className="flex items-center gap-2 mb-4">
-                <Users className="w-6 h-6 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Témoignage</span>
+                <Users className="w-6 h-6 text-blue-400" />
+                <span className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Témoignage</span>
               </div>
-              <blockquote className="text-2xl font-semibold text-gray-900 mb-6 leading-relaxed">
+              <blockquote className="text-2xl font-semibold text-white mb-6 leading-relaxed">
                 "{caseStudy.testimonial.quote}"
               </blockquote>
               <div className="flex items-center gap-4">
@@ -202,8 +202,8 @@ function CaseStudyDetailContent() {
                   {caseStudy.testimonial.author.split(' ').map(n => n[0]).join('')}
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">{caseStudy.testimonial.author}</div>
-                  <div className="text-sm text-gray-600">{caseStudy.testimonial.role}</div>
+                  <div className="font-semibold text-white">{caseStudy.testimonial.author}</div>
+                  <div className="text-sm text-gray-400">{caseStudy.testimonial.role}</div>
                 </div>
               </div>
             </div>
@@ -212,8 +212,8 @@ function CaseStudyDetailContent() {
 
         {/* CTA */}
         <div className="text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Prêt à obtenir des résultats similaires ?</h3>
-          <p className="text-gray-600 mb-8">Rejoignez des centaines d'entreprises qui font confiance à Luneo</p>
+          <h3 className="text-2xl font-bold text-white mb-4">Prêt à obtenir des résultats similaires ?</h3>
+          <p className="text-gray-300 mb-8">Rejoignez des centaines d'entreprises qui font confiance à Luneo</p>
           <div className="flex gap-4 justify-center">
             <Link href="/register">
               <button className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
