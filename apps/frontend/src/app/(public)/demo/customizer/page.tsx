@@ -98,7 +98,7 @@ function CustomizerDemoPageContent() {
           <p className="text-gray-400 mb-4">
             Ajoutez le customizer à votre boutique e-commerce
           </p>
-          <Link href="/auth/register">
+          <Link href="/register">
             <Button
               size="lg"
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8"

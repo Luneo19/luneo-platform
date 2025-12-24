@@ -94,7 +94,7 @@ function Configurator3DDemoPageContent() {
           <p className="text-gray-400 mb-4">
             Intégrez le configurateur 3D sur votre e-commerce
           </p>
-          <Link href="/auth/register">
+          <Link href="/register">
             <Button
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8"

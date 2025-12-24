@@ -94,7 +94,7 @@ function AssetHubDemoPageContent() {
           <p className="text-gray-400 mb-4">
             Gérez vos assets 3D comme un pro
           </p>
-          <Link href="/auth/register">
+          <Link href="/register">
             <Button
               size="lg"
               className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-8"

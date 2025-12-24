@@ -87,7 +87,7 @@ function VirtualTryOnDemoPageContent() {
           <p className="text-gray-400 mb-4">
             Prêt à intégrer le Virtual Try-On sur votre site ?
           </p>
-          <Link href="/auth/register">
+          <Link href="/register">
             <Button
               size="lg"
               className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-8"
