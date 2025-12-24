@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-states/EmptyState';
 import { logger } from '@/lib/logger';
+import { trpc } from '@/lib/trpc/client';
 
 interface DesignVersion {
   id: string;
@@ -122,8 +123,8 @@ function DesignVersionsPageContent() {
       setIsRestoreModalOpen(false);
       setSelectedVersion(null);
       
-      // Recharger les versions et le design
-      await Promise.all([loadVersions(), loadDesign()]);
+      // Recharger les versions
+      await versionsQuery.refetch();
       
       // Rediriger vers le design
       router.push(`/dashboard/designs/${designId}`);
@@ -161,7 +162,7 @@ function DesignVersionsPageContent() {
 
       setIsDeleteModalOpen(false);
       setVersionToDelete(null);
-      await loadVersions();
+      await versionsQuery.refetch();
     } catch (err: any) {
       toast({
         title: 'Erreur',
@@ -194,7 +195,7 @@ function DesignVersionsPageContent() {
         description: 'Une nouvelle version a été créée',
       });
 
-      await loadVersions();
+      await versionsQuery.refetch();
     } catch (err: any) {
       toast({
         title: 'Erreur',
@@ -260,7 +261,7 @@ function DesignVersionsPageContent() {
           description={error}
           action={{
             label: 'Réessayer',
-            onClick: loadVersions,
+            onClick: () => versionsQuery.refetch(),
           }}
         />
       </div>
