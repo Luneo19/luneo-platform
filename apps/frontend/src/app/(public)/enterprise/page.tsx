@@ -145,10 +145,10 @@ function EnterprisePageContent() {
       <section className="bg-gray-800/30 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-white mb-4">
               Plans Enterprise
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-300">
               Choisissez le plan adapté à votre croissance
             </p>
           </div>
@@ -157,8 +157,8 @@ function EnterprisePageContent() {
             {plans.map((plan) => (
               <div
                 key={plan.name}
-                className={`bg-white rounded-2xl p-8 ${
-                  plan.popular ? 'ring-2 ring-blue-600 shadow-2xl scale-105' : 'shadow-lg'
+                className={`bg-gray-800/50 rounded-2xl p-8 border border-gray-700 ${
+                  plan.popular ? 'ring-2 ring-blue-500 shadow-2xl scale-105' : 'shadow-lg'
                 }`}
               >
                 {plan.popular && (
@@ -166,16 +166,16 @@ function EnterprisePageContent() {
                     Le plus populaire
                   </div>
                 )}
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-gray-600">{plan.period}</span>
+                  <span className="text-4xl font-bold text-white">{plan.price}</span>
+                  <span className="text-gray-400">{plan.period}</span>
                 </div>
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-300">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -184,7 +184,7 @@ function EnterprisePageContent() {
                   className={`block text-center py-3 px-6 rounded-lg font-semibold transition-colors ${
                     plan.popular
                       ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                      : 'bg-gray-700 text-white hover:bg-gray-600'
                   }`}
                 >
                   Contactez-nous
