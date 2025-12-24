@@ -34,7 +34,7 @@ interface HeroBannerOptimizedProps {
 }
 
 export function HeroBannerOptimized({
-  backgroundImage,
+  backgroundImage = "/herobanner.png",
   title = "L'Auteure de Personnalisation 3D",
   subtitle,
   children,

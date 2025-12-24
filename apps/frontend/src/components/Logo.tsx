@@ -51,7 +51,7 @@ export function Logo({
     <div className={`flex items-center space-x-2 ${className}`}>
       <div className="relative flex-shrink-0">
         <Image
-          src={showText ? "/logo.svg" : "/logo-icon.svg"}
+          src={showText ? "/logo.png" : "/logo.png"}
           alt="Luneo Logo"
           width={icon}
           height={icon}
