@@ -8,7 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 function TShirtsTemplatesPageContent() {
   const templates = useMemo(() => Array.from({ length: 9 }), []);
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Shirt className="w-16 h-16 mx-auto mb-6" />
@@ -23,14 +23,14 @@ function TShirtsTemplatesPageContent() {
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid md:grid-cols-3 gap-8">
           {templates.map((_, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="h-64 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <div key={idx} className="bg-gray-800/50 rounded-xl shadow-lg overflow-hidden border border-gray-700">
+              <div className="h-64 bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
                 <Shirt className="w-24 h-24 text-gray-400" />
               </div>
               <div className="p-6">
-                <h3 className="font-bold text-lg mb-2">T-Shirt Template {idx + 1}</h3>
-                <p className="text-gray-600 text-sm mb-4">Personnalisable, print-ready</p>
-                <Link href={`/demo/customizer?template=tshirt-${idx + 1}`} className="text-blue-600 hover:text-blue-700 font-semibold">
+                <h3 className="font-bold text-lg mb-2 text-white">T-Shirt Template {idx + 1}</h3>
+                <p className="text-gray-300 text-sm mb-4">Personnalisable, print-ready</p>
+                <Link href={`/demo/customizer?template=tshirt-${idx + 1}`} className="text-blue-400 hover:text-blue-300 font-semibold">
                   Personnaliser →
                 </Link>
               </div>

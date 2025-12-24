@@ -9,7 +9,7 @@ function PhoneCasesTemplatesPageContent() {
   const templates = useMemo(() => Array.from({ length: 8 }), []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Smartphone className="w-16 h-16 mx-auto mb-6" />
@@ -21,12 +21,12 @@ function PhoneCasesTemplatesPageContent() {
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid md:grid-cols-4 gap-6">
           {templates.map((_, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow-lg p-6">
-              <div className="h-48 bg-teal-50 rounded-lg mb-4 flex items-center justify-center">
+            <div key={idx} className="bg-gray-800/50 rounded-xl shadow-lg p-6 border border-gray-700">
+              <div className="h-48 bg-teal-900/30 rounded-lg mb-4 flex items-center justify-center">
                 <Smartphone className="w-16 h-16 text-teal-400" />
               </div>
-              <h3 className="font-bold mb-2">Coque {idx + 1}</h3>
-              <Link href={`/demo/configurator?template=phone-${idx + 1}`} className="text-teal-600 font-semibold">Personnaliser →</Link>
+              <h3 className="font-bold mb-2 text-white">Coque {idx + 1}</h3>
+              <Link href={`/demo/configurator?template=phone-${idx + 1}`} className="text-teal-400 font-semibold">Personnaliser →</Link>
             </div>
           ))}
         </div>

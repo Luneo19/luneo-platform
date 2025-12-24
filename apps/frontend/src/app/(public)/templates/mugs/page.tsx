@@ -8,7 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 function MugsTemplatesPageContent() {
   const templates = useMemo(() => Array.from({ length: 9 }), []);
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-orange-600 to-red-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Coffee className="w-16 h-16 mx-auto mb-6" />
@@ -23,14 +23,14 @@ function MugsTemplatesPageContent() {
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid md:grid-cols-3 gap-8">
           {templates.map((_, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="h-64 bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
+            <div key={idx} className="bg-gray-800/50 rounded-xl shadow-lg overflow-hidden border border-gray-700">
+              <div className="h-64 bg-gradient-to-br from-orange-900/30 to-red-900/30 flex items-center justify-center">
                 <Coffee className="w-24 h-24 text-orange-400" />
               </div>
               <div className="p-6">
-                <h3 className="font-bold text-lg mb-2">Mug Template {idx + 1}</h3>
-                <p className="text-gray-600 text-sm mb-4">360° personnalisable</p>
-                <Link href={`/demo/configurator?template=mug-${idx + 1}`} className="text-orange-600 hover:text-orange-700 font-semibold">
+                <h3 className="font-bold text-lg mb-2 text-white">Mug Template {idx + 1}</h3>
+                <p className="text-gray-300 text-sm mb-4">360° personnalisable</p>
+                <Link href={`/demo/configurator?template=mug-${idx + 1}`} className="text-orange-400 hover:text-orange-300 font-semibold">
                   Personnaliser →
                 </Link>
               </div>
