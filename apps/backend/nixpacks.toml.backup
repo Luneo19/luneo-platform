@@ -1,0 +1,26 @@
+# Configuration Nixpacks pour Railway
+# Ce fichier est utilisé par Railway pour builder le backend dans un monorepo
+
+[phases.setup]
+nixPkgs = ["nodejs_18", "pnpm"]
+
+[phases.install]
+cmds = [
+  "cd ../.. && pnpm install --frozen-lockfile",
+  "cd apps/backend && pnpm prisma generate"
+]
+
+[phases.build]
+cmds = [
+  "cd apps/backend && pnpm run build",
+  "cd apps/backend && pnpm prisma migrate deploy || true"
+]
+
+[start]
+cmd = "cd apps/backend && node dist/src/main.js"
+
+
+
+
+
+

@@ -1,0 +1,177 @@
+{
+  "common": {
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "success": "Successo",
+    "cancel": "Annulla",
+    "confirm": "Conferma",
+    "save": "Salva",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "close": "Chiudi",
+    "back": "Indietro",
+    "next": "Avanti",
+    "previous": "Precedente",
+    "search": "Cerca",
+    "filter": "Filtra",
+    "sort": "Ordina",
+    "all": "Tutto",
+    "none": "Nessuno",
+    "yes": "Sì",
+    "no": "No",
+    "or": "o",
+    "and": "e"
+  },
+  "nav": {
+    "home": "Home",
+    "pricing": "Prezzi",
+    "features": "Funzionalità",
+    "contact": "Contatto",
+    "login": "Accedi",
+    "register": "Registrati",
+    "dashboard": "Dashboard",
+    "marketplace": "Marketplace",
+    "settings": "Impostazioni",
+    "logout": "Esci"
+  },
+  "auth": {
+    "login": {
+      "title": "Accedi",
+      "subtitle": "Bentornato",
+      "email": "Email",
+      "password": "Password",
+      "forgotPassword": "Password dimenticata?",
+      "rememberMe": "Ricordami",
+      "submit": "Accedi",
+      "noAccount": "Non hai un account?",
+      "signUp": "Registrati"
+    },
+    "register": {
+      "title": "Crea account",
+      "subtitle": "Inizia gratuitamente",
+      "fullName": "Nome completo",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Conferma password",
+      "acceptTerms": "Accetto i termini di servizio",
+      "submit": "Crea account",
+      "hasAccount": "Hai già un account?",
+      "signIn": "Accedi"
+    },
+    "forgotPassword": {
+      "title": "Reimposta password",
+      "subtitle": "Inserisci la tua email",
+      "email": "Email",
+      "submit": "Invia link",
+      "backToLogin": "Torna al login"
+    }
+  },
+  "dashboard": {
+    "welcome": "Bentornato",
+    "overview": "Panoramica",
+    "designs": "Design",
+    "analytics": "Analytics",
+    "team": "Team",
+    "settings": "Impostazioni",
+    "billing": "Fatturazione",
+    "recentDesigns": "Design recenti",
+    "createNew": "Crea nuovo",
+    "viewAll": "Vedi tutto",
+    "stats": {
+      "totalDesigns": "Design totali",
+      "activeProjects": "Progetti attivi",
+      "teamMembers": "Membri del team",
+      "storageUsed": "Spazio utilizzato"
+    }
+  },
+  "pricing": {
+    "title": "Prezzi semplici e trasparenti",
+    "subtitle": "Scegli il piano più adatto a te",
+    "monthly": "Mensile",
+    "yearly": "Annuale",
+    "savePercent": "Risparmia {{percent}}%",
+    "perMonth": "/mese",
+    "perYear": "/anno",
+    "features": "Funzionalità",
+    "selectPlan": "Seleziona piano",
+    "currentPlan": "Piano attuale",
+    "contactSales": "Contatta vendite",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Perfetto per singoli"
+      },
+      "professional": {
+        "name": "Professional",
+        "description": "Per team in crescita"
+      },
+      "business": {
+        "name": "Business",
+        "description": "Per organizzazioni più grandi"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "Soluzioni personalizzate"
+      }
+    }
+  },
+  "design": {
+    "editor": "Editor",
+    "templates": "Template",
+    "layers": "Livelli",
+    "elements": "Elementi",
+    "text": "Testo",
+    "images": "Immagini",
+    "shapes": "Forme",
+    "upload": "Carica",
+    "export": "Esporta",
+    "preview": "Anteprima",
+    "save": "Salva",
+    "undo": "Annulla",
+    "redo": "Ripeti",
+    "zoom": "Zoom",
+    "properties": "Proprietà",
+    "untitled": "Senza titolo"
+  },
+  "settings": {
+    "profile": "Profilo",
+    "account": "Account",
+    "security": "Sicurezza",
+    "notifications": "Notifiche",
+    "billing": "Fatturazione",
+    "team": "Team",
+    "integrations": "Integrazioni",
+    "privacy": "Privacy"
+  },
+  "errors": {
+    "required": "Questo campo è obbligatorio",
+    "invalidEmail": "Email non valida",
+    "passwordTooShort": "La password deve avere almeno 8 caratteri",
+    "passwordMismatch": "Le password non corrispondono",
+    "generic": "Si è verificato un errore",
+    "networkError": "Errore di connessione",
+    "unauthorized": "Non autorizzato",
+    "forbidden": "Accesso negato",
+    "notFound": "Non trovato"
+  },
+  "footer": {
+    "company": "Azienda",
+    "about": "Chi siamo",
+    "careers": "Carriere",
+    "press": "Stampa",
+    "product": "Prodotto",
+    "features": "Funzionalità",
+    "pricing": "Prezzi",
+    "integrations": "Integrazioni",
+    "resources": "Risorse",
+    "documentation": "Documentazione",
+    "guides": "Guide",
+    "support": "Supporto",
+    "legal": "Legale",
+    "privacy": "Privacy",
+    "terms": "Termini",
+    "cookies": "Cookie",
+    "copyright": "© {{year}} Luneo. Tutti i diritti riservati."
+  }
+}
+

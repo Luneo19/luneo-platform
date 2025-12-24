@@ -1,0 +1,336 @@
+{
+  "summary": {
+    "totalFiles": 709,
+    "filesNeedingOptimization": 20,
+    "totalHeavyImports": 195,
+    "totalShouldBeLazy": 8
+  },
+  "topOptimizations": [
+    {
+      "file": "apps/frontend/src/app/(dashboard)/dashboard/analytics-advanced/page.tsx",
+      "score": 17,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        },
+        {
+          "package": "@nivo/bar",
+          "size": 80
+        },
+        {
+          "package": "@nivo/line",
+          "size": 80
+        },
+        {
+          "package": "@nivo/pie",
+          "size": 80
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 8,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/components/dashboard/AnalyticsDashboard.tsx",
+      "score": 17,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        },
+        {
+          "package": "@nivo/bar",
+          "size": 80
+        },
+        {
+          "package": "@nivo/line",
+          "size": 80
+        },
+        {
+          "package": "@nivo/pie",
+          "size": 80
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 12,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/components/3d/SelectionTool.tsx",
+      "score": 14,
+      "heavyImports": [
+        {
+          "package": "three",
+          "size": 500
+        },
+        {
+          "package": "@react-three/fiber",
+          "size": 200
+        },
+        {
+          "package": "@react-three/drei",
+          "size": 150
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 8,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/components/3d-configurator/ProductConfigurator3D.tsx",
+      "score": 14,
+      "heavyImports": [
+        {
+          "package": "three",
+          "size": 500
+        },
+        {
+          "package": "@react-three/fiber",
+          "size": 200
+        },
+        {
+          "package": "@react-three/drei",
+          "size": 150
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 9,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/components/ThreeViewer.tsx",
+      "score": 14,
+      "heavyImports": [
+        {
+          "package": "three",
+          "size": 500
+        },
+        {
+          "package": "@react-three/fiber",
+          "size": 200
+        },
+        {
+          "package": "@react-three/drei",
+          "size": 150
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 6,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(public)/help/documentation/3d/setup/page.tsx",
+      "score": 13,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [
+        "ProductConfigurator3D"
+      ],
+      "staticImports": 3,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(public)/help/documentation/ar/setup/page.tsx",
+      "score": 13,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [
+        "ARViewer"
+      ],
+      "staticImports": 4,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/components/dashboard/UsageQuotaOverview.tsx",
+      "score": 13,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        },
+        {
+          "package": "jspdf",
+          "size": 60
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 21,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(public)/demo/bulk-generation/page.tsx",
+      "score": 11,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        },
+        {
+          "package": "openai",
+          "size": 60
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 8,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/lib/canvas-editor/components/Canvas.tsx",
+      "score": 11,
+      "heavyImports": [
+        {
+          "package": "konva",
+          "size": 150
+        },
+        {
+          "package": "react-konva",
+          "size": 50
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 5,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/lib/canvas-editor/export/PrintReadyExporter.ts",
+      "score": 11,
+      "heavyImports": [
+        {
+          "package": "konva",
+          "size": 150
+        },
+        {
+          "package": "jspdf",
+          "size": 60
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 2,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(public)/help/documentation/sdks/react/page.tsx",
+      "score": 10,
+      "heavyImports": [],
+      "shouldBeLazy": [
+        "ProductConfigurator3D",
+        "ProductCustomizer"
+      ],
+      "staticImports": 5,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(auth)/layout.tsx",
+      "score": 8,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 3,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(dashboard)/affiliate/page.tsx",
+      "score": 8,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 6,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(dashboard)/ai-studio/page.tsx",
+      "score": 8,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 9,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(dashboard)/analytics/page.tsx",
+      "score": 8,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 11,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(dashboard)/ar-studio/page.tsx",
+      "score": 8,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 8,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(dashboard)/billing/page.tsx",
+      "score": 8,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 7,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(dashboard)/billing/success/page.tsx",
+      "score": 8,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 8,
+      "dynamicImports": 0
+    },
+    {
+      "file": "apps/frontend/src/app/(dashboard)/collections/page.tsx",
+      "score": 8,
+      "heavyImports": [
+        {
+          "package": "framer-motion",
+          "size": 100
+        }
+      ],
+      "shouldBeLazy": [],
+      "staticImports": 13,
+      "dynamicImports": 0
+    }
+  ]
+}

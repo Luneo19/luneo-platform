@@ -1,0 +1,156 @@
+/* ============================================
+   CORRECTIONS GLOBALES - LISIBILITÉ & RESPONSIVE
+   ============================================ */
+
+/* 1. CORRECTION OVERFLOW HORIZONTAL */
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 2. CORRECTION BOUTONS BLANCS ILLISIBLES */
+button.bg-white,
+.btn-white,
+button[class*="bg-white"] {
+  color: #1f2937 !important; /* gray-800 */
+}
+
+button.bg-white:hover {
+  color: #111827 !important; /* gray-900 */
+}
+
+/* Boutons outline avec fond blanc */
+button.border-white,
+button[class*="border-white"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+button.border-white:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 3. CORRECTION TEXTES ILLISIBLES */
+/* Textes blancs sur fond blanc */
+.text-white.bg-white,
+.bg-white .text-white,
+.text-white[class*="bg-white"] {
+  color: #1f2937 !important;
+}
+
+/* Textes clairs sur fond clair */
+.text-gray-100.bg-gray-100,
+.bg-gray-100 .text-gray-100 {
+  color: #374151 !important;
+}
+
+.text-gray-200.bg-gray-200,
+.bg-gray-200 .text-gray-200 {
+  color: #4b5563 !important;
+}
+
+/* 4. CORRECTION RESPONSIVE - CONTAINERS */
+.container,
+.max-w-7xl,
+.max-w-6xl,
+.max-w-5xl,
+.max-w-4xl {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container,
+  .max-w-7xl,
+  .max-w-6xl,
+  .max-w-5xl,
+  .max-w-4xl {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* 5. CORRECTION BOUTONS QUI DÉPASSENT */
+button,
+a[role="button"],
+.btn {
+  max-width: 100%;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+@media (max-width: 640px) {
+  button,
+  a[role="button"],
+  .btn {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* 6. CORRECTION NAVIGATION */
+nav {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* 7. CORRECTION CARDS ET SECTIONS */
+.card,
+section {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 8. AMÉLIORATION CONTRASTE GÉNÉRAL */
+.text-slate-400 {
+  color: #94a3b8 !important; /* Plus visible */
+}
+
+.text-gray-400 {
+  color: #9ca3af !important; /* Plus visible */
+}
+
+/* 9. CORRECTION GRADIENTS SUR TEXTES */
+.bg-gradient-to-r .text-white,
+.text-white.bg-gradient-to-r {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 10. CORRECTION MOBILE - TOUCH TARGETS */
+@media (max-width: 768px) {
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* 11. CORRECTION FLEX WRAP */
+.flex {
+  flex-wrap: wrap;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 12. CORRECTION GRID RESPONSIVE */
+.grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+

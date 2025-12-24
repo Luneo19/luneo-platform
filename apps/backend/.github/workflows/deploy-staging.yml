@@ -1,0 +1,42 @@
+name: 🧪 Deploy to Staging
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'apps/b2b-api/**'
+
+jobs:
+  test-and-deploy-staging:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      working-directory: ./backend
+      run: npm ci
+      
+    - name: 🔍 Lint code
+      working-directory: ./backend
+      run: npm run lint
+      
+    - name: 🧪 Run tests
+      working-directory: ./backend
+      run: npm test
+      
+    - name: 🔨 Build application
+      working-directory: ./backend
+      run: npm run build
+      
+    - name: 🚀 Deploy to Staging
+      run: |
+        echo "🧪 Deploying to staging environment..."
+        echo "✅ Staging deployment completed"

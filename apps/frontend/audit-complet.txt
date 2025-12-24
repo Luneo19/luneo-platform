@@ -1,0 +1,81 @@
+📁 STRUCTURE DU PROJET :
+./middleware.ts
+./.vercel/project.json
+./types/minimatch.d.ts
+./types/speakeasy.d.ts
+./types/global.d.ts
+./types/uuid.d.ts
+./vercel.json
+./server.js
+./tests/security/csrf.test.ts
+./tests/api/routes.test.ts
+./tests/e2e/navigation.spec.ts
+./tests/e2e/fixtures.ts
+./tests/e2e/auth.spec.ts
+./tests/e2e/checkout-flow.spec.ts
+./tests/e2e/internationalization.spec.ts
+./tests/e2e/auth.setup.ts
+./tests/e2e/global-setup.ts
+./tests/e2e/dashboard.spec.ts
+./tests/e2e/registration-flow.spec.ts
+./tests/e2e/pricing.spec.ts
+./tests/e2e/global-teardown.ts
+./tests/e2e/3d-selection-tool.spec.ts
+./tests/e2e/usage-quota-dashboard.spec.ts
+./utils/vercel-checklist.ts
+./sentry.server.config.ts
+./sentry.client.config.ts
+./vercel-custom-domain.json
+./package-server.json
+./public/shopify-widget.js
+./public/manifest.json
+./public/service-worker.js
+./public/sw.js
+./sentry.edge.config.ts
+./__tests__/utils/test-utils.tsx
+./__tests__/components/Button.test.tsx
+./__tests__/components/NotificationCenter.test.tsx
+./__tests__/components/LoginForm.test.tsx
+./__tests__/components/RegisterForm.test.tsx
+./__tests__/components/ProductCustomizer.test.tsx
+./__tests__/hooks/useBilling.test.tsx
+./__tests__/lib/security.test.ts
+./__tests__/lib/utils.test.ts
+./__tests__/lib/performance.test.ts
+./__tests__/lib/billing-schemas.test.ts
+./__tests__/api/webhooks.test.ts
+./__tests__/api/auth.test.ts
+./__tests__/api/gdpr.test.ts
+./__tests__/api/billing.test.ts
+./__tests__/api/products.test.ts
+./__tests__/api/designs.test.ts
+
+📦 VERSIONS DES PACKAGES :
+    "@prisma/client": "^5.22.0",
+    "@radix-ui/react-accordion": "^1.1.2",
+    "@radix-ui/react-alert-dialog": "^1.0.5",
+    "@radix-ui/react-avatar": "^1.0.4",
+    "@radix-ui/react-checkbox": "^1.0.4",
+    "@radix-ui/react-collapsible": "^1.0.3",
+--
+    "next": "^15.1.6",
+    "next-themes": "^0.2.1",
+    "openai": "^6.7.0",
+    "pdfkit": "^0.17.2",
+    "postcss": "^8.4.32",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.63.0",
+    "react-konva": "^19.2.0",
+    "recharts": "^2.8.0",
+    "sharp": "^0.34.4",
+--
+    "prisma": "5.22.0",
+    "vitest": "^1.1.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+📋 FICHIERS AVEC PRISMACLIENT :
+       1
+ fichiers trouvés

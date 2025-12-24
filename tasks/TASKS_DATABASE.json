@@ -1,0 +1,199 @@
+{
+  "metadata": {
+    "project": "Luneo Platform",
+    "created": "2025-11-27",
+    "totalTasks": 210,
+    "completedTasks": 0,
+    "lastUpdated": "2025-11-27"
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Fondations",
+      "description": "Tests, Error Handling, Documentation, Performance",
+      "status": "not_started",
+      "estimatedWeeks": 2,
+      "categories": [
+        {
+          "id": "cat-tests",
+          "name": "Tests & Couverture",
+          "tasks": [
+            {"id": "T-001", "title": "Configurer Vitest avec coverage reporter", "status": "pending", "priority": "critical", "estimatedHours": 2, "assignee": null},
+            {"id": "T-002", "title": "Configurer Playwright pour tests E2E", "status": "pending", "priority": "critical", "estimatedHours": 2, "assignee": null},
+            {"id": "T-003", "title": "Créer fixtures et mocks globaux", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "T-004", "title": "Configurer CI/CD pour exécution automatique des tests", "status": "pending", "priority": "high", "estimatedHours": 2, "assignee": null},
+            {"id": "T-005", "title": "Intégrer Codecov pour rapports de couverture", "status": "pending", "priority": "medium", "estimatedHours": 1, "assignee": null},
+            {"id": "T-006", "title": "Tests pour useAuth hook", "status": "pending", "priority": "critical", "estimatedHours": 2, "assignee": null},
+            {"id": "T-007", "title": "Tests pour LoginForm component", "status": "pending", "priority": "critical", "estimatedHours": 2, "assignee": null},
+            {"id": "T-008", "title": "Tests pour RegisterForm component", "status": "pending", "priority": "critical", "estimatedHours": 2, "assignee": null},
+            {"id": "T-009", "title": "Tests pour composants de billing", "status": "pending", "priority": "critical", "estimatedHours": 3, "assignee": null},
+            {"id": "T-010", "title": "Tests pour ProductCustomizer component", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "T-011", "title": "Tests pour ThreeViewer (3D)", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "T-012", "title": "Tests pour ARViewer component", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "T-013", "title": "Tests pour NotificationCenter component", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "T-014", "title": "Tests pour formulaires (Contact, Support, Newsletter)", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "T-015", "title": "Tests pour Sidebar et navigation", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "T-016", "title": "E2E: Inscription utilisateur complet", "status": "pending", "priority": "critical", "estimatedHours": 3, "assignee": null},
+            {"id": "T-017", "title": "E2E: Connexion (email + OAuth)", "status": "pending", "priority": "critical", "estimatedHours": 3, "assignee": null},
+            {"id": "T-018", "title": "E2E: Parcours pricing → checkout → success", "status": "pending", "priority": "critical", "estimatedHours": 4, "assignee": null},
+            {"id": "T-019", "title": "E2E: Création d'un design", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "T-020", "title": "E2E: Personnalisation produit 3D", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "T-021", "title": "E2E: Virtual Try-On flow", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "T-022", "title": "E2E: Gestion équipe (invite, roles)", "status": "pending", "priority": "medium", "estimatedHours": 3, "assignee": null},
+            {"id": "T-023", "title": "E2E: Export design (PDF, PNG, etc.)", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "T-024", "title": "E2E: Support ticket creation", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "T-025", "title": "E2E: Billing portal access", "status": "pending", "priority": "high", "estimatedHours": 2, "assignee": null},
+            {"id": "T-026", "title": "Tests API authentication endpoints", "status": "pending", "priority": "critical", "estimatedHours": 3, "assignee": null},
+            {"id": "T-027", "title": "Tests API billing endpoints", "status": "pending", "priority": "critical", "estimatedHours": 3, "assignee": null},
+            {"id": "T-028", "title": "Tests API designs CRUD", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "T-029", "title": "Tests API products CRUD", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "T-030", "title": "Tests API webhooks Stripe", "status": "pending", "priority": "high", "estimatedHours": 2, "assignee": null}
+          ]
+        },
+        {
+          "id": "cat-errors",
+          "name": "Error Handling & Recovery",
+          "tasks": [
+            {"id": "E-001", "title": "Créer GlobalErrorBoundary avec recovery", "status": "pending", "priority": "critical", "estimatedHours": 3, "assignee": null},
+            {"id": "E-002", "title": "Créer ApiErrorBoundary pour erreurs réseau", "status": "pending", "priority": "critical", "estimatedHours": 2, "assignee": null},
+            {"id": "E-003", "title": "Créer 3DErrorBoundary pour erreurs WebGL", "status": "pending", "priority": "high", "estimatedHours": 2, "assignee": null},
+            {"id": "E-004", "title": "Implémenter retry automatique avec backoff exponentiel", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "E-005", "title": "Créer UI de fallback gracieuse pour chaque section", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "E-006", "title": "Configurer Sentry avec context enrichi", "status": "pending", "priority": "critical", "estimatedHours": 2, "assignee": null},
+            {"id": "E-007", "title": "Implémenter breadcrumbs pour debugging", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "E-008", "title": "Créer dashboard erreurs custom", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "E-009", "title": "Alertes automatiques par Slack/Email", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "E-010", "title": "Session replay avec Sentry ou LogRocket", "status": "pending", "priority": "low", "estimatedHours": 3, "assignee": null}
+          ]
+        },
+        {
+          "id": "cat-docs",
+          "name": "Documentation API",
+          "tasks": [
+            {"id": "D-001", "title": "Générer schema OpenAPI automatique depuis routes", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "D-002", "title": "Créer page /developers avec documentation interactive", "status": "pending", "priority": "high", "estimatedHours": 6, "assignee": null},
+            {"id": "D-003", "title": "Ajouter exemples de code (cURL, JavaScript, Python, PHP)", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "D-004", "title": "Documenter tous les webhooks disponibles", "status": "pending", "priority": "medium", "estimatedHours": 3, "assignee": null},
+            {"id": "D-005", "title": "Créer guide Quick Start pour développeurs", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "D-006", "title": "Créer SDK JavaScript/TypeScript", "status": "pending", "priority": "high", "estimatedHours": 8, "assignee": null},
+            {"id": "D-007", "title": "Publier SDK sur npm", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "D-008", "title": "Créer exemples d'intégration (React, Vue, vanilla JS)", "status": "pending", "priority": "medium", "estimatedHours": 6, "assignee": null},
+            {"id": "D-009", "title": "Documentation des rate limits", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "D-010", "title": "Changelog API versionné", "status": "pending", "priority": "low", "estimatedHours": 2, "assignee": null}
+          ]
+        },
+        {
+          "id": "cat-perf",
+          "name": "Performance & Caching",
+          "tasks": [
+            {"id": "P-001", "title": "Implémenter cache Redis pour /api/public/*", "status": "pending", "priority": "critical", "estimatedHours": 4, "assignee": null},
+            {"id": "P-002", "title": "Cache pour données marketing (témoignages, stats)", "status": "pending", "priority": "high", "estimatedHours": 2, "assignee": null},
+            {"id": "P-003", "title": "Cache pour templates et cliparts", "status": "pending", "priority": "high", "estimatedHours": 2, "assignee": null},
+            {"id": "P-004", "title": "Cache pour configurations produits", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "P-005", "title": "Invalidation intelligente du cache", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "P-006", "title": "Lazy loading pour composants 3D/AR", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "P-007", "title": "Preloading intelligent des assets", "status": "pending", "priority": "medium", "estimatedHours": 3, "assignee": null},
+            {"id": "P-008", "title": "Image optimization avec Cloudinary", "status": "pending", "priority": "high", "estimatedHours": 2, "assignee": null},
+            {"id": "P-009", "title": "Bundle analysis et tree-shaking", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "P-010", "title": "Service Worker pour offline support", "status": "pending", "priority": "low", "estimatedHours": 6, "assignee": null},
+            {"id": "P-011", "title": "Analyser et optimiser queries lentes", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "P-012", "title": "Ajouter indexes manquants", "status": "pending", "priority": "high", "estimatedHours": 2, "assignee": null},
+            {"id": "P-013", "title": "Implémenter pagination cursor-based", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "P-014", "title": "Connection pooling optimisé", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null},
+            {"id": "P-015", "title": "Query caching Supabase", "status": "pending", "priority": "medium", "estimatedHours": 2, "assignee": null}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Valeur Business",
+      "description": "Analytics, AI Studio V2, Collaboration, Onboarding",
+      "status": "not_started",
+      "estimatedWeeks": 4,
+      "categories": [
+        {
+          "id": "cat-analytics",
+          "name": "Analytics Avancés",
+          "tasks": [
+            {"id": "A-001", "title": "Créer page /dashboard/analytics-advanced", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "A-002", "title": "Implémenter heatmaps de personnalisation", "status": "pending", "priority": "high", "estimatedHours": 8, "assignee": null},
+            {"id": "A-003", "title": "Funnel analysis (Visitor → Customize → Purchase)", "status": "pending", "priority": "high", "estimatedHours": 6, "assignee": null},
+            {"id": "A-004", "title": "Cohort analysis pour rétention", "status": "pending", "priority": "medium", "estimatedHours": 6, "assignee": null},
+            {"id": "A-005", "title": "Revenue analytics détaillé", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "A-006", "title": "Event tracking granulaire", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "A-007", "title": "Custom events par fonctionnalité", "status": "pending", "priority": "medium", "estimatedHours": 3, "assignee": null},
+            {"id": "A-008", "title": "Export CSV/PDF des rapports", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "A-009", "title": "Scheduled reports par email", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "A-010", "title": "Real-time dashboard updates (WebSocket)", "status": "pending", "priority": "high", "estimatedHours": 6, "assignee": null},
+            {"id": "A-011", "title": "Créer page /dashboard/ab-testing", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "A-012", "title": "Système de création d'expériences A/B", "status": "pending", "priority": "medium", "estimatedHours": 8, "assignee": null},
+            {"id": "A-013", "title": "Variants pour templates", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "A-014", "title": "Statistical significance calculator", "status": "pending", "priority": "low", "estimatedHours": 4, "assignee": null},
+            {"id": "A-015", "title": "Auto-winner selection", "status": "pending", "priority": "low", "estimatedHours": 3, "assignee": null}
+          ]
+        },
+        {
+          "id": "cat-ai",
+          "name": "AI Studio V2",
+          "tasks": [
+            {"id": "AI-001", "title": "Style Transfer (appliquer style d'une image)", "status": "pending", "priority": "high", "estimatedHours": 12, "assignee": null},
+            {"id": "AI-002", "title": "Background Removal automatique", "status": "pending", "priority": "critical", "estimatedHours": 6, "assignee": null},
+            {"id": "AI-003", "title": "Image Upscaling IA (2x, 4x)", "status": "pending", "priority": "high", "estimatedHours": 6, "assignee": null},
+            {"id": "AI-004", "title": "Smart Crop intelligent", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "AI-005", "title": "Color palette extraction", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "AI-006", "title": "Génération de designs depuis description", "status": "pending", "priority": "high", "estimatedHours": 8, "assignee": null},
+            {"id": "AI-007", "title": "Variations automatiques de designs", "status": "pending", "priority": "high", "estimatedHours": 6, "assignee": null},
+            {"id": "AI-008", "title": "Brand-aware generation (respect charte graphique)", "status": "pending", "priority": "medium", "estimatedHours": 8, "assignee": null},
+            {"id": "AI-009", "title": "Multi-language prompts support", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "AI-010", "title": "History et favoris des générations", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null}
+          ]
+        },
+        {
+          "id": "cat-collab",
+          "name": "Collaboration Temps Réel",
+          "tasks": [
+            {"id": "C-001", "title": "Intégrer Liveblocks ou Yjs", "status": "pending", "priority": "high", "estimatedHours": 8, "assignee": null},
+            {"id": "C-002", "title": "Créer système de rooms par projet", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "C-003", "title": "Présence utilisateurs en temps réel", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "C-004", "title": "Curseurs collaboratifs", "status": "pending", "priority": "medium", "estimatedHours": 6, "assignee": null},
+            {"id": "C-005", "title": "Sync state temps réel", "status": "pending", "priority": "high", "estimatedHours": 6, "assignee": null},
+            {"id": "C-006", "title": "Edition simultanée de designs", "status": "pending", "priority": "high", "estimatedHours": 12, "assignee": null},
+            {"id": "C-007", "title": "Système de commentaires sur canvas", "status": "pending", "priority": "medium", "estimatedHours": 6, "assignee": null},
+            {"id": "C-008", "title": "@mentions dans commentaires", "status": "pending", "priority": "medium", "estimatedHours": 3, "assignee": null},
+            {"id": "C-009", "title": "Workflow d'approbation (submit → review → approve)", "status": "pending", "priority": "medium", "estimatedHours": 8, "assignee": null},
+            {"id": "C-010", "title": "Notifications temps réel (toast + push)", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "C-011", "title": "Partage de projets par lien", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "C-012", "title": "Permissions granulaires (view/edit/admin)", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "C-013", "title": "Guest access (sans compte)", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "C-014", "title": "Expiration de liens de partage", "status": "pending", "priority": "low", "estimatedHours": 2, "assignee": null},
+            {"id": "C-015", "title": "Analytics de partage", "status": "pending", "priority": "low", "estimatedHours": 3, "assignee": null}
+          ]
+        },
+        {
+          "id": "cat-onboard",
+          "name": "Onboarding Interactif",
+          "tasks": [
+            {"id": "O-001", "title": "Créer flow /onboarding multi-étapes", "status": "pending", "priority": "high", "estimatedHours": 6, "assignee": null},
+            {"id": "O-002", "title": "Étape 1: Profil & préférences", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "O-003", "title": "Étape 2: Choix du cas d'usage", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "O-004", "title": "Étape 3: Premier design guidé", "status": "pending", "priority": "high", "estimatedHours": 4, "assignee": null},
+            {"id": "O-005", "title": "Étape 4: Intégrations recommandées", "status": "pending", "priority": "medium", "estimatedHours": 3, "assignee": null},
+            {"id": "O-006", "title": "Product tours avec tooltips", "status": "pending", "priority": "high", "estimatedHours": 6, "assignee": null},
+            {"id": "O-007", "title": "Checklist Getting Started", "status": "pending", "priority": "high", "estimatedHours": 3, "assignee": null},
+            {"id": "O-008", "title": "Videos tutoriels intégrés", "status": "pending", "priority": "medium", "estimatedHours": 8, "assignee": null},
+            {"id": "O-009", "title": "Templates recommandés par industrie", "status": "pending", "priority": "medium", "estimatedHours": 4, "assignee": null},
+            {"id": "O-010", "title": "Achievement system (gamification)", "status": "pending", "priority": "low", "estimatedHours": 8, "assignee": null}
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "phase1": {"total": 55, "completed": 0, "inProgress": 0, "pending": 55},
+    "phase2": {"total": 55, "completed": 0, "inProgress": 0, "pending": 55},
+    "phase3": {"total": 60, "completed": 0, "inProgress": 0, "pending": 60},
+    "phase4": {"total": 40, "completed": 0, "inProgress": 0, "pending": 40}
+  }
+}
+

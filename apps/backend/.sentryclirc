@@ -1,0 +1,16 @@
+[defaults]
+url=https://sentry.io/
+org=luneo-enterprise
+project=luneo-backend
+
+[auth]
+token=your-sentry-auth-token
+
+
+
+
+
+
+
+
+

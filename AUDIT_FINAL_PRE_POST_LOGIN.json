@@ -1,0 +1,2818 @@
+{
+  "date": "2025-11-03T09:54:41.425Z",
+  "results": {
+    "public": {
+      "total": 117,
+      "issues": [
+        {
+          "file": "apps/frontend/src/app/(public)/about/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 5,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 11,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 15,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "0.0",
+          "errors": 5,
+          "warnings": 39
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/blog/[id]/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.4",
+          "errors": 0,
+          "warnings": 8
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/blog/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.5",
+          "errors": 1,
+          "warnings": 10
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/contact/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.6",
+          "errors": 0,
+          "warnings": 7
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/demo/3d-configurator/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-12 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 7,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "4.1",
+          "errors": 7,
+          "warnings": 12
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/demo/ar-export/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.5",
+          "errors": 1,
+          "warnings": 10
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/demo/bulk-generation/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "5.7",
+          "errors": 3,
+          "warnings": 14
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/demo/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-16 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 4,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 6,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "4.8",
+          "errors": 4,
+          "warnings": 16
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/demo/playground/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.9",
+          "errors": 1,
+          "warnings": 8
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/demo/virtual-try-on/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 2,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "6.8",
+          "errors": 2,
+          "warnings": 11
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/entreprise/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 5,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 7,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 17,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "0.5",
+          "errors": 5,
+          "warnings": 35
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/features/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.1",
+          "errors": 1,
+          "warnings": 7
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/gallery/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "6.3",
+          "errors": 3,
+          "warnings": 11
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/3d/export/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/3d/materials/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/3d/models/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.1",
+          "errors": 1,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/3d/setup/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/ai/generation/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.1",
+          "errors": 1,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/ai/models/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/ai/prompts/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/analytics/dashboards/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/analytics/events/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/analytics/overview/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api/authentication/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api/designs/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api/orders/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api/products/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api/rate-limiting/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api/webhooks/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api-reference/authentication/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.2",
+          "errors": 0,
+          "warnings": 9
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api-reference/create-design/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api-reference/endpoints/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.2",
+          "errors": 0,
+          "warnings": 9
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/api-reference/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.8",
+          "errors": 0,
+          "warnings": 6
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/ar/qr-codes/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/ar/setup/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.4",
+          "errors": 0,
+          "warnings": 3
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/ar/tracking/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/cli/commands/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/cli/installation/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/cli/workflows/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/configuration/environment-variables/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/configuration/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.2",
+          "errors": 0,
+          "warnings": 4
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/customizer/advanced/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/customizer/configuration/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/customizer/examples/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/customizer/getting-started/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.4",
+          "errors": 0,
+          "warnings": 3
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/deployment/cdn/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/deployment/docker/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/deployment/kubernetes/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/deployment/vercel/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/bigcommerce/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/magento/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/make/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.3",
+          "errors": 1,
+          "warnings": 6
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/prestashop/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/printful/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/printify/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/woocommerce/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/integrations/zapier/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 7,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "6.9",
+          "errors": 1,
+          "warnings": 13
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/quickstart/configuration/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/quickstart/deploy/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/quickstart/first-customizer/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.4",
+          "errors": 0,
+          "warnings": 3
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/quickstart/installation/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.4",
+          "errors": 0,
+          "warnings": 3
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/sdks/javascript/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/sdks/node/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/sdks/python/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/sdks/react/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/security/audit/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/security/authentication/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.7",
+          "errors": 1,
+          "warnings": 9
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/security/gdpr/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.4",
+          "errors": 0,
+          "warnings": 3
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/security/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.0",
+          "errors": 0,
+          "warnings": 5
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/security/ssl-tls/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.2",
+          "errors": 0,
+          "warnings": 9
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/webhooks/events/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/documentation/webhooks/setup/page.tsx",
+          "issues": [
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/enterprise-support/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.3",
+          "errors": 1,
+          "warnings": 6
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/quick-start/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 10,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "6.2",
+          "errors": 0,
+          "warnings": 19
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/help/video-course/page.tsx",
+          "issues": [
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 8,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "6.8",
+          "errors": 0,
+          "warnings": 16
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/industries/[slug]/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 9,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 7,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "3.7",
+          "errors": 3,
+          "warnings": 24
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/integrations-overview/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 11,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "4.5",
+          "errors": 3,
+          "warnings": 20
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/legal/privacy/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.4",
+          "errors": 0,
+          "warnings": 3
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/legal/terms/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.4",
+          "errors": 0,
+          "warnings": 3
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 16,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 8,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 9,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "0.0",
+          "errors": 16,
+          "warnings": 28
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/pricing/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-12 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 2,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 6,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 152,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "table sans overflow",
+              "count": 1,
+              "severity": "INFO"
+            }
+          ],
+          "score": "0.0",
+          "errors": 2,
+          "warnings": 164
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/produit/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 4,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 14,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "2.6",
+          "errors": 4,
+          "warnings": 27
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/ressources/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 2,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 6,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 13,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "3.8",
+          "errors": 2,
+          "warnings": 26
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/roi-calculator/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.0",
+          "errors": 0,
+          "warnings": 5
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/ai-design-hub/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.1",
+          "errors": 1,
+          "warnings": 12
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/branding/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 4,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 11,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "4.0",
+          "errors": 4,
+          "warnings": 20
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/configurator-3d/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.1",
+          "errors": 1,
+          "warnings": 12
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/customizer/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 6,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 7,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "5.5",
+          "errors": 1,
+          "warnings": 20
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/ecommerce/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 8,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "4.9",
+          "errors": 3,
+          "warnings": 18
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/marketing/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 4,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 11,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "4.0",
+          "errors": 4,
+          "warnings": 20
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-16 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 8,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "6.6",
+          "errors": 0,
+          "warnings": 17
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/social/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-16 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 4,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 11,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "3.6",
+          "errors": 4,
+          "warnings": 22
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/solutions/virtual-try-on/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 5,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.1",
+          "errors": 1,
+          "warnings": 12
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/studio/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-12 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 4,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 7,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 11,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "3.2",
+          "errors": 4,
+          "warnings": 24
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/success-stories/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 6,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "5.3",
+          "errors": 3,
+          "warnings": 16
+        },
+        {
+          "file": "apps/frontend/src/app/(public)/templates/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "text-5xl+ sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 4,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.5",
+          "errors": 1,
+          "warnings": 10
+        }
+      ],
+      "perfect": 19
+    },
+    "dashboard": {
+      "total": 20,
+      "issues": [
+        {
+          "file": "apps/frontend/src/app/(dashboard)/3d-view/[productId]/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.1",
+          "errors": 1,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/ai-studio/luxury/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-12 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.9",
+          "errors": 3,
+          "warnings": 3
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/ai-studio/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 2,
+              "severity": "ERROR"
+            }
+          ],
+          "score": "9.0",
+          "errors": 2,
+          "warnings": 0
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/analytics/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-12 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 2,
+              "severity": "ERROR"
+            }
+          ],
+          "score": "8.8",
+          "errors": 2,
+          "warnings": 1
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/ar-studio/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 4,
+              "severity": "ERROR"
+            }
+          ],
+          "score": "8.0",
+          "errors": 4,
+          "warnings": 0
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/billing/page.tsx",
+          "issues": [
+            {
+              "criterion": "table sans overflow",
+              "count": 1,
+              "severity": "INFO"
+            }
+          ],
+          "score": "10.0",
+          "errors": 0,
+          "warnings": 0
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/configure-3d/[productId]/page.tsx",
+          "issues": [
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/integrations/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            }
+          ],
+          "score": "8.5",
+          "errors": 3,
+          "warnings": 0
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/library/page.tsx",
+          "issues": [
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.8",
+          "errors": 0,
+          "warnings": 1
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/orders/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-12 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 2,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 3,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.8",
+          "errors": 2,
+          "warnings": 6
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/overview/page.tsx",
+          "issues": [
+            {
+              "criterion": "w-12 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            }
+          ],
+          "score": "8.3",
+          "errors": 3,
+          "warnings": 1
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/products/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            }
+          ],
+          "score": "8.5",
+          "errors": 3,
+          "warnings": 0
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/settings/enterprise/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 3,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.1",
+          "errors": 3,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/settings/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.3",
+          "errors": 1,
+          "warnings": 1
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/team/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 4,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "7.8",
+          "errors": 4,
+          "warnings": 1
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/try-on/[productId]/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 6,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "gap-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "6.6",
+          "errors": 6,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(dashboard)/virtual-try-on/page.tsx",
+          "issues": [
+            {
+              "criterion": "grid-cols-3+ sans mobile",
+              "count": 1,
+              "severity": "ERROR"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "py-20 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "8.9",
+          "errors": 1,
+          "warnings": 3
+        }
+      ],
+      "perfect": 3
+    },
+    "auth": {
+      "total": 4,
+      "issues": [
+        {
+          "file": "apps/frontend/src/app/(auth)/login/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(auth)/register/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 1,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.6",
+          "errors": 0,
+          "warnings": 2
+        },
+        {
+          "file": "apps/frontend/src/app/(auth)/reset-password/page.tsx",
+          "issues": [
+            {
+              "criterion": "p-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            },
+            {
+              "criterion": "px-8 sans responsive",
+              "count": 2,
+              "severity": "WARNING"
+            }
+          ],
+          "score": "9.2",
+          "errors": 0,
+          "warnings": 4
+        }
+      ],
+      "perfect": 1
+    }
+  },
+  "summary": {
+    "totalPages": 141,
+    "perfectPages": 23,
+    "pagesWithIssues": 118,
+    "totalIssues": 1078
+  }
+}

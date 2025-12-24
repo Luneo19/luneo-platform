@@ -1,0 +1,460 @@
+"use strict";
+/**
+ * WooCommerce Webhook Service
+ * Handles WooCommerce webhook events and syncs with Luneo database
+ */
+var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+    function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
+    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+    var _, done = false;
+    for (var i = decorators.length - 1; i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
+        context.addInitializer = function (f) { if (done) throw new TypeError("Cannot add initializers after decoration has completed"); extraInitializers.push(accept(f || null)); };
+        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
+        if (kind === "accessor") {
+            if (result === void 0) continue;
+            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
+            if (_ = accept(result.get)) descriptor.get = _;
+            if (_ = accept(result.set)) descriptor.set = _;
+            if (_ = accept(result.init)) initializers.unshift(_);
+        }
+        else if (_ = accept(result)) {
+            if (kind === "field") initializers.unshift(_);
+            else descriptor[key] = _;
+        }
+    }
+    if (target) Object.defineProperty(target, contextIn.name, descriptor);
+    done = true;
+};
+var __runInitializers = (this && this.__runInitializers) || function (thisArg, initializers, value) {
+    var useValue = arguments.length > 2;
+    for (var i = 0; i < initializers.length; i++) {
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+    }
+    return useValue ? value : void 0;
+};
+var __setFunctionName = (this && this.__setFunctionName) || function (f, name, prefix) {
+    if (typeof name === "symbol") name = name.description ? "[".concat(name.description, "]") : "";
+    return Object.defineProperty(f, "name", { configurable: true, value: prefix ? "".concat(prefix, " ", name) : name });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WooCommerceWebhookService = void 0;
+const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
+let WooCommerceWebhookService = (() => {
+    let _classDecorators = [(0, common_1.Injectable)()];
+    let _classDescriptor;
+    let _classExtraInitializers = [];
+    let _classThis;
+    var WooCommerceWebhookService = _classThis = class {
+        constructor(prisma, wooCommerceConnector) {
+            this.prisma = prisma;
+            this.wooCommerceConnector = wooCommerceConnector;
+            this.logger = new common_1.Logger(WooCommerceWebhookService.name);
+        }
+        /**
+         * Handle product.created webhook
+         * Syncs WooCommerce product to Luneo database
+         */
+        async handleProductCreate(integrationId, product) {
+            try {
+                this.logger.log(`Syncing WooCommerce product ${product.id} to Luneo`, {
+                    integrationId,
+                    productId: product.id,
+                    productName: product.name,
+                });
+                // Check if product mapping already exists
+                const existingMapping = await this.prisma.productMapping.findFirst({
+                    where: {
+                        integrationId,
+                        externalProductId: product.id.toString(),
+                    },
+                    include: {
+                        product: true,
+                    },
+                });
+                if (existingMapping) {
+                    this.logger.warn(`Product ${product.id} already synced, updating instead`);
+                    await this.handleProductUpdate(integrationId, product);
+                    return;
+                }
+                // Get integration to get brandId
+                const integration = await this.prisma.ecommerceIntegration.findUnique({
+                    where: { id: integrationId },
+                    select: { brandId: true },
+                });
+                if (!integration) {
+                    throw new Error(`Integration ${integrationId} not found`);
+                }
+                // Create product in Luneo database
+                const luneoProduct = await this.prisma.product.create({
+                    data: {
+                        brandId: integration.brandId,
+                        name: product.name,
+                        description: product.description || null,
+                        sku: product.sku || `WC-${product.id}`,
+                        price: parseFloat(product.sale_price || product.price || '0'),
+                        currency: 'EUR',
+                        images: product.images?.map(img => img.src) || [],
+                        isActive: product.status === 'publish',
+                        isPublic: product.status === 'publish',
+                    },
+                });
+                // Create product mapping
+                await this.prisma.productMapping.create({
+                    data: {
+                        integrationId,
+                        luneoProductId: luneoProduct.id,
+                        externalProductId: product.id.toString(),
+                        externalSku: product.sku || `WC-${product.id}`,
+                        syncStatus: 'synced',
+                        lastSyncedAt: new Date(),
+                        metadata: {
+                            source: 'woocommerce',
+                            originalPrice: product.regular_price,
+                            salePrice: product.sale_price,
+                            stockStatus: product.stock_status,
+                            stockQuantity: product.stock_quantity,
+                        },
+                    },
+                });
+                this.logger.log(`Successfully synced WooCommerce product ${product.id} to Luneo product ${luneoProduct.id}`);
+            }
+            catch (error) {
+                this.logger.error(`Failed to sync WooCommerce product ${product.id}`, error);
+                throw error;
+            }
+        }
+        /**
+         * Handle product.updated webhook
+         * Updates Luneo product from WooCommerce changes
+         */
+        async handleProductUpdate(integrationId, product) {
+            try {
+                this.logger.log(`Updating Luneo product from WooCommerce product ${product.id}`, {
+                    integrationId,
+                    productId: product.id,
+                });
+                // Find existing mapping
+                const mapping = await this.prisma.productMapping.findFirst({
+                    where: {
+                        integrationId,
+                        externalProductId: product.id.toString(),
+                    },
+                });
+                if (!mapping) {
+                    this.logger.warn(`Product mapping not found for WooCommerce product ${product.id}, creating instead`);
+                    await this.handleProductCreate(integrationId, product);
+                    return;
+                }
+                // Update product in Luneo database
+                await this.prisma.product.update({
+                    where: { id: mapping.luneoProductId },
+                    data: {
+                        name: product.name,
+                        description: product.description || null,
+                        sku: product.sku || mapping.externalSku,
+                        price: parseFloat(product.sale_price || product.price || '0'),
+                        images: product.images?.map(img => img.src) || [],
+                        isActive: product.status === 'publish',
+                        isPublic: product.status === 'publish',
+                    },
+                });
+                // Update mapping
+                await this.prisma.productMapping.update({
+                    where: { id: mapping.id },
+                    data: {
+                        externalSku: product.sku || mapping.externalSku,
+                        syncStatus: 'synced',
+                        lastSyncedAt: new Date(),
+                        metadata: {
+                            source: 'woocommerce',
+                            originalPrice: product.regular_price,
+                            salePrice: product.sale_price,
+                            stockStatus: product.stock_status,
+                            stockQuantity: product.stock_quantity,
+                            lastUpdated: new Date().toISOString(),
+                        },
+                    },
+                });
+                this.logger.log(`Successfully updated Luneo product ${mapping.luneoProductId} from WooCommerce product ${product.id}`);
+            }
+            catch (error) {
+                this.logger.error(`Failed to update Luneo product from WooCommerce product ${product.id}`, error);
+                throw error;
+            }
+        }
+        /**
+         * Handle product.deleted webhook
+         * Archives or marks product as inactive in Luneo
+         */
+        async handleProductDelete(integrationId, product) {
+            try {
+                this.logger.log(`Handling deletion of WooCommerce product ${product.id}`, {
+                    integrationId,
+                    productId: product.id,
+                });
+                // Find existing mapping
+                const mapping = await this.prisma.productMapping.findFirst({
+                    where: {
+                        integrationId,
+                        externalProductId: product.id.toString(),
+                    },
+                });
+                if (!mapping) {
+                    this.logger.warn(`Product mapping not found for WooCommerce product ${product.id}`);
+                    return;
+                }
+                // Mark product as inactive (soft delete)
+                await this.prisma.product.update({
+                    where: { id: mapping.luneoProductId },
+                    data: {
+                        isActive: false,
+                        isPublic: false,
+                    },
+                });
+                // Update mapping status
+                await this.prisma.productMapping.update({
+                    where: { id: mapping.id },
+                    data: {
+                        syncStatus: 'deleted',
+                        lastSyncedAt: new Date(),
+                        metadata: {
+                            ...(mapping.metadata || {}),
+                            deletedAt: new Date().toISOString(),
+                            deletedFrom: 'woocommerce',
+                        },
+                    },
+                });
+                this.logger.log(`Successfully archived Luneo product ${mapping.luneoProductId} from WooCommerce product ${product.id}`);
+            }
+            catch (error) {
+                this.logger.error(`Failed to handle deletion of WooCommerce product ${product.id}`, error);
+                throw error;
+            }
+        }
+        /**
+         * Handle order.created webhook
+         * Creates order in Luneo database and extracts customization metadata
+         */
+        async handleOrderCreate(integrationId, order) {
+            try {
+                this.logger.log(`Creating Luneo order from WooCommerce order ${order.id}`, {
+                    integrationId,
+                    orderId: order.id,
+                    orderNumber: order.number,
+                });
+                // Get integration
+                const integration = await this.prisma.ecommerceIntegration.findUnique({
+                    where: { id: integrationId },
+                    select: { brandId: true },
+                });
+                if (!integration) {
+                    throw new Error(`Integration ${integrationId} not found`);
+                }
+                // Process line items to find customized products
+                for (const lineItem of order.line_items) {
+                    // Find product mapping
+                    const mapping = await this.prisma.productMapping.findFirst({
+                        where: {
+                            integrationId,
+                            externalProductId: lineItem.product_id.toString(),
+                        },
+                        include: {
+                            product: true,
+                        },
+                    });
+                    if (!mapping) {
+                        this.logger.warn(`Product mapping not found for WooCommerce product ${lineItem.product_id}`);
+                        continue;
+                    }
+                    // Extract customization metadata from line item meta_data
+                    const customizationMeta = lineItem.meta_data?.find(meta => meta.key === 'luneo_design_id' || meta.key === 'customization');
+                    if (customizationMeta) {
+                        // Create order in Luneo database
+                        const designId = customizationMeta.value;
+                        // Verify design exists
+                        const design = await this.prisma.design.findUnique({
+                            where: { id: designId },
+                        });
+                        if (!design) {
+                            this.logger.warn(`Design ${designId} not found for order ${order.id}`);
+                            continue;
+                        }
+                        // Create order
+                        const luneoOrder = await this.prisma.order.create({
+                            data: {
+                                orderNumber: `WC-${order.number}`,
+                                status: this.mapWooCommerceOrderStatus(order.status),
+                                customerEmail: order.billing?.email || '',
+                                customerName: order.billing
+                                    ? `${order.billing.first_name} ${order.billing.last_name}`.trim()
+                                    : null,
+                                customerPhone: order.billing?.phone || null,
+                                shippingAddress: order.shipping ? {
+                                    street: order.shipping.address_1,
+                                    street2: order.shipping.address_2,
+                                    city: order.shipping.city,
+                                    state: order.shipping.state,
+                                    postalCode: order.shipping.postcode,
+                                    country: order.shipping.country,
+                                } : null,
+                                subtotalCents: Math.round(parseFloat(order.total) * 100),
+                                taxCents: 0,
+                                shippingCents: 0,
+                                totalCents: Math.round(parseFloat(order.total) * 100),
+                                currency: order.currency.toUpperCase() || 'EUR',
+                                brandId: integration.brandId,
+                                productId: mapping.luneoProductId,
+                                designId: designId,
+                                metadata: {
+                                    source: 'woocommerce',
+                                    wooCommerceOrderId: order.id,
+                                    wooCommerceOrderNumber: order.number,
+                                    lineItemId: lineItem.id,
+                                    customerId: order.customer_id,
+                                },
+                            },
+                        });
+                        this.logger.log(`Successfully created Luneo order ${luneoOrder.id} from WooCommerce order ${order.id}`);
+                        // Trigger fulfillment workflow (if needed)
+                        // This would typically be handled by a job queue
+                        // await this.fulfillmentService.triggerFulfillment(luneoOrder.id);
+                    }
+                }
+            }
+            catch (error) {
+                this.logger.error(`Failed to create Luneo order from WooCommerce order ${order.id}`, error);
+                throw error;
+            }
+        }
+        /**
+         * Handle order.updated webhook
+         * Syncs order status changes and handles refunds
+         */
+        async handleOrderUpdate(integrationId, order) {
+            try {
+                this.logger.log(`Updating Luneo order from WooCommerce order ${order.id}`, {
+                    integrationId,
+                    orderId: order.id,
+                    status: order.status,
+                });
+                // Find Luneo order by metadata
+                const luneoOrders = await this.prisma.order.findMany({
+                    where: {
+                        brandId: (await this.prisma.ecommerceIntegration.findUnique({
+                            where: { id: integrationId },
+                            select: { brandId: true },
+                        }))?.brandId,
+                        metadata: {
+                            path: ['wooCommerceOrderId'],
+                            equals: order.id.toString(),
+                        },
+                    },
+                });
+                if (luneoOrders.length === 0) {
+                    this.logger.warn(`Luneo order not found for WooCommerce order ${order.id}`);
+                    return;
+                }
+                // Update all related orders
+                for (const luneoOrder of luneoOrders) {
+                    await this.prisma.order.update({
+                        where: { id: luneoOrder.id },
+                        data: {
+                            status: this.mapWooCommerceOrderStatus(order.status),
+                            metadata: {
+                                ...(luneoOrder.metadata || {}),
+                                lastSyncedAt: new Date().toISOString(),
+                                wooCommerceStatus: order.status,
+                            },
+                        },
+                    });
+                }
+                this.logger.log(`Successfully updated ${luneoOrders.length} Luneo order(s) from WooCommerce order ${order.id}`);
+            }
+            catch (error) {
+                this.logger.error(`Failed to update Luneo order from WooCommerce order ${order.id}`, error);
+                throw error;
+            }
+        }
+        /**
+         * Handle order.deleted webhook
+         * Cancels pending fulfillment and updates statistics
+         */
+        async handleOrderDelete(integrationId, order) {
+            try {
+                this.logger.log(`Handling deletion of WooCommerce order ${order.id}`, {
+                    integrationId,
+                    orderId: order.id,
+                });
+                // Find Luneo orders
+                const integration = await this.prisma.ecommerceIntegration.findUnique({
+                    where: { id: integrationId },
+                    select: { brandId: true },
+                });
+                if (!integration) {
+                    throw new Error(`Integration ${integrationId} not found`);
+                }
+                const luneoOrders = await this.prisma.order.findMany({
+                    where: {
+                        brandId: integration.brandId,
+                        metadata: {
+                            path: ['wooCommerceOrderId'],
+                            equals: order.id.toString(),
+                        },
+                    },
+                });
+                // Cancel orders that are not yet fulfilled
+                for (const luneoOrder of luneoOrders) {
+                    if (['CREATED', 'PENDING_PAYMENT', 'PAID'].includes(luneoOrder.status)) {
+                        await this.prisma.order.update({
+                            where: { id: luneoOrder.id },
+                            data: {
+                                status: 'CANCELLED',
+                                metadata: {
+                                    ...(luneoOrder.metadata || {}),
+                                    cancelledAt: new Date().toISOString(),
+                                    cancelledFrom: 'woocommerce',
+                                },
+                            },
+                        });
+                    }
+                }
+                this.logger.log(`Successfully handled deletion of WooCommerce order ${order.id}`);
+            }
+            catch (error) {
+                this.logger.error(`Failed to handle deletion of WooCommerce order ${order.id}`, error);
+                throw error;
+            }
+        }
+        /**
+         * Map WooCommerce order status to Luneo OrderStatus
+         */
+        mapWooCommerceOrderStatus(wooStatus) {
+            const statusMap = {
+                'pending': client_1.OrderStatus.PENDING_PAYMENT,
+                'processing': client_1.OrderStatus.PROCESSING,
+                'on-hold': client_1.OrderStatus.PENDING_PAYMENT,
+                'completed': client_1.OrderStatus.DELIVERED,
+                'cancelled': client_1.OrderStatus.CANCELLED,
+                'refunded': client_1.OrderStatus.REFUNDED,
+                'failed': client_1.OrderStatus.CANCELLED,
+            };
+            return statusMap[wooStatus.toLowerCase()] || client_1.OrderStatus.CREATED;
+        }
+    };
+    __setFunctionName(_classThis, "WooCommerceWebhookService");
+    (() => {
+        const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
+        __esDecorate(null, _classDescriptor = { value: _classThis }, _classDecorators, { kind: "class", name: _classThis.name, metadata: _metadata }, null, _classExtraInitializers);
+        WooCommerceWebhookService = _classThis = _classDescriptor.value;
+        if (_metadata) Object.defineProperty(_classThis, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
+        __runInitializers(_classThis, _classExtraInitializers);
+    })();
+    return WooCommerceWebhookService = _classThis;
+})();
+exports.WooCommerceWebhookService = WooCommerceWebhookService;

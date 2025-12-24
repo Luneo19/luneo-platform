@@ -1,0 +1,59 @@
+'use client';
+
+import React, { memo, useCallback, useMemo } from 'react';
+import Link from 'next/link';
+import { Copy, CheckCircle } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+function NextJSConfigPageContent() {
+  const [copied, setCopied] = React.useState('');
+  const copyCode = useCallback((code: string, id: string) => {
+    navigator.clipboard.writeText(code);
+    setCopied(id);
+    setTimeout(() => setCopied(''), 2000);
+  }, []);
+
+  const configExample = useMemo(() => `// next.config.mjs
+export default {
+  images: {
+    domains: ['obrijgptqztacolemsbk.supabase.co'],
+    formats: ['image/avif', 'image/webp']
+  },
+  experimental: {
+    optimizePackageImports: ['@luneo/react']
+  }
+};`, []);
+
+  return (
+    <div className="min-h-screen bg-gray-900 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <Link href="/help/documentation" className="text-blue-400 hover:text-blue-300 text-sm">← Documentation</Link>
+          <h1 className="text-4xl font-bold text-white mb-4 mt-4">Next.js Configuration</h1>
+        </div>
+
+        <Card className="p-6 bg-gray-800/50 border-gray-700">
+          <h2 className="text-2xl font-bold text-white mb-4">Config</h2>
+          <div className="relative">
+            <pre className="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto text-sm text-gray-300 font-mono">{configExample}</pre>
+            <button onClick={() => copyCode(configExample, 'config')} className="absolute top-3 right-3 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600">
+              {copied === 'config' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
+            </button>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+const NextJSConfigPageMemo = memo(NextJSConfigPageContent);
+
+export default function NextJSConfigPage() {
+  return (
+    <ErrorBoundary componentName="NextJSConfigPage">
+      <NextJSConfigPageMemo />
+    </ErrorBoundary>
+  );
+}
+

@@ -1,0 +1,20 @@
+FROM node:18-bullseye
+
+WORKDIR /workspace
+
+COPY package.json package-lock.json pnpm-workspace.yaml turbo.json ./
+COPY apps/frontend/package.json apps/frontend/
+
+RUN npm install
+
+COPY . .
+
+WORKDIR /workspace/apps/frontend
+
+ENV NODE_ENV=development
+ENV PORT=3000
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
+

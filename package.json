@@ -1,0 +1,42 @@
+{
+  "name": "luneo-enterprise-saas",
+  "version": "2.0.0",
+  "private": true,
+  "packageManager": "pnpm@8.10.0",
+  "description": "Luneo Enterprise SaaS - Plateforme IA de personnalisation de produits",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/virtual-try-on",
+    "packages/ar-export",
+    "packages/optimization",
+    "packages/bulk-generator"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean",
+    "deploy": "turbo run deploy",
+    "setup": "node scripts/setup.js"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^1.10.12",
+    "turbo": "^1.10.12",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.10.0",
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "next": "^15.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "stripe": "^19.1.0"
+  }
+}

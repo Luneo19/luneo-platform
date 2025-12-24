@@ -1,0 +1,54 @@
+import { Module, Global, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+
+import { RolesGuard } from './guards/roles.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ResponseInterceptor } from './interceptors/response.interceptor';
+import { AppErrorFilter } from './errors/app-error.filter';
+import { ValidationPipe } from './utils/validation.pipe';
+import { RateLimitGuard } from '@/libs/rate-limit/rate-limit.guard';
+import { RateLimitModule } from '@/libs/rate-limit/rate-limit.module';
+import { I18nModule } from '@/libs/i18n/i18n.module';
+import { TimezoneModule } from '@/libs/timezone/timezone.module';
+import { I18nMiddleware } from '@/common/middleware/i18n.middleware';
+
+@Global()
+@Module({
+  imports: [
+    RateLimitModule,
+    I18nModule,
+    TimezoneModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AppErrorFilter,
+    },
+    ValidationPipe,
+    I18nMiddleware,
+  ],
+  exports: [ValidationPipe, I18nModule, TimezoneModule],
+})
+export class CommonModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(I18nMiddleware)
+      .forRoutes('*'); // Apply to all routes
+  }
+}

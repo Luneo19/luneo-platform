@@ -1,0 +1,19 @@
+{
+  "name": "@luneo/ai-safety",
+  "version": "1.0.0",
+  "description": "AI Safety utilities for prompt sanitization and logging",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["ai", "safety", "sanitization"],
+  "author": "Luneo",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

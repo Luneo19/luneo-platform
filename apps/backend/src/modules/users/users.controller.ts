@@ -1,0 +1,79 @@
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Body,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
+import { Request as ExpressRequest } from 'express';
+import { UsersService } from './users.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { Roles } from '@/common/guards/roles.guard';
+import { UserRole } from '@prisma/client';
+import { CurrentUser } from '@/common/types/user.types';
+
+@ApiTags('users')
+@Controller('users')
+@ApiBearerAuth()
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'Obtenir le profil de l\'utilisateur connecté' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profil utilisateur',
+  })
+  async getProfile(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    return this.usersService.findOne(req.user.id, req.user);
+  }
+
+  @Patch('me')
+  @ApiOperation({ summary: 'Mettre à jour le profil utilisateur' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profil mis à jour',
+  })
+  async updateProfile(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Body() updateProfileDto: UpdateProfileDto
+  ) {
+    return this.usersService.updateProfile(req.user.id, updateProfileDto);
+  }
+
+  @Get('me/quota')
+  @ApiOperation({ summary: 'Obtenir le quota de l\'utilisateur' })
+  @ApiResponse({
+    status: 200,
+    description: 'Quota utilisateur',
+  })
+  async getUserQuota(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    return this.usersService.getUserQuota(req.user.id);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Obtenir un utilisateur par ID (Admin seulement)' })
+  @ApiParam({ name: 'id', description: 'ID de l\'utilisateur' })
+  @ApiResponse({
+    status: 200,
+    description: 'Utilisateur trouvé',
+  })
+  @ApiResponse({ status: 403, description: 'Accès refusé' })
+  @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
+  async findOne(
+    @Param('id') id: string,
+    @Request() req: ExpressRequest & { user: CurrentUser }
+  ) {
+    return this.usersService.findOne(id, req.user);
+  }
+}

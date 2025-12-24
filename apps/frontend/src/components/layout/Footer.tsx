@@ -2,8 +2,8 @@
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Logo } from '@/components/Logo';
 import {
   Twitter,
   Linkedin,
@@ -314,7 +314,16 @@ function FooterContent() {
             {/* Logo & Description */}
             <div>
               <div className="mb-4">
-                <Logo href="/" size="large" showText={true} variant="dark" />
+                <Link href="/" className="inline-block">
+                  <Image
+                    src="/logo.png"
+                    alt="Luneo Logo"
+                    width={180}
+                    height={72}
+                    className="h-12 w-auto object-contain"
+                    priority
+                  />
+                </Link>
               </div>
               <p className="text-sm text-slate-400 mb-4 max-w-sm">
                 La plateforme de personnalisation produit n°1 en Europe. Customizer, Configurateur 3D et Virtual Try-On pour e-commerce.

@@ -1,0 +1,113 @@
+# Prometheus Alerting Rules for LUNEO Platform
+
+groups:
+  - name: luneo_slo
+    interval: 30s
+    rules:
+      # High Latency Alert
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: luneo-backend
+        annotations:
+          summary: "High API latency detected"
+          description: "p95 latency is {{ $value }}s (threshold: 1s)"
+
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 100 > 1
+        for: 5m
+        labels:
+          severity: critical
+          service: luneo-backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }}% (threshold: 1%)"
+
+      # Low Availability Alert
+      - alert: LowAvailability
+        expr: (1 - (sum(rate(http_requests_total{status=~"5.."}[30d])) / sum(rate(http_requests_total[30d])))) * 100 < 99.9
+        for: 1h
+        labels:
+          severity: critical
+          service: luneo-backend
+        annotations:
+          summary: "Availability below SLO"
+          description: "Availability is {{ $value }}% (SLO: 99.9%)"
+
+  - name: luneo_costs
+    interval: 1m
+    rules:
+      # High AI Costs Alert
+      - alert: HighAICosts
+        expr: sum(increase(ai_costs_cents_total[1h])) / 100 > 100
+        for: 15m
+        labels:
+          severity: warning
+          service: luneo-backend
+        annotations:
+          summary: "High AI costs detected"
+          description: "AI costs in last hour: ${{ $value }}"
+
+      # Budget Exceeded Alert
+      - alert: BudgetExceeded
+        expr: sum(increase(ai_costs_cents_total[30d])) / 100 > 1000
+        for: 5m
+        labels:
+          severity: critical
+          service: luneo-backend
+        annotations:
+          summary: "Monthly AI budget exceeded"
+          description: "Monthly AI costs: ${{ $value }}"
+
+  - name: luneo_fraud
+    interval: 30s
+    rules:
+      # High Risk Fraud Detected
+      - alert: HighRiskFraud
+        expr: sum(increase(fraud_checks_total{riskLevel="high"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: luneo-backend
+        annotations:
+          summary: "High risk fraud detected"
+          description: "{{ $value }} high risk fraud checks in last 5 minutes"
+
+      # Critical Fraud Block
+      - alert: CriticalFraudBlock
+        expr: sum(increase(fraud_checks_total{action="block",riskLevel="critical"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: luneo-backend
+        annotations:
+          summary: "Critical fraud blocked"
+          description: "{{ $value }} critical fraud attempts blocked"
+
+  - name: luneo_system
+    interval: 30s
+    rules:
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}%"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
