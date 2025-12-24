@@ -716,7 +716,7 @@ function VirtualTryOnPageContent() {
                   {cameraActive ? 'Caméra Active' : 'Essayer Maintenant'}
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
-                <Link href="/auth/register">
+                <Link href="/register">
                   <Button
                     size="lg"
                     variant="outline"
@@ -1463,7 +1463,7 @@ POST https://your-site.com/webhook
           </div>
 
           <div className="text-center mt-8">
-            <Link href="/docs/virtual-try-on">
+            <Link href="/help/documentation/virtual-try-on/getting-started">
               <Button variant="outline" className="border-slate-600 hover:bg-slate-800">
                 <Code className="w-4 h-4 mr-2" />
                 Documentation Complète
