@@ -7,7 +7,7 @@ import { Award } from 'lucide-react';
 
 function CaseStudiesPageContent() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Award className="w-16 h-16 mx-auto mb-6" />
@@ -23,10 +23,10 @@ function CaseStudiesPageContent() {
             { company: 'E-commerce Z', result: '1M produits personnalisés/mois' },
             { company: 'Agency A', result: 'Réduction 80% temps production' },
           ].map((cs, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow-lg p-8">
-              <h3 className="font-bold text-2xl mb-2">{cs.company}</h3>
-              <p className="text-gray-600 mb-4">{cs.result}</p>
-              <Link href={`/case-studies/${idx + 1}`} className="text-blue-600 hover:text-blue-700 font-semibold">Lire le cas →</Link>
+            <div key={idx} className="bg-gray-800/50 rounded-xl shadow-lg p-8 border border-gray-700">
+              <h3 className="font-bold text-2xl mb-2 text-white">{cs.company}</h3>
+              <p className="text-gray-300 mb-4">{cs.result}</p>
+              <Link href={`/case-studies/${idx + 1}`} className="text-blue-400 hover:text-blue-300 font-semibold">Lire le cas →</Link>
             </div>
           ))}
         </div>

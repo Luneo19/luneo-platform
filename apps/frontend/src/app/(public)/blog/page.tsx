@@ -34,7 +34,7 @@ function BlogPageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <BookOpen className="w-16 h-16 mx-auto mb-6" />
@@ -46,20 +46,20 @@ function BlogPageContent() {
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {articles.map((article) => (
-            <article key={article.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-              <div className="h-48 bg-gradient-to-br from-blue-100 to-purple-100"></div>
+            <article key={article.id} className="bg-gray-800/50 rounded-xl shadow-lg overflow-hidden border border-gray-700 hover:border-gray-600 transition-all">
+              <div className="h-48 bg-gradient-to-br from-blue-500/20 to-purple-500/20"></div>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="bg-blue-500/20 text-blue-300 text-xs font-semibold px-3 py-1 rounded-full border border-blue-500/30">
                     {article.category}
                   </span>
-                  <span className="text-sm text-gray-500">{article.readTime}</span>
+                  <span className="text-sm text-gray-400">{article.readTime}</span>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{article.title}</h2>
-                <p className="text-gray-600 mb-4">{article.excerpt}</p>
+                <h2 className="text-xl font-bold text-white mb-2">{article.title}</h2>
+                <p className="text-gray-300 mb-4">{article.excerpt}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">{article.date}</span>
-                  <Link href={`/blog/${article.id}`} className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
+                  <span className="text-sm text-gray-400">{article.date}</span>
+                  <Link href={`/blog/${article.id}`} className="text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1">
                     Lire <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
