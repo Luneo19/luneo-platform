@@ -61,7 +61,7 @@ function RoadmapPageContent() {
         <div className="mt-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-8 text-white text-center">
           <h2 className="text-2xl font-bold mb-4">Une idée de fonctionnalité ?</h2>
           <p className="text-purple-100 mb-6">Proposez vos idées et votez pour les features</p>
-          <Link href="/contact?subject=feature-request" className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 inline-block">
+          <Link href="/contact?subject=feature-request" className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block">
             Proposer une feature
           </Link>
         </div>

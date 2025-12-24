@@ -11,7 +11,7 @@ function CompliancePageContent() {
     { title: 'SOC 2 Type II', desc: 'Audit de sécurité' },
   ], []);
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <FileCheck className="w-16 h-16 mx-auto mb-6" />
@@ -22,10 +22,10 @@ function CompliancePageContent() {
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid md:grid-cols-3 gap-8">
           {certifications.map((cert) => (
-            <div key={cert.title} className="bg-white rounded-xl shadow-lg p-8 text-center">
-              <Shield className="w-12 h-12 text-green-600 mx-auto mb-4" />
-              <h3 className="font-bold text-xl mb-2">{cert.title}</h3>
-              <p className="text-gray-600">{cert.desc}</p>
+            <div key={cert.title} className="bg-gray-800/50 rounded-xl shadow-lg p-8 text-center border border-gray-700">
+              <Shield className="w-12 h-12 text-green-400 mx-auto mb-4" />
+              <h3 className="font-bold text-xl mb-2 text-white">{cert.title}</h3>
+              <p className="text-gray-300">{cert.desc}</p>
             </div>
           ))}
         </div>
