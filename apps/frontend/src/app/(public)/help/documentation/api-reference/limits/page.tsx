@@ -107,7 +107,7 @@ X-RateLimit-Reset: 1699564800`, []);
       </ul>
 
       <div className="mt-8">
-        <Link href="/pricing" className="text-purple-600 hover:text-purple-700">
+        <Link href="/pricing" className="text-purple-400 hover:text-purple-300">
           Voir les plans et tarifs →
         </Link>
       </div>
