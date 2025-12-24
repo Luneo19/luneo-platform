@@ -7,7 +7,7 @@ import { BookOpen, Video, FileText, Code } from 'lucide-react';
 
 function ResourcesPageContent() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <BookOpen className="w-16 h-16 mx-auto mb-6" />
@@ -17,21 +17,21 @@ function ResourcesPageContent() {
       </section>
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <Link href="/help/documentation" className="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow">
-            <FileText className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="font-bold text-lg">Documentation</h3>
+          <Link href="/help/documentation" className="bg-gray-800/50 rounded-xl shadow-lg p-8 text-center border border-gray-700 hover:border-gray-600 transition-all">
+            <FileText className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+            <h3 className="font-bold text-lg text-white">Documentation</h3>
           </Link>
-          <Link href="/help/tutorials" className="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow">
-            <Video className="w-12 h-12 text-green-600 mx-auto mb-4" />
-            <h3 className="font-bold text-lg">Tutorials</h3>
+          <Link href="/help/tutorials" className="bg-gray-800/50 rounded-xl shadow-lg p-8 text-center border border-gray-700 hover:border-gray-600 transition-all">
+            <Video className="w-12 h-12 text-green-400 mx-auto mb-4" />
+            <h3 className="font-bold text-lg text-white">Tutorials</h3>
           </Link>
-          <Link href="/blog" className="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow">
-            <BookOpen className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-            <h3 className="font-bold text-lg">Blog</h3>
+          <Link href="/blog" className="bg-gray-800/50 rounded-xl shadow-lg p-8 text-center border border-gray-700 hover:border-gray-600 transition-all">
+            <BookOpen className="w-12 h-12 text-purple-400 mx-auto mb-4" />
+            <h3 className="font-bold text-lg text-white">Blog</h3>
           </Link>
-          <Link href="/help/documentation/examples" className="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow">
-            <Code className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-            <h3 className="font-bold text-lg">Code Examples</h3>
+          <Link href="/help/documentation/examples" className="bg-gray-800/50 rounded-xl shadow-lg p-8 text-center border border-gray-700 hover:border-gray-600 transition-all">
+            <Code className="w-12 h-12 text-orange-400 mx-auto mb-4" />
+            <h3 className="font-bold text-lg text-white">Code Examples</h3>
           </Link>
         </div>
       </section>

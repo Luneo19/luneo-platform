@@ -71,7 +71,7 @@ function SuccessStoriesPageContent() {
                   {Object.entries(story.results).map(([key, value], j) => (
                     <div key={j} className="text-center">
                       <div className="text-2xl font-bold text-green-400">{value}</div>
-                      <div className="text-xs text-gray-500 capitalize">{key}</div>
+                      <div className="text-xs text-gray-400 capitalize">{key}</div>
                     </div>
                   ))}
                 </div>
