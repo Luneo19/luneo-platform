@@ -205,9 +205,9 @@ function AIDesignHubDemoPageContent() {
             ) : results.length === 0 ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
-                  <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-                  <p className="text-gray-400 mb-2">Aucun design généré</p>
-                  <p className="text-sm text-gray-500">Remplissez le formulaire et cliquez sur "Générer"</p>
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-300 mb-2">Aucun design généré</p>
+                  <p className="text-sm text-gray-400">Remplissez le formulaire et cliquez sur "Générer"</p>
                 </div>
               </div>
             ) : (
