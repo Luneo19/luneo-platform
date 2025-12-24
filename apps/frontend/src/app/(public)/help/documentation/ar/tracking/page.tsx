@@ -58,7 +58,7 @@ const data = await analytics.json();
           {events.map((event, index) => (
             <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 p-3 bg-gray-900 rounded">
               <code className="text-gray-300 font-mono">{event.name}</code>
-              <span className="text-gray-500">{event.description}</span>
+              <span className="text-gray-400">{event.description}</span>
             </div>
           ))}
         </div>

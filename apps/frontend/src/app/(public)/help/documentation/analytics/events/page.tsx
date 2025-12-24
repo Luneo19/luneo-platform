@@ -37,7 +37,7 @@ function AnalyticsEventsPageContent() {
           {customizerEvents.map((event) => (
             <div key={event} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 p-3 bg-gray-900 rounded">
               <code className="text-blue-400 font-mono">{event}</code>
-              <span className="text-gray-500 text-xs">Auto-tracked</span>
+              <span className="text-gray-400 text-xs">Auto-tracked</span>
             </div>
           ))}
         </div>
