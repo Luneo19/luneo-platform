@@ -266,31 +266,39 @@ export function ProfessionalNav() {
     const sections = menuData[menuKey];
     if (!sections) return null;
 
-  return (
-    <AnimatePresence>
+    return (
+      <AnimatePresence>
         {activeMenu === menuKey && (
           <>
-            {/* Overlay pour fermer le menu */}
+            {/* Overlay pour fermer le menu - positionné en fixed */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[99]"
+              className="fixed inset-0 bg-black/10 backdrop-blur-sm"
               onClick={handleMenuLinkClick}
-              style={{ top: '64px' }}
+              style={{ 
+                top: '64px',
+                zIndex: 9998,
+                pointerEvents: 'auto'
+              }}
             />
-            {/* Menu déroulant */}
-        <motion.div
-              ref={navRef}
+            {/* Menu déroulant - positionné en fixed pour être au-dessus de tout */}
+            <motion.div
               initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-xl z-[100]"
+              className="fixed left-0 right-0 bg-white border-b border-gray-200 shadow-2xl"
               onMouseEnter={() => handleMenuEnter(menuKey)}
               onMouseLeave={handleMenuLeave}
-              style={{ zIndex: 100 }}
+              style={{ 
+                top: '64px',
+                zIndex: 9999,
+                maxHeight: 'calc(100vh - 64px)',
+                overflowY: 'auto'
+              }}
             >
               <div className="max-w-7xl mx-auto px-6 py-8">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
@@ -345,8 +353,8 @@ export function ProfessionalNav() {
   return (
     <nav 
       ref={navRef}
-      className="sticky top-0 z-[100] bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm"
-      style={{ zIndex: 100 }}
+      className="sticky top-0 bg-white border-b border-gray-200 shadow-sm"
+      style={{ zIndex: 10000 }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -365,11 +373,12 @@ export function ProfessionalNav() {
           {/* Navigation desktop */}
           <div className="hidden lg:flex items-center space-x-1">
             {/* Solutions */}
-            <div className="relative">
+            <div className="relative" style={{ zIndex: 10001 }}>
               <button
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-lg hover:bg-gray-50 transition-colors"
                 onMouseEnter={() => handleMenuEnter('solutions')}
                 onMouseLeave={handleMenuLeave}
+                onClick={() => handleMenuEnter('solutions')}
               >
                 <span>Solutions</span>
                 <ChevronDown
@@ -382,11 +391,12 @@ export function ProfessionalNav() {
             </div>
 
             {/* Industries */}
-            <div className="relative">
+            <div className="relative" style={{ zIndex: 10001 }}>
               <button
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-lg hover:bg-gray-50 transition-colors"
                 onMouseEnter={() => handleMenuEnter('industries')}
                 onMouseLeave={handleMenuLeave}
+                onClick={() => handleMenuEnter('industries')}
               >
                 <span>Industries</span>
                 <ChevronDown
@@ -407,11 +417,12 @@ export function ProfessionalNav() {
             </Link>
 
             {/* Intégrations */}
-            <div className="relative">
+            <div className="relative" style={{ zIndex: 10001 }}>
               <button
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-lg hover:bg-gray-50 transition-colors"
                 onMouseEnter={() => handleMenuEnter('integrations')}
                 onMouseLeave={handleMenuLeave}
+                onClick={() => handleMenuEnter('integrations')}
               >
                 <span>Intégrations</span>
                 <ChevronDown
@@ -432,11 +443,12 @@ export function ProfessionalNav() {
             </Link>
 
             {/* Ressources */}
-            <div className="relative">
+            <div className="relative" style={{ zIndex: 10001 }}>
               <button
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-lg hover:bg-gray-50 transition-colors"
                 onMouseEnter={() => handleMenuEnter('resources')}
                 onMouseLeave={handleMenuLeave}
+                onClick={() => handleMenuEnter('resources')}
               >
                 <span>Ressources</span>
                 <ChevronDown
