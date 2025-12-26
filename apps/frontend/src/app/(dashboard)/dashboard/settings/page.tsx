@@ -520,7 +520,7 @@ function SettingsPageContent() {
     },
   });
 
-  const updatePasswordMutation = trpc.profile.updatePassword.useMutation({
+  const updatePasswordMutation = trpc.profile.changePassword.useMutation({
     onSuccess: () => {
       setPassword('');
       setNewPassword('');
