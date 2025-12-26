@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,11 +31,25 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 function ZakekeStyleNavContent() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Nettoyer le timeout au démontage
+  useEffect(() => {
+    return () => {
+      if (menuTimeoutRef.current) {
+        clearTimeout(menuTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Fermer le menu quand on clique sur un lien
   const handleMenuLinkClick = useCallback(() => {
     setActiveMenu(null);
     setIsMobileMenuOpen(false);
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+      menuTimeoutRef.current = null;
+    }
   }, []);
 
   const toggleMobileMenu = useCallback(() => {
@@ -43,7 +57,22 @@ function ZakekeStyleNavContent() {
   }, []);
 
   const handleMenuToggle = useCallback((menu: string) => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+      menuTimeoutRef.current = null;
+    }
     setActiveMenu((prev) => prev === menu ? null : menu);
+  }, []);
+
+  const handleMenuLeave = useCallback(() => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+    }
+    const timeout = setTimeout(() => {
+      setActiveMenu(null);
+      menuTimeoutRef.current = null;
+    }, 200); // Délai de 200ms avant fermeture
+    menuTimeoutRef.current = timeout;
   }, []);
 
   const navigation = useMemo(() => ({
@@ -222,9 +251,16 @@ function ZakekeStyleNavContent() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
-          className="absolute top-full left-0 w-full bg-white shadow-2xl border-t border-gray-100 z-40"
-          onMouseLeave={handleMenuLinkClick}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="absolute top-full left-0 w-full bg-white/98 backdrop-blur-md shadow-2xl border-t border-gray-200 z-[100]"
+          style={{ zIndex: 100 }}
+          onMouseEnter={() => {
+            if (menuTimeoutRef.current) {
+              clearTimeout(menuTimeoutRef.current);
+              menuTimeoutRef.current = null;
+            }
+          }}
+          onMouseLeave={handleMenuLeave}
         >
           <div className="max-w-7xl mx-auto px-6 py-8">
             <div className={`grid ${type === 'jeVeux' ? 'grid-cols-2' : type === 'industries' ? 'grid-cols-3' : 'grid-cols-2'} gap-6`}>
@@ -233,7 +269,7 @@ function ZakekeStyleNavContent() {
                   key={index}
                   href={item.href}
                   onClick={handleMenuLinkClick}
-                  className="group min-h-11 p-4 rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200"
+                  className="group min-h-11 p-4 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 border border-transparent hover:border-blue-100 hover:shadow-md"
                 >
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0 min-w-11 min-h-11 w-11 h-11 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
@@ -265,7 +301,7 @@ function ZakekeStyleNavContent() {
   ), [activeMenu, handleMenuLinkClick]);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <nav className="sticky top-0 z-[100] bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo - 5x plus grand */}
@@ -286,9 +322,10 @@ function ZakekeStyleNavContent() {
             <button
               className="relative px-4 py-2 text-gray-700 hover:text-gray-900 font-medium flex items-center space-x-1 rounded-lg hover:bg-gray-50 transition-colors"
               onMouseEnter={() => handleMenuToggle('jeVeux')}
+              onMouseLeave={handleMenuLeave}
             >
               <span>Je veux...</span>
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${activeMenu === 'jeVeux' ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Produits */}
@@ -303,27 +340,30 @@ function ZakekeStyleNavContent() {
             <button
               className="relative px-4 py-2 text-gray-700 hover:text-gray-900 font-medium flex items-center space-x-1 rounded-lg hover:bg-gray-50 transition-colors"
               onMouseEnter={() => handleMenuToggle('solutions')}
+              onMouseLeave={handleMenuLeave}
             >
               <span>Solutions</span>
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${activeMenu === 'solutions' ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Industries */}
             <button
               className="relative px-4 py-2 text-gray-700 hover:text-gray-900 font-medium flex items-center space-x-1 rounded-lg hover:bg-gray-50 transition-colors"
               onMouseEnter={() => handleMenuToggle('industries')}
+              onMouseLeave={handleMenuLeave}
             >
               <span>Industries</span>
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${activeMenu === 'industries' ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Intégrations */}
             <button
               className="relative px-4 py-2 text-gray-700 hover:text-gray-900 font-medium flex items-center space-x-1 rounded-lg hover:bg-gray-50 transition-colors"
               onMouseEnter={() => handleMenuToggle('integrations')}
+              onMouseLeave={handleMenuLeave}
             >
               <span>Intégrations</span>
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${activeMenu === 'integrations' ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Tarifs */}
@@ -338,9 +378,10 @@ function ZakekeStyleNavContent() {
             <button
               className="relative px-4 py-2 text-gray-700 hover:text-gray-900 font-medium flex items-center space-x-1 rounded-lg hover:bg-gray-50 transition-colors"
               onMouseEnter={() => handleMenuToggle('resources')}
+              onMouseLeave={handleMenuLeave}
             >
               <span>Ressources</span>
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${activeMenu === 'resources' ? 'rotate-180' : ''}`} />
             </button>
           </div>
 
