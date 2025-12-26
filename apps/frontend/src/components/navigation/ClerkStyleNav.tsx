@@ -219,9 +219,9 @@ export function ClerkStyleNav() {
               style={{ top: '64px' }}
             />
             {/* Dropdown Menu - Style Clerk */}
-            <motion.div
+        <motion.div
               initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="fixed left-0 right-0 bg-white border-b border-gray-100 shadow-lg"
@@ -303,11 +303,12 @@ export function ClerkStyleNav() {
           {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-1">
             {/* Produit */}
-            <div className="relative">
+            <div className="relative" style={{ zIndex: 10001 }}>
               <button
                 className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-md hover:bg-gray-50 transition-colors"
                 onMouseEnter={() => handleMenuEnter('product')}
                 onMouseLeave={handleButtonLeave}
+                style={{ position: 'relative', zIndex: 10001 }}
               >
                 <span>Produit</span>
                   <ChevronDown
@@ -320,11 +321,12 @@ export function ClerkStyleNav() {
             </div>
 
             {/* Solutions */}
-            <div className="relative">
+            <div className="relative" style={{ zIndex: 10001 }}>
               <button
                 className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-md hover:bg-gray-50 transition-colors"
                 onMouseEnter={() => handleMenuEnter('solutions')}
                 onMouseLeave={handleButtonLeave}
+                style={{ position: 'relative', zIndex: 10001 }}
               >
                 <span>Solutions</span>
                   <ChevronDown
@@ -337,11 +339,12 @@ export function ClerkStyleNav() {
             </div>
 
             {/* Industries */}
-            <div className="relative">
+            <div className="relative" style={{ zIndex: 10001 }}>
               <button
                 className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-md hover:bg-gray-50 transition-colors"
                 onMouseEnter={() => handleMenuEnter('industries')}
                 onMouseLeave={handleButtonLeave}
+                style={{ position: 'relative', zIndex: 10001 }}
               >
                 <span>Industries</span>
                   <ChevronDown
@@ -354,11 +357,12 @@ export function ClerkStyleNav() {
               </div>
 
               {/* Documentation */}
-              <div className="relative">
+              <div className="relative" style={{ zIndex: 10001 }}>
                 <button
                   className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-md hover:bg-gray-50 transition-colors"
                   onMouseEnter={() => handleMenuEnter('docs')}
                   onMouseLeave={handleButtonLeave}
+                  style={{ position: 'relative', zIndex: 10001 }}
                 >
                   <span>Documentation</span>
                   <ChevronDown
@@ -387,11 +391,11 @@ export function ClerkStyleNav() {
               >
                 Connexion
             </Link>
-              <Link href="/register">
+            <Link href="/register">
                 <Button className="bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium px-4 py-2 h-9 rounded-md flex items-center gap-2">
                   <span className="text-white">Commencer</span>
-                </Button>
-              </Link>
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
