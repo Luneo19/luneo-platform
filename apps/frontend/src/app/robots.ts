@@ -1,22 +1,32 @@
 import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://app.luneo.app';
-
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+  
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/dashboard/', '/(dashboard)/'],
+        disallow: [
+          '/api/',
+          '/dashboard/',
+          '/admin/',
+          '/_next/',
+          '/private/',
+        ],
       },
       {
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/api/', '/dashboard/', '/(dashboard)/'],
+        disallow: [
+          '/api/',
+          '/dashboard/',
+          '/admin/',
+          '/private/',
+        ],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
-

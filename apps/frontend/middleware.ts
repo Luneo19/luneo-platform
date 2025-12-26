@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { generateNonce, buildCSPWithNonce } from '@/lib/security/csp-nonce';
 
 // Rate limiting store (in production, use Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -25,7 +26,7 @@ const config = {
     allowedOrigins: [
       'https://luneo.app',
       'https://www.luneo.app',
-      'https://app.luneo.app',
+      'https://luneo.app',
       process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     ].filter(Boolean),
     allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -67,10 +68,29 @@ const config = {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Ignorer les fichiers statiques et assets pour éviter les 404
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot|json|js|css|map)$/i) ||
+    pathname === '/favicon.ico' ||
+    pathname === '/favicon.png' ||
+    pathname === '/apple-touch-icon.png' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/manifest.json' ||
+    pathname === '/sw.js' ||
+    pathname === '/service-worker.js'
+  ) {
+    return NextResponse.next();
+  }
+  
+  // Generate nonce for CSP (unique per request)
+  const nonce = generateNonce();
   const response = NextResponse.next();
 
-  // 1. Security Headers
-  setSecurityHeaders(response);
+  // 1. Security Headers (with nonce)
+  setSecurityHeaders(response, nonce);
 
   // 2. CORS for API routes
   if (pathname.startsWith('/api/')) {
@@ -99,29 +119,44 @@ export async function middleware(request: NextRequest) {
 /**
  * Set security headers
  */
-function setSecurityHeaders(response: NextResponse): void {
+function setSecurityHeaders(response: NextResponse, nonce?: string): void {
   // Strict Transport Security
   response.headers.set(
     'Strict-Transport-Security',
     'max-age=31536000; includeSubDomains; preload'
   );
 
-  // Content Security Policy
-  const csp = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https: http:",
-    "font-src 'self' https://fonts.gstatic.com data:",
-    "connect-src 'self' https://api.stripe.com https://*.supabase.co https://*.sentry.io wss://*.supabase.co https://www.google-analytics.com",
-    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
-    "frame-ancestors 'self'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "upgrade-insecure-requests",
-  ].join('; ');
+  // Content Security Policy with nonce (if provided)
+  // Nonces provide better security than 'unsafe-inline'
+  let csp: string;
+  
+  if (nonce && process.env.NODE_ENV === 'production') {
+    // Use nonce-based CSP in production for better security
+    csp = buildCSPWithNonce(nonce);
+  } else {
+    // Fallback to inline CSP (for development or if nonce not available)
+    csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https: http:",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "connect-src 'self' https://api.stripe.com https://*.supabase.co https://*.sentry.io wss://*.supabase.co https://www.google-analytics.com https://vitals.vercel-insights.com",
+      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+      "frame-ancestors 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+      "upgrade-insecure-requests",
+    ].join('; ');
+  }
 
   response.headers.set('Content-Security-Policy', csp);
+  
+  // Store nonce in header for use in pages/components
+  if (nonce) {
+    response.headers.set('X-CSP-Nonce', nonce);
+  }
 
   // Other security headers
   response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -362,16 +397,18 @@ function handleBot(request: NextRequest, pathname: string): NextResponse {
 }
 
 // Configure which paths the middleware runs on
-export const middlewareConfig = {
+export const config = {
   matcher: [
     /*
      * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
+     * - favicon.ico, favicon.png, apple-touch-icon.png (favicon files)
+     * - robots.txt, sitemap.xml (SEO files)
+     * - public folder assets (images, etc.)
+     * - manifest.json, sw.js, service-worker.js (PWA files)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.(ico|png)|apple-touch-icon\\.png|robots\\.txt|sitemap\\.xml|manifest\\.json|sw\\.js|service-worker\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)',
   ],
 };
 

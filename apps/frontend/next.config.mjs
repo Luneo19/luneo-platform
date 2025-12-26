@@ -57,6 +57,11 @@ const nextConfig = {
       'framer-motion',
       'lodash',
       'date-fns',
+      '@react-three/fiber',
+      '@react-three/drei',
+      'three',
+      'react-chartjs-2',
+      'chart.js',
     ],
     serverActions: {
       bodySizeLimit: '2mb',
@@ -182,12 +187,67 @@ const nextConfig = {
     ];
   },
 
-  // Redirects
+  // Redirects - Éviter les 404
   async redirects() {
     return [
       {
         source: '/home',
         destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/produit',
+        destination: '/produits',
+        permanent: true,
+      },
+      {
+        source: '/solution',
+        destination: '/solutions',
+        permanent: true,
+      },
+      {
+        source: '/industrie',
+        destination: '/industries',
+        permanent: true,
+      },
+      {
+        source: '/doc',
+        destination: '/help/documentation',
+        permanent: true,
+      },
+      {
+        source: '/docs',
+        destination: '/help/documentation',
+        permanent: true,
+      },
+      {
+        source: '/tarifs',
+        destination: '/pricing',
+        permanent: true,
+      },
+      {
+        source: '/ressources',
+        destination: '/resources',
+        permanent: true,
+      },
+      {
+        source: '/features',
+        destination: '/solutions',
+        permanent: true,
+      },
+      {
+        source: '/app',
+        destination: '/dashboard',
+        permanent: true,
+      },
+      {
+        source: '/signup',
+        destination: '/register',
+        permanent: true,
+      },
+      {
+        source: '/signin',
+        destination: '/login',
         permanent: true,
       },
     ];

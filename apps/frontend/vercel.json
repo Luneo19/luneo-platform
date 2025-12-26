@@ -95,6 +95,46 @@
       "source": "/signin",
       "destination": "/login",
       "permanent": true
+    },
+    {
+      "source": "/produit",
+      "destination": "/produits",
+      "permanent": true
+    },
+    {
+      "source": "/solution",
+      "destination": "/solutions",
+      "permanent": true
+    },
+    {
+      "source": "/industrie",
+      "destination": "/industries",
+      "permanent": true
+    },
+    {
+      "source": "/doc",
+      "destination": "/help/documentation",
+      "permanent": true
+    },
+    {
+      "source": "/docs",
+      "destination": "/help/documentation",
+      "permanent": true
+    },
+    {
+      "source": "/tarifs",
+      "destination": "/pricing",
+      "permanent": true
+    },
+    {
+      "source": "/ressources",
+      "destination": "/resources",
+      "permanent": true
+    },
+    {
+      "source": "/features",
+      "destination": "/solutions",
+      "permanent": true
     }
   ]
 }
