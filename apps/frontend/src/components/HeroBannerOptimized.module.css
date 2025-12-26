@@ -178,7 +178,8 @@
 .textContent {
   text-align: center;
   margin-bottom: 4rem;
-  z-index: 2;
+  z-index: 50;
+  position: relative;
   animation: fadeInUp 1s ease-out;
 }
 
@@ -189,16 +190,21 @@
   margin-bottom: 1.5rem;
   line-height: 1.1;
   letter-spacing: -0.02em;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.6);
+  position: relative;
+  z-index: 51;
 }
 
 .subtitle {
   font-size: clamp(1.125rem, 3vw, 1.75rem);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.95);
   line-height: 1.6;
   font-weight: 300;
   max-width: 900px;
   margin: 0 auto;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8), 0 1px 5px rgba(0, 0, 0, 0.6);
+  position: relative;
+  z-index: 51;
 }
 
 /* Éléments flottants */

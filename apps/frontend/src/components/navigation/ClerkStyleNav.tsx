@@ -224,7 +224,7 @@ export function ClerkStyleNav() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed left-0 right-0 bg-white border-b border-gray-100 shadow-lg z-[9999]"
+              className="fixed left-0 right-0 bg-white border-b border-gray-100 shadow-lg"
               onMouseEnter={() => {
                 if (menuTimeoutRef.current) {
                   clearTimeout(menuTimeoutRef.current);
@@ -281,32 +281,21 @@ export function ClerkStyleNav() {
 
   return (
     <>
-      {/* Announcement Banner - Style Clerk */}
-      <div className="bg-black text-white text-center py-2 text-xs">
-        <div className="max-w-7xl mx-auto px-4">
-          <span>Luneo lance de nouvelles fonctionnalités IA</span>
-          {' '}
-          <Link href="/changelog" className="underline hover:no-underline">
-            En savoir plus
-          </Link>
-        </div>
-      </div>
-
       {/* Main Navigation - Style Clerk */}
-      <nav 
+    <nav 
         className="sticky top-0 bg-white border-b border-gray-200 z-[10000]"
         style={{ zIndex: 10000 }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-            <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center z-[10001] relative">
             <Image
               src="/logo.png"
               alt="Luneo"
-                width={100}
-                height={32}
-                className="h-6 w-auto object-contain"
+              width={200}
+              height={64}
+              className="h-10 md:h-12 w-auto object-contain"
               priority
             />
           </Link>
@@ -397,13 +386,13 @@ export function ClerkStyleNav() {
                 className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
               >
                 Connexion
-              </Link>
+            </Link>
               <Link href="/register">
                 <Button className="bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium px-4 py-2 h-9 rounded-md flex items-center gap-2">
-                  <span>Commencer</span>
+                  <span className="text-white">Commencer</span>
                 </Button>
               </Link>
-            </div>
+          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -444,8 +433,8 @@ export function ClerkStyleNav() {
                   </Button>
                 </Link>
                 <Link href="/register" onClick={handleMenuLinkClick} className="block w-full">
-                  <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white">
-                    Commencer
+                  <Button className="w-full bg-gray-900 hover:bg-gray-800">
+                    <span className="text-white">Commencer</span>
                   </Button>
                 </Link>
               </div>

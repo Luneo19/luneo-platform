@@ -508,46 +508,13 @@ function HomePageContent() {
   return (
     <main id="main-content" className="min-h-screen bg-gray-900 overflow-x-hidden">
       {/* ============================================ */}
-      {/* TOP ANNOUNCEMENT BANNER */}
-      {/* ============================================ */}
-      <AnimatePresence>
-        {showTopBar && (
-          <motion.div
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -50, opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white py-2.5 sm:py-3 px-4 relative z-50"
-          >
-            <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 sm:gap-4 text-center">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse flex-shrink-0" />
-              <span className="font-bold text-xs sm:text-sm tracking-wide">NOUVEAU</span>
-              <span className="text-xs sm:text-sm hidden xs:inline">IA Générative 3D + AR + Customization Automatisée</span>
-              <span className="text-xs sm:hidden">IA 3D + AR disponible</span>
-              <Link href="/changelog" className="hidden sm:flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors">
-                <span>Voir les nouveautés</span>
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-            <button
-              onClick={() => setShowTopBar(false)}
-              className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 text-white/80 hover:text-white transition-colors p-1"
-              aria-label="Fermer la bannière"
-            >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ============================================ */}
       {/* HERO SECTION - HeroBannerOptimized */}
       {/* ============================================ */}
       <HeroBannerOptimized
         title="Transformez votre e-commerce avec des expériences produits uniques"
         subtitle="Un outil ✦IA puissant pour les commerçants qui donne vie aux produits en ligne avec la personnalisation en temps réel, la 3D et l'AR, tout en rationalisant les opérations et en boostant l'efficacité."
       >
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 flex-wrap z-50 relative">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 flex-wrap relative" style={{ zIndex: 50 }}>
           <Link href="/register" className="group">
             <Button 
               size="lg" 
