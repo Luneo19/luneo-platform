@@ -10,7 +10,6 @@ import { productRouter } from './product';
 import { arRouter } from './ar';
 import { orderRouter } from './order';
 import { billingRouter } from './billing';
-import { analyticsRouter } from './analytics';
 import { notificationRouter } from './notification';
 import { adminRouter } from './admin';
 import { integrationRouter } from './integration';

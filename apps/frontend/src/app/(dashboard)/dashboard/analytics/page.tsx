@@ -324,7 +324,6 @@ import { AnalyticsService } from '@/lib/services/AnalyticsService';
 import { cn } from '@/lib/utils';
 import { formatDate, formatPrice, formatNumber, formatPercentage } from '@/lib/utils/formatters';
 import LineChart from '@/components/charts/LineChart';
-import ChartCard from '@/components/charts/ChartCard';
 
 // ========================================
 // TYPES & INTERFACES
@@ -442,9 +441,11 @@ function AnalyticsPageContent() {
 
   // Queries
   const analyticsQuery = trpc.analytics.getDashboard.useQuery({
-    timeRange: timeRange.value,
+    timeRange: timeRange.value as '24h' | '7d' | '30d' | '90d' | '1y' | 'custom',
     compare: comparePeriod,
     metrics: Array.from(selectedMetrics),
+    dateFrom: timeRange.value === 'custom' ? customDateFrom : undefined,
+    dateTo: timeRange.value === 'custom' ? customDateTo : undefined,
   });
 
   // Metrics
@@ -1016,7 +1017,7 @@ function AnalyticsPageContent() {
             <CardContent>
               {chartData.labels.length > 0 ? (
                 <div className="h-96">
-                  <LineChart data={chartData} />
+                  <LineChart data={chartData.datasets[0]?.data.map((d, i) => ({ x: chartData.labels[i], y: d })) || []} />
                 </div>
               ) : (
                 <div className="h-96 flex items-center justify-center">
