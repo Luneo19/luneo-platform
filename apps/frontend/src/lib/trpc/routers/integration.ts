@@ -200,5 +200,38 @@ export const integrationRouter = router({
         brandId: user.brandId,
       });
     }),
+
+  // ========================================
+  // ANALYTICS
+  // ========================================
+
+  getAnalytics: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const { user } = ctx;
+
+      if (!user?.brandId) {
+        throw new Error('User must be associated with a brand');
+      }
+
+      // Pour l'instant, retourner des données mockées
+      // En production, cela devrait agréger les données depuis la base
+      return {
+        totalIntegrations: 0,
+        connectedIntegrations: 0,
+        totalSyncs: 0,
+        successRate: 0,
+        avgLatency: 0,
+        errorCount: 0,
+        byPlatform: {},
+        byCategory: {},
+        recentActivity: [],
+      };
+    }),
 });
 
