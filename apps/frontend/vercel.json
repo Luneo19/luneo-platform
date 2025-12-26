@@ -135,6 +135,16 @@
       "source": "/features",
       "destination": "/solutions",
       "permanent": true
+    },
+    {
+      "source": "/industries/jewellery",
+      "destination": "/industries/jewelry",
+      "permanent": true
+    },
+    {
+      "source": "/industries/printing",
+      "destination": "/industries/printing",
+      "permanent": false
     }
   ]
 }
