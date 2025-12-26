@@ -74,12 +74,24 @@ export function ClerkStyleNav() {
   }, []);
 
   const handleMenuLeave = useCallback(() => {
+    // Délai plus long pour éviter les fermetures accidentelles
     const timeout = setTimeout(() => {
       setActiveMenu(null);
       menuTimeoutRef.current = null;
-    }, 150);
+    }, 200);
     menuTimeoutRef.current = timeout;
   }, []);
+
+  const handleButtonLeave = useCallback(() => {
+    // Ne ferme pas immédiatement quand on quitte le bouton si le menu est ouvert
+    if (activeMenu) {
+      const timeout = setTimeout(() => {
+        setActiveMenu(null);
+        menuTimeoutRef.current = null;
+      }, 200);
+      menuTimeoutRef.current = timeout;
+    }
+  }, [activeMenu]);
 
   const menuData: MenuData = {
     product: [
@@ -207,17 +219,24 @@ export function ClerkStyleNav() {
               style={{ top: '64px' }}
             />
             {/* Dropdown Menu - Style Clerk */}
-        <motion.div
+            <motion.div
               initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="fixed left-0 right-0 bg-white border-b border-gray-100 shadow-lg z-[9999]"
-              onMouseEnter={() => handleMenuEnter(menuKey)}
+              onMouseEnter={() => {
+                if (menuTimeoutRef.current) {
+                  clearTimeout(menuTimeoutRef.current);
+                  menuTimeoutRef.current = null;
+                }
+                handleMenuEnter(menuKey);
+              }}
               onMouseLeave={handleMenuLeave}
               style={{ 
                 top: '64px',
-                zIndex: 9999
+                zIndex: 9999,
+                pointerEvents: 'auto'
               }}
             >
               <div className="max-w-7xl mx-auto px-6 py-8">
@@ -294,14 +313,14 @@ export function ClerkStyleNav() {
 
           {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-1">
-            {/* Product */}
+            {/* Produit */}
             <div className="relative">
               <button
                 className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-md hover:bg-gray-50 transition-colors"
-                  onMouseEnter={() => handleMenuEnter('product')}
-                  onMouseLeave={handleMenuLeave}
-                >
-                  <span>Product</span>
+                onMouseEnter={() => handleMenuEnter('product')}
+                onMouseLeave={handleButtonLeave}
+              >
+                <span>Produit</span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform duration-200 ${
                       activeMenu === 'product' ? 'rotate-180' : ''
@@ -315,10 +334,10 @@ export function ClerkStyleNav() {
             <div className="relative">
               <button
                 className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-md hover:bg-gray-50 transition-colors"
-                  onMouseEnter={() => handleMenuEnter('solutions')}
-                  onMouseLeave={handleMenuLeave}
-                >
-                  <span>Solutions</span>
+                onMouseEnter={() => handleMenuEnter('solutions')}
+                onMouseLeave={handleButtonLeave}
+              >
+                <span>Solutions</span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform duration-200 ${
                       activeMenu === 'solutions' ? 'rotate-180' : ''
@@ -332,10 +351,10 @@ export function ClerkStyleNav() {
             <div className="relative">
               <button
                 className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-md hover:bg-gray-50 transition-colors"
-                  onMouseEnter={() => handleMenuEnter('industries')}
-                  onMouseLeave={handleMenuLeave}
-                >
-                  <span>Industries</span>
+                onMouseEnter={() => handleMenuEnter('industries')}
+                onMouseLeave={handleButtonLeave}
+              >
+                <span>Industries</span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform duration-200 ${
                       activeMenu === 'industries' ? 'rotate-180' : ''
@@ -345,14 +364,14 @@ export function ClerkStyleNav() {
                 {renderDropdown('industries')}
               </div>
 
-              {/* Docs */}
+              {/* Documentation */}
               <div className="relative">
                 <button
                   className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 rounded-md hover:bg-gray-50 transition-colors"
                   onMouseEnter={() => handleMenuEnter('docs')}
-                  onMouseLeave={handleMenuLeave}
+                  onMouseLeave={handleButtonLeave}
                 >
-                  <span>Docs</span>
+                  <span>Documentation</span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform duration-200 ${
                       activeMenu === 'docs' ? 'rotate-180' : ''
@@ -362,29 +381,29 @@ export function ClerkStyleNav() {
                 {renderDropdown('docs')}
             </div>
 
-            {/* Pricing */}
+            {/* Tarifs */}
             <Link
               href="/pricing"
               className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-md hover:bg-gray-50 transition-colors"
             >
-                Pricing
+              Tarifs
             </Link>
           </div>
 
-            {/* Right Side Actions */}
+            {/* Actions côté droit */}
             <div className="hidden lg:flex items-center gap-4">
               <Link
                 href="/login"
                 className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
               >
-                Sign in
-            </Link>
-            <Link href="/register">
+                Connexion
+              </Link>
+              <Link href="/register">
                 <Button className="bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium px-4 py-2 h-9 rounded-md flex items-center gap-2">
-                  <span>Start building</span>
-              </Button>
-            </Link>
-          </div>
+                  <span>Commencer</span>
+                </Button>
+              </Link>
+            </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -410,23 +429,23 @@ export function ClerkStyleNav() {
             exit={{ opacity: 0, height: 0 }}
             className="lg:hidden border-t bg-white"
           >
-              <div className="px-4 py-6 space-y-4">
+            <div className="px-4 py-6 space-y-4">
               <Link
                 href="/pricing"
-                  onClick={handleMenuLinkClick}
-                  className="block py-2 text-base font-medium text-gray-900"
-                >
-                  Pricing
-                      </Link>
-                <div className="pt-4 border-t space-y-3">
-                  <Link href="/login" onClick={handleMenuLinkClick} className="block w-full">
+                onClick={handleMenuLinkClick}
+                className="block py-2 text-base font-medium text-gray-900"
+              >
+                Tarifs
+              </Link>
+              <div className="pt-4 border-t space-y-3">
+                <Link href="/login" onClick={handleMenuLinkClick} className="block w-full">
                   <Button variant="outline" className="w-full">
-                      Sign in
+                    Connexion
                   </Button>
                 </Link>
-                  <Link href="/register" onClick={handleMenuLinkClick} className="block w-full">
-                    <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white">
-                      Start building
+                <Link href="/register" onClick={handleMenuLinkClick} className="block w-full">
+                  <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white">
+                    Commencer
                   </Button>
                 </Link>
               </div>
