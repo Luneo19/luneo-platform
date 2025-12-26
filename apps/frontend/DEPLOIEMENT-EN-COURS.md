@@ -71,3 +71,4 @@ vercel inspect [deployment-url]
 ---
 
 **Déploiement lancé. Monitoring en cours...**
+

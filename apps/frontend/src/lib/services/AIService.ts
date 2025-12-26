@@ -60,7 +60,7 @@ export async function checkAndDeductCredits(
 
   try {
     // Vérifier cache Redis
-    const balance = await cacheService.get<string>(cacheKey);
+    let balance = await cacheService.get<string>(cacheKey);
 
     if (!balance) {
       // Cache miss: fetch from DB

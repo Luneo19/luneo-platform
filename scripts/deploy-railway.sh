@@ -88,3 +88,4 @@ log "Déploiement terminé!"
 echo ""
 echo "Vérifiez les logs avec: railway logs"
 echo "Testez le health check: curl \$(railway domain)/health"
+

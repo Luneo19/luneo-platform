@@ -170,7 +170,7 @@ function ARViewerContent() {
       session.requestHitTestSource({ space })
     );
 
-    let hitTestSourceRequested = false;
+    const hitTestSourceRequested = false;
     let modelPlaced = false;
 
     // Animation loop

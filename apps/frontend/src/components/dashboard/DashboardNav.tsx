@@ -23,55 +23,55 @@ import {
 const navigationItems = [
   {
     name: 'Dashboard',
-    href: '/dashboard',
+    href: '/overview',
     icon: LayoutDashboard,
     description: 'Vue d\'ensemble'
   },
   {
     name: 'AI Studio',
-    href: '/ai-studio',
+    href: '/dashboard/ai-studio',
     icon: Palette,
     description: 'Créer des designs'
   },
   {
     name: 'AR Studio',
-    href: '/ar-studio',
+    href: '/dashboard/ar-studio',
     icon: Globe,
     description: 'Réalité augmentée'
   },
   {
     name: 'Analytics',
-    href: '/analytics',
+    href: '/dashboard/analytics',
     icon: BarChart3,
     description: 'Métriques et statistiques'
   },
   {
     name: 'Produits',
-    href: '/products',
+    href: '/dashboard/products',
     icon: Package,
     description: 'Gérer vos produits'
   },
   {
     name: 'Facturation',
-    href: '/billing',
+    href: '/dashboard/billing',
     icon: CreditCard,
     description: 'Abonnements et paiements'
   },
   {
     name: 'Équipe',
-    href: '/team',
+    href: '/dashboard/team',
     icon: Users,
     description: 'Collaboration et membres'
   },
   {
     name: 'Intégrations',
-    href: '/integrations',
+    href: '/dashboard/integrations-dashboard',
     icon: Plug,
     description: 'API et connecteurs'
   },
   {
     name: 'Paramètres',
-    href: '/settings',
+    href: '/dashboard/settings',
     icon: Settings,
     description: 'Configuration du compte'
   }

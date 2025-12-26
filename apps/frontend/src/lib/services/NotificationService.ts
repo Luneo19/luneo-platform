@@ -412,7 +412,7 @@ export class NotificationService {
             ${actionButton}
             <p style="margin-top: 30px; font-size: 12px; color: #666;">
               Vous recevez cet email car vous avez activé les notifications par email pour ce type d'événement.
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app'}/settings/notifications" style="color: #0070f3;">Gérer mes préférences</a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/settings/notifications" style="color: #0070f3;">Gérer mes préférences</a>
             </p>
           </div>
         </body>

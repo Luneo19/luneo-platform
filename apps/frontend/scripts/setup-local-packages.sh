@@ -146,3 +146,4 @@ echo "✅ Script terminé"
 
 # Sortir avec code 0 pour indiquer le succès
 exit 0
+

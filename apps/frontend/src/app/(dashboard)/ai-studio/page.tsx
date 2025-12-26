@@ -45,6 +45,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import OptimizedImage from '@/components/optimized/OptimizedImage';
+import Image from 'next/image';
 
 // AI Tools configuration
 const AI_TOOLS = [
@@ -575,10 +576,13 @@ function AIStudioPageContent() {
                     />
                     {uploadedImage ? (
                       <div className="relative">
-                        <img
+                        <Image
                           src={uploadedImage}
-                          alt="Uploaded"
+                          alt="Image uploadée"
+                          width={512}
+                          height={512}
                           className="max-h-64 mx-auto rounded-lg"
+                          loading="lazy"
                         />
                         <button
                           onClick={(e) => {
@@ -686,10 +690,13 @@ function AIStudioPageContent() {
                         </Button>
                       </div>
                       <div className="relative rounded-xl overflow-hidden bg-slate-800">
-                        <img
+                        <Image
                           src={result.output.imageUrl}
-                          alt="Result"
+                          alt="Résultat de la génération IA"
+                          width={1024}
+                          height={1024}
                           className="w-full h-auto"
+                          loading="lazy"
                         />
                         <div className="absolute bottom-4 left-4 flex items-center gap-2">
                           <Badge className="bg-green-500/20 text-green-300 border-0">

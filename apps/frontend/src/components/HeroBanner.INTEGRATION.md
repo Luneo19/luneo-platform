@@ -144,3 +144,4 @@ Pour tester rapidement avec une image placeholder :
 4. Tester sur différents appareils
 5. Optimiser l'image si nécessaire
 
+

@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Envoyer l'email d'invitation (non bloquant)
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
       const inviteUrl = `${appUrl}/team/accept?token=${token}`;
       
       await fetch(`${appUrl}/api/email/send`, {

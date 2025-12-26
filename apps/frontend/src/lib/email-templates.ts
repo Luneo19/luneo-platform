@@ -5,7 +5,7 @@ import OptimizedImage from '../components/optimized/OptimizedImage';
  * Templates HTML pour emails transactionnels Luneo
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 const BRAND_COLOR = '#6366f1'; // Indigo-500
 const BRAND_NAME = 'Luneo';
 

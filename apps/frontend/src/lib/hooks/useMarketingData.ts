@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { useCallback, useEffect, useState } from 'react';
 
 interface Testimonial {
   id: string;
@@ -93,13 +93,47 @@ export function useMarketingData() {
       setError(null);
 
       const response = await fetch('/api/public/marketing');
-      const result = await response.json();
-
+      
       if (!response.ok) {
-        throw new Error(result.error || 'Erreur lors du chargement des données');
+        throw new Error(`Erreur HTTP ${response.status}`);
       }
 
-      setData(result);
+      const result = await response.json();
+
+      if (!result.success) {
+        // En cas d'erreur, utiliser des données par défaut
+        setData({
+          testimonials: [],
+          stats: [],
+          integrations: [],
+          industries: [],
+        });
+        return;
+      }
+
+      // Normaliser les données de l'API
+      const apiData = result.data || result;
+      
+      // S'assurer que stats est toujours un array
+      let statsArray = [];
+      if (Array.isArray(apiData.stats)) {
+        statsArray = apiData.stats;
+      } else if (apiData.stats && typeof apiData.stats === 'object') {
+        // Convertir l'objet stats en array si nécessaire
+        statsArray = [
+          { value: String(apiData.stats.users || apiData.stats.totalBrands || 10000), label: 'Créateurs actifs', description: 'Créateurs actifs' },
+          { value: String(apiData.stats.designs || apiData.stats.totalProducts || 500000000), label: 'Designs générés', description: 'Designs générés' },
+          { value: '3.2s', label: 'Temps moyen génération', description: 'Temps moyen génération' },
+          { value: '150+', label: 'Pays', description: 'Pays' },
+        ];
+      }
+
+      setData({
+        testimonials: apiData.testimonials || [],
+        stats: statsArray,
+        integrations: apiData.integrations || [],
+        industries: apiData.industries || [],
+      });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement données marketing', {
@@ -107,6 +141,18 @@ export function useMarketingData() {
         message: errorMessage,
       });
       setError(errorMessage);
+      // En cas d'erreur, utiliser des données par défaut
+      setData({
+        testimonials: [],
+        stats: [
+          { value: '10,000+', label: 'Créateurs actifs', description: 'Créateurs actifs' },
+          { value: '500M+', label: 'Designs générés', description: 'Designs générés' },
+          { value: '3.2s', label: 'Temps moyen génération', description: 'Temps moyen génération' },
+          { value: '150+', label: 'Pays', description: 'Pays' },
+        ],
+        integrations: [],
+        industries: [],
+      });
     } finally {
       setLoading(false);
     }
@@ -146,13 +192,42 @@ export function usePricingPlans(options?: { currency?: string; interval?: 'month
 
       const params = new URLSearchParams({ currency, interval });
       const response = await fetch(`/api/public/plans?${params}`);
-      const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement des plans');
+      if (!response.ok) {
+        // En cas d'erreur, utiliser des données par défaut
+        setData({
+          plans: [],
+          currency,
+          interval,
+          stripeEnabled: false,
+        });
+        return;
       }
 
-      setData(result.data);
+      const result = await response.json();
+
+      if (!result.success) {
+        // En cas d'erreur, utiliser des données par défaut
+        setData({
+          plans: [],
+          currency,
+          interval,
+          stripeEnabled: false,
+        });
+        return;
+      }
+
+      const apiData = result.data || result;
+      
+      // Normaliser les plans
+      const plans = Array.isArray(apiData.plans) ? apiData.plans : [];
+
+      setData({
+        plans,
+        currency: apiData.currency || currency,
+        interval: apiData.interval || interval,
+        stripeEnabled: apiData.stripeEnabled || false,
+      });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement plans pricing', {
@@ -162,6 +237,13 @@ export function usePricingPlans(options?: { currency?: string; interval?: 'month
         message: errorMessage,
       });
       setError(errorMessage);
+      // En cas d'erreur, utiliser des données par défaut
+      setData({
+        plans: [],
+        currency,
+        interval,
+        stripeEnabled: false,
+      });
     } finally {
       setLoading(false);
     }

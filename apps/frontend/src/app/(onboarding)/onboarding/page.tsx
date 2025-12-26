@@ -149,10 +149,10 @@ function OnboardingPageContent() {
       // Finish onboarding
       setIsSubmitting(true);
       try {
-        await fetch('/api/auth/onboarding/complete', {
+        await fetch('/api/auth/onboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify({ step: 'complete', data }),
         });
         router.push('/overview?onboarding=complete');
       } catch (error) {

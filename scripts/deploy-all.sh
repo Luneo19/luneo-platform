@@ -140,3 +140,4 @@ info "  - Logs Railway: railway logs"
 info "  - Logs Vercel: vercel logs"
 info "  - Status Railway: railway status"
 info "  - Status Vercel: vercel ls"
+

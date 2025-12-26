@@ -50,7 +50,7 @@ export async function GET(request: Request) {
       };
     }
 
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app'}/api/integrations/shopify/callback`;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/api/integrations/shopify/callback`;
     
     // Scopes Shopify requis
     const scopes = [

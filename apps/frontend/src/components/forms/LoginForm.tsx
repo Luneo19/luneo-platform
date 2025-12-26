@@ -45,7 +45,7 @@ function LoginFormContent() {
     
     try {
       await login(data.email, data.password);
-      router.push('/dashboard');
+      router.push('/overview');
     } catch (err) {
       // L'erreur est gérée par le store
     }

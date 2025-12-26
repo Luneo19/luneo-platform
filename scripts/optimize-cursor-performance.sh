@@ -71,3 +71,4 @@ echo "   2. Vérifier que .gitignore est à jour"
 echo "   3. Considérer de déplacer les fichiers markdown obsolètes vers un dossier archive/"
 echo "   4. Nettoyer régulièrement avec: bash scripts/optimize-cursor-performance.sh"
 
+

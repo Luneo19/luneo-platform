@@ -118,3 +118,4 @@ Si Cursor est toujours lent après ces optimisations:
 - Les fichiers markdown d'audit peuvent être archivés, pas supprimés
 - Le nettoyage Git est optionnel et nécessite une sauvegarde
 
+

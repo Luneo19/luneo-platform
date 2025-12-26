@@ -71,8 +71,8 @@ export function generateOrganizationSchema(): OrganizationSchema {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'Luneo',
-    url: 'https://app.luneo.app',
-    logo: 'https://app.luneo.app/logo.png',
+    url: 'https://luneo.app',
+    logo: 'https://luneo.app/logo.png',
     description: 'Plateforme de personnalisation produits avec éditeur 2D/3D, Virtual Try-On AR, et export print-ready',
     sameAs: [
       'https://twitter.com/luneo_app',
@@ -82,7 +82,7 @@ export function generateOrganizationSchema(): OrganizationSchema {
       '@type': 'ContactPoint',
       contactType: 'Customer Service',
       email: 'contact@luneo.app',
-      url: 'https://app.luneo.app/contact',
+      url: 'https://luneo.app/contact',
     },
   };
 }
@@ -95,12 +95,12 @@ export function generateWebSiteSchema(): WebSiteSchema {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'Luneo Platform',
-    url: 'https://app.luneo.app',
+    url: 'https://luneo.app',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://app.luneo.app/search?q={search_term_string}',
+        urlTemplate: 'https://luneo.app/search?q={search_term_string}',
       },
       'query-input': 'required name=search_term_string',
     },
@@ -120,7 +120,7 @@ export function generateProductSchema(
     '@type': 'SoftwareApplication',
     name,
     description,
-    image: image || 'https://app.luneo.app/og-image.png',
+    image: image || 'https://luneo.app/og-image.png',
     brand: {
       '@type': 'Brand',
       name: 'Luneo',
@@ -171,6 +171,7 @@ export function generateFAQSchema(
     })),
   };
 }
+
 
 
 

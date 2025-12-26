@@ -173,3 +173,4 @@ info "  - Logs Vercel: cd apps/frontend && vercel logs"
 info "  - Health check: curl $BACKEND_URL/health"
 info "  - Status Railway: railway status"
 info "  - Status Vercel: vercel ls"
+

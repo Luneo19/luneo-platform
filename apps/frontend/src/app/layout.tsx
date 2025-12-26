@@ -27,7 +27,7 @@ import { loadI18nConfig } from "@/i18n/server";
 import { loadFeatureFlags } from "@/lib/feature-flags/loadFeatureFlags";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://app.luneo.app'),
+  metadataBase: new URL('https://luneo.app'),
   title: {
     default: 'Luneo - Plateforme de Personnalisation Produits | Design 2D/3D, AR & Print-Ready',
     template: '%s | Luneo Platform',
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app',
     siteName: 'Luneo Platform',
     title: 'Luneo - Plateforme de Personnalisation Produits',
     description: 'Personnalisez vos produits avec notre éditeur 2D/3D, Virtual Try-On AR, et export print-ready professionnel.',

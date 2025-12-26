@@ -105,6 +105,8 @@ function NotificationCenterContent() {
         size="icon"
         className="relative"
         onClick={() => setIsOpen(true)}
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} non lue${unreadCount > 1 ? 's' : ''})` : ''}`}
+        data-testid="notification-center-button"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (

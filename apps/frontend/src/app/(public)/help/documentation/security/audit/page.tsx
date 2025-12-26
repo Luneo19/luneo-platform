@@ -16,7 +16,7 @@ function SecurityAuditPageContent() {
     'Changements de permissions',
   ], []);
 
-  const logExample = useMemo(() => `const logs = await fetch('/api/audit-logs', {
+  const logExample = useMemo(() => `const logs = await fetch('/api/audit/logs', {
   headers: { 'Authorization': 'Bearer TOKEN' },
   params: {
     startDate: '2025-10-01',

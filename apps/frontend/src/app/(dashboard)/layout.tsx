@@ -115,12 +115,12 @@ export default function DashboardLayoutGroup({
           isMobileMenuOpen={isMobileMenuOpen}
         />
         
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            {children}
-          </div>
-        </main>
+              {/* Page Content */}
+              <main id="main-content" className="flex-1 overflow-y-auto">
+                <div className="p-6">
+                  {children}
+                </div>
+              </main>
       </div>
     </div>
   );

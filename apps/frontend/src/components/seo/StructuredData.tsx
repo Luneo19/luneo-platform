@@ -29,8 +29,8 @@ interface OrganizationDataProps {
 
 export function OrganizationStructuredData({
   name = 'Luneo',
-  url = 'https://app.luneo.app',
-  logo = 'https://app.luneo.app/logo.png',
+  url = 'https://luneo.app',
+  logo = 'https://luneo.app/logo.png',
   description = 'Plateforme de personnalisation produits avec éditeur 2D/3D, Virtual Try-On AR, et export print-ready',
   sameAs = [
     'https://twitter.com/luneo_app',
@@ -68,7 +68,7 @@ interface ProductDataProps {
 export function ProductStructuredData({
   name,
   description,
-  image = 'https://app.luneo.app/og-image.png',
+  image = 'https://luneo.app/og-image.png',
   price = '0',
   priceCurrency = 'EUR',
 }: ProductDataProps) {
@@ -132,6 +132,7 @@ export function FAQStructuredData({ questions }: FAQDataProps) {
 
   return <StructuredData data={data} />;
 }
+
 
 
 

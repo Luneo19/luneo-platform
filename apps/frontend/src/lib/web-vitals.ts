@@ -22,13 +22,45 @@ function sendToAnalytics(metric: Metric) {
   // Envoyer à Vercel Analytics (déjà intégré via @vercel/speed-insights)
   // Les données sont automatiquement envoyées
 
-  // Optionnel : Envoyer à votre propre analytics
+  // Envoyer à notre API pour stockage et dashboard
+  if (typeof window !== 'undefined') {
+    fetch('/api/analytics/web-vitals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: metric.name,
+        value: metric.value,
+        rating: metric.rating,
+        delta: metric.delta,
+        id: metric.id,
+        url: window.location.pathname,
+        timestamp: Date.now(),
+      }),
+    }).catch((error) => {
+      // Ne pas bloquer si l'API échoue
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('Failed to send web vital to API', { error, metric });
+      }
+    });
+  }
+
+  // Optionnel : Envoyer à Google Analytics
   if (typeof window !== 'undefined' && (window as any).gtag) {
     (window as any).gtag('event', metric.name, {
       value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
       event_category: 'Web Vitals',
       event_label: metric.id,
       non_interaction: true,
+    });
+  }
+
+  // Envoyer à Sentry pour performance monitoring
+  if (typeof window !== 'undefined' && (window as any).Sentry) {
+    (window as any).Sentry.metrics.distribution('web_vital', metric.value, {
+      tags: {
+        metric_name: metric.name,
+        rating: metric.rating || 'unknown',
+      },
     });
   }
 }

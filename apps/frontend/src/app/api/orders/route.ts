@@ -4,6 +4,7 @@ import { ApiResponseBuilder, getPaginationParams, validateRequest, validateWithZ
 import { logger } from '@/lib/logger';
 import { createOrderSchema } from '@/lib/validation/zod-schemas';
 import { cacheService, cacheKeys, cacheTTL } from '@/lib/cache/redis';
+import { checkRateLimit, getApiRateLimit, getClientIdentifier } from '@/lib/rate-limit';
 
 /**
  * GET /api/orders
@@ -17,6 +18,20 @@ export async function GET(request: NextRequest) {
 
     if (authError || !user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
+    }
+
+    // Rate limiting
+    const identifier = getClientIdentifier(request, user.id);
+    const { success, remaining, reset } = await checkRateLimit(identifier, getApiRateLimit());
+    
+    if (!success) {
+      throw {
+        status: 429,
+        message: `Trop de requêtes. Réessayez après ${reset.toLocaleTimeString()}.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+        remaining: 0,
+        reset: reset.toISOString(),
+      };
     }
 
     // Pagination et filtres
@@ -113,6 +128,20 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
+    }
+
+    // Rate limiting (stricter for mutations)
+    const identifier = getClientIdentifier(request, user.id);
+    const { success, remaining, reset } = await checkRateLimit(identifier, getApiRateLimit());
+    
+    if (!success) {
+      throw {
+        status: 429,
+        message: `Trop de requêtes. Réessayez après ${reset.toLocaleTimeString()}.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+        remaining: 0,
+        reset: reset.toISOString(),
+      };
     }
 
     const body = await request.json();

@@ -29,28 +29,28 @@ import { Logo } from '@/components/Logo';
 const navigationItems = useMemo(() => [
   {
     title: 'Tableau de bord',
-    href: '/dashboard',
+    href: '/overview',
     icon: LayoutDashboard,
     badge: null,
     description: 'Vue d\'ensemble de votre activité'
   },
   {
     title: 'AI Studio',
-    href: '/ai-studio',
+    href: '/dashboard/ai-studio',
     icon: Palette,
     badge: 'Nouveau',
     description: 'Création de designs avec l\'IA'
   },
   {
     title: 'Analytics',
-    href: '/analytics',
+    href: '/dashboard/analytics',
     icon: BarChart3,
     badge: null,
     description: 'Analyses et performances'
   },
   {
     title: 'Produits',
-    href: '/products',
+    href: '/dashboard/products',
     icon: Package,
     badge: '247',
     description: 'Gestion de vos designs'
@@ -60,28 +60,28 @@ const navigationItems = useMemo(() => [
 const businessItems = useMemo(() => [
   {
     title: 'Facturation',
-    href: '/billing',
+    href: '/dashboard/billing',
     icon: CreditCard,
     badge: null,
     description: 'Gestion des abonnements'
   },
   {
     title: 'Équipe',
-    href: '/team',
+    href: '/dashboard/team',
     icon: Users,
     badge: '5',
     description: 'Collaboration et permissions'
   },
   {
     title: 'Intégrations',
-    href: '/integrations',
+    href: '/dashboard/integrations-dashboard',
     icon: Globe,
     badge: null,
     description: 'Connexions externes'
   },
   {
     title: 'Sécurité',
-    href: '/security',
+    href: '/dashboard/security',
     icon: Shield,
     badge: null,
     description: 'Paramètres de sécurité'

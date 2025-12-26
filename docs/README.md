@@ -1,104 +1,115 @@
-# 📚 Documentation Luneo Enterprise
+# 📚 Documentation - Luneo Platform
 
-## 🎯 Vue d'ensemble
-
-Documentation complète pour **Luneo Enterprise**, SaaS B2B de personnalisation de produits avec IA, déjà en production.
+**Index complet de la documentation**
 
 ---
 
-## 📖 Fichiers de Documentation
+## 🎯 Guides Essentiels
 
-### **🚀 Guide de Démarrage**
-- **[CURSOR_START_GUIDE.md](CURSOR_START_GUIDE.md)** - Guide de démarrage complet pour Cursor
+### Pour Commencer
+1. **[SETUP.md](../SETUP.md)** - Guide d'installation et configuration
+2. **[ARCHITECTURE.md](../ARCHITECTURE.md)** - Architecture du projet
+3. **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Guide de contribution
 
-### **📋 Instructions et Plans**
-- **[INSTRUCTIONS.md](INSTRUCTIONS.md)** - Directives complètes pour Cursor
-- **[TODO_CURSOR.md](TODO_CURSOR.md)** - Suivi des tâches et état d'avancement
-
-### **🏗️ Architecture et Roadmap**
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Schéma complet du projet
-- **[ROADMAP.md](ROADMAP.md)** - Jalons et phases de développement
-
-### **🔍 Analyses et Optimisations**
-- **[REDUNDANCIES_ANALYSIS.md](REDUNDANCIES_ANALYSIS.md)** - Analyse des redondances à nettoyer
-- **[OPTIMIZATION_PLAN.md](OPTIMIZATION_PLAN.md)** - Plan d'optimisation des performances
-- **[MISSING_MODULES_PLAN.md](MISSING_MODULES_PLAN.md)** - Plan des modules manquants à créer
-
-### **🛠️ Outils**
-- **[cleanup-script.sh](cleanup-script.sh)** - Script de nettoyage automatique
+### Développement
+- **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** - Guide de développement complet
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Guide de troubleshooting
 
 ---
 
-## 🏗️ État Actuel du Projet
+## 📡 API
 
-### **✅ Production Ready (Phase 1)**
-- **Frontend** : Next.js 15 avec 15+ pages fonctionnelles
-- **Backend** : NestJS avec 10 modules complets
-- **Base de données** : PostgreSQL avec 15+ modèles Prisma
-- **Services externes** : Stripe, OpenAI, Cloudinary, SendGrid
-- **Déploiement** : Vercel + Hetzner + PostgreSQL managed
-
-### **🔄 En Développement (Phase 2)**
-- **Mobile App** : React Native (planifié)
-- **API Publique** : Module backend + documentation (planifié)
-- **Marketplace** : Designs publics + reviews (planifié)
-- **Internationalisation** : Support multi-langues (planifié)
-- **White-label** : Solutions sur mesure (planifié)
+- **[API_DOCUMENTATION.md](./API_DOCUMENTATION.md)** - Documentation complète de l'API
+  - REST API endpoints
+  - tRPC API
+  - Authentification
+  - Exemples de code
 
 ---
 
-## 🚀 Démarrage Rapide
+## 🧪 Tests
 
-### **1. Lire la Documentation**
-```bash
-# Commencer par le guide de démarrage
-cat docs/CURSOR_START_GUIDE.md
+- **[../apps/frontend/tests/TESTING_GUIDE.md](../apps/frontend/tests/TESTING_GUIDE.md)** - Guide de tests
+  - Tests unitaires (Vitest)
+  - Tests E2E (Playwright)
+  - Patterns et best practices
 
-# Puis lire les instructions complètes
-cat docs/INSTRUCTIONS.md
+---
+
+## 🚀 CI/CD
+
+- **[../.github/workflows/CI_CD_GUIDE.md](../.github/workflows/CI_CD_GUIDE.md)** - Guide CI/CD
+  - GitHub Actions
+  - Pipeline de déploiement
+  - Caching et optimisations
+
+---
+
+## 📊 Monitoring
+
+- **[../MONITORING_GUIDE.md](../MONITORING_GUIDE.md)** - Guide monitoring
+  - Sentry configuration
+  - Core Web Vitals
+  - Business Analytics
+
+---
+
+## 📋 Bilans des Phases
+
+- **[../PHASE1_BILAN.md](../PHASE1_BILAN.md)** - Phase 1: Tests
+- **[../PHASE2_BILAN.md](../PHASE2_BILAN.md)** - Phase 2: CI/CD
+- **[../PHASE3_BILAN.md](../PHASE3_BILAN.md)** - Phase 3: Monitoring
+- **[../PHASE4_BILAN.md](../PHASE4_BILAN.md)** - Phase 4: Documentation
+
+---
+
+## 🔍 Navigation Rapide
+
+### Je veux...
+- **Installer le projet** → [SETUP.md](../SETUP.md)
+- **Comprendre l'architecture** → [ARCHITECTURE.md](../ARCHITECTURE.md)
+- **Contribuer** → [CONTRIBUTING.md](../CONTRIBUTING.md)
+- **Développer** → [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)
+- **Utiliser l'API** → [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+- **Résoudre un problème** → [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+- **Écrire des tests** → [TESTING_GUIDE.md](../apps/frontend/tests/TESTING_GUIDE.md)
+- **Configurer CI/CD** → [CI_CD_GUIDE.md](../.github/workflows/CI_CD_GUIDE.md)
+- **Configurer monitoring** → [MONITORING_GUIDE.md](../MONITORING_GUIDE.md)
+
+---
+
+## 📊 Structure de la Documentation
+
+```
+luneo-platform/
+├── README.md                    # Vue d'ensemble
+├── SETUP.md                     # Guide d'installation
+├── ARCHITECTURE.md              # Architecture
+├── CONTRIBUTING.md              # Guide de contribution
+├── docs/
+│   ├── README.md                # Ce fichier (index)
+│   ├── API_DOCUMENTATION.md     # Documentation API
+│   ├── DEVELOPMENT_GUIDE.md     # Guide de développement
+│   └── TROUBLESHOOTING.md       # Guide troubleshooting
+├── apps/frontend/tests/
+│   └── TESTING_GUIDE.md         # Guide de tests
+├── .github/workflows/
+│   └── CI_CD_GUIDE.md           # Guide CI/CD
+├── MONITORING_GUIDE.md          # Guide monitoring
+└── PHASE*_BILAN.md              # Bilans des phases
 ```
 
-### **2. Nettoyer les Redondances**
-```bash
-# Exécuter le script de nettoyage
-./docs/cleanup-script.sh
-```
+---
 
-### **3. Choisir une Tâche**
-- **Priorité HAUTE** : Nettoyage + Optimisation
-- **Priorité MOYENNE** : Modules manquants (Phase 2)
+## 🔗 Ressources Externes
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [React Documentation](https://react.dev)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [tRPC Documentation](https://trpc.io)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 
 ---
 
-## 📊 Métriques Actuelles
-
-- **Pages fonctionnelles** : 15+
-- **API endpoints** : 50+
-- **Modèles database** : 15+
-- **Modules backend** : 10
-- **Composants frontend** : 100+
-- **Tests coverage** : 80%+
-- **Performance Lighthouse** : 90+
-- **Uptime** : 99.9%
-
----
-
-## 🌐 URLs Production
-
-- **Frontend** : https://app.luneo.app
-- **Backend API** : https://api.luneo.app
-- **Documentation** : https://docs.luneo.app
-
----
-
-## 🎯 Objectifs Phase 2
-
-- **Mobile App** : 10,000+ downloads
-- **API Publique** : 100+ intégrations
-- **Marketplace** : 1,000+ designs publics
-- **i18n** : 5+ langues supportées
-- **White-label** : 10+ clients
-
----
-
-**🚀 Luneo Enterprise - Prêt pour l'expansion et l'innovation !**
+**Dernière mise à jour:** Décembre 2024

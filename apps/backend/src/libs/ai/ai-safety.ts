@@ -96,3 +96,4 @@ export function maskPromptForLogs(prompt: string, maxLength: number = 100): stri
   
   return `${prompt.substring(0, start)}...${prompt.substring(end)}`;
 }
+

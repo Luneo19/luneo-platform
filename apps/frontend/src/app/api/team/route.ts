@@ -3,13 +3,14 @@ import { NextResponse } from 'next/server';
 import { ApiResponseBuilder, validateRequest, validateWithZodSchema } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { inviteTeamMemberSchema } from '@/lib/validation/zod-schemas';
+import { checkRateLimit, getApiRateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import crypto from 'crypto';
 
 /**
  * GET /api/team
  * Récupère tous les membres de l'équipe
  */
-export async function GET() {
+export async function GET(request: Request) {
   return ApiResponseBuilder.handle(async () => {
     const supabase = await createClient();
     
@@ -18,6 +19,20 @@ export async function GET() {
     
     if (authError || !user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
+    }
+
+    // Rate limiting
+    const identifier = getClientIdentifier(request, user.id);
+    const { success, remaining, reset } = await checkRateLimit(identifier, getApiRateLimit());
+    
+    if (!success) {
+      throw {
+        status: 429,
+        message: `Trop de requêtes. Réessayez après ${reset.toLocaleTimeString()}.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+        remaining: 0,
+        reset: reset.toISOString(),
+      };
     }
 
     // Récupérer les membres de l'équipe
@@ -97,6 +112,20 @@ export async function POST(request: Request) {
     
     if (authError || !user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
+    }
+
+    // Rate limiting (stricter for mutations)
+    const identifier = getClientIdentifier(request, user.id);
+    const { success, remaining, reset } = await checkRateLimit(identifier, getApiRateLimit());
+    
+    if (!success) {
+      throw {
+        status: 429,
+        message: `Trop de requêtes. Réessayez après ${reset.toLocaleTimeString()}.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+        remaining: 0,
+        reset: reset.toISOString(),
+      };
     }
 
     const body = await request.json();

@@ -3,6 +3,7 @@
 import React, { useState, memo, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Sparkles, Wand2, Image as ImageIcon, Download, RefreshCw, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -222,10 +223,13 @@ function AIDesignHubDemoPageContent() {
                         : 'border-gray-700 hover:border-gray-600'
                     }`}
                   >
-                    <img
+                    <Image
                       src={url}
                       alt={`Design ${i + 1}`}
+                      width={512}
+                      height={512}
                       className="w-full h-48 object-cover"
+                      loading="lazy"
                     />
                     {selectedImage === url && (
                       <div className="absolute top-2 right-2 bg-pink-500 rounded-full p-1">

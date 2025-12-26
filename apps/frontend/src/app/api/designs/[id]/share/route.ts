@@ -84,7 +84,7 @@ export async function POST(request: Request, { params }: DesignShareRouteContext
       throw { status: 500, message: 'Erreur lors de la création du lien de partage' };
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
     const shareUrl = `${appUrl}/share/${shareToken}`;
 
     logger.info('Design share created', {
@@ -152,7 +152,7 @@ export async function GET(request: Request, { params }: DesignShareRouteContext)
       throw { status: 500, message: 'Erreur lors de la récupération des liens de partage' };
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
     const sharesWithUrl = (shares || []).map((share) => ({
       ...share,
       shareUrl: `${appUrl}/share/${share.token}`,

@@ -21,15 +21,27 @@ export const runtime = 'nodejs';
  */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    // Rate limiting basique (en production, utiliser Redis)
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    const rateLimitKey = `contact:${ip}`;
+    // Rate limiting avec Redis
+    const { checkRateLimit, getApiRateLimit, getClientIdentifier } = await import('@/lib/rate-limit');
+    const identifier = getClientIdentifier(request);
+    const { success, remaining, reset } = await checkRateLimit(identifier, getApiRateLimit());
+    
+    if (!success) {
+      throw {
+        status: 429,
+        message: `Trop de requêtes. Réessayez après ${reset.toLocaleTimeString()}.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+        remaining: 0,
+        reset: reset.toISOString(),
+      };
+    }
     
     // Log de la requête
     logger.info('Contact form request', {
-      ip,
+      ip: identifier,
       userAgent: request.headers.get('user-agent'),
       timestamp: new Date().toISOString(),
+      remaining,
     });
 
     let body;

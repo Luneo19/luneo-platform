@@ -59,3 +59,4 @@ Error: Command "pnpm prisma generate && pnpm run build" exited with 1
 ---
 
 **Dernière mise à jour** : 23 décembre 2025
+

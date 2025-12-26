@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     // Échanger le code contre un access token
     const shopifyApiKey = process.env.SHOPIFY_API_KEY;
     const shopifyApiSecret = process.env.SHOPIFY_API_SECRET;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
     if (!shopifyApiKey || !shopifyApiSecret) {
       logger.error('Shopify credentials not configured', new Error('Missing Shopify API credentials'));

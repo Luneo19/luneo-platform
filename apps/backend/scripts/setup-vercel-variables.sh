@@ -42,3 +42,4 @@ echo "✅ Variables Vercel configurées!"
 
 
 
+

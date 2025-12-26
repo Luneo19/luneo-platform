@@ -12,6 +12,20 @@ export const runtime = 'nodejs';
  */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
+    // Rate limiting (stricter for billing operations)
+    const identifier = getClientIdentifier(request);
+    const { success, remaining, reset } = await checkRateLimit(identifier, getApiRateLimit());
+    
+    if (!success) {
+      throw {
+        status: 429,
+        message: `Trop de requêtes. Réessayez après ${reset.toLocaleTimeString()}.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+        remaining: 0,
+        reset: reset.toISOString(),
+      };
+    }
+
     const body = await request.json();
     
     // Validation Zod

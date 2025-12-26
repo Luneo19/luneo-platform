@@ -1,0 +1,99 @@
+/**
+ * Lazy Import Utilities
+ * 
+ * Centralized lazy loading for heavy components and libraries
+ * to improve initial bundle size and page load performance
+ */
+
+import dynamic from 'next/dynamic';
+import React from 'react';
+
+// Loading components
+const Loading3D = () => React.createElement('div', { className: 'flex items-center justify-center p-8' }, 'Chargement du configurateur 3D...');
+const LoadingChart = () => React.createElement('div', { className: 'flex items-center justify-center p-4' }, 'Chargement du graphique...');
+const LoadingAnalytics = () => React.createElement('div', { className: 'flex items-center justify-center p-8' }, 'Chargement des analytics...');
+const LoadingAR = () => React.createElement('div', { className: 'flex items-center justify-center p-8' }, 'Chargement de la vue AR...');
+const LoadingEditor = () => React.createElement('div', { className: 'flex items-center justify-center p-8' }, 'Chargement de l\'éditeur...');
+const LoadingForm = () => React.createElement('div', { className: 'flex items-center justify-center p-4' }, 'Chargement du formulaire...');
+
+/**
+ * Lazy load heavy 3D components
+ */
+export const LazyZoneConfigurator = dynamic(
+  () => import('@/components/dashboard/ZoneConfigurator'),
+  {
+    loading: Loading3D,
+    ssr: false, // 3D components typically don't need SSR
+  }
+);
+
+/**
+ * Lazy load chart components (if using heavy chart libraries)
+ */
+export const LazyChart = dynamic(
+  () => import('@/components/charts/Chart'),
+  {
+    loading: LoadingChart,
+    ssr: false,
+  }
+);
+
+/**
+ * Lazy load heavy analytics components
+ */
+export const LazyAnalyticsDashboard = dynamic(
+  () => import('@/components/dashboard/AnalyticsDashboard'),
+  {
+    loading: LoadingAnalytics,
+    ssr: false,
+  }
+);
+
+/**
+ * Lazy load AR/VR components
+ */
+export const LazyARViewer = dynamic(
+  () => import('@/components/ar/ARViewer'),
+  {
+    loading: LoadingAR,
+    ssr: false,
+  }
+);
+
+/**
+ * Lazy load heavy editor components
+ */
+export const LazyDesignEditor = dynamic(
+  () => import('@/components/editor/DesignEditor'),
+  {
+    loading: LoadingEditor,
+    ssr: true, // Forms can benefit from SSR
+  }
+);
+
+/**
+ * Lazy load heavy form components
+ */
+export const LazyAdvancedForm = dynamic(
+  () => import('@/components/forms/AdvancedForm'),
+  {
+    loading: LoadingForm,
+    ssr: true, // Forms can benefit from SSR
+  }
+);
+
+/**
+ * Helper to create lazy-loaded component with custom loading state
+ */
+export function createLazyComponent<T = any>(
+  importFn: () => Promise<{ default: React.ComponentType<T> }>,
+  options?: {
+    loading?: React.ComponentType | (() => React.ReactElement);
+    ssr?: boolean;
+  }
+) {
+  return dynamic(importFn, {
+    loading: options?.loading || (() => React.createElement('div', null, 'Chargement...')),
+    ssr: options?.ssr ?? true,
+  });
+}

@@ -146,3 +146,4 @@ Le composant utilise un style futuriste et premium :
 - Les animations sont optimisées pour les performances (CSS pur, pas de JavaScript lourd)
 - Le composant est prêt à accueillir votre image dès que vous l'uploadez
 
+

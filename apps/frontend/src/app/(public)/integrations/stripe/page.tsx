@@ -526,10 +526,12 @@ import { loadStripe } from '@stripe/stripe-js';
 const stripePromise = loadStripe('pk_test_...');
 
 // Créer un Payment Intent côté serveur
-const response = await fetch('/api/create-payment-intent', {
+// Note: Utilisez /api/billing/create-checkout-session pour les abonnements
+// ou créez /api/create-payment-intent pour les paiements uniques
+const response = await fetch('/api/billing/create-checkout-session', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ amount: 2000 }),
+  body: JSON.stringify({ planId: 'plan_xxx', billing: 'monthly' }),
 });
 
 const { clientSecret } = await response.json();

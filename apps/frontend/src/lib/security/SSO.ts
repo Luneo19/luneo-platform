@@ -148,8 +148,8 @@ export class SSOService {
     // In production, use a library like saml2-js or xmlbuilder
     const requestId = `_${crypto.randomBytes(16).toString('hex')}`;
     const issueInstant = new Date().toISOString();
-    const entityId = config.entityId || process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
-    const acsUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app'}/api/auth/saml/callback`;
+    const entityId = config.entityId || process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+    const acsUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/api/auth/saml/callback`;
 
     // Simple SAML AuthnRequest (in production, use proper XML library)
     const samlRequest = `<?xml version="1.0" encoding="UTF-8"?>

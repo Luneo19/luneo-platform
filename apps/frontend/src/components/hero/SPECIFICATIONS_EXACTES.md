@@ -201,3 +201,4 @@ Basé sur l'image de référence fournie, ce document détaille les mesures exac
 - Tous les pourcentages et pixels sont des estimations basées sur la description
 - **IMPORTANT**: Besoin de l'image visuelle pour précision millimétrique
 
+

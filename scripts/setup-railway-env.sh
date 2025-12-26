@@ -126,3 +126,4 @@ log "Configuration terminée!"
 echo ""
 info "Vérifiez toutes les variables avec: railway variables"
 info "Déployez avec: railway up"
+

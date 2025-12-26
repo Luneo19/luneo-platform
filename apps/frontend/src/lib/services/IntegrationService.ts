@@ -13,7 +13,7 @@ import { PrismaClient } from '@prisma/client';
 import { verifyShopifyToken, getShopifyProducts } from '@/lib/integrations/shopify-client';
 import { verifyWooCommerceCredentials, getWooCommerceProducts } from '@/lib/integrations/woocommerce-client';
 
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 // ========================================
 // TYPES
@@ -117,7 +117,7 @@ export class IntegrationService {
       }));
 
       // Cache for 5 minutes
-      cacheService.set(cacheKey, integrations, 300);
+      cacheService.set(cacheKey, integrations, { ttl: 300 });
 
       return integrations;
     } catch (error: any) {
@@ -235,7 +235,7 @@ export class IntegrationService {
     try {
       logger.info('Setting up Shopify webhooks', { integrationId, shopDomain });
 
-      const webhookBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+      const webhookBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
       const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET || '';
 
       const webhooks = [
@@ -894,7 +894,7 @@ export class IntegrationService {
             if (webhooksResponse.ok) {
               const webhooksData = await webhooksResponse.json();
               const webhooks = webhooksData.webhooks || [];
-              const webhookBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+              const webhookBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
               // Delete each webhook that belongs to this integration
               for (const webhook of webhooks) {

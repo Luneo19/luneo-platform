@@ -119,8 +119,9 @@ export const CollectionModal = memo(function CollectionModal({
               size="sm"
               onClick={onClose}
               className="h-8 w-8 p-0"
+              aria-label="Fermer la modal"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
 

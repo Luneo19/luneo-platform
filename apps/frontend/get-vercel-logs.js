@@ -147,3 +147,4 @@ function getDeploymentLogs(deploymentId) {
     console.log('   https://vercel.com/luneos-projects/frontend/deployments');
   }
 })();
+

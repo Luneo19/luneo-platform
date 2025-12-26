@@ -5,12 +5,33 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { validateCSRFFromRequest, generateCSRFToken } from '@/lib/csrf';
+import { validateCSRFFromRequest, generateCSRFToken, validateCSRFToken } from '@/lib/csrf';
 import { csrfMiddleware } from '@/lib/csrf-middleware';
+
+// Mock Next.js cookies
+const mockCookies = new Map<string, string>();
+
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(() => ({
+    get: vi.fn((name: string) => {
+      const value = mockCookies.get(name);
+      return value ? { name, value } : undefined;
+    }),
+    set: vi.fn((name: string, value: string) => {
+      mockCookies.set(name, value);
+    }),
+    delete: vi.fn((name: string) => {
+      mockCookies.delete(name);
+    }),
+    has: vi.fn((name: string) => mockCookies.has(name)),
+    getAll: vi.fn(() => Array.from(mockCookies.entries()).map(([name, value]) => ({ name, value }))),
+  })),
+}));
 
 describe('CSRF Protection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCookies.clear();
   });
 
   describe('Token Generation', () => {
@@ -80,6 +101,7 @@ describe('CSRF Protection', () => {
 
     it('should allow POST requests with valid CSRF token', async () => {
       const token = await generateCSRFToken();
+      // Le token est maintenant dans mockCookies grâce au mock
       const request = new NextRequest('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
@@ -88,9 +110,10 @@ describe('CSRF Protection', () => {
         },
       });
 
-      // Mock cookies pour la validation
-      // Note: Ce test nécessite un environnement de test complet
-      // avec gestion des cookies
+      const response = await csrfMiddleware(request);
+      // Si le token est valide, le middleware devrait retourner null (pas d'erreur)
+      // Note: Ce test nécessite que le middleware vérifie correctement le token
+      expect(response).toBeNull();
     });
 
     it('should allow public routes without CSRF token', async () => {
