@@ -25,6 +25,8 @@ const ChangePasswordSchema = z.object({
   newPassword: z.string().min(8),
 });
 
+import { profileExtendedRouter } from './profile-extended';
+
 export const profileRouter = router({
   /**
    * Récupère le profil de l'utilisateur
