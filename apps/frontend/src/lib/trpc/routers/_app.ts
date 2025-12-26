@@ -4,6 +4,7 @@
  */
 
 import { router } from '../server';
+import { analyticsRouter } from './analytics';
 import { customizationRouter } from './customization';
 import { productRouter } from './product';
 import { arRouter } from './ar';
