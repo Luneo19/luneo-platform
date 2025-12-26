@@ -49,6 +49,8 @@ import { TrustSafetyModule } from './modules/trust-safety/trust-safety.module';
 import { UsageBillingModule } from './modules/usage-billing/usage-billing.module';
 import { UsersModule } from './modules/users/users.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { MonitoringModule } from './modules/monitoring/monitoring.module';
+import { SupportModule } from './modules/support/support.module';
 
 // Common
 import { CommonModule } from './common/common.module';
@@ -193,6 +195,8 @@ import { TracingModule } from './libs/tracing/tracing.module';
     ObservabilityModule,
     TrustSafetyModule,
     CreditsModule,
+    MonitoringModule,
+    SupportModule,
 
     // Common utilities
     CommonModule,

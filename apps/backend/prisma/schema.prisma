@@ -134,6 +134,12 @@ model User {
   lastCreditPurchase  DateTime? @map("last_credit_purchase")
   
   creditTransactions CreditTransaction[]
+  
+  // Support & Monitoring
+  tickets            Ticket[]
+  ticketMessages     TicketMessage[] @relation("TicketMessages")
+  assignedTickets     Ticket[] @relation("AssignedTickets")
+  ticketActivities   TicketActivity[] @relation("TicketActivities")
 
   @@index([email])
   @@index([brandId])
@@ -1399,4 +1405,315 @@ model CreditTransaction {
   @@index([packId])
   @@map("CreditTransaction")
 }
+
+// ========================================
+// MONITORING SYSTEM - Enterprise Grade
+// ========================================
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  SUPPRESSED
+}
+
+enum ServiceHealthStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+  UNKNOWN
+}
+
+enum MetricType {
+  COUNTER
+  GAUGE
+  HISTOGRAM
+  SUMMARY
+}
+
+model MonitoringMetric {
+  id            String     @id @default(cuid())
+  service       String     // database, cache, storage, email, payments, api
+  metric        String     // cpu_usage, memory_usage, request_count, error_rate
+  value         Float
+  unit          String?    // ms, %, bytes, count
+  labels        Json?      // Additional metadata (endpoint, method, status, etc.)
+  timestamp     DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+  
+  @@index([service])
+  @@index([metric])
+  @@index([timestamp])
+  @@index([service, metric, timestamp])
+  @@map("MonitoringMetric")
+}
+
+model ServiceHealth {
+  id            String              @id @default(cuid())
+  service       String              @unique // database, cache, storage, email, payments
+  status        ServiceHealthStatus @default(UNKNOWN)
+  latency       Int?                // milliseconds
+  lastCheck     DateTime            @default(now())
+  lastSuccess   DateTime?
+  failureCount  Int                 @default(0)
+  message       String?
+  metadata      Json?               // Additional service info
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  
+  @@index([service])
+  @@index([status])
+  @@index([lastCheck])
+  @@map("ServiceHealth")
+}
+
+model Alert {
+  id            String        @id @default(cuid())
+  severity      AlertSeverity @default(WARNING)
+  status        AlertStatus   @default(ACTIVE)
+  title         String
+  message       String
+  service       String?       // Which service triggered this
+  metric        String?       // Which metric triggered this
+  threshold     Float?        // Threshold that was exceeded
+  currentValue  Float?        // Current value when alert triggered
+  acknowledgedBy String?      // User ID who acknowledged
+  acknowledgedAt DateTime?
+  resolvedBy    String?       // User ID who resolved
+  resolvedAt    DateTime?
+  resolvedReason String?
+  metadata      Json?         // Additional alert data
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([severity])
+  @@index([status])
+  @@index([service])
+  @@index([createdAt])
+  @@index([status, severity])
+  @@map("Alert")
+}
+
+model AlertRule {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  service       String
+  metric        String
+  condition     String        // gt, lt, eq, gte, lte
+  threshold     Float
+  severity      AlertSeverity @default(WARNING)
+  enabled       Boolean       @default(true)
+  cooldown      Int           @default(300) // seconds
+  lastTriggered DateTime?
+  triggerCount  Int           @default(0)
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([service, metric])
+  @@index([enabled])
+  @@map("AlertRule")
+}
+
+model WebVital {
+  id            String   @id @default(cuid())
+  userId        String?
+  sessionId     String?
+  page          String
+  metric        String   // LCP, FID, CLS, TTFB, FCP
+  value         Float
+  rating        String?  // good, needs-improvement, poor
+  device        Json?    // Device info
+  connection    Json?    // Connection info
+  timestamp     DateTime @default(now())
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([metric])
+  @@index([timestamp])
+  @@index([page, metric, timestamp])
+  @@map("WebVital")
+}
+
+// ========================================
+// SUPPORT SYSTEM - Enterprise Grade
+// ========================================
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketCategory {
+  BILLING
+  TECHNICAL
+  ACCOUNT
+  FEATURE_REQUEST
+  BUG
+  INTEGRATION
+  OTHER
+}
+
+enum MessageType {
+  USER
+  AGENT
+  SYSTEM
+  INTERNAL
+}
+
+model Ticket {
+  id            String          @id @default(cuid())
+  ticketNumber  String          @unique // TKT-XXXXX
+  subject       String
+  description   String
+  status        TicketStatus    @default(OPEN)
+  priority      TicketPriority  @default(MEDIUM)
+  category      TicketCategory  @default(TECHNICAL)
+  
+  // Relations
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo    String?        // User ID of assigned agent
+  assignedAt    DateTime?
+  
+  // Metadata
+  tags          String[]
+  metadata      Json?          // Additional ticket data
+  firstResponseAt DateTime?    // Time to first response
+  resolvedAt    DateTime?
+  closedAt      DateTime?
+  
+  // Relations
+  messages      TicketMessage[]
+  attachments   TicketAttachment[]
+  activities    TicketActivity[]
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([assignedTo])
+  @@index([ticketNumber])
+  @@index([createdAt])
+  @@index([status, priority])
+  @@map("Ticket")
+}
+
+model TicketMessage {
+  id            String        @id @default(cuid())
+  ticketId      String
+  ticket        Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  type          MessageType   @default(USER)
+  content       String
+  userId        String?       // User who sent the message
+  user          User?          @relation("TicketMessages", fields: [userId], references: [id], onDelete: SetNull)
+  isInternal    Boolean       @default(false) // Internal note (not visible to user)
+  isRead        Boolean       @default(false)
+  readAt        DateTime?
+  
+  // Relations
+  attachments   TicketAttachment[]
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
+  @@map("TicketMessage")
+}
+
+model TicketAttachment {
+  id            String         @id @default(cuid())
+  ticketId      String?
+  messageId     String?
+  fileName      String
+  fileUrl       String
+  fileSize      Int            // bytes
+  mimeType      String
+  uploadedBy    String         // User ID
+  createdAt     DateTime       @default(now())
+  
+  ticket        Ticket?        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message       TicketMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@index([messageId])
+  @@index([uploadedBy])
+  @@map("TicketAttachment")
+}
+
+model TicketActivity {
+  id            String   @id @default(cuid())
+  ticketId      String
+  ticket        Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  action        String   // created, status_changed, assigned, priority_changed, etc.
+  userId        String?  // User who performed the action
+  user          User?     @relation("TicketActivities", fields: [userId], references: [id], onDelete: SetNull)
+  oldValue      String?
+  newValue      String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("TicketActivity")
+}
+
+model KnowledgeBaseArticle {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  content       String   // Markdown content
+  excerpt       String?
+  category      String
+  tags          String[]
+  isPublished   Boolean  @default(false)
+  isFeatured    Boolean  @default(false)
+  views         Int      @default(0)
+  helpful       Int      @default(0)
+  notHelpful    Int      @default(0)
+  authorId      String   // User ID
+  lastUpdatedBy String?  // User ID
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([category])
+  @@index([isPublished])
+  @@index([isFeatured])
+  @@index([slug])
+  @@index([createdAt])
+  @@map("KnowledgeBaseArticle")
+}
+
+// Add relations to User model
+// Add to User model:
+//   tickets            Ticket[]
+//   ticketMessages     TicketMessage[]
+//   assignedTickets     Ticket[] @relation("AssignedTickets")
 
