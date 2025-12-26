@@ -196,10 +196,10 @@ function HomePageContent() {
   // Fusionner les statistiques dynamiques avec les fallbacks
   const topStats = useMemo(
     () => {
-      if (apiStats.length > 0) {
-        return apiStats.map((stat, i) => ({
-          value: stat.value,
-          label: stat.description || stat.label,
+      if (Array.isArray(apiStats) && apiStats.length > 0) {
+        return apiStats.map((stat: any, i: number) => ({
+          value: stat.value || '',
+          label: stat.description || stat.label || '',
           icon: i === 0 ? <Users className="w-5 h-5" /> : 
                 i === 1 ? <Sparkles className="w-5 h-5" /> : 
                 i === 2 ? <Zap className="w-5 h-5" /> : 
@@ -227,15 +227,15 @@ function HomePageContent() {
       ];
 
       // Si des témoignages de l'API sont disponibles, les utiliser
-      if (apiTestimonials.length > 0) {
-        return apiTestimonials.map((t, i) => ({
-          metric: `${t.rating}★`,
+      if (Array.isArray(apiTestimonials) && apiTestimonials.length > 0) {
+        return apiTestimonials.map((t: any, i: number) => ({
+          metric: `${t.rating || 5}★`,
           label: 'Note client',
-          company: t.company,
-          quote: t.quote,
-          author: t.author,
-          role: t.company,
-          avatar: t.author.split(' ').map(n => n[0]).join(''),
+          company: t.company || t.author_company || 'Client',
+          quote: t.quote || t.content || '',
+          author: t.author || t.author_name || 'Client',
+          role: t.role || t.author_role || t.company || 'Client',
+          avatar: (t.avatar || t.author_avatar || (t.author || t.author_name || 'U').split(' ').map((n: string) => n[0]).join('')) || 'U',
           gradient: gradients[i % gradients.length],
         }));
       }
@@ -386,10 +386,10 @@ function HomePageContent() {
         'from-cyan-500 to-cyan-600',
       ];
 
-      if (apiIndustries.length > 0) {
-        return apiIndustries.map((ind, i) => ({
-          name: ind.name,
-          slug: ind.link.replace('/industries/', ''),
+      if (Array.isArray(apiIndustries) && apiIndustries.length > 0) {
+        return apiIndustries.map((ind: any, i: number) => ({
+          name: ind.name || 'Industrie',
+          slug: (ind.link || ind.slug || '').replace('/industries/', '') || 'general',
           icon: iconMap[ind.icon] || <Box className="w-6 h-6" />,
           color: colorMap[i % colorMap.length],
         }));
@@ -412,8 +412,8 @@ function HomePageContent() {
   // Fusionner les intégrations dynamiques avec les fallbacks
   const integrations: Integration[] = useMemo(
     () => {
-      if (apiIntegrations.length > 0) {
-        return apiIntegrations.map((int) => ({
+      if (Array.isArray(apiIntegrations) && apiIntegrations.length > 0) {
+        return apiIntegrations.map((int: any) => ({
           name: int.name,
           category: int.description,
           logo: `/logos/${int.name.toLowerCase()}.svg`,
@@ -544,7 +544,8 @@ function HomePageContent() {
       {/* HERO SECTION - HeroBannerOptimized */}
       {/* ============================================ */}
       <HeroBannerOptimized
-        title="L'Auteure de Personnalisation 3D"
+        title="Transformez votre e-commerce avec des expériences produits uniques"
+        subtitle="Un outil ✦IA puissant pour les commerçants qui donne vie aux produits en ligne avec la personnalisation en temps réel, la 3D et l'AR, tout en rationalisant les opérations et en boostant l'efficacité."
       >
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 flex-wrap z-50 relative">
           <Link href="/register" className="group">
@@ -1283,36 +1284,9 @@ function HomePageContent() {
 const MemoizedHomePageContent = memo(HomePageContent);
 
 export default function HomePage() {
-  // Structured data for SEO
-  const organizationSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: 'Luneo',
-    url: 'https://app.luneo.app',
-    logo: 'https://app.luneo.app/logo.png',
-    description: 'Plateforme de personnalisation produits avec éditeur 2D/3D, Virtual Try-On AR, et export print-ready',
-  };
-
-  const websiteSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: 'Luneo Platform',
-    url: 'https://app.luneo.app',
-  };
-
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
-      />
-      <ErrorBoundary level="page" componentName="HomePage">
-        <MemoizedHomePageContent />
-      </ErrorBoundary>
-    </>
+    <ErrorBoundary level="page" componentName="HomePage">
+      <MemoizedHomePageContent />
+    </ErrorBoundary>
   );
 }

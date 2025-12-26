@@ -14,6 +14,7 @@
  */
 
 import React, { useMemo } from 'react';
+import Image from 'next/image';
 import styles from './HeroBannerOptimized.module.css';
 
 // Import direct pour performance (les composants sont déjà légers avec SVG/CSS)
@@ -104,9 +105,10 @@ export function HeroBannerOptimized({
 
       {/* Contenu principal */}
       <div className={styles.content}>
-        {/* Titre uniquement */}
+        {/* Titre et sous-titre */}
         <div className={styles.textContent}>
           {title && <h1 className={styles.title}>{title}</h1>}
+          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         </div>
 
         {/* Éléments flottants */}
