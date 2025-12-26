@@ -415,8 +415,46 @@ export const profileRouter = router({
   updatePassword: protectedProcedure
     .input(ChangePasswordSchema)
     .mutation(async ({ ctx, input }) => {
-      // Reuse changePassword logic
-      return profileRouter._def.procedures.changePassword._def.mutation({ ctx, input });
+      const { user } = ctx;
+
+      try {
+        const userData = await db.user.findUnique({
+          where: { id: user.id },
+          select: { passwordHash: true },
+        });
+
+        if (!userData?.passwordHash) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Aucun mot de passe enregistré. Utilisez la réinitialisation de mot de passe.',
+          });
+        }
+
+        const isValid = await bcrypt.compare(input.currentPassword, userData.passwordHash);
+        if (!isValid) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Mot de passe actuel incorrect',
+          });
+        }
+
+        const newPasswordHash = await bcrypt.hash(input.newPassword, 10);
+
+        await db.user.update({
+          where: { id: user.id },
+          data: { passwordHash: newPasswordHash },
+        });
+
+        logger.info('Password updated', { userId: user.id });
+        return { success: true };
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        logger.error('Error updating password', { error, userId: user.id });
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Erreur lors de la mise à jour du mot de passe',
+        });
+      }
     }),
 });
 
