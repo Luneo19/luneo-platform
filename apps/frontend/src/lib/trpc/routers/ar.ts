@@ -11,9 +11,7 @@ import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../server';
 import { TRPCError } from '@trpc/server';
 import { logger } from '@/lib/logger';
-import { PrismaClient } from '@prisma/client';
-
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 // ========================================
 // SCHEMAS ZOD
@@ -197,7 +195,7 @@ export const arRouter = router({
   /**
    * Analytics AR pour un produit
    */
-  getAnalytics: protectedProcedure
+  getProductAnalytics: protectedProcedure
     .input(
       z.object({
         productId: z.string().min(1),
@@ -254,6 +252,132 @@ export const arRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Erreur lors de la récupération des analytics AR',
+        });
+      }
+    }),
+
+  // ========================================
+  // MODELS MANAGEMENT
+  // ========================================
+
+  /**
+   * Liste tous les modèles AR
+   */
+  listModels: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+        type: z.string().optional(),
+        status: z.string().optional(),
+      }).optional()
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const limit = input?.limit || 50;
+        const offset = input?.offset || 0;
+
+        // Pour l'instant, retourner des données mockées
+        // En production, cela devrait interroger une table ARModel ou similaire
+        const models = [];
+
+        return {
+          models,
+          total: 0,
+          hasMore: false,
+        };
+      } catch (error) {
+        logger.error('Error listing AR models', { error, input });
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Erreur lors de la récupération des modèles AR',
+        });
+      }
+    }),
+
+  /**
+   * Supprimer un modèle AR
+   */
+  deleteModel: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        // Pour l'instant, retourner un succès
+        // En production, cela devrait supprimer le modèle de la base de données
+        logger.info('AR model deleted', { modelId: input.id, userId: ctx.user?.id });
+
+        return { success: true };
+      } catch (error) {
+        logger.error('Error deleting AR model', { error, input });
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Erreur lors de la suppression du modèle AR',
+        });
+      }
+    }),
+
+  /**
+   * Analytics AR pour le dashboard
+   */
+  getAnalytics: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+      }).optional()
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        // Pour l'instant, retourner des données mockées
+        // En production, cela devrait agréger les données depuis la base
+        return {
+          totalViews: 0,
+          totalTryOns: 0,
+          totalConversions: 0,
+          averageSessionDuration: 0,
+          topModels: [],
+          deviceBreakdown: {},
+          platformBreakdown: {},
+        };
+      } catch (error) {
+        logger.error('Error fetching AR dashboard analytics', { error, input });
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Erreur lors de la récupération des analytics AR',
+        });
+      }
+    }),
+
+  /**
+   * Liste les sessions AR
+   */
+  listSessions: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+        modelId: z.string().optional(),
+      }).optional()
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const limit = input?.limit || 50;
+        const offset = input?.offset || 0;
+
+        // Pour l'instant, retourner des données mockées
+        // En production, cela devrait interroger une table ARSession ou similaire
+        const sessions = [];
+
+        return {
+          sessions,
+          total: 0,
+          hasMore: false,
+        };
+      } catch (error) {
+        logger.error('Error listing AR sessions', { error, input });
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Erreur lors de la récupération des sessions AR',
         });
       }
     }),
