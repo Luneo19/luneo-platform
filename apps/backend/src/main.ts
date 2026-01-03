@@ -118,6 +118,18 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Register /health endpoint BEFORE setGlobalPrefix to ensure it's not affected by prefix
+  // This is the professional way - same pattern as used in serverless.ts
+  app.getHttpAdapter().get('/health', (req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: configService.get('app.nodeEnv'),
+    });
+  });
+  logger.log('✅ Health endpoint registered at /health (before global prefix)');
+
   // Global prefix - HealthController will be at /api/v1/health (full health check with Terminus)
   app.setGlobalPrefix(configService.get('app.apiPrefix'));
   
@@ -145,18 +157,6 @@ async function bootstrap() {
 
   // Initialize NestJS application (this registers all routes)
   await app.init();
-  
-  // Register /health endpoint using getHttpAdapter() AFTER app.init()
-  // This is the professional way - same pattern as used in serverless.ts and shopify app
-  app.getHttpAdapter().get('/health', (req, res) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: configService.get('app.nodeEnv'),
-    });
-  });
-  logger.log('✅ Health endpoint registered at /health via getHttpAdapter()');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
