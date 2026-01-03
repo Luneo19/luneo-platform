@@ -1,5 +1,6 @@
 [build]
 builder = "NIXPACKS"
+buildCommand = "pnpm install && pnpm build"
 
 [deploy]
 healthcheckPath = "/api/v1/health"
