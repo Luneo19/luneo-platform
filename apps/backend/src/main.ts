@@ -70,6 +70,19 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
     
+    // Health check endpoint (MUST be registered FIRST, before any middleware)
+    // Register directly on Express instance to bypass NestJS routing
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.get('/health', (req, res) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: configService.get('app.nodeEnv'),
+      });
+    });
+    logger.log('Health check endpoint registered at /health');
+    
     // Security middleware - production ready
     app.use(helmet());
     logger.log('Security middleware configured');
@@ -105,18 +118,6 @@ async function bootstrap() {
   app.enableCors({
     origin: configService.get('app.corsOrigin'),
     credentials: true,
-  });
-
-  // Health check endpoint (before global prefix for Railway)
-  // Register directly on Express instance to bypass NestJS routing
-  const expressApp = app.getHttpAdapter().getInstance();
-  expressApp.get('/health', (req, res) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: configService.get('app.nodeEnv'),
-    });
   });
 
   // Global prefix
