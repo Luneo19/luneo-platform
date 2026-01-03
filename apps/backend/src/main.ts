@@ -108,9 +108,9 @@ async function bootstrap() {
   });
 
   // Health check endpoint (before global prefix for Railway)
-  // Must be registered before setGlobalPrefix to avoid prefix
-  const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get('/health', (req, res) => {
+  // Register directly on Express instance to bypass NestJS routing
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.get('/health', (req, res) => {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
