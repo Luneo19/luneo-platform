@@ -71,6 +71,18 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
+    // CRITICAL: Register /health endpoint on Express BEFORE NestJS (same pattern as serverless.ts)
+    // This MUST be done before NestFactory.create() to ensure it's in the route stack first
+    server.get('/health', (_req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    logger.log('✅ Health endpoint registered at /health on Express server (BEFORE NestJS)');
+    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually
