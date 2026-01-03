@@ -13,7 +13,7 @@ try {
   // Continue anyway
 }
 
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
@@ -135,13 +135,16 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - HealthController will be at /api/v1/health (full health check with Terminus)
-  app.setGlobalPrefix(configService.get('app.apiPrefix'));
+  // Global prefix - exclude /health from prefix (official NestJS pattern for Railway)
+  // This is the professional solution recommended by NestJS documentation
+  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
   
   const apiPrefix = configService.get('app.apiPrefix');
   logger.log(`✅ Health endpoints available:`);
-  logger.log(`   - /health (Express endpoint, registered before NestJS, for Railway)`);
-  logger.log(`   - ${apiPrefix}/health (HealthController with Terminus)`);
+  logger.log(`   - /health (excluded from global prefix, for Railway health checks)`);
+  logger.log(`   - ${apiPrefix}/health (full health check with Terminus)`);
 
   // Validation pipe
   app.useGlobalPipes(
@@ -162,18 +165,6 @@ async function bootstrap() {
 
   // Initialize NestJS application (this registers all routes)
   await app.init();
-  
-  // CRITICAL: Register /health endpoint AFTER app.init() but BEFORE listen (same pattern as shopify app)
-  // This uses getHttpAdapter().get() which properly registers the route in Express
-  app.getHttpAdapter().get('/health', (req: Express.Request, res: Express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'production',
-    });
-  });
-  logger.log('✅ Health endpoint registered at /health using getHttpAdapter().get() (AFTER app.init())');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
