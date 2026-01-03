@@ -5,11 +5,15 @@ import { Render2DService } from './services/render-2d.service';
 import { Render3DService } from './services/render-3d.service';
 import { ExportService } from './services/export.service';
 import { CADIntegrationService } from './services/cad-integration.service';
+import { RenderQueueService } from './services/render-queue.service';
+import { RenderStatusService } from './services/render-status.service';
+import { RenderPrintReadyService } from './services/render-print-ready.service';
 import { RenderRequest, RenderOptions } from './interfaces/render.interface';
 import { ValidateCADDto } from './dto/validate-cad.dto';
 import { GenerateLODDto } from './dto/generate-lod.dto';
 import { GenerateMarketingRenderDto } from './dto/generate-marketing-render.dto';
 import { GenerateVariantDto, GenerateVariantsBatchDto } from './dto/generate-variant.dto';
+import { EnqueueRenderDto } from './dto/enqueue-render.dto';
 
 @ApiTags('Render Engine')
 @Controller('render')
@@ -21,6 +25,9 @@ export class RenderController {
     private readonly render3DService: Render3DService,
     private readonly exportService: ExportService,
     private readonly cadIntegration: CADIntegrationService,
+    private readonly renderQueue: RenderQueueService,
+    private readonly renderStatus: RenderStatusService,
+    private readonly renderPrintReady: RenderPrintReadyService,
   ) {}
 
   @Post('2d')
@@ -97,6 +104,67 @@ export class RenderController {
       dto.baseModelUrl,
       dto.materials as any,
     );
+  }
+
+  // NOUVEAU: Endpoints pour queue et status
+  @Post('preview')
+  @ApiOperation({ summary: 'Enqueue un preview render (rapide, 2D)' })
+  @ApiResponse({ status: 201, description: 'Render job enqueued' })
+  async enqueuePreview(
+    @Body() dto: { snapshotId: string; options?: Record<string, any> },
+  ) {
+    return this.renderQueue.enqueuePreview(dto.snapshotId, dto.options);
+  }
+
+  @Post('final')
+  @ApiOperation({ summary: 'Enqueue un final render (haute qualité, 3D)' })
+  @ApiResponse({ status: 201, description: 'Render job enqueued' })
+  async enqueueFinal(
+    @Body() dto: { snapshotId: string; options?: Record<string, any> },
+  ) {
+    return this.renderQueue.enqueueFinal(dto.snapshotId, dto.options);
+  }
+
+  @Post('enqueue')
+  @ApiOperation({ summary: 'Enqueue un render (générique)' })
+  @ApiResponse({ status: 201, description: 'Render job enqueued' })
+  async enqueue(@Body() dto: EnqueueRenderDto) {
+    return this.renderQueue.enqueue(dto);
+  }
+
+  @Get('status/:renderId')
+  @ApiOperation({ summary: 'Récupérer le statut d\'un render' })
+  @ApiResponse({ status: 200, description: 'Render status' })
+  async getStatus(@Param('renderId') renderId: string) {
+    return this.renderStatus.getStatus(renderId);
+  }
+
+  @Get('preview/:renderId')
+  @ApiOperation({ summary: 'Récupérer le preview d\'un render (cacheable)' })
+  @ApiResponse({ status: 200, description: 'Render preview' })
+  async getPreview(@Param('renderId') renderId: string) {
+    return this.renderStatus.getPreview(renderId);
+  }
+
+  @Post('print-ready')
+  @ApiOperation({ summary: 'Génère un rendu print-ready haute résolution (300 DPI)' })
+  @ApiResponse({ status: 200, description: 'Rendu print-ready généré' })
+  async renderPrintReady(@Body() request: {
+    designId: string;
+    productId: string;
+    width: number;
+    height: number;
+    dpi?: number;
+    format?: 'png' | 'jpg' | 'pdf';
+    quality?: number;
+    backgroundColor?: string;
+    bleed?: number;
+  }) {
+    const renderRequest = {
+      id: `print-ready-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      ...request,
+    };
+    return this.renderPrintReady.renderPrintReady(renderRequest);
   }
 }
 

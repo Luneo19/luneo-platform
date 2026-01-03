@@ -3,7 +3,7 @@
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Sparkles,
   Wand2,
@@ -212,7 +212,7 @@ function AIDesignHubPageContent() {
         </div>
 
         <div className="relative max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -257,7 +257,7 @@ function AIDesignHubPageContent() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -372,7 +372,7 @@ function AIDesignHubPageContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -386,7 +386,7 @@ function AIDesignHubPageContent() {
                   <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
                   <p className="text-gray-400">{feature.description}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -397,7 +397,7 @@ function AIDesignHubPageContent() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -412,7 +412,7 @@ function AIDesignHubPageContent() {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
                 <p className="text-gray-400">{benefit.description}</p>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>

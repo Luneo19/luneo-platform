@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   Lock, 
   Eye, 
@@ -168,7 +168,7 @@ function ResetPasswordPageContent() {
   // Success state
   if (success) {
     return (
-      <motion.div
+      <motion
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
@@ -193,14 +193,14 @@ function ResetPasswordPageContent() {
                 Se connecter maintenant
           </Button>
               </Link>
-      </motion.div>
+      </motion>
     );
   }
 
   // Error state (invalid link)
   if (!isInitializing && !isReady && error) {
     return (
-      <motion.div
+      <motion
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
@@ -235,12 +235,12 @@ function ResetPasswordPageContent() {
             </Button>
           </Link>
         </div>
-      </motion.div>
+      </motion>
     );
   }
 
   return (
-    <motion.div
+    <motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -269,14 +269,14 @@ function ResetPasswordPageContent() {
 
       {/* Error Message */}
       {error && isReady && (
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3"
         >
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-red-300">{error}</p>
-        </motion.div>
+        </motion>
             )}
 
       {/* Form */}
@@ -311,7 +311,7 @@ function ResetPasswordPageContent() {
 
           {/* Password Strength Indicator */}
           {password && (
-            <motion.div
+            <motion
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="space-y-2"
@@ -360,7 +360,7 @@ function ResetPasswordPageContent() {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </motion>
           )}
             </div>
 
@@ -418,7 +418,7 @@ function ResetPasswordPageContent() {
               )}
         </Button>
           </form>
-    </motion.div>
+    </motion>
   );
 }
 

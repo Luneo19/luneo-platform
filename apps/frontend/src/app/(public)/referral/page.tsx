@@ -2,7 +2,7 @@
 
 import React, { useState, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Gift, Users, Coins, ArrowRight, Check, Copy, Star, TrendingUp,
   Wallet, Award, Share2, Twitter, Linkedin, Mail, MessageCircle
@@ -90,14 +90,14 @@ function ReferralPageContent() {
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 rounded-full text-purple-300 text-sm mb-6"
           >
             <Gift className="w-4 h-4" />
             Programme de parrainage
-          </motion.div>
+          </motion>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -118,7 +118,7 @@ function ReferralPageContent() {
           </motion.p>
 
           {/* Stats */}
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -131,10 +131,10 @@ function ReferralPageContent() {
                 <p className="text-sm text-gray-400">{stat.label}</p>
               </Card>
             ))}
-          </motion.div>
+          </motion>
 
           {/* CTA Form */}
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -164,7 +164,7 @@ function ReferralPageContent() {
                 </Button>
               </form>
             )}
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -177,7 +177,7 @@ function ReferralPageContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {benefits.map((benefit, index) => (
-              <motion.div
+              <motion
                 key={benefit.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -191,7 +191,7 @@ function ReferralPageContent() {
                   <h3 className="text-lg font-semibold text-white mb-2">{benefit.title}</h3>
                   <p className="text-gray-400 text-sm">{benefit.description}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -209,7 +209,7 @@ function ReferralPageContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {tiers.map((tier, index) => (
-              <motion.div
+              <motion
                 key={tier.label}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -224,7 +224,7 @@ function ReferralPageContent() {
                     {tier.min === 0 ? '0' : tier.min} - {tier.max === Infinity ? '∞' : tier.max} filleuls
                   </p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -293,7 +293,7 @@ function ReferralPageContent() {
               a: 'Oui, le parrainage est cumulable avec toutes les promotions en cours pour vos filleuls.',
             },
           ].map((faq, index) => (
-            <motion.div
+            <motion
               key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -305,7 +305,7 @@ function ReferralPageContent() {
                 <h3 className="text-white font-semibold mb-2">{faq.q}</h3>
                 <p className="text-gray-400">{faq.a}</p>
               </Card>
-            </motion.div>
+            </motion>
           ))}
         </div>
       </section>

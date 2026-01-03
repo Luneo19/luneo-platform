@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ArrowLeft, Box, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Configurator3DDemo } from '@/components/lazy';
@@ -25,7 +25,7 @@ function Configurator3DDemoPageContent() {
             </Button>
           </Link>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -44,7 +44,7 @@ function Configurator3DDemoPageContent() {
             <p className="text-lg text-gray-300 mb-6">
               Configurez produits en 3D avec PBR materials, gravure texte, et export multi-format
             </p>
-          </motion.div>
+          </motion>
         </div>
 
         {/* Demo Component */}

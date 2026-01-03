@@ -6,7 +6,7 @@
  */
 
 import { memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Users } from 'lucide-react';
 import OptimizedImage from '../optimized/OptimizedImage';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -59,7 +59,7 @@ const Avatar = memo(function Avatar({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.div
+          <motion
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
@@ -77,7 +77,7 @@ const Avatar = memo(function Avatar({
             {collaborator.isActive && (
               <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full ring-2 ring-slate-900" />
             )}
-          </motion.div>
+          </motion>
         </TooltipTrigger>
         <TooltipContent>
           <p>{collaborator.name}</p>

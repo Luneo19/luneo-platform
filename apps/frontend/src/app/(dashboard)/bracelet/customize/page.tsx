@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { 
   ArrowLeft, 

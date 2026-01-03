@@ -217,3 +217,10 @@ deploy-production:
 4. ⏳ Documenter le pipeline
 5. ⏳ Bilan Phase 2
 
+
+
+
+
+
+
+

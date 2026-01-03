@@ -304,23 +304,6 @@ export function validateUploadModel(request: unknown): {
 // ========================================
 // EXPORT
 // ========================================
-
-export {
-  ProductCategoryEnum,
-  ProductStatusEnum,
-  productNameValidator,
-  productDescriptionValidator,
-  model3DUrlValidator,
-  imageUrlValidator,
-  priceValidator,
-  currencyValidator,
-  productDimensionsValidator,
-  productMetadataValidator,
-  productValidator,
-  createProductValidator,
-  updateProductValidator,
-  uploadModelValidator,
-  productAnalyticsValidator,
-  productListValidator,
-};
+// Tous les exports sont déjà déclarés avec 'export const' ci-dessus
+// Pas besoin de bloc export supplémentaire
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Cookie, X, Settings, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -138,7 +138,7 @@ function CookieBannerContent() {
 
   return (
     <AnimatePresence>
-      <motion.div
+      <motion
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
@@ -318,11 +318,11 @@ function CookieBannerContent() {
             </div>
           )}
         </Card>
-      </motion.div>
+      </motion>
 
       {/* Overlay */}
       {showBanner && (
-        <motion.div
+        <motion
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

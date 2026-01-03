@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Wifi,
@@ -111,7 +111,7 @@ function RealtimeIndicator({
   return (
     <div className={`fixed ${positionClasses[position]} z-50`}>
       {/* Connection Status */}
-      <motion.div
+      <motion
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="flex flex-col items-end gap-2"
@@ -154,7 +154,7 @@ function RealtimeIndicator({
         {/* Event Feed */}
         <AnimatePresence>
           {showFeed && isExpanded && (
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: -10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
               exit={{ opacity: 0, y: -10, height: 0 }}
@@ -183,7 +183,7 @@ function RealtimeIndicator({
                 ) : (
                   <div className="divide-y divide-slate-800">
                     {events.map((event, index) => (
-                      <motion.div
+                      <motion
                         key={event.id}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -201,7 +201,7 @@ function RealtimeIndicator({
                             </p>
                           </div>
                         </div>
-                      </motion.div>
+                      </motion>
                     ))}
                   </div>
                 )}
@@ -218,22 +218,22 @@ function RealtimeIndicator({
                   </button>
                 </div>
               )}
-            </motion.div>
+            </motion>
           )}
         </AnimatePresence>
-      </motion.div>
+      </motion>
 
       {/* Error Toast */}
       <AnimatePresence>
         {error && (
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             className="mt-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-sm text-red-300"
           >
             {error}
-          </motion.div>
+          </motion>
         )}
       </AnimatePresence>
     </div>

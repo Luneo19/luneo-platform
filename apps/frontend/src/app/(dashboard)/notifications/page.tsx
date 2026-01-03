@@ -43,7 +43,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { useRouter } from 'next/navigation';
 import {
   Bell,
@@ -102,7 +102,6 @@ import {
   RotateCw,
   Play,
   Pause,
-  Stop,
   Save,
   FileText,
   FileSpreadsheet,
@@ -118,8 +117,6 @@ import {
   Receipt,
   ReceiptText,
   ReceiptEuro,
-  ReceiptPound,
-  ReceiptYen,
   ReceiptIndianRupee,
   Wallet,
   WalletCards,
@@ -127,7 +124,6 @@ import {
   Bitcoin,
   Euro,
   DollarSign,
-  Yen,
   PoundSterling,
   Database,
   Server,
@@ -167,15 +163,6 @@ import {
   FolderClock,
   FolderKey,
   FolderLock,
-  FolderUnlock,
-  FolderShield,
-  FolderShield2,
-  FolderShieldCheck,
-  FolderShieldAlert,
-  FolderShieldOff,
-  FolderStar,
-  FolderStar2,
-  FolderStarOff,
   FolderArchive,
   FolderGit,
   FolderGit2,
@@ -202,20 +189,6 @@ import {
   UserRoundMinus,
   UserRoundCog,
   UserRoundSearch,
-  UserRoundPen,
-  UserRoundPencil,
-  UserRoundCode,
-  UserRoundSettings,
-  UserRoundKey,
-  UserRoundLock,
-  UserRoundUnlock,
-  UserRoundShield,
-  UserRoundShieldCheck,
-  UserRoundShieldAlert,
-  UserRoundShieldOff,
-  UserRoundStar,
-  UserRoundStar2,
-  UserRoundStarOff,
   UserRoundHeart,
   UserRoundHeartOff,
   UserRoundBookmark,
@@ -754,7 +727,7 @@ function NotificationsPageContent() {
         ].map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <motion
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -771,7 +744,7 @@ function NotificationsPageContent() {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </motion>
           );
         })}
       </div>
@@ -940,7 +913,7 @@ function NotificationsPageContent() {
                       const isSelected = selectedNotifications.has(notification.id);
 
                       return (
-                        <motion.div
+                        <motion
                           key={notification.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -1054,7 +1027,7 @@ function NotificationsPageContent() {
                               </div>
                             </div>
                           </Card>
-                        </motion.div>
+                        </motion>
                       );
                     })}
                   </div>

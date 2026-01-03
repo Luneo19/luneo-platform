@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Search,
   Settings,
@@ -125,7 +125,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
 
             <AnimatePresence>
               {isProfileOpen && (
-                <motion.div
+                <motion
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -207,7 +207,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                       <span>{t('profileMenu.logout')}</span>
                     </button>
                   </div>
-                </motion.div>
+                </motion>
               )}
             </AnimatePresence>
           </div>

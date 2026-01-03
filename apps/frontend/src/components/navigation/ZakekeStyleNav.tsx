@@ -1,32 +1,32 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronDown, 
-  Zap, 
-  Box, 
-  Palette, 
-  Eye,
-  Sparkles,
-  ShoppingCart,
-  Package,
-  Gift,
-  Gem,
-  Sofa,
-  Wine,
-  Code,
-  BookOpen,
-  Video,
-  Star,
-  Download,
-  Menu,
-  X
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Button } from '@/components/ui/button';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  BookOpen,
+  Box,
+  ChevronDown,
+  Code,
+  Download,
+  Eye,
+  Gem,
+  Gift,
+  Menu,
+  Package,
+  Palette,
+  ShoppingCart,
+  Sofa,
+  Sparkles,
+  Star,
+  Video,
+  Wine,
+  X,
+  Zap
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function ZakekeStyleNavContent() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -528,4 +528,3 @@ export function ZakekeStyleNav() {
     </ErrorBoundary>
   );
 }
-

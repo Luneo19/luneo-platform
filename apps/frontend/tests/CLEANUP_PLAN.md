@@ -140,3 +140,10 @@ diff __tests__/hooks/useBilling.test.tsx src/lib/hooks/__tests__/useBilling.test
 4. **Phase 4:** Migrer les tests E2E de `e2e/` vers `tests/e2e/`
 5. **Phase 5:** Supprimer les dossiers vides `__tests__/` et `e2e/`
 
+
+
+
+
+
+
+

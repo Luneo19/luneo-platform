@@ -2,7 +2,7 @@
 
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
 
 function GalleryPageContent() {
@@ -22,14 +22,14 @@ function GalleryPageContent() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
           {designs.map((design, i) => (
-            <motion.div key={design.id} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} viewport={{ once: true }}>
+            <motion key={design.id} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} viewport={{ once: true }}>
               <Card className="aspect-square bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-all flex items-center justify-center">
                 <div className="text-center">
                   <div className="text-6xl mb-2">{design.emoji}</div>
                   <p className="text-sm text-gray-400">{design.title}</p>
                 </div>
               </Card>
-            </motion.div>
+            </motion>
           ))}
         </div>
       </div>

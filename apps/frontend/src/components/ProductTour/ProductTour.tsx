@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { X, ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -205,7 +205,7 @@ function ProductTourContent({
         <>
           {/* Overlay */}
           {!step.disableOverlay && (
-            <motion.div
+            <motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -224,7 +224,7 @@ function ProductTourContent({
 
           {/* Spotlight border */}
           {spotlightPosition && (
-            <motion.div
+            <motion
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -241,7 +241,7 @@ function ProductTourContent({
 
           {/* Tooltip */}
           {tooltipPosition && (
-            <motion.div
+            <motion
               ref={tooltipRef}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -313,7 +313,7 @@ function ProductTourContent({
               {/* Progress bar */}
               <div className="px-4">
                 <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div
+                  <motion
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
                     className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
@@ -369,7 +369,7 @@ function ProductTourContent({
                   )}
                 </div>
               </div>
-            </motion.div>
+            </motion>
           )}
         </>
       )}

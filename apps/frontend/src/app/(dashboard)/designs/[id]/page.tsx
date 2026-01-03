@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import Image from 'next/image';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {

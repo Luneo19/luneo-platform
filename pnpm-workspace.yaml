@@ -3,6 +3,7 @@ packages:
   - 'apps/backend'
   - 'packages/billing-plans'
   - 'packages/shared'
+  - 'packages/widget'
   # Temporairement exclus - problèmes de dépendances
   # - 'apps/mobile'
   # - 'apps/ar-viewer'

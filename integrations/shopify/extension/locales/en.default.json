@@ -1,0 +1,11 @@
+{
+  "customizer": {
+    "button_text": "Customize this product",
+    "modal_title": "Customize Your Product",
+    "add_to_cart": "Add to cart",
+    "saving": "Saving...",
+    "error": "An error occurred. Please try again.",
+    "success": "Product added to cart with customization!"
+  }
+}
+

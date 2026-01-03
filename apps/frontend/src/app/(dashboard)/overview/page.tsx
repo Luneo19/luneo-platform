@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   TrendingUp,
@@ -54,7 +54,7 @@ const MiniBarChart = ({ data, color }: { data: number[], color: string }) => {
   return (
     <div className="flex items-end gap-0.5 h-8">
       {data.map((value, i) => (
-        <motion.div
+        <motion
           key={i}
           initial={{ height: 0 }}
           animate={{ height: `${(value / max) * 100}%` }}
@@ -352,7 +352,7 @@ export default function DashboardPage() {
 
       {/* Error Banner */}
       {error && (
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-4"
@@ -370,7 +370,7 @@ export default function DashboardPage() {
               </Button>
             </div>
           </Card>
-        </motion.div>
+        </motion>
       )}
 
       {/* Stats Grid */}
@@ -385,7 +385,7 @@ export default function DashboardPage() {
           const colors = colorMap[stat.title] || { gradient: 'from-slate-500 to-slate-600', bg: 'bg-slate-500/10', chart: 'bg-slate-500' };
 
           return (
-            <motion.div
+            <motion
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                   color={colors.chart}
                 />
               </Card>
-            </motion.div>
+            </motion>
           );
         })}
       </div>
@@ -447,7 +447,7 @@ export default function DashboardPage() {
             
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {quickActions.map((action, index) => (
-                <motion.div
+                <motion
                   key={action.id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -471,7 +471,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </Link>
-                </motion.div>
+                </motion>
               ))}
             </div>
           </Card>
@@ -509,7 +509,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   recentActivity.slice(0, 5).map((activity, index) => (
-                    <motion.div
+                    <motion
                       key={activity.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -538,7 +538,7 @@ export default function DashboardPage() {
                       <span className="text-xs text-slate-600 flex-shrink-0">
                         {new Date(activity.time).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                       </span>
-                    </motion.div>
+                    </motion>
                   ))
                 )}
               </div>
@@ -570,7 +570,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   topDesigns.slice(0, 4).map((design, index) => (
-                    <motion.div
+                    <motion
                       key={design.id}
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -608,7 +608,7 @@ export default function DashboardPage() {
                           </span>
                         </div>
                       </div>
-                    </motion.div>
+                    </motion>
                   ))
                 )}
               </div>
@@ -630,7 +630,7 @@ export default function DashboardPage() {
             
             <div className="space-y-4">
               {goals.map((goal, index) => (
-                <motion.div
+                <motion
                   key={goal.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -647,7 +647,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium text-white">{goal.label}</p>
                     <p className="text-xs text-slate-500">{goal.current}/{goal.target} objectif</p>
                   </div>
-                </motion.div>
+                </motion>
               ))}
             </div>
           </Card>
@@ -677,7 +677,7 @@ export default function DashboardPage() {
             <AnimatePresence>
               <div className="space-y-2">
                 {(showAllNotifications ? notifications : notifications.slice(0, 3)).map((notification, index) => (
-                  <motion.div
+                  <motion
                     key={notification.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -699,7 +699,7 @@ export default function DashboardPage() {
                       </div>
                       <span className="text-xs text-slate-600 flex-shrink-0">{notification.time}</span>
                     </div>
-                  </motion.div>
+                  </motion>
                 ))}
               </div>
             </AnimatePresence>

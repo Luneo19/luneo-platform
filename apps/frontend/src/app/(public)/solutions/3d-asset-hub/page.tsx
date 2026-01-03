@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Database,
   Upload,
@@ -170,7 +170,7 @@ export default function AssetHubPage() {
         {/* Animated Background */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]" />
-          <motion.div
+          <motion
             className="absolute inset-0"
             animate={{
               background: [
@@ -185,7 +185,7 @@ export default function AssetHubPage() {
         </div>
 
         <div className="relative max-w-7xl mx-auto text-center">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -235,7 +235,7 @@ export default function AssetHubPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto">
               {stats.map((stat, index) => (
-                <motion.div
+                <motion
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -246,17 +246,17 @@ export default function AssetHubPage() {
                     {stat.value}
                   </div>
                   <div className="text-sm text-gray-400">{stat.label}</div>
-                </motion.div>
+                </motion>
               ))}
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
       {/* Demo Section - Interactive */}
       <section id="demo-section" className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -268,7 +268,7 @@ export default function AssetHubPage() {
             <p className="text-xl text-gray-300">
               Uploadez un modèle 3D et voyez la magie opérer en temps réel
             </p>
-          </motion.div>
+          </motion>
 
           {/* Interactive Demo Panel */}
           <Card className="bg-gray-900/50 border-blue-500/20 p-8 backdrop-blur-sm">
@@ -295,7 +295,7 @@ export default function AssetHubPage() {
                   {uploadProgress > 0 && (
                     <div className="mt-4">
                       <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                        <motion.div
+                        <motion
                           className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${uploadProgress}%` }}
@@ -407,7 +407,7 @@ export default function AssetHubPage() {
       {/* Features Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -419,11 +419,11 @@ export default function AssetHubPage() {
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
               Pipeline complet de gestion d&apos;assets 3D, de l&apos;upload au déploiement
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -441,7 +441,7 @@ export default function AssetHubPage() {
                     {feature.description}
                   </p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -450,7 +450,7 @@ export default function AssetHubPage() {
       {/* Deploy Targets Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -462,11 +462,11 @@ export default function AssetHubPage() {
             <p className="text-xl text-gray-300">
               Exportez vos assets 3D optimisés vers toutes les plateformes
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
             {deployTargets.map((target, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -481,7 +481,7 @@ export default function AssetHubPage() {
                     {target.name}
                   </p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
 
@@ -533,7 +533,7 @@ export default function AssetHubPage() {
       {/* Technical Specs Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -545,7 +545,7 @@ export default function AssetHubPage() {
             <p className="text-xl text-gray-300">
               Performance et scalabilité enterprise-grade
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             <Card className="bg-gray-900/50 border-blue-500/20 p-6">
@@ -623,7 +623,7 @@ export default function AssetHubPage() {
       {/* Use Cases Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -635,7 +635,7 @@ export default function AssetHubPage() {
             <p className="text-xl text-gray-300">
               Solution complète pour tous vos besoins 3D
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="bg-gray-900/50 border-blue-500/20 p-8">
@@ -764,7 +764,7 @@ export default function AssetHubPage() {
       {/* Pricing Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -776,11 +776,11 @@ export default function AssetHubPage() {
             <p className="text-xl text-gray-300">
               Choisissez le plan adapté à vos besoins
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {pricingPlans.map((plan, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -845,7 +845,7 @@ export default function AssetHubPage() {
                     </Button>
                   </Link>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -854,7 +854,7 @@ export default function AssetHubPage() {
       {/* Comparison Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -866,7 +866,7 @@ export default function AssetHubPage() {
             <p className="text-xl text-gray-300">
               Comparaison avec les solutions traditionnelles
             </p>
-          </motion.div>
+          </motion>
 
           <Card className="bg-gray-900/50 border-blue-500/20 p-8 overflow-x-auto">
             <table className="w-full text-left">
@@ -936,7 +936,7 @@ export default function AssetHubPage() {
       {/* Integration Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -948,7 +948,7 @@ export default function AssetHubPage() {
             <p className="text-xl text-gray-300">
               API REST complète + SDK JavaScript + Webhooks
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card className="bg-gray-900/50 border-blue-500/20 p-8">
@@ -1020,7 +1020,7 @@ await fetch('/api/assets/convert', {
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-black via-blue-900/20 to-black">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1053,14 +1053,14 @@ await fetch('/api/assets/convert', {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -1069,7 +1069,7 @@ await fetch('/api/assets/convert', {
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Questions Fréquentes
             </h2>
-          </motion.div>
+          </motion>
 
           <div className="space-y-4">
             <Card className="bg-gray-900/50 border-gray-700 p-6">

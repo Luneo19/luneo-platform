@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Mail, CheckCircle, Loader2, AlertCircle, ArrowLeft, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -80,20 +80,20 @@ function UnsubscribePageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4 py-12">
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full bg-gray-800/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-700"
       >
         {isUnsubscribed ? (
           <div className="text-center">
-            <motion.div
+            <motion
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6"
             >
               <CheckCircle className="w-10 h-10 text-green-400" />
-            </motion.div>
+            </motion>
             <h1 className="text-2xl font-bold text-white mb-4">Désabonnement confirmé</h1>
             <p className="text-gray-400 mb-6">
               Vous ne recevrez plus nos emails à l'adresse <span className="text-white">{email}</span>.
@@ -187,7 +187,7 @@ function UnsubscribePageContent() {
             </div>
           </>
         )}
-      </motion.div>
+      </motion>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import React, { useState, memo, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ArrowLeft, Sparkles, Wand2, Image as ImageIcon, Download, RefreshCw, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -77,7 +77,7 @@ function AIDesignHubDemoPageContent() {
             </Button>
           </Link>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -96,7 +96,7 @@ function AIDesignHubDemoPageContent() {
             <p className="text-lg text-gray-300 mb-6">
               Générez des designs uniques avec DALL-E 3 en quelques secondes
             </p>
-          </motion.div>
+          </motion>
         </div>
 
         {/* Demo Interface */}

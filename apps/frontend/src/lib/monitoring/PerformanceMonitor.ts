@@ -236,7 +236,14 @@ export class PerformanceMonitorService {
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const start = performance.now();
-      const url = typeof args[0] === 'string' ? args[0] : args[0].url;
+      const firstArg = args[0];
+      const url = typeof firstArg === 'string' 
+        ? firstArg 
+        : firstArg instanceof URL 
+        ? firstArg.toString()
+        : firstArg instanceof Request
+        ? firstArg.url
+        : String(firstArg);
       const method = args[1]?.method || 'GET';
 
       try {

@@ -30,9 +30,13 @@ fi
 echo -e "${GREEN}✅ Railway CLI configuré${NC}"
 echo ""
 
+# Obtenir le répertoire racine du projet
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+BACKEND_DIR="$PROJECT_ROOT/apps/backend"
+
 # Configuration automatique via railway.toml
 echo "📝 Configuration du health check dans railway.toml..."
-cd "$(dirname "$0")/../apps/backend"
+cd "$BACKEND_DIR"
 
 # Mettre à jour railway.toml pour utiliser /api/v1/health
 cat > railway.toml << 'EOF'
@@ -58,7 +62,7 @@ echo ""
 
 # Commit et push automatique
 echo "📤 Commit et push automatique..."
-cd "$(dirname "$0")/.."
+cd "$PROJECT_ROOT"
 
 git add apps/backend/railway.toml
 git commit -m "chore: Configure Railway health check to use /api/v1/health" || echo "Aucun changement à commiter"
@@ -69,7 +73,7 @@ echo ""
 
 # Déployer automatiquement
 echo "🚀 Déploiement automatique sur Railway..."
-cd apps/backend
+cd "$BACKEND_DIR"
 railway up --detach
 
 echo ""

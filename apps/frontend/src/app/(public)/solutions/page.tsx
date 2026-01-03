@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Palette, Box, Camera, Sparkles, Store, Megaphone, Share2, Briefcase, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -28,7 +28,7 @@ function SolutionsHubPageContent() {
         </div>
 
         <div className="relative max-w-7xl mx-auto text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
               Nos Solutions
               <br />
@@ -39,7 +39,7 @@ function SolutionsHubPageContent() {
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
               9 solutions professionnelles pour transformer votre business e-commerce
             </p>
-          </motion.div>
+          </motion>
         </div>
       </section>
 

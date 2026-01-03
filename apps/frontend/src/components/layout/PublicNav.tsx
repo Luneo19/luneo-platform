@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { Menu, X, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Logo } from '@/components/Logo';
 
@@ -85,7 +85,7 @@ function PublicNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'product' && (
-                  <motion.div
+                  <motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -102,7 +102,7 @@ function PublicNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion.div>
+                  </motion>
                 )}
               </AnimatePresence>
             </div>
@@ -124,7 +124,7 @@ function PublicNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'solutions' && (
-                  <motion.div
+                  <motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -141,7 +141,7 @@ function PublicNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion.div>
+                  </motion>
                 )}
               </AnimatePresence>
             </div>
@@ -163,7 +163,7 @@ function PublicNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'resources' && (
-                  <motion.div
+                  <motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -180,7 +180,7 @@ function PublicNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion.div>
+                  </motion>
                 )}
               </AnimatePresence>
             </div>
@@ -202,7 +202,7 @@ function PublicNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'pricing' && (
-                  <motion.div
+                  <motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -219,7 +219,7 @@ function PublicNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion.div>
+                  </motion>
                 )}
               </AnimatePresence>
             </div>
@@ -241,7 +241,7 @@ function PublicNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'company' && (
-                  <motion.div
+                  <motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -258,7 +258,7 @@ function PublicNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion.div>
+                  </motion>
                 )}
               </AnimatePresence>
             </div>
@@ -298,7 +298,7 @@ function PublicNavContent() {
         {/* Mobile Navigation */}
         <AnimatePresence>
           {isMenuOpen && (
-            <motion.div
+            <motion
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -342,7 +342,7 @@ function PublicNavContent() {
                   Commencer à construire
                 </Link>
               </div>
-            </motion.div>
+            </motion>
           )}
         </AnimatePresence>
       </div>

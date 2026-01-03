@@ -3,7 +3,7 @@
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
     CheckCircle,
     Clock,
@@ -103,7 +103,7 @@ function VersionTimelineContent({
         const isLast = index === versions.length - 1;
 
         return (
-          <motion.div
+          <motion
             key={version.id}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -240,7 +240,7 @@ function VersionTimelineContent({
                 </div>
               </div>
             </Card>
-          </motion.div>
+          </motion>
         );
       })}
     </div>

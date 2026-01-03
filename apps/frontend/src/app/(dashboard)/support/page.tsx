@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   TicketIcon, Plus, Search, Filter, Clock, CheckCircle, AlertCircle,
   MessageSquare, ChevronRight, Loader2, Send, Paperclip, X
@@ -196,7 +196,7 @@ function SupportPageContent() {
       ) : (
         <div className="space-y-3">
           {filteredTickets.map((ticket, index) => (
-            <motion.div
+            <motion
               key={ticket.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -227,7 +227,7 @@ function SupportPageContent() {
                   <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
                 </div>
               </Card>
-            </motion.div>
+            </motion>
           ))}
         </div>
       )}
@@ -235,7 +235,7 @@ function SupportPageContent() {
       {/* New Ticket Modal */}
       {showNewTicket && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <motion.div
+          <motion
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-lg bg-gray-800 rounded-2xl border border-gray-700 p-6"
@@ -327,7 +327,7 @@ function SupportPageContent() {
                 </Button>
               </div>
             </form>
-          </motion.div>
+          </motion>
         </div>
       )}
     </div>

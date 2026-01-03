@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Sparkles,
@@ -302,7 +302,7 @@ function AIStudioPageContent() {
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6">
       {/* Header */}
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
@@ -331,7 +331,7 @@ function AIStudioPageContent() {
             </Card>
           )}
         </div>
-      </motion.div>
+      </motion>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tool Selection */}
@@ -383,7 +383,7 @@ function AIStudioPageContent() {
 
           {/* Tool Settings */}
           {selectedTool && selectedTool !== 'text_to_design' && (
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -463,7 +463,7 @@ function AIStudioPageContent() {
                   )}
                 </CardContent>
               </Card>
-            </motion.div>
+            </motion>
           )}
         </div>
 
@@ -527,7 +527,7 @@ function AIStudioPageContent() {
                   </div>
 
                   {result?.output?.imageUrl && (
-                    <motion.div
+                    <motion
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="mt-6"
@@ -553,7 +553,7 @@ function AIStudioPageContent() {
                           Télécharger
                         </Button>
                       </div>
-                    </motion.div>
+                    </motion>
                   )}
                 </div>
               ) : (
@@ -631,7 +631,7 @@ function AIStudioPageContent() {
 
                   {/* Color Extraction Result */}
                   {selectedTool === 'color_extraction' && extractedColors.length > 0 && (
-                    <motion.div
+                    <motion
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-4"
@@ -639,7 +639,7 @@ function AIStudioPageContent() {
                       <Label>Palette extraite</Label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {extractedColors.map((color, index) => (
-                          <motion.div
+                          <motion
                             key={color.hex}
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -660,15 +660,15 @@ function AIStudioPageContent() {
                                 {color.percentage}%
                               </Badge>
                             </div>
-                          </motion.div>
+                          </motion>
                         ))}
                       </div>
-                    </motion.div>
+                    </motion>
                   )}
 
                   {/* Other Results */}
                   {result?.output?.imageUrl && selectedTool !== 'color_extraction' && (
-                    <motion.div
+                    <motion
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-4"
@@ -705,7 +705,7 @@ function AIStudioPageContent() {
                           </Badge>
                         </div>
                       </div>
-                    </motion.div>
+                    </motion>
                   )}
                 </div>
               )}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Play, CheckCircle, XCircle, Loader2, Code, Copy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

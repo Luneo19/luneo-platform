@@ -22,6 +22,8 @@ COPY apps/backend ./apps/backend
 
 # Builder l'application backend
 WORKDIR /app/apps/backend
+# Générer Prisma Client avant le build
+RUN pnpm prisma generate
 RUN pnpm build
 
 # Exposer le port (Railway fournira PORT via variable d'environnement)

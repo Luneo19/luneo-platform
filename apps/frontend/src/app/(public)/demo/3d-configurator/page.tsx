@@ -1,7 +1,7 @@
 /** * Démo Interactive - 3D Configurator Pro * Materials PBR + Text 3D + Print Export */ 'use client';
 import React, { useState, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import Link from 'next/link';
 import {
   Palette,
@@ -26,7 +26,7 @@ function Configurator3DDemoPageContent() {
         {' '}
         <div className="relative z-10 mx-auto max-w-7xl px-4 text-center min-[480px]:px-4 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 md:px-3 md:px-4 md:px-4 md:px-4 md:px-8 md:px-8 md:px-8 lg:px-4 lg:px-4">
           {' '}
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -77,7 +77,7 @@ function Configurator3DDemoPageContent() {
                 </div>
               ))}{' '}
             </div>{' '}
-          </motion.div>{' '}
+          </motion>{' '}
         </div>{' '}
       </section>{' '}
       {/* Tabs */}{' '}

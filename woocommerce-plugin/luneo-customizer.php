@@ -44,6 +44,7 @@ class Luneo_Product_Customizer {
 
     public function register_settings() {
         register_setting('luneo_customizer_settings', 'luneo_api_key');
+        register_setting('luneo_customizer_settings', 'luneo_widget_url');
         register_setting('luneo_customizer_settings', 'luneo_button_text');
         register_setting('luneo_customizer_settings', 'luneo_button_style');
         register_setting('luneo_customizer_settings', 'luneo_enabled_products');
@@ -63,6 +64,15 @@ class Luneo_Product_Customizer {
                                    value="<?php echo esc_attr(get_option('luneo_api_key')); ?>" 
                                    class="regular-text" />
                             <p class="description">Get your API key from <a href="https://app.luneo.app/settings" target="_blank">Luneo Dashboard</a></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="luneo_widget_url">Widget URL</label></th>
+                        <td>
+                            <input type="url" id="luneo_widget_url" name="luneo_widget_url" 
+                                   value="<?php echo esc_attr(get_option('luneo_widget_url', 'https://cdn.luneo.app/widget/v1/luneo-widget.iife.js')); ?>" 
+                                   class="regular-text" />
+                            <p class="description">URL du widget Luneo (par défaut: CDN)</p>
                         </td>
                     </tr>
                     <tr>
@@ -103,8 +113,17 @@ class Luneo_Product_Customizer {
             wp_localize_script('luneo-widget', 'luneoConfig', [
                 'apiKey' => get_option('luneo_api_key'),
                 'appUrl' => $this->app_url,
+                'widgetUrl' => get_option('luneo_widget_url', 'https://cdn.luneo.app/widget/v1/luneo-widget.iife.js'),
                 'buttonText' => get_option('luneo_button_text', 'Customize'),
                 'buttonStyle' => get_option('luneo_button_style', 'primary'),
+                'locale' => get_locale(),
+                'i18n' => [
+                    'customize' => __('Customize', 'luneo-customizer'),
+                    'addToCart' => __('Add to cart', 'luneo-customizer'),
+                    'loading' => __('Loading...', 'luneo-customizer'),
+                    'error' => __('An error occurred. Please try again.', 'luneo-customizer'),
+                    'success' => __('Product added to cart with customization!', 'luneo-customizer'),
+                ],
             ]);
         }
     }
@@ -118,24 +137,30 @@ class Luneo_Product_Customizer {
         if (!$api_key) return;
 
         $product_id = $product->get_id();
+        $variant_id = $product->get_default_attributes() ? '' : $product->get_id();
         $button_text = get_option('luneo_button_text', 'Customize');
         $button_style = get_option('luneo_button_style', 'primary');
 
         ?>
-        <button type="button" 
-                class="luneo-customize-btn button alt <?php echo esc_attr($button_style); ?>"
-                data-product-id="<?php echo esc_attr($product_id); ?>"
-                data-luneo-customize>
-            <?php echo esc_html($button_text); ?>
-        </button>
+        <div class="luneo-customizer-wrapper" style="margin: 15px 0;">
+            <button type="button" 
+                    class="luneo-customize-btn button alt <?php echo esc_attr($button_style); ?>"
+                    data-product-id="<?php echo esc_attr($product_id); ?>"
+                    data-variant-id="<?php echo esc_attr($variant_id); ?>"
+                    data-luneo-customize
+                    style="width: 100%; padding: 15px; font-size: 16px; font-weight: 600;">
+                <?php echo esc_html($button_text); ?>
+            </button>
+        </div>
         <?php
     }
 
     public function add_custom_design_to_cart($cart_item_data, $product_id) {
         if (isset($_POST['luneo_design_id'])) {
             $cart_item_data['luneo_design_id'] = sanitize_text_field($_POST['luneo_design_id']);
-            $cart_item_data['luneo_preview_url'] = esc_url_raw($_POST['luneo_preview_url']);
-            $cart_item_data['luneo_print_ready_url'] = esc_url_raw($_POST['luneo_print_ready_url']);
+            $cart_item_data['luneo_preview_url'] = esc_url_raw($_POST['luneo_preview_url'] ?? '');
+            $cart_item_data['luneo_print_ready_url'] = esc_url_raw($_POST['luneo_print_ready_url'] ?? '');
+            $cart_item_data['luneo_design_data'] = sanitize_textarea_field($_POST['luneo_design_data'] ?? '');
             $cart_item_data['unique_key'] = md5(microtime() . rand());
         }
         return $cart_item_data;

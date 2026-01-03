@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import NextImage from 'next/image';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -325,7 +325,7 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               <AnimatePresence>
                 {filteredCliparts.map((clipart, i) => (
-                  <motion.div
+                  <motion
                     key={clipart.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -389,7 +389,7 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
                         )}
                       </div>
                     </Card>
-                  </motion.div>
+                  </motion>
                 ))}
               </AnimatePresence>
             </div>

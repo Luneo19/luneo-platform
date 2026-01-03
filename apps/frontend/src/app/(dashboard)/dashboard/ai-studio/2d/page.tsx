@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -240,7 +240,7 @@ export default function AIStudio2DPage() {
                   </Card>
                 )}
                 {generatedImages.map((image, index) => (
-                  <motion.div
+                  <motion
                     key={index}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -273,7 +273,7 @@ export default function AIStudio2DPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  </motion.div>
+                  </motion>
                 ))}
               </div>
             )}

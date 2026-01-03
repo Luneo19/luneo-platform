@@ -8,7 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { demoButtonClasses, demoCardClasses, demoGridClasses, demoSectionClasses, demoTextClasses } from '@/lib/utils/demo-classes';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
     ArrowRight,
     CheckCircle,
@@ -48,7 +48,7 @@ function ARExportDemoPageContent() {
         </div>{' '}
         <div className="relative z-10 mx-auto max-w-7xl px-4 text-center sm:px-6 md:px-8 lg:px-12">
           {' '}
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -95,7 +95,7 @@ function ARExportDemoPageContent() {
                 </span>{' '}
               </div>{' '}
             </div>{' '}
-          </motion.div>{' '}
+          </motion>{' '}
         </div>{' '}
       </section>{' '}
       {/* Tabs */}{' '}

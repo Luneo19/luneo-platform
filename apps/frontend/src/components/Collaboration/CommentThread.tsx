@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   MessageSquare,
@@ -211,7 +211,7 @@ function CommentThread({
               </Button>
               <AnimatePresence>
                 {showReactions === comment.id && (
-                  <motion.div
+                  <motion
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
@@ -229,7 +229,7 @@ function CommentThread({
                         {emoji}
                       </button>
                     ))}
-                  </motion.div>
+                  </motion>
                 )}
               </AnimatePresence>
             </div>
@@ -260,7 +260,7 @@ function CommentThread({
   };
 
   return (
-    <motion.div
+    <motion
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -336,7 +336,7 @@ function CommentThread({
           </Button>
         </div>
       </div>
-    </motion.div>
+    </motion>
   );
 }
 

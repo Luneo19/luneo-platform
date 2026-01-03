@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Camera,
   Video,
@@ -620,7 +620,7 @@ function TryOnDemo({
           {!isActive && !isLoading ? (
             // Camera Off State
             <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-              <motion.div
+              <motion
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5 }}
@@ -647,17 +647,17 @@ function TryOnDemo({
                   <Play className="mr-2 w-5 h-5" />
                   Activer la Caméra
                 </Button>
-              </motion.div>
+              </motion>
 
               {error && (
-                <motion.div
+                <motion
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3 max-w-md"
                 >
                   <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-red-400">{error}</p>
-                </motion.div>
+                </motion>
               )}
             </div>
           ) : isLoading ? (
@@ -697,7 +697,7 @@ function TryOnDemo({
 
               {/* Tracking Indicators */}
               {isTracking && (
-                <motion.div
+                <motion
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="absolute top-4 left-4 space-y-2"
@@ -730,7 +730,7 @@ function TryOnDemo({
                       {fps} FPS
                     </p>
                   </div>
-                </motion.div>
+                </motion>
               )}
 
               {/* Product Badge */}
@@ -742,14 +742,14 @@ function TryOnDemo({
 
               {/* Recording Indicator */}
               {isRecording && (
-                <motion.div
+                <motion
                   animate={{ opacity: [1, 0.3, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                   className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/20 backdrop-blur-sm border border-red-500 px-4 py-2 rounded-lg flex items-center gap-2"
                 >
                   <div className="w-3 h-3 bg-red-500 rounded-full" />
                   <span className="text-sm text-white font-medium">REC</span>
-                </motion.div>
+                </motion>
               )}
 
               {/* Close Button */}
@@ -765,7 +765,7 @@ function TryOnDemo({
 
         {/* Controls */}
         {isActive && showControls && (
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="p-6 bg-gray-900/50 border-t border-gray-700"
@@ -881,7 +881,7 @@ function TryOnDemo({
                 </span>
               </p>
             </div>
-          </motion.div>
+          </motion>
         )}
 
         {/* Bottom Info */}

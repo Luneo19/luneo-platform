@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Twitter,
   Linkedin,

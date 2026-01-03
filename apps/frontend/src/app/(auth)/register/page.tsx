@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   Eye, 
   EyeOff, 
@@ -318,7 +318,7 @@ function RegisterPageContent() {
   }, []);
 
   return (
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -326,14 +326,14 @@ function RegisterPageContent() {
       >
       {/* Header */}
       <div className="text-center mb-6">
-        <motion.div
+        <motion
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1 }}
           className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl mb-6 shadow-lg shadow-cyan-500/25 lg:hidden"
         >
           <span className="text-white font-bold text-2xl">L</span>
-        </motion.div>
+        </motion>
         <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-white mb-2">
           Créer un compte 🚀
         </h1>
@@ -344,19 +344,19 @@ function RegisterPageContent() {
 
           {/* Error Message */}
           {error && (
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3"
         >
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-red-300">{error}</p>
-        </motion.div>
+        </motion>
           )}
 
           {/* Success Message */}
           {success && (
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3"
@@ -366,7 +366,7 @@ function RegisterPageContent() {
             <p className="text-sm text-green-300">{success}</p>
             <p className="text-xs text-green-400/70 mt-1">Redirection vers la connexion...</p>
             </div>
-        </motion.div>
+        </motion>
           )}
 
           {/* Form */}
@@ -468,7 +468,7 @@ function RegisterPageContent() {
 
           {/* Password Strength Indicator */}
           {formData.password && (
-            <motion.div
+            <motion
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="space-y-2"
@@ -519,7 +519,7 @@ function RegisterPageContent() {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </motion>
           )}
             </div>
 
@@ -689,7 +689,7 @@ function RegisterPageContent() {
           </div>
         </div>
       </div>
-      </motion.div>
+      </motion>
   );
 }
 

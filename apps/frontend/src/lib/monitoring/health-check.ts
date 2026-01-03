@@ -33,11 +33,16 @@ class HealthCheckService {
    * Vérifie la santé de l'application
    */
   async checkHealth(): Promise<HealthStatus> {
-    const checks = {
-      database: 'ok' as const,
-      api: 'ok' as const,
-      storage: 'ok' as const,
-      cache: 'ok' as const,
+    const checks: {
+      database: 'ok' | 'error';
+      api: 'ok' | 'error';
+      storage: 'ok' | 'error';
+      cache: 'ok' | 'error';
+    } = {
+      database: 'ok',
+      api: 'ok',
+      storage: 'ok',
+      cache: 'ok',
     };
 
     try {

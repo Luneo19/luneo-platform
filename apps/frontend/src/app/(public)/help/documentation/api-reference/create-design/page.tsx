@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Code, Copy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,7 @@ logger.info('Design créé:', design.id);`, []);
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-4xl mx-auto">
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -94,7 +94,7 @@ logger.info('Design créé:', design.id);`, []);
               </li>
             </ul>
           </div>
-        </motion.div>
+        </motion>
       </div>
     </div>
   );

@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Bell, Check, X, Loader2, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -319,7 +319,7 @@ function NotificationBell({ className, variant = 'ghost', size = 'md' }: Notific
         {isOpen && (
           <>
             {/* Backdrop */}
-            <motion.div
+            <motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -328,7 +328,7 @@ function NotificationBell({ className, variant = 'ghost', size = 'md' }: Notific
             />
 
             {/* Dropdown */}
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -385,7 +385,7 @@ function NotificationBell({ className, variant = 'ghost', size = 'md' }: Notific
                       const iconColor = typeColors[notification.type];
 
                       return (
-                        <motion.div
+                        <motion
                           key={notification.id}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -465,7 +465,7 @@ function NotificationBell({ className, variant = 'ghost', size = 'md' }: Notific
                           {!notification.is_read && (
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
                           )}
-                        </motion.div>
+                        </motion>
                       );
                     })}
                   </div>
@@ -485,7 +485,7 @@ function NotificationBell({ className, variant = 'ghost', size = 'md' }: Notific
                   </Button>
                 </div>
               )}
-            </motion.div>
+            </motion>
           </>
         )}
       </AnimatePresence>

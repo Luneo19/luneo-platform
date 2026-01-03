@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Share2,
@@ -276,7 +276,7 @@ ${platformGuidelines.hook}
         </div>
 
         <div className="relative max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-12"
@@ -314,7 +314,7 @@ ${platformGuidelines.hook}
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 

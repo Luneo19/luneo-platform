@@ -77,7 +77,7 @@ export const analyticsRouter = router({
           select: { brandId: true },
         });
 
-        if (!user?.brandId) {
+      if (!user?.brandId) {
           throw new Error('User must have a brandId');
         }
 

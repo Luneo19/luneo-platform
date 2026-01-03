@@ -147,3 +147,10 @@ Le composant utilise un style futuriste et premium :
 - Le composant est prêt à accueillir votre image dès que vous l'uploadez
 
 
+
+
+
+
+
+
+

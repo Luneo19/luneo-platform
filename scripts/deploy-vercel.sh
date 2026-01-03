@@ -89,3 +89,10 @@ echo ""
 echo "Vérifiez les logs avec: vercel logs"
 echo "Votre application est disponible sur: $(vercel ls | grep production | awk '{print $2}')"
 
+
+
+
+
+
+
+

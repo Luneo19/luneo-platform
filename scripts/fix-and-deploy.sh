@@ -153,3 +153,10 @@ info "  - Logs Railway: cd apps/backend && railway logs"
 info "  - Logs Vercel: cd apps/frontend && vercel logs <deployment-url>"
 info "  - Health check: curl \$(cd apps/backend && railway domain)/health"
 
+
+
+
+
+
+
+

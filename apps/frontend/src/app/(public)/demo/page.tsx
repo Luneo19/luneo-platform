@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Eye, Camera, Box, Layers, Code, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ function DemoHubPageContent() {
         </div>
 
         <div className="relative max-w-7xl mx-auto text-center">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -77,7 +77,7 @@ function DemoHubPageContent() {
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
               Explorez nos fonctionnalités avec des démos interactives. Virtual Try-On, 3D, IA, AR - tout en live !
             </p>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -86,7 +86,7 @@ function DemoHubPageContent() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {demos.map((demo, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -119,7 +119,7 @@ function DemoHubPageContent() {
                     </div>
                   </Card>
                 </Link>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>

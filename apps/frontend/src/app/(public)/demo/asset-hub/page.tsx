@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ArrowLeft, Database, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AssetHubDemo } from '@/components/lazy';
@@ -25,7 +25,7 @@ function AssetHubDemoPageContent() {
             </Button>
           </Link>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -44,7 +44,7 @@ function AssetHubDemoPageContent() {
             <p className="text-lg text-gray-300 mb-6">
               Uploadez, optimisez, convertissez vos modèles 3D avec AI mesh simplification et LOD auto
             </p>
-          </motion.div>
+          </motion>
         </div>
 
         {/* Demo Component */}

@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import NextImage from 'next/image';
 import {
   Sparkles,
@@ -406,7 +406,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   <AnimatePresence>
                     {filteredImages.map((img, i) => (
-                      <motion.div
+                      <motion
                         key={img.id}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -454,7 +454,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
                             </div>
                           </div>
                         </Card>
-                      </motion.div>
+                      </motion>
                     ))}
                   </AnimatePresence>
                 </div>

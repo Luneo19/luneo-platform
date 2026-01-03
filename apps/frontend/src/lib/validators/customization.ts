@@ -337,25 +337,6 @@ export function validateGenerateRequest(request: unknown): {
 // ========================================
 // EXPORT
 // ========================================
-
-export {
-  ZoneTypeEnum,
-  CustomizationEffectEnum,
-  CustomizationOrientationEnum,
-  CustomizationStatusEnum,
-  promptValidator,
-  colorValidator,
-  fontSizeValidator,
-  fontNameValidator,
-  position3DValidator,
-  rotation3DValidator,
-  scale3DValidator,
-  uvMappingValidator,
-  zoneValidator,
-  customizationOptionsValidator,
-  generateCustomizationValidator,
-  customizationValidator,
-  zonesValidator,
-  customizationsValidator,
-};
+// Tous les exports sont déjà déclarés avec 'export const' ci-dessus
+// Pas besoin de bloc export supplémentaire
 

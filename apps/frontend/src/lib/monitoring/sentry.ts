@@ -14,7 +14,7 @@ export function initSentry() {
       tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
       debug: process.env.NODE_ENV === 'development',
       integrations: [
-        new Sentry.Integrations.Http({ tracing: true }),
+        Sentry.httpIntegration(),
       ],
     });
   } else {
@@ -25,8 +25,8 @@ export function initSentry() {
       tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
       debug: process.env.NODE_ENV === 'development',
       integrations: [
-        new Sentry.BrowserTracing(),
-        new Sentry.Replay({
+        Sentry.browserTracingIntegration(),
+        Sentry.replayIntegration({
           maskAllText: true,
           blockAllMedia: true,
         }),

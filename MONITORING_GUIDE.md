@@ -311,3 +311,10 @@ Web Vitals sont initialisés dans:
 5. ⏳ Historique et tendances
 6. ⏳ Export des données
 
+
+
+
+
+
+
+

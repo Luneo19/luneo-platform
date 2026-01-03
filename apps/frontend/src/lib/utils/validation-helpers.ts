@@ -296,27 +296,6 @@ export function isValidRgbaColor(color: string): boolean {
 // ========================================
 // EXPORT
 // ========================================
-
-export {
-  isValidEmail,
-  isValidEmailStrict,
-  isValidUrl,
-  isValidRelativeUrl,
-  isValidDomain,
-  isValidFrenchPhone,
-  isValidInternationalPhone,
-  validatePasswordStrength,
-  isValidCreditCard,
-  detectCreditCardType,
-  isValidDate,
-  isFutureDate,
-  isPastDate,
-  isValidFileType,
-  isValidFileSize,
-  isValidImage,
-  isValid3DFile,
-  isValidHexColor,
-  isValidRgbColor,
-  isValidRgbaColor,
-};
+// Tous les exports sont déjà déclarés avec 'export function' ci-dessus
+// Pas besoin de bloc export supplémentaire
 

@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { 
   LayoutDashboard, 
@@ -198,7 +198,7 @@ function Sidebar() {
   };
 
   return (
-    <motion.div
+    <motion
       initial={false}
       animate={{ width: isCollapsed ? 80 : 280 }}
       className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ${
@@ -330,7 +330,7 @@ function Sidebar() {
                     {!isCollapsed && item.children && (
                       <AnimatePresence>
                         {isExpanded && (
-                          <motion.div
+                          <motion
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
@@ -358,7 +358,7 @@ function Sidebar() {
                                 </Link>
                               );
                             })}
-                          </motion.div>
+                          </motion>
                         )}
                       </AnimatePresence>
                     )}
@@ -399,7 +399,7 @@ function Sidebar() {
           </div>
         )}
       </div>
-    </motion.div>
+    </motion>
   );
 }
 

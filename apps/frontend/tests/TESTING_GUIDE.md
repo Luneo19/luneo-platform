@@ -409,3 +409,10 @@ Avant de commit un test:
 - [Playwright Documentation](https://playwright.dev/)
 - [React Testing Best Practices](https://kentcdodds.com/blog/common-mistakes-with-react-testing-library)
 
+
+
+
+
+
+
+

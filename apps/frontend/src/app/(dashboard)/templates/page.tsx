@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Search, Filter, Grid, List, Download, Eye, Sparkles, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -177,7 +177,7 @@ function TemplatesPageContent() {
         {viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredTemplates.map((template, index) => (
-              <motion.div
+              <motion
                 key={template.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -203,13 +203,13 @@ function TemplatesPageContent() {
                     </div>
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         ) : (
           <div className="space-y-4">
             {filteredTemplates.map((template, index) => (
-              <motion.div
+              <motion
                 key={template.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -242,7 +242,7 @@ function TemplatesPageContent() {
                     </div>
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         )}

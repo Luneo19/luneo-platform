@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -466,7 +466,7 @@ function CollectionCard({
   onAddDesigns: () => void;
 }) {
   return (
-    <motion.div
+    <motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -552,7 +552,7 @@ function CollectionCard({
           </div>
         </div>
       </Card>
-    </motion.div>
+    </motion>
   );
 }
 
@@ -571,7 +571,7 @@ function CollectionListItem({
   onAddDesigns: () => void;
 }) {
   return (
-    <motion.div
+    <motion
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
@@ -651,7 +651,7 @@ function CollectionListItem({
           </div>
         </div>
       </Card>
-    </motion.div>
+    </motion>
   );
 }
 

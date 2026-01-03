@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -157,7 +157,7 @@ function DashboardNavContent() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -188,7 +188,7 @@ function DashboardNavContent() {
                 );
               })}
             </div>
-          </motion.div>
+          </motion>
         )}
       </div>
     </nav>

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Camera,
@@ -562,7 +562,7 @@ function VirtualTryOnPageContent() {
                 icon: <CheckCircle className="w-8 h-8" />,
               },
             ].map((benefit, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -577,7 +577,7 @@ function VirtualTryOnPageContent() {
                   <p className="text-gray-600 text-sm mb-4">{benefit.description}</p>
                   <div className="text-3xl font-bold text-purple-600">{benefit.stat}</div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -638,7 +638,7 @@ function VirtualTryOnPageContent() {
                 icon: <Share2 className="w-6 h-6" />,
               },
             ].map((feature, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -652,7 +652,7 @@ function VirtualTryOnPageContent() {
                   <h3 className="text-lg font-semibold mb-2 text-gray-900">{feature.title}</h3>
                   <p className="text-gray-600 text-sm">{feature.description}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -688,7 +688,7 @@ function VirtualTryOnPageContent() {
                 description: 'Vos clients peuvent maintenant essayer vos produits en temps réel directement depuis leur navigateur.',
               },
             ].map((step, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -702,7 +702,7 @@ function VirtualTryOnPageContent() {
                   <h3 className="text-2xl font-bold mb-3 text-gray-900">{step.title}</h3>
                   <p className="text-gray-600 leading-relaxed">{step.description}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -847,7 +847,7 @@ function VirtualTryOnPageContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {dynamicTestimonials.map((testimonial, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -881,7 +881,7 @@ function VirtualTryOnPageContent() {
                     </div>
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -906,7 +906,7 @@ function VirtualTryOnPageContent() {
               { icon: <CheckCircle className="w-6 h-6" />, title: 'CDN Européen', desc: 'Hébergement et données en Europe' },
               { icon: <Lock className="w-6 h-6" />, title: 'SOC 2 Type II', desc: 'Audit de sécurité indépendant' },
             ].map((item, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -920,7 +920,7 @@ function VirtualTryOnPageContent() {
                   <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
                   <p className="text-sm text-gray-600">{item.desc}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -937,7 +937,7 @@ function VirtualTryOnPageContent() {
 
           <div className="space-y-4">
             {faqItems.map((item, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -964,7 +964,7 @@ function VirtualTryOnPageContent() {
                     )}
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>

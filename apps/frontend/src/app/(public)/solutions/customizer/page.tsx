@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Palette,
@@ -514,7 +514,7 @@ function DemoCanvas() {
 
             {/* Elements */}
             {elements.map((element) => (
-                      <motion.div
+                      <motion
                 key={element.id}
                 className={`absolute cursor-move ${
                   selectedElement === element.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''
@@ -571,7 +571,7 @@ function DemoCanvas() {
                     {element.content}
                   </div>
                 )}
-                      </motion.div>
+                      </motion>
             ))}
 
             {/* Empty State */}
@@ -854,13 +854,13 @@ function FAQItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggl
         className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-gray-800/50 transition-colors"
       >
         <span className="font-semibold text-white text-sm sm:text-base pr-4">{faq.question}</span>
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+        <motion animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown className="w-5 h-5 text-purple-400 flex-shrink-0" />
-        </motion.div>
+        </motion>
       </button>
       <AnimatePresence initial={false}>
         {isOpen && (
-          <motion.div
+          <motion
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -869,7 +869,7 @@ function FAQItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggl
             <div className="px-6 pb-5 text-gray-300 text-sm leading-relaxed border-t border-gray-700/50 pt-4">
               {faq.answer}
             </div>
-          </motion.div>
+          </motion>
         )}
       </AnimatePresence>
     </div>
@@ -928,7 +928,7 @@ function CustomizerPageContent() {
         {/* Animated Background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(168,85,247,0.15),transparent_50%)]" />
-          <motion.div
+          <motion
             className="absolute inset-0"
             animate={{
               background: [
@@ -943,7 +943,7 @@ function CustomizerPageContent() {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -998,7 +998,7 @@ function CustomizerPageContent() {
                 { stat: '+32%', label: 'Panier', description: 'valeur moyenne' },
                 { stat: '-48%', label: 'Retours', description: 'moins d\'erreurs' },
               ].map((item, i) => (
-                <motion.div
+                <motion
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1008,10 +1008,10 @@ function CustomizerPageContent() {
                   <div className="text-3xl sm:text-4xl font-bold text-white mb-1">{item.stat}</div>
                   <div className="text-sm font-semibold text-purple-400">{item.label}</div>
                   <div className="text-xs text-gray-400">{item.description}</div>
-                </motion.div>
+                </motion>
               ))}
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -1020,7 +1020,7 @@ function CustomizerPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1039,18 +1039,18 @@ function CustomizerPageContent() {
             <p className="text-gray-400 max-w-2xl mx-auto">
               Utilisez les outils pour créer votre design. Tout fonctionne en temps réel !
             </p>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
             <DemoCanvas />
-          </motion.div>
+          </motion>
 
             {/* Export Formats */}
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1070,7 +1070,7 @@ function CustomizerPageContent() {
                   </Card>
                 ))}
               </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -1079,7 +1079,7 @@ function CustomizerPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1094,11 +1094,11 @@ function CustomizerPageContent() {
             <p className="text-gray-400 max-w-2xl mx-auto">
               Tout ce dont vous avez besoin pour offrir une expérience de personnalisation professionnelle
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {FEATURES.map((feature, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1115,7 +1115,7 @@ function CustomizerPageContent() {
                   <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
                   <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1126,7 +1126,7 @@ function CustomizerPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1145,11 +1145,11 @@ function CustomizerPageContent() {
             <p className="text-gray-400 max-w-2xl mx-auto">
               Notre customizer s'adapte à tous les secteurs d'activité
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {USE_CASES.map((useCase, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1174,7 +1174,7 @@ function CustomizerPageContent() {
                   </div>
                   </div>
             </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1185,7 +1185,7 @@ function CustomizerPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1200,15 +1200,15 @@ function CustomizerPageContent() {
             <p className="text-gray-400">
               Estimez l'impact du customizer sur vos ventes
             </p>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
             <ROICalculator />
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -1217,7 +1217,7 @@ function CustomizerPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1230,11 +1230,11 @@ function CustomizerPageContent() {
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Ils Utilisent Notre Customizer
             </h2>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1257,7 +1257,7 @@ function CustomizerPageContent() {
                     <div className="text-xs text-gray-400">{testimonial.metricLabel}</div>
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1268,7 +1268,7 @@ function CustomizerPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1285,9 +1285,9 @@ function CustomizerPageContent() {
               </span>
               ?
             </h2>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1331,7 +1331,7 @@ function CustomizerPageContent() {
                 ))}
               </tbody>
             </table>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -1340,7 +1340,7 @@ function CustomizerPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-5xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1359,9 +1359,9 @@ function CustomizerPageContent() {
             <p className="text-gray-400 max-w-2xl mx-auto">
               Intégrez le customizer sur votre site en quelques minutes avec notre SDK
             </p>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1401,7 +1401,7 @@ import { LuneoCustomizer } from '@luneo/customizer';
 />`}
               </pre>
           </Card>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
             <Card className="bg-gray-800/30 border-gray-700/50 p-4 text-center">
@@ -1428,7 +1428,7 @@ import { LuneoCustomizer } from '@luneo/customizer';
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1441,11 +1441,11 @@ import { LuneoCustomizer } from '@luneo/customizer';
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Questions Fréquentes
             </h2>
-          </motion.div>
+          </motion>
 
           <div className="space-y-3">
             {FAQS.map((faq, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1457,7 +1457,7 @@ import { LuneoCustomizer } from '@luneo/customizer';
                   isOpen={openFaqIndex === index}
                   onToggle={() => toggleFAQ(index)}
                 />
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1470,7 +1470,7 @@ import { LuneoCustomizer } from '@luneo/customizer';
         {/* Animated Background */}
         <div className="absolute inset-0 opacity-30">
           {Array.from({ length: 20 }).map((_, i) => (
-            <motion.div
+            <motion
               key={i}
               className="absolute w-2 h-2 bg-white rounded-full"
               animate={{ y: [0, -600], opacity: [0, 1, 0] }}
@@ -1486,7 +1486,7 @@ import { LuneoCustomizer } from '@luneo/customizer';
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1529,7 +1529,7 @@ import { LuneoCustomizer } from '@luneo/customizer';
                 <span>Support français 24/7</span>
               </div>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
     </div>

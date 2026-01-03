@@ -2,7 +2,7 @@
 
 import React, { memo, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   ArrowLeft, 
   Mail, 
@@ -117,7 +117,7 @@ function ForgotPasswordPageContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full bg-white rounded-xl shadow-lg p-8"
@@ -137,7 +137,7 @@ function ForgotPasswordPageContent() {
         </div>
 
         {formContent}
-      </motion.div>
+      </motion>
     </div>
   );
 }

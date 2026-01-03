@@ -148,3 +148,10 @@ echo -e "${GREEN}✅ Migration supposée exécutée${NC}"
 echo -e "${CYAN}   Vérifiez dans le dashboard que la migration a bien été appliquée${NC}"
 
 
+
+
+
+
+
+
+

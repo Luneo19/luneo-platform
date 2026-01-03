@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { CheckCircle, Loader2, ArrowRight, Sparkles, Crown, Gift, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -99,24 +99,24 @@ function BillingSuccessPageContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-cyan-900/20 to-gray-900 py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <motion.div
+        <motion
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
           <Card className="p-8 md:p-12 bg-gray-800/50 border-gray-700 text-center">
             {/* Success Icon */}
-            <motion.div
+            <motion
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               className="w-24 h-24 bg-gradient-to-br from-green-400 to-cyan-400 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-cyan-500/25"
             >
               <CheckCircle className="w-12 h-12 text-white" />
-            </motion.div>
+            </motion>
 
             {/* Title */}
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -127,11 +127,11 @@ function BillingSuccessPageContent() {
               <p className="text-xl text-gray-300 mb-8">
                 Votre abonnement <span className="text-cyan-400 font-semibold">{sessionData?.planName || 'Premium'}</span> est maintenant actif
               </p>
-            </motion.div>
+            </motion>
 
             {/* Subscription Details */}
             {sessionData && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
@@ -160,11 +160,11 @@ function BillingSuccessPageContent() {
                     </>
                   )}
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {/* What's Next */}
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -188,10 +188,10 @@ function BillingSuccessPageContent() {
                   <p className="text-sm text-gray-300">Mises à jour automatiques</p>
                 </div>
               </div>
-            </motion.div>
+            </motion>
 
             {/* CTA Buttons */}
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
@@ -211,7 +211,7 @@ function BillingSuccessPageContent() {
                   Guide de démarrage rapide
                 </Button>
               </Link>
-            </motion.div>
+            </motion>
 
             {/* Confirmation email notice */}
             <motion.p
@@ -223,7 +223,7 @@ function BillingSuccessPageContent() {
               Un email de confirmation a été envoyé à <span className="text-gray-300">{sessionData?.customerEmail}</span>
             </motion.p>
           </Card>
-        </motion.div>
+        </motion>
       </div>
     </div>
   );

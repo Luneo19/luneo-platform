@@ -348,28 +348,6 @@ export function isNumber(value: unknown): value is number {
 // EXPORT
 // ========================================
 
-export {
-  groupBy,
-  sortBy,
-  unique,
-  chunk,
-  flatten,
-  deepMerge,
-  deepClone,
-  omit,
-  pick,
-  isObject,
-  isEmpty,
-  sleep,
-  withTimeout,
-  retry,
-  debounce,
-  throttle,
-  generateId,
-  randomInt,
-  randomItem,
-  isNotNull,
-  isNonEmptyString,
-  isNumber,
-};
+// Tous les exports sont déjà déclarés avec 'export function' ci-dessus
+// Pas besoin de bloc export supplémentaire
 

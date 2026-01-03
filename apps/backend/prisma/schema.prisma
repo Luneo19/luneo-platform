@@ -87,6 +87,55 @@ enum CustomizationStatus {
 }
 
 // ========================================
+// ENUMS POUR SAAS PERSONNALISATION
+// ========================================
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum CustomizationType {
+  TEXT
+  IMAGE
+  COLOR
+  PATTERN
+  FONT
+  SIZE
+  POSITION
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum WebhookEvent {
+  GENERATION_STARTED
+  GENERATION_COMPLETED
+  GENERATION_FAILED
+  AR_VIEW
+}
+
+// ========================================
 // MODELS
 // ========================================
 
@@ -120,7 +169,7 @@ model User {
 
   // Quotas
   userQuota UserQuota?
-  
+
   // Marketplace
   artisan Artisan?
 
@@ -131,15 +180,23 @@ model User {
   aiCredits          Int       @default(0) @map("ai_credits")
   aiCreditsPurchased Int       @default(0) @map("ai_credits_purchased")
   aiCreditsUsed      Int       @default(0) @map("ai_credits_used")
-  lastCreditPurchase  DateTime? @map("last_credit_purchase")
-  
+  lastCreditPurchase DateTime? @map("last_credit_purchase")
+
   creditTransactions CreditTransaction[]
-  
+
   // Support & Monitoring
-  tickets            Ticket[]
-  ticketMessages     TicketMessage[] @relation("TicketMessages")
-  assignedTickets     Ticket[] @relation("AssignedTickets")
-  ticketActivities   TicketActivity[] @relation("TicketActivities")
+  tickets          Ticket[]         @relation("TicketUser")
+  ticketMessages   TicketMessage[]  @relation("TicketMessages")
+  assignedTickets  Ticket[]         @relation("AssignedTickets")
+  ticketActivities TicketActivity[] @relation("TicketActivities")
+
+  // AI Studio
+  aiGenerations AIGeneration[]
+  aiCollections AICollection[]
+
+  // Collaboration
+  sharedResourcesCreated SharedResource[] @relation("SharedResourcesCreated")
+  comments               Comment[]
 
   @@index([email])
   @@index([brandId])
@@ -210,12 +267,23 @@ model Brand {
   aiCostResetAt    DateTime? // Monthly reset
 
   // Settings
-  settings      Json? // Brand-specific settings
+  settings      Json? // Brand-specific settings (legacy - utiliser ClientSettings)
   webhookUrl    String?
   webhookSecret String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // NOUVEAU: Champs pour SaaS personnalisation
+  subscriptionPlan      SubscriptionPlan   @default(FREE)
+  subscriptionStatus    SubscriptionStatus @default(TRIALING)
+  trialEndsAt           DateTime?
+  monthlyGenerations    Int                @default(0)
+  maxMonthlyGenerations Int                @default(100)
+  maxProducts           Int                @default(5)
+  arEnabled             Boolean            @default(false)
+  whiteLabel            Boolean            @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   // Relations
   users                 User[]
@@ -229,15 +297,74 @@ model Brand {
   usageMetrics          UsageMetric[]
   customizations        Customization[]
 
+  // Analytics Avancées
+  analyticsEvents      AnalyticsEvent[]
+  analyticsFunnels     AnalyticsFunnel[]
+  analyticsCohorts     AnalyticsCohort[]
+  analyticsSegments    AnalyticsSegment[]
+  analyticsPredictions AnalyticsPrediction[]
+
+  // AI Studio
+  aiGenerations AIGeneration[]
+  aiCollections AICollection[]
+
+  // Collaboration
+  sharedResources SharedResource[]
+
+  // NOUVEAU: Relations SaaS personnalisation
+  clientSettings ClientSettings?
+  generations    Generation[]
+  templates      Template[]
+  invoices       Invoice[]
+
   @@index([slug])
   @@index([status])
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
+  @@index([subscriptionPlan])
+  @@index([subscriptionStatus])
+  @@index([deletedAt])
+}
+
+// ========================================
+// CLIENT SETTINGS (SaaS Personnalisation)
+// ========================================
+
+model ClientSettings {
+  id      String @id @default(cuid())
+  brandId String @unique
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  // UI Customization
+  primaryColor   String @default("#000000")
+  secondaryColor String @default("#ffffff")
+  fontFamily     String @default("Inter")
+  borderRadius   Int    @default(8)
+
+  // AI Settings
+  defaultAiProvider String  @default("openai")
+  customApiKey      String?
+  defaultQuality    String  @default("standard")
+  defaultStyle      String  @default("realistic")
+
+  // AR Settings
+  arTrackingType String @default("face")
+  arQuality      String @default("medium")
+
+  // Notifications
+  emailNotifications Boolean @default(true)
+  webhookEnabled     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
 }
 
 model Product {
   id          String  @id @default(cuid())
   name        String
+  slug        String // NOUVEAU: Slug pour URL
   description String?
   sku         String?
   price       Decimal @db.Decimal(10, 2)
@@ -246,6 +373,9 @@ model Product {
   // Images
   images       String[] // Array of image URLs
   baseAssetUrl String? // Base asset URL for rendering
+  baseImage    String? // NOUVEAU: Base image pour génération
+  baseImageUrl String? // NOUVEAU: Base image URL
+  thumbnailUrl String? // NOUVEAU: Thumbnail URL
 
   // 3D Model
   model3dUrl  String?
@@ -263,26 +393,138 @@ model Product {
   finishOptions     Json? // Available finishes with pricing
   productionTime    Int? // Estimated production time in hours
 
-  // Status
-  isActive Boolean @default(true)
-  isPublic Boolean @default(true)
+  // NOUVEAU: Champs pour génération IA
+  promptTemplate    String? // Template de prompt pour génération
+  negativePrompt    String? // Negative prompt
+  aiProvider        String  @default("openai") // Provider IA par défaut
+  generationQuality String  @default("standard") // standard, hd
+  outputFormat      String  @default("png") // png, jpg, webp
+  outputWidth       Int     @default(1024)
+  outputHeight      Int     @default(1024)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // NOUVEAU: Champs AR
+  arEnabled      Boolean @default(true)
+  arTrackingType String  @default("surface") // face, body, hand, surface
+  arScale        Float   @default(1.0)
+  arOffset       Json? // Offset 3D { x, y, z }
+
+  // Status
+  isActive Boolean       @default(true)
+  isPublic Boolean       @default(true)
+  status   ProductStatus @default(DRAFT) // NOUVEAU: Status explicite
+  category String? // NOUVEAU: Catégorie produit
+  tags     String[] // NOUVEAU: Tags
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime? // NOUVEAU: Date de publication
 
   // Relations
   brandId String
   brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   designs         Design[]
-  orders          Order[]
+  orders          Order[]          @relation("OrderProduct") // Relation nommée
+  orderItems      OrderItem[]      @relation("OrderItemProduct") // NOUVEAU
   productMappings ProductMapping[]
   zones           Zone[]
   customizations  Customization[]
 
+  // NOUVEAU: Lien vers DesignSpec
+  specs DesignSpec[] @relation("ProductSpecs") // NOUVEAU
+
+  // NOUVEAU: Customizable Areas (Zakeke-like)
+  customizableAreas CustomizableArea[]
+
+  // NOUVEAU: Relations SaaS personnalisation
+  customizationZones CustomizationZone[] // Zones de personnalisation pour widget
+  generations        Generation[] // Générations depuis widget
+  templates          Template[] // Templates de prompts
+
+  @@unique([brandId, slug]) // NOUVEAU: Unique par brand
   @@index([brandId])
   @@index([isActive])
   @@index([isPublic])
+  @@index([brandId, isActive]) // NOUVEAU: Composite
+  @@index([status])
+}
+
+// ========================================
+// CUSTOMIZATION ZONE (SaaS Personnalisation)
+// ========================================
+
+model CustomizationZone {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name String
+  type CustomizationType
+
+  positionX Float
+  positionY Float
+  width     Float
+  height    Float
+  rotation  Float @default(0)
+
+  maxLength     Int?
+  allowedChars  String?
+  allowedFonts  String[]
+  allowedColors String[]
+  minSize       Int?
+  maxSize       Int?
+
+  defaultValue String?
+  defaultFont  String?
+  defaultColor String?
+  defaultSize  Int?
+
+  renderStyle String @default("engraved")
+
+  order    Int     @default(0)
+  required Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([productId, order])
+}
+
+// ========================================
+// TEMPLATE (SaaS Personnalisation)
+// ========================================
+
+model Template {
+  id        String   @id @default(cuid())
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+
+  promptTemplate String
+  negativePrompt String?
+  variables      Json
+
+  aiProvider String @default("openai")
+  model      String @default("dall-e-3")
+  quality    String @default("standard")
+  style      String @default("natural")
+
+  exampleOutputs String[]
+
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([productId])
+  @@index([brandId, isActive])
 }
 
 model Design {
@@ -304,6 +546,12 @@ model Design {
   renderUrl  String? // Render URL
   metadata   Json? // AI generation metadata
 
+  // NOUVEAU: Widget Editor Data (Zakeke-like)
+  canvasWidth           Int? // Canvas width in pixels
+  canvasHeight          Int? // Canvas height in pixels
+  canvasBackgroundColor String? @default("#ffffff") // Background color
+  designData            Json? // Full design data from widget (DesignData type)
+
   // Cost tracking
   costCents Int     @default(0)
   provider  String? // AI provider used
@@ -322,9 +570,18 @@ model Design {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  orders         Order[]
+  // NOUVEAU: Lien vers DesignSpec
+  specId String?
+  spec   DesignSpec? @relation(fields: [specId], references: [id], onDelete: SetNull)
+
+  orders         Order[]         @relation("OrderDesign") // Relation nommée pour éviter conflit
+  orderItems     OrderItem[]     @relation("OrderItemDesign") // NOUVEAU
   assets         Asset[]
   customizations Customization[]
+  RenderResult   RenderResult[]
+
+  // NOUVEAU: Layers relation
+  layers DesignLayer[]
 
   @@index([userId])
   @@index([brandId])
@@ -332,6 +589,8 @@ model Design {
   @@index([status])
   @@index([promptHash])
   @@index([createdAt])
+  @@index([specId]) // NOUVEAU
+  @@index([brandId, status]) // NOUVEAU: Composite
 }
 
 model Order {
@@ -379,11 +638,14 @@ model Order {
   brandId String
   brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
-  designId String
-  design   Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+  // NOUVEAU: Multi-items support
+  items OrderItem[] // NOUVEAU
 
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // DEPRECATED: Garder pour backward compatibility (rendre nullable)
+  designId  String? // DEPRECATED: Utiliser OrderItem.designId
+  design    Design?  @relation("OrderDesign", fields: [designId], references: [id], onDelete: Cascade)
+  productId String? // DEPRECATED: Utiliser OrderItem.productId
+  product   Product? @relation("OrderProduct", fields: [productId], references: [id], onDelete: Cascade)
 
   customizations Customization[]
   workOrder      WorkOrder?
@@ -391,11 +653,44 @@ model Order {
 
   @@index([userId])
   @@index([brandId])
-  @@index([designId])
-  @@index([productId])
+  @@index([designId]) // Garder pour backward compat
+  @@index([productId]) // Garder pour backward compat
   @@index([status])
   @@index([orderNumber])
   @@index([createdAt])
+  @@index([brandId, status]) // NOUVEAU: Composite pour performance
+  @@index([brandId, createdAt]) // NOUVEAU: Composite pour pagination
+}
+
+// ========================================
+// ORDER ITEM (Multi-items support)
+// ========================================
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  productId  String
+  designId   String? // Nullable si pas de design
+  snapshotId String? // Lien vers Snapshot (immuable)
+  quantity   Int     @default(1)
+  priceCents Int // Prix unitaire au moment de la commande (snapshot)
+  totalCents Int // priceCents * quantity
+  metadata   Json? // Customization options, line item properties Shopify, etc.
+
+  // Relations
+  order    Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product  Product   @relation("OrderItemProduct", fields: [productId], references: [id], onDelete: Restrict)
+  design   Design?   @relation("OrderItemDesign", fields: [designId], references: [id], onDelete: SetNull)
+  snapshot Snapshot? @relation("SnapshotOrderItems", fields: [snapshotId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([designId])
+  @@index([snapshotId])
+  @@index([orderId, productId])
 }
 
 model ApiKey {
@@ -457,26 +752,30 @@ model UserQuota {
 }
 
 model Webhook {
-  id             String    @id @default(cuid())
-  event          String // Event type (design.created, order.updated, etc.)
-  url            String // Webhook URL
-  payload        Json // Webhook payload data
-  statusCode     Int? // HTTP response status code
-  success        Boolean   @default(false) // Whether webhook was successful
-  error          String? // Error message if failed
-  idempotencyKey String?   @unique // For idempotency
-  timestamp      DateTime? // For replay protection
-  createdAt      DateTime  @default(now())
-
-  // Relations
+  id      String @id @default(cuid())
   brandId String
   brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
+  name   String
+  url    String // Webhook URL
+  secret String // Secret pour signature
+
+  events   WebhookEvent[] // NOUVEAU: Events supportés
+  isActive Boolean        @default(true)
+
+  lastCalledAt   DateTime?
+  lastStatusCode Int?
+  failureCount   Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  webhookLogs WebhookLog[]
+
   @@index([brandId])
-  @@index([event])
-  @@index([success])
-  @@index([createdAt])
-  @@index([idempotencyKey])
+  @@index([isActive])
+  @@index([events])
 }
 
 model SystemConfig {
@@ -498,12 +797,12 @@ model PromptTemplate {
   id          String   @id @default(cuid())
   name        String
   version     Int      @default(1)
-  occasion    String?  // 'birth', 'engagement', 'mourning', 'friendship', etc.
-  style       String?  // 'minimal', 'baroque', 'art-deco', etc.
-  prompt      String   // Template avec variables {{variable}}
-  variables   Json?    // Variables disponibles et leurs descriptions
-  constraints Json?    // Contraintes production (serti, gravure, etc.)
-  brandKit    Json?    // Brand kit integration (couleurs, ton, interdits)
+  occasion    String? // 'birth', 'engagement', 'mourning', 'friendship', etc.
+  style       String? // 'minimal', 'baroque', 'art-deco', etc.
+  prompt      String // Template avec variables {{variable}}
+  variables   Json? // Variables disponibles et leurs descriptions
+  constraints Json? // Contraintes production (serti, gravure, etc.)
+  brandKit    Json? // Brand kit integration (couleurs, ton, interdits)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -519,18 +818,105 @@ model PromptTemplate {
 // ========================================
 
 model DesignDNA {
-  id            String   @id @default(cuid())
-  designId     String   @unique
-  story         String?  // Story/intention utilisateur
-  tags          String[] // Tags normalisés
-  embedding     Json?    // Vector embedding (pgvector)
-  parameters    Json?    // Paramètres retenus (ce qui a été cliqué)
-  conversionData Json?   // Données de conversion (clicks, time, etc.)
-  productionData Json?   // Données production (QC, défauts, etc.)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String   @id @default(cuid())
+  designId       String   @unique
+  story          String? // Story/intention utilisateur
+  tags           String[] // Tags normalisés
+  embedding      Json? // Vector embedding (pgvector)
+  parameters     Json? // Paramètres retenus (ce qui a été cliqué)
+  conversionData Json? // Données de conversion (clicks, time, etc.)
+  productionData Json? // Données production (QC, défauts, etc.)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([designId])
+}
+
+// ========================================
+// DESIGN SPEC (Versionné, Déterministe)
+// ========================================
+
+model DesignSpec {
+  id          String @id @default(cuid())
+  specVersion String @default("1.0.0") // Semantic versioning
+  specHash    String @unique // SHA256 du spec canonique
+  spec        Json // JSON Schema validé, format canonique
+  productId   String
+
+  // Zone inputs (normalisés)
+  zoneInputs Json // { zoneId: { text, font, color, size, effect, orientation, ... } }
+
+  // Metadata
+  metadata Json? // Provenance (widget, shopify, api), userAgent, sessionId, etc.
+
+  // Relations
+  product Product @relation("ProductSpecs", fields: [productId], references: [id], onDelete: Cascade)
+
+  snapshots Snapshot[]
+  designs   Design[] // Designs générés depuis ce spec
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([specHash])
+  @@index([productId])
+  @@index([specVersion])
+  @@index([createdAt])
+  @@index([productId, specHash])
+}
+
+// ========================================
+// SNAPSHOT (Immuable, Point-in-Time)
+// ========================================
+
+model Snapshot {
+  id       String @id @default(cuid())
+  specId   String // Lien vers DesignSpec
+  specHash String // Dupliqué pour queries rapides (index)
+  specData Json // Dupliqué pour immutabilité (snapshot du spec au moment T)
+
+  // Previews & Exports
+  previewUrl   String? // 2D preview (PNG/WebP)
+  preview3dUrl String? // 3D preview (GLTF viewer)
+  thumbnailUrl String? // Thumbnail 200x200
+
+  // Production Assets
+  productionBundleUrl String? // ZIP avec SVG/DXF/PDF
+  arModelUrl          String? // USDZ pour AR
+  gltfModelUrl        String? // GLTF pour 3D viewer
+
+  // Asset Versions (pour traçabilité)
+  assetVersions Json? // [{ url, format, size, hash, createdAt, version }]
+
+  // Validation & Lock
+  isValidated Boolean   @default(false)
+  validatedBy String? // User ID
+  validatedAt DateTime?
+  isLocked    Boolean   @default(false) // Lock pour empêcher modifications
+  lockedAt    DateTime?
+
+  // Audit
+  createdBy  String? // User ID ou 'widget' ou 'api'
+  provenance Json? // { source: 'widget'|'shopify'|'api', sessionId, ipAddress, userAgent, widgetVersion }
+
+  // Relations
+  spec           DesignSpec      @relation(fields: [specId], references: [id], onDelete: Restrict)
+  orderItems     OrderItem[]     @relation("SnapshotOrderItems") // Orders qui utilisent ce snapshot
+  workOrders     WorkOrder[] // WorkOrders liés
+  customizations Customization[] // Customizations liées
+  renderResults  RenderResult[] // Renders liés
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // Ne devrait jamais changer (immuable)
+
+  @@unique([specHash, validatedAt]) // Un snapshot par specHash validé (si validé)
+  @@index([specId])
+  @@index([specHash])
+  @@index([isValidated])
+  @@index([isLocked])
+  @@index([createdAt])
+  @@index([validatedAt])
+  @@index([specHash, isValidated])
 }
 
 // ========================================
@@ -538,18 +924,31 @@ model DesignDNA {
 // ========================================
 
 model RenderResult {
-  id           String   @id @default(cuid())
-  renderId     String   @unique
-  type         String // '2d', '3d', 'preview'
-  status       String // 'success', 'failed'
+  id           String  @id @default(cuid())
+  renderId     String  @unique
+  type         String // '2d', '3d', 'preview', 'ar', 'manufacturing'
+  status       String // 'pending', 'processing', 'success', 'failed'
   url          String?
   thumbnailUrl String?
   metadata     Json?
-  createdAt    DateTime @default(now())
+
+  // NOUVEAU: Relations Prisma (au lieu de renderId string loose)
+  snapshotId      String?
+  snapshot        Snapshot?      @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  designId        String?
+  design          Design?        @relation(fields: [designId], references: [id], onDelete: SetNull)
+  customizationId String?
+  customization   Customization? @relation(fields: [customizationId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
 
   @@index([renderId])
   @@index([type])
   @@index([status])
+  @@index([snapshotId]) // NOUVEAU
+  @@index([designId]) // NOUVEAU
+  @@index([customizationId]) // NOUVEAU
+  @@index([type, status]) // NOUVEAU: Composite
 }
 
 model RenderProgress {
@@ -691,20 +1090,130 @@ model SyncLog {
 }
 
 model WebhookLog {
-  id          String    @id @default(cuid())
-  webhookId   String
-  topic       String
-  shopDomain  String
-  payload     Json
-  status      String    @default("received")
-  processedAt DateTime?
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(cuid())
+  webhookId String
+  webhook   Webhook? @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  event      String
+  payload    Json
+  statusCode Int?
+  response   String?
+  error      String?
+  duration   Int? // Durée en ms
+
+  createdAt DateTime @default(now())
 
   @@index([webhookId])
-  @@index([topic])
-  @@index([shopDomain])
+  @@index([event])
+  @@index([createdAt])
+}
+
+// ========================================
+// GENERATION (SaaS Personnalisation - Widget)
+// ========================================
+
+model Generation {
+  id        String  @id @default(cuid())
+  brandId   String
+  brand     Brand   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  publicId  String  @unique @default(cuid())
+  sessionId String?
+
+  customizations Json
+  userPrompt     String?
+  finalPrompt    String
+  negativePrompt String?
+
+  aiProvider String
+  model      String
+  quality    String
+
+  status       GenerationStatus @default(PENDING)
+  outputUrl    String?
+  thumbnailUrl String?
+  arModelUrl   String?
+
+  aiResponse     Json?
+  processingTime Int?
+  tokensUsed     Int?
+  cost           Decimal? @db.Decimal(10, 6)
+
+  errorMessage String?
+  errorCode    String?
+  retryCount   Int     @default(0)
+
+  ipAddress String?
+  userAgent String?
+  referrer  String?
+
+  viewedInAr    Boolean @default(false)
+  arViewCount   Int     @default(0)
+  downloadCount Int     @default(0)
+  sharedCount   Int     @default(0)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  expiresAt   DateTime?
+
+  @@index([brandId])
+  @@index([productId])
+  @@index([publicId])
   @@index([status])
   @@index([createdAt])
+  @@index([sessionId])
+  @@index([brandId, status])
+}
+
+// ========================================
+// INVOICE (Billing)
+// ========================================
+
+model Invoice {
+  id              String @id @default(cuid())
+  brandId         String
+  brand           Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  stripeInvoiceId String @unique
+
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("eur")
+  status   String
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  pdfUrl String?
+
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+
+  @@index([brandId])
+  @@index([stripeInvoiceId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ========================================
+// USAGE RECORD (Billing)
+// ========================================
+
+model UsageRecord {
+  id      String @id @default(cuid())
+  brandId String
+
+  type  String // 'generation', 'ar_view', 'api_call', etc.
+  count Int    @default(1)
+
+  metadata Json?
+
+  recordedAt DateTime @default(now())
+
+  @@index([brandId])
+  @@index([recordedAt])
+  @@index([type])
+  @@index([brandId, type, recordedAt])
 }
 
 // ========================================
@@ -783,6 +1292,113 @@ model UsageMetric {
   @@index([brandId])
   @@index([metric])
   @@index([timestamp])
+}
+
+// ========================================
+// WIDGET EDITOR MODELS (Zakeke-like)
+// ========================================
+
+model CustomizableArea {
+  id          String  @id @default(cuid())
+  productId   String
+  name        String
+  description String?
+
+  // Position & Dimensions (in mm or pixels)
+  x      Float @default(0)
+  y      Float @default(0)
+  width  Float
+  height Float
+
+  // Constraints
+  minWidth    Float?
+  maxWidth    Float?
+  minHeight   Float?
+  maxHeight   Float?
+  aspectRatio Float? // Lock aspect ratio
+
+  // Allowed layer types
+  allowedLayerTypes String[] @default(["text", "image", "shape"]) // ["text", "image", "shape", "clipart"]
+
+  // Text constraints (if text allowed)
+  maxTextLength    Int?
+  allowedFonts     String[]
+  defaultFont      String?
+  defaultFontSize  Int?
+  allowedFontSizes Int[] // [12, 14, 16, 18, 24, 32, 48, 72]
+
+  // Image constraints (if image allowed)
+  maxImageSize   Int? // Max file size in bytes
+  allowedFormats String[] @default(["png", "jpg", "jpeg", "svg", "webp"])
+  minImageWidth  Int?
+  minImageHeight Int?
+  maxImageWidth  Int?
+  maxImageHeight Int?
+
+  // Shape constraints (if shape allowed)
+  allowedShapes String[] @default(["rectangle", "circle", "triangle", "polygon", "star"])
+
+  // Color constraints
+  allowedColors String[] // Hex colors
+  defaultColor  String?  @default("#000000")
+
+  // Display settings
+  isRequired   Boolean @default(false)
+  isActive     Boolean @default(true)
+  displayOrder Int     @default(0)
+
+  // Metadata
+  metadata Json? // Additional configuration
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@index([productId, isActive])
+}
+
+model DesignLayer {
+  id       String @id @default(cuid())
+  designId String
+  type     String // "text", "image", "shape", "clipart"
+
+  // Position & Transform
+  x        Float @default(0)
+  y        Float @default(0)
+  rotation Float @default(0) // degrees
+  scaleX   Float @default(1)
+  scaleY   Float @default(1)
+  opacity  Float @default(1) // 0-1
+
+  // Visibility & Lock
+  visible Boolean @default(true)
+  locked  Boolean @default(false)
+
+  // Layer-specific data (JSON for flexibility)
+  data Json // TextLayerData, ImageLayerData, ShapeLayerData, etc.
+
+  // Z-index (order in layer stack)
+  zIndex Int @default(0)
+
+  // Metadata
+  metadata Json? // Additional layer metadata
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  design Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@index([designId])
+  @@index([type])
+  @@index([visible])
+  @@index([zIndex])
+  @@index([designId, zIndex])
 }
 
 // ========================================
@@ -932,6 +1548,11 @@ model Customization {
   orderId String? // Link to Order if purchased
   order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
+  // NOUVEAU: Lien vers Snapshot
+  snapshotId   String?
+  snapshot     Snapshot?      @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  RenderResult RenderResult[]
+
   @@index([userId])
   @@index([productId])
   @@index([zoneId])
@@ -942,6 +1563,7 @@ model Customization {
   @@index([createdAt])
   @@index([designId])
   @@index([orderId])
+  @@index([snapshotId]) // NOUVEAU
 }
 
 // ========================================
@@ -967,62 +1589,62 @@ model OutboxEvent {
 // ========================================
 
 model Artisan {
-  id                  String   @id @default(cuid())
-  userId              String   @unique
-  businessName        String
-  legalName           String?
-  taxId               String?
-  address             Json?
-  phone               String?
-  email               String?
-  website             String?
-  
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  businessName String
+  legalName    String?
+  taxId        String?
+  address      Json?
+  phone        String?
+  email        String?
+  website      String?
+
   // KYC/KYB
-  kycStatus           String   @default("pending") // pending, verified, rejected, suspended
-  kycVerifiedAt       DateTime?
-  kycDocuments        Json?
-  
+  kycStatus     String    @default("pending") // pending, verified, rejected, suspended
+  kycVerifiedAt DateTime?
+  kycDocuments  Json?
+
   // Stripe Connect
   stripeAccountId     String?
   stripeAccountStatus String?
-  onboardingCompleted Boolean  @default(false)
-  
+  onboardingCompleted Boolean @default(false)
+
   // Capacités
-  maxVolume           Int      @default(10)
-  currentLoad         Int      @default(0)
-  averageLeadTime     Int      @default(7) // jours
-  minOrderValue       Int      @default(0) // cents
-  
+  maxVolume       Int @default(10)
+  currentLoad     Int @default(0)
+  averageLeadTime Int @default(7) // jours
+  minOrderValue   Int @default(0) // cents
+
   // Matériaux supportés
   supportedMaterials  String[]
   supportedTechniques String[]
   supportedZones      String[]
-  
+
   // Qualité & Performance
-  qualityScore        Float    @default(5.0)
-  totalOrders         Int      @default(0)
-  completedOrders     Int      @default(0)
-  onTimeDeliveryRate  Float    @default(1.0)
-  defectRate          Float    @default(0.0)
-  returnRate          Float    @default(0.0)
-  
+  qualityScore       Float @default(5.0)
+  totalOrders        Int   @default(0)
+  completedOrders    Int   @default(0)
+  onTimeDeliveryRate Float @default(1.0)
+  defectRate         Float @default(0.0)
+  returnRate         Float @default(0.0)
+
   // SLA
-  slaLevel            String   @default("standard") // basic, standard, premium, enterprise
-  slaPenalties        Json     @default("{}")
-  slaBonuses          Json     @default("{}")
-  
+  slaLevel     String @default("standard") // basic, standard, premium, enterprise
+  slaPenalties Json   @default("{}")
+  slaBonuses   Json   @default("{}")
+
   // Status
-  status              String   @default("active") // active, inactive, suspended, quarantined
-  quarantineReason    String?
-  quarantineUntil     DateTime?
-  
+  status           String    @default("active") // active, inactive, suspended, quarantined
+  quarantineReason String?
+  quarantineUntil  DateTime?
+
   // Settings
-  settings            Json     @default("{}")
-  payoutSchedule      String   @default("weekly") // daily, weekly, biweekly, monthly
-  
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
+  settings       Json   @default("{}")
+  payoutSchedule String @default("weekly") // daily, weekly, biweekly, monthly
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
   user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   capabilities ArtisanCapability[]
@@ -1030,7 +1652,7 @@ model Artisan {
   quotes       Quote[]
   slaRecords   SLARecord[]
   payouts      Payout[]
-  
+
   @@index([kycStatus])
   @@index([status])
   @@index([qualityScore])
@@ -1049,95 +1671,100 @@ model ArtisanCapability {
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  
+
   artisan Artisan @relation(fields: [artisanId], references: [id], onDelete: Cascade)
-  
+
   @@index([artisanId])
   @@index([material])
   @@index([technique])
 }
 
 model WorkOrder {
-  id                String   @id @default(cuid())
-  orderId           String   @unique
-  artisanId         String
-  quoteId           String?  @unique
-  
+  id        String  @id @default(cuid())
+  orderId   String  @unique
+  artisanId String
+  quoteId   String? @unique
+
   // Routing
-  routingScore      Float?
-  routingReason     String?
-  selectedAt        DateTime?
-  
+  routingScore  Float?
+  routingReason String?
+  selectedAt    DateTime?
+
   // Production
-  status            String   @default("assigned") // assigned, accepted, in_progress, qc_pending, qc_passed, qc_failed, shipped, completed, cancelled
-  acceptedAt        DateTime?
-  startedAt         DateTime?
+  status              String    @default("assigned") // assigned, accepted, in_progress, qc_pending, qc_passed, qc_failed, shipped, completed, cancelled
+  acceptedAt          DateTime?
+  startedAt           DateTime?
   estimatedCompletion DateTime?
-  completedAt       DateTime?
-  
+  completedAt         DateTime?
+
   // SLA
-  slaDeadline       DateTime?
-  slaMet            Boolean?
-  slaPenaltyCents   Int      @default(0)
-  slaBonusCents     Int      @default(0)
-  
+  slaDeadline     DateTime?
+  slaMet          Boolean?
+  slaPenaltyCents Int       @default(0)
+  slaBonusCents   Int       @default(0)
+
   // Financial
   payoutAmountCents Int?
   commissionCents   Int?
-  payoutStatus      String   @default("pending") // pending, processing, paid, failed, cancelled
+  payoutStatus      String  @default("pending") // pending, processing, paid, failed, cancelled
   payoutId          String?
-  
+
   // QC
-  qcScore           Float?
-  qcPassed          Boolean?
-  qcIssues          String[]
-  qcReportId        String?
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  qcScore    Float?
+  qcPassed   Boolean?
+  qcIssues   String[]
+  qcReportId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  order    Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  artisan  Artisan   @relation(fields: [artisanId], references: [id], onDelete: Restrict)
-  quote    Quote?    @relation("WorkOrderQuote", fields: [quoteId], references: [id], onDelete: SetNull)
+  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  artisan   Artisan    @relation(fields: [artisanId], references: [id], onDelete: Restrict)
+  quote     Quote?     @relation("WorkOrderQuote", fields: [quoteId], references: [id], onDelete: SetNull)
   slaRecord SLARecord?
-  
+
+  // NOUVEAU: Lien vers Snapshot (pour production bundle)
+  snapshotId String?
+  snapshot   Snapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+
   @@index([artisanId])
   @@index([status])
   @@index([slaDeadline])
   @@index([payoutStatus])
+  @@index([snapshotId]) // NOUVEAU
 }
 
 model Quote {
-  id            String   @id @default(cuid())
-  orderId       String
-  artisanId     String
-  
+  id        String @id @default(cuid())
+  orderId   String
+  artisanId String
+
   // Pricing
-  priceCents   Int
-  leadTime     Int // jours
-  breakdown    Json
-  
+  priceCents Int
+  leadTime   Int // jours
+  breakdown  Json
+
   // Scoring
-  qualityScore Float?
-  costScore    Float?
+  qualityScore  Float?
+  costScore     Float?
   leadTimeScore Float?
   distanceScore Float?
   overallScore  Float?
-  
+
   // Status
-  status        String   @default("pending") // pending, selected, rejected, expired
-  selectedAt    DateTime?
-  expiresAt     DateTime?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  status     String    @default("pending") // pending, selected, rejected, expired
+  selectedAt DateTime?
+  expiresAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  artisan Artisan  @relation(fields: [artisanId], references: [id], onDelete: Restrict)
+  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  artisan   Artisan    @relation(fields: [artisanId], references: [id], onDelete: Restrict)
   workOrder WorkOrder? @relation("WorkOrderQuote")
-  
+
   @@index([orderId])
   @@index([artisanId])
   @@index([status])
@@ -1145,58 +1772,58 @@ model Quote {
 }
 
 model SLARecord {
-  id          String   @id @default(cuid())
-  workOrderId String   @unique
-  artisanId   String
-  deadline    DateTime
-  completedAt DateTime?
-  onTime      Boolean?
-  delayHours  Int?
-  penaltyCents Int     @default(0)
-  bonusCents  Int      @default(0)
-  reason      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id           String    @id @default(cuid())
+  workOrderId  String    @unique
+  artisanId    String
+  deadline     DateTime
+  completedAt  DateTime?
+  onTime       Boolean?
+  delayHours   Int?
+  penaltyCents Int       @default(0)
+  bonusCents   Int       @default(0)
+  reason       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
   // Relations
   workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   artisan   Artisan   @relation(fields: [artisanId], references: [id], onDelete: Restrict)
-  
+
   @@index([artisanId])
   @@index([onTime])
 }
 
 model Payout {
-  id              String   @id @default(cuid())
-  artisanId       String
+  id               String  @id @default(cuid())
+  artisanId        String
   stripeTransferId String?
-  
+
   // Amount
-  amountCents     Int
-  currency         String   @default("EUR")
-  feesCents        Int       @default(0)
-  netAmountCents  Int
-  
+  amountCents    Int
+  currency       String @default("EUR")
+  feesCents      Int    @default(0)
+  netAmountCents Int
+
   // Period
-  periodStart      DateTime
-  periodEnd        DateTime
-  workOrderIds     String[]
-  
+  periodStart  DateTime
+  periodEnd    DateTime
+  workOrderIds String[]
+
   // Status
-  status           String   @default("pending") // pending, processing, paid, failed, cancelled
-  paidAt           DateTime?
-  failureReason    String?
-  
+  status        String    @default("pending") // pending, processing, paid, failed, cancelled
+  paidAt        DateTime?
+  failureReason String?
+
   // Reserve (fraude/retours)
   reserveCents     Int       @default(0)
   reserveReleaseAt DateTime?
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
   artisan Artisan @relation(fields: [artisanId], references: [id], onDelete: Restrict)
-  
+
   @@index([artisanId])
   @@index([status])
   @@index([periodStart])
@@ -1208,99 +1835,99 @@ model Payout {
 // ========================================
 
 model ModerationRecord {
-  id          String   @id @default(cuid())
-  type        String // text, image, ai_generation
-  content     String // Text or image URL
-  context     Json? // userId, brandId, designId
-  
+  id      String @id @default(cuid())
+  type    String // text, image, ai_generation
+  content String // Text or image URL
+  context Json? // userId, brandId, designId
+
   // Result
-  approved    Boolean
-  confidence  Float
-  categories  String[]
-  reason      String?
-  action      String // allow, review, block
-  
-  createdAt   DateTime @default(now())
-  
+  approved   Boolean
+  confidence Float
+  categories String[]
+  reason     String?
+  action     String // allow, review, block
+
+  createdAt DateTime @default(now())
+
   @@index([type])
   @@index([approved])
   @@index([createdAt])
 }
 
 model IPClaim {
-  id              String   @id @default(cuid())
-  claimantName    String
-  claimantEmail   String
-  claimantType    String // copyright, trademark, patent, other
-  designId        String
-  description     String
-  evidence        String[] // URLs
-  
+  id            String   @id @default(cuid())
+  claimantName  String
+  claimantEmail String
+  claimantType  String // copyright, trademark, patent, other
+  designId      String
+  description   String
+  evidence      String[] // URLs
+
   // Review
-  status          String   @default("pending") // pending, under_review, approved, rejected, resolved
-  reviewedBy      String?
-  reviewedAt      DateTime?
-  resolution      String?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  status     String    @default("pending") // pending, under_review, approved, rejected, resolved
+  reviewedBy String?
+  reviewedAt DateTime?
+  resolution String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([designId])
   @@index([status])
   @@index([createdAt])
 }
 
 model Experiment {
-  id            String   @id @default(cuid())
-  name          String
-  description   String
-  type          String // pricing, copy, prompt, variants, layout
-  variants      Json // Array of { id, name, config, weight }
-  status        String   @default("draft") // draft, running, paused, completed
-  startDate     DateTime?
-  endDate       DateTime?
+  id             String    @id @default(cuid())
+  name           String
+  description    String
+  type           String // pricing, copy, prompt, variants, layout
+  variants       Json // Array of { id, name, config, weight }
+  status         String    @default("draft") // draft, running, paused, completed
+  startDate      DateTime?
+  endDate        DateTime?
   targetAudience Json? // brands, countries, userRoles
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  assignments   ExperimentAssignment[]
-  conversions   Conversion[]
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments ExperimentAssignment[]
+  conversions Conversion[]
+
   @@index([status])
   @@index([type])
   @@index([startDate])
 }
 
 model ExperimentAssignment {
-  id            String   @id @default(cuid())
-  userId        String
-  experimentId  String
-  variantId     String
-  assignedAt    DateTime @default(now())
-  
+  id           String   @id @default(cuid())
+  userId       String
+  experimentId String
+  variantId    String
+  assignedAt   DateTime @default(now())
+
   // Relations
-  experiment    Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
-  
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
   @@unique([userId, experimentId])
   @@index([experimentId])
   @@index([variantId])
 }
 
 model Conversion {
-  id            String   @id @default(cuid())
-  userId        String?
-  sessionId     String
-  experimentId  String?
-  variantId     String?
-  eventType     String // signup, design_created, order_created, purchase
-  value         Int? // Revenue in cents
-  attribution   Json // AttributionData
-  timestamp     DateTime @default(now())
-  
+  id           String   @id @default(cuid())
+  userId       String?
+  sessionId    String
+  experimentId String?
+  variantId    String?
+  eventType    String // signup, design_created, order_created, purchase
+  value        Int? // Revenue in cents
+  attribution  Json // AttributionData
+  timestamp    DateTime @default(now())
+
   // Relations
-  experiment    Experiment? @relation(fields: [experimentId], references: [id], onDelete: SetNull)
-  
+  experiment Experiment? @relation(fields: [experimentId], references: [id], onDelete: SetNull)
+
   @@index([userId])
   @@index([sessionId])
   @@index([experimentId])
@@ -1309,20 +1936,20 @@ model Conversion {
 }
 
 model Attribution {
-  id            String   @id @default(cuid())
-  userId        String?
-  sessionId     String
-  source        String // direct, organic, paid, referral, email, social
-  medium        String?
-  campaign      String?
-  term          String?
-  content       String?
-  referrer      String?
-  landingPage   String
-  device        Json
-  location      Json?
-  timestamp     DateTime @default(now())
-  
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String
+  source      String // direct, organic, paid, referral, email, social
+  medium      String?
+  campaign    String?
+  term        String?
+  content     String?
+  referrer    String?
+  landingPage String
+  device      Json
+  location    Json?
+  timestamp   DateTime @default(now())
+
   @@index([userId])
   @@index([sessionId])
   @@index([source])
@@ -1331,23 +1958,23 @@ model Attribution {
 }
 
 model FraudCheck {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   userId            String?
   email             String?
   ipAddress         String?
   deviceFingerprint String?
   orderValue        Int?
   actionType        String // signup, login, order, payment
-  
+
   // Result
-  riskScore         Int // 0-100
-  riskLevel         String // low, medium, high, critical
-  reasons           String[]
-  action            String // allow, review, block
-  checks            Json // velocity, device, email, ip, value
-  
-  createdAt         DateTime @default(now())
-  
+  riskScore Int // 0-100
+  riskLevel String // low, medium, high, critical
+  reasons   String[]
+  action    String // allow, review, block
+  checks    Json // velocity, device, email, ip, value
+
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([email])
   @@index([ipAddress])
@@ -1367,8 +1994,8 @@ model CreditPack {
   stripePriceId String?  @map("stripe_price_id")
   isActive      Boolean  @default(true) @map("is_active")
   isFeatured    Boolean  @default(false) @map("is_featured")
-  savings       Int?     // Percentage savings vs base pack
-  badge         String?  // "Best Value", "Most Popular", etc.
+  savings       Int? // Percentage savings vs base pack
+  badge         String? // "Best Value", "Most Popular", etc.
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -1383,16 +2010,16 @@ model CreditPack {
 model CreditTransaction {
   id              String   @id @default(cuid())
   userId          String   @map("user_id")
-  packId          String?   @map("pack_id")
-  amount          Int      // Positive = purchase, Negative = usage
-  balanceBefore   Int       @map("balance_before")
-  balanceAfter    Int       @map("balance_after")
-  type            String   // 'purchase', 'usage', 'refund', 'bonus', 'expiration'
-  source          String?  // '/api/ai/generate', 'admin', 'stripe_webhook'
-  metadata        Json?    // Additional data (endpoint, cost, model, duration, etc.)
-  stripeSessionId String?   @map("stripe_session_id")
-  stripePaymentId String?   @map("stripe_payment_id")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  packId          String?  @map("pack_id")
+  amount          Int // Positive = purchase, Negative = usage
+  balanceBefore   Int      @map("balance_before")
+  balanceAfter    Int      @map("balance_after")
+  type            String // 'purchase', 'usage', 'refund', 'bonus', 'expiration'
+  source          String? // '/api/ai/generate', 'admin', 'stripe_webhook'
+  metadata        Json? // Additional data (endpoint, cost, model, duration, etc.)
+  stripeSessionId String?  @map("stripe_session_id")
+  stripePaymentId String?  @map("stripe_payment_id")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   // Relations
   user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1439,15 +2066,15 @@ enum MetricType {
 }
 
 model MonitoringMetric {
-  id            String     @id @default(cuid())
-  service       String     // database, cache, storage, email, payments, api
-  metric        String     // cpu_usage, memory_usage, request_count, error_rate
-  value         Float
-  unit          String?    // ms, %, bytes, count
-  labels        Json?      // Additional metadata (endpoint, method, status, etc.)
-  timestamp     DateTime   @default(now())
-  createdAt     DateTime   @default(now())
-  
+  id        String   @id @default(cuid())
+  service   String // database, cache, storage, email, payments, api
+  metric    String // cpu_usage, memory_usage, request_count, error_rate
+  value     Float
+  unit      String? // ms, %, bytes, count
+  labels    Json? // Additional metadata (endpoint, method, status, etc.)
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+
   @@index([service])
   @@index([metric])
   @@index([timestamp])
@@ -1456,18 +2083,18 @@ model MonitoringMetric {
 }
 
 model ServiceHealth {
-  id            String              @id @default(cuid())
-  service       String              @unique // database, cache, storage, email, payments
-  status        ServiceHealthStatus @default(UNKNOWN)
-  latency       Int?                // milliseconds
-  lastCheck     DateTime            @default(now())
-  lastSuccess   DateTime?
-  failureCount  Int                 @default(0)
-  message       String?
-  metadata      Json?               // Additional service info
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  
+  id           String              @id @default(cuid())
+  service      String              @unique // database, cache, storage, email, payments
+  status       ServiceHealthStatus @default(UNKNOWN)
+  latency      Int? // milliseconds
+  lastCheck    DateTime            @default(now())
+  lastSuccess  DateTime?
+  failureCount Int                 @default(0)
+  message      String?
+  metadata     Json? // Additional service info
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
   @@index([service])
   @@index([status])
   @@index([lastCheck])
@@ -1475,24 +2102,24 @@ model ServiceHealth {
 }
 
 model Alert {
-  id            String        @id @default(cuid())
-  severity      AlertSeverity @default(WARNING)
-  status        AlertStatus   @default(ACTIVE)
-  title         String
-  message       String
-  service       String?       // Which service triggered this
-  metric        String?       // Which metric triggered this
-  threshold     Float?        // Threshold that was exceeded
-  currentValue  Float?        // Current value when alert triggered
-  acknowledgedBy String?      // User ID who acknowledged
+  id             String        @id @default(cuid())
+  severity       AlertSeverity @default(WARNING)
+  status         AlertStatus   @default(ACTIVE)
+  title          String
+  message        String
+  service        String? // Which service triggered this
+  metric         String? // Which metric triggered this
+  threshold      Float? // Threshold that was exceeded
+  currentValue   Float? // Current value when alert triggered
+  acknowledgedBy String? // User ID who acknowledged
   acknowledgedAt DateTime?
-  resolvedBy    String?       // User ID who resolved
-  resolvedAt    DateTime?
+  resolvedBy     String? // User ID who resolved
+  resolvedAt     DateTime?
   resolvedReason String?
-  metadata      Json?         // Additional alert data
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
+  metadata       Json? // Additional alert data
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
   @@index([severity])
   @@index([status])
   @@index([service])
@@ -1507,7 +2134,7 @@ model AlertRule {
   description   String?
   service       String
   metric        String
-  condition     String        // gt, lt, eq, gte, lte
+  condition     String // gt, lt, eq, gte, lte
   threshold     Float
   severity      AlertSeverity @default(WARNING)
   enabled       Boolean       @default(true)
@@ -1517,24 +2144,24 @@ model AlertRule {
   metadata      Json?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  
+
   @@index([service, metric])
   @@index([enabled])
   @@map("AlertRule")
 }
 
 model WebVital {
-  id            String   @id @default(cuid())
-  userId        String?
-  sessionId     String?
-  page          String
-  metric        String   // LCP, FID, CLS, TTFB, FCP
-  value         Float
-  rating        String?  // good, needs-improvement, poor
-  device        Json?    // Device info
-  connection    Json?    // Connection info
-  timestamp     DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  userId     String?
+  sessionId  String?
+  page       String
+  metric     String // LCP, FID, CLS, TTFB, FCP
+  value      Float
+  rating     String? // good, needs-improvement, poor
+  device     Json? // Device info
+  connection Json? // Connection info
+  timestamp  DateTime @default(now())
+
   @@index([userId])
   @@index([sessionId])
   @@index([metric])
@@ -1581,35 +2208,36 @@ enum MessageType {
 }
 
 model Ticket {
-  id            String          @id @default(cuid())
-  ticketNumber  String          @unique // TKT-XXXXX
-  subject       String
-  description   String
-  status        TicketStatus    @default(OPEN)
-  priority      TicketPriority  @default(MEDIUM)
-  category      TicketCategory  @default(TECHNICAL)
-  
+  id           String         @id @default(cuid())
+  ticketNumber String         @unique // TKT-XXXXX
+  subject      String
+  description  String
+  status       TicketStatus   @default(OPEN)
+  priority     TicketPriority @default(MEDIUM)
+  category     TicketCategory @default(TECHNICAL)
+
   // Relations
-  userId        String
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedTo    String?        // User ID of assigned agent
-  assignedAt    DateTime?
-  
+  userId       String
+  user         User      @relation("TicketUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo   String? // User ID of assigned agent
+  assignedUser User?     @relation("AssignedTickets", fields: [assignedTo], references: [id], onDelete: SetNull)
+  assignedAt   DateTime?
+
   // Metadata
-  tags          String[]
-  metadata      Json?          // Additional ticket data
-  firstResponseAt DateTime?    // Time to first response
-  resolvedAt    DateTime?
-  closedAt      DateTime?
-  
+  tags            String[]
+  metadata        Json? // Additional ticket data
+  firstResponseAt DateTime? // Time to first response
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+
   // Relations
-  messages      TicketMessage[]
-  attachments   TicketAttachment[]
-  activities    TicketActivity[]
-  
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  
+  messages    TicketMessage[]
+  attachments TicketAttachment[]
+  activities  TicketActivity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([status])
   @@index([priority])
@@ -1622,23 +2250,23 @@ model Ticket {
 }
 
 model TicketMessage {
-  id            String        @id @default(cuid())
-  ticketId      String
-  ticket        Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  type          MessageType   @default(USER)
-  content       String
-  userId        String?       // User who sent the message
-  user          User?          @relation("TicketMessages", fields: [userId], references: [id], onDelete: SetNull)
-  isInternal    Boolean       @default(false) // Internal note (not visible to user)
-  isRead        Boolean       @default(false)
-  readAt        DateTime?
-  
+  id         String      @id @default(cuid())
+  ticketId   String
+  ticket     Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  type       MessageType @default(USER)
+  content    String
+  userId     String? // User who sent the message
+  user       User?       @relation("TicketMessages", fields: [userId], references: [id], onDelete: SetNull)
+  isInternal Boolean     @default(false) // Internal note (not visible to user)
+  isRead     Boolean     @default(false)
+  readAt     DateTime?
+
   // Relations
-  attachments   TicketAttachment[]
-  
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
+  attachments TicketAttachment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([ticketId])
   @@index([userId])
   @@index([createdAt])
@@ -1647,19 +2275,19 @@ model TicketMessage {
 }
 
 model TicketAttachment {
-  id            String         @id @default(cuid())
-  ticketId      String?
-  messageId     String?
-  fileName      String
-  fileUrl       String
-  fileSize      Int            // bytes
-  mimeType      String
-  uploadedBy    String         // User ID
-  createdAt     DateTime       @default(now())
-  
-  ticket        Ticket?        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  message       TicketMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(cuid())
+  ticketId   String?
+  messageId  String?
+  fileName   String
+  fileUrl    String
+  fileSize   Int // bytes
+  mimeType   String
+  uploadedBy String // User ID
+  createdAt  DateTime @default(now())
+
+  ticket  Ticket?        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message TicketMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
   @@index([ticketId])
   @@index([messageId])
   @@index([uploadedBy])
@@ -1667,17 +2295,17 @@ model TicketAttachment {
 }
 
 model TicketActivity {
-  id            String   @id @default(cuid())
-  ticketId      String
-  ticket        Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  action        String   // created, status_changed, assigned, priority_changed, etc.
-  userId        String?  // User who performed the action
-  user          User?     @relation("TicketActivities", fields: [userId], references: [id], onDelete: SetNull)
-  oldValue      String?
-  newValue      String?
-  metadata      Json?
-  createdAt     DateTime @default(now())
-  
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  action    String // created, status_changed, assigned, priority_changed, etc.
+  userId    String? // User who performed the action
+  user      User?    @relation("TicketActivities", fields: [userId], references: [id], onDelete: SetNull)
+  oldValue  String?
+  newValue  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
   @@index([ticketId])
   @@index([userId])
   @@index([createdAt])
@@ -1685,24 +2313,24 @@ model TicketActivity {
 }
 
 model KnowledgeBaseArticle {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   title         String
-  slug          String   @unique
-  content       String   // Markdown content
+  slug          String    @unique
+  content       String // Markdown content
   excerpt       String?
   category      String
   tags          String[]
-  isPublished   Boolean  @default(false)
-  isFeatured    Boolean  @default(false)
-  views         Int      @default(0)
-  helpful       Int      @default(0)
-  notHelpful    Int      @default(0)
-  authorId      String   // User ID
-  lastUpdatedBy String?  // User ID
+  isPublished   Boolean   @default(false)
+  isFeatured    Boolean   @default(false)
+  views         Int       @default(0)
+  helpful       Int       @default(0)
+  notHelpful    Int       @default(0)
+  authorId      String // User ID
+  lastUpdatedBy String? // User ID
   publishedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
   @@index([category])
   @@index([isPublished])
   @@index([isFeatured])
@@ -1711,9 +2339,330 @@ model KnowledgeBaseArticle {
   @@map("KnowledgeBaseArticle")
 }
 
+// ========================================
+// ANALYTICS AVANCÉES
+// ========================================
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  eventType  String // 'page_view', 'conversion', 'funnel_step', 'user_action', etc.
+  userId     String?
+  sessionId  String?
+  properties Json // Données événement (flexible pour différents types d'événements)
+  timestamp  DateTime @default(now())
+
+  // Relations
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([eventType, timestamp])
+  @@index([userId, timestamp])
+  @@index([brandId, timestamp])
+  @@index([sessionId, timestamp])
+  @@index([brandId, eventType, timestamp])
+  @@index([timestamp])
+  @@map("AnalyticsEvent")
+}
+
+model AnalyticsFunnel {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  steps       Json // Configuration des étapes [{ name, eventType, order }]
+  isActive    Boolean @default(true)
+
+  // Relations
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([isActive])
+  @@index([brandId, isActive])
+  @@map("AnalyticsFunnel")
+}
+
+model AnalyticsCohort {
+  id         String   @id @default(cuid())
+  cohortDate DateTime // Date d'acquisition de la cohorte
+  period     Int // Période de rétention (7, 30, 90, 180, 365 jours)
+  retention  Float // Taux de rétention (0-100)
+  revenue    Float // Revenus générés par la cohorte
+  userCount  Int // Nombre d'utilisateurs dans la cohorte
+
+  // Relations
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, cohortDate, period])
+  @@index([brandId, cohortDate])
+  @@index([brandId, period])
+  @@index([cohortDate])
+  @@index([period])
+  @@map("AnalyticsCohort")
+}
+
+model AnalyticsSegment {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  criteria    Json // Critères de segmentation (flexible)
+  userCount   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  // Relations
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([isActive])
+  @@index([brandId, isActive])
+  @@map("AnalyticsSegment")
+}
+
+model AnalyticsPrediction {
+  id         String @id @default(cuid())
+  type       String // 'revenue', 'conversion', 'churn', 'ltv', etc.
+  value      Float // Valeur prédite
+  confidence Float // Niveau de confiance (0-1)
+  period     String // '7d', '30d', '90d', '1y'
+  metadata   Json? // Métadonnées supplémentaires (facteurs, modèles ML, etc.)
+
+  // Relations
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([brandId, type, createdAt])
+  @@index([brandId, type])
+  @@index([type, period])
+  @@index([createdAt])
+  @@map("AnalyticsPrediction")
+}
+
+// ========================================
+// AI STUDIO - GÉNÉRATIONS
+// ========================================
+
+enum AIGenerationType {
+  IMAGE_2D
+  MODEL_3D
+  ANIMATION
+  TEMPLATE
+}
+
+enum AIGenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model AIGeneration {
+  id             String             @id @default(cuid())
+  type           AIGenerationType
+  prompt         String
+  negativePrompt String?
+  model          String // 'stable-diffusion-xl', 'dall-e-3', 'midjourney-v6', etc.
+  provider       String // 'openai', 'replicate', 'stability', 'custom'
+  parameters     Json // Paramètres de génération (steps, guidance, seed, etc.)
+  status         AIGenerationStatus @default(PENDING)
+  resultUrl      String? // URL du résultat final
+  thumbnailUrl   String? // URL de la miniature
+  credits        Int                @default(0) // Crédits utilisés
+  costCents      Int                @default(0) // Coût en centimes
+  duration       Int? // Temps de génération en secondes
+  quality        Float? // Score de qualité 0-100 (si disponible)
+  error          String? // Message d'erreur si échec
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  // Versioning
+  parentGenerationId String? // Pour les variantes
+  parentGeneration   AIGeneration?  @relation("AIGenerationVersions", fields: [parentGenerationId], references: [id], onDelete: SetNull)
+  versions           AIGeneration[] @relation("AIGenerationVersions")
+  aiVersions         AIVersion[] // Versions détaillées
+
+  // Collections
+  collections AICollectionGeneration[]
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([brandId, createdAt])
+  @@index([brandId, type, status])
+  @@index([type, status])
+  @@index([status])
+  @@index([model])
+  @@index([parentGenerationId])
+  @@index([userId, status])
+  @@index([createdAt])
+  @@map("AIGeneration")
+}
+
+model AIVersion {
+  id           String       @id @default(cuid())
+  generationId String
+  generation   AIGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  version      Int // Numéro de version (1, 2, 3, etc.)
+  prompt       String // Prompt utilisé pour cette version
+  parameters   Json // Paramètres utilisés
+  resultUrl    String // URL du résultat
+  quality      Float? // Score de qualité
+  credits      Int // Crédits utilisés
+  createdAt    DateTime     @default(now())
+
+  @@unique([generationId, version])
+  @@index([generationId])
+  @@map("AIVersion")
+}
+
+model AICollection {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  isShared    Boolean @default(false)
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  generations AICollectionGeneration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([brandId])
+  @@index([isShared])
+  @@map("AICollection")
+}
+
+model AICollectionGeneration {
+  id           String       @id @default(cuid())
+  collectionId String
+  collection   AICollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  generationId String
+  generation   AIGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  addedAt      DateTime     @default(now())
+
+  @@unique([collectionId, generationId])
+  @@index([collectionId])
+  @@index([generationId])
+  @@map("AICollectionGeneration")
+}
+
+// ========================================
+// COLLABORATION
+// ========================================
+
+enum ResourceType {
+  ANALYTICS_REPORT
+  AI_GENERATION
+  DESIGN
+  PRODUCT
+  ORDER
+  CUSTOMIZATION
+}
+
+model SharedResource {
+  id           String       @id @default(cuid())
+  resourceType ResourceType
+  resourceId   String // ID de la ressource partagée
+  sharedWith   String[] // IDs des utilisateurs avec qui c'est partagé
+  permissions  Json // Permissions par utilisateur { userId: ['view', 'edit', 'delete'] }
+  isPublic     Boolean      @default(false) // Partage public (lien)
+  publicToken  String?      @unique // Token pour accès public
+
+  // Relations
+  createdBy     String
+  createdByUser User   @relation("SharedResourcesCreated", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  comments Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([resourceType, resourceId])
+  @@index([createdBy])
+  @@index([brandId])
+  @@index([brandId, resourceType])
+  @@index([isPublic, publicToken])
+  @@index([publicToken])
+  @@map("SharedResource")
+}
+
+model Comment {
+  id           String       @id @default(cuid())
+  resourceType ResourceType
+  resourceId   String
+  content      String
+  parentId     String? // Pour les réponses aux commentaires
+  parent       Comment?     @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment[]    @relation("CommentReplies")
+
+  // Relations
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  sharedResourceId String?
+  sharedResource   SharedResource? @relation(fields: [sharedResourceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([resourceType, resourceId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([sharedResourceId])
+  @@index([resourceType, resourceId, createdAt])
+  @@map("Comment")
+}
+
+// ========================================
+// RELATIONS ADDITIONNELLES
+// ========================================
+
 // Add relations to User model
 // Add to User model:
 //   tickets            Ticket[]
 //   ticketMessages     TicketMessage[]
 //   assignedTickets     Ticket[] @relation("AssignedTickets")
+//   aiGenerations      AIGeneration[]
+//   aiCollections       AICollection[]
+//   sharedResourcesCreated SharedResource[] @relation("SharedResourcesCreated")
+//   comments           Comment[]
 
+// Add relations to Brand model
+// Add to Brand model:
+//   analyticsEvents    AnalyticsEvent[]
+//   analyticsFunnels   AnalyticsFunnel[]
+//   analyticsCohorts   AnalyticsCohort[]
+//   analyticsSegments  AnalyticsSegment[]
+//   analyticsPredictions AnalyticsPrediction[]
+//   aiGenerations      AIGeneration[]
+//   aiCollections      AICollection[]
+//   sharedResources    SharedResource[]

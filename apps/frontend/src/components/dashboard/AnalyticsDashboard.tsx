@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   TrendingUp,
   TrendingDown,
@@ -237,7 +237,7 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
         {metricCards.map((metric, i) => {
           const IconComponent = metric.icon as React.ComponentType<{ className?: string }>;
           return (
-            <motion.div
+            <motion
               key={metric.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -270,7 +270,7 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
                   <p className="text-xs text-gray-500 mt-2">{metric.description}</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </motion>
           );
         })}
       </div>

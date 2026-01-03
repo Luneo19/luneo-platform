@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface DataPoint {
@@ -65,7 +65,7 @@ function LineChartContent({
   const { padding, chartWidth, chartHeight, pathData, minY, rangeY } = chartData;
 
   return (
-    <motion.div
+    <motion
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
@@ -116,7 +116,7 @@ function LineChartContent({
           );
         })}
       </svg>
-    </motion.div>
+    </motion>
   );
 }
 
@@ -129,4 +129,7 @@ export function LineChart(props: LineChartProps) {
     </ErrorBoundary>
   );
 }
+
+// Default export for backward compatibility
+export default LineChart;
 

@@ -124,3 +124,10 @@ echo "  2. Redéployer: vercel --prod"
 echo "  3. Vérifier les logs: vercel logs <deployment-url>"
 echo ""
 
+
+
+
+
+
+
+

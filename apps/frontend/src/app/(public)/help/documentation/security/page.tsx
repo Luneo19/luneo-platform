@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Shield, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
@@ -38,7 +38,7 @@ function SecurityPageContent() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 md:p-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -65,7 +65,7 @@ function SecurityPageContent() {
 
           <div className="grid min-[480px]:grid-cols-2 gap-4 sm:gap-6">
             {sections.map((section, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -84,7 +84,7 @@ function SecurityPageContent() {
                     </div>
                   </Card>
                 </Link>
-              </motion.div>
+              </motion>
             ))}
           </div>
 
@@ -97,7 +97,7 @@ function SecurityPageContent() {
               Luneo utilise les meilleures pratiques de sécurité : chiffrement end-to-end, conformité RGPD/PCI-DSS, audits réguliers, et monitoring 24/7.
             </p>
           </div>
-        </motion.div>
+        </motion>
       </div>
     </div>
   );

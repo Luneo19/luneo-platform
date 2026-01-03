@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import jsPDF from 'jspdf';
 import {
   PLAN_CATALOG,
@@ -860,7 +860,7 @@ export function UsageQuotaOverview() {
 
       {!loading && effectiveSummary && effectivePlan && (
         <>
-          <motion.div
+          <motion
             className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-950 via-gray-900/80 to-gray-900/40 p-6 shadow-xl space-y-6"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -924,7 +924,7 @@ export function UsageQuotaOverview() {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </motion>
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2 border-gray-800 bg-gray-900/50 p-6 space-y-4">

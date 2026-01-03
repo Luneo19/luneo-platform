@@ -1,0 +1,14 @@
+# Shopify Theme App Extension Configuration
+# Extension pour intégrer le widget Luneo dans les thèmes Shopify
+
+type = "theme"
+name = "Luneo Product Customizer"
+
+[build]
+command = ""
+watch = []
+
+[[extension_points]]
+target = "product-form"
+module = "./blocks/customizer.liquid"
+

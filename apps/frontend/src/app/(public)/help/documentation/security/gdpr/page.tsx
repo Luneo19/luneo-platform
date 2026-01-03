@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Shield, Download, Trash2, Lock, Eye, CheckCircle, FileText, Users, Database, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -83,7 +83,7 @@ function GDPRPageContent() {
         { title: 'SSL/TLS', href: '/help/documentation/security/ssl-tls', description: 'Sécurisation HTTPS' }
       ]}
     >
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -98,9 +98,9 @@ function GDPRPageContent() {
             Luneo Platform implémente toutes les exigences du RGPD pour garantir la protection de vos données personnelles et celles de vos clients.
           </p>
         </Card>
-      </motion.div>
+      </motion>
 
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -125,9 +125,9 @@ function GDPRPageContent() {
             </Card>
           ))}
         </div>
-      </motion.div>
+      </motion>
 
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
@@ -175,9 +175,9 @@ function GDPRPageContent() {
             </p>
           </div>
         </Card>
-      </motion.div>
+      </motion>
 
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
@@ -197,9 +197,9 @@ function GDPRPageContent() {
             </div>
           ))}
         </div>
-      </motion.div>
+      </motion>
 
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
@@ -215,7 +215,7 @@ function GDPRPageContent() {
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </Link>
-      </motion.div>
+      </motion>
     </DocPageTemplate>
   );
 }

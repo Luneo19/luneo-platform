@@ -2,7 +2,7 @@
 
 import React, { useMemo, memo } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   Palette, 
   Box, 
@@ -68,7 +68,7 @@ function ProductsHubPageContent() {
       <section className="relative overflow-hidden py-20 sm:py-24 md:py-32">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20" />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-300 px-4 py-2 rounded-full mb-6">
               <Zap className="w-5 h-5" />
               <span className="text-sm font-semibold">Nos Produits</span>
@@ -96,7 +96,7 @@ function ProductsHubPageContent() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -104,7 +104,7 @@ function ProductsHubPageContent() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {products.map((product, idx) => (
-            <motion.div
+            <motion
               key={product.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -145,7 +145,7 @@ function ProductsHubPageContent() {
                   </div>
                 </Card>
               </Link>
-            </motion.div>
+            </motion>
           ))}
         </div>
       </section>

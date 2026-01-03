@@ -13,6 +13,10 @@ import { LODModule } from '@/libs/3d/lod.module';
 import { MarketingRenderModule } from '@/libs/3d/marketing-render.module';
 import { VariantModule } from '@/libs/3d/variant.module';
 import { CADIntegrationService } from './services/cad-integration.service';
+import { RenderQueueService } from './services/render-queue.service';
+import { RenderStatusService } from './services/render-status.service';
+import { RenderPrintReadyService } from './services/render-print-ready.service';
+import { PrintReadyWorker } from './workers/print-ready.worker';
 
 @Module({
   imports: [
@@ -32,6 +36,17 @@ import { CADIntegrationService } from './services/cad-integration.service';
     BullModule.registerQueue({
       name: 'export',
     }),
+    // NOUVEAU: Queues pour preview et final renders
+    // Note: Utiliser BullModule existant (compatible avec BullMQ configuré dans app.module.ts)
+    BullModule.registerQueue({
+      name: 'render-preview',
+    }),
+    BullModule.registerQueue({
+      name: 'render-final',
+    }),
+    BullModule.registerQueue({
+      name: 'render-print-ready',
+    }),
   ],
   controllers: [RenderController],
   providers: [
@@ -40,12 +55,20 @@ import { CADIntegrationService } from './services/cad-integration.service';
     ExportService,
     RenderWorker,
     CADIntegrationService,
+    // NOUVEAU: Services pour queue et status
+    RenderQueueService,
+    RenderStatusService,
+    RenderPrintReadyService,
+    // Workers
+    PrintReadyWorker,
   ],
   exports: [
     Render2DService,
     Render3DService,
     ExportService,
     CADIntegrationService,
+    RenderQueueService,
+    RenderStatusService,
   ],
 })
 export class RenderModule {}

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Check, Gift, Loader2, Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -113,7 +113,7 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
     <section className={`py-16 sm:py-20 bg-gradient-to-br from-gray-900 via-purple-950/20 to-blue-950/20 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -134,12 +134,12 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
             <br />
             <span className="text-purple-400 font-semibold">Parfait pour compléter votre abonnement.</span>
           </p>
-        </motion.div>
+        </motion>
 
         {/* Packs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {packs.map((pack, index) => (
-            <motion.div
+            <motion
               key={pack.id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -232,12 +232,12 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </motion>
           ))}
         </div>
 
         {/* Trust Message */}
-        <motion.div
+        <motion
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -246,10 +246,17 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
           <p className="text-sm text-gray-400">
             💳 Paiement sécurisé par Stripe · 🔒 Vos crédits sont valables à vie · ⚡ Ajout instantané après paiement
           </p>
-        </motion.div>
+        </motion>
       </div>
     </section>
   );
 }
   const [packs, setPacks] = useState<Pack[]>([]);
+
+
+
+
+
+
+
 

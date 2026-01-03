@@ -7,7 +7,7 @@
 
 import React, { useState, useCallback, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { useRouter } from 'next/navigation';
 import {
   User,
@@ -177,7 +177,7 @@ function OnboardingPageContent() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
         {/* Progress */}
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
@@ -209,14 +209,14 @@ function OnboardingPageContent() {
             ))}
           </div>
           <Progress value={progress} className="h-2 bg-slate-800" />
-        </motion.div>
+        </motion>
 
         {/* Content Card */}
         <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm p-8">
           <AnimatePresence mode="wait">
             {/* Step 1: Profil */}
             {currentStep === 1 && (
-              <motion.div
+              <motion
                 key="step1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -268,12 +268,12 @@ function OnboardingPageContent() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {/* Step 2: Use Case */}
             {currentStep === 2 && (
-              <motion.div
+              <motion
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -326,12 +326,12 @@ function OnboardingPageContent() {
                     ))}
                   </div>
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {/* Step 3: Goals */}
             {currentStep === 3 && (
-              <motion.div
+              <motion
                 key="step3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -366,12 +366,12 @@ function OnboardingPageContent() {
                     </motion.button>
                   ))}
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {/* Step 4: Integrations */}
             {currentStep === 4 && (
-              <motion.div
+              <motion
                 key="step4"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -404,26 +404,26 @@ function OnboardingPageContent() {
                     </motion.button>
                   ))}
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {/* Step 5: Complete */}
             {currentStep === 5 && (
-              <motion.div
+              <motion
                 key="step5"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
                 className="text-center py-8"
               >
-                <motion.div
+                <motion
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', delay: 0.2 }}
                   className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"
                 >
                   <Rocket className="w-12 h-12 text-white" />
-                </motion.div>
+                </motion>
                 <h1 className="text-3xl font-bold mb-4">Vous êtes prêt ! 🎉</h1>
                 <p className="text-slate-400 mb-8 max-w-md mx-auto">
                   Votre espace est configuré. Explorez Luneo et commencez à créer des expériences incroyables pour vos clients.
@@ -443,7 +443,7 @@ function OnboardingPageContent() {
                     <p className="text-xs text-slate-400">support</p>
                   </div>
                 </div>
-              </motion.div>
+              </motion>
             )}
           </AnimatePresence>
 
@@ -487,7 +487,7 @@ function OnboardingPageContent() {
         </Card>
 
         {/* Skip Link */}
-        <motion.div
+        <motion
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
@@ -499,7 +499,7 @@ function OnboardingPageContent() {
           >
             Vous pouvez toujours configurer cela plus tard
           </button>
-        </motion.div>
+        </motion>
       </div>
     </div>
   );

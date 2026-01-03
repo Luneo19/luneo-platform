@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   ShoppingCart,
@@ -189,7 +189,7 @@ export default function EcommercePage() {
         </div>
 
         <div className="relative max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -234,7 +234,7 @@ export default function EcommercePage() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 

@@ -1,0 +1,11 @@
+{
+  "customizer": {
+    "button_text": "Personnaliser ce produit",
+    "modal_title": "Personnalisez votre produit",
+    "add_to_cart": "Ajouter au panier",
+    "saving": "Enregistrement...",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "success": "Produit ajouté au panier avec personnalisation !"
+  }
+}
+

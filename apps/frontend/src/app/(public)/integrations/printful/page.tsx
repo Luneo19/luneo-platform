@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Printer,
@@ -791,21 +791,21 @@ Pour résoudre:
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center"
           >
             <div className="flex justify-center mb-6">
-              <motion.div
+              <motion
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring' }}
                 className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl"
               >
                 <Printer className="w-12 h-12 text-white" />
-              </motion.div>
+              </motion>
             </div>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
@@ -825,7 +825,7 @@ Pour résoudre:
               <br />
               <span className="font-semibold text-white">fulfillment automatique, expédition mondiale.</span>
             </motion.p>
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -861,8 +861,8 @@ Pour résoudre:
                   Configurer
                 </Button>
               </Link>
-            </motion.div>
-            <motion.div
+            </motion>
+            <motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
@@ -884,8 +884,8 @@ Pour résoudre:
                 <CheckCircle2 className="w-5 h-5" />
                 <span>Expédition mondiale</span>
               </div>
-            </motion.div>
-          </motion.div>
+            </motion>
+          </motion>
         </div>
       </section>
 
@@ -926,7 +926,7 @@ Pour résoudre:
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -947,7 +947,7 @@ Pour résoudre:
                     ))}
                   </ul>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1128,7 +1128,7 @@ Pour résoudre:
                   </div>
                   <AnimatePresence>
                     {testConnectionResult && (
-                      <motion.div
+                      <motion
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
@@ -1168,7 +1168,7 @@ Pour résoudre:
                             ))}
                           </div>
                         )}
-                      </motion.div>
+                      </motion>
                     )}
                   </AnimatePresence>
                 </div>

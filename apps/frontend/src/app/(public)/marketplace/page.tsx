@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Search,
   Filter,
@@ -298,7 +298,7 @@ function MarketplacePageContent() {
         </div>
         
         <div className="relative max-w-7xl mx-auto px-4 py-20 sm:px-6 lg:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
@@ -329,7 +329,7 @@ function MarketplacePageContent() {
                 />
               </div>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </div>
 
@@ -342,14 +342,14 @@ function MarketplacePageContent() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {featuredTemplates.map((template, index) => (
-              <motion.div
+              <motion
                 key={template.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
                 <TemplateCard template={template} featured />
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -492,7 +492,7 @@ function MarketplacePageContent() {
               }>
                 <AnimatePresence mode="popLayout">
                   {filteredTemplates.map((template, index) => (
-                    <motion.div
+                    <motion
                       key={template.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -500,7 +500,7 @@ function MarketplacePageContent() {
                       transition={{ delay: index * 0.03 }}
                     >
                       <TemplateCard template={template} viewMode={viewMode} />
-                    </motion.div>
+                    </motion>
                   ))}
                 </AnimatePresence>
               </div>

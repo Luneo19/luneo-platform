@@ -119,3 +119,10 @@ Si Cursor est toujours lent après ces optimisations:
 - Le nettoyage Git est optionnel et nécessite une sauvegarde
 
 
+
+
+
+
+
+
+

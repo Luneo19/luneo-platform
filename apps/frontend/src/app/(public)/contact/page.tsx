@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Mail, Phone, MapPin, Send, CheckCircle, ArrowLeft, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -119,7 +119,7 @@ function ContactPageContent() {
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 md:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="flex justify-start mb-6 md:mb-8">
               <Link href="/">
                 <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center backdrop-blur-sm">
@@ -137,14 +137,14 @@ function ContactPageContent() {
             <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-6 md:mb-8 max-w-3xl mx-auto">
               Nous sommes là pour vous aider. N'hésitez pas à nous contacter pour toute question ou pour discuter de vos besoins en design.
             </p>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pb-12 sm:pb-16 md:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Form */}
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+          <motion initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
             <Card className="p-6 sm:p-8 bg-gray-800/50 backdrop-blur-sm border-gray-700">
               <h2 className="text-2xl font-bold text-white mb-6">Envoyez-nous un message</h2>
               
@@ -254,13 +254,13 @@ function ContactPageContent() {
                 </Button>
               </form>
             </Card>
-          </motion.div>
+          </motion>
 
           {/* Contact Info */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+          <motion initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
             <div className="space-y-6">
               {contactInfo.map((info, i) => (
-                <motion.div
+                <motion
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -278,7 +278,7 @@ function ContactPageContent() {
                       </div>
                     </div>
                   </Card>
-                </motion.div>
+                </motion>
               ))}
 
               {/* FAQ Card */}
@@ -299,7 +299,7 @@ function ContactPageContent() {
                 </div>
               </Card>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </div>
     </div>

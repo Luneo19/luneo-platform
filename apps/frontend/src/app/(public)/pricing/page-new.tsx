@@ -10,7 +10,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Check,
   X,
@@ -482,7 +482,7 @@ function PlanCard({ plan, isYearly }: { plan: Plan; isYearly: boolean }) {
   const yearlyNote = isYearly && price > 0 ? `Facturé ${plan.priceYearly}€/an` : null;
 
   return (
-    <motion.div
+    <motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`relative rounded-2xl border-2 p-8 ${
@@ -540,7 +540,7 @@ function PlanCard({ plan, isYearly }: { plan: Plan; isYearly: boolean }) {
           </li>
         ))}
       </ul>
-    </motion.div>
+    </motion>
   );
 }
 
@@ -649,14 +649,14 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       </button>
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <motion
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
             <p className="mt-4 text-gray-600">{answer}</p>
-          </motion.div>
+          </motion>
         )}
       </AnimatePresence>
     </div>
@@ -824,4 +824,11 @@ export default function PricingPage() {
     </ErrorBoundary>
   );
 }
+
+
+
+
+
+
+
 

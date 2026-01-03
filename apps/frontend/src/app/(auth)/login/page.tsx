@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   Eye, 
   EyeOff, 
@@ -189,7 +189,7 @@ function LoginPageContent() {
   }, []);
 
   return (
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -197,14 +197,14 @@ function LoginPageContent() {
       >
       {/* Header */}
           <div className="text-center mb-8">
-        <motion.div
+        <motion
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1 }}
           className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl mb-6 shadow-lg shadow-cyan-500/25 lg:hidden"
         >
           <span className="text-white font-bold text-2xl">L</span>
-        </motion.div>
+        </motion>
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2" data-testid="login-title">
           Bon retour ! 👋
             </h1>
@@ -215,7 +215,7 @@ function LoginPageContent() {
 
           {/* Error Message */}
           {error && (
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3"
@@ -223,19 +223,19 @@ function LoginPageContent() {
         >
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-red-300">{error}</p>
-        </motion.div>
+        </motion>
       )}
 
       {/* Success Message */}
       {success && (
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3"
         >
           <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-green-300">{success}</p>
-        </motion.div>
+        </motion>
           )}
 
           {/* Form */}
@@ -423,7 +423,7 @@ function LoginPageContent() {
           </div>
         </div>
       </div>
-      </motion.div>
+      </motion>
   );
 }
 

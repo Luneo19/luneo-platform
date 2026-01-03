@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ArrowLeft, Camera, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TryOnDemo } from '@/components/lazy';
@@ -24,7 +24,7 @@ function VirtualTryOnDemoPageContent() {
             </Button>
           </Link>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -43,7 +43,7 @@ function VirtualTryOnDemoPageContent() {
             <p className="text-lg text-gray-300 mb-6">
               Essayez lunettes, montres, bijoux en temps réel avec tracking MediaPipe 468+21 points
             </p>
-          </motion.div>
+          </motion>
         </div>
 
         {/* Demo Component */}

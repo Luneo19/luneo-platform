@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Settings, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
@@ -38,7 +38,7 @@ function ConfigurationPageContent() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-5xl mx-auto">
-        <motion.div
+        <motion
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -66,7 +66,7 @@ function ConfigurationPageContent() {
           {/* Sections Grid */}
           <div className="grid md:grid-cols-2 gap-4">
             {sections.map((section, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -85,10 +85,10 @@ function ConfigurationPageContent() {
                     </div>
                   </Card>
                 </Link>
-              </motion.div>
+              </motion>
             ))}
           </div>
-        </motion.div>
+        </motion>
       </div>
     </div>
   );

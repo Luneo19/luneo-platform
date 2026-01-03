@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   ArrowRight, Book, Code, Zap, Box, Eye, Palette, Webhook, Terminal, FileCode, BarChart, Lock,
   Globe, Package, Settings, MessageSquare
@@ -218,7 +218,7 @@ function ProductPage() {
       <section className="bg-gradient-to-br from-gray-900 via-black to-blue-900 py-12 sm:py-16 md:py-20 lg:py-24 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="max-w-3xl mx-auto text-center">
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -233,7 +233,7 @@ function ProductPage() {
               <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-8">
                 Guides complets, API references, exemples de code et best practices pour maîtriser la plateforme Luneo
               </p>
-            </motion.div>
+            </motion>
 
             <div className="relative max-w-2xl mx-auto">
               <input
@@ -263,7 +263,7 @@ function ProductPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {sections.map((section, index) => (
-              <motion.div
+              <motion
                 key={section.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -302,7 +302,7 @@ function ProductPage() {
                     ))}
                   </ul>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>

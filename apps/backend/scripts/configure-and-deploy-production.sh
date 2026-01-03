@@ -283,3 +283,10 @@ echo -e "${GREEN}🎉 Configuration production terminée!${NC}"
 
 
 
+
+
+
+
+
+
+

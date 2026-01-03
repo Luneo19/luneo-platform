@@ -2,6 +2,7 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import webpack from 'webpack';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,6 +71,53 @@ const nextConfig = {
 
   // Webpack optimizations
   webpack: (config, { isServer, dev }) => {
+    // Exclude server-only packages from client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+        stream: false,
+        buffer: false,
+        util: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        net: false,
+        tls: false,
+        child_process: false,
+      };
+      
+      // Exclude pdfkit and its dependencies from client bundle (server-only)
+      config.externals = config.externals || [];
+      if (Array.isArray(config.externals)) {
+        config.externals.push({
+          'pdfkit': 'commonjs pdfkit',
+          'jpeg-exif': 'commonjs jpeg-exif',
+          'png-js': 'commonjs png-js',
+        });
+      } else {
+        config.externals = [
+          config.externals,
+          {
+            'pdfkit': 'commonjs pdfkit',
+            'jpeg-exif': 'commonjs jpeg-exif',
+            'png-js': 'commonjs png-js',
+          }
+        ];
+      }
+      
+      // Ignore pdfkit and related modules in client bundle
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^(pdfkit|png-js|jpeg-exif)$/,
+        })
+      );
+    }
+
     // Production optimizations
     if (!dev && !isServer) {
       config.optimization = {

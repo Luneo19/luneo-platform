@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Logo } from '@/components/Logo';
 import {
   Sparkles,
@@ -122,7 +122,7 @@ export default function AuthLayout({
           
           {/* Floating particles */}
           {particles.map((particle) => (
-            <motion.div
+            <motion
               key={particle.id}
               className="absolute w-1 h-1 bg-cyan-400/20 rounded-full"
               style={{ left: particle.left, top: particle.top }}
@@ -157,7 +157,7 @@ export default function AuthLayout({
 
           {/* Main Content */}
           <div className="flex-1 flex flex-col justify-center py-12">
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -173,12 +173,12 @@ export default function AuthLayout({
                 Créez des expériences d&apos;achat uniques avec notre suite d&apos;outils de personnalisation, 
                 configuration 3D et essayage virtuel.
               </p>
-            </motion.div>
+            </motion>
 
             {/* Features Grid */}
             <div className="grid grid-cols-2 gap-4 mb-10">
               {features.map((feature, index) => (
-                <motion.div
+                <motion
                   key={index}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -192,14 +192,14 @@ export default function AuthLayout({
                     <h3 className="font-medium text-white text-sm">{feature.title}</h3>
                     <p className="text-xs text-slate-500">{feature.description}</p>
                   </div>
-                </motion.div>
+                </motion>
               ))}
             </div>
 
             {/* Stats */}
             <div className="flex items-center gap-8 mb-10">
               {stats.map((stat, index) => (
-                <motion.div
+                <motion
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -208,14 +208,14 @@ export default function AuthLayout({
                 >
                   <div className="text-2xl font-bold text-white">{stat.value}</div>
                   <div className="text-xs text-slate-500">{stat.label}</div>
-                </motion.div>
+                </motion>
               ))}
             </div>
 
             {/* Testimonial Carousel */}
             <div className="relative">
               <AnimatePresence mode="wait">
-                <motion.div
+                <motion
                   key={currentTestimonial}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -244,7 +244,7 @@ export default function AuthLayout({
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </motion>
               </AnimatePresence>
 
               {/* Testimonial indicators */}

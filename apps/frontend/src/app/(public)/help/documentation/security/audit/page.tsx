@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
@@ -56,14 +56,14 @@ const data = await logs.json();
           <span>/</span>
           <span className="text-white">Audit</span>
         </div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-4xl md:text-3xl sm:text-2xl sm:text-xl sm:text-lg sm:text-xl md:text-2xl md:text-3xl md:text-4xl md:text-3xl sm:text-2xl sm:text-xl sm:text-lg sm:text-xl md:text-2xl md:text-3xl md:text-4xl md:text-2xl sm:text-3xl md:text-xl sm:text-2xl md:text-lg sm:text-xl md:text-2xl lg:text-3xl lg:text-4xl lg:text-xl min-[480px]:text-2xl sm:text-3xl md:text-4xl lg:text-xl sm:text-2xl md:text-lg min-[480px]:text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-base min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-base min-[480px]:text-lg sm:text-xl md:text-base min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-2xl sm:text-3xl md:text-xl sm:text-2xl md:text-lg sm:text-xl md:text-2xl lg:text-3xl lg:text-4xl lg:text-2xl sm:text-3xl md:text-xl sm:text-2xl md:text-lg sm:text-xl md:text-2xl lg:text-3xl lg:text-4xl lg:text-5xl font-bold mb-4">
             Security Audit
           </h1>
           <p className="text-xl text-gray-300 mb-8">
             Audit de sécurité et logs d'activité pour les comptes Enterprise.
           </p>
-        </motion.div>
+        </motion>
         <Card className="bg-gray-800/50 border-gray-700 p-6 mb-8">
           <h2 className="text-lg sm:text-xl md:text-lg sm:text-xl md:text-base min-[480px]:text-lg sm:text-xl md:text-2xl font-bold mb-4">Audit Logs</h2>
           <p className="text-gray-300 mb-4">

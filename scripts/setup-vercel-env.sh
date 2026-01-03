@@ -157,3 +157,10 @@ echo ""
 info "Vérifiez toutes les variables avec: vercel env ls"
 info "Déployez avec: vercel --prod"
 
+
+
+
+
+
+
+

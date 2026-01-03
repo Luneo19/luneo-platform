@@ -51,6 +51,13 @@ import { UsersModule } from './modules/users/users.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { SupportModule } from './modules/support/support.module';
+import { CollaborationModule } from './modules/collaboration/collaboration.module';
+import { SpecsModule } from './modules/specs/specs.module';
+import { SnapshotsModule } from './modules/snapshots/snapshots.module';
+import { PersonalizationModule } from './modules/personalization/personalization.module';
+import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
+import { WidgetModule } from './modules/widget/widget.module';
+import { GenerationModule } from './modules/generation/generation.module';
 
 // Common
 import { CommonModule } from './common/common.module';
@@ -177,6 +184,11 @@ import { TracingModule } from './libs/tracing/tracing.module';
     DesignsModule,
     OrdersModule,
     AiModule,
+    // NOUVEAU: Modules 3D/AR + Personalization
+    SpecsModule,
+    SnapshotsModule,
+    PersonalizationModule,
+    ManufacturingModule,
     WebhooksModule,
     AdminModule,
     HealthModule,
@@ -189,6 +201,8 @@ import { TracingModule } from './libs/tracing/tracing.module';
     RenderModule,
     EcommerceModule,
     UsageBillingModule,
+    WidgetModule,
+    GenerationModule,
     SecurityModule,
     AnalyticsModule,
     MarketplaceModule,
@@ -197,6 +211,7 @@ import { TracingModule } from './libs/tracing/tracing.module';
     CreditsModule,
     MonitoringModule,
     SupportModule,
+    CollaborationModule,
 
     // Common utilities
     CommonModule,

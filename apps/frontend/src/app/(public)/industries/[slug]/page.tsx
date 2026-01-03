@@ -3,7 +3,7 @@
 import React, { memo, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ArrowRight, CheckCircle, Package, Sparkles, Zap, Box } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -232,11 +232,11 @@ function IndustryPageContent() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="text-center mb-12">
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }}>
+            <motion initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }}>
               <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                 {industry.icon}
               </div>
-            </motion.div>
+            </motion>
 
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
@@ -256,7 +256,7 @@ function IndustryPageContent() {
               {industry.description}
             </motion.p>
 
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -273,13 +273,13 @@ function IndustryPageContent() {
                   Essayer gratuitement
                 </Button>
               </Link>
-            </motion.div>
+            </motion>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {industry.stats.map((stat: any, i: number) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -291,7 +291,7 @@ function IndustryPageContent() {
                   </div>
                   <div className="text-sm text-gray-400">{stat.label}</div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -300,7 +300,7 @@ function IndustryPageContent() {
       {/* Use Cases */}
       <section className="py-16 sm:py-20 bg-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -312,11 +312,11 @@ function IndustryPageContent() {
             <p className="text-base sm:text-lg text-gray-400">
               Solutions adaptées à vos besoins
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {industry.useCases.map((useCase: string, i: number) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -329,7 +329,7 @@ function IndustryPageContent() {
                     <span className="text-sm sm:text-base text-gray-300">{useCase}</span>
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -338,7 +338,7 @@ function IndustryPageContent() {
       {/* Testimonial */}
       <section className="py-16 sm:py-20 bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -365,14 +365,14 @@ function IndustryPageContent() {
                 <div className="text-sm text-gray-400">{industry.testimonial.role}</div>
               </div>
             </Card>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
       {/* CTA */}
       <section className="py-16 sm:py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
               Prêt à transformer votre business ?
             </h2>
@@ -392,7 +392,7 @@ function IndustryPageContent() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
     </div>

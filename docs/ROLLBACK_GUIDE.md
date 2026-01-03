@@ -208,3 +208,10 @@ npx prisma migrate resolve --rolled-back <migration_name>
 
 **Dernière mise à jour:** Décembre 2024
 
+
+
+
+
+
+
+

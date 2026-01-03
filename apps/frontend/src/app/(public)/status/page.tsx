@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   CheckCircle,
   AlertCircle,
@@ -153,7 +153,7 @@ function StatusPageContent() {
           </p>
 
           {/* Overall Status */}
-          <motion.div
+          <motion
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className={`inline-flex items-center gap-3 px-6 py-3 rounded-full ${
@@ -177,13 +177,13 @@ function StatusPageContent() {
                 </span>
               </>
             )}
-          </motion.div>
+          </motion>
         </div>
 
         {/* Services List */}
         <div className="space-y-4 mb-8">
           {services.map((service, index) => (
-            <motion.div
+            <motion
               key={service.name}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -225,7 +225,7 @@ function StatusPageContent() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </motion>
           ))}
         </div>
 

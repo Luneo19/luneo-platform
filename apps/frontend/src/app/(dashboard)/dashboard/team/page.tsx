@@ -35,7 +35,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Users,
   UserPlus,
@@ -88,7 +88,7 @@ import {
   UserX,
   UserMinus,
   UserCog,
-  UserSettings,
+  Settings,
   ShieldCheck,
   ShieldAlert,
   ShieldOff,
@@ -97,8 +97,6 @@ import {
   Scan,
   QrCode,
   Radio,
-  RadioButtonChecked,
-  RadioButtonUnchecked,
   CheckSquare,
   Square,
   CheckCircle2,
@@ -143,7 +141,7 @@ import {
   Move,
   Copy as CopyIcon,
   Scissors,
-  Paste,
+  ClipboardPaste,
   Clipboard,
   ClipboardCheck,
   ClipboardList,
@@ -169,15 +167,6 @@ import {
   FolderClock,
   FolderKey,
   FolderLock,
-  FolderUnlock,
-  FolderShield,
-  FolderShield2,
-  FolderShieldCheck,
-  FolderShieldAlert,
-  FolderShieldOff,
-  FolderStar,
-  FolderStar2,
-  FolderStarOff,
   FolderArchive,
   FolderGit,
   FolderGit2,
@@ -221,8 +210,6 @@ import {
   Receipt,
   ReceiptText,
   ReceiptEuro,
-  ReceiptPound,
-  ReceiptYen,
   ReceiptIndianRupee,
   CreditCard,
   Wallet,
@@ -231,7 +218,6 @@ import {
   Bitcoin,
   Euro,
   DollarSign,
-  Yen,
   PoundSterling,
   FileText as FileTextIcon,
   FileCheck,
@@ -255,11 +241,10 @@ import {
   FileEdit,
   FileMinus,
   FilePlus,
-  FileSlash,
   Calendar as CalendarIcon,
   Clock as ClockIcon,
   Timer,
-  Stopwatch,
+  Timer,
   Hourglass,
   History,
   RotateCw as RotateCwIcon,
@@ -268,12 +253,10 @@ import {
   Repeat,
   Repeat1,
   Shuffle,
-  ShuffleOff,
   SkipForward,
   SkipBack,
   Play,
   Pause,
-  Stop,
   FastForward,
   Rewind,
   Volume,
@@ -801,7 +784,7 @@ function TeamPageContent() {
         ].map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <motion
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -818,7 +801,7 @@ function TeamPageContent() {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </motion>
           );
         })}
       </div>
@@ -903,7 +886,7 @@ function TeamPageContent() {
                     const roleInfo = getRoleInfo(member.role);
                     const RoleIcon = roleInfo.icon;
                     return (
-                      <motion.div
+                      <motion
                         key={member.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -1005,7 +988,7 @@ function TeamPageContent() {
                             </>
                           )}
                         </div>
-                      </motion.div>
+                      </motion>
                     );
                   })
                 )}
@@ -1037,7 +1020,7 @@ function TeamPageContent() {
                       const roleInfo = getRoleInfo(invite.role);
                       const RoleIcon = roleInfo.icon;
                       return (
-                        <motion.div
+                        <motion
                           key={invite.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -1073,7 +1056,7 @@ function TeamPageContent() {
                               <X className="w-4 h-4" />
                             </Button>
                           </div>
-                        </motion.div>
+                        </motion>
                       );
                     })}
                 </div>

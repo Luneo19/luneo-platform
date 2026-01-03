@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Box,
@@ -428,7 +428,7 @@ function Demo3DViewer() {
             />
 
             {/* 3D Object */}
-            <motion.div
+            <motion
               className="relative"
               style={{
                 transform: `scale(${zoom}) rotateY(${rotationY}deg)`,
@@ -484,7 +484,7 @@ function Demo3DViewer() {
                 className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/30 rounded-full blur-xl"
                 style={{ transform: `translateX(-50%) scale(${zoom})` }}
               />
-            </motion.div>
+            </motion>
 
             {/* Material info badge */}
             <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-2 rounded-lg">
@@ -547,7 +547,7 @@ function Demo3DViewer() {
           {/* Tab Content */}
           <div className="space-y-4">
             {activeTab === 'material' && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-3"
@@ -575,11 +575,11 @@ function Demo3DViewer() {
                     </button>
                   ))}
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {activeTab === 'color' && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-3"
@@ -605,11 +605,11 @@ function Demo3DViewer() {
                   onChange={(e) => setSelectedColor(e.target.value)}
                   className="w-full h-10 rounded-lg cursor-pointer"
                 />
-              </motion.div>
+              </motion>
             )}
 
             {activeTab === 'engraving' && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
@@ -645,11 +645,11 @@ function Demo3DViewer() {
                     </select>
                   </div>
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {activeTab === 'dimensions' && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
@@ -696,7 +696,7 @@ function Demo3DViewer() {
                     className="w-full accent-blue-500"
                   />
                 </div>
-              </motion.div>
+              </motion>
             )}
           </div>
 
@@ -815,13 +815,13 @@ function FAQItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggl
         className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-gray-800/50 transition-colors"
       >
         <span className="font-semibold text-white text-sm sm:text-base pr-4">{faq.question}</span>
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+        <motion animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown className="w-5 h-5 text-blue-400 flex-shrink-0" />
-        </motion.div>
+        </motion>
       </button>
       <AnimatePresence initial={false}>
         {isOpen && (
-          <motion.div
+          <motion
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -830,7 +830,7 @@ function FAQItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggl
             <div className="px-6 pb-5 text-gray-300 text-sm leading-relaxed border-t border-gray-700/50 pt-4">
               {faq.answer}
             </div>
-          </motion.div>
+          </motion>
         )}
       </AnimatePresence>
     </div>
@@ -888,7 +888,7 @@ function Configurator3DPageContent() {
         {/* Animated Background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(59,130,246,0.15),transparent_50%)]" />
-          <motion.div
+          <motion
             className="absolute inset-0"
             animate={{
               background: [
@@ -903,7 +903,7 @@ function Configurator3DPageContent() {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -959,7 +959,7 @@ function Configurator3DPageContent() {
                 { stat: '+28%', label: 'Panier', description: 'valeur moyenne' },
                 { stat: '-55%', label: 'Retours', description: 'moins de retours' },
               ].map((item, i) => (
-                <motion.div
+                <motion
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -969,10 +969,10 @@ function Configurator3DPageContent() {
                   <div className="text-3xl sm:text-4xl font-bold text-white mb-1">{item.stat}</div>
                   <div className="text-sm font-semibold text-blue-400">{item.label}</div>
                   <div className="text-xs text-gray-400">{item.description}</div>
-                </motion.div>
+                </motion>
               ))}
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -981,7 +981,7 @@ function Configurator3DPageContent() {
       {/* ============================================ */}
       <section id="demo-3d" className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1000,15 +1000,15 @@ function Configurator3DPageContent() {
             <p className="text-gray-400 max-w-2xl mx-auto">
               Testez notre configurateur 3D. Changez matériaux, couleurs, gravure et dimensions.
             </p>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
             <Demo3DViewer />
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -1017,7 +1017,7 @@ function Configurator3DPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1032,11 +1032,11 @@ function Configurator3DPageContent() {
             <p className="text-gray-400 max-w-2xl mx-auto">
               CPQ professionnel avec rendu 3D photoréaliste et export production
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {FEATURES.map((feature, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1053,7 +1053,7 @@ function Configurator3DPageContent() {
                   <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
                   <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1064,7 +1064,7 @@ function Configurator3DPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1080,11 +1080,11 @@ function Configurator3DPageContent() {
                 Votre Secteur
               </span>
             </h2>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {USE_CASES.map((useCase, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1107,7 +1107,7 @@ function Configurator3DPageContent() {
                     </div>
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1118,7 +1118,7 @@ function Configurator3DPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1133,15 +1133,15 @@ function Configurator3DPageContent() {
             <p className="text-gray-400">
               Estimez l'impact du configurateur 3D sur vos ventes
             </p>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
             <ROICalculator />
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -1150,7 +1150,7 @@ function Configurator3DPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1163,11 +1163,11 @@ function Configurator3DPageContent() {
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Ils Utilisent Notre Configurateur
             </h2>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1190,7 +1190,7 @@ function Configurator3DPageContent() {
                     <div className="text-xs text-gray-400">{testimonial.metricLabel}</div>
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1201,7 +1201,7 @@ function Configurator3DPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1217,11 +1217,11 @@ function Configurator3DPageContent() {
                 Professionnelle
               </span>
             </h2>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {TECH_SPECS.map((section, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1244,7 +1244,7 @@ function Configurator3DPageContent() {
                     ))}
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1255,7 +1255,7 @@ function Configurator3DPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-5xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1272,9 +1272,9 @@ function Configurator3DPageContent() {
               </span>
               ?
             </h2>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1318,7 +1318,7 @@ function Configurator3DPageContent() {
                 ))}
               </tbody>
             </table>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -1327,7 +1327,7 @@ function Configurator3DPageContent() {
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1343,9 +1343,9 @@ function Configurator3DPageContent() {
                 Simple
               </span>
             </h2>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1390,7 +1390,7 @@ const print = await config.exportPrint({ dpi: 300 });
 const price = config.calculatePrice(); // €1,299`}
               </pre>
             </Card>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
             <Card className="bg-gray-800/30 border-gray-700/50 p-4 text-center">
@@ -1417,7 +1417,7 @@ const price = config.calculatePrice(); // €1,299`}
       {/* ============================================ */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gray-950/50">
         <div className="max-w-3xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1430,11 +1430,11 @@ const price = config.calculatePrice(); // €1,299`}
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Questions Fréquentes
             </h2>
-          </motion.div>
+          </motion>
 
           <div className="space-y-3">
             {FAQS.map((faq, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1446,7 +1446,7 @@ const price = config.calculatePrice(); // €1,299`}
                   isOpen={openFaqIndex === index}
                   onToggle={() => toggleFAQ(index)}
                 />
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -1459,7 +1459,7 @@ const price = config.calculatePrice(); // €1,299`}
         {/* Animated Background */}
         <div className="absolute inset-0 opacity-30">
           {Array.from({ length: 20 }).map((_, i) => (
-            <motion.div
+            <motion
               key={i}
               className="absolute w-2 h-2 bg-white rounded-full"
               animate={{ y: [0, -600], opacity: [0, 1, 0] }}
@@ -1475,7 +1475,7 @@ const price = config.calculatePrice(); // €1,299`}
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1518,7 +1518,7 @@ const price = config.calculatePrice(); // €1,299`}
                 <span>Support français 24/7</span>
               </div>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
     </div>

@@ -694,3 +694,10 @@ Tous les endpoints utilisent Zod pour la validation.
 
 **Dernière mise à jour:** Décembre 2024
 
+
+
+
+
+
+
+

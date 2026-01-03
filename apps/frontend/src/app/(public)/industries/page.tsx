@@ -3,7 +3,7 @@
 import React, { useState, useMemo, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Building,
   Shirt,
@@ -247,7 +247,7 @@ function IndustriesPageContent() {
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.15),transparent_70%)]" />
           {[...Array(20)].map((_, i) => (
-            <motion.div
+            <motion
               key={i}
               className="absolute w-1 h-1 bg-purple-400/20 rounded-full"
               style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
@@ -258,7 +258,7 @@ function IndustriesPageContent() {
         </div>
 
         <div className="relative max-w-7xl mx-auto text-center">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -280,7 +280,7 @@ function IndustriesPageContent() {
             {/* Global Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-12">
               {globalStats.map((stat, i) => (
-                <motion.div
+                <motion
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -292,10 +292,10 @@ function IndustriesPageContent() {
                   </div>
                   <div className="text-2xl font-bold text-white">{stat.value}</div>
                   <div className="text-sm text-slate-500">{stat.label}</div>
-                </motion.div>
+                </motion>
               ))}
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -311,7 +311,7 @@ function IndustriesPageContent() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {featuredIndustries.map((industry, index) => (
-              <motion.div
+              <motion
                 key={industry.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -359,7 +359,7 @@ function IndustriesPageContent() {
                     </div>
                   </Card>
                 </Link>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -368,7 +368,7 @@ function IndustriesPageContent() {
       {/* All Industries Grid */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -380,11 +380,11 @@ function IndustriesPageContent() {
             <p className="text-slate-400 max-w-2xl mx-auto">
               Explorez nos solutions adaptées à chaque secteur
             </p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dynamicIndustries.map((industry, index) => (
-              <motion.div
+              <motion
                 key={industry.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -444,7 +444,7 @@ function IndustriesPageContent() {
                     </div>
                   </Card>
                 </Link>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -453,7 +453,7 @@ function IndustriesPageContent() {
       {/* Testimonials */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -462,11 +462,11 @@ function IndustriesPageContent() {
             <h2 className="text-3xl font-bold text-white mb-4">
               Témoignages <span className="text-purple-400">Clients</span>
             </h2>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => (
-              <motion.div
+              <motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -497,7 +497,7 @@ function IndustriesPageContent() {
                     </span>
                   </div>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -506,7 +506,7 @@ function IndustriesPageContent() {
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-900 to-purple-950/30">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -532,7 +532,7 @@ function IndustriesPageContent() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
     </div>

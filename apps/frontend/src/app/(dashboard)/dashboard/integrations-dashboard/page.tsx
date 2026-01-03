@@ -98,7 +98,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { useRouter } from 'next/navigation';
 import {
   Plug,
@@ -129,7 +129,6 @@ import {
   RefreshCw,
   Play,
   Pause,
-  Stop,
   Download,
   Upload,
   Copy,
@@ -172,8 +171,6 @@ import {
   Receipt,
   ReceiptText,
   ReceiptEuro,
-  ReceiptPound,
-  ReceiptYen,
   ReceiptIndianRupee,
   Wallet,
   WalletCards,
@@ -181,7 +178,6 @@ import {
   Bitcoin,
   Euro,
   DollarSign,
-  Yen,
   PoundSterling,
   FileText,
   FileSpreadsheet,
@@ -199,7 +195,6 @@ import {
   FileEdit,
   FileMinus,
   FilePlus,
-  FileSlash,
   FileCheck,
   FileX,
   FileQuestion,
@@ -244,15 +239,6 @@ import {
   FolderClock,
   FolderKey,
   FolderLock,
-  FolderUnlock,
-  FolderShield,
-  FolderShield2,
-  FolderShieldCheck,
-  FolderShieldAlert,
-  FolderShieldOff,
-  FolderStar,
-  FolderStar2,
-  FolderStarOff,
   FolderArchive,
   FolderGit,
   FolderGit2,
@@ -279,120 +265,10 @@ import {
   UserRoundMinus,
   UserRoundCog,
   UserRoundSearch,
-  UserRoundPen,
-  UserRoundPencil,
-  UserRoundCode,
-  UserRoundSettings,
-  UserRoundKey,
-  UserRoundLock,
-  UserRoundUnlock,
-  UserRoundShield,
-  UserRoundShieldCheck,
-  UserRoundShieldAlert,
-  UserRoundShieldOff,
-  UserRoundStar,
-  UserRoundStar2,
-  UserRoundStarOff,
-  UserRoundHeart,
-  UserRoundHeartOff,
-  UserRoundBookmark,
-  UserRoundBookmarkCheck,
-  UserRoundBookmarkX,
-  UserRoundBookmarkOff,
-  UserRoundMessage,
-  UserRoundMessageSquare,
-  UserRoundMessageCircle,
-  UserRoundMessageDots,
-  UserRoundMessagePlus,
-  UserRoundMessageMinus,
-  UserRoundMessageX,
-  UserRoundMessageCheck,
-  UserRoundMessageQuestion,
-  UserRoundMessageWarning,
-  UserRoundMessageAlert,
-  UserRoundMessageInfo,
-  UserRoundMessageCode,
-  UserRoundMessageEdit,
-  UserRoundMessageReply,
-  UserRoundMessageForward,
-  UserRoundMessageShare,
-  UserRoundMessageCopy,
-  UserRoundMessageLink,
-  UserRoundMessageExternal,
-  UserRoundMessageLock,
-  UserRoundMessageUnlock,
-  UserRoundMessageShield,
-  UserRoundMessageShieldCheck,
-  UserRoundMessageShieldAlert,
-  UserRoundMessageShieldOff,
-  UserRoundMessageStar,
-  UserRoundMessageStar2,
-  UserRoundMessageStarOff,
-  UserRoundMessageHeart,
-  UserRoundMessageHeartOff,
-  UserRoundMessageBookmark,
-  UserRoundMessageBookmarkCheck,
-  UserRoundMessageBookmarkX,
-  UserRoundMessageBookmarkOff,
   Brain,
   BarChart3,
   LineChart,
   PieChart,
-  AreaChart,
-  ScatterChart,
-  CandlestickChart,
-  RadarChart,
-  GaugeChart,
-  HeatmapChart,
-  TreemapChart,
-  SunburstChart,
-  SankeyChart,
-  FunnelChart,
-  WaterfallChart,
-  BoxplotChart,
-  ViolinChart,
-  HistogramChart,
-  DensityChart,
-  ContourChart,
-  SurfaceChart,
-  MeshChart,
-  StreamChart,
-  ThemeChart,
-  PolarChart,
-  ParallelChart,
-  GraphChart,
-  TreeChart,
-  ForceChart,
-  ChordChart,
-  BundleChart,
-  PackChart,
-  PartitionChart,
-  IcicleChart,
-  FlameChart,
-  SunburstChart as SunburstChartIcon,
-  SankeyChart as SankeyChartIcon,
-  FunnelChart as FunnelChartIcon,
-  WaterfallChart as WaterfallChartIcon,
-  BoxplotChart as BoxplotChartIcon,
-  ViolinChart as ViolinChartIcon,
-  HistogramChart as HistogramChartIcon,
-  DensityChart as DensityChartIcon,
-  ContourChart as ContourChartIcon,
-  SurfaceChart as SurfaceChartIcon,
-  MeshChart as MeshChartIcon,
-  StreamChart as StreamChartIcon,
-  ThemeChart as ThemeChartIcon,
-  PolarChart as PolarChartIcon,
-  ParallelChart as ParallelChartIcon,
-  GraphChart as GraphChartIcon,
-  TreeChart as TreeChartIcon,
-  ForceChart as ForceChartIcon,
-  ChordChart as ChordChartIcon,
-  BundleChart as BundleChartIcon,
-  PackChart as PackChartIcon,
-  PartitionChart as PartitionChartIcon,
-  IcicleChart as IcicleChartIcon,
-  FlameChart as FlameChartIcon,
   Loader2,
   CheckCircle2,
   XCircle as XCircleIcon,
@@ -406,31 +282,6 @@ import {
   Badge as BadgeIcon,
   Gift,
   GiftIcon,
-  GiftOff,
-  GiftCard,
-  GiftCardIcon,
-  GiftCardOff,
-  GiftCardCheck,
-  GiftCardX,
-  GiftCardPlus,
-  GiftCardMinus,
-  GiftCardEdit,
-  GiftCardSearch,
-  GiftCardSettings,
-  GiftCardKey,
-  GiftCardLock,
-  GiftCardUnlock,
-  GiftCardShield,
-  GiftCardShieldCheck,
-  GiftCardShieldAlert,
-  GiftCardShieldOff,
-  GiftCardStar,
-  GiftCardStar2,
-  GiftCardStarOff,
-  GiftCardHeart,
-  GiftCardHeartOff,
-  GiftCardBookmark,
-  GiftCardBookmarkCheck,
   GiftCardBookmarkX,
   GiftCardBookmarkOff,
   GiftCardMessage,
@@ -856,7 +707,7 @@ function IntegrationsDashboardPageContent() {
         ].map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <motion
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -873,7 +724,7 @@ function IntegrationsDashboardPageContent() {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </motion>
           );
         })}
       </div>
@@ -926,9 +777,9 @@ function IntegrationsDashboardPageContent() {
                             <p className="text-xs text-gray-400">{integration.category}</p>
                           </div>
                         </div>
-                        <Badge variant={integration.status === 'connected' ? 'default' : 'secondary'}>
-                          {integration.status === 'connected' ? 'Connecté' : 'Non connecté'}
-                        </Badge>
+                            <Badge variant={integration.status === 'connected' ? 'default' : 'secondary'}>
+                              {integration.status === 'connected' ? 'Connecté' : 'Non connecté'}
+                            </Badge>
                       </div>
                     );
                   })}
@@ -1009,7 +860,7 @@ function IntegrationsDashboardPageContent() {
               {filteredIntegrations.map((integration, index) => {
                 const Icon = integration.icon;
                 return (
-                  <motion.div
+                  <motion
                     key={integration.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -1100,7 +951,7 @@ function IntegrationsDashboardPageContent() {
                         </div>
                       </CardContent>
                     </Card>
-                  </motion.div>
+                  </motion>
                 );
               })}
             </div>
@@ -1147,10 +998,10 @@ function IntegrationsDashboardPageContent() {
                 <Button
                   onClick={() => setShowAPIKeysModal(true)}
                   className="bg-gradient-to-r from-cyan-600 to-blue-600"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Créer une clé API
-                </Button>
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Créer une clé API
+                    </Button>
               </div>
             </CardHeader>
             <CardContent>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
 import { logger } from '@/lib/logger';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Lazy load 3D Configurator
 const ProductConfigurator3D = dynamic(

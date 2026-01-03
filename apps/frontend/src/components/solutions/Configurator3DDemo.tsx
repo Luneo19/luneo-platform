@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo, Suspense } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Palette,
   Type,
@@ -686,7 +686,7 @@ function Configurator3DDemo({
           {/* Tab Content */}
           <div className="min-h-[200px]">
             {activeTab === 'material' && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-4"
@@ -732,11 +732,11 @@ function Configurator3DDemo({
                     </div>
                   ))}
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {activeTab === 'color' && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-4"
@@ -766,11 +766,11 @@ function Configurator3DDemo({
                     className="w-full h-12 rounded-lg cursor-pointer"
                   />
                 </div>
-              </motion.div>
+              </motion>
             )}
 
             {activeTab === 'engraving' && enableEngraving && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-4"
@@ -789,11 +789,11 @@ function Configurator3DDemo({
                 <p className="text-xs text-gray-400">
                   Le texte sera gravé en 3D sur le produit
                 </p>
-              </motion.div>
+              </motion>
             )}
 
             {activeTab === 'size' && (
-              <motion.div
+              <motion
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-4"
@@ -815,7 +815,7 @@ function Configurator3DDemo({
                     <p className="text-xs text-gray-400 mt-1">Profondeur</p>
                   </div>
                 </div>
-              </motion.div>
+              </motion>
             )}
           </div>
         </div>

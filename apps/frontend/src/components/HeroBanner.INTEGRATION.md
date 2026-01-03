@@ -145,3 +145,10 @@ Pour tester rapidement avec une image placeholder :
 5. Optimiser l'image si nécessaire
 
 
+
+
+
+
+
+
+

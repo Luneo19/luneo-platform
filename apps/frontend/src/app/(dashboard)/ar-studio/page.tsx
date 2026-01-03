@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -341,7 +341,7 @@ function ARStudioPageContent() {
       {/* Models Grid/List */}
       <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
         {filteredModels.map((model, index) => (
-          <motion.div
+          <motion
             key={model.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -424,7 +424,7 @@ function ARStudioPageContent() {
                 </Button>
               </div>
             </Card>
-          </motion.div>
+          </motion>
         ))}
       </div>
 
@@ -450,14 +450,14 @@ function ARStudioPageContent() {
       {/* Upload Modal */}
       <AnimatePresence>
         {showUploadModal && (
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             onClick={() => setShowUploadModal(false)}
           >
-            <motion.div
+            <motion
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -506,7 +506,7 @@ function ARStudioPageContent() {
                       <span className="text-white">{uploadProgress}%</span>
                     </div>
                     <div className="h-2 bg-gray-900 rounded-full overflow-hidden">
-                      <motion.div
+                      <motion
                         initial={{ width: 0 }}
                         animate={{ width: `${uploadProgress}%` }}
                         className="h-full bg-gradient-to-r from-blue-600 to-purple-600"
@@ -536,22 +536,22 @@ function ARStudioPageContent() {
                   </Button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </motion>
+          </motion>
         )}
       </AnimatePresence>
 
       {/* Preview Modal */}
       <AnimatePresence>
         {showPreview && selectedModel && (
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
             onClick={() => setShowPreview(false)}
           >
-            <motion.div
+            <motion
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -584,8 +584,8 @@ function ARStudioPageContent() {
                   Partager
                 </Button>
               </div>
-            </motion.div>
-          </motion.div>
+            </motion>
+          </motion>
         )}
       </AnimatePresence>
     </div>

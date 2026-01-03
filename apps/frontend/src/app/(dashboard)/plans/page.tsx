@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -277,7 +277,7 @@ function PlansPageContent() {
           const isEnterprise = plan.id === 'enterprise';
 
           return (
-            <motion.div
+            <motion
               key={plan.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -378,7 +378,7 @@ function PlansPageContent() {
                   )}
                 </Button>
               </Card>
-            </motion.div>
+            </motion>
           );
         })}
       </div>

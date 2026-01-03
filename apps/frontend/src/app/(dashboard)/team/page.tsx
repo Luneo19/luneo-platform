@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -259,7 +259,7 @@ function TeamPageContent() {
           <h3 className="text-lg font-bold text-white mb-4">Invitations en attente</h3>
           <div className="space-y-3">
             {pendingInvites.map((invite) => (
-              <motion.div
+              <motion
                 key={invite.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -294,7 +294,7 @@ function TeamPageContent() {
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </Card>
@@ -306,7 +306,7 @@ function TeamPageContent() {
           {filteredMembers.map((member) => {
             const roleInfo = getRoleInfo(member.role);
             return (
-              <motion.div
+              <motion
                 key={member.id}
                 layout
                 initial={{ opacity: 0 }}
@@ -383,7 +383,7 @@ function TeamPageContent() {
                     </>
                   )}
                 </div>
-              </motion.div>
+              </motion>
             );
           })}
         </div>
@@ -415,14 +415,14 @@ function TeamPageContent() {
       {/* Invite Modal */}
       <AnimatePresence>
         {showInviteModal && (
-          <motion.div
+          <motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             onClick={() => setShowInviteModal(false)}
           >
-            <motion.div
+            <motion
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -476,8 +476,8 @@ function TeamPageContent() {
                   </Button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </motion>
+          </motion>
         )}
       </AnimatePresence>
     </div>

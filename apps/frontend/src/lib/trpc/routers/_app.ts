@@ -19,6 +19,9 @@ import { designRouter } from './design';
 import { profileRouter } from './profile';
 import { aiRouter } from './ai';
 import { abTestingRouter } from './ab-testing';
+import { analyticsAdvancedRouter } from './analytics-advanced';
+import { aiStudioRouter } from './ai-studio';
+import { collaborationRouter } from './collaboration';
 
 // ========================================
 // APP ROUTER
@@ -40,6 +43,9 @@ export const appRouter = router({
   profile: profileRouter,
   ai: aiRouter,
   abTesting: abTestingRouter,
+  analyticsAdvanced: analyticsAdvancedRouter,
+  aiStudio: aiStudioRouter,
+  collaboration: collaborationRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -2,7 +2,7 @@
 
 import React, { memo, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { CheckCircle, Loader2, AlertCircle, Mail, ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -117,13 +117,13 @@ function VerifyEmailPageContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <motion.div
+      <motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full bg-white rounded-xl shadow-lg p-8"
       >
         {statusContent}
-      </motion.div>
+      </motion>
     </div>
   );
 }

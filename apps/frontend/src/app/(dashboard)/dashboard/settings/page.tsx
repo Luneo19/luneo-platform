@@ -34,7 +34,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Settings,
   User,
@@ -100,12 +100,9 @@ import {
   FileEdit,
   FileMinus,
   FilePlus,
-  FileSlash,
   Receipt,
   ReceiptText,
   ReceiptEuro,
-  ReceiptPound,
-  ReceiptYen,
   ReceiptIndianRupee,
   Wallet,
   WalletCards,
@@ -113,7 +110,6 @@ import {
   Bitcoin,
   Euro,
   DollarSign,
-  Yen,
   PoundSterling,
   Tag,
   Tags,
@@ -151,15 +147,6 @@ import {
   FolderClock,
   FolderKey,
   FolderLock,
-  FolderUnlock,
-  FolderShield,
-  FolderShield2,
-  FolderShieldCheck,
-  FolderShieldAlert,
-  FolderShieldOff,
-  FolderStar,
-  FolderStar2,
-  FolderStarOff,
   FolderArchive,
   FolderGit,
   FolderGit2,
@@ -193,7 +180,7 @@ import {
   Calendar as CalendarIcon,
   Clock as ClockIcon,
   Timer,
-  Stopwatch,
+  Timer,
   Hourglass,
   History,
   RotateCw,
@@ -201,19 +188,17 @@ import {
   Repeat,
   Repeat1,
   Shuffle,
-  ShuffleOff,
   SkipForward,
   SkipBack,
   Play,
   Pause,
-  Stop,
   FastForward,
   Rewind,
   Volume,
   Volume1,
   Volume2,
   VolumeX,
-  Mute,
+  VolumeX,
   Mic,
   MicOff,
   Video,
@@ -247,7 +232,6 @@ import {
   LayoutGrid,
   LayoutList,
   LayoutDashboard,
-  LayoutKanban,
   LayoutTemplate,
   Columns,
   Rows,
@@ -290,8 +274,6 @@ import {
   UserRoundMinus,
   UserRoundCog,
   UserRoundSearch,
-  UserRoundPen,
-  UserRoundPencil,
   UserRoundCode,
   UserRoundSettings,
   UserRoundKey,
@@ -1189,9 +1171,8 @@ function SettingsPageContent() {
                           >
                             {webhook.status === 'active' && 'Actif'}
                             {webhook.status === 'inactive' && 'Inactif'}
-                            {webhook.status === 'failed' && 'Échoué'}
-                          </Badge>
-                        </div>
+                            {webhook.status === 'failed' && 'Échoué'}</Badge>
+                    </div>
                         <p className="text-sm text-gray-400">
                           {webhook.events.length} événement(s) configuré(s)
                           {webhook.lastTriggered && ` • Dernier déclenchement: ${formatDateTime(webhook.lastTriggered)}`}
@@ -1562,6 +1543,14 @@ function SettingsPageContent() {
 const MemoizedSettingsPageContent = memo(SettingsPageContent);
 
 export default function SettingsPage() {
+
+
+
+
+
+
+
+
   return (
     <ErrorBoundary level="page" componentName="SettingsPage">
       <MemoizedSettingsPageContent />

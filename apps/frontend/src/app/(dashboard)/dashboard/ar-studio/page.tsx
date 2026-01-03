@@ -68,7 +68,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -117,7 +117,6 @@ import {
   FileEdit,
   FileMinus,
   FilePlus,
-  FileSlash,
   FileCheck,
   FileX,
   FileQuestion,
@@ -127,24 +126,22 @@ import {
   Calendar,
   Clock,
   Timer,
-  Stopwatch,
+  Timer,
   Hourglass,
   History,
   Repeat,
   Repeat1,
   Shuffle,
-  ShuffleOff,
   SkipForward,
   SkipBack,
   Pause,
-  Stop,
   FastForward,
   Rewind,
   Volume,
   Volume1,
   Volume2,
   VolumeX,
-  Mute,
+  VolumeX,
   Mic,
   MicOff,
   Video,
@@ -212,15 +209,6 @@ import {
   FolderClock,
   FolderKey,
   FolderLock,
-  FolderUnlock,
-  FolderShield,
-  FolderShield2,
-  FolderShieldCheck,
-  FolderShieldAlert,
-  FolderShieldOff,
-  FolderStar,
-  FolderStar2,
-  FolderStarOff,
   FolderArchive,
   FolderGit,
   FolderGit2,
@@ -257,8 +245,6 @@ import {
   QrCode,
   Barcode,
   Radio,
-  RadioButtonChecked,
-  RadioButtonUnchecked,
   ToggleLeft,
   ToggleRight,
   CheckSquare,
@@ -289,8 +275,6 @@ import {
   Receipt,
   ReceiptText,
   ReceiptEuro,
-  ReceiptPound,
-  ReceiptYen,
   ReceiptIndianRupee,
   Wallet,
   WalletCards,
@@ -298,7 +282,6 @@ import {
   Bitcoin,
   Euro,
   DollarSign,
-  Yen,
   PoundSterling,
   FileText as FileTextIcon,
   FileSpreadsheet as FileSpreadsheetIcon,
@@ -316,7 +299,6 @@ import {
   FileEdit as FileEditIcon,
   FileMinus as FileMinusIcon,
   FilePlus as FilePlusIcon,
-  FileSlash as FileSlashIcon,
   FileCheck as FileCheckIcon,
   FileX as FileXIcon,
   FileQuestion as FileQuestionIcon,
@@ -818,7 +800,7 @@ function ARStudioPageContent() {
         ].map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <motion
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -835,7 +817,7 @@ function ARStudioPageContent() {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </motion>
           );
         })}
       </div>
@@ -845,7 +827,7 @@ function ARStudioPageContent() {
         {QUICK_ACTIONS.map((action, index) => {
           const Icon = action.icon;
           return (
-            <motion.div
+            <motion
               key={action.href}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -864,7 +846,7 @@ function ARStudioPageContent() {
                   <ArrowRight className="w-4 h-4 text-cyan-400" />
                 </CardContent>
               </Card>
-            </motion.div>
+            </motion>
           );
         })}
       </div>
@@ -964,7 +946,7 @@ function ARStudioPageContent() {
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredModels.map((model, index) => (
-                <motion.div
+                <motion
                   key={model.id}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -1032,9 +1014,9 @@ function ARStudioPageContent() {
                       <h3 className="font-semibold text-white mb-2 truncate">{model.name}</h3>
                       <div className="flex items-center justify-between text-sm text-gray-400 mb-2">
                         <span>{formatBytes(model.fileSize)}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {model.format}
-                        </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {model.format}
+                            </Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -1056,7 +1038,7 @@ function ARStudioPageContent() {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </motion>
               ))}
             </div>
           ) : (
@@ -1089,16 +1071,16 @@ function ARStudioPageContent() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {MODEL_TYPES.find((t) => t.value === model.type)?.label || model.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {model.format}
-                        </Badge>
-                      </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {MODEL_TYPES.find((t) => t.value === model.type)?.label || model.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {model.format}
+                            </Badge>
+                          </TableCell>
                       <TableCell>
                         <Badge
                           variant={model.status === 'active' ? 'default' : 'secondary'}
@@ -1136,11 +1118,11 @@ function ARStudioPageContent() {
                             <Eye className="w-4 h-4" />
                           </Button>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" className="text-gray-400 hover:text-gray-300">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="text-gray-400 hover:text-gray-300">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
                               <DropdownMenuItem onClick={() => handleCopyEmbedCode(model)} className="text-white">
                                 <Copy className="w-4 h-4 mr-2" />
@@ -1302,8 +1284,7 @@ function ARStudioPageContent() {
                           </div>
                         </div>
                         <Badge variant={integration.connected ? 'default' : 'secondary'}>
-                          {integration.connected ? 'Connecté' : 'Non connecté'}
-                        </Badge>
+                          {integration.connected ? 'Connecté' : 'Non connecté'}</Badge>
                       </div>
                       <Button
                         variant="outline"
@@ -1419,9 +1400,8 @@ function ARStudioPageContent() {
                       {selectedModel.status === 'active' && 'Actif'}
                       {selectedModel.status === 'processing' && 'Traitement'}
                       {selectedModel.status === 'error' && 'Erreur'}
-                      {selectedModel.status === 'draft' && 'Brouillon'}
-                    </Badge>
-                  </div>
+                      {selectedModel.status === 'draft' && 'Brouillon'}</Badge>
+                    </div>
                   <div>
                     <Label className="text-gray-300">Créé le</Label>
                     <p className="text-white mt-1">{formatDate(selectedModel.createdAt)}</p>

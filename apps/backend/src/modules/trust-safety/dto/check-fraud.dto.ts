@@ -53,3 +53,10 @@ export class CheckFraudDto {
 
 
 
+
+
+
+
+
+
+

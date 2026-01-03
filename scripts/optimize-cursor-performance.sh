@@ -72,3 +72,10 @@ echo "   3. Considérer de déplacer les fichiers markdown obsolètes vers un do
 echo "   4. Nettoyer régulièrement avec: bash scripts/optimize-cursor-performance.sh"
 
 
+
+
+
+
+
+
+

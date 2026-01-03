@@ -74,3 +74,10 @@ export function buildStrictCSPWithNonce(nonce: string): string {
   ].join('; ');
 }
 
+
+
+
+
+
+
+

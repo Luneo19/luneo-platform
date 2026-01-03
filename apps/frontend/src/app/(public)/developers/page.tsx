@@ -7,7 +7,7 @@
 
 import { useState, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Code,
   Key,
@@ -165,7 +165,7 @@ function DevelopersPageContent() {
       {/* Hero */}
       <div className="bg-gradient-to-b from-blue-900/20 to-slate-950 py-20">
         <div className="max-w-6xl mx-auto px-6">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
@@ -191,7 +191,7 @@ function DevelopersPageContent() {
                 Guide complet
               </Button>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </div>
 

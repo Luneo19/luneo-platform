@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Layers,
@@ -179,7 +179,7 @@ export default function VisualCustomizerPage() {
         </div>
 
         <div className="relative max-w-7xl mx-auto">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-12"
@@ -216,7 +216,7 @@ export default function VisualCustomizerPage() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
 

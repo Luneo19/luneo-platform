@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -174,7 +174,7 @@ function DocsSidebarContent() {
 
               {/* Children */}
               {item.children.length > 0 && expandedItems.includes(item.title) && (
-                <motion.div
+                <motion
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
@@ -193,7 +193,7 @@ function DocsSidebarContent() {
                       {child.title}
                     </Link>
                   ))}
-                </motion.div>
+                </motion>
               )}
             </div>
           ))}

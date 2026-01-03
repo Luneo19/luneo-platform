@@ -121,3 +121,10 @@
 - Le cache Next.js est basé sur le hash des fichiers source, donc invalidé automatiquement lors de changements
 - Les timeouts sont conservateurs pour éviter les faux positifs
 
+
+
+
+
+
+
+

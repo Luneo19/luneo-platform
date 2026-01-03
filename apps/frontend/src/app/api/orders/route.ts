@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { ApiResponseBuilder, getPaginationParams, validateRequest, validateWithZodSchema } from '@/lib/api-response';
+import { ApiResponseBuilder, getPaginationParams, validateWithZodSchema } from '@/lib/api-response';
+import { cacheKeys, cacheService, cacheTTL } from '@/lib/cache/redis';
 import { logger } from '@/lib/logger';
-import { createOrderSchema } from '@/lib/validation/zod-schemas';
-import { cacheService, cacheKeys, cacheTTL } from '@/lib/cache/redis';
 import { checkRateLimit, getApiRateLimit, getClientIdentifier } from '@/lib/rate-limit';
+import { createClient } from '@/lib/supabase/server';
+import { createOrderSchema } from '@/lib/validation/zod-schemas';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/orders
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Mettre en cache
-    await cacheService.set(cacheKey, result, cacheTTL.ORDERS_LIST);
+    await cacheService.set(cacheKey, result, { ttl: cacheTTL.ORDERS_LIST });
     
     const response = NextResponse.json(result);
     response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');

@@ -78,3 +78,10 @@ export class GenerateVariantsBatchDto {
 
 
 
+
+
+
+
+
+
+

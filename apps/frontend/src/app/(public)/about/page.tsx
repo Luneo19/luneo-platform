@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import Link from 'next/link';
 import {
   Target,
@@ -39,7 +39,7 @@ function AboutPageContent() {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 md:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <motion initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
               Notre{' '}
               <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -49,7 +49,7 @@ function AboutPageContent() {
             <p className="text-lg sm:text-xl md:text-2xl text-gray-300 leading-relaxed max-w-3xl mx-auto">
               Démocratiser la création de designs professionnels grâce à l'IA et rendre la personnalisation produit accessible à tous.
             </p>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
@@ -57,7 +57,7 @@ function AboutPageContent() {
       <section className="py-16 sm:py-20 bg-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
-            <motion.div
+            <motion
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -69,9 +69,9 @@ function AboutPageContent() {
                   Transformer le workflow créatif des marques en combinant l'intelligence artificielle, la visualisation 3D et la réalité augmentée. Nous permettons à chaque entrepreneur de créer des expériences produits dignes des plus grandes marques.
                 </p>
               </Card>
-            </motion.div>
+            </motion>
 
-            <motion.div
+            <motion
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -83,7 +83,7 @@ function AboutPageContent() {
                   Un monde où chaque produit peut être personnalisé instantanément, visualisé en 3D photoréaliste, essayé en réalité augmentée, et commandé avec des fichiers print-ready automatiques. Zero friction. 100% automation.
                 </p>
               </Card>
-            </motion.div>
+            </motion>
           </div>
         </div>
       </section>
@@ -91,7 +91,7 @@ function AboutPageContent() {
       {/* Values */}
       <section className="py-16 sm:py-20 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -99,7 +99,7 @@ function AboutPageContent() {
           >
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">Nos Valeurs</h2>
             <p className="text-base sm:text-lg text-gray-400">Ce qui guide notre travail au quotidien</p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {[
@@ -128,7 +128,7 @@ function AboutPageContent() {
                 gradient: 'from-purple-500 to-pink-500'
               }
             ].map((value, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -145,7 +145,7 @@ function AboutPageContent() {
                   <h3 className="text-lg sm:text-xl font-bold text-white mb-3">{value.title}</h3>
                   <p className="text-sm sm:text-base text-gray-400">{value.description}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -154,7 +154,7 @@ function AboutPageContent() {
       {/* Timeline */}
       <section className="py-16 sm:py-20 bg-gray-800/50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -162,7 +162,7 @@ function AboutPageContent() {
           >
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">Notre Histoire</h2>
             <p className="text-base sm:text-lg text-gray-400">De l'idée à 10 000+ utilisateurs</p>
-          </motion.div>
+          </motion>
 
           <div className="space-y-8">
             {[
@@ -171,7 +171,7 @@ function AboutPageContent() {
               { year: '2024', title: '3D & AR', description: 'Lancement configurateur 3D et Virtual Try-On' },
               { year: '2025', title: 'Scale', description: '10 000+ créateurs, 500M+ designs générés' }
             ].map((milestone, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -188,7 +188,7 @@ function AboutPageContent() {
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">{milestone.title}</h3>
                   <p className="text-sm sm:text-base text-gray-400">{milestone.description}</p>
                 </div>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -197,7 +197,7 @@ function AboutPageContent() {
       {/* Team */}
       <section className="py-16 sm:py-20 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -205,7 +205,7 @@ function AboutPageContent() {
           >
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">L'Équipe</h2>
             <p className="text-base sm:text-lg text-gray-400">Experts en IA, 3D et E-commerce</p>
-          </motion.div>
+          </motion>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
@@ -213,7 +213,7 @@ function AboutPageContent() {
               { name: 'Tech Team', role: 'Engineering', avatar: 'TT', gradient: 'from-purple-500 to-pink-500' },
               { name: 'Design Team', role: 'Product Design', avatar: 'DT', gradient: 'from-green-500 to-emerald-500' }
             ].map((member, i) => (
-              <motion.div
+              <motion
                 key={i}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -230,7 +230,7 @@ function AboutPageContent() {
                   <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{member.name}</h3>
                   <p className="text-sm text-gray-400">{member.role}</p>
                 </Card>
-              </motion.div>
+              </motion>
             ))}
           </div>
         </div>
@@ -239,7 +239,7 @@ function AboutPageContent() {
       {/* CTA */}
       <section className="py-16 sm:py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
               Prêt à rejoindre l'aventure ?
             </h2>
@@ -263,7 +263,7 @@ function AboutPageContent() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </motion>
         </div>
       </section>
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -52,14 +52,14 @@ function LoginFormContent() {
   }, [clearError, login, router]);
 
   return (
-    <motion.div
+    <motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="w-full max-w-md"
     >
       <Card className="p-8 shadow-lg">
-        <motion.div
+        <motion
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.3 }}
@@ -68,7 +68,7 @@ function LoginFormContent() {
           <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
             <span className="text-white font-bold text-xl">L</span>
           </div>
-        </motion.div>
+        </motion>
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -89,18 +89,18 @@ function LoginFormContent() {
         </motion.p>
 
         {error && (
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2"
           >
             <AlertCircle className="h-4 w-4 text-red-600" />
             <span className="text-sm text-red-600">{error}</span>
-          </motion.div>
+          </motion>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -118,9 +118,9 @@ function LoginFormContent() {
             {errors.email && (
               <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
             )}
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
@@ -151,9 +151,9 @@ function LoginFormContent() {
             {errors.password && (
               <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
             )}
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
@@ -175,9 +175,9 @@ function LoginFormContent() {
             >
               Mot de passe oublié ?
             </Link>
-          </motion.div>
+          </motion>
 
-          <motion.div
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
@@ -196,10 +196,10 @@ function LoginFormContent() {
                 'Se connecter'
               )}
             </Button>
-          </motion.div>
+          </motion>
         </form>
 
-        <motion.div
+        <motion
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.7 }}
@@ -214,9 +214,9 @@ function LoginFormContent() {
               Créer un compte
             </Link>
           </p>
-        </motion.div>
+        </motion>
       </Card>
-    </motion.div>
+    </motion>
   );
 }
 

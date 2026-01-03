@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   ArrowLeft,
   Clock,
@@ -355,7 +355,7 @@ function DesignVersionsPageContent() {
               const isLatest = index === 0;
 
               return (
-                <motion.div
+                <motion
                   key={version.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -538,7 +538,7 @@ function DesignVersionsPageContent() {
                       </div>
                     </div>
                   </Card>
-                </motion.div>
+                </motion>
               );
             })}
           </div>

@@ -13,17 +13,16 @@
  * - Pas de canvas, pas de Three.js
  */
 
-import Image from 'next/image';
 import React, { useMemo } from 'react';
 import styles from './HeroBannerOptimized.module.css';
 
 // Import direct pour performance (les composants sont déjà légers avec SVG/CSS)
 // Lazy loading peut être ajouté si nécessaire, mais pour l'instant on garde direct pour éviter le flash
+import { HumanoidFigure } from './hero/HumanoidFigure';
+import { FloatingProducts } from './hero/FloatingProducts';
+import { PromptCloud } from './hero/PromptCloud';
 import { CodePanels } from './hero/CodePanels';
 import { FloatingObject } from './hero/FloatingObject';
-import { FloatingProducts } from './hero/FloatingProducts';
-import { HumanoidFigure } from './hero/HumanoidFigure';
-import { PromptCloud } from './hero/PromptCloud';
 
 interface HeroBannerOptimizedProps {
   backgroundImage?: string;
@@ -105,10 +104,9 @@ export function HeroBannerOptimized({
 
       {/* Contenu principal */}
       <div className={styles.content}>
-        {/* Titre et sous-titre */}
+        {/* Titre uniquement */}
         <div className={styles.textContent}>
           {title && <h1 className={styles.title}>{title}</h1>}
-          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         </div>
 
         {/* Éléments flottants */}

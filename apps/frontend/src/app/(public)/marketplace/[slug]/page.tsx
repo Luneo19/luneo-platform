@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Star,
   Download,

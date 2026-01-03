@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import NextImage from 'next/image';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -261,7 +261,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence>
                 {filteredTemplates.map((template, i) => (
-                  <motion.div
+                  <motion
                     key={template.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -346,7 +346,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
                         </div>
                       </div>
                     </Card>
-                  </motion.div>
+                  </motion>
                 ))}
               </AnimatePresence>
             </div>

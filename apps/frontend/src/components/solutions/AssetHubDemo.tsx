@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Upload,
   Download,
@@ -360,7 +360,7 @@ function AssetHubDemo({
           <div className="space-y-3">
             <AnimatePresence>
               {assets.map((asset) => (
-                <motion.div
+                <motion
                   key={asset.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -404,7 +404,7 @@ function AssetHubDemo({
                             <span className="text-white font-medium">{asset.progress}%</span>
                           </div>
                           <div className="w-full bg-gray-700 rounded-full h-2">
-                            <motion.div
+                            <motion
                               className={`h-2 rounded-full ${
                                 asset.status === 'uploading'
                                   ? 'bg-gradient-to-r from-blue-600 to-cyan-600'
@@ -444,7 +444,7 @@ function AssetHubDemo({
                         </div>
                       )}
                       {asset.status === 'processing' && (
-                        <motion.div
+                        <motion
                           animate={{ rotate: 360 }}
                           transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                           className="px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center gap-2"
@@ -453,7 +453,7 @@ function AssetHubDemo({
                           <span className="text-xs text-purple-400 font-medium">
                             Processing
                           </span>
-                        </motion.div>
+                        </motion>
                       )}
                       <button
                         onClick={() => removeAsset(asset.id)}
@@ -508,7 +508,7 @@ function AssetHubDemo({
                       </Button>
                     </div>
                   )}
-                </motion.div>
+                </motion>
               ))}
             </AnimatePresence>
           </div>

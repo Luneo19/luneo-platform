@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { 
   ChevronDown, 
   ShoppingCart,
@@ -271,7 +271,7 @@ export function ProfessionalNav() {
         {activeMenu === menuKey && (
           <>
             {/* Overlay pour fermer le menu - positionné en fixed */}
-            <motion.div
+            <motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -285,7 +285,7 @@ export function ProfessionalNav() {
               }}
             />
             {/* Menu déroulant - positionné en fixed pour être au-dessus de tout */}
-            <motion.div
+            <motion
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -343,7 +343,7 @@ export function ProfessionalNav() {
           ))}
                 </div>
               </div>
-        </motion.div>
+        </motion>
           </>
       )}
     </AnimatePresence>
@@ -494,7 +494,7 @@ export function ProfessionalNav() {
       {/* Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
+          <motion
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -528,7 +528,7 @@ export function ProfessionalNav() {
                 </Link>
               </div>
             </div>
-          </motion.div>
+          </motion>
         )}
       </AnimatePresence>
     </nav>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Gift, Users, Coins, Copy, Check, Share2, TrendingUp,
   Wallet, Award, Twitter, Linkedin, Mail, ExternalLink, Loader2,
@@ -214,7 +214,7 @@ function ReferralDashboardContent() {
             <span className="text-2xl">{nextTier.icon}</span>
           </div>
           <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden">
-            <motion.div
+            <motion
               initial={{ width: 0 }}
               animate={{ width: `${Math.min((stats.activeReferrals / nextTier.min) * 100, 100)}%` }}
               className="absolute h-full bg-gradient-to-r from-purple-500 to-pink-500"

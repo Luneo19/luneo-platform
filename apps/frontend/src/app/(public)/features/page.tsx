@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Palette, Box, Camera, Sparkles, Zap, Shield } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ function FeaturesPageContent() {
         </div>
 
         <div className="relative max-w-7xl mx-auto text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
               Features
               <br />
@@ -37,7 +37,7 @@ function FeaturesPageContent() {
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
               Plateforme complète de personnalisation produits
             </p>
-          </motion.div>
+          </motion>
         </div>
       </section>
 
