@@ -5,10 +5,10 @@ node = "20"
 nixPkgs = ["nodejs_20", "pnpm"]
 
 [phases.install]
-cmds = ["cd /app && pnpm install --frozen-lockfile"]
+cmds = ["pnpm install --frozen-lockfile"]
 
 [phases.build]
-cmds = ["cd /app && pnpm build"]
+cmds = ["pnpm build"]
 
 [start]
 cmd = "node dist/src/main.js"
