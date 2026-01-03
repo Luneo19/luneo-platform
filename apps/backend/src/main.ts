@@ -16,7 +16,9 @@ try {
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { setupSwagger } from './swagger';
+const express = require('express');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
@@ -65,26 +67,25 @@ async function bootstrap() {
   }
 
   try {
-    logger.log('Creating NestJS application...');
-    const app = await NestFactory.create(AppModule);
-    const configService = app.get(ConfigService);
-    logger.log('NestJS application created');
+    logger.log('Creating Express server...');
+    const server = express();
     
-    // Health check endpoint (MUST be registered FIRST, before any middleware)
-    // Use app.use() with Express middleware to intercept BEFORE NestJS routing
-    app.use('/health', (req, res, next) => {
-      if (req.method === 'GET' && req.path === '/health') {
-        res.status(200).json({
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime(),
-          environment: configService.get('app.nodeEnv'),
-        });
-        return; // Stop here, don't pass to NestJS
-      }
-      next();
+    // Health check endpoint (MUST be registered FIRST, before NestJS)
+    // Register directly on Express instance BEFORE NestJS takes over
+    server.get('/health', (req, res) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
     });
     logger.log('Health check endpoint registered at /health');
+    
+    logger.log('Creating NestJS application...');
+    const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+    const configService = app.get(ConfigService);
+    logger.log('NestJS application created');
     
     // Security middleware - production ready
     app.use(helmet());
