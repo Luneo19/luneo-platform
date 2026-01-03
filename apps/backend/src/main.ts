@@ -146,41 +146,17 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
-  // Register /health endpoint AFTER app.init() but BEFORE app.listen()
-  // Insert it at the beginning of Express router stack to ensure it's checked first
-  const expressInstance = app.getHttpAdapter().getInstance();
-  
-  // Create a route handler for /health
-  const healthHandler = (req: any, res: any, next: any) => {
-    if (req.method === 'GET' && (req.url === '/health' || req.path === '/health')) {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: configService.get('app.nodeEnv'),
-      });
-      return;
-    }
-    next();
-  };
-  
-  // Insert health handler at the beginning of the router stack
-  // This ensures it's checked before NestJS routes
-  if (expressInstance._router && expressInstance._router.stack) {
-    expressInstance._router.stack.unshift({
-      route: { path: '/health', methods: { get: true } },
-      handle: healthHandler,
-      name: 'health',
-      keys: [],
-      regexp: /^\/health\/?$/i,
-      fast_slash: false,
+  // Register /health endpoint using getHttpAdapter() AFTER app.init()
+  // This is the professional way - same pattern as used in serverless.ts and shopify app
+  app.getHttpAdapter().get('/health', (req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: configService.get('app.nodeEnv'),
     });
-    logger.log('✅ Health endpoint inserted at beginning of Express router stack');
-  } else {
-    // Fallback: register directly on Express instance
-    expressInstance.get('/health', healthHandler);
-    logger.log('✅ Health endpoint registered directly on Express instance');
-  }
+  });
+  logger.log('✅ Health endpoint registered at /health via getHttpAdapter()');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
