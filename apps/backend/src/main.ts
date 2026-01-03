@@ -16,9 +16,7 @@ try {
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
 import { setupSwagger } from './swagger';
-const express = require('express');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
@@ -109,31 +107,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix (exclude health from prefix)
-  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: ['health'],
-  });
+  // Global prefix - HealthController will be at /api/v1/health
+  app.setGlobalPrefix(configService.get('app.apiPrefix'));
   
-  // Register /health endpoint directly on Express instance AFTER all NestJS setup
-  // Access the underlying Express router and add route at the root level
-  const expressInstance = app.getHttpAdapter().getInstance();
-  
-  // Get the Express router and add health route at the beginning
-  // This ensures it's checked before NestJS routing
-  const router = expressInstance._router || expressInstance;
-  
-  // Add health route using Express router directly
-  expressInstance.get('/health', (req, res) => {
-    logger.log('[HEALTH] Direct Express endpoint called');
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: configService.get('app.nodeEnv'),
-    });
-  });
-  
-  logger.log('✅ Health endpoint registered directly on Express at /health');
+  const apiPrefix = configService.get('app.apiPrefix');
+  logger.log(`✅ Health endpoint available at ${apiPrefix}/health via HealthController`);
 
   // Validation pipe
   app.useGlobalPipes(
@@ -159,9 +137,10 @@ async function bootstrap() {
     logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
     
     await app.listen(port, '0.0.0.0');
+    const apiPrefix = configService.get('app.apiPrefix');
     logger.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
     logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}/api/docs`);
-    logger.log(`🔍 Health check: http://0.0.0.0:${port}/health`);
+    logger.log(`🔍 Health check: http://0.0.0.0:${port}${apiPrefix}/health`);
   } catch (error) {
     logger.error(`Failed to start application: ${error.message}`, error.stack);
     throw error;
