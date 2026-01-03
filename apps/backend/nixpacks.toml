@@ -1,26 +1,11 @@
-# Configuration Nixpacks pour Railway
-# Railway Root Directory doit être configuré sur apps/backend
 [phases.setup]
 nixPkgs = ["nodejs_20", "pnpm"]
 
 [phases.install]
-cmds = [
-  "npm install -g pnpm@8",
-  # Copier le lockfile depuis la racine si nécessaire
-  "cp ../../pnpm-lock.yaml pnpm-lock.yaml 2>/dev/null || true",
-  "pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile",
-  "pnpm prisma generate"
-]
+cmds = ["pnpm install --frozen-lockfile"]
 
 [phases.build]
-cmds = [
-  "pnpm run build"
-]
+cmds = ["pnpm build"]
 
 [start]
 cmd = "node dist/src/main.js"
-
-
-
-
-
