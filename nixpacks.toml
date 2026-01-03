@@ -1,0 +1,18 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = [
+  "corepack enable",
+  "corepack prepare pnpm@latest --activate",
+  "cd apps/backend && pnpm install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = [
+  "cd apps/backend && pnpm prisma generate",
+  "cd apps/backend && pnpm build"
+]
+
+[start]
+cmd = "cd apps/backend && node dist/src/main.js"
