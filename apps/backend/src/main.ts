@@ -124,8 +124,10 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix
-  app.setGlobalPrefix(configService.get('app.apiPrefix'));
+  // Global prefix (exclude /health)
+  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
+    exclude: ['/health'],
+  });
 
   // Validation pipe
   app.useGlobalPipes(
