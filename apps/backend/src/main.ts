@@ -155,19 +155,15 @@ async function bootstrap() {
     setupSwagger(app);
   }
 
-    // Initialize NestJS application (this registers all routes)
-    await app.init();
-    
     // Railway provides PORT automatically - use it directly
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
     
     logger.log(`Starting server on port ${port}...`);
     logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
     
-    // Start the Express server (which includes both /health and NestJS routes)
-    server.listen(port, '0.0.0.0', () => {
-      logger.log(`🚀 Server listening on port ${port}`);
-    });
+    // Use app.listen() - NestJS will use the Express server we created
+    // The /health endpoint is already registered on the server before NestJS initialization
+    await app.listen(port, '0.0.0.0');
     const apiPrefix = configService.get('app.apiPrefix');
     logger.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
     logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}/api/docs`);
