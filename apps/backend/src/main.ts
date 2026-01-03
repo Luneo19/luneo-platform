@@ -70,26 +70,14 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // Register /health endpoint DIRECTLY on Express server BEFORE NestJS
-    // This ensures Railway's health check works independently of NestJS routing
-    server.get('/health', (req, res) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
-    });
-    logger.log('✅ Health endpoint registered at /health (before NestJS)');
-    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
-      bodyParser: false, // We'll handle body parsing manually if needed
+      bodyParser: false, // We'll handle body parsing manually
     });
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
     
-    // Parse JSON and URL-encoded bodies (after health endpoint)
+    // Parse JSON and URL-encoded bodies
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
@@ -155,15 +143,53 @@ async function bootstrap() {
     setupSwagger(app);
   }
 
-    // Railway provides PORT automatically - use it directly
-    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
-    
-    logger.log(`Starting server on port ${port}...`);
-    logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
-    
-    // Use app.listen() - NestJS will use the Express server we created
-    // The /health endpoint is already registered on the server before NestJS initialization
-    await app.listen(port, '0.0.0.0');
+  // Initialize NestJS application (this registers all routes)
+  await app.init();
+  
+  // Register /health endpoint AFTER app.init() but BEFORE app.listen()
+  // Insert it at the beginning of Express router stack to ensure it's checked first
+  const expressInstance = app.getHttpAdapter().getInstance();
+  
+  // Create a route handler for /health
+  const healthHandler = (req: any, res: any, next: any) => {
+    if (req.method === 'GET' && (req.url === '/health' || req.path === '/health')) {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: configService.get('app.nodeEnv'),
+      });
+      return;
+    }
+    next();
+  };
+  
+  // Insert health handler at the beginning of the router stack
+  // This ensures it's checked before NestJS routes
+  if (expressInstance._router && expressInstance._router.stack) {
+    expressInstance._router.stack.unshift({
+      route: { path: '/health', methods: { get: true } },
+      handle: healthHandler,
+      name: 'health',
+      keys: [],
+      regexp: /^\/health\/?$/i,
+      fast_slash: false,
+    });
+    logger.log('✅ Health endpoint inserted at beginning of Express router stack');
+  } else {
+    // Fallback: register directly on Express instance
+    expressInstance.get('/health', healthHandler);
+    logger.log('✅ Health endpoint registered directly on Express instance');
+  }
+  
+  // Railway provides PORT automatically - use it directly
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
+  
+  logger.log(`Starting server on port ${port}...`);
+  logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
+  
+  // Use app.listen() - NestJS will use the Express server we created
+  await app.listen(port, '0.0.0.0');
     const apiPrefix = configService.get('app.apiPrefix');
     logger.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
     logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}/api/docs`);
