@@ -5,14 +5,14 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 
 @ApiTags('Health')
-@Controller('health') // Will be /api/v1/health with global prefix
+@Controller() // Empty controller path - will be excluded from global prefix
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
     private readonly prometheus: PrometheusService,
   ) {}
 
-  @Get()
+  @Get('health')
   @Public()
   @HealthCheck()
   @ApiOperation({ summary: 'Health check endpoint' })

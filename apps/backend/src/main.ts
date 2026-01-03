@@ -118,11 +118,15 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - HealthController will be at /api/v1/health (full health check with Terminus)
-  app.setGlobalPrefix(configService.get('app.apiPrefix'));
+  // Global prefix - exclude 'health' from prefix so /health works directly
+  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
+    exclude: ['health'],
+  });
   
   const apiPrefix = configService.get('app.apiPrefix');
-  logger.log(`✅ Health endpoint available at ${apiPrefix}/health via HealthController`);
+  logger.log(`✅ Health endpoints available:`);
+  logger.log(`   - /health (simple, for Railway health checks)`);
+  logger.log(`   - ${apiPrefix}/health (full health check with Terminus - if needed)`);
 
   // Validation pipe
   app.useGlobalPipes(
