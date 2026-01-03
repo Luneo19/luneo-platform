@@ -13,6 +13,7 @@ export class PublicApiController {
   constructor(private readonly publicApiService: PublicApiService) {}
 
   @Get('health')
+  @Public() // Make health endpoint public (no API key required)
   @ApiOperation({ summary: 'Health check endpoint' })
   @ApiResponse({ status: 200, description: 'API is healthy' })
   async health() {
