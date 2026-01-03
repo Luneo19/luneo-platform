@@ -125,8 +125,8 @@ async function bootstrap() {
   
   const apiPrefix = configService.get('app.apiPrefix');
   logger.log(`✅ Health endpoints available:`);
-  logger.log(`   - /health (excluded from global prefix, for Railway health checks)`);
-  logger.log(`   - ${apiPrefix}/health (full health check with Terminus)`);
+  logger.log(`   - ${apiPrefix}/health (HealthController with Terminus)`);
+  logger.log(`   - ${apiPrefix}/health (PublicApiController - simple health check)`);
 
   // Validation pipe
   app.useGlobalPipes(
