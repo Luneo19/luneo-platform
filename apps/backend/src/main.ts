@@ -16,7 +16,9 @@ try {
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { setupSwagger } from './swagger';
+const express = require('express');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
@@ -65,10 +67,31 @@ async function bootstrap() {
   }
 
   try {
-    logger.log('Creating NestJS application...');
-    const app = await NestFactory.create(AppModule);
+    logger.log('Creating Express server...');
+    const server = express();
+    
+    // Register /health endpoint DIRECTLY on Express server BEFORE NestJS
+    // This ensures Railway's health check works independently of NestJS routing
+    server.get('/health', (req, res) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    logger.log('✅ Health endpoint registered at /health (before NestJS)');
+    
+    logger.log('Creating NestJS application with ExpressAdapter...');
+    const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
+      bodyParser: false, // We'll handle body parsing manually if needed
+    });
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
+    
+    // Parse JSON and URL-encoded bodies (after health endpoint)
+    server.use(express.json());
+    server.use(express.urlencoded({ extended: true }));
     
     // Security middleware - production ready
     app.use(helmet());
@@ -107,11 +130,13 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - HealthController will be at /api/v1/health
+  // Global prefix - HealthController will be at /api/v1/health (full health check with Terminus)
   app.setGlobalPrefix(configService.get('app.apiPrefix'));
   
   const apiPrefix = configService.get('app.apiPrefix');
-  logger.log(`✅ Health endpoint available at ${apiPrefix}/health via HealthController`);
+  logger.log(`✅ Health endpoints available:`);
+  logger.log(`   - /health (simple, for Railway health checks)`);
+  logger.log(`   - ${apiPrefix}/health (full health check with Terminus)`);
 
   // Validation pipe
   app.useGlobalPipes(
@@ -130,19 +155,19 @@ async function bootstrap() {
     setupSwagger(app);
   }
 
+    // Initialize NestJS application (this registers all routes)
+    await app.init();
+    
     // Railway provides PORT automatically - use it directly
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
     
-    // Create a simple health check server on a different port for Railway
-    // This ensures Railway's health check always works even if NestJS routing fails
-    const healthPort = process.env.HEALTH_PORT ? parseInt(process.env.HEALTH_PORT, 10) : (port === 3000 ? 3001 : port + 1);
-    const healthServer = createHealthServer(healthPort);
-    
     logger.log(`Starting server on port ${port}...`);
     logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
-    logger.log(`Health check server on port ${healthPort}`);
     
-    await app.listen(port, '0.0.0.0');
+    // Start the Express server (which includes both /health and NestJS routes)
+    server.listen(port, '0.0.0.0', () => {
+      logger.log(`🚀 Server listening on port ${port}`);
+    });
     const apiPrefix = configService.get('app.apiPrefix');
     logger.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
     logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}/api/docs`);
