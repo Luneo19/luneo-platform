@@ -13,12 +13,13 @@ try {
   // Continue anyway
 }
 
-import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { setupSwagger } from './swagger';
 const express = require('express');
+import * as Express from 'express';
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
@@ -118,16 +119,13 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - exclude /health from prefix (official NestJS pattern for Railway)
-  // This is the professional solution recommended by NestJS documentation
-  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: [{ path: 'health', method: RequestMethod.GET }],
-  });
+  // Global prefix - HealthController will be at /api/v1/health (full health check with Terminus)
+  app.setGlobalPrefix(configService.get('app.apiPrefix'));
   
   const apiPrefix = configService.get('app.apiPrefix');
   logger.log(`✅ Health endpoints available:`);
-  logger.log(`   - /health (excluded from global prefix, for Railway health checks)`);
-  logger.log(`   - ${apiPrefix}/health (full health check with Terminus)`);
+  logger.log(`   - /health (Express endpoint, registered before NestJS, for Railway)`);
+  logger.log(`   - ${apiPrefix}/health (HealthController with Terminus)`);
 
   // Validation pipe
   app.useGlobalPipes(
