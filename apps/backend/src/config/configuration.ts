@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   // Database
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().url().optional(),
   
   // Redis
   REDIS_URL: z.string().optional(),
@@ -198,7 +198,7 @@ export const emailDomainConfig = registerAs('emailDomain', () => ({
 export const appConfig = registerAs('app', () => ({
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || process.env.$PORT || '3000', 10),
-  apiPrefix: process.env.API_PREFIX || '/api',
+  apiPrefix: process.env.API_PREFIX || '/api/v1',
   frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app',
   corsOrigin: process.env.CORS_ORIGIN || '*',
   rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
