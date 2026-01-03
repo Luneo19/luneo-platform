@@ -118,25 +118,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Register /health endpoint BEFORE setGlobalPrefix to ensure it's not affected by prefix
-  // This is the professional way - same pattern as used in serverless.ts
-  app.getHttpAdapter().get('/health', (req, res) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: configService.get('app.nodeEnv'),
-    });
-  });
-  logger.log('✅ Health endpoint registered at /health (before global prefix)');
-
   // Global prefix - HealthController will be at /api/v1/health (full health check with Terminus)
   app.setGlobalPrefix(configService.get('app.apiPrefix'));
   
   const apiPrefix = configService.get('app.apiPrefix');
-  logger.log(`✅ Health endpoints available:`);
-  logger.log(`   - /health (simple, for Railway health checks)`);
-  logger.log(`   - ${apiPrefix}/health (full health check with Terminus)`);
+  logger.log(`✅ Health endpoint available at ${apiPrefix}/health via HealthController`);
 
   // Validation pipe
   app.useGlobalPipes(
