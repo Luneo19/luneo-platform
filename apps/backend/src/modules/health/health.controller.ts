@@ -5,7 +5,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 
 @ApiTags('Health')
-@Controller('health') // Direct path /health
+@Controller('health') // Will be /api/v1/health with global prefix
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
