@@ -158,6 +158,26 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
+  // Register /health endpoint on Express AFTER app.init() but BEFORE app.listen()
+  // Use app.use() with a middleware that intercepts /health before NestJS routing
+  const expressInstance = app.getHttpAdapter().getInstance();
+  
+  // Insert health middleware at the beginning of the middleware stack
+  // This ensures it's checked before NestJS routes
+  expressInstance.use((req, res, next) => {
+    if (req.method === 'GET' && req.path === '/health') {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: configService.get('app.nodeEnv'),
+      });
+      return; // Stop here, don't pass to NestJS
+    }
+    next();
+  });
+  logger.log('✅ Health endpoint middleware registered on Express (after app.init())');
+  
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
   
