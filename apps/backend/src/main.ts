@@ -166,10 +166,16 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
+  // CRITICAL: Start separate health check server for Railway
+  // This ensures /health is always available, independent of NestJS routing
+  logger.log('Starting health check server...');
+  startHealthServer();
+  logger.log('✅ Health check server started (separate HTTP server)');
+  
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
   
-  logger.log(`Starting server on port ${port}...`);
+  logger.log(`Starting main server on port ${port}...`);
   logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
   
   // Use app.listen() - NestJS will use the Express server we created
