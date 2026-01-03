@@ -13,7 +13,7 @@ try {
   // Continue anyway
 }
 
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
@@ -70,19 +70,6 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Register /health route on Express BEFORE NestJS
-    // Use server.get() instead of server.use() to register a specific route
-    // This must be done before NestFactory.create() to ensure it's in the route stack first
-    server.get('/health', (req, res) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
-    });
-    logger.log('✅ Health endpoint route registered at /health (BEFORE NestJS)');
-    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually
@@ -131,11 +118,16 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - HealthController will be at /api/v1/health (full health check with Terminus)
-  app.setGlobalPrefix(configService.get('app.apiPrefix'));
+  // Global prefix - exclude /health from prefix (official NestJS pattern for Railway)
+  // This is the professional solution recommended by NestJS documentation
+  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
   
   const apiPrefix = configService.get('app.apiPrefix');
-  logger.log(`✅ Health endpoint available at ${apiPrefix}/health via HealthController`);
+  logger.log(`✅ Health endpoints available:`);
+  logger.log(`   - /health (excluded from global prefix, for Railway health checks)`);
+  logger.log(`   - ${apiPrefix}/health (full health check with Terminus)`);
 
   // Validation pipe
   app.useGlobalPipes(
