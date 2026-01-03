@@ -133,8 +133,14 @@ async function bootstrap() {
     // Railway provides PORT automatically - use it directly
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
     
+    // Create a simple health check server on a different port for Railway
+    // This ensures Railway's health check always works even if NestJS routing fails
+    const healthPort = process.env.HEALTH_PORT ? parseInt(process.env.HEALTH_PORT, 10) : (port === 3000 ? 3001 : port + 1);
+    const healthServer = createHealthServer(healthPort);
+    
     logger.log(`Starting server on port ${port}...`);
     logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
+    logger.log(`Health check server on port ${healthPort}`);
     
     await app.listen(port, '0.0.0.0');
     const apiPrefix = configService.get('app.apiPrefix');
