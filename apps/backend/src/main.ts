@@ -119,11 +119,9 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - exclude /health from prefix (official NestJS pattern for Railway)
-  // This is the professional solution recommended by NestJS documentation
-  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: [{ path: 'health', method: RequestMethod.GET }],
-  });
+  // Global prefix - DO NOT exclude /health, we need it at /api/v1/health for Railway
+  // Railway health check expects /api/v1/health
+  app.setGlobalPrefix(configService.get('app.apiPrefix'));
   
   const apiPrefix = configService.get('app.apiPrefix');
   logger.log(`✅ Health endpoints available:`);
