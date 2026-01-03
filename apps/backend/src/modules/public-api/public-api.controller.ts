@@ -6,7 +6,7 @@ import { RateLimitGuard } from './rate-limit/rate-limit.guard';
 import { CreateDesignDto, CreateOrderDto, GetAnalyticsDto } from './dto';
 
 @ApiTags('Public API')
-@Controller('api/v1')
+@Controller() // Empty controller path - will use global prefix /api/v1
 @UseGuards(ApiKeyGuard, RateLimitGuard)
 @ApiBearerAuth('api-key')
 export class PublicApiController {
