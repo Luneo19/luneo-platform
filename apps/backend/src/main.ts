@@ -109,29 +109,31 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Register /health endpoint on Express BEFORE global prefix
-  // This MUST be done before setGlobalPrefix to ensure it's accessible at root
-  const expressInstance = app.getHttpAdapter().getInstance();
-  
-  // Use app.use() to register middleware that runs BEFORE NestJS routing
-  app.use('/health', (req, res, next) => {
-    if (req.method === 'GET' && (req.path === '/health' || req.url === '/health')) {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: configService.get('app.nodeEnv'),
-      });
-      return; // Stop here, don't pass to NestJS
-    }
-    next();
-  });
-  logger.log('✅ Health endpoint registered at /health (before global prefix)');
-  
   // Global prefix (exclude health from prefix)
   app.setGlobalPrefix(configService.get('app.apiPrefix'), {
     exclude: ['health'],
   });
+  
+  // Register /health endpoint directly on Express instance AFTER all NestJS setup
+  // Access the underlying Express router and add route at the root level
+  const expressInstance = app.getHttpAdapter().getInstance();
+  
+  // Get the Express router and add health route at the beginning
+  // This ensures it's checked before NestJS routing
+  const router = expressInstance._router || expressInstance;
+  
+  // Add health route using Express router directly
+  expressInstance.get('/health', (req, res) => {
+    logger.log('[HEALTH] Direct Express endpoint called');
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: configService.get('app.nodeEnv'),
+    });
+  });
+  
+  logger.log('✅ Health endpoint registered directly on Express at /health');
 
   // Validation pipe
   app.useGlobalPipes(
