@@ -70,6 +70,18 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
+    // Register /health endpoint DIRECTLY on Express server BEFORE NestJS
+    // This MUST be done before NestJS takes control
+    server.get('/health', (req, res) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    logger.log('✅ Health endpoint registered at /health on Express server (before NestJS)');
+    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually
@@ -77,7 +89,7 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
     
-    // Parse JSON and URL-encoded bodies
+    // Parse JSON and URL-encoded bodies (after health endpoint)
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
@@ -118,15 +130,13 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - exclude '/health' from prefix so /health works directly
-  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: ['/health'],
-  });
+  // Global prefix - HealthController will be at /api/v1/health (full health check with Terminus)
+  app.setGlobalPrefix(configService.get('app.apiPrefix'));
   
   const apiPrefix = configService.get('app.apiPrefix');
   logger.log(`✅ Health endpoints available:`);
-  logger.log(`   - /health (simple, for Railway health checks)`);
-  logger.log(`   - ${apiPrefix}/health (full health check with Terminus - if needed)`);
+  logger.log(`   - /health (simple Express endpoint, for Railway health checks)`);
+  logger.log(`   - ${apiPrefix}/health (full health check with Terminus)`);
 
   // Validation pipe
   app.useGlobalPipes(
