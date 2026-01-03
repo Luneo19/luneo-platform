@@ -82,22 +82,6 @@ async function bootstrap() {
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
-    // CRITICAL: Register /health endpoint AFTER NestJS init but BEFORE listen
-    // This ensures it's in the middleware stack and handles /health before NestJS routing
-    server.use('/health', (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-      if (req.method === 'GET' && req.path === '/health') {
-        res.status(200).json({
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime(),
-          environment: process.env.NODE_ENV || 'production',
-        });
-      } else {
-        next();
-      }
-    });
-    logger.log('✅ Health endpoint middleware registered at /health (AFTER NestJS init)');
-    
     // Security middleware - production ready
     app.use(helmet());
     logger.log('Security middleware configured');
@@ -166,11 +150,19 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
-  // CRITICAL: Start separate health check server for Railway
-  // This ensures /health is always available, independent of NestJS routing
-  logger.log('Starting health check server...');
-  startHealthServer();
-  logger.log('✅ Health check server started (separate HTTP server)');
+  // CRITICAL: Register /health endpoint on Express AFTER app.init() but BEFORE listen
+  // This ensures Express middleware handles /health before NestJS routing
+  // Use the underlying Express instance to add route before NestJS routing takes over
+  const expressInstance = app.getHttpAdapter().getInstance();
+  expressInstance.get('/health', (req: Express.Request, res: Express.Response) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'production',
+    });
+  });
+  logger.log('✅ Health endpoint registered at /health using getHttpAdapter().get() (AFTER app.init())');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
