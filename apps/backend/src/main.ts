@@ -163,6 +163,18 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
+  // CRITICAL: Register /health endpoint AFTER app.init() but BEFORE listen (same pattern as shopify app)
+  // This uses getHttpAdapter().get() which properly registers the route in Express
+  app.getHttpAdapter().get('/health', (req: Express.Request, res: Express.Response) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'production',
+    });
+  });
+  logger.log('✅ Health endpoint registered at /health using getHttpAdapter().get() (AFTER app.init())');
+  
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
   
