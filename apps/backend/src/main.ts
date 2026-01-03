@@ -70,6 +70,22 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
+    // CRITICAL: Register /health endpoint on Express BEFORE NestJS
+    // This must be done before NestFactory.create() to ensure it's in the middleware stack first
+    server.use('/health', (req, res, next) => {
+      if (req.method === 'GET') {
+        res.status(200).json({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || 'production',
+        });
+        return; // Stop here, don't pass to NestJS
+      }
+      next();
+    });
+    logger.log('✅ Health endpoint middleware registered at /health (BEFORE NestJS)');
+    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually
@@ -77,7 +93,7 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
     
-    // Parse JSON and URL-encoded bodies
+    // Parse JSON and URL-encoded bodies (after health endpoint)
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     

@@ -2,11 +2,11 @@
 builder = "NIXPACKS"
 
 [deploy]
-healthcheckPath = "/api/v1/health"
+healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
-# Note: Health check uses HealthController at /api/v1/health (with global prefix)
+# Note: Health check uses Express middleware at /health (registered before NestJS)
 # IMPORTANT: Railway Root Directory doit être configuré sur apps/backend
 # Si Root Directory = apps/backend, utiliser:
 startCommand = "node dist/src/main.js"
