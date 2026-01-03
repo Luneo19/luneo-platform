@@ -71,15 +71,18 @@ async function bootstrap() {
     logger.log('NestJS application created');
     
     // Health check endpoint (MUST be registered FIRST, before any middleware)
-    // Register directly on Express instance to bypass NestJS routing
-    const expressApp = app.getHttpAdapter().getInstance();
-    expressApp.get('/health', (req, res) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: configService.get('app.nodeEnv'),
-      });
+    // Use app.use() with Express middleware to intercept BEFORE NestJS routing
+    app.use('/health', (req, res, next) => {
+      if (req.method === 'GET' && req.path === '/health') {
+        res.status(200).json({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: configService.get('app.nodeEnv'),
+        });
+        return; // Stop here, don't pass to NestJS
+      }
+      next();
     });
     logger.log('Health check endpoint registered at /health');
     
