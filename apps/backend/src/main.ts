@@ -118,9 +118,9 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - exclude 'health' from prefix so /health works directly
+  // Global prefix - exclude '/health' from prefix so /health works directly
   app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: ['health'],
+    exclude: ['/health'],
   });
   
   const apiPrefix = configService.get('app.apiPrefix');
