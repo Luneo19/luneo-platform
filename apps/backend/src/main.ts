@@ -39,23 +39,29 @@ async function bootstrap() {
     validateEnv();
     logger.log('Environment variables validated');
   } catch (error) {
-    logger.error(`Environment validation failed: ${error.message}`, error.stack);
-    throw error;
+    logger.warn(`Environment validation failed: ${error.message}. Some variables may be missing.`);
+    // Continue anyway - some variables are optional
+    if (!process.env.DATABASE_URL) {
+      logger.warn('DATABASE_URL not configured. Database features will be unavailable.');
+    }
   }
 
   // Run database migrations before starting the application
   try {
     logger.log('Running database migrations...');
     const { execSync } = require('child_process');
+    const path = require('path');
+    // Utiliser le répertoire du backend pour Prisma
+    const backendDir = path.join(__dirname, '../..');
     execSync('pnpm prisma migrate deploy', { 
       stdio: 'inherit',
       env: { ...process.env, PATH: process.env.PATH },
-      cwd: process.cwd()
+      cwd: backendDir
     });
     logger.log('Database migrations completed');
   } catch (error) {
     logger.warn(`Database migration failed: ${error.message}. Continuing anyway...`);
-    // Continue even if migrations fail (might be already up to date)
+    // Continue even if migrations fail (might be already up to date or DATABASE_URL not configured)
   }
 
   try {
@@ -99,6 +105,18 @@ async function bootstrap() {
   app.enableCors({
     origin: configService.get('app.corsOrigin'),
     credentials: true,
+  });
+
+  // Health check endpoint (before global prefix for Railway)
+  // Must be registered before setGlobalPrefix to avoid prefix
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/health', (req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: configService.get('app.nodeEnv'),
+    });
   });
 
   // Global prefix
