@@ -72,15 +72,21 @@ async function bootstrap() {
     
     // Health check endpoint (MUST be registered FIRST, before NestJS)
     // Register directly on Express instance BEFORE NestJS takes over
-    server.get('/health', (req, res) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
+    // Use use() with exact path matching to intercept before NestJS
+    server.use((req, res, next) => {
+      if (req.path === '/health' && req.method === 'GET') {
+        logger.log(`[HEALTH] Intercepting /health request`);
+        res.status(200).json({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || 'production',
+        });
+        return; // Stop here, don't pass to NestJS
+      }
+      next();
     });
-    logger.log('Health check endpoint registered at /health');
+    logger.log('✅ Health check endpoint registered at /health on Express server');
     
     logger.log('Creating NestJS application...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
