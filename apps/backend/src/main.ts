@@ -130,10 +130,23 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix (exclude /health)
+  // Global prefix (exclude health from prefix)
   app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: ['/health'],
+    exclude: ['health'],
   });
+  
+  // Register /health endpoint directly on Express AFTER NestJS init but before listen
+  // This ensures it's available even if NestJS routing doesn't catch it
+  const expressInstance = app.getHttpAdapter().getInstance();
+  expressInstance.get('/health', (req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: configService.get('app.nodeEnv'),
+    });
+  });
+  logger.log('✅ Health endpoint registered directly on Express at /health');
 
   // Validation pipe
   app.useGlobalPipes(
