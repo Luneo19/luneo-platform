@@ -71,33 +71,27 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // Parse JSON and URL-encoded bodies
+    // CRITICAL: Health check middleware MUST be registered FIRST, before any other middleware
+    // This ensures it intercepts /health requests before NestJS or any other middleware processes them
+    server.use((req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+      // Intercept /health and /api/v1/health routes and respond directly
+      if (req.path === '/health' || req.path === '/api/v1/health') {
+        return res.status(200).json({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || 'production',
+        });
+      }
+      // For all other routes, continue to next middleware
+      next();
+    });
+    
+    logger.log('✅ Health check middleware registered (FIRST middleware, before body parsers)');
+    
+    // Parse JSON and URL-encoded bodies (AFTER health check middleware)
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
-    
-    // CRITICAL: Register /health route on Express server BEFORE creating NestJS app
-    // This ensures Express handles it before NestJS routing takes control
-    // Same approach as serverless.ts which works correctly
-    server.get('/health', (req: Express.Request, res: Express.Response) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
-    });
-    
-    // Also register /api/v1/health for consistency
-    server.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
-    });
-    
-    logger.log('✅ Health check routes registered on Express server (BEFORE NestJS app creation)');
     
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
