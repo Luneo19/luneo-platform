@@ -71,19 +71,6 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Register /health route FIRST, before any middleware or NestJS
-    // This MUST be done on the raw Express server before NestJS takes control
-    server.get('/health', (req: Express.Request, res: Express.Response) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
-    });
-    
-    logger.log('✅ Health check route registered on Express server (BEFORE NestJS)');
-    
     // Parse JSON and URL-encoded bodies
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
@@ -161,11 +148,21 @@ async function bootstrap() {
   }
 
   // Initialize NestJS application (this registers all routes)
-  // HealthController is configured with @Controller('health') and excluded from global prefix
-  // This means it will be accessible at /health (not /api/v1/health)
   await app.init();
   
-  logger.log('✅ Health check available at /health (excluded from global prefix)');
+  // CRITICAL: Register /health route AFTER app.init() using getHttpAdapter()
+  // This is the professional NestJS way to register Express routes that bypass NestJS routing
+  // Reference: apps/shopify/src/server/main.ts line 99
+  app.getHttpAdapter().get('/health', (req: Express.Request, res: Express.Response) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'production',
+    });
+  });
+  
+  logger.log('✅ Health check route registered via getHttpAdapter() (AFTER app.init())');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
