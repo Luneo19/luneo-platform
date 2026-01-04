@@ -71,22 +71,7 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Register /health route BEFORE creating NestJS app
-    // This ensures it's accessible at /health and bypasses NestJS routing completely
-    // This is the ONLY way to make /health work with ExpressAdapter
-    server.get('/health', (req: Express.Request, res: Express.Response) => {
-      logger.log(`[HEALTH] Health check endpoint called - path: ${req.path}, url: ${req.url}, originalUrl: ${req.originalUrl}`);
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        service: 'luneo-backend',
-        version: process.env.npm_package_version || '1.0.0',
-      });
-    });
-    logger.log('Health check route registered at /health (BEFORE NestJS app creation)');
-    
-    // Parse JSON and URL-encoded bodies
+    // Parse JSON and URL-encoded bodies FIRST (before NestJS)
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
@@ -191,8 +176,20 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
-  // Note: /health route is already registered BEFORE app.init() above
-  // This ensures it bypasses NestJS routing and is accessible at /health
+  // CRITICAL: Register /health route AFTER app.init() but on the raw Express server
+  // This is the EXACT pattern from serverless.ts which works correctly on Vercel
+  // Registering on 'server' (not app) ensures it bypasses NestJS routing
+  server.get('/health', (req: Express.Request, res: Express.Response) => {
+    logger.log(`[HEALTH] Health check endpoint called - path: ${req.path}, url: ${req.url}, originalUrl: ${req.originalUrl}`);
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      service: 'luneo-backend',
+      version: process.env.npm_package_version || '1.0.0',
+    });
+  });
+  logger.log('Health check route registered at /health (AFTER app.init() on Express server)');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
