@@ -12,7 +12,11 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env.production') });
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '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';
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+if (!STRIPE_SECRET_KEY) {
+  console.error('❌ Error: STRIPE_SECRET_KEY environment variable is required');
+  process.exit(1);
+}
 const BACKEND_URL = process.env.BACKEND_URL || process.env.VERCEL_URL || 'https://api.luneo.app';
 const WEBHOOK_ENDPOINT = `${BACKEND_URL}/webhooks/stripe`;
 
@@ -218,7 +222,11 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env.production') });
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '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';
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+if (!STRIPE_SECRET_KEY) {
+  console.error('❌ Error: STRIPE_SECRET_KEY environment variable is required');
+  process.exit(1);
+}
 const BACKEND_URL = process.env.BACKEND_URL || process.env.VERCEL_URL || 'https://api.luneo.app';
 const WEBHOOK_ENDPOINT = `${BACKEND_URL}/webhooks/stripe`;
 
@@ -408,6 +416,7 @@ autoConfigureWebhook()
     console.error('\n❌ Erreur fatale:', error);
     process.exit(1);
   });
+
 
 
 

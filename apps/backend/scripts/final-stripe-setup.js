@@ -14,8 +14,12 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Clé Stripe fournie par l'utilisateur
-const STRIPE_SECRET_KEY = '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';
+// Clé Stripe depuis variable d'environnement
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+if (!STRIPE_SECRET_KEY) {
+  console.error('❌ Error: STRIPE_SECRET_KEY environment variable is required');
+  process.exit(1);
+}
 
 // Charger DATABASE_URL
 const envSupabasePath = path.join(__dirname, '../../.env.supabase');
@@ -275,8 +279,12 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Clé Stripe fournie par l'utilisateur
-const STRIPE_SECRET_KEY = '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';
+// Clé Stripe depuis variable d'environnement
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+if (!STRIPE_SECRET_KEY) {
+  console.error('❌ Error: STRIPE_SECRET_KEY environment variable is required');
+  process.exit(1);
+}
 
 // Charger DATABASE_URL
 const envSupabasePath = path.join(__dirname, '../../.env.supabase');
@@ -518,6 +526,7 @@ async function main() {
 }
 
 main();
+
 
 
 
