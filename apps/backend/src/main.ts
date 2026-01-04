@@ -111,6 +111,10 @@ async function bootstrap() {
       windowMs: 15 * 60 * 1000, // 15 minutes
       delayAfter: 100, // Allow 100 requests per 15 minutes, then...
       delayMs: () => 500, // Begin adding 500ms of delay per request above 100
+      skip: (req) => {
+        // Skip speed limiting for health checks
+        return req.path === '/health' || req.path === '/api/v1/health';
+      },
     });
 
     app.use(limiter);
