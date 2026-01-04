@@ -173,12 +173,10 @@ async function bootstrap() {
     setupSwagger(app);
   }
 
-  // Initialize NestJS application (this registers all routes)
-  await app.init();
-  
-  // CRITICAL: Register /health route AFTER app.init() but on the raw Express server
+  // CRITICAL: Register /health route BEFORE app.init()
   // This is the EXACT pattern from serverless.ts which works correctly on Vercel
-  // Registering on 'server' (not app) ensures it bypasses NestJS routing
+  // The order of middleware registration is critical: /health must be registered
+  // BEFORE NestJS adds its routing middleware during app.init()
   server.get('/health', (req: Express.Request, res: Express.Response) => {
     logger.log(`[HEALTH] Health check endpoint called - path: ${req.path}, url: ${req.url}, originalUrl: ${req.originalUrl}`);
     res.status(200).json({
@@ -189,7 +187,10 @@ async function bootstrap() {
       version: process.env.npm_package_version || '1.0.0',
     });
   });
-  logger.log('Health check route registered at /health (AFTER app.init() on Express server)');
+  logger.log('Health check route registered at /health (BEFORE app.init() on Express server)');
+
+  // Initialize NestJS application (this registers all routes)
+  await app.init();
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
