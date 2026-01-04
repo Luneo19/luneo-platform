@@ -156,6 +156,10 @@ export class ExportPackService {
   private async createZip(
     files: Array<{ name: string; content: Buffer }>,
   ): Promise<Buffer> {
+    // TODO: Install archiver package to enable ZIP export
+    this.logger.warn('ZIP export not available - archiver package not installed');
+    return Buffer.from('');
+    /*
     return new Promise((resolve, reject) => {
       const archive = archiver('zip', {
         zlib: { level: 9 }, // Compression maximale
@@ -182,6 +186,7 @@ export class ExportPackService {
 
       archive.finalize();
     });
+    */
   }
 }
 

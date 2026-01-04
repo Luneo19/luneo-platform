@@ -10,6 +10,10 @@ export class PdfGeneratorService {
    * Générer un PDF depuis un snapshot
    */
   async generate(snapshot: any): Promise<Buffer> {
+    // TODO: Install pdfkit package to enable PDF generation
+    this.logger.warn('PDF generation not available - pdfkit package not installed');
+    return Buffer.from('');
+    /*
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
         size: 'A4',
@@ -51,6 +55,7 @@ export class PdfGeneratorService {
       // Finaliser
       doc.end();
     });
+    */
   }
 }
 
