@@ -242,29 +242,6 @@ export class WebhookHandlerService {
    */
   async getWebhookStats(integrationId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<any> {
     try {
-      const integration = await this.prisma.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
-      }
-
-      const now = new Date();
-      const startDate = new Date();
-      
-      switch (period) {
-        case 'day':
-          startDate.setDate(now.getDate() - 1);
-          break;
-        case 'week':
-          startDate.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          startDate.setMonth(now.getMonth() - 1);
-          break;
-      }
-
       // Trouver l'intégration pour obtenir brandId
       const integration = await this.prisma.ecommerceIntegration.findUnique({
         where: { id: integrationId },
