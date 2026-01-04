@@ -1,0 +1,30 @@
+# Nixpacks configuration for Luneo Backend
+# This file is in apps/backend and handles building from this directory
+
+[variables]
+NODE_ENV = "production"
+
+[providers]
+node = "20"
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+cmds = [
+  "corepack enable",
+  "corepack prepare pnpm@latest --activate"
+]
+
+[phases.install]
+cmds = [
+  "pnpm install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = [
+  "pnpm prisma generate",
+  "pnpm build"
+]
+
+[start]
+cmd = "node dist/src/main.js"
+
