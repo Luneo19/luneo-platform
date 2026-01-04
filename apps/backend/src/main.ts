@@ -127,9 +127,10 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - Health check is handled by Express middleware above, so no need to exclude
-  // The health check middleware intercepts /health before NestJS routing
-  app.setGlobalPrefix(configService.get('app.apiPrefix'));
+  // Global prefix - Exclude /health to keep it accessible at root level for Railway health checks
+  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
+    exclude: ['/health'],
+  });
   
   const apiPrefix = configService.get('app.apiPrefix');
   logger.log(`✅ Health check middleware intercepts /health before NestJS routing`);
@@ -152,34 +153,11 @@ async function bootstrap() {
   }
 
   // Initialize NestJS application (this registers all routes)
+  // HealthController is configured with @Controller('health') and excluded from global prefix
+  // This means it will be accessible at /health (not /api/v1/health)
   await app.init();
   
-  // CRITICAL: Register /health route on Express server AFTER app.init() but BEFORE app.listen()
-  // This ensures the route is registered on the underlying Express server and bypasses NestJS routing
-  // We use the underlying Express instance from the adapter
-  const httpAdapter = app.getHttpAdapter();
-  const expressInstance = httpAdapter.getInstance();
-  
-  // Register health check route directly on Express (bypasses NestJS routing)
-  expressInstance.get('/health', (req: Express.Request, res: Express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'production',
-    });
-  });
-  
-  expressInstance.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'production',
-    });
-  });
-  
-  logger.log('✅ Health check routes registered on Express server (AFTER app.init(), bypasses NestJS)');
+  logger.log('✅ Health check available at /health (excluded from global prefix)');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
