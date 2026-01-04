@@ -71,21 +71,7 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Register /health route BEFORE body parsers and BEFORE NestJS
-    // This is EXACTLY like serverless.ts line 117 - but BEFORE app.init()
-    // The route MUST be registered before ExpressAdapter takes control
-    server.get('/health', (req: Express.Request, res: Express.Response) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
-    });
-    
-    logger.log('✅ Health check route registered on Express server BEFORE body parsers and NestJS');
-    
-    // Parse JSON and URL-encoded bodies (AFTER health check route)
+    // Parse JSON and URL-encoded bodies
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
