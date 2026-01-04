@@ -118,14 +118,26 @@ SENTRY_DSN="${SENTRY_DSN:-}"
 FRONTEND_URL="${FRONTEND_URL:-https://app.luneo.app}"
 BACKEND_URL="${BACKEND_URL:-https://api.luneo.app}"
 
-# Stripe (valeurs de production)
-STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-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}"
-STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-whsec_rgKvTaCDRSLV6Iv6yrF8fNBh9c2II3uu}"
+# Stripe (depuis variables d'environnement)
+if [ -z "$STRIPE_SECRET_KEY" ]; then
+    echo -e "${RED}❌ STRIPE_SECRET_KEY non définie${NC}"
+    echo -e "${YELLOW}   Définissez-la avant d'exécuter ce script: export STRIPE_SECRET_KEY=sk_live_...${NC}"
+    exit 1
+fi
 
-# Cloudinary (valeurs de production)
-CLOUDINARY_CLOUD_NAME="${CLOUDINARY_CLOUD_NAME:-deh4aokbx}"
-CLOUDINARY_API_KEY="${CLOUDINARY_API_KEY:-541766291559917}"
-CLOUDINARY_API_SECRET="${CLOUDINARY_API_SECRET:-s0yc_QR4w9IsM6_HRq2hM5SDnfI}"
+if [ -z "$STRIPE_WEBHOOK_SECRET" ]; then
+    echo -e "${RED}❌ STRIPE_WEBHOOK_SECRET non définie${NC}"
+    echo -e "${YELLOW}   Définissez-la avant d'exécuter ce script: export STRIPE_WEBHOOK_SECRET=whsec_...${NC}"
+    exit 1
+fi
+
+# Cloudinary (depuis variables d'environnement)
+if [ -z "$CLOUDINARY_CLOUD_NAME" ] || [ -z "$CLOUDINARY_API_KEY" ] || [ -z "$CLOUDINARY_API_SECRET" ]; then
+    echo -e "${YELLOW}⚠️  Variables Cloudinary non définies, utilisant valeurs par défaut ou nécessitant configuration${NC}"
+    CLOUDINARY_CLOUD_NAME="${CLOUDINARY_CLOUD_NAME:-}"
+    CLOUDINARY_API_KEY="${CLOUDINARY_API_KEY:-}"
+    CLOUDINARY_API_SECRET="${CLOUDINARY_API_SECRET:-}"
+fi
 
 echo -e "${GREEN}   ✅ Configurations récupérées${NC}"
 echo ""
@@ -204,12 +216,12 @@ API_KEY_PREFIX=luneo_live_
 # ==============================================
 # OAUTH PROVIDERS
 # ==============================================
-GOOGLE_CLIENT_ID=212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
 GOOGLE_CALLBACK_URL=$BACKEND_URL/api/auth/google/callback
 
-GITHUB_CLIENT_ID=Ov23liJmVOHyn8tfxgLi
-GITHUB_CLIENT_SECRET=81bbea63bfc5651e048e5e7f62f69c5d4aad55f9
+GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
 GITHUB_CALLBACK_URL=$BACKEND_URL/api/auth/github/callback
 
 # ==============================================
@@ -248,7 +260,7 @@ REPLICATE_MODEL=stability-ai/sdxl
 # ==============================================
 # SENDGRID EMAIL
 # ==============================================
-SENDGRID_API_KEY=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
+SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
 SENDGRID_DOMAIN=luneo.app
 SENDGRID_FROM_NAME=Luneo
 SENDGRID_FROM_EMAIL=no-reply@luneo.app
@@ -555,18 +567,27 @@ if vercel whoami > /dev/null 2>&1; then
     add_vercel_env "STRIPE_PRICE_PRO" "price_1RvB1uKG9MsM6fdSnrGm2qIo"
     add_vercel_env "STRIPE_PRICE_ENTERPRISE" "price_1SH7TMKG9MsM6fdSx4pebEXZ"
     
-    add_vercel_env "SENDGRID_API_KEY" "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"
+    if [ -n "$SENDGRID_API_KEY" ]; then
+        add_vercel_env "SENDGRID_API_KEY" "$SENDGRID_API_KEY"
+    fi
     add_vercel_env "SENDGRID_DOMAIN" "luneo.app"
     add_vercel_env "SENDGRID_FROM_EMAIL" "no-reply@luneo.app"
     
-    add_vercel_env "CLOUDINARY_CLOUD_NAME" "$CLOUDINARY_CLOUD_NAME"
-    add_vercel_env "CLOUDINARY_API_KEY" "$CLOUDINARY_API_KEY"
-    add_vercel_env "CLOUDINARY_API_SECRET" "$CLOUDINARY_API_SECRET"
+    if [ -n "$CLOUDINARY_CLOUD_NAME" ] && [ -n "$CLOUDINARY_API_KEY" ] && [ -n "$CLOUDINARY_API_SECRET" ]; then
+        add_vercel_env "CLOUDINARY_CLOUD_NAME" "$CLOUDINARY_CLOUD_NAME"
+        add_vercel_env "CLOUDINARY_API_KEY" "$CLOUDINARY_API_KEY"
+        add_vercel_env "CLOUDINARY_API_SECRET" "$CLOUDINARY_API_SECRET"
+    fi
     
-    add_vercel_env "GOOGLE_CLIENT_ID" "212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com"
-    add_vercel_env "GOOGLE_CLIENT_SECRET" "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"
-    add_vercel_env "GITHUB_CLIENT_ID" "Ov23liJmVOHyn8tfxgLi"
-    add_vercel_env "GITHUB_CLIENT_SECRET" "81bbea63bfc5651e048e5e7f62f69c5d4aad55f9"
+    if [ -n "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ]; then
+        add_vercel_env "GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_ID"
+        add_vercel_env "GOOGLE_CLIENT_SECRET" "$GOOGLE_CLIENT_SECRET"
+    fi
+    
+    if [ -n "$GITHUB_CLIENT_ID" ] && [ -n "$GITHUB_CLIENT_SECRET" ]; then
+        add_vercel_env "GITHUB_CLIENT_ID" "$GITHUB_CLIENT_ID"
+        add_vercel_env "GITHUB_CLIENT_SECRET" "$GITHUB_CLIENT_SECRET"
+    fi
     
     add_vercel_env "FRONTEND_URL" "$FRONTEND_URL"
     add_vercel_env "BACKEND_URL" "$BACKEND_URL"
@@ -787,6 +808,8 @@ echo "   - Il ne reste qu'à vérifier DATABASE_URL puis déployer"
 echo ""
 echo -e "${GREEN}🎉 Configuration production prête pour un SaaS de niveau mondial n°1!${NC}"
 echo ""
+
+
 
 
 

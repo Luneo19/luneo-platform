@@ -84,33 +84,42 @@ JWT_REFRESH_SECRET="$JWT_REFRESH_SECRET"
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
-# OAuth
-GOOGLE_CLIENT_ID=212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
-GITHUB_CLIENT_ID=Ov23liJmVOHyn8tfxgLi
-GITHUB_CLIENT_SECRET=81bbea63bfc5651e048e5e7f62f69c5d4aad55f9
+# OAuth (depuis variables d'environnement)
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
 
-# Stripe (Production Live)
-STRIPE_SECRET_KEY=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
-STRIPE_WEBHOOK_SECRET=whsec_rgKvTaCDRSLV6Iv6yrF8fNBh9c2II3uu
+# Stripe (depuis variables d'environnement)
+if [ -z "$STRIPE_SECRET_KEY" ]; then
+    echo -e "${RED}❌ STRIPE_SECRET_KEY non définie${NC}"
+    echo -e "${YELLOW}   Définissez-la avant d'exécuter ce script: export STRIPE_SECRET_KEY=sk_live_...${NC}"
+    exit 1
+fi
+
+if [ -z "$STRIPE_WEBHOOK_SECRET" ]; then
+    echo -e "${RED}❌ STRIPE_WEBHOOK_SECRET non définie${NC}"
+    echo -e "${YELLOW}   Définissez-la avant d'exécuter ce script: export STRIPE_WEBHOOK_SECRET=whsec_...${NC}"
+    exit 1
+fi
 STRIPE_PRICE_PRO=price_1RvB1uKG9MsM6fdSnrGm2qIo
 STRIPE_PRICE_BUSINESS=price_1RvB1uKG9MsM6fdS[VERIFY]
 STRIPE_PRICE_ENTERPRISE=price_1SH7TMKG9MsM6fdSx4pebEXZ
 STRIPE_SUCCESS_URL=https://app.luneo.app/dashboard/billing/success
 STRIPE_CANCEL_URL=https://app.luneo.app/dashboard/billing/cancel
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=deh4aokbx
-CLOUDINARY_API_KEY=541766291559917
-CLOUDINARY_API_SECRET=s0yc_QR4w9IsM6_HRq2hM5SDnfI
+# Cloudinary (depuis variables d'environnement)
+CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
 
 # AI Providers
 # ⚠️ CONFIGURER votre clé OpenAI
 OPENAI_API_KEY=""
 REPLICATE_API_TOKEN=""
 
-# SendGrid (Déjà configuré)
-SENDGRID_API_KEY=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
+# SendGrid (depuis variables d'environnement)
+SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
 SENDGRID_DOMAIN=luneo.app
 SENDGRID_FROM_NAME=Luneo
 SENDGRID_FROM_EMAIL=no-reply@luneo.app
@@ -263,6 +272,8 @@ fi
 
 echo ""
 echo -e "${GREEN}🎉 Configuration production terminée!${NC}"
+
+
 
 
 

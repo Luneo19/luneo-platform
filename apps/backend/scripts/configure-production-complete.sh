@@ -216,12 +216,12 @@ ENCRYPTION_ALGORITHM=aes-256-gcm
 # ==============================================
 # OAUTH PROVIDERS
 # ==============================================
-GOOGLE_CLIENT_ID=212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
 GOOGLE_CALLBACK_URL=$BACKEND_URL/api/auth/google/callback
 
-GITHUB_CLIENT_ID=Ov23liJmVOHyn8tfxgLi
-GITHUB_CLIENT_SECRET=81bbea63bfc5651e048e5e7f62f69c5d4aad55f9
+GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-Ov23liJmVOHyn8tfxgLi}
+GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
 GITHUB_CALLBACK_URL=$BACKEND_URL/api/auth/github/callback
 
 # ==============================================
@@ -260,7 +260,7 @@ REPLICATE_MODEL=stability-ai/sdxl
 # ==============================================
 # SENDGRID EMAIL
 # ==============================================
-SENDGRID_API_KEY=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
+SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
 SENDGRID_DOMAIN=luneo.app
 SENDGRID_FROM_NAME=Luneo
 SENDGRID_FROM_EMAIL=no-reply@luneo.app
@@ -719,6 +719,7 @@ echo "   - Testez localement avant de déployer"
 echo ""
 echo -e "${GREEN}🎉 Configuration production prête pour un SaaS de niveau mondial!${NC}"
 echo ""
+
 
 
 

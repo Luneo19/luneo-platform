@@ -230,11 +230,11 @@ SESSION_MAX_AGE=604800000
 MASTER_ENCRYPTION_KEY="$MASTER_ENCRYPTION_KEY"
 ENCRYPTION_KEY="$ENCRYPTION_KEY"
 
-# OAuth
-GOOGLE_CLIENT_ID=212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
-GITHUB_CLIENT_ID=Ov23liJmVOHyn8tfxgLi
-GITHUB_CLIENT_SECRET=81bbea63bfc5651e048e5e7f62f69c5d4aad55f9
+# OAuth (depuis variables d'environnement ou valeurs saisies par l'utilisateur)
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-Ov23liJmVOHyn8tfxgLi}
+GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
 
 # Stripe
 STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY"
@@ -249,8 +249,8 @@ CLOUDINARY_API_SECRET="$CLOUDINARY_API_SECRET"
 OPENAI_API_KEY="$OPENAI_API_KEY"
 REPLICATE_API_TOKEN="$REPLICATE_API_TOKEN"
 
-# SendGrid
-SENDGRID_API_KEY=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
+# SendGrid (depuis variables d'environnement)
+SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
 SENDGRID_DOMAIN=luneo.app
 SENDGRID_FROM_EMAIL=no-reply@luneo.app
 
@@ -681,6 +681,7 @@ echo ""
 
 echo -e "${GREEN}${BOLD}🎉 Configuration production prête pour un SaaS de niveau mondial #1!${NC}"
 echo ""
+
 
 
 

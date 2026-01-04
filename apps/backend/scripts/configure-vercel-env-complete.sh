@@ -73,26 +73,69 @@ update_env "JWT_REFRESH_SECRET" "$JWT_REFRESH_SECRET" "production"
 # Master Encryption Key
 update_env "MASTER_ENCRYPTION_KEY" "$MASTER_ENCRYPTION_KEY" "production"
 
-# Stripe (déjà configuré, mais on vérifie)
-STRIPE_SECRET="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"
-STRIPE_WEBHOOK="whsec_rgKvTaCDRSLV6Iv6yrF8fNBh9c2II3uu"
-update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET" "production"
-update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK" "production"
+# Stripe (depuis variables d'environnement)
+if [ -z "$STRIPE_SECRET_KEY" ]; then
+    echo -e "${YELLOW}⚠️  STRIPE_SECRET_KEY non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY" "production"
+fi
+
+if [ -z "$STRIPE_WEBHOOK_SECRET" ]; then
+    echo -e "${YELLOW}⚠️  STRIPE_WEBHOOK_SECRET non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET" "production"
+fi
 
 # SendGrid
-SENDGRID_KEY="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"
-update_env "SENDGRID_API_KEY" "$SENDGRID_KEY" "production"
+if [ -z "$SENDGRID_API_KEY" ]; then
+    echo -e "${YELLOW}⚠️  SENDGRID_API_KEY non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "SENDGRID_API_KEY" "$SENDGRID_API_KEY" "production"
+fi
 
 # Cloudinary
-update_env "CLOUDINARY_CLOUD_NAME" "deh4aokbx" "production"
-update_env "CLOUDINARY_API_KEY" "541766291559917" "production"
-update_env "CLOUDINARY_API_SECRET" "s0yc_QR4w9IsM6_HRq2hM5SDnfI" "production"
+if [ -z "$CLOUDINARY_CLOUD_NAME" ]; then
+    echo -e "${YELLOW}⚠️  CLOUDINARY_CLOUD_NAME non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "CLOUDINARY_CLOUD_NAME" "$CLOUDINARY_CLOUD_NAME" "production"
+fi
+
+if [ -z "$CLOUDINARY_API_KEY" ]; then
+    echo -e "${YELLOW}⚠️  CLOUDINARY_API_KEY non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "CLOUDINARY_API_KEY" "$CLOUDINARY_API_KEY" "production"
+fi
+
+if [ -z "$CLOUDINARY_API_SECRET" ]; then
+    echo -e "${YELLOW}⚠️  CLOUDINARY_API_SECRET non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "CLOUDINARY_API_SECRET" "$CLOUDINARY_API_SECRET" "production"
+fi
 
 # OAuth
-update_env "GOOGLE_CLIENT_ID" "212705987732-qa90mdvfdv3b2ca441li1b7bivfariru.apps.googleusercontent.com" "production"
-update_env "GOOGLE_CLIENT_SECRET" "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" "production"
-update_env "GITHUB_CLIENT_ID" "Ov23liJmVOHyn8tfxgLi" "production"
-update_env "GITHUB_CLIENT_SECRET" "81bbea63bfc5651e048e5e7f62f69c5d4aad55f9" "production"
+if [ -z "$GOOGLE_CLIENT_ID" ]; then
+    echo -e "${YELLOW}⚠️  GOOGLE_CLIENT_ID non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_ID" "production"
+fi
+
+if [ -z "$GOOGLE_CLIENT_SECRET" ]; then
+    echo -e "${YELLOW}⚠️  GOOGLE_CLIENT_SECRET non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "GOOGLE_CLIENT_SECRET" "$GOOGLE_CLIENT_SECRET" "production"
+fi
+
+if [ -z "$GITHUB_CLIENT_ID" ]; then
+    echo -e "${YELLOW}⚠️  GITHUB_CLIENT_ID non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "GITHUB_CLIENT_ID" "$GITHUB_CLIENT_ID" "production"
+fi
+
+if [ -z "$GITHUB_CLIENT_SECRET" ]; then
+    echo -e "${YELLOW}⚠️  GITHUB_CLIENT_SECRET non définie, nécessite configuration manuelle${NC}"
+else
+    update_env "GITHUB_CLIENT_SECRET" "$GITHUB_CLIENT_SECRET" "production"
+fi
 
 # Stripe Prices
 update_env "STRIPE_PRICE_PRO" "price_1RvB1uKG9MsM6fdSnrGm2qIo" "production"
@@ -132,6 +175,8 @@ echo -e "${YELLOW}📋 Prochaine étape:${NC}"
 echo "   1. Configurer DATABASE_URL dans Vercel Dashboard"
 echo "   2. Exécuter: vercel --prod"
 echo ""
+
+
 
 
 
