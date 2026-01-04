@@ -29,25 +29,27 @@ export async function loadFeatureFlags(): Promise<{
   flags: Record<string, boolean>;
   updatedAt: string | null;
 }> {
-  // Utiliser l'API locale Next.js
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                  'http://localhost:3000';
-  const endpoint = `${baseUrl}/api/feature-flags`;
-
+  // Dans Next.js Server Components, on peut utiliser fetch directement
+  // Mais pour éviter les problèmes de résolution DNS/timeout avec les URLs externes,
+  // on utilise une approche plus robuste avec timeout et gestion d'erreur
   try {
-    // Créer un AbortController avec timeout de 5 secondes
+    // Construire l'URL de manière sécurisée
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    
+    const endpoint = `${baseUrl}/api/feature-flags`;
+
+    // Utiliser fetch avec timeout via AbortController
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // Timeout réduit à 3s
 
     const response = await fetch(endpoint, {
       headers: {
         'Content-Type': 'application/json',
       },
       signal: controller.signal,
-      next: {
-        revalidate: 60, // Cache for 60 seconds
-      },
+      cache: 'no-store', // Pas de cache pour éviter les problèmes
     });
 
     clearTimeout(timeoutId);
@@ -62,8 +64,9 @@ export async function loadFeatureFlags(): Promise<{
       flags: data.flags ?? DEFAULT_FLAGS,
       updatedAt: data.updatedAt ?? new Date().toISOString(),
     };
-  } catch {
+  } catch (error) {
     // En cas d'erreur (timeout, réseau, etc.), retourner les flags par défaut
+    // Ne pas logger l'erreur pour éviter de polluer les logs en production
     return { flags: DEFAULT_FLAGS, updatedAt: new Date().toISOString() };
   }
 }
