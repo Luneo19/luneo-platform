@@ -71,10 +71,6 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // Parse JSON and URL-encoded bodies
-    server.use(express.json());
-    server.use(express.urlencoded({ extended: true }));
-    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually
@@ -153,10 +149,10 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
-  // CRITICAL: Register /health route AFTER app.init() using getHttpAdapter()
-  // This is the professional NestJS way - same as shopify/src/server/main.ts line 99
-  // This bypasses NestJS routing and registers directly on the Express adapter
-  app.getHttpAdapter().get('/health', (req: Express.Request, res: Express.Response) => {
+  // CRITICAL: Register /health route on the Express server AFTER app.init()
+  // This is EXACTLY like serverless.ts line 117 - register on server, not via getHttpAdapter()
+  // The server is the same instance passed to ExpressAdapter, so this works
+  server.get('/health', (req: Express.Request, res: Express.Response) => {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -165,7 +161,7 @@ async function bootstrap() {
     });
   });
   
-  logger.log('✅ Health check route registered via getHttpAdapter() AFTER app.init()');
+  logger.log('✅ Health check route registered on Express server AFTER app.init() (like serverless.ts)');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
