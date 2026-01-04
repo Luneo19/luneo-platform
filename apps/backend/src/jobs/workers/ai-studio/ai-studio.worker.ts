@@ -159,7 +159,6 @@ export class AIStudioWorker {
     const result = await this.aiOrchestrator.generateImage(
       {
         prompt,
-        negativePrompt,
         size: parameters.aspectRatio || '1024x1024',
         style: parameters.style || 'vivid',
       },
@@ -168,9 +167,9 @@ export class AIStudioWorker {
     );
 
     return {
-      resultUrl: result.url,
-      thumbnailUrl: result.thumbnailUrl || result.url,
-      quality: result.quality || 85,
+      resultUrl: result.images[0]?.url || '',
+      thumbnailUrl: result.images[0]?.url || '',
+      quality: 85,
     };
   }
 

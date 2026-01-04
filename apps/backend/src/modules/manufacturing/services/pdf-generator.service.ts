@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as PDFDocument from 'pdfkit';
+// Note: pdfkit package not installed - functionality disabled
+// import * as PDFDocument from 'pdfkit';
 
 @Injectable()
 export class PdfGeneratorService {

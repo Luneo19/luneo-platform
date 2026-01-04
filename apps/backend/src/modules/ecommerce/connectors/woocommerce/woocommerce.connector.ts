@@ -415,7 +415,7 @@ export class WooCommerceConnector {
 
     const luneoProduct = await this.prisma.product.create({
       data: {
-        brandId: integration.brandId as string,
+        brandId: integration.brandId as any,
         name: wooProduct.name,
         description: wooProduct.description,
         sku: wooProduct.sku,

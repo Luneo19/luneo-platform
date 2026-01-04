@@ -107,7 +107,6 @@ export class GenerationService {
       },
       {
         priority: this.getPriority(client.subscriptionPlan),
-        timeout: 120000,
       },
     );
 

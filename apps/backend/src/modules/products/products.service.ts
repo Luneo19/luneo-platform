@@ -3,7 +3,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import { normalizePagination, createPaginationResult, PaginationParams, PaginationResult } from '@/libs/prisma/pagination.helper';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
-import { AppErrorFactory, AuthorizationError, ErrorCode } from '@/common/errors/app-error';
+import { AppErrorFactory, AuthorizationError, ErrorCode, ValidationError } from '@/common/errors/app-error';
 import { CurrentUser, MinimalUser, toMinimalUser } from '@/common/types/user.types';
 import { JsonValue } from '@/common/types/utility-types';
 
@@ -253,7 +253,7 @@ export class ProductsService {
     });
 
     if (products.length !== productIds.length) {
-      throw AppErrorFactory.badRequest('Some products not found or do not belong to brand');
+      throw AppErrorFactory.validationFailed('Some products not found or do not belong to brand');
     }
 
     const updateData: any = {};

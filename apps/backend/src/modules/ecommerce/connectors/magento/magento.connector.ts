@@ -359,7 +359,7 @@ export class MagentoConnector {
 
     const luneoProduct = await this.prisma.product.create({
       data: {
-        brandId: integration.brandId as string,
+        brandId: integration.brandId as any,
         name: magentoProduct.name,
         description: '',
         sku: magentoProduct.sku,

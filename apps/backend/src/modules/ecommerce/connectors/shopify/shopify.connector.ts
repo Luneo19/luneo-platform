@@ -478,7 +478,7 @@ export class ShopifyConnector {
     // Créer le produit LUNEO
     const luneoProduct = await this.prisma.product.create({
       data: {
-        brandId: integration.brandId as string,
+        brandId: integration.brandId as any,
         name: shopifyProduct.title,
         description: shopifyProduct.body_html,
         sku: shopifyProduct.variants[0]?.sku || shopifyProduct.handle,

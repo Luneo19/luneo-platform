@@ -53,7 +53,7 @@ export class GenerationProcessor {
       const aiProvider = this.aiFactory.getProvider(data.aiProvider);
 
       // 3. Générer l'image avec l'IA
-      await job.progress(10);
+      await job.updateProgress(10);
       
       const aiResult = await aiProvider.generateImage({
         prompt: data.finalPrompt,
@@ -61,7 +61,7 @@ export class GenerationProcessor {
         quality: data.quality as any,
       });
 
-      await job.progress(50);
+      await job.updateProgress(50);
 
       // 4. Télécharger l'image générée
       const generatedImageUrl = aiResult.images[0].url;
@@ -90,7 +90,7 @@ export class GenerationProcessor {
           })
         : generatedImageBuffer;
 
-      await job.progress(70);
+      await job.updateProgress(70);
 
       // 7. Générer la miniature
       const thumbnail = await this.imageProcessor.createThumbnail(
@@ -116,7 +116,7 @@ export class GenerationProcessor {
         ),
       ]);
 
-      await job.progress(85);
+      await job.updateProgress(85);
 
       // 9. Préparer les données AR si nécessaire
       let arModelUrl = null;
@@ -131,7 +131,7 @@ export class GenerationProcessor {
         arModelUrl = product.model3dUrl;
       }
 
-      await job.progress(95);
+      await job.updateProgress(95);
 
       // 10. Mettre à jour la génération
       const processingTime = Date.now() - startTime;
@@ -151,7 +151,7 @@ export class GenerationProcessor {
         },
       });
 
-      await job.progress(100);
+      await job.updateProgress(100);
 
       // 11. Émettre événement
       this.eventEmitter.emit('generation.completed', {

@@ -59,10 +59,13 @@ export class AnalyticsCalculationsService {
           let previousCount = eventCount;
           if (index > 0) {
             const previousStep = steps[index - 1];
+            const previousStepEventType = typeof previousStep.eventType === 'string' 
+              ? previousStep.eventType 
+              : (previousStep.eventType as any)?.toString?.() || '';
             previousCount = await this.prisma.analyticsEvent.count({
               where: {
                 brandId,
-                eventType: previousStep.eventType,
+                eventType: previousStepEventType,
                 timestamp: { gte: startDate, lte: endDate },
               },
             });

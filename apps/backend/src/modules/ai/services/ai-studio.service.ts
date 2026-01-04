@@ -52,7 +52,10 @@ export class AIStudioService {
 
       // Vérifier le budget
       const estimatedCost = await this.estimateCost(prompt, parameters, model);
-      await this.budgetService.checkBudgetOrThrow(brandId, estimatedCost);
+      const hasBudget = await this.budgetService.checkBudget(brandId, estimatedCost);
+      if (!hasBudget) {
+        throw new BadRequestException('Budget insuffisant pour cette génération');
+      }
 
       // Vérifier le quota utilisateur
       const hasQuota = await this.checkUserQuota(userId, estimatedCost);

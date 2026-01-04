@@ -131,10 +131,10 @@ export class WebhookHandlerService {
       await this.prisma.webhookLog.create({
         data: {
           webhookId: webhook.id,
-          topic: webhook.topic,
-          shopDomain: webhook.shop_domain,
+          event: webhook.topic || 'unknown',
           payload: webhook.payload,
-          status: 'received',
+          statusCode: 200,
+          response: 'received',
           createdAt: new Date(webhook.created_at),
         },
       });
@@ -161,7 +161,11 @@ export class WebhookHandlerService {
 
       const webhooks = await this.prisma.webhookLog.findMany({
         where: {
-          shopDomain: integration.shopDomain,
+          webhook: {
+            integration: {
+              id: integrationId,
+            },
+          },
         },
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -187,27 +191,27 @@ export class WebhookHandlerService {
         throw new Error(`Webhook ${webhookId} not found`);
       }
 
-      const integration = await this.prisma.ecommerceIntegration.findFirst({
-        where: {
-          shopDomain: webhook.shopDomain,
-          status: 'active',
-        },
+      const webhookRecord = await this.prisma.webhook.findUnique({
+        where: { id: webhook.webhookId },
+        include: { integration: true },
       });
 
-      if (!integration) {
+      if (!webhookRecord || !webhookRecord.integration) {
         throw new Error('No active integration found for webhook');
       }
+
+      const integration = webhookRecord.integration;
 
       // Réessayer selon la plateforme
       if (integration.platform === 'shopify') {
         await this.shopifyConnector.handleWebhook(
-          webhook.topic,
-          webhook.shopDomain,
+          webhook.event,
+          integration.shopDomain || '',
           webhook.payload as Record<string, JsonValue>,
         );
       } else if (integration.platform === 'woocommerce') {
         await this.woocommerceConnector.handleWebhook(
-          webhook.topic,
+          webhook.event,
           webhook.payload,
           '', // Signature déjà validée
         );
@@ -216,7 +220,7 @@ export class WebhookHandlerService {
       // Mettre à jour le statut
       await this.prisma.webhookLog.update({
         where: { id: webhookId },
-        data: { status: 'retried' },
+        data: { response: 'retried' },
       });
 
       this.logger.log(`Webhook ${webhookId} retried successfully`);
@@ -256,7 +260,11 @@ export class WebhookHandlerService {
 
       const webhooks = await this.prisma.webhookLog.findMany({
         where: {
-          shopDomain: integration.shopDomain,
+          webhook: {
+            integration: {
+              id: integrationId,
+            },
+          },
           createdAt: {
             gte: startDate,
             lte: now,
@@ -268,15 +276,17 @@ export class WebhookHandlerService {
         period,
         totalWebhooks: webhooks.length,
         webhooksByTopic: webhooks.reduce((acc, webhook) => {
-          acc[webhook.topic] = (acc[webhook.topic] || 0) + 1;
+          const topic = webhook.event || 'unknown';
+          acc[topic] = (acc[topic] || 0) + 1;
           return acc;
         }, {} as Record<string, number>),
         webhooksByStatus: webhooks.reduce((acc, webhook) => {
-          acc[webhook.status] = (acc[webhook.status] || 0) + 1;
+          const status = webhook.statusCode && webhook.statusCode < 300 ? 'success' : 'error';
+          acc[status] = (acc[status] || 0) + 1;
           return acc;
         }, {} as Record<string, number>),
         successRate: webhooks.length > 0
-          ? (webhooks.filter(w => w.status === 'processed').length / webhooks.length) * 100
+          ? (webhooks.filter(w => w.statusCode && w.statusCode < 300).length / webhooks.length) * 100
           : 0,
       };
 

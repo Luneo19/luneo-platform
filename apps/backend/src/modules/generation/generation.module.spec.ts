@@ -6,6 +6,8 @@ import { GenerationProcessor } from './generation.processor';
 import { PromptBuilderService } from './services/prompt-builder.service';
 import { ImageProcessorService } from './services/image-processor.service';
 import { AIProviderFactory } from './providers/ai-provider.factory';
+import { PrismaService } from '@/libs/prisma/prisma.service';
+import { StorageService } from '@/libs/storage/storage.service';
 
 describe('GenerationModule', () => {
   let module: TestingModule;

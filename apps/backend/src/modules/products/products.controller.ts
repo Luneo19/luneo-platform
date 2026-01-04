@@ -208,9 +208,9 @@ export class ProductsController {
   })
   async getAnalytics(
     @Param('id') id: string,
+    @Request() req: ExpressRequest & { user: CurrentUser },
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.productsService.getAnalytics(id, {
       startDate: startDate ? new Date(startDate) : undefined,

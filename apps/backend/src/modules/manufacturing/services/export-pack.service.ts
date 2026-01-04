@@ -4,7 +4,7 @@ import { StorageService } from '@/libs/storage/storage.service';
 import { SvgGeneratorService } from './svg-generator.service';
 import { DxfGeneratorService } from './dxf-generator.service';
 import { PdfGeneratorService } from './pdf-generator.service';
-import * as archiver from 'archiver';
+// import * as archiver from 'archiver'; // TODO: Install archiver package
 import { Readable } from 'stream';
 
 export interface ExportPackOptions {
