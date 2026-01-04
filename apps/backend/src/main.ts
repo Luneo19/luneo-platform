@@ -71,26 +71,7 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Health check middleware MUST be registered FIRST, before any other middleware
-    // This ensures it intercepts /health requests before NestJS or any other middleware processes them
-    server.use((req: Express.Request, res: Express.Response, next: Express.NextFunction): void => {
-      // Intercept /health and /api/v1/health routes and respond directly
-      if (req.path === '/health' || req.path === '/api/v1/health') {
-        res.status(200).json({
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime(),
-          environment: process.env.NODE_ENV || 'production',
-        });
-        return;
-      }
-      // For all other routes, continue to next middleware
-      next();
-    });
-    
-    logger.log('✅ Health check middleware registered (FIRST middleware, before body parsers)');
-    
-    // Parse JSON and URL-encoded bodies (AFTER health check middleware)
+    // Parse JSON and URL-encoded bodies
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
@@ -171,8 +152,34 @@ async function bootstrap() {
   }
 
   // Initialize NestJS application (this registers all routes)
-  // Note: /health routes are already registered on Express server above (before app creation)
   await app.init();
+  
+  // CRITICAL: Register /health route on Express server AFTER app.init() but BEFORE app.listen()
+  // This ensures the route is registered on the underlying Express server and bypasses NestJS routing
+  // We use the underlying Express instance from the adapter
+  const httpAdapter = app.getHttpAdapter();
+  const expressInstance = httpAdapter.getInstance();
+  
+  // Register health check route directly on Express (bypasses NestJS routing)
+  expressInstance.get('/health', (req: Express.Request, res: Express.Response) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'production',
+    });
+  });
+  
+  expressInstance.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'production',
+    });
+  });
+  
+  logger.log('✅ Health check routes registered on Express server (AFTER app.init(), bypasses NestJS)');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
