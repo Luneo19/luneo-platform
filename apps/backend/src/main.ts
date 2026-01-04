@@ -71,25 +71,8 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Add health check middleware FIRST, before ANY other middleware
-    // This middleware responds directly to /health requests before NestJS can intercept
-    // Must check both raw path and normalized path
-    server.use((req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-      const path = req.path || req.url?.split('?')[0] || '';
-      if (req.method === 'GET' && (path === '/health' || path === '/api/v1/health' || path.endsWith('/health'))) {
-        logger.log(`Health check requested: ${req.method} ${path}`);
-        res.status(200).json({
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime(),
-          environment: process.env.NODE_ENV || 'production',
-        });
-        return; // Stop here, don't pass to next middleware
-      }
-      next(); // Continue for all other requests
-    });
-    
-    logger.log('✅ Health check middleware registered (FIRST, responds directly)');
+    // Health check will be registered AFTER app.init() on the Express instance
+    // This ensures it bypasses NestJS routing completely
     
     // Parse JSON and URL-encoded bodies - AFTER health check middleware
     server.use(express.json());
