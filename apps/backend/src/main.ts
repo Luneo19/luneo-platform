@@ -71,28 +71,26 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Register /health endpoint on Express BEFORE creating NestJS app
-    // This ensures it's available before any NestJS routing or middleware
-    server.get('/health', (req: Express.Request, res: Express.Response) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
+    // CRITICAL: Add health check middleware FIRST, before ANY other middleware
+    // This middleware responds directly to /health requests before NestJS can intercept
+    server.use((req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+      if (req.method === 'GET' && (req.path === '/health' || req.path === '/api/v1/health')) {
+        res.status(200).json({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || 'production',
+        });
+        return; // Stop here, don't pass to next middleware
+      }
+      next(); // Continue for all other requests
     });
     
-    // Also register /api/v1/health for consistency
-    server.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
-    });
+    logger.log('✅ Health check middleware registered (FIRST, responds directly)');
     
-    logger.log('✅ Health endpoints registered at /health and /api/v1/health (BEFORE NestJS app creation)');
+    // Parse JSON and URL-encoded bodies - AFTER health check middleware
+    server.use(express.json());
+    server.use(express.urlencoded({ extended: true }));
     
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
@@ -100,10 +98,6 @@ async function bootstrap() {
     });
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
-    
-    // Parse JSON and URL-encoded bodies
-    server.use(express.json());
-    server.use(express.urlencoded({ extended: true }));
     
     // Security middleware - production ready
     app.use(helmet());
