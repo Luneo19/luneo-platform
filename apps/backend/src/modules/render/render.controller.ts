@@ -27,7 +27,7 @@ export class RenderController {
     private readonly cadIntegration: CADIntegrationService,
     private readonly renderQueue: RenderQueueService,
     private readonly renderStatus: RenderStatusService,
-    private readonly renderPrintReady: RenderPrintReadyService,
+    private readonly renderPrintReadyService: RenderPrintReadyService,
   ) {}
 
   @Post('2d')
@@ -164,7 +164,7 @@ export class RenderController {
       id: `print-ready-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...request,
     };
-    return this.renderPrintReady.renderPrintReadyRequest(renderRequest);
+    return this.renderPrintReadyService.renderPrintReady(renderRequest);
   }
 }
 

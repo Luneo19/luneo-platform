@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
-import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { createCanvas, loadImage, type CanvasRenderingContext2D, type Image, type CanvasTextAlign } from 'canvas';
+import { Injectable, Logger } from '@nestjs/common';
+import { createCanvas, loadImage, type CanvasRenderingContext2D, type CanvasTextAlign, type Image } from 'canvas';
 import sharp from 'sharp';
 // Types from widget package (will be imported from shared types later)
 interface DesignData {
@@ -514,14 +514,16 @@ export class RenderPrintReadyService {
     const filename = `renders/print-ready/${request.id}.${format}`;
     
     const contentType: string = format === 'pdf' ? 'application/pdf' : format === 'jpeg' ? 'image/jpeg' : `image/${format}`;
-    const url = await this.storageService.uploadFile(
-      filename,
+    const url = await this.storageService.uploadBuffer(
       buffer,
-      contentType,
+      filename,
       {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000',
-      } as Record<string, string>,
+        contentType,
+        metadata: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=31536000',
+        },
+      },
     );
     
     return { url, size: buffer.length };
@@ -541,13 +543,15 @@ export class RenderPrintReadyService {
     
     const filename = `renders/print-ready/${request.id}_thumb.png`;
     
-    return await this.storageService.uploadFile(
-      filename,
+    return await this.storageService.uploadBuffer(
       thumbnailBuffer,
-      'image/png',
+      filename,
       {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=31536000',
+        contentType: 'image/png',
+        metadata: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=31536000',
+        },
       },
     );
   }
