@@ -1,11 +1,6 @@
 import 'server-only';
 
-interface FeatureFlagsServerResponse {
-  updatedAt?: string;
-  flags?: Record<string, boolean>;
-}
-
-// Feature flags par défaut (fallback)
+// Feature flags par défaut
 const DEFAULT_FLAGS: Record<string, boolean> = {
   enableAIGeneration: true,
   enable3DConfigurator: true,
@@ -25,49 +20,39 @@ const DEFAULT_FLAGS: Record<string, boolean> = {
   enableDebugMode: process.env.NODE_ENV === 'development',
 };
 
+/**
+ * Charge les feature flags pour le Server Component.
+ * 
+ * NOTE: Cette fonction retourne directement les flags par défaut sans faire de fetch HTTP.
+ * Faire un fetch vers sa propre API route depuis un Server Component peut causer des problèmes
+ * sur Vercel (timeout, résolution DNS, etc.). Si vous avez besoin de flags dynamiques,
+ * chargez-les depuis une base de données ou des variables d'environnement.
+ */
 export async function loadFeatureFlags(): Promise<{
   flags: Record<string, boolean>;
   updatedAt: string | null;
 }> {
-  // Dans Next.js Server Components, on peut utiliser fetch directement
-  // Mais pour éviter les problèmes de résolution DNS/timeout avec les URLs externes,
-  // on utilise une approche plus robuste avec timeout et gestion d'erreur
-  try {
-    // Construire l'URL de manière sécurisée
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    
-    const endpoint = `${baseUrl}/api/feature-flags`;
-
-    // Utiliser fetch avec timeout via AbortController
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // Timeout réduit à 3s
-
-    const response = await fetch(endpoint, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-      cache: 'no-store', // Pas de cache pour éviter les problèmes
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      // Retourner les flags par défaut si l'API échoue
-      return { flags: DEFAULT_FLAGS, updatedAt: new Date().toISOString() };
+  // Charger depuis les variables d'environnement si disponibles
+  const envFlags: Record<string, boolean> = {};
+  
+  Object.keys(process.env).forEach((key) => {
+    if (key.startsWith('FEATURE_FLAG_')) {
+      const flagName = key
+        .replace('FEATURE_FLAG_', '')
+        .toLowerCase()
+        .replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      envFlags[flagName] = process.env[key] === 'true';
     }
-
-    const data = (await response.json()) as FeatureFlagsServerResponse;
-    return {
-      flags: data.flags ?? DEFAULT_FLAGS,
-      updatedAt: data.updatedAt ?? new Date().toISOString(),
-    };
-  } catch (error) {
-    // En cas d'erreur (timeout, réseau, etc.), retourner les flags par défaut
-    // Ne pas logger l'erreur pour éviter de polluer les logs en production
-    return { flags: DEFAULT_FLAGS, updatedAt: new Date().toISOString() };
-  }
+  });
+  
+  const flags = {
+    ...DEFAULT_FLAGS,
+    ...envFlags,
+  };
+  
+  return {
+    flags,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
