@@ -1231,3 +1231,4 @@ test('should create a product', async ({ page }) => {
 **Version** : 2.0.0  
 **Maintenu par** : Équipe Luneo
 
+

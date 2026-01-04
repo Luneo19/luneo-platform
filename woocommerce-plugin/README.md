@@ -62,3 +62,4 @@ woocommerce-plugin/
 - WooCommerce: 6.0+
 - PHP: 7.4+
 
+

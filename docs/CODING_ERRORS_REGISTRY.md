@@ -527,3 +527,4 @@ Avant chaque commit, vérifier :
 **Dernière mise à jour :** 2025-01-XX
 **Version :** 1.0.0
 
+

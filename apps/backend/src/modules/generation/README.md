@@ -58,3 +58,4 @@ Le module est testé via :
 3. Tester les providers IA
 4. Valider l'upload vers Cloudinary
 
+

@@ -159,23 +159,28 @@ export class WebhookService {
   }> {
     const skip = (page - 1) * limit;
 
+    // Utiliser WebhookLog au lieu de Webhook car Webhook n'a pas ces champs
     const [webhooks, total] = await Promise.all([
-      this.prisma.webhook.findMany({
-        where: { brandId },
+      this.prisma.webhookLog.findMany({
+        where: { 
+          webhook: { brandId },
+        },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           event: true,
-          url: true,
           statusCode: true,
-          success: true,
           error: true,
           createdAt: true,
         },
       }),
-      this.prisma.webhook.count({ where: { brandId } }),
+      this.prisma.webhookLog.count({ 
+        where: { 
+          webhook: { brandId },
+        },
+      }),
     ]);
 
     return {
@@ -194,24 +199,25 @@ export class WebhookService {
    */
   async retryWebhook(webhookId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const webhook = await this.prisma.webhook.findUnique({
+      // Utiliser WebhookLog au lieu de Webhook
+      const webhookLog = await this.prisma.webhookLog.findUnique({
         where: { id: webhookId },
-        include: { brand: true },
+        include: { webhook: { include: { brand: true } } },
       });
 
-      if (!webhook) {
+      if (!webhookLog || !webhookLog.webhook) {
         throw new BadRequestException('Webhook not found');
       }
 
-      if (webhook.success) {
+      if (webhookLog.statusCode && webhookLog.statusCode >= 200 && webhookLog.statusCode < 300) {
         throw new BadRequestException('Webhook was already successful');
       }
 
       // Resend webhook
       const result = await this.sendWebhook(
-        webhook.event as WebhookEvent,
-        webhook.payload as Record<string, any>,
-        webhook.brandId,
+        webhookLog.event as WebhookEvent,
+        webhookLog.payload as Record<string, any>,
+        webhookLog.webhook.brandId,
       );
 
       return { success: result.success, error: result.error };
@@ -252,15 +258,40 @@ export class WebhookService {
     error: string | null,
   ): Promise<void> {
     try {
-      await this.prisma.webhook.create({
+      // Trouver ou créer le webhook pour cette brand
+      const brand = await this.prisma.brand.findUnique({ 
+        where: { id: brandId },
+        include: { webhooks: { take: 1 } },
+      });
+
+      if (!brand) {
+        this.logger.error(`Brand ${brandId} not found`);
+        return;
+      }
+
+      // Utiliser le premier webhook existant ou créer un nouveau
+      let webhook = brand.webhooks[0];
+      if (!webhook) {
+        webhook = await this.prisma.webhook.create({
+          data: {
+            brandId,
+            name: `Auto-created webhook for ${brand.name}`,
+            url: brand.webhookUrl || '',
+            secret: brand.webhookSecret || '',
+            isActive: true,
+          },
+        });
+      }
+
+      // Créer le log
+      await this.prisma.webhookLog.create({
         data: {
+          webhookId: webhook.id,
           event,
-          url: (await this.prisma.brand.findUnique({ where: { id: brandId } }))?.webhookUrl || '',
-          payload,
+          payload: payload as any,
           statusCode,
-          success: statusCode !== null && statusCode >= 200 && statusCode < 300,
+          response: statusCode !== null && statusCode >= 200 && statusCode < 300 ? 'Success' : null,
           error,
-          brandId,
         },
       });
     } catch (error) {

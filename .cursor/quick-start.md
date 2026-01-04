@@ -74,3 +74,4 @@ Suivre la progression dans `.cursor/audit-plan.md` et mettre à jour les statuts
 4. **Tester après chaque section**: S'assurer que le code compile
 
 
+

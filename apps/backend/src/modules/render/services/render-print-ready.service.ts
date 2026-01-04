@@ -156,7 +156,7 @@ export class RenderPrintReadyService {
     
     ctx.font = `${fontStyle} ${fontWeight} ${fontSizePx}px ${fontFamily}`;
     ctx.fillStyle = data.color || '#000000';
-    ctx.textAlign = data.textAlign || 'left';
+    ctx.textAlign = (data.textAlign || 'left') as CanvasTextAlign;
     ctx.textBaseline = 'top';
     ctx.globalAlpha = layer.opacity;
     
@@ -509,12 +509,13 @@ export class RenderPrintReadyService {
   ): Promise<{ url: string; size: number }> {
     const filename = `renders/print-ready/${request.id}.${format}`;
     
+    const contentType = format === 'pdf' ? 'application/pdf' : `image/${format}`;
     const url = await this.storageService.uploadFile(
       filename,
       buffer,
-      `image/${format}`,
+      contentType,
       {
-        'Content-Type': `image/${format}`,
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000',
       },
     );

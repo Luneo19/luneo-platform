@@ -3,13 +3,6 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { WidgetService, DesignData } from './widget.service';
 import { ApiKeyGuard } from '../public-api/guards/api-key.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-  id: string;
-  productId: string;
-  canvas: {
-    width: number;
-    height: number;
-    backgroundColor: string;
-  };
 
 @ApiTags('Widget API')
 @Controller('api/widget')

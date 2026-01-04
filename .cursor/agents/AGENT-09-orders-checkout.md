@@ -252,3 +252,4 @@ model OrderItem {
 - Prioriser la robustesse du workflow checkout (flux critique business)
 - Gérer les cas edge (paiement échoué, timeout, etc.)
 
+

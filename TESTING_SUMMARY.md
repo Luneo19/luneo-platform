@@ -157,3 +157,4 @@ WHERE "isActive" = true AND "revokedAt" IS NULL;
 4. **Optimiser les performances** du rendu 3D
 5. **Ajouter plus de types de tracking** (body, hand)
 
+

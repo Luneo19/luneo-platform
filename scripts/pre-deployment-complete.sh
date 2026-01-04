@@ -164,3 +164,4 @@ echo "  3. Tester en production:"
 echo "     - ./scripts/test-endpoints.sh <PRODUCTION_API_URL> <API_KEY>"
 echo ""
 
+

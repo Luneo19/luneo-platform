@@ -1,6 +1,6 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import { RenderPrintReadyService, PrintReadyRenderRequest } from '../services/render-print-ready.service';
 
 export interface PrintReadyRenderJob {

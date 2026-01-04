@@ -156,3 +156,4 @@ echo "   4. ./scripts/configure-s3.sh"
 echo "   5. ./scripts/test-endpoints.sh"
 echo ""
 
+

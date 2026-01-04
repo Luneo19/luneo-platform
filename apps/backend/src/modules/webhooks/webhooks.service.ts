@@ -25,9 +25,12 @@ export class WebhooksService {
     timestamp: number,
     maxAgeMinutes: number = 5,
   ): Promise<{ isValid: boolean; existing?: any }> {
-    // Vérifier si déjà traité
-    const existing = await this.prisma.webhook.findFirst({
-      where: { idempotencyKey: idempotencyKey || undefined },
+    // Vérifier si déjà traité (utiliser WebhookLog au lieu de Webhook)
+    // Note: Le modèle Webhook n'a pas idempotencyKey, on utilise une approche alternative
+    const existing = await this.prisma.webhookLog.findFirst({
+      where: { 
+        payload: { path: ['idempotencyKey'], equals: idempotencyKey } as any,
+      },
     });
 
     if (existing) {
@@ -73,32 +76,43 @@ export class WebhooksService {
     try {
       const result = await this.processSendGridEvent(payload);
 
-      // Enregistrer avec idempotency key
-      await this.prisma.webhook.create({
+      // Enregistrer avec idempotency key (utiliser WebhookLog)
+      // Note: Le modèle Webhook n'a pas ces champs, on utilise WebhookLog
+      // Trouver ou créer un webhook pour cette brand
+      const brand = await this.prisma.brand.findUnique({ 
+        where: { id: brandId },
+        include: { webhooks: { take: 1 } },
+      });
+      
+      const webhookId = brand?.webhooks[0]?.id || '';
+      
+      await this.prisma.webhookLog.create({
         data: {
-          brandId,
-          event,
-          url: '', // Pas d'URL pour webhooks entrants
-          payload: payload as any,
-          success: true,
-          idempotencyKey: key || undefined,
-          timestamp: new Date(ts),
+          webhookId: webhookId || undefined,
+          event: 'webhook_processed',
+          payload: { ...payload, idempotencyKey: key, originalEvent: event } as any,
+          statusCode: 200,
+          response: JSON.stringify(result),
         },
       });
 
       return result;
     } catch (error) {
-      // Enregistrer l'échec
-      await this.prisma.webhook.create({
+      // Enregistrer l'échec (utiliser WebhookLog)
+      const brand = await this.prisma.brand.findUnique({ 
+        where: { id: brandId },
+        include: { webhooks: { take: 1 } },
+      });
+      
+      const webhookId = brand?.webhooks[0]?.id || '';
+      
+      await this.prisma.webhookLog.create({
         data: {
-          brandId,
-          event,
-          url: '',
-          payload: payload as any,
-          success: false,
+          webhookId: webhookId || undefined,
+          event: 'webhook_processed',
+          payload: { ...payload, idempotencyKey: key, originalEvent: event } as any,
+          statusCode: null,
           error: (error as Error).message,
-          idempotencyKey: key || undefined,
-          timestamp: new Date(ts),
         },
       });
 

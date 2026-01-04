@@ -209,3 +209,4 @@ export const createProductSchema = z.object({
 - Optimiser les images avec Next.js Image
 - Utiliser React Query pour cache et sync
 
+

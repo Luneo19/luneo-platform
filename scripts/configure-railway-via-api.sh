@@ -35,3 +35,4 @@ echo "   - cd apps/backend && node dist/src/main.js"
 echo ""
 echo "4. Cliquez sur 'Update'"
 
+

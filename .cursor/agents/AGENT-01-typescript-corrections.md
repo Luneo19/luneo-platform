@@ -158,3 +158,4 @@ Vérifier les schémas Zod dans les validators et corriger les types.
 - Utiliser `--noEmit` pour vérifier types sans build complet
 - Commiter par phase pour faciliter le rollback si nécessaire
 
+

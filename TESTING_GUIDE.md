@@ -230,3 +230,4 @@ Une fois tous les tests passés :
 5. ⏳ Optimisations de performance
 6. ⏳ Tests sur différents appareils
 
+

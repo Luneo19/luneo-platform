@@ -124,3 +124,4 @@ SELECT id, name, status FROM "Product" WHERE status = 'ACTIVE';
 - Activer les flags expérimentaux si nécessaire
 - Tester sur un appareil mobile avec caméra
 
+

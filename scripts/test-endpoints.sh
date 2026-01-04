@@ -125,3 +125,4 @@ echo "   - Widget Save Design: Sauvegarde un design"
 echo "   - Widget Load Design: Charge un design"
 echo "   - Render Print-Ready: Génère un rendu"
 
+

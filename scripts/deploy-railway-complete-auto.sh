@@ -270,3 +270,4 @@ echo "  - Status: railway status"
 echo "  - Health: curl https://\$(railway domain)/api/v1/health"
 echo ""
 
+

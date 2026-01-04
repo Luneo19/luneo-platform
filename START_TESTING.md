@@ -243,3 +243,4 @@ Une fois tous les tests passés :
 5. ⏳ Tests sur différents appareils
 6. ⏳ Déploiement en staging
 
+

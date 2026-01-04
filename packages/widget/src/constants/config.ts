@@ -7,3 +7,4 @@ export const WIDGET_CONFIG = {
   DEFAULT_ZOOM: 1,
 } as const;
 
+

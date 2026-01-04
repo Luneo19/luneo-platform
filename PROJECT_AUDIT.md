@@ -523,3 +523,4 @@ Le projet contient une documentation très complète:
 **Date**: $(date +%Y-%m-%d)  
 **Prochaine révision recommandée**: Dans 1 mois
 
+

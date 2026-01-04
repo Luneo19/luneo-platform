@@ -112,3 +112,4 @@ curl http://localhost:3000/api/generation/create -X POST -H "X-API-Key: test" -d
 4. ✅ **Tester Widget** (Navigateur) : `http://localhost:8080/generation-test.html`
 5. ✅ **Tester AR** (Mobile) : Après génération réussie
 
+

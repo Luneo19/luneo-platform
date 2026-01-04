@@ -126,3 +126,4 @@ fi
 echo ""
 echo "✅ Vérification Redis terminée"
 
+
