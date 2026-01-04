@@ -19,9 +19,10 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
     DxfGeneratorService,
     PdfGeneratorService,
   ],
-  exports: [ManufacturingService],
+  exports: [ManufacturingService, ExportPackService],
 })
 export class ManufacturingModule {}
+
 
 
 
