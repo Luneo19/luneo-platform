@@ -145,16 +145,12 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - Exclude /health to keep it accessible at root level
-  // Railway health check expects /health (registered on Express server above)
-  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: ['/health'],
-  });
+  // Global prefix - Health check is handled by Express middleware above, so no need to exclude
+  // The health check middleware intercepts /health before NestJS routing
+  app.setGlobalPrefix(configService.get('app.apiPrefix'));
   
   const apiPrefix = configService.get('app.apiPrefix');
-  logger.log(`✅ Health endpoints available:`);
-  logger.log(`   - ${apiPrefix}/health (HealthController with Terminus)`);
-  logger.log(`   - ${apiPrefix}/health (PublicApiController - simple health check)`);
+  logger.log(`✅ Health check middleware intercepts /health before NestJS routing`);
 
   // Validation pipe
   app.useGlobalPipes(
