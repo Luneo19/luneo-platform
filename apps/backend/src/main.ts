@@ -152,9 +152,8 @@ async function bootstrap() {
   
   // Register /health route directly on Express server (like serverless.ts)
   // This is needed because Railway healthcheck uses /health, not /api/v1/health
-  const httpAdapter = app.getHttpAdapter();
-  const expressInstance = httpAdapter.getInstance();
-  expressInstance.get('/health', (_req: express.Request, res: express.Response) => {
+  // Use the server instance directly (same approach as serverless.ts)
+  server.get('/health', (_req: express.Request, res: express.Response) => {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
