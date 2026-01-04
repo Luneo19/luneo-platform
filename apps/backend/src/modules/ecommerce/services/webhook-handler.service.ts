@@ -252,6 +252,21 @@ export class WebhookHandlerService {
         throw new Error(`Integration ${integrationId} not found`);
       }
 
+      const now = new Date();
+      const startDate = new Date();
+      
+      switch (period) {
+        case 'day':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+
       const webhooks = await this.prisma.webhookLog.findMany({
         where: {
           webhook: {
