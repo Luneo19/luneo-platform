@@ -71,6 +71,19 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
+    // CRITICAL: Register /health route FIRST, before any middleware or NestJS
+    // This MUST be done on the raw Express server before NestJS takes control
+    server.get('/health', (req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    
+    logger.log('✅ Health check route registered on Express server (BEFORE NestJS)');
+    
     // Parse JSON and URL-encoded bodies
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
@@ -127,13 +140,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - Exclude /health to keep it accessible at root level for Railway health checks
-  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: ['/health'],
-  });
-  
-  const apiPrefix = configService.get('app.apiPrefix');
-  logger.log(`✅ Health check middleware intercepts /health before NestJS routing`);
+  // Global prefix - Health check is handled by Express route above
+  app.setGlobalPrefix(configService.get('app.apiPrefix'));
 
   // Validation pipe
   app.useGlobalPipes(
