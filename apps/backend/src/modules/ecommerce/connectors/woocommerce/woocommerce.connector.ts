@@ -422,7 +422,7 @@ export class WooCommerceConnector {
         price: parseFloat(wooProduct.price || '0'),
         images: wooProduct.images.map(img => img.src),
         isActive: wooProduct.status === 'publish',
-      },
+      } as any,
     });
 
     await this.prisma.productMapping.create({

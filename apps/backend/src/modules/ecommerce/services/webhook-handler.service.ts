@@ -162,8 +162,12 @@ export class WebhookHandlerService {
       const webhooks = await this.prisma.webhookLog.findMany({
         where: {
           webhook: {
-            integration: {
-              id: integrationId,
+            brand: {
+              ecommerceIntegrations: {
+                some: {
+                  id: integrationId,
+                },
+              },
             },
           },
         },
@@ -193,14 +197,23 @@ export class WebhookHandlerService {
 
       const webhookRecord = await this.prisma.webhook.findUnique({
         where: { id: webhook.webhookId },
-        include: { integration: true },
       });
 
-      if (!webhookRecord || !webhookRecord.integration) {
-        throw new Error('No active integration found for webhook');
+      if (!webhookRecord) {
+        throw new Error('Webhook not found');
       }
 
-      const integration = webhookRecord.integration;
+      // Trouver l'intégration via brandId
+      const integration = await this.prisma.ecommerceIntegration.findFirst({
+        where: {
+          brandId: webhookRecord.brandId,
+          status: 'active',
+        },
+      });
+
+      if (!integration) {
+        throw new Error('No active integration found for webhook');
+      }
 
       // Réessayer selon la plateforme
       if (integration.platform === 'shopify') {
@@ -261,8 +274,12 @@ export class WebhookHandlerService {
       const webhooks = await this.prisma.webhookLog.findMany({
         where: {
           webhook: {
-            integration: {
-              id: integrationId,
+            brand: {
+              ecommerceIntegrations: {
+                some: {
+                  id: integrationId,
+                },
+              },
             },
           },
           createdAt: {

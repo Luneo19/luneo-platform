@@ -485,7 +485,7 @@ export class ShopifyConnector {
         price: parseFloat(shopifyProduct.variants[0]?.price || '0'),
         images: shopifyProduct.images.map(img => img.src),
         isActive: shopifyProduct.status === 'active',
-      },
+      } as any,
     });
 
     // Créer le mapping

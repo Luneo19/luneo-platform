@@ -178,7 +178,7 @@ export class ProductsController {
     if (!req.user.brandId) {
       throw new Error('User must have a brandId');
     }
-    return this.productsService.export(req.user.brandId, query, req.user);
+    return this.productsService.export(req.user.brandId, query as Record<string, unknown>, req.user);
   }
 
   @Post('import')

@@ -149,11 +149,12 @@ export class AIStudioWorker {
     negativePrompt: string | undefined,
     model: string,
     parameters: any,
+    brandId: string,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
     // Utiliser l'orchestrator pour router vers le bon provider
     const strategy = {
-      stage: parameters.quality === 'ultra' ? 'final' : 'preview',
-      quality: parameters.quality === 'ultra' ? 'hd' : 'standard',
+      stage: (parameters.quality === 'ultra' ? 'final' : 'preview') as 'exploration' | 'final' | 'preview',
+      quality: (parameters.quality === 'ultra' ? 'hd' : 'standard') as 'standard' | 'hd',
     };
 
     const result = await this.aiOrchestrator.generateImage(
@@ -163,7 +164,7 @@ export class AIStudioWorker {
         style: parameters.style || 'vivid',
       },
       strategy,
-      brandId, // brandId passé via le job
+      brandId,
     );
 
     return {

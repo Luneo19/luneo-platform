@@ -366,7 +366,7 @@ export class MagentoConnector {
         price: magentoProduct.price,
         images: magentoProduct.media_gallery_entries.map(media => media.file),
         isActive: magentoProduct.status === 1,
-      },
+      } as any,
     });
 
     await this.prisma.productMapping.create({
