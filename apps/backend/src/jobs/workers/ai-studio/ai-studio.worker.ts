@@ -67,7 +67,7 @@ export class AIStudioWorker {
 
       switch (type) {
         case AIGenerationType.IMAGE_2D:
-          ({ resultUrl, thumbnailUrl, quality } = await this.generateImage2D(prompt, negativePrompt, model, parameters));
+          ({ resultUrl, thumbnailUrl, quality } = await this.generateImage2D(prompt, negativePrompt, model, parameters, brandId));
           break;
         case AIGenerationType.MODEL_3D:
           ({ resultUrl, thumbnailUrl, quality } = await this.generateModel3D(prompt, negativePrompt, model, parameters));

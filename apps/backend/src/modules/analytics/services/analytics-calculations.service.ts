@@ -47,10 +47,11 @@ export class AnalyticsCalculationsService {
       // Pour chaque étape, compter les événements
       const funnelSteps = await Promise.all(
         steps.map(async (step: any, index: number) => {
+          const stepEventType = typeof step?.eventType === 'string' ? step.eventType : (step?.eventType as any)?.toString?.() || '';
           const eventCount = await this.prisma.analyticsEvent.count({
             where: {
               brandId,
-              eventType: step.eventType,
+              eventType: stepEventType,
               timestamp: { gte: startDate, lte: endDate },
             },
           });
@@ -58,10 +59,10 @@ export class AnalyticsCalculationsService {
           // Calculer la conversion par rapport à l'étape précédente
           let previousCount = eventCount;
           if (index > 0) {
-            const previousStep = steps[index - 1];
-            const previousStepEventType = typeof previousStep.eventType === 'string' 
+            const previousStep = steps[index - 1] as any;
+            const previousStepEventType = typeof previousStep?.eventType === 'string' 
               ? previousStep.eventType 
-              : (previousStep.eventType as any)?.toString?.() || '';
+              : (previousStep?.eventType as any)?.toString?.() || '';
             previousCount = await this.prisma.analyticsEvent.count({
               where: {
                 brandId,

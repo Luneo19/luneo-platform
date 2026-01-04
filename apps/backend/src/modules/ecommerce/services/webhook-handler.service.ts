@@ -271,16 +271,20 @@ export class WebhookHandlerService {
           break;
       }
 
+      // Trouver l'intégration pour obtenir brandId
+      const integration = await this.prisma.ecommerceIntegration.findUnique({
+        where: { id: integrationId },
+        select: { brandId: true },
+      });
+
+      if (!integration) {
+        throw new Error(`Integration ${integrationId} not found`);
+      }
+
       const webhooks = await this.prisma.webhookLog.findMany({
         where: {
           webhook: {
-            brand: {
-              ecommerceIntegrations: {
-                some: {
-                  id: integrationId,
-                },
-              },
-            },
+            brandId: integration.brandId,
           },
           createdAt: {
             gte: startDate,
