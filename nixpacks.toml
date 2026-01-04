@@ -1,11 +1,22 @@
+# Nixpacks configuration for Luneo Platform monorepo
+# This file is at the root and handles building apps/backend
+
+[variables]
+NODE_ENV = "production"
+
+[providers]
+node = "20"
+
 [phases.setup]
 nixPkgs = ["nodejs_20"]
+cmds = [
+  "corepack enable",
+  "corepack prepare pnpm@latest --activate"
+]
 
 [phases.install]
 cmds = [
-  "corepack enable",
-  "corepack prepare pnpm@latest --activate",
-  "cd apps/backend && pnpm install --frozen-lockfile"
+  "pnpm install --frozen-lockfile"
 ]
 
 [phases.build]
