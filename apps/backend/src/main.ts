@@ -73,15 +73,16 @@ async function bootstrap() {
     
     // CRITICAL: Health check middleware MUST be registered FIRST, before any other middleware
     // This ensures it intercepts /health requests before NestJS or any other middleware processes them
-    server.use((req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+    server.use((req: Express.Request, res: Express.Response, next: Express.NextFunction): void => {
       // Intercept /health and /api/v1/health routes and respond directly
       if (req.path === '/health' || req.path === '/api/v1/health') {
-        return res.status(200).json({
+        res.status(200).json({
           status: 'ok',
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
           environment: process.env.NODE_ENV || 'production',
         });
+        return;
       }
       // For all other routes, continue to next middleware
       next();
