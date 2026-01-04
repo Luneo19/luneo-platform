@@ -151,9 +151,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - DO NOT exclude /health, we need it at /api/v1/health for Railway
-  // Railway health check expects /api/v1/health
-  app.setGlobalPrefix(configService.get('app.apiPrefix'));
+  // Global prefix - Exclude /health to keep it accessible at root level
+  // Railway health check expects /health (registered on Express server above)
+  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
+    exclude: ['/health'],
+  });
   
   const apiPrefix = configService.get('app.apiPrefix');
   logger.log(`✅ Health endpoints available:`);
