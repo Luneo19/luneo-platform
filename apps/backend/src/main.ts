@@ -71,24 +71,31 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Middleware to intercept /health BEFORE NestJS takes control
-    // This MUST be the FIRST middleware to ensure it runs before ExpressAdapter
-    server.use((req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-      if (req.path === '/health' || req.path === '/health/') {
-        res.status(200).json({
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime(),
-          environment: process.env.NODE_ENV || 'production',
-        });
-        return; // Stop here, don't call next()
-      }
-      next(); // Continue for all other routes
+    // CRITICAL: Register /health route FIRST using server.get() (not server.use())
+    // This MUST be done BEFORE body parsers and BEFORE NestJS takes control
+    // Using server.get() ensures it's a specific route handler, not a middleware
+    server.get('/health', (req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
     });
     
-    logger.log('✅ Health check middleware registered (intercepts /health BEFORE NestJS)');
+    // Also handle /health/ (with trailing slash)
+    server.get('/health/', (req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
     
-    // Parse JSON and URL-encoded bodies
+    logger.log('✅ Health check routes registered on Express server (BEFORE body parsers and NestJS)');
+    
+    // Parse JSON and URL-encoded bodies (AFTER health check routes)
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
