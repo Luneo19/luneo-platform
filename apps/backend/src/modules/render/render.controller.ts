@@ -149,7 +149,7 @@ export class RenderController {
   @Post('print-ready')
   @ApiOperation({ summary: 'Génère un rendu print-ready haute résolution (300 DPI)' })
   @ApiResponse({ status: 200, description: 'Rendu print-ready généré' })
-  async renderPrintReady(@Body() request: {
+  async renderPrintReadyRequest(@Body() request: {
     designId: string;
     productId: string;
     width: number;

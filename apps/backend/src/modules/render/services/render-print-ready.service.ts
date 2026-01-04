@@ -66,7 +66,7 @@ export interface PrintReadyRenderRequest {
   width: number; // mm
   height: number; // mm
   dpi?: number; // Default: 300
-  format?: 'png' | 'jpg' | 'pdf';
+  format?: 'png' | 'jpg' | 'jpeg' | 'pdf';
   quality?: number; // 1-100, default: 95
   backgroundColor?: string;
   bleed?: number; // mm
@@ -452,7 +452,7 @@ export class RenderPrintReadyService {
     // Try cache first
     const cached = await this.cache.getSimple(`design:${designId}`);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached as string) as DesignData;
     }
     
     // Get from database
@@ -474,7 +474,7 @@ export class RenderPrintReadyService {
       canvas: {
         width: design.canvasWidth || 800,
         height: design.canvasHeight || 600,
-        backgroundColor: design.backgroundColor || '#ffffff',
+        backgroundColor: ((design as any).backgroundColor as string | undefined) || '#ffffff',
       },
       layers: design.layers.map((layer) => ({
         id: layer.id,
@@ -513,7 +513,7 @@ export class RenderPrintReadyService {
   ): Promise<{ url: string; size: number }> {
     const filename = `renders/print-ready/${request.id}.${format}`;
     
-    const contentType = format === 'pdf' ? 'application/pdf' : `image/${format}`;
+    const contentType: string = format === 'pdf' ? 'application/pdf' : format === 'jpeg' ? 'image/jpeg' : `image/${format}`;
     const url = await this.storageService.uploadFile(
       filename,
       buffer,
@@ -521,7 +521,7 @@ export class RenderPrintReadyService {
       {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000',
-      },
+      } as Record<string, string>,
     );
     
     return { url, size: buffer.length };
