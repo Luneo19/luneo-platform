@@ -376,20 +376,24 @@ export class RenderPrintReadyService {
       let buffer: Buffer;
       if (format === 'png') {
         buffer = canvas.toBuffer('image/png');
+        // Optimize PNG with sharp
+        buffer = await sharp(buffer)
+          .png({ quality, compressionLevel: 9 })
+          .toBuffer();
       } else if (format === 'jpg' || format === 'jpeg') {
         buffer = canvas.toBuffer('image/jpeg', { quality: quality / 100 });
-      } else {
+        // Optimize JPEG with sharp
+        buffer = await sharp(buffer)
+          .jpeg({ quality })
+          .toBuffer();
+      } else if (format === 'pdf') {
         // For PDF, use sharp to convert
         buffer = await sharp(canvas.toBuffer('image/png'))
           .toFormat('pdf')
           .toBuffer();
-      }
-      
-      // Optimize with sharp if needed
-      if (format === 'png' || format === 'jpg') {
-        buffer = await sharp(buffer)
-          .png({ quality, compressionLevel: 9 })
-          .toBuffer();
+      } else {
+        // Default to PNG
+        buffer = canvas.toBuffer('image/png');
       }
       
       // Upload to S3
