@@ -176,34 +176,8 @@ async function bootstrap() {
     setupSwagger(app);
   }
 
-  // CRITICAL: Register /health endpoint on Express BEFORE app.init()
-  // This ensures Express middleware handles /health before NestJS routing and rate limiting
-  // Use the underlying Express instance to add route before NestJS routing takes over
-  const expressInstance = app.getHttpAdapter().getInstance();
-  
-  // Register /health endpoint BEFORE app.init() to ensure it's available for Railway health checks
-  expressInstance.get('/health', (req: Express.Request, res: Express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'production',
-    });
-  });
-  
-  // Also register /api/v1/health for consistency
-  expressInstance.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'production',
-    });
-  });
-  
-  logger.log('✅ Health endpoints registered at /health and /api/v1/health (BEFORE app.init())');
-  
   // Initialize NestJS application (this registers all routes)
+  // Note: /health endpoints are already registered on Express server above (before NestJS app creation)
   await app.init();
   
   // Railway provides PORT automatically - use it directly
