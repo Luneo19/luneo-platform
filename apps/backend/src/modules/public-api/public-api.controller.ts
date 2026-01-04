@@ -4,6 +4,7 @@ import { PublicApiService } from './public-api.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { RateLimitGuard } from './rate-limit/rate-limit.guard';
 import { CreateDesignDto, CreateOrderDto, GetAnalyticsDto } from './dto';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Public API')
 @Controller() // Empty controller path - will use global prefix /api/v1
