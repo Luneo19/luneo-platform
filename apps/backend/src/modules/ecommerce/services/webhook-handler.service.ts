@@ -162,13 +162,7 @@ export class WebhookHandlerService {
       const webhooks = await this.prisma.webhookLog.findMany({
         where: {
           webhook: {
-            brand: {
-              ecommerceIntegrations: {
-                some: {
-                  id: integrationId,
-                },
-              },
-            },
+            brandId: integration.brandId,
           },
         },
         take: limit,
