@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { createCanvas, loadImage, type CanvasRenderingContext2D, type Image } from 'canvas';
+import { createCanvas, loadImage, type CanvasRenderingContext2D, type Image, type CanvasTextAlign } from 'canvas';
 import sharp from 'sharp';
 // Types from widget package (will be imported from shared types later)
 interface DesignData {
