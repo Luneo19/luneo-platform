@@ -150,6 +150,18 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
+  // Register /health route directly on Express server (like serverless.ts)
+  // This is needed because Railway healthcheck uses /health, not /api/v1/health
+  const httpAdapter = app.getHttpAdapter();
+  const expressInstance = httpAdapter.getInstance();
+  expressInstance.get('/health', (_req: express.Request, res: express.Response) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
+  
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
   
