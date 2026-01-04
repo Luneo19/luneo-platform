@@ -71,19 +71,22 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // CRITICAL: Register /health route FIRST on raw Express server
-    // This MUST be done BEFORE NestJS takes control via ExpressAdapter
-    // Reference: apps/backend/src/serverless.ts line 117
-    server.get('/health', (req: Express.Request, res: Express.Response) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-      });
+    // CRITICAL: Middleware to intercept /health BEFORE NestJS takes control
+    // This MUST be the FIRST middleware to ensure it runs before ExpressAdapter
+    server.use((req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+      if (req.path === '/health' || req.path === '/health/') {
+        res.status(200).json({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || 'production',
+        });
+        return; // Stop here, don't call next()
+      }
+      next(); // Continue for all other routes
     });
     
-    logger.log('✅ Health check route registered on Express server (BEFORE NestJS)');
+    logger.log('✅ Health check middleware registered (intercepts /health BEFORE NestJS)');
     
     // Parse JSON and URL-encoded bodies
     server.use(express.json());
