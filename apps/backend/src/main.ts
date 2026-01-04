@@ -75,6 +75,30 @@ async function bootstrap() {
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
+    // CRITICAL: Register /health route on Express server BEFORE creating NestJS app
+    // This ensures Express handles it before NestJS routing takes control
+    // Same approach as serverless.ts which works correctly
+    server.get('/health', (req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    
+    // Also register /api/v1/health for consistency
+    server.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    
+    logger.log('✅ Health check routes registered on Express server (BEFORE NestJS app creation)');
+    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually
@@ -156,30 +180,8 @@ async function bootstrap() {
   }
 
   // Initialize NestJS application (this registers all routes)
+  // Note: /health routes are already registered on Express server above (before app creation)
   await app.init();
-  
-  // CRITICAL: Register /health route on Express server AFTER app.init() but BEFORE app.listen()
-  // This ensures the route is available and Express handles it before NestJS routing
-  server.get('/health', (req: Express.Request, res: Express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'production',
-    });
-  });
-  
-  // Also register /api/v1/health for consistency
-  server.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'production',
-    });
-  });
-  
-  logger.log('✅ Health check routes registered on Express server (AFTER app.init())');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
