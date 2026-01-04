@@ -71,6 +71,24 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
+    // CRITICAL: Register /health route BEFORE body parsers and BEFORE NestJS
+    // This is EXACTLY like serverless.ts line 117 - but BEFORE app.init()
+    // The route MUST be registered before ExpressAdapter takes control
+    server.get('/health', (req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    
+    logger.log('✅ Health check route registered on Express server BEFORE body parsers and NestJS');
+    
+    // Parse JSON and URL-encoded bodies (AFTER health check route)
+    server.use(express.json());
+    server.use(express.urlencoded({ extended: true }));
+    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually
@@ -123,11 +141,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix - Exclude /health to keep it accessible at root level for Railway health checks
-  // The HealthController is configured with @Controller('health') and will be accessible at /health
-  app.setGlobalPrefix(configService.get('app.apiPrefix'), {
-    exclude: ['/health'],
-  });
+  // Global prefix
+  app.setGlobalPrefix(configService.get('app.apiPrefix'));
 
   // Validation pipe
   app.useGlobalPipes(
@@ -148,21 +163,6 @@ async function bootstrap() {
 
   // Initialize NestJS application (this registers all routes)
   await app.init();
-  
-  // CRITICAL: Get the underlying Express instance and register /health route
-  // Use getHttpAdapter().getInstance() to get the actual Express server
-  // This is the ONLY way to register routes that truly bypass NestJS routing
-  const expressInstance = app.getHttpAdapter().getInstance();
-  expressInstance.get('/health', (req: Express.Request, res: Express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'production',
-    });
-  });
-  
-  logger.log('✅ Health check route registered on Express instance via getInstance() AFTER app.init()');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
