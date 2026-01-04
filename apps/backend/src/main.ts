@@ -149,10 +149,11 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
-  // CRITICAL: Register /health route on the Express server AFTER app.init()
-  // This is EXACTLY like serverless.ts line 117 - register on server, not via getHttpAdapter()
-  // The server is the same instance passed to ExpressAdapter, so this works
-  server.get('/health', (req: Express.Request, res: Express.Response) => {
+  // CRITICAL: Get the underlying Express instance and register /health route
+  // Use getHttpAdapter().getInstance() to get the actual Express server
+  // This is the ONLY way to register routes that truly bypass NestJS routing
+  const expressInstance = app.getHttpAdapter().getInstance();
+  expressInstance.get('/health', (req: Express.Request, res: Express.Response) => {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -161,7 +162,7 @@ async function bootstrap() {
     });
   });
   
-  logger.log('✅ Health check route registered on Express server AFTER app.init() (like serverless.ts)');
+  logger.log('✅ Health check route registered on Express instance via getInstance() AFTER app.init()');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
