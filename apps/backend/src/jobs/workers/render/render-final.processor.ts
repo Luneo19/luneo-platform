@@ -18,8 +18,6 @@ interface RenderFinalJob {
 export class RenderFinalProcessor {
   private readonly logger = new Logger(RenderFinalProcessor.name);
 
-  private readonly logger = new Logger(RenderFinalProcessor.name);
-
   constructor(
     private prisma: PrismaService,
     private render3DService: Render3DService,

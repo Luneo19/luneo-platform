@@ -16,8 +16,6 @@ interface ExportPackJob {
 export class ExportPackProcessor {
   private readonly logger = new Logger(ExportPackProcessor.name);
 
-  private readonly logger = new Logger(ExportPackProcessor.name);
-
   constructor(
     private prisma: PrismaService,
     private exportPackService: ExportPackService,

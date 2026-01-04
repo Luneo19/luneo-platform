@@ -191,10 +191,10 @@ async function bootstrap() {
   
   // Use app.listen() - NestJS will use the Express server we created
   await app.listen(port, '0.0.0.0');
-    const apiPrefix = configService.get('app.apiPrefix');
-    logger.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
-    logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}/api/docs`);
-    logger.log(`🔍 Health check: http://0.0.0.0:${port}${apiPrefix}/health`);
+  const apiPrefixFinal = configService.get('app.apiPrefix');
+  logger.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
+  logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}/api/docs`);
+  logger.log(`🔍 Health check: http://0.0.0.0:${port}${apiPrefixFinal}/health`);
   } catch (error) {
     logger.error(`Failed to start application: ${error.message}`, error.stack);
     throw error;

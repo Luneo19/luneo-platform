@@ -18,8 +18,6 @@ interface RenderPreviewJob {
 export class RenderPreviewProcessor {
   private readonly logger = new Logger(RenderPreviewProcessor.name);
 
-  private readonly logger = new Logger(RenderPreviewProcessor.name);
-
   constructor(
     private prisma: PrismaService,
     private render2DService: Render2DService,
@@ -110,7 +108,7 @@ export class RenderPreviewProcessor {
             url: existingRender.url,
             thumbnailUrl: existingRender.thumbnailUrl,
             metadata: {
-              ...existingRender.metadata,
+              ...(existingRender.metadata as Record<string, any> || {}),
               cached: true,
             },
           },
