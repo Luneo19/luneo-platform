@@ -16,11 +16,13 @@ import { AIProviderFactory } from './providers/ai-provider.factory';
 // Shared modules
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { StorageModule } from '@/libs/storage/storage.module';
+import { ApiKeysModule } from '../public-api/api-keys/api-keys.module';
 
 @Module({
   imports: [
     PrismaModule,
     StorageModule,
+    ApiKeysModule,
     EventEmitterModule,
     BullModule.registerQueue({
       name: 'generation',
@@ -49,5 +51,6 @@ import { StorageModule } from '@/libs/storage/storage.module';
   exports: [GenerationService],
 })
 export class GenerationModule {}
+
 
 
