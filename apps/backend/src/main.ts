@@ -157,8 +157,36 @@ async function bootstrap() {
   }
 
   // Initialize NestJS application (this registers all routes)
-  // Note: /health endpoints are already registered on Express server above (before NestJS app creation)
   await app.init();
+  
+  // CRITICAL: Register /health route DIRECTLY on Express instance AFTER app.init()
+  // This bypasses NestJS routing completely by using the underlying Express server
+  const expressInstance = app.getHttpAdapter().getInstance();
+  
+  // Register health check route with highest priority
+  expressInstance.get('/health', (req: Express.Request, res: Express.Response) => {
+    console.log('[HEALTH] Health check requested via Express route');
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'production',
+    });
+  });
+  
+  // Also register /api/v1/health
+  expressInstance.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
+    console.log('[HEALTH] Health check requested via Express route (/api/v1/health)');
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'production',
+    });
+  });
+  
+  console.log('[HEALTH] Health check routes registered on Express instance after app.init()');
+  logger.log('✅ Health check routes registered on Express instance (bypasses NestJS)');
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
