@@ -2,7 +2,7 @@
 builder = "DOCKERFILE"
 
 [deploy]
-# healthcheckPath = "/health"  # DÉSACTIVÉ TEMPORAIREMENT - Le healthcheck échoue car l'app ne démarre pas à temps
+healthcheckPath = ""  # DÉSACTIVÉ TEMPORAIREMENT - Le healthcheck échoue car l'app ne démarre pas à temps
 # healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
