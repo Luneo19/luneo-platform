@@ -71,6 +71,21 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
+    // CRITICAL: Register /health route BEFORE creating NestJS app
+    // This ensures it's accessible at /health and bypasses NestJS routing completely
+    // This is the ONLY way to make /health work with ExpressAdapter
+    server.get('/health', (req: Express.Request, res: Express.Response) => {
+      logger.log(`[HEALTH] Health check endpoint called - path: ${req.path}, url: ${req.url}, originalUrl: ${req.originalUrl}`);
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'luneo-backend',
+        version: process.env.npm_package_version || '1.0.0',
+      });
+    });
+    logger.log('Health check route registered at /health (BEFORE NestJS app creation)');
+    
     // Parse JSON and URL-encoded bodies
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
@@ -82,16 +97,37 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
     
-    // Security middleware - production ready
-    app.use(helmet());
+    // Security middleware - production ready configuration
+    app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+          connectSrc: ["'self'", 'https:'],
+          fontSrc: ["'self'", 'data:', 'https:'],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+    }));
     logger.log('Security middleware configured');
     
     // Enable compression and security middleware in production
     if (configService.get('app.nodeEnv') === 'production') {
-    app.use(compression());
-    app.use(hpp());
+      app.use(compression());
+      app.use(hpp());
 
-    // Rate limiting for production (skip health checks)
+      // Rate limiting for production (skip health checks)
     const limiter = rateLimit({
       windowMs: configService.get('app.rateLimitTtl') * 1000,
       max: configService.get('app.rateLimitLimit'),
@@ -117,9 +153,9 @@ async function bootstrap() {
       },
     });
 
-    app.use(limiter);
-    app.use(speedLimiter);
-  }
+      app.use(limiter);
+      app.use(speedLimiter);
+    }
 
   // CORS
   app.enableCors({
@@ -127,8 +163,13 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix
-  app.setGlobalPrefix(configService.get('app.apiPrefix'));
+  // Global prefix - set prefix for all routes
+  // We'll register /health directly using app.getHttpAdapter().get() after app.init()
+  // This is the EXACT pattern from shopify/main.ts which works correctly
+  // The shopify app sets a global prefix but still registers /health directly
+  const apiPrefix = configService.get('app.apiPrefix');
+  app.setGlobalPrefix(apiPrefix);
+  logger.log(`Global prefix set to: ${apiPrefix}`);
 
   // Validation pipe
   app.useGlobalPipes(
@@ -150,29 +191,26 @@ async function bootstrap() {
   // Initialize NestJS application (this registers all routes)
   await app.init();
   
-  // Register /health route directly on Express server (like serverless.ts)
-  // This is needed because Railway healthcheck uses /health, not /api/v1/health
-  // Use the server instance directly (same approach as serverless.ts)
-  server.get('/health', (_req: express.Request, res: express.Response) => {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    });
-  });
+  // Note: /health route is already registered BEFORE app.init() above
+  // This ensures it bypasses NestJS routing and is accessible at /health
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);
   
-  logger.log(`Starting main server on port ${port}...`);
+  logger.log(`Starting NestJS application on port ${port}...`);
   logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
   
-  // Use app.listen() - NestJS will use the Express server we created
+  // CRITICAL: Use app.listen() instead of server.listen()
+  // app.listen() ensures NestJS properly registers all routes on the Express server
+  // The ExpressAdapter connects NestJS to the Express server, but app.listen() is required
+  // to properly initialize and register all routes
   await app.listen(port, '0.0.0.0');
+  
   const apiPrefixFinal = configService.get('app.apiPrefix');
   logger.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
-  logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}/api/docs`);
-  logger.log(`🔍 Health check: http://0.0.0.0:${port}${apiPrefixFinal}/health`);
+  logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}${apiPrefixFinal}/docs`);
+  logger.log(`🔍 Health check: http://0.0.0.0:${port}/health`);
+  logger.log(`🔍 API Health check: http://0.0.0.0:${port}${apiPrefixFinal}/health`);
   } catch (error) {
     logger.error(`Failed to start application: ${error.message}`, error.stack);
     throw error;
