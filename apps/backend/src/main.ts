@@ -91,7 +91,7 @@ async function bootstrap() {
     app.use(compression());
     app.use(hpp());
 
-    // Rate limiting for production
+    // Rate limiting for production (skip health checks)
     const limiter = rateLimit({
       windowMs: configService.get('app.rateLimitTtl') * 1000,
       max: configService.get('app.rateLimitLimit'),
@@ -101,6 +101,10 @@ async function bootstrap() {
       },
       standardHeaders: true,
       legacyHeaders: false,
+      skip: (req) => {
+        // Skip rate limiting for health checks
+        return req.path === '/health' || req.path === '/api/v1/health';
+      },
     });
 
     const speedLimiter = slowDown({
