@@ -71,10 +71,7 @@ async function bootstrap() {
     logger.log('Creating Express server...');
     const server = express();
     
-    // Health check will be registered AFTER app.init() on the Express instance
-    // This ensures it bypasses NestJS routing completely
-    
-    // Parse JSON and URL-encoded bodies - AFTER health check middleware
+    // Parse JSON and URL-encoded bodies
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
@@ -84,6 +81,30 @@ async function bootstrap() {
     });
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
+    
+    // CRITICAL: Register /health route on Express server AFTER creating NestJS app but BEFORE app.init()
+    // This is the same approach used in serverless.ts which works correctly
+    // The route must be registered before app.init() so Express handles it before NestJS routing
+    server.get('/health', (req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    
+    // Also register /api/v1/health for consistency
+    server.get('/api/v1/health', (req: Express.Request, res: Express.Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+      });
+    });
+    
+    logger.log('✅ Health check routes registered on Express server (BEFORE app.init())');
     
     // Security middleware - production ready
     app.use(helmet());
