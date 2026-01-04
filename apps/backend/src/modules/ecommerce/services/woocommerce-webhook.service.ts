@@ -112,7 +112,7 @@ export class WooCommerceWebhookService {
       // Create product in Luneo database
       const luneoProduct = await this.prisma.product.create({
         data: {
-          brandId: integration.brandId,
+          brandId: integration.brandId as string,
           name: product.name,
           description: product.description || null,
           sku: product.sku || `WC-${product.id}`,

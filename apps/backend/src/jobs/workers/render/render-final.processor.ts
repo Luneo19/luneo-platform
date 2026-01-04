@@ -82,7 +82,7 @@ export class RenderFinalProcessor {
             url: existingRender.url,
             thumbnailUrl: existingRender.thumbnailUrl,
             metadata: {
-              ...existingRender.metadata,
+              ...(existingRender.metadata as Record<string, any> || {}),
               cached: true,
             },
           },
