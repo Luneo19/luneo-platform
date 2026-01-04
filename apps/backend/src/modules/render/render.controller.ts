@@ -149,7 +149,10 @@ export class RenderController {
   @Post('print-ready')
   @ApiOperation({ summary: 'Génère un rendu print-ready haute résolution (300 DPI)' })
   @ApiResponse({ status: 200, description: 'Rendu print-ready généré' })
-  async renderPrintReadyRequest(@Body() request: {
+  @Post('print-ready')
+  @ApiOperation({ summary: 'Génère un rendu print-ready haute résolution (300 DPI)' })
+  @ApiResponse({ status: 200, description: 'Rendu print-ready généré' })
+  async renderPrintReady(@Body() request: {
     designId: string;
     productId: string;
     width: number;
@@ -164,7 +167,7 @@ export class RenderController {
       id: `print-ready-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...request,
     };
-    return this.renderPrintReady.renderPrintReady(renderRequest);
+    return this.renderPrintReady.renderPrintReadyRequest(renderRequest);
   }
 }
 
