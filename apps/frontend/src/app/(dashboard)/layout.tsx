@@ -1,8 +1,5 @@
 'use client';
 
-// Disable static rendering for dashboard pages
-export const dynamic = 'force-dynamic';
-
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/dashboard/Sidebar';

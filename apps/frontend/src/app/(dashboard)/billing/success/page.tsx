@@ -1,8 +1,5 @@
 'use client';
 
-// Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic';
-export const revalidate = false;
 
 import React, { useEffect, useState, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
