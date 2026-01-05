@@ -23,7 +23,7 @@ if (typeof window !== 'undefined') {
   });
 }
 
-import { loadI18nConfig } from "@/i18n/server";
+import { loadI18nConfig, type SupportedLocale, type TranslationMessages } from "@/i18n/server";
 import { loadFeatureFlags } from "@/lib/feature-flags/loadFeatureFlags";
 
 export const metadata: Metadata = {
@@ -111,8 +111,67 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { locale, messages, currency, timezone, availableLocales } = await loadI18nConfig();
-  const featureFlags = await loadFeatureFlags();
+  // Gestion d'erreur pour éviter les 500
+  let locale: SupportedLocale = 'en';
+  let messages: TranslationMessages = {} as TranslationMessages;
+  let currency = 'USD';
+  let timezone = 'America/New_York';
+  let availableLocales: Array<{
+    locale: SupportedLocale;
+    label: string;
+    region: string;
+    flag: string;
+  }> = [];
+  let featureFlags = { flags: {}, updatedAt: null };
+
+  try {
+    const i18nConfig = await loadI18nConfig();
+    locale = i18nConfig.locale;
+    messages = i18nConfig.messages;
+    currency = i18nConfig.currency;
+    timezone = i18nConfig.timezone;
+    availableLocales = i18nConfig.availableLocales;
+  } catch (error) {
+    console.error('[Layout] Failed to load i18n config:', error);
+    // Utiliser les valeurs par défaut
+    locale = 'en';
+    messages = {} as TranslationMessages;
+    currency = 'USD';
+    timezone = 'America/New_York';
+    availableLocales = [
+      { locale: 'en', label: 'English', region: 'United States', flag: '🇺🇸' },
+      { locale: 'fr', label: 'Français', region: 'France', flag: '🇫🇷' },
+      { locale: 'de', label: 'Deutsch', region: 'Deutschland', flag: '🇩🇪' },
+    ];
+  }
+
+  try {
+    featureFlags = await loadFeatureFlags();
+  } catch (error) {
+    console.error('[Layout] Failed to load feature flags:', error);
+    // Utiliser les valeurs par défaut
+    featureFlags = {
+      flags: {
+        enableAIGeneration: true,
+        enable3DConfigurator: true,
+        enableVirtualTryOn: true,
+        enableARExport: true,
+        enableBulkGeneration: true,
+        enableAdvancedAnalytics: true,
+        enableTeamCollaboration: true,
+        enableShopifyIntegration: true,
+        enableWooCommerceIntegration: true,
+        enablePrintfulIntegration: true,
+        enableNewPricingPage: true,
+        enableReferralProgram: true,
+        enableNotificationCenter: true,
+        enableSupportTickets: true,
+        enableExperimentalFeatures: false,
+        enableDebugMode: false,
+      },
+      updatedAt: null,
+    };
+  }
 
   return (
     <html lang={locale} suppressHydrationWarning>
