@@ -106,6 +106,10 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
 };
 
+// Force dynamic rendering car loadI18nConfig() utilise cookies()
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function RootLayout({
   children,
 }: {
