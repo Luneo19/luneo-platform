@@ -14,6 +14,7 @@
  */
 
 import React, { useMemo } from 'react';
+import Image from 'next/image';
 import styles from './HeroBannerOptimized.module.css';
 
 // Import direct pour performance (les composants sont déjà légers avec SVG/CSS)
