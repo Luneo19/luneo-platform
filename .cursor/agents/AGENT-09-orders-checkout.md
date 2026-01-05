@@ -253,3 +253,4 @@ model OrderItem {
 - Gérer les cas edge (paiement échoué, timeout, etc.)
 
 
+

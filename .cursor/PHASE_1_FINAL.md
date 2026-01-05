@@ -204,3 +204,4 @@
 Le widget éditeur est maintenant fonctionnel et prêt pour intégration !
 
 
+

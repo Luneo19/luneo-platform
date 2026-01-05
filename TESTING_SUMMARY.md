@@ -158,3 +158,4 @@ WHERE "isActive" = true AND "revokedAt" IS NULL;
 5. **Ajouter plus de types de tracking** (body, hand)
 
 
+

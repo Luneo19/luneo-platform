@@ -185,3 +185,4 @@ AND column_name IN (
 **Backup disponible**: `apps/backend/backups/backup_20260103_160058.sql`
 
 
+

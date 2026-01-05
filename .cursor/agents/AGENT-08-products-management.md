@@ -210,3 +210,4 @@ export const createProductSchema = z.object({
 - Utiliser React Query pour cache et sync
 
 
+

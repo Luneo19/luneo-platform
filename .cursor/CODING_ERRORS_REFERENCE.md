@@ -48,3 +48,4 @@ Avant chaque modification de code :
 **Pour plus de détails, consulter : `docs/CODING_ERRORS_REGISTRY.md`**
 
 
+

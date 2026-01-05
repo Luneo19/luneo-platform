@@ -130,3 +130,4 @@ pnpm prisma generate
 Le schema Prisma est maintenant prêt pour supporter le widget éditeur Zakeke-like !
 
 
+

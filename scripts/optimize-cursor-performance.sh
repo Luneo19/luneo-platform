@@ -80,3 +80,4 @@ echo "   4. Nettoyer régulièrement avec: bash scripts/optimize-cursor-performa
 
 
 
+

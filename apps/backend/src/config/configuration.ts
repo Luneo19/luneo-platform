@@ -195,15 +195,21 @@ export const emailDomainConfig = registerAs('emailDomain', () => ({
 }));
 
 // App configuration
-export const appConfig = registerAs('app', () => ({
-  nodeEnv: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || process.env.$PORT || '3000', 10),
-  apiPrefix: process.env.API_PREFIX || '/api/v1',
-  frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app',
-  corsOrigin: process.env.CORS_ORIGIN || '*',
-  rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
-  rateLimitLimit: parseInt(process.env.RATE_LIMIT_LIMIT || '100', 10),
-}));
+export const appConfig = registerAs('app', () => {
+  // Use API_PREFIX from env, or default to /api/v1 for backward compatibility
+  // But if API_PREFIX is explicitly set to /api, use that
+  const apiPrefix = process.env.API_PREFIX || '/api/v1';
+  
+  return {
+    nodeEnv: process.env.NODE_ENV || 'development',
+    port: parseInt(process.env.PORT || process.env.$PORT || '3000', 10),
+    apiPrefix: apiPrefix,
+    frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app',
+    corsOrigin: process.env.CORS_ORIGIN || '*',
+    rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
+    rateLimitLimit: parseInt(process.env.RATE_LIMIT_LIMIT || '100', 10),
+  };
+});
 
 // Monitoring configuration
 export const monitoringConfig = registerAs('monitoring', () => ({

@@ -289,3 +289,4 @@ ALTER TABLE "Payout" ADD CONSTRAINT "Payout_artisanId_fkey" FOREIGN KEY ("artisa
 
 
 
+
