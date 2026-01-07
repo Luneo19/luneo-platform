@@ -75,7 +75,7 @@ export class EditorService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.editorProjects as EditorProject[]) || [];
 
       // Filtrer par utilisateur si spécifié
@@ -126,7 +126,7 @@ export class EditorService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.editorProjects as EditorProject[]) || [];
 
       const newProject: EditorProject = {
@@ -148,7 +148,7 @@ export class EditorService {
           metadata: {
             ...metadata,
             editorProjects: projects,
-          },
+          } as Record<string, unknown>,
         },
       });
 
@@ -181,7 +181,7 @@ export class EditorService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.editorProjects as EditorProject[]) || [];
 
       const index = projects.findIndex((p) => p.id === id);
@@ -201,7 +201,7 @@ export class EditorService {
           metadata: {
             ...metadata,
             editorProjects: projects,
-          },
+          } as Record<string, unknown>,
         },
       });
 
@@ -234,7 +234,7 @@ export class EditorService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.editorProjects as EditorProject[]) || [];
 
       const filtered = projects.filter((p) => p.id !== id);
@@ -302,7 +302,7 @@ export class EditorService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.editorProjects as EditorProject[]) || [];
 
       const index = projects.findIndex((p) => p.id === id);
@@ -328,7 +328,7 @@ export class EditorService {
           metadata: {
             ...metadata,
             editorProjects: projects,
-          },
+          } as Record<string, unknown>,
         },
       });
 

@@ -68,7 +68,7 @@ export class ArCollaborationService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.arProjects as ARProject[]) || [];
 
       // Filtrer par utilisateur si spécifié
@@ -121,7 +121,7 @@ export class ArCollaborationService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.arProjects as ARProject[]) || [];
 
       const newProject: ARProject = {
@@ -149,7 +149,7 @@ export class ArCollaborationService {
           metadata: {
             ...metadata,
             arProjects: projects,
-          },
+          } as Record<string, unknown>,
         },
       });
 
@@ -183,7 +183,7 @@ export class ArCollaborationService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.arProjects as ARProject[]) || [];
 
       const index = projects.findIndex((p) => p.id === id);
@@ -203,7 +203,7 @@ export class ArCollaborationService {
           metadata: {
             ...metadata,
             arProjects: projects,
-          },
+          } as Record<string, unknown>,
         },
       });
 
@@ -237,7 +237,7 @@ export class ArCollaborationService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.arProjects as ARProject[]) || [];
 
       const filtered = projects.filter((p) => p.id !== id);
@@ -252,7 +252,7 @@ export class ArCollaborationService {
           metadata: {
             ...metadata,
             arProjects: filtered,
-          },
+          } as Record<string, unknown>,
         },
       });
     } catch (error) {
@@ -289,7 +289,7 @@ export class ArCollaborationService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.arProjects as ARProject[]) || [];
 
       const index = projects.findIndex((p) => p.id === projectId);
@@ -308,7 +308,7 @@ export class ArCollaborationService {
           metadata: {
             ...metadata,
             arProjects: projects,
-          },
+          } as Record<string, unknown>,
         },
       });
 
@@ -342,7 +342,7 @@ export class ArCollaborationService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const projects = (metadata.arProjects as ARProject[]) || [];
 
       const index = projects.findIndex((p) => p.id === projectId);
@@ -367,7 +367,7 @@ export class ArCollaborationService {
           metadata: {
             ...metadata,
             arProjects: projects,
-          },
+          } as Record<string, unknown>,
         },
       });
 

@@ -56,7 +56,7 @@ export class ArIntegrationsService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const integrations = (metadata.arIntegrations as ARIntegration[]) || [];
 
       return integrations;
@@ -102,7 +102,7 @@ export class ArIntegrationsService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const integrations = (metadata.arIntegrations as ARIntegration[]) || [];
 
       const newIntegration: ARIntegration = {
@@ -121,7 +121,7 @@ export class ArIntegrationsService {
           metadata: {
             ...metadata,
             arIntegrations: integrations,
-          },
+          } as Record<string, unknown>,
         },
       });
 
@@ -147,7 +147,7 @@ export class ArIntegrationsService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const integrations = (metadata.arIntegrations as ARIntegration[]) || [];
 
       const index = integrations.findIndex((i) => i.id === id);
@@ -167,7 +167,7 @@ export class ArIntegrationsService {
           metadata: {
             ...metadata,
             arIntegrations: integrations,
-          },
+          } as Record<string, unknown>,
         },
       });
 
@@ -193,7 +193,7 @@ export class ArIntegrationsService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = (brand.metadata as Record<string, unknown>) || {};
+      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
       const integrations = (metadata.arIntegrations as ARIntegration[]) || [];
 
       const filtered = integrations.filter((i) => i.id !== id);
