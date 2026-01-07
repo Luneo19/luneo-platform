@@ -86,3 +86,5 @@ healthcheckTimeout = 300
 - Commit corrigé : `6ccb76d` - "fix: Register /health endpoint before NestJS app creation"
 - Code healthcheck : `apps/backend/src/main.ts` (ligne 77-87)
 
+
+

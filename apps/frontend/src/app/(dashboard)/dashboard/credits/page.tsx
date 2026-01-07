@@ -416,18 +416,51 @@ function CreditsPageContent() {
     [creditPacks]
   );
 
-  const handleConfirmPurchase = useCallback(() => {
+  const handleConfirmPurchase = useCallback(async () => {
     if (!selectedPack) return;
 
-    // TODO: Implement Stripe checkout
-    toast({
-      title: 'Redirection',
-      description: 'Redirection vers le paiement...',
-    });
+    const pack = creditPacks.find((p) => p.id === selectedPack);
+    if (!pack) {
+      toast({
+        title: 'Erreur',
+        description: 'Pack introuvable',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    // Simulate redirect to Stripe
-    // window.location.href = `/api/credits/purchase?packId=${selectedPack}`;
-  }, [selectedPack, toast]);
+    try {
+      const response = await fetch('/api/credits/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          packSize: pack.credits,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erreur lors de la création de la session de paiement');
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast({
+          title: 'Erreur',
+          description: 'URL de paiement non disponible',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors de la création de la session de paiement',
+        variant: 'destructive',
+      });
+    }
+  }, [selectedPack, creditPacks, toast]);
 
   const handleEnableAutoRefill = useCallback(() => {
     if (!autoRefillPack) {
@@ -1199,8 +1232,38 @@ function CreditsPageContent() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  // TODO: Implement CSV export
-                  toast({ title: 'Export CSV', description: 'Export en cours...' });
+                  try {
+                    const filteredTransactions = transactions.filter((t) => {
+                      const matchesType = filterType === 'all' || t.type === filterType;
+                      return matchesType;
+                    });
+
+                    const headers = ['ID', 'Type', 'Montant', 'Source', 'Pack', 'Date'];
+                    const rows = filteredTransactions.map((t) => [
+                      t.id,
+                      TRANSACTION_TYPE_CONFIG[t.type]?.label || t.type,
+                      t.amount > 0 ? `+${t.amount}` : String(t.amount),
+                      t.source || '',
+                      t.packName || '',
+                      new Date(t.createdAt).toLocaleString('fr-FR'),
+                    ]);
+                    const csvContent = [headers.join(','), ...rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `credits_export_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    toast({ title: 'Export CSV', description: 'Export CSV réussi !' });
+                    setShowExportModal(false);
+                  } catch (error: any) {
+                    toast({
+                      title: 'Erreur',
+                      description: 'Échec de l\'export CSV',
+                      variant: 'destructive',
+                    });
+                  }
                 }}
                 className="border-gray-600"
               >
@@ -1210,8 +1273,48 @@ function CreditsPageContent() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  // TODO: Implement JSON export
-                  toast({ title: 'Export JSON', description: 'Export en cours...' });
+                  try {
+                    const filteredTransactions = transactions.filter((t) => {
+                      const matchesType = filterType === 'all' || t.type === filterType;
+                      return matchesType;
+                    });
+
+                    const jsonContent = JSON.stringify(
+                      {
+                        exportedAt: new Date().toISOString(),
+                        total: filteredTransactions.length,
+                        transactions: filteredTransactions.map((t) => ({
+                          id: t.id,
+                          type: t.type,
+                          amount: t.amount,
+                          balanceBefore: t.balanceBefore,
+                          balanceAfter: t.balanceAfter,
+                          source: t.source,
+                          packId: t.packId,
+                          packName: t.packName,
+                          createdAt: t.createdAt.toISOString(),
+                          metadata: t.metadata,
+                        })),
+                      },
+                      null,
+                      2
+                    );
+                    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `credits_export_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    toast({ title: 'Export JSON', description: 'Export JSON réussi !' });
+                    setShowExportModal(false);
+                  } catch (error: any) {
+                    toast({
+                      title: 'Erreur',
+                      description: 'Échec de l\'export JSON',
+                      variant: 'destructive',
+                    });
+                  }
                 }}
                 className="border-gray-600"
               >

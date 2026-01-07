@@ -51,3 +51,5 @@ Si GitHub est connecté, le déploiement automatique devrait se déclencher et p
 3. ⏳ Vérifier que le Build Command est correct
 4. ⏳ Si nécessaire, ajuster la configuration
 
+
+

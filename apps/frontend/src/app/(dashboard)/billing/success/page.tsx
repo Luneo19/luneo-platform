@@ -1,6 +1,5 @@
 'use client';
 
-
 import React, { useEffect, useState, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';

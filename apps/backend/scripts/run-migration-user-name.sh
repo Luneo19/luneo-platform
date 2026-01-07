@@ -24,3 +24,5 @@ echo "🔍 Vérification de la colonne..."
 psql "$DATABASE_URL" -c "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'name';"
 
 
+
+

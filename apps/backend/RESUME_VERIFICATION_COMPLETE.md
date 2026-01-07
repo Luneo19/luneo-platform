@@ -46,3 +46,5 @@ Le code local a bien la correction, mais Railway déploie toujours l'ancienne ve
 3. Relancer `railway up` depuis la racine
 4. Vérifier les logs après build pour confirmer "Health check route registered"
 
+
+

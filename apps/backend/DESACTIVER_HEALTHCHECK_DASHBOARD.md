@@ -87,3 +87,5 @@ Une fois le healthcheck désactivé :
 
 - Une fois `/health` fonctionnel, on pourra **réactiver le healthcheck** dans le Dashboard avec le path `/health`
 
+
+

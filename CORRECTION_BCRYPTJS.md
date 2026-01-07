@@ -43,3 +43,5 @@ pnpm add -D @types/bcryptjs
 
 Vous avez correctement configuré le Root Directory sur `apps/frontend` dans Vercel. C'est la bonne configuration pour un monorepo.
 
+
+

@@ -295,33 +295,487 @@ export class AIStudioService {
     try {
       this.logger.log(`Getting prompt templates${category ? ` for category: ${category}` : ''}`);
 
-      // TODO: Implémenter avec Prisma
-      const mockTemplates: PromptTemplate[] = [
-        {
-          id: 'template-1',
-          name: 'Portrait Professionnel',
-          category: 'portrait',
-          prompt: 'Professional portrait of [subject], studio lighting, high quality, 8k',
-          variables: { subject: 'Person or object' },
-          successRate: 94.2,
-          usageCount: 45,
-          createdAt: new Date(),
+      // Récupérer depuis Prisma (table PromptTemplate)
+      const templates = await this.prisma.promptTemplate.findMany({
+        where: {
+          isActive: true,
+          ...(category && { style: category }),
         },
-        {
-          id: 'template-2',
-          name: 'Logo Moderne',
-          category: 'logo',
-          prompt: 'Modern logo design, [brand], minimalist, vector style, professional',
-          variables: { brand: 'Brand name' },
-          successRate: 91.3,
-          usageCount: 32,
-          createdAt: new Date(),
-        },
-      ];
+        orderBy: { createdAt: 'desc' },
+      });
 
-      return category ? mockTemplates.filter(t => t.category === category) : mockTemplates;
+      return templates.map(t => ({
+        id: t.id,
+        name: t.name,
+        category: t.style || 'general',
+        prompt: t.prompt,
+        variables: (t.variables as any) || {},
+        successRate: 0, // TODO: Calculer depuis les générations
+        usageCount: 0, // TODO: Compter depuis les générations
+        createdAt: t.createdAt,
+      }));
     } catch (error) {
       this.logger.error(`Failed to get prompt templates: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // TEMPLATES (AI Templates Library)
+  // ========================================
+
+  /**
+   * Récupère les templates AI (depuis AIGeneration avec type TEMPLATE)
+   */
+  async getTemplates(
+    brandId: string,
+    filters: { category?: string; search?: string; page: number; limit: number; offset: number },
+  ) {
+    try {
+      this.logger.log(`Getting AI templates for brand: ${brandId}`);
+
+      const where: any = {
+        brandId,
+        type: 'TEMPLATE',
+      };
+
+      if (filters.category && filters.category !== 'all') {
+        // Utiliser les paramètres JSON pour filtrer par catégorie
+        where.parameters = {
+          path: ['category'],
+          equals: filters.category,
+        };
+      }
+
+      const [templates, total] = await Promise.all([
+        this.prisma.aIGeneration.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: filters.offset,
+          take: filters.limit,
+        }),
+        this.prisma.aIGeneration.count({ where }),
+      ]);
+
+      // Transformer les résultats
+      const result = templates.map(t => {
+        const params = (t.parameters as any) || {};
+        return {
+          id: t.id,
+          name: params.name || 'Untitled Template',
+          category: params.category || 'general',
+          subcategory: params.subcategory,
+          prompt: t.prompt,
+          style: params.style,
+          thumbnailUrl: t.thumbnailUrl || '',
+          previewUrl: t.resultUrl,
+          price: params.price || 0,
+          isPremium: params.isPremium || false,
+          downloads: 0, // TODO: Compter depuis les téléchargements
+          views: 0, // TODO: Compter depuis les vues
+          rating: 0, // TODO: Calculer depuis les ratings
+          tags: params.tags || [],
+          createdAt: t.createdAt,
+        };
+      });
+
+      return {
+        templates: result,
+        pagination: {
+          page: filters.page,
+          limit: filters.limit,
+          total,
+          totalPages: Math.ceil(total / filters.limit),
+          hasNext: filters.offset + filters.limit < total,
+          hasPrev: filters.page > 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get templates: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère un template spécifique
+   */
+  async getTemplate(id: string, brandId: string) {
+    try {
+      this.logger.log(`Getting template: ${id}`);
+
+      const template = await this.prisma.aIGeneration.findFirst({
+        where: {
+          id,
+          brandId,
+          type: 'TEMPLATE',
+        },
+      });
+
+      if (!template) {
+        throw new Error(`Template ${id} not found`);
+      }
+
+      const params = (template.parameters as any) || {};
+      return {
+        id: template.id,
+        name: params.name || 'Untitled Template',
+        category: params.category || 'general',
+        subcategory: params.subcategory,
+        prompt: template.prompt,
+        style: params.style,
+        thumbnailUrl: template.thumbnailUrl || '',
+        previewUrl: template.resultUrl,
+        price: params.price || 0,
+        isPremium: params.isPremium || false,
+        downloads: 0,
+        views: 0,
+        rating: 0,
+        tags: params.tags || [],
+        createdAt: template.createdAt,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get template: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Crée un nouveau template
+   */
+  async createTemplate(brandId: string, userId: string, dto: any) {
+    try {
+      this.logger.log(`Creating template for brand: ${brandId}`);
+
+      const template = await this.prisma.aIGeneration.create({
+        data: {
+          type: 'TEMPLATE',
+          prompt: dto.prompt,
+          model: 'template-generator',
+          provider: 'luneo',
+          parameters: {
+            name: dto.name,
+            category: dto.category,
+            subcategory: dto.subcategory,
+            style: dto.style,
+            price: dto.price || 0,
+            isPremium: dto.isPremium || false,
+            tags: dto.tags || [],
+          },
+          status: 'COMPLETED',
+          thumbnailUrl: dto.thumbnailUrl,
+          resultUrl: dto.previewUrl,
+          credits: 0,
+          costCents: 0,
+          userId,
+          brandId,
+        },
+      });
+
+      const params = (template.parameters as any) || {};
+      return {
+        id: template.id,
+        name: params.name,
+        category: params.category,
+        subcategory: params.subcategory,
+        prompt: template.prompt,
+        style: params.style,
+        thumbnailUrl: template.thumbnailUrl || '',
+        previewUrl: template.resultUrl,
+        price: params.price || 0,
+        isPremium: params.isPremium || false,
+        downloads: 0,
+        views: 0,
+        rating: 0,
+        tags: params.tags || [],
+        createdAt: template.createdAt,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create template: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Met à jour un template
+   */
+  async updateTemplate(id: string, brandId: string, dto: any) {
+    try {
+      this.logger.log(`Updating template: ${id}`);
+
+      const existing = await this.prisma.aIGeneration.findFirst({
+        where: { id, brandId, type: 'TEMPLATE' },
+      });
+
+      if (!existing) {
+        throw new Error(`Template ${id} not found`);
+      }
+
+      const existingParams = (existing.parameters as any) || {};
+      const updatedParams = {
+        ...existingParams,
+        ...(dto.name && { name: dto.name }),
+        ...(dto.category && { category: dto.category }),
+        ...(dto.subcategory !== undefined && { subcategory: dto.subcategory }),
+        ...(dto.style !== undefined && { style: dto.style }),
+        ...(dto.price !== undefined && { price: dto.price }),
+        ...(dto.isPremium !== undefined && { isPremium: dto.isPremium }),
+        ...(dto.tags !== undefined && { tags: dto.tags }),
+      };
+
+      const template = await this.prisma.aIGeneration.update({
+        where: { id },
+        data: {
+          ...(dto.prompt && { prompt: dto.prompt }),
+          ...(dto.thumbnailUrl && { thumbnailUrl: dto.thumbnailUrl }),
+          ...(dto.previewUrl && { resultUrl: dto.previewUrl }),
+          parameters: updatedParams,
+        },
+      });
+
+      const params = (template.parameters as any) || {};
+      return {
+        id: template.id,
+        name: params.name,
+        category: params.category,
+        subcategory: params.subcategory,
+        prompt: template.prompt,
+        style: params.style,
+        thumbnailUrl: template.thumbnailUrl || '',
+        previewUrl: template.resultUrl,
+        price: params.price || 0,
+        isPremium: params.isPremium || false,
+        downloads: 0,
+        views: 0,
+        rating: 0,
+        tags: params.tags || [],
+        createdAt: template.createdAt,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to update template: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Supprime un template
+   */
+  async deleteTemplate(id: string, brandId: string) {
+    try {
+      this.logger.log(`Deleting template: ${id}`);
+
+      const template = await this.prisma.aIGeneration.findFirst({
+        where: { id, brandId, type: 'TEMPLATE' },
+      });
+
+      if (!template) {
+        throw new Error(`Template ${id} not found`);
+      }
+
+      await this.prisma.aIGeneration.delete({
+        where: { id },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to delete template: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // ANIMATIONS
+  // ========================================
+
+  /**
+   * Récupère les animations (depuis AIGeneration avec type ANIMATION)
+   */
+  async getAnimations(
+    brandId: string,
+    userId: string,
+    filters: { status?: string; page: number; limit: number; offset: number },
+  ) {
+    try {
+      this.logger.log(`Getting animations for brand: ${brandId}, user: ${userId}`);
+
+      const where: any = {
+        brandId,
+        userId,
+        type: 'ANIMATION',
+      };
+
+      if (filters.status && filters.status !== 'all') {
+        where.status = filters.status.toUpperCase();
+      }
+
+      const [animations, total] = await Promise.all([
+        this.prisma.aIGeneration.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: filters.offset,
+          take: filters.limit,
+        }),
+        this.prisma.aIGeneration.count({ where }),
+      ]);
+
+      const result = animations.map(a => {
+        const params = (a.parameters as any) || {};
+        return {
+          id: a.id,
+          prompt: a.prompt,
+          status: a.status.toLowerCase(),
+          result: a.resultUrl,
+          thumbnail: a.thumbnailUrl,
+          duration: params.duration || 5,
+          fps: params.fps || 30,
+          resolution: params.resolution || '1080p',
+          credits: a.credits,
+          createdAt: a.createdAt,
+        };
+      });
+
+      return {
+        animations: result,
+        pagination: {
+          page: filters.page,
+          limit: filters.limit,
+          total,
+          totalPages: Math.ceil(total / filters.limit),
+          hasNext: filters.offset + filters.limit < total,
+          hasPrev: filters.page > 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get animations: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère une animation spécifique
+   */
+  async getAnimation(id: string, brandId: string, userId: string) {
+    try {
+      this.logger.log(`Getting animation: ${id}`);
+
+      const animation = await this.prisma.aIGeneration.findFirst({
+        where: {
+          id,
+          brandId,
+          userId,
+          type: 'ANIMATION',
+        },
+      });
+
+      if (!animation) {
+        throw new Error(`Animation ${id} not found`);
+      }
+
+      const params = (animation.parameters as any) || {};
+      return {
+        id: animation.id,
+        prompt: animation.prompt,
+        status: animation.status.toLowerCase(),
+        result: animation.resultUrl,
+        thumbnail: animation.thumbnailUrl,
+        duration: params.duration || 5,
+        fps: params.fps || 30,
+        resolution: params.resolution || '1080p',
+        credits: animation.credits,
+        createdAt: animation.createdAt,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get animation: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Génère une nouvelle animation
+   */
+  async generateAnimation(brandId: string, userId: string, dto: any) {
+    try {
+      this.logger.log(`Generating animation for brand: ${brandId}, user: ${userId}`);
+
+      // Vérifier le budget
+      const estimatedCost = (dto.duration || 5) * 10; // 10 crédits par seconde
+      const hasBudget = await this.budgetService.checkBudget(brandId, estimatedCost);
+      if (!hasBudget) {
+        throw new Error('Budget insuffisant pour cette génération');
+      }
+
+      // Créer la génération
+      const animation = await this.prisma.aIGeneration.create({
+        data: {
+          type: 'ANIMATION',
+          prompt: dto.prompt,
+          model: 'animation-generator',
+          provider: 'luneo',
+          parameters: {
+            style: dto.style,
+            duration: dto.duration || 5,
+            fps: dto.fps || 30,
+            resolution: dto.resolution || '1080p',
+          },
+          status: 'PROCESSING',
+          credits: estimatedCost,
+          costCents: estimatedCost * 10, // 10 centimes par crédit
+          userId,
+          brandId,
+        },
+      });
+
+      // TODO: Lancer la génération en background job
+      // Pour l'instant, simuler un résultat après un délai
+      setTimeout(async () => {
+        await this.prisma.aIGeneration.update({
+          where: { id: animation.id },
+          data: {
+            status: 'COMPLETED',
+            resultUrl: `https://storage.example.com/animations/${animation.id}.mp4`,
+            thumbnailUrl: `https://storage.example.com/animations/${animation.id}_thumb.jpg`,
+            completedAt: new Date(),
+            duration: dto.duration || 5,
+          },
+        });
+      }, 5000);
+
+      const params = (animation.parameters as any) || {};
+      return {
+        id: animation.id,
+        prompt: animation.prompt,
+        status: animation.status.toLowerCase(),
+        result: animation.resultUrl,
+        thumbnail: animation.thumbnailUrl,
+        duration: params.duration || 5,
+        fps: params.fps || 30,
+        resolution: params.resolution || '1080p',
+        credits: animation.credits,
+        createdAt: animation.createdAt,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to generate animation: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Supprime une animation
+   */
+  async deleteAnimation(id: string, brandId: string, userId: string) {
+    try {
+      this.logger.log(`Deleting animation: ${id}`);
+
+      const animation = await this.prisma.aIGeneration.findFirst({
+        where: { id, brandId, userId, type: 'ANIMATION' },
+      });
+
+      if (!animation) {
+        throw new Error(`Animation ${id} not found`);
+      }
+
+      await this.prisma.aIGeneration.delete({
+        where: { id },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to delete animation: ${error.message}`, error.stack);
       throw error;
     }
   }

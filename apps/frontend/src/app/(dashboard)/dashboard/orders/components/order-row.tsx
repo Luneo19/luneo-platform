@@ -8,11 +8,14 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, ChevronRight } from 'lucide-react';
 import type { Order } from '../types';
 
 interface OrderRowProps {
   order: Order;
+  isSelected?: boolean;
+  onSelect?: (orderId: string) => void;
   onViewOrder: (order: Order) => void;
 }
 
@@ -49,13 +52,30 @@ function getStatusConfig(status: string) {
   return configs[status] || configs.pending;
 }
 
-export function OrderRow({ order, onViewOrder }: OrderRowProps) {
+export function OrderRow({
+  order,
+  isSelected = false,
+  onSelect,
+  onViewOrder,
+}: OrderRowProps) {
   const statusConfig = getStatusConfig(order.status);
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-all">
+    <Card
+      className={`bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-all ${
+        isSelected ? 'ring-2 ring-cyan-500 border-cyan-500' : ''
+      }`}
+    >
       <div className="p-4">
         <div className="flex items-center justify-between">
+          {onSelect && (
+            <div className="mr-4" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onSelect(order.id)}
+              />
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h3 className="font-semibold text-white">{order.order_number}</h3>
@@ -102,6 +122,7 @@ export function OrderRow({ order, onViewOrder }: OrderRowProps) {
     </Card>
   );
 }
+
 
 
 

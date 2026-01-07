@@ -4,7 +4,7 @@
 set -e
 
 PROJECT_ID="9b6c45fe-e44b-4fad-ba21-e88df51a39e4"
-RAILWAY_TOKEN="05658a48-024e-420d-b818-d2ef00fdd1f0"
+RAILWAY_TOKEN="${RAILWAY_TOKEN:-}"
 RAILWAY_API_URL="https://backboard.railway.com/graphql/v2"
 
 GREEN='\033[0;32m'
@@ -63,6 +63,8 @@ echo "5. Sauvegardez"
 echo ""
 echo "6. Railway redéploiera automatiquement"
 echo ""
+
+
 
 
 

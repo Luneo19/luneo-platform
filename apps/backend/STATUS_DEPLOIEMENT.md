@@ -124,3 +124,5 @@ Une fois que `/health` fonctionne (retourne 200) :
 
 **Dernière mise à jour** : 4 janvier 2026, 20:37
 
+
+

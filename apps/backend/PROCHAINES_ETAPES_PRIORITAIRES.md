@@ -191,3 +191,5 @@ railway variables | grep DATABASE_URL
 psql "$DATABASE_URL" -c "\d \"User\"" | grep name
 ```
 
+
+

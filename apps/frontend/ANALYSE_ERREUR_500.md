@@ -160,3 +160,5 @@ export async function loadFeatureFlags(): Promise<{
 
 **Solution** : Corriger `loadFeatureFlags()` pour gérer correctement les erreurs ou utiliser une approche différente.
 
+
+

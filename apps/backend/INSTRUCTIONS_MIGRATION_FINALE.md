@@ -84,3 +84,5 @@ Devrait retourner un code **201** avec les données de l'utilisateur créé.
 - [ ] `/api/auth/signup` testé et fonctionnel
 
 
+
+

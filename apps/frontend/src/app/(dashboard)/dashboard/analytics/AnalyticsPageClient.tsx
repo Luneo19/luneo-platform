@@ -1,0 +1,128 @@
+/**
+ * Client Component pour la page Analytics
+ */
+
+'use client';
+
+import { useState, useCallback, useMemo } from 'react';
+import { AnalyticsHeader } from './components/AnalyticsHeader';
+import { AnalyticsFilters } from './components/AnalyticsFilters';
+import { AnalyticsKPIs } from './components/AnalyticsKPIs';
+import { AnalyticsCharts } from './components/AnalyticsCharts';
+import { MetricSelector } from './components/MetricSelector';
+import { ExportAnalyticsModal } from './components/modals/ExportAnalyticsModal';
+import { useAnalyticsData } from './hooks/useAnalyticsData';
+import { useAnalyticsExport } from './hooks/useAnalyticsExport';
+import type { TimeRange } from './types';
+
+export function AnalyticsPageClient() {
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [comparePeriod, setComparePeriod] = useState(false);
+  const [selectedMetrics, setSelectedMetrics] = useState<Set<string>>(
+    new Set(['revenue', 'orders', 'users', 'conversions'])
+  );
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+
+  const { data, metrics, isLoading, error, refetch } = useAnalyticsData(
+    timeRange,
+    comparePeriod,
+    selectedMetrics,
+    customDateFrom,
+    customDateTo
+  );
+
+  const { exportAnalytics } = useAnalyticsExport();
+
+  const handleToggleMetric = useCallback((metricId: string) => {
+    setSelectedMetrics((prev) => {
+      const next = new Set(prev);
+      if (next.has(metricId)) {
+        next.delete(metricId);
+      } else {
+        next.add(metricId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedMetrics(new Set(['revenue', 'orders', 'users', 'conversions', 'avgOrderValue', 'conversionRate']));
+  }, []);
+
+  const handleDeselectAll = useCallback(() => {
+    setSelectedMetrics(new Set());
+  }, []);
+
+  const handleExport = useCallback(() => {
+    if (!data || !metrics.length) return;
+    exportAnalytics(data as any, metrics, exportFormat);
+    setShowExportModal(false);
+  }, [data, metrics, exportFormat, exportAnalytics]);
+
+  const chartData = useMemo(() => {
+    if (!data?.chartData) {
+      return { labels: [], datasets: [] };
+    }
+    return data.chartData;
+  }, [data]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Erreur lors du chargement des analytics</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 pb-10">
+      <AnalyticsHeader
+        onExport={() => setShowExportModal(true)}
+        onRefresh={() => refetch()}
+        isRefreshing={isLoading}
+      />
+
+      <AnalyticsFilters
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
+        comparePeriod={comparePeriod}
+        onCompareChange={setComparePeriod}
+        customDateFrom={customDateFrom}
+        customDateTo={customDateTo}
+        onCustomDateFromChange={setCustomDateFrom}
+        onCustomDateToChange={setCustomDateTo}
+      />
+
+      <AnalyticsKPIs metrics={metrics} selectedMetrics={selectedMetrics} />
+
+      <MetricSelector
+        selectedMetrics={selectedMetrics}
+        onToggleMetric={handleToggleMetric}
+        onSelectAll={handleSelectAll}
+        onDeselectAll={handleDeselectAll}
+      />
+
+      <AnalyticsCharts chartData={chartData} isLoading={isLoading} />
+
+      <ExportAnalyticsModal
+        open={showExportModal}
+        onOpenChange={setShowExportModal}
+        exportFormat={exportFormat}
+        onFormatChange={setExportFormat}
+        onExport={handleExport}
+      />
+    </div>
+  );
+}
+

@@ -128,3 +128,5 @@ Si Cursor est toujours lent après ces optimisations:
 
 
 
+
+

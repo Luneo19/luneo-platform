@@ -67,3 +67,5 @@ Après le build :
 - ✅ `/health` retourne 200 avec JSON `{"status":"ok",...}`
 - ✅ Frontend peut se connecter au backend
 
+
+

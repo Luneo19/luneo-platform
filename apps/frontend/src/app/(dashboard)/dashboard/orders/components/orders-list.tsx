@@ -15,6 +15,8 @@ interface OrdersListProps {
   orders: Order[];
   pagination: OrderPagination;
   onViewOrder: (order: Order) => void;
+  selectedOrders?: Set<string>;
+  onSelectOrder?: (orderId: string) => void;
 }
 
 function formatDate(dateString: string): string {
@@ -29,6 +31,8 @@ export function OrdersList({
   orders,
   pagination,
   onViewOrder,
+  selectedOrders,
+  onSelectOrder,
 }: OrdersListProps) {
   const router = useRouter();
 
@@ -50,7 +54,13 @@ export function OrdersList({
     <div className="space-y-4">
       <div className="space-y-2">
         {orders.map((order) => (
-          <OrderRow key={order.id} order={order} onViewOrder={onViewOrder} />
+          <OrderRow
+            key={order.id}
+            order={order}
+            isSelected={selectedOrders?.has(order.id)}
+            onSelect={onSelectOrder}
+            onViewOrder={onViewOrder}
+          />
         ))}
       </div>
 
@@ -87,6 +97,7 @@ export function OrdersList({
     </div>
   );
 }
+
 
 
 

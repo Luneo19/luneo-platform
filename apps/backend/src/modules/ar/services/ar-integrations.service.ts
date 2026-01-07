@@ -6,6 +6,7 @@
 
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 export interface ARIntegration {
   id: string;
@@ -122,7 +123,7 @@ export class ArIntegrationsService {
             ...metadata,
             arIntegrations: integrations,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return newIntegration;
@@ -168,7 +169,7 @@ export class ArIntegrationsService {
             ...metadata,
             arIntegrations: integrations,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return integrations[index];
@@ -209,7 +210,7 @@ export class ArIntegrationsService {
             ...metadata,
             arIntegrations: filtered,
           },
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
     } catch (error) {
       this.logger.error(`Failed to delete integration: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);

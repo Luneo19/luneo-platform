@@ -45,3 +45,5 @@
 - `78c5dee` - fix: simplifier loadFeatureFlags pour éviter les erreurs 500 sur Vercel
 - `a58545d` - fix: ajouter bcryptjs aux dépendances frontend pour les routes tRPC server-side
 
+
+

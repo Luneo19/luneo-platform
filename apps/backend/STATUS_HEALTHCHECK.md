@@ -71,3 +71,5 @@ Selon la [documentation Railway](https://docs.railway.com/guides/healthchecks) :
 3. ✅ Tester `/health` une fois le nouveau code déployé
 4. ✅ Une fois que `/health` retourne 200, le healthcheck Railway fonctionnera automatiquement
 
+
+

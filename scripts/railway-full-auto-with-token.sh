@@ -16,11 +16,17 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Token Railway
-RAILWAY_TOKEN="cfceb780-1fdd-49f5-af21-5387213f95ac"
+RAILWAY_TOKEN="${RAILWAY_TOKEN:-}"
 export RAILWAY_TOKEN
 
-PROJECT_ID="fb66d02e-2862-4a62-af66-f97430983d0b"
+PROJECT_ID="${PROJECT_ID:-0e3eb9ba-6846-4e0e-81d2-bd7da54da971}"
 RAILWAY_API="https://api.railway.app/v1"
+
+if [ -z "$RAILWAY_TOKEN" ]; then
+    echo -e "${RED}❌ RAILWAY_TOKEN manquant. Exporte-le avant de lancer ce script.${NC}"
+    echo "Ex: export RAILWAY_TOKEN=\"<your_railway_token>\""
+    exit 1
+fi
 
 echo -e "${GREEN}✅ Token Railway configuré${NC}"
 
@@ -263,6 +269,8 @@ echo "   1. Vérifier les logs dans le dashboard"
 echo "   2. Attendre la fin du build (2-5 minutes)"
 echo "   3. Tester le health check : curl https://$SERVICE_DOMAIN/health"
 echo ""
+
+
 
 
 

@@ -89,3 +89,5 @@ Si l'erreur persiste après la correction :
 
 **Action requise** : Commit, push, et redéploiement sur Vercel pour tester la correction.
 
+
+

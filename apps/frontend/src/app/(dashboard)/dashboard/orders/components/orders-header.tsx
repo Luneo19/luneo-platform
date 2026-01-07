@@ -5,11 +5,14 @@
  * Client Component minimal pour les interactions
  */
 
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Plus, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { OrderStats } from '../types';
 
 interface OrdersHeaderProps {
   stats: OrderStats;
+  onShowCreate?: () => void;
+  onShowExport?: () => void;
 }
 
 function formatPrice(amount: number, currency: string): string {
@@ -19,7 +22,11 @@ function formatPrice(amount: number, currency: string): string {
   }).format(amount / 100);
 }
 
-export function OrdersHeader({ stats }: OrdersHeaderProps) {
+export function OrdersHeader({
+  stats,
+  onShowCreate,
+  onShowExport,
+}: OrdersHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
@@ -32,9 +39,31 @@ export function OrdersHeader({ stats }: OrdersHeaderProps) {
           {formatPrice(stats.totalRevenue, 'EUR')} de revenus
         </p>
       </div>
+      <div className="flex items-center gap-3">
+        {onShowExport && (
+          <Button
+            variant="outline"
+            onClick={onShowExport}
+            className="border-gray-700"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exporter
+          </Button>
+        )}
+        {onShowCreate && (
+          <Button
+            onClick={onShowCreate}
+            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouvelle commande
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
+
 
 
 

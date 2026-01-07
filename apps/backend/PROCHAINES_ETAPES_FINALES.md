@@ -43,3 +43,5 @@
 3. ⏳ Tester la connexion frontend → backend
 4. ⏳ Vérifier les logs Vercel pour les erreurs
 
+
+

@@ -4,8 +4,9 @@
  * Respecte la Bible Luneo : pas de any, types stricts, logging professionnel
  */
 
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 export interface EditorProject {
   id: string;
@@ -149,7 +150,7 @@ export class EditorService {
             ...metadata,
             editorProjects: projects,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return newProject;
@@ -202,7 +203,7 @@ export class EditorService {
             ...metadata,
             editorProjects: projects,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return projects[index];
@@ -250,7 +251,7 @@ export class EditorService {
             ...metadata,
             editorProjects: filtered,
           },
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
     } catch (error) {
       this.logger.error(`Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
@@ -329,7 +330,7 @@ export class EditorService {
             ...metadata,
             editorProjects: projects,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return projects[index];

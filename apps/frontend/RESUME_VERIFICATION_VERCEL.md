@@ -110,3 +110,5 @@ NEXT_PUBLIC_API_URL="https://api.luneo.app/api"
 - Investiguer l'erreur HTTP 500 du frontend (peut être due à d'autres causes que la configuration)
 - Vérifier les logs Vercel pour identifier la cause de l'erreur 500
 
+
+

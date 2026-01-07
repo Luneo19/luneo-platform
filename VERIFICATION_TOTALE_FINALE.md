@@ -83,3 +83,5 @@ curl https://frontend-gyxypyo4j-luneos-projects.vercel.app
 - Investiguer l'erreur HTTP 500 du frontend via les logs Vercel
 - L'erreur peut être due à d'autres causes que la configuration (code, dépendances, etc.)
 
+
+

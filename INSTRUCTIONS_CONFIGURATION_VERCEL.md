@@ -56,3 +56,5 @@ Avec **Root Directory = `apps/frontend`** :
 
 Le `vercel.json` a été mis à jour avec le `buildCommand` correct. Il faut maintenant changer le Root Directory dans le Dashboard Vercel de `apps/frontend` à `.` (racine).
 
+
+

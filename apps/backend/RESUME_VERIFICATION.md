@@ -68,3 +68,5 @@ Ou via le Dashboard Railway (Deployments → ... → Open Shell).
 - Les routes publiques (`/api/products`) fonctionnent correctement
 
 
+
+

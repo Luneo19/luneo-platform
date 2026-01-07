@@ -81,3 +81,5 @@ Une fois les projets renommés/supprimés :
 2. ✅ Seuls les projets actifs restent
 3. ✅ Organisation claire des projets
 
+
+

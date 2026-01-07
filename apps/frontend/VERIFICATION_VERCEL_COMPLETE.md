@@ -115,3 +115,5 @@ vercel --prod
 3. ⏳ Tester le frontend : Vérifier que le frontend se connecte au backend
 4. ⏳ Vérifier les logs Vercel pour les erreurs
 
+
+

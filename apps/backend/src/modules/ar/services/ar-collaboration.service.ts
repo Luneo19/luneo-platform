@@ -6,6 +6,7 @@
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 export interface ARProject {
   id: string;
@@ -150,7 +151,7 @@ export class ArCollaborationService {
             ...metadata,
             arProjects: projects,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return newProject;
@@ -204,7 +205,7 @@ export class ArCollaborationService {
             ...metadata,
             arProjects: projects,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return projects[index];
@@ -253,7 +254,7 @@ export class ArCollaborationService {
             ...metadata,
             arProjects: filtered,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
     } catch (error) {
       this.logger.error(`Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
@@ -309,7 +310,7 @@ export class ArCollaborationService {
             ...metadata,
             arProjects: projects,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return projects[index];
@@ -368,7 +369,7 @@ export class ArCollaborationService {
             ...metadata,
             arProjects: projects,
           } as Record<string, unknown>,
-        },
+        } as unknown as Prisma.BrandUpdateInput,
       });
 
       return newComment;

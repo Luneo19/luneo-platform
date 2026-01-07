@@ -52,3 +52,5 @@ Une fois l'erreur 500 résolue :
 
 **Prochaine action** : Vérifier les logs runtime Vercel pour identifier l'erreur exacte.
 
+
+

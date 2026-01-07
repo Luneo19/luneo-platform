@@ -25,3 +25,5 @@ Le build réussit maintenant, mais l'erreur 500 se produit au **runtime** (quand
 
 Ajouter un try-catch autour des appels asynchrones dans `layout.tsx` pour éviter que les erreurs causent une 500.
 
+
+

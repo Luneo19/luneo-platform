@@ -84,3 +84,5 @@ grep -n "Health check route registered" dist/src/main.js
 
 Vérifier le **build local** pour confirmer que le code compile correctement, puis comprendre pourquoi Railway ne déploie pas le nouveau code.
 
+
+

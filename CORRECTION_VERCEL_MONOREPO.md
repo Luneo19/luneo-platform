@@ -52,3 +52,5 @@ Cette configuration est correcte car :
 - `0e6e3ef` - fix: corriger installCommand pour monorepo pnpm avec Root Directory apps/frontend
 - `[en cours]` - fix: corriger buildCommand pour monorepo pnpm - exécuter depuis apps/frontend
 
+
+

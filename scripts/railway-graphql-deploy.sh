@@ -15,9 +15,15 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 # Token Railway
-RAILWAY_TOKEN="f5a2968b-649a-41de-b255-0ac77e1a093b"
-PROJECT_ID="fb66d02e-2862-4a62-af66-f97430983d0b"
+RAILWAY_TOKEN="${RAILWAY_TOKEN:-}"
+PROJECT_ID="${PROJECT_ID:-0e3eb9ba-6846-4e0e-81d2-bd7da54da971}"
 RAILWAY_GRAPHQL="https://backboard.railway.app/graphql/v1"
+
+if [ -z "$RAILWAY_TOKEN" ]; then
+    echo -e "${RED}❌ RAILWAY_TOKEN manquant. Exporte-le avant de lancer ce script.${NC}"
+    echo "Ex: export RAILWAY_TOKEN=\"<your_railway_token>\""
+    exit 1
+fi
 
 echo -e "${GREEN}✅ Token Railway configuré${NC}"
 
@@ -251,6 +257,8 @@ echo "   ✅ Déploiement déclenché"
 echo ""
 echo "🔗 Dashboard : https://railway.com/project/$PROJECT_ID"
 echo ""
+
+
 
 
 

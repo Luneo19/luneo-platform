@@ -54,3 +54,5 @@ Les logs de déploiement (Deploy Logs) dans le Dashboard Railway montrent ce qui
 4. ⏳ Désactiver le healthcheck temporairement si nécessaire
 5. ⏳ Augmenter le timeout si l'application met trop de temps à démarrer
 
+
+

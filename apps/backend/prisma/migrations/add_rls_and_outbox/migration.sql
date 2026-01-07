@@ -102,3 +102,5 @@ ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "aiCostResetAt" TIMESTAMP(3);
 
 
 
+
+

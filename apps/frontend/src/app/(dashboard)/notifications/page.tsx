@@ -491,7 +491,20 @@ function NotificationsPageContent() {
       byType,
       byPriority,
       readRate,
-      avgReadTime: 0, // TODO: Calculate from read_at - created_at
+      avgReadTime: (() => {
+        // Calculate average read time from read_at - created_at
+        const readNotifications = allNotifications.filter((n) => n.read && n.read_at && n.created_at);
+        if (readNotifications.length === 0) return 0;
+        
+        const totalReadTime = readNotifications.reduce((sum, n) => {
+          const created = new Date(n.created_at).getTime();
+          const read = new Date(n.read_at!).getTime();
+          return sum + (read - created);
+        }, 0);
+        
+        // Convert milliseconds to seconds
+        return Math.round(totalReadTime / readNotifications.length / 1000);
+      })(),
     });
   }, [allNotifications]);
 
@@ -1226,8 +1239,40 @@ function NotificationsPageContent() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  // TODO: Implement CSV export
-                  toast({ title: 'Export CSV', description: 'Export en cours...' });
+                  try {
+                    // Generate CSV
+                    const headers = ['ID', 'Type', 'Titre', 'Message', 'Lu', 'Archivée', 'Priorité', 'Créée le', 'Lue le'];
+                    const rows = filteredNotifications.map((n) => [
+                      n.id,
+                      n.type,
+                      n.title,
+                      n.message.replace(/,/g, ';'), // Replace commas to avoid CSV issues
+                      n.read ? 'Oui' : 'Non',
+                      n.archived ? 'Oui' : 'Non',
+                      n.priority,
+                      new Date(n.created_at).toLocaleString('fr-FR'),
+                      n.read_at ? new Date(n.read_at).toLocaleString('fr-FR') : '',
+                    ]);
+                    
+                    const csv = [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n');
+                    
+                    // Download
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `notifications_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    toast({ title: 'Succès', description: 'Export CSV réussi' });
+                    setShowExportModal(false);
+                  } catch (error) {
+                    logger.error('Error exporting CSV', { error });
+                    toast({ title: 'Erreur', description: 'Erreur lors de l\'export CSV', variant: 'destructive' });
+                  }
                 }}
                 className="border-gray-600"
               >
@@ -1237,8 +1282,48 @@ function NotificationsPageContent() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  // TODO: Implement JSON export
-                  toast({ title: 'Export JSON', description: 'Export en cours...' });
+                  try {
+                    // Generate JSON
+                    const exportData = {
+                      exportedAt: new Date().toISOString(),
+                      total: filteredNotifications.length,
+                      notifications: filteredNotifications.map((n) => ({
+                        id: n.id,
+                        type: n.type,
+                        title: n.title,
+                        message: n.message,
+                        read: n.read,
+                        archived: n.archived,
+                        priority: n.priority,
+                        created_at: n.created_at,
+                        read_at: n.read_at,
+                        action_url: n.action_url,
+                        action_label: n.action_label,
+                        resource_type: n.resource_type,
+                        resource_id: n.resource_id,
+                        metadata: n.metadata,
+                      })),
+                    };
+                    
+                    const json = JSON.stringify(exportData, null, 2);
+                    
+                    // Download
+                    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `notifications_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    toast({ title: 'Succès', description: 'Export JSON réussi' });
+                    setShowExportModal(false);
+                  } catch (error) {
+                    logger.error('Error exporting JSON', { error });
+                    toast({ title: 'Erreur', description: 'Erreur lors de l\'export JSON', variant: 'destructive' });
+                  }
                 }}
                 className="border-gray-600"
               >

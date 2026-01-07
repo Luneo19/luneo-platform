@@ -68,3 +68,5 @@ Une fois le healthcheck désactivé et redéployé, vérifier les logs pour voir
 - Si `/health` est accessible une fois démarré
 - Combien de temps prend le démarrage (migrations, etc.)
 
+
+

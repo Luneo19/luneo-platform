@@ -47,44 +47,70 @@ export const abTestingRouter = router({
       }
 
       try {
-        const where: any = { brandId: user.brandId };
+        // Récupérer les expériences depuis Prisma
+        // Note: Experiment n'a pas de brandId direct, on filtre par targetAudience
+        const where: Record<string, unknown> = {
+          targetAudience: {
+            path: ['brands'],
+            array_contains: [user.brandId],
+          },
+        };
 
         if (input.status) {
-          where.status = input.status.toUpperCase();
+          where.status = input.status;
         }
 
-        // Récupérer depuis la table Experiment (si elle existe) ou depuis metadata
-        // Pour l'instant, on utilise metadata comme fallback
-        const experiments = await db.brand.findUnique({
-          where: { id: user.brandId },
-          select: { metadata: true },
-        });
+        const [experiments, total] = await Promise.all([
+          db.experiment.findMany({
+            where,
+            skip: input.offset,
+            take: input.limit,
+            orderBy: { createdAt: 'desc' },
+            include: {
+              assignments: {
+                select: { variantId: true },
+              },
+            },
+          }),
+          db.experiment.count({ where }),
+        ]);
 
-        // Si pas de table Experiment, on retourne des données depuis metadata ou cache
-        // Pour l'instant, on simule avec des données structurées
-        const experimentsData = (experiments?.metadata as any)?.abExperiments || [];
-
-        const filtered = input.status
-          ? experimentsData.filter((e: any) => e.status === input.status)
-          : experimentsData;
-
-        const paginated = filtered.slice(input.offset, input.offset + input.limit);
-
+        // Transformer en format attendu
         return {
-          experiments: paginated.map((exp: any) => ({
-            id: exp.id || `exp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            name: exp.name,
-            description: exp.description,
-            status: exp.status || 'draft',
-            metric: exp.metric || 'conversions',
-            confidence: exp.confidence || 0,
-            startDate: exp.startDate || new Date().toISOString().split('T')[0],
-            variants: exp.variants || [],
-          })),
-          total: filtered.length,
-          hasMore: input.offset + input.limit < filtered.length,
+          experiments: experiments.map((exp) => {
+            const variants = (exp.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
+            
+            // Calculer les stats par variant
+            const variantsWithStats = variants.map((variant) => {
+              const variantAssignments = exp.assignments.filter((a) => a.variantId === variant.id);
+              return {
+                id: variant.id,
+                name: variant.name,
+                traffic: variant.traffic,
+                conversions: 0, // TODO: Calculer depuis Conversion
+                visitors: variantAssignments.length,
+                revenue: 0, // TODO: Calculer depuis Conversion
+                isControl: variant.isControl || false,
+                isWinner: false, // TODO: Calculer depuis résultats
+              };
+            });
+
+            return {
+              id: exp.id,
+              name: exp.name,
+              description: exp.description || '',
+              status: exp.status as 'draft' | 'running' | 'paused' | 'completed',
+              metric: 'conversions' as const, // TODO: Extraire depuis type
+              confidence: 0, // TODO: Calculer depuis résultats
+              startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
+              endDate: exp.endDate ? new Date(exp.endDate) : undefined,
+              variants: variantsWithStats,
+            };
+          }),
+          total,
+          hasMore: input.offset + input.limit < total,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error listing AB tests', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -109,50 +135,51 @@ export const abTestingRouter = router({
       }
 
       try {
-        const brand = await db.brand.findUnique({
-          where: { id: user.brandId },
-          select: { metadata: true },
+        // Créer l'expérience dans Prisma
+        // Note: Experiment n'a pas de brandId direct, utiliser targetAudience
+        const experiment = await db.experiment.create({
+          data: {
+            name: input.name,
+            description: input.description || '',
+            type: 'variants', // Par défaut
+            variants: input.variants.map((v, i) => ({
+              id: `v${i + 1}`,
+              name: v.name,
+              traffic: v.traffic,
+              isControl: v.isControl,
+            })) as unknown,
+            status: 'draft',
+            targetAudience: {
+              brands: [user.brandId],
+            } as unknown,
+          },
         });
 
-        const metadata = (brand?.metadata || {}) as any;
-        const experiments = metadata.abExperiments || [];
+        logger.info('AB test created', { experimentId: experiment.id, userId: user.id });
 
-        const newExperiment = {
-          id: `exp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          name: input.name,
-          description: input.description,
-          status: 'draft' as const,
+        // Transformer en format attendu
+        const variants = (experiment.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
+        return {
+          id: experiment.id,
+          name: experiment.name,
+          description: experiment.description || '',
+          status: experiment.status as 'draft' | 'running' | 'paused' | 'completed',
           metric: input.metric,
           confidence: 0,
-          startDate: new Date().toISOString().split('T')[0],
-          variants: input.variants.map((v, i) => ({
-            id: `v${i + 1}`,
+          startDate: experiment.startDate ? new Date(experiment.startDate) : new Date(),
+          endDate: experiment.endDate ? new Date(experiment.endDate) : undefined,
+          variants: variants.map((v) => ({
+            id: v.id,
             name: v.name,
             traffic: v.traffic,
             conversions: 0,
             visitors: 0,
             revenue: 0,
-            isControl: v.isControl,
+            isControl: v.isControl || false,
             isWinner: false,
           })),
         };
-
-        experiments.push(newExperiment);
-
-        await db.brand.update({
-          where: { id: user.brandId },
-          data: {
-            metadata: {
-              ...metadata,
-              abExperiments: experiments,
-            },
-          },
-        });
-
-        logger.info('AB test created', { experimentId: newExperiment.id, userId: user.id });
-
-        return newExperiment;
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error creating AB test', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -190,72 +217,70 @@ export const abTestingRouter = router({
       }
 
       try {
-        const brand = await db.brand.findUnique({
-          where: { id: user.brandId },
-          select: { metadata: true },
+        // Récupérer l'expérience
+        const experiment = await db.experiment.findUnique({
+          where: { id: input.id },
         });
 
-        const metadata = (brand?.metadata || {}) as any;
-        const experiments = metadata.abExperiments || [];
-
-        const index = experiments.findIndex((e: any) => e.id === input.id);
-        if (index === -1) {
+        if (!experiment) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Test AB introuvable',
           });
         }
 
+        // Mettre à jour l'expérience
+        const updateData: Record<string, unknown> = {};
         if (input.status) {
-          experiments[index].status = input.status;
+          updateData.status = input.status;
         }
 
         if (input.variants) {
-          input.variants.forEach((update) => {
-            const variant = experiments[index].variants.find((v: any) => v.id === update.id);
-            if (variant) {
-              if (update.conversions !== undefined) variant.conversions = update.conversions;
-              if (update.visitors !== undefined) variant.visitors = update.visitors;
-              if (update.revenue !== undefined) variant.revenue = update.revenue;
+          // Mettre à jour les variants
+          const currentVariants = (experiment.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
+          const updatedVariants = currentVariants.map((v) => {
+            const update = input.variants?.find((u) => u.id === v.id);
+            if (update) {
+              return {
+                ...v,
+                // Les conversions/visitors/revenue sont calculés depuis Conversion, pas stockés dans variants
+              };
             }
+            return v;
           });
-
-          // Calculer confidence et winner
-          const control = experiments[index].variants.find((v: any) => v.isControl);
-          const treatments = experiments[index].variants.filter((v: any) => !v.isControl);
-
-          if (control && treatments.length > 0) {
-            // Calcul simplifié de confidence (à améliorer avec vraie statistique)
-            const bestTreatment = treatments.reduce((best: any, current: any) => {
-              const currentRate = current.visitors > 0 ? current.conversions / current.visitors : 0;
-              const bestRate = best.visitors > 0 ? best.conversions / best.visitors : 0;
-              return currentRate > bestRate ? current : best;
-            });
-
-            const controlRate = control.visitors > 0 ? control.conversions / control.visitors : 0;
-            const bestRate = bestTreatment.visitors > 0 ? bestTreatment.conversions / bestTreatment.visitors : 0;
-
-            if (bestRate > controlRate && control.visitors > 100 && bestTreatment.visitors > 100) {
-              experiments[index].confidence = Math.min(95 + Math.random() * 5, 99.9);
-              bestTreatment.isWinner = true;
-            }
-          }
+          updateData.variants = updatedVariants;
         }
 
-        await db.brand.update({
-          where: { id: user.brandId },
-          data: {
-            metadata: {
-              ...metadata,
-              abExperiments: experiments,
-            },
-          },
+        const updated = await db.experiment.update({
+          where: { id: input.id },
+          data: updateData,
         });
 
         logger.info('AB test updated', { experimentId: input.id, userId: user.id });
 
-        return experiments[index];
-      } catch (error: any) {
+        // Transformer en format attendu
+        const variants = (updated.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
+        return {
+          id: updated.id,
+          name: updated.name,
+          description: updated.description || '',
+          status: updated.status as 'draft' | 'running' | 'paused' | 'completed',
+          metric: 'conversions' as const,
+          confidence: 0, // TODO: Calculer depuis résultats
+          startDate: updated.startDate ? new Date(updated.startDate) : new Date(),
+          endDate: updated.endDate ? new Date(updated.endDate) : undefined,
+          variants: variants.map((v) => ({
+            id: v.id,
+            name: v.name,
+            traffic: v.traffic,
+            conversions: 0, // TODO: Calculer depuis Conversion
+            visitors: 0, // TODO: Calculer depuis ExperimentAssignment
+            revenue: 0, // TODO: Calculer depuis Conversion
+            isControl: v.isControl || false,
+            isWinner: false, // TODO: Calculer depuis résultats
+          })),
+        };
+      } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
         logger.error('Error updating AB test', { error, input, userId: user.id });
         throw new TRPCError({

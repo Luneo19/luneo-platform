@@ -41,3 +41,5 @@ exports: [ManufacturingService, ExportPackService], // ✅ ExportPackService ajo
 3. ⏳ Vérifier que l'application démarre correctement
 4. ⏳ Vérifier que `/health` fonctionne
 
+
+

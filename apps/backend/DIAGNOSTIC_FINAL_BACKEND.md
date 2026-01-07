@@ -50,3 +50,5 @@ Le code local et Git ont bien la correction, mais Railway déploie toujours l'an
 3. Tester `/health` après déploiement
 4. Vérifier que le frontend fonctionne une fois le backend corrigé
 
+
+

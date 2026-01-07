@@ -4,11 +4,9 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../server';
-import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
-
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 export const libraryRouter = router({
   listTemplates: publicProcedure

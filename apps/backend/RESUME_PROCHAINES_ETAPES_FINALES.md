@@ -101,3 +101,5 @@ Une fois le frontend redéployé :
 3. **Redéploiement** : Si la variable a été modifiée, redéployer le frontend pour que les changements prennent effet
 4. **Logs** : Surveiller les logs Vercel pour vérifier que le frontend se connecte correctement au backend
 
+
+

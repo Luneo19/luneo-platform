@@ -17,6 +17,8 @@ interface OrderDetailDialogProps {
   order: Order;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onUpdateStatus?: () => void;
+  onCancel?: () => void;
 }
 
 function formatPrice(amount: number, currency: string): string {
@@ -58,6 +60,8 @@ export function OrderDetailDialog({
   order,
   open,
   onOpenChange,
+  onUpdateStatus,
+  onCancel,
 }: OrderDetailDialogProps) {
   const statusConfig = getStatusConfig(order.status);
 
@@ -196,18 +200,30 @@ export function OrderDetailDialog({
             >
               Fermer
             </Button>
-            {order.status !== 'cancelled' && order.status !== 'delivered' && (
-              <Button variant="destructive">
-                <XCircle className="w-4 h-4 mr-2" />
-                Annuler la commande
+            {onUpdateStatus && (
+              <Button
+                variant="outline"
+                onClick={onUpdateStatus}
+                className="border-gray-600"
+              >
+                Modifier le statut
               </Button>
             )}
+            {onCancel &&
+              order.status !== 'cancelled' &&
+              order.status !== 'delivered' && (
+                <Button variant="destructive" onClick={onCancel}>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Annuler la commande
+                </Button>
+              )}
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 
 

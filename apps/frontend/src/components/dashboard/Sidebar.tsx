@@ -29,7 +29,17 @@ import {
   MessageSquare,
   Database,
   Eye,
-  Activity
+  Activity,
+  Library,
+  Upload,
+  LayoutTemplate,
+  Store,
+  Coins,
+  FlaskConical,
+  TrendingUp,
+  Edit,
+  Video,
+  Shield
 } from 'lucide-react';
 import { useFeatureFlag } from '@/contexts/FeatureFlagContext';
 
@@ -48,9 +58,9 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
     items: [
       {
         name: 'Dashboard',
-        href: '/overview',
+        href: '/dashboard',
         icon: LayoutDashboard,
-        description: 'Vue d\'ensemble'
+        description: 'Tableau de bord principal'
       },
       {
         name: 'AI Studio',
@@ -61,7 +71,7 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         children: [
           { name: 'Générateur 2D', href: '/dashboard/ai-studio/2d', icon: Palette, description: 'Designs 2D' },
           { name: 'Modèles 3D', href: '/dashboard/ai-studio/3d', icon: Box, description: 'Objets 3D' },
-          { name: 'Animations', href: '/dashboard/ai-studio/animations', icon: Camera, description: 'Animations' },
+          { name: 'Animations', href: '/dashboard/ai-studio/animations', icon: Video, description: 'Animations IA' },
           { name: 'Templates', href: '/dashboard/ai-studio/templates', icon: Layers, description: 'Modèles prêts' }
         ]
       },
@@ -76,6 +86,31 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
           { name: 'Collaboration AR', href: '/dashboard/ar-studio/collaboration', icon: Users, description: 'Travail d\'équipe' },
           { name: 'Bibliothèque 3D', href: '/dashboard/ar-studio/library', icon: Database, description: 'Modèles 3D' },
           { name: 'Intégrations AR', href: '/dashboard/ar-studio/integrations', icon: Plug, description: 'Connexions' }
+        ]
+      },
+      {
+        name: 'Éditeur',
+        href: '/dashboard/editor',
+        icon: Edit,
+        description: 'Éditeur de design',
+        badge: 'Pro'
+      },
+      {
+        name: 'Configurateur 3D',
+        href: '/dashboard/configurator-3d',
+        icon: Box,
+        description: 'Personnalisation 3D',
+        badge: 'Pro'
+      },
+      {
+        name: 'Bibliothèque',
+        href: '/dashboard/library',
+        icon: Library,
+        description: 'Assets et templates',
+        children: [
+          { name: 'Bibliothèque', href: '/dashboard/library', icon: Library, description: 'Tous les assets' },
+          { name: 'Import', href: '/dashboard/library/import', icon: Upload, description: 'Importer des fichiers' },
+          { name: 'Templates', href: '/dashboard/templates', icon: LayoutTemplate, description: 'Modèles prêts' }
         ]
       }
     ]
@@ -99,7 +134,19 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         name: 'Analytics',
         href: '/dashboard/analytics',
         icon: BarChart3,
-        description: 'Métriques et statistiques'
+        description: 'Métriques et statistiques',
+        children: [
+          { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, description: 'Métriques principales' },
+          { name: 'Analytics Avancées', href: '/dashboard/analytics-advanced', icon: TrendingUp, description: 'Analyses approfondies' },
+          { name: 'A/B Testing', href: '/dashboard/ab-testing', icon: FlaskConical, description: 'Tests d\'optimisation' }
+        ]
+      },
+      {
+        name: 'Seller',
+        href: '/dashboard/seller',
+        icon: Store,
+        description: 'Dashboard vendeur',
+        badge: 'Pro'
       },
       {
         name: 'Monitoring temps réel',
@@ -123,13 +170,29 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         name: 'Facturation',
         href: '/dashboard/billing',
         icon: CreditCard,
-        description: 'Abonnements'
+        description: 'Abonnements',
+        children: [
+          { name: 'Facturation', href: '/dashboard/billing', icon: CreditCard, description: 'Plans et abonnements' },
+          { name: 'Portail Stripe', href: '/dashboard/billing/portal', icon: CreditCard, description: 'Gestion Stripe' }
+        ]
+      },
+      {
+        name: 'Crédits',
+        href: '/dashboard/credits',
+        icon: Coins,
+        description: 'Gestion des crédits'
       },
       {
         name: 'Intégrations',
         href: '/dashboard/integrations-dashboard',
         icon: Plug,
         description: 'API et connecteurs'
+      },
+      {
+        name: 'Sécurité',
+        href: '/dashboard/security',
+        icon: Shield,
+        description: 'Paramètres de sécurité'
       },
       {
         name: 'Paramètres',
@@ -209,7 +272,7 @@ function Sidebar() {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <Link href="/overview" className="flex items-center space-x-3">
+            <Link href="/dashboard" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">L</span>
               </div>
@@ -220,7 +283,7 @@ function Sidebar() {
             </Link>
           )}
           {isCollapsed && (
-            <Link href="/overview" className="flex items-center justify-center">
+            <Link href="/dashboard" className="flex items-center justify-center">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">L</span>
               </div>
@@ -406,10 +469,10 @@ function Sidebar() {
 // Optimisation avec React.memo pour éviter les re-renders inutiles
 const SidebarMemo = memo(Sidebar);
 
-export default function SidebarWithErrorBoundary(props: SidebarProps) {
+export default function SidebarWithErrorBoundary() {
   return (
     <ErrorBoundary componentName="Sidebar">
-      <SidebarMemo {...props} />
+      <SidebarMemo />
     </ErrorBoundary>
   );
 }

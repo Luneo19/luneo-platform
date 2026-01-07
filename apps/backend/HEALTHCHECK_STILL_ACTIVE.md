@@ -55,3 +55,5 @@ railway variables set RAILWAY_HEALTHCHECK_PATH=""
 3. ⏳ Désactiver le healthcheck dans le Dashboard si nécessaire
 4. ⏳ Redéployer et vérifier les logs
 
+
+

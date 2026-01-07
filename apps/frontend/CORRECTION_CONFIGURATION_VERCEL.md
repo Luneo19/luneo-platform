@@ -58,3 +58,5 @@ Vérifier que `.vercel/project.json` dans `apps/frontend` pointe vers le bon pro
 3. ⏳ Configuration projet : À vérifier
 4. ⏳ URL backend : Doit être `https://api.luneo.app/api`
 
+
+

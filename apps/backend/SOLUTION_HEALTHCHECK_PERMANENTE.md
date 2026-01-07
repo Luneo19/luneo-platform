@@ -72,3 +72,5 @@ server.get('/health', (req: Express.Request, res: Express.Response) => {
 - Le pattern est **identique** à `serverless.ts` qui fonctionne sur Vercel
 - Plus besoin de modifier `railway.toml` ou le Dashboard Railway
 
+
+

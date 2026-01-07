@@ -27,6 +27,7 @@ import {
 import { AdminModule } from './modules/admin/admin.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ArStudioModule } from './modules/ar/ar-studio.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { BrandsModule } from './modules/brands/brands.module';
@@ -58,6 +59,7 @@ import { PersonalizationModule } from './modules/personalization/personalization
 import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
 import { WidgetModule } from './modules/widget/widget.module';
 import { GenerationModule } from './modules/generation/generation.module';
+import { EditorModule } from './modules/editor/editor.module';
 
 // Common
 import { CommonModule } from './common/common.module';
@@ -205,6 +207,7 @@ import { TracingModule } from './libs/tracing/tracing.module';
     GenerationModule,
     SecurityModule,
     AnalyticsModule,
+    ArStudioModule,
     MarketplaceModule,
     ObservabilityModule,
     TrustSafetyModule,

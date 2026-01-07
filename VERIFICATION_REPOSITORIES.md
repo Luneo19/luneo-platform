@@ -62,3 +62,5 @@ Dossier: /Users/emmanuelabougadous/luneo-platform
 3. ⏳ Si nécessaire, reconfigurer les connexions GitHub
 4. ⏳ Vérifier que les déploiements automatiques sont activés
 
+
+

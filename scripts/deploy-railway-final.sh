@@ -3,8 +3,8 @@
 
 set -e
 
-PROJECT_ID="9b6c45fe-e44b-4fad-ba21-e88df51a39e4"
-RAILWAY_TOKEN="05658a48-024e-420d-b818-d2ef00fdd1f0"
+PROJECT_ID="${PROJECT_ID:-0e3eb9ba-6846-4e0e-81d2-bd7da54da971}"
+RAILWAY_TOKEN="${RAILWAY_TOKEN:-}"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$PROJECT_ROOT/apps/backend"
@@ -21,12 +21,18 @@ echo -e "${BLUE}🚀 Déploiement complet sur Railway${NC}"
 echo ""
 
 # Configurer le token Railway
+if [ -z "$RAILWAY_TOKEN" ]; then
+    echo -e "${RED}❌ RAILWAY_TOKEN manquant. Exporte-le avant de lancer ce script.${NC}"
+    echo "Ex: export RAILWAY_TOKEN=\"<your_railway_token>\""
+    exit 1
+fi
+
 export RAILWAY_TOKEN
 
 # Étape 1: Lier le projet
 echo -e "${BLUE}📋 Étape 1: Configuration du projet Railway...${NC}"
 
-# Créer le fichier de configuration Railway
+# Créer le fichier de configuration Railway (JSON valide)
 mkdir -p ~/.railway
 cat > ~/.railway/config.json <<EOF
 {
@@ -202,6 +208,8 @@ echo "  - Logs: railway logs"
 echo "  - Status: railway status"
 echo "  - Domain: railway domain"
 echo ""
+
+
 
 
 

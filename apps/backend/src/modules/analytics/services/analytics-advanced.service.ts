@@ -7,6 +7,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AnalyticsCalculationsService } from './analytics-calculations.service';
+import { Prisma } from '@prisma/client';
 import {
   Funnel,
   FunnelData,
@@ -40,45 +41,40 @@ export class AnalyticsAdvancedService {
     try {
       this.logger.log(`Getting funnels for brand: ${brandId}`);
 
-      // TODO: Implémenter vraie logique avec Prisma
-      // Pour l'instant, retourne des données mockées structurées
-      const mockFunnels: Funnel[] = [
-        {
-          id: 'funnel-1',
-          name: 'Funnel Acquisition Email',
-          description: 'Funnel de conversion email',
-          steps: [
-            { id: 'step-1', name: 'Email envoyé', eventType: 'email_sent', order: 1 },
-            { id: 'step-2', name: 'Email ouvert', eventType: 'email_opened', order: 2 },
-            { id: 'step-3', name: 'Lien cliqué', eventType: 'link_clicked', order: 3 },
-            { id: 'step-4', name: 'Landing page visitée', eventType: 'page_view', order: 4 },
-            { id: 'step-5', name: 'Formulaire commencé', eventType: 'form_started', order: 5 },
-            { id: 'step-6', name: 'Inscription complétée', eventType: 'signup_completed', order: 6 },
-          ],
-          isActive: true,
+      // Récupérer les funnels depuis Prisma
+      const funnels = await this.prisma.analyticsFunnel.findMany({
+        where: {
           brandId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'funnel-2',
-          name: 'Funnel Achat Produit',
-          description: 'Funnel de conversion produit',
-          steps: [
-            { id: 'step-1', name: 'Page produit vue', eventType: 'product_viewed', order: 1 },
-            { id: 'step-2', name: 'Avis consultés', eventType: 'reviews_viewed', order: 2 },
-            { id: 'step-3', name: 'Ajouté au panier', eventType: 'cart_added', order: 3 },
-            { id: 'step-4', name: 'Checkout initié', eventType: 'checkout_started', order: 4 },
-            { id: 'step-5', name: 'Paiement complété', eventType: 'payment_completed', order: 5 },
-          ],
           isActive: true,
-          brandId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
-      ];
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
 
-      return mockFunnels;
+      // Transformer les données Prisma en format Funnel
+      return funnels.map((funnel) => {
+        const steps = Array.isArray(funnel.steps) ? funnel.steps : [];
+        return {
+          id: funnel.id,
+          name: funnel.name,
+          description: funnel.description || undefined,
+          steps: steps.map((step: unknown, index: number) => {
+            const stepObj = step as Record<string, unknown>;
+            return {
+              id: (stepObj.id as string) || `step-${index + 1}`,
+              name: (stepObj.name as string) || 'Step',
+              eventType: (stepObj.eventType as string) || '',
+              order: (stepObj.order as number) || index + 1,
+              description: (stepObj.description as string) || undefined,
+            };
+          }),
+          isActive: funnel.isActive,
+          brandId: funnel.brandId,
+          createdAt: funnel.createdAt,
+          updatedAt: funnel.updatedAt,
+        };
+      });
     } catch (error) {
       this.logger.error(`Failed to get funnels: ${error.message}`, error.stack);
       throw error;
@@ -174,16 +170,38 @@ export class AnalyticsAdvancedService {
     try {
       this.logger.log(`Creating funnel for brand: ${brandId}`);
 
-      // TODO: Implémenter avec Prisma
-      const newFunnel: Funnel = {
-        id: `funnel-${Date.now()}`,
-        ...data,
-        brandId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      // Créer le funnel dans Prisma
+      const funnel = await this.prisma.analyticsFunnel.create({
+        data: {
+          name: data.name,
+          description: data.description,
+          steps: data.steps as unknown as Prisma.InputJsonValue,
+          isActive: data.isActive,
+          brandId,
+        },
+      });
 
-      return newFunnel;
+      // Transformer en format Funnel
+      const steps = Array.isArray(funnel.steps) ? funnel.steps : [];
+      return {
+        id: funnel.id,
+        name: funnel.name,
+        description: funnel.description || undefined,
+        steps: steps.map((step: unknown, index: number) => {
+          const stepObj = step as Record<string, unknown>;
+          return {
+            id: (stepObj.id as string) || `step-${index + 1}`,
+            name: (stepObj.name as string) || 'Step',
+            eventType: (stepObj.eventType as string) || '',
+            order: (stepObj.order as number) || index + 1,
+            description: (stepObj.description as string) || undefined,
+          };
+        }),
+        isActive: funnel.isActive,
+        brandId: funnel.brandId,
+        createdAt: funnel.createdAt,
+        updatedAt: funnel.updatedAt,
+      };
     } catch (error) {
       this.logger.error(`Failed to create funnel: ${error.message}`, error.stack);
       throw error;
@@ -303,33 +321,29 @@ export class AnalyticsAdvancedService {
     try {
       this.logger.log(`Getting segments for brand: ${brandId}`);
 
-      // TODO: Implémenter avec Prisma
-      const mockSegments: Segment[] = [
-        {
-          id: 'segment-1',
-          name: 'Power Users',
-          description: 'Utilisateurs très actifs',
-          criteria: { orders: { $gt: 10 }, ltv: { $gt: 200 }, retention: { $gt: 90 } },
-          userCount: 2340,
-          isActive: true,
+      // Récupérer les segments depuis Prisma
+      const segments = await this.prisma.analyticsSegment.findMany({
+        where: {
           brandId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'segment-2',
-          name: 'At Risk Churn',
-          description: 'Utilisateurs à risque de churn',
-          criteria: { lastOrder: { $lt: '60d' }, engagement: 'low', churnScore: { $gt: 70 } },
-          userCount: 5670,
           isActive: true,
-          brandId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
-      ];
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
 
-      return mockSegments;
+      // Transformer les données Prisma en format Segment
+      return segments.map((segment) => ({
+        id: segment.id,
+        name: segment.name,
+        description: segment.description || undefined,
+        criteria: (segment.criteria as Record<string, unknown>) || {},
+        userCount: segment.userCount,
+        isActive: segment.isActive,
+        brandId: segment.brandId,
+        createdAt: segment.createdAt,
+        updatedAt: segment.updatedAt,
+      }));
     } catch (error) {
       this.logger.error(`Failed to get segments: ${error.message}`, error.stack);
       throw error;
@@ -343,17 +357,32 @@ export class AnalyticsAdvancedService {
     try {
       this.logger.log(`Creating segment for brand: ${brandId}`);
 
-      // TODO: Implémenter avec Prisma et calcul userCount
-      const newSegment: Segment = {
-        id: `segment-${Date.now()}`,
-        ...data,
-        userCount: 0, // Calculé après création
-        brandId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      // Créer le segment dans Prisma
+      const segment = await this.prisma.analyticsSegment.create({
+        data: {
+          name: data.name,
+          description: data.description,
+          criteria: data.criteria as Prisma.InputJsonValue,
+          isActive: data.isActive,
+          brandId,
+          userCount: 0, // Sera calculé après création
+        },
+      });
 
-      return newSegment;
+      // TODO: Calculer userCount en fonction des critères
+      // Pour l'instant, on retourne 0
+
+      return {
+        id: segment.id,
+        name: segment.name,
+        description: segment.description || undefined,
+        criteria: (segment.criteria as Record<string, unknown>) || {},
+        userCount: segment.userCount,
+        isActive: segment.isActive,
+        brandId: segment.brandId,
+        createdAt: segment.createdAt,
+        updatedAt: segment.updatedAt,
+      };
     } catch (error) {
       this.logger.error(`Failed to create segment: ${error.message}`, error.stack);
       throw error;

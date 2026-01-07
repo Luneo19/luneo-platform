@@ -77,3 +77,5 @@ Si l'erreur persiste, il faudra investiguer plus en profondeur :
 - Vérifier si d'autres fonctions dans `layout.tsx` peuvent causer des problèmes
 - Vérifier si les routes API fonctionnent correctement
 
+
+
