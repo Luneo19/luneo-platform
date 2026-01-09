@@ -3,6 +3,7 @@
 import React, { memo, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { FadeIn, SlideUp } from '@/components/animations';
 import { CheckCircle, Loader2, AlertCircle, Mail, ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -74,37 +75,63 @@ function VerifyEmailPageContent() {
     switch (status) {
       case 'verifying':
         return (
-          <div className="text-center">
-            <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Vérification en cours...</h2>
-            <p className="text-gray-600">Veuillez patienter</p>
-          </div>
+          <FadeIn className="text-center">
+            <SlideUp delay={0.1}>
+              <Loader2 className="w-16 h-16 text-cyan-400 animate-spin mx-auto mb-4" />
+            </SlideUp>
+            <SlideUp delay={0.2}>
+              <h2 className="text-2xl font-bold text-white mb-2">Vérification en cours...</h2>
+            </SlideUp>
+            <FadeIn delay={0.3}>
+              <p className="text-slate-400">Veuillez patienter</p>
+            </FadeIn>
+          </FadeIn>
         );
       case 'success':
         return (
-          <div className="text-center">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Email vérifié !</h2>
-            <p className="text-gray-600 mb-4">Redirection en cours...</p>
-            <Link href="/overview">
-              <Button>
-                Aller au dashboard
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
+          <FadeIn className="text-center">
+            <SlideUp delay={0.1}>
+              <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+            </SlideUp>
+            <SlideUp delay={0.2}>
+              <h2 className="text-2xl font-bold text-white mb-2">Email vérifié !</h2>
+            </SlideUp>
+            <FadeIn delay={0.3}>
+              <p className="text-slate-400 mb-6">Redirection en cours...</p>
+            </FadeIn>
+            <SlideUp delay={0.4}>
+              <Link href="/overview">
+                <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white">
+                  Aller au dashboard
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </SlideUp>
+          </FadeIn>
         );
       case 'error':
         return (
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Erreur de vérification</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={handleResend} disabled={resending}>
-              {resending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Renvoyer l'email
-            </Button>
-          </div>
+          <FadeIn className="text-center">
+            <SlideUp delay={0.1}>
+              <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            </SlideUp>
+            <SlideUp delay={0.2}>
+              <h2 className="text-2xl font-bold text-white mb-2">Erreur de vérification</h2>
+            </SlideUp>
+            <FadeIn delay={0.3}>
+              <p className="text-slate-400 mb-6">{error}</p>
+            </FadeIn>
+            <SlideUp delay={0.4}>
+              <Button 
+                onClick={handleResend} 
+                disabled={resending}
+                className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white"
+              >
+                {resending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Renvoyer l'email
+              </Button>
+            </SlideUp>
+          </FadeIn>
         );
       default:
         return null;
@@ -112,15 +139,14 @@ function VerifyEmailPageContent() {
   }, [status, error, resending, handleResend]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <motion
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-white rounded-xl shadow-lg p-8"
-      >
-        {statusContent}
-      </motion>
-    </div>
+    <motion
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="w-full max-w-md"
+    >
+      {statusContent}
+    </motion>
   );
 }
 

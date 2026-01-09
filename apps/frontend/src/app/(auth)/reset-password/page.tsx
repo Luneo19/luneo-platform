@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { FadeIn, SlideUp } from '@/components/animations';
 import { 
   Lock, 
   Eye, 
@@ -186,74 +187,74 @@ function ResetPasswordPageContent() {
   // Success state
   if (success) {
     return (
-      <motion
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="text-center"
-      >
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500/10 rounded-full mb-6">
-          <CheckCircle className="w-10 h-10 text-green-400" />
-              </div>
-              
-        <h1 className="text-2xl font-bold text-white mb-3">
-          Mot de passe modifié ! 🎉
-              </h1>
-              
-        <p className="text-slate-400 mb-6">
-          Votre mot de passe a été réinitialisé avec succès.
-          <br />
-          Vous allez être redirigé vers la connexion...
-              </p>
-
-        <Link href="/login">
-          <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-11 px-6">
-                Se connecter maintenant
-          </Button>
-              </Link>
-      </motion>
+      <FadeIn className="text-center">
+        <SlideUp delay={0.1}>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500/10 rounded-full mb-6">
+            <CheckCircle className="w-10 h-10 text-green-400" />
+          </div>
+        </SlideUp>
+        <SlideUp delay={0.2}>
+          <h1 className="text-2xl font-bold text-white mb-3">
+            Mot de passe modifié ! 🎉
+          </h1>
+        </SlideUp>
+        <FadeIn delay={0.3}>
+          <p className="text-slate-400 mb-6">
+            Votre mot de passe a été réinitialisé avec succès.
+            <br />
+            Vous allez être redirigé vers la connexion...
+          </p>
+        </FadeIn>
+        <SlideUp delay={0.4}>
+          <Link href="/login">
+            <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-11 px-6">
+              Se connecter maintenant
+            </Button>
+          </Link>
+        </SlideUp>
+      </FadeIn>
     );
   }
 
   // Error state (invalid link)
   if (!isInitializing && !isReady && error) {
     return (
-      <motion
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="text-center"
-      >
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-red-500/10 rounded-full mb-6">
-          <AlertCircle className="w-10 h-10 text-red-400" />
-            </div>
-        
-        <h1 className="text-2xl font-bold text-white mb-3">
-          Lien expiré
-        </h1>
-        
-        <p className="text-slate-400 mb-6">
-          {error}
-        </p>
-
-        <div className="space-y-3">
-          <Link href="/forgot-password">
-            <Button className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-11">
-              Demander un nouveau lien
-            </Button>
-          </Link>
-          
-          <Link href="/login">
-            <Button 
-              variant="outline" 
-              className="w-full bg-slate-800/50 border-slate-700 hover:bg-slate-800 text-white h-11"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour à la connexion
-            </Button>
-          </Link>
-        </div>
-      </motion>
+      <FadeIn className="text-center">
+        <SlideUp delay={0.1}>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-red-500/10 rounded-full mb-6">
+            <AlertCircle className="w-10 h-10 text-red-400" />
+          </div>
+        </SlideUp>
+        <SlideUp delay={0.2}>
+          <h1 className="text-2xl font-bold text-white mb-3">
+            Lien expiré
+          </h1>
+        </SlideUp>
+        <FadeIn delay={0.3}>
+          <p className="text-slate-400 mb-6">
+            {error}
+          </p>
+        </FadeIn>
+        <SlideUp delay={0.4}>
+          <div className="space-y-3">
+            <Link href="/forgot-password">
+              <Button className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-11">
+                Demander un nouveau lien
+              </Button>
+            </Link>
+            
+            <Link href="/login">
+              <Button 
+                variant="outline" 
+                className="w-full bg-slate-800/50 border-slate-700 hover:bg-slate-800 text-white h-11"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Retour à la connexion
+              </Button>
+            </Link>
+          </div>
+        </SlideUp>
+      </FadeIn>
     );
   }
 
@@ -264,42 +265,49 @@ function ResetPasswordPageContent() {
       transition={{ duration: 0.4 }}
     >
       {/* Back Link */}
+        <FadeIn delay={0.05}>
           <Link
             href="/login"
-        className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-        Retour à la connexion
+            Retour à la connexion
           </Link>
+        </FadeIn>
 
           {/* Header */}
           <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-500/10 rounded-2xl mb-6">
-          <KeyRound className="w-8 h-8 text-cyan-400" />
-        </div>
-        <h1 className="text-2xl font-bold text-white mb-2">
-              Nouveau mot de passe
-            </h1>
-        <p className="text-slate-400">
-          Choisissez un mot de passe sécurisé pour votre compte.
-            </p>
+        <FadeIn delay={0.1}>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-500/10 rounded-2xl mb-6 lg:hidden">
+            <KeyRound className="w-8 h-8 text-cyan-400" />
+          </div>
+        </FadeIn>
+        <SlideUp delay={0.2}>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            Nouveau mot de passe
+          </h1>
+        </SlideUp>
+        <FadeIn delay={0.3}>
+          <p className="text-slate-400">
+            Choisissez un mot de passe sécurisé pour votre compte.
+          </p>
+        </FadeIn>
           </div>
 
       {/* Error Message */}
       {error && isReady && (
-        <motion
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3"
-        >
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-300">{error}</p>
-        </motion>
+        <FadeIn>
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        </FadeIn>
             )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* New Password */}
+        <SlideUp delay={0.4}>
             <div className="space-y-2">
           <Label htmlFor="password" className="text-sm font-medium text-slate-300">
                 Nouveau mot de passe
@@ -381,8 +389,10 @@ function ResetPasswordPageContent() {
             </motion>
           )}
             </div>
+        </SlideUp>
 
         {/* Confirm Password */}
+        <SlideUp delay={0.5}>
             <div className="space-y-2">
           <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">
                 Confirmer le mot de passe
@@ -419,8 +429,10 @@ function ResetPasswordPageContent() {
             </p>
           )}
             </div>
+        </SlideUp>
 
         {/* Submit Button */}
+        <SlideUp delay={0.6}>
         <Button
               type="submit"
           disabled={loading || !isReady || !isFormValid}
@@ -435,6 +447,7 @@ function ResetPasswordPageContent() {
                 'Réinitialiser mon mot de passe'
               )}
         </Button>
+        </SlideUp>
           </form>
     </motion>
   );

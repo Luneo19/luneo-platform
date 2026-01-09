@@ -281,52 +281,50 @@ function RegisterPageContent() {
       >
       {/* Header */}
       <div className="text-center mb-6">
-        <motion
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl mb-6 shadow-lg shadow-cyan-500/25 lg:hidden"
-        >
-          <span className="text-white font-bold text-2xl">L</span>
-        </motion>
-        <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-white mb-2">
-          Créer un compte 🚀
-        </h1>
-        <p className="text-slate-300">
-          Commencez gratuitement pendant 14 jours
-        </p>
+        <FadeIn delay={0.1}>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl mb-6 shadow-lg shadow-cyan-500/25 lg:hidden">
+            <span className="text-white font-bold text-2xl">L</span>
+          </div>
+        </FadeIn>
+        <SlideUp delay={0.2}>
+          <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            Créer un compte 🚀
+          </h1>
+        </SlideUp>
+        <FadeIn delay={0.3}>
+          <p className="text-slate-300">
+            Commencez gratuitement pendant 14 jours
+          </p>
+        </FadeIn>
           </div>
 
           {/* Error Message */}
           {error && (
-        <motion
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3"
-        >
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-300">{error}</p>
-        </motion>
+        <FadeIn>
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        </FadeIn>
           )}
 
           {/* Success Message */}
           {success && (
-        <motion
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3"
-        >
-          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm text-green-300">{success}</p>
-            <p className="text-xs text-green-400/70 mt-1">Redirection vers la connexion...</p>
+        <FadeIn>
+          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-green-300">{success}</p>
+              <p className="text-xs text-green-400/70 mt-1">Redirection vers la connexion...</p>
             </div>
-        </motion>
+          </div>
+        </FadeIn>
           )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
         {/* Full Name */}
+        <SlideUp delay={0.4}>
         <div className="space-y-2">
           <Label htmlFor="fullName" className="text-sm font-medium text-slate-200 block mb-1.5">
             Nom complet <span className="text-red-400">*</span>
@@ -349,8 +347,10 @@ function RegisterPageContent() {
             )}
               </div>
             </div>
+        </SlideUp>
 
         {/* Email */}
+        <SlideUp delay={0.5}>
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-slate-200 block mb-1.5">
             Email professionnel <span className="text-red-400">*</span>
@@ -373,8 +373,10 @@ function RegisterPageContent() {
             )}
               </div>
             </div>
+        </SlideUp>
 
         {/* Company */}
+        <SlideUp delay={0.6}>
         <div className="space-y-2">
           <Label htmlFor="company" className="text-sm font-medium text-slate-200 block mb-1.5">
             Entreprise <span className="text-slate-400">(optionnel)</span>
@@ -392,8 +394,10 @@ function RegisterPageContent() {
                 />
               </div>
             </div>
+        </SlideUp>
 
         {/* Password */}
+        <SlideUp delay={0.7}>
         <div className="space-y-2">
           <Label htmlFor="password" className="text-sm font-medium text-slate-200 block mb-1.5">
             Mot de passe <span className="text-red-400">*</span>
@@ -477,8 +481,10 @@ function RegisterPageContent() {
             </motion>
           )}
             </div>
+        </SlideUp>
 
         {/* Confirm Password */}
+        <SlideUp delay={0.8}>
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-200 block mb-1.5">
             Confirmer le mot de passe <span className="text-red-400">*</span>
@@ -518,8 +524,10 @@ function RegisterPageContent() {
             </p>
           )}
             </div>
+        </SlideUp>
 
         {/* Terms acceptance */}
+        <SlideUp delay={0.9}>
         <div className="flex items-start gap-3 pt-2">
               <input
                 id="terms"
@@ -540,8 +548,10 @@ function RegisterPageContent() {
                 </Link>
               </Label>
             </div>
+        </SlideUp>
 
         {/* Submit Button */}
+        <SlideUp delay={1.0}>
             <Button
               type="submit"
               data-testid="register-submit"
@@ -560,9 +570,11 @@ function RegisterPageContent() {
                 </>
               )}
             </Button>
+        </SlideUp>
           </form>
 
           {/* Divider */}
+        <FadeIn delay={1.1}>
       <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-slate-600" />
@@ -571,8 +583,10 @@ function RegisterPageContent() {
           <span className="px-4 bg-slate-900 text-slate-400">ou s&apos;inscrire avec</span>
             </div>
           </div>
+        </FadeIn>
 
           {/* Social Register */}
+        <SlideUp delay={1.2}>
       <div className="grid grid-cols-2 gap-3">
             <Button
               type="button"
@@ -612,8 +626,10 @@ function RegisterPageContent() {
           )}
             </Button>
           </div>
+        </SlideUp>
 
           {/* Sign in link */}
+        <FadeIn delay={1.3}>
       <div className="mt-6 text-center">
         <p className="text-sm text-slate-400">
               Vous avez déjà un compte ?{' '}
@@ -626,8 +642,10 @@ function RegisterPageContent() {
               </Link>
             </p>
           </div>
+        </FadeIn>
 
       {/* Trial info */}
+        <FadeIn delay={1.4}>
       <div className="mt-6 pt-4 border-t border-slate-800">
         <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
           <div className="flex items-center gap-1">
@@ -644,6 +662,7 @@ function RegisterPageContent() {
           </div>
         </div>
       </div>
+        </FadeIn>
       </motion>
   );
 }

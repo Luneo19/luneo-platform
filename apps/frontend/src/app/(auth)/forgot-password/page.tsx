@@ -3,6 +3,7 @@
 import React, { memo, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { FadeIn, SlideUp } from '@/components/animations';
 import { 
   ArrowLeft, 
   Mail, 
@@ -64,82 +65,112 @@ function ForgotPasswordPageContent() {
   const formContent = useMemo(() => {
     if (sent) {
       return (
-        <div className="text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Email envoyé !</h2>
-          <p className="text-gray-600 mb-4">
-            Vérifiez votre boîte mail pour réinitialiser votre mot de passe.
-          </p>
-          <Link href="/login">
-            <Button variant="outline">Retour à la connexion</Button>
-          </Link>
-        </div>
+        <FadeIn>
+          <div className="text-center">
+            <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Email envoyé !</h2>
+            <p className="text-slate-300 mb-6">
+              Vérifiez votre boîte mail pour réinitialiser votre mot de passe.
+            </p>
+            <Link href="/login">
+              <Button variant="outline" className="border-gray-600 text-gray-300 hover:border-gray-500">
+                Retour à la connexion
+              </Button>
+            </Link>
+          </div>
+        </FadeIn>
       );
     }
 
     return (
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <Label htmlFor="email">Adresse email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="votre@email.com"
-            required
-            disabled={loading}
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <SlideUp delay={0.4}>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+              Adresse email
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="votre@email.com"
+                className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-12"
+                required
+                disabled={loading}
+              />
+            </div>
+          </div>
+        </SlideUp>
 
         {error && (
-          <div className="flex items-center gap-2 text-red-500 text-sm">
-            <AlertCircle className="w-4 h-4" />
-            <span>{error}</span>
-          </div>
+          <FadeIn>
+            <div className="flex items-center gap-2 text-red-400 text-sm p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          </FadeIn>
         )}
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Envoi en cours...
-            </>
-          ) : (
-            <>
-              <Mail className="w-4 h-4 mr-2" />
-              Envoyer le lien de réinitialisation
-            </>
-          )}
-        </Button>
+        <SlideUp delay={0.5}>
+          <Button type="submit" className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-12 shadow-lg shadow-cyan-500/25" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Envoi en cours...
+              </>
+            ) : (
+              <>
+                <Mail className="w-5 h-5 mr-2" />
+                Envoyer le lien de réinitialisation
+              </>
+            )}
+          </Button>
+        </SlideUp>
       </form>
     );
   }, [sent, email, loading, error, handleSubmit]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <motion
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-white rounded-xl shadow-lg p-8"
-      >
-        <div className="mb-6">
-          <Link href="/login" className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Link>
-          <div className="flex items-center gap-3 mb-2">
-            <KeyRound className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold">Mot de passe oublié</h1>
+    <motion
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="w-full"
+    >
+      {/* Header */}
+      <div className="text-center mb-8">
+        <SlideUp delay={0.1}>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl mb-6 shadow-lg shadow-cyan-500/25 lg:hidden">
+            <KeyRound className="w-8 h-8 text-white" />
           </div>
-          <p className="text-gray-600">
+        </SlideUp>
+        <SlideUp delay={0.2}>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            Mot de passe oublié ?
+          </h1>
+        </SlideUp>
+        <FadeIn delay={0.3}>
+          <p className="text-slate-400">
             Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
           </p>
-        </div>
+        </FadeIn>
+      </div>
 
-        {formContent}
-      </motion>
-    </div>
+      {formContent}
+
+      {/* Back to login */}
+      <FadeIn delay={0.6}>
+        <div className="mt-8 text-center">
+          <Link href="/login" className="inline-flex items-center text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour à la connexion
+          </Link>
+        </div>
+      </FadeIn>
+    </motion>
   );
 }
 
