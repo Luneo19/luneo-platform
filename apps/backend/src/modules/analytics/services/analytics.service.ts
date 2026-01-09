@@ -49,13 +49,16 @@ export class AnalyticsService {
       // Calculer le changement de conversion (différence en points de pourcentage)
       const conversionChange = currentConversionRate - previousConversionRate;
 
+      // Calculer la durée moyenne de session depuis WebVital
+      const avgSessionDuration = await this.getAvgSessionDuration(startDate, endDate);
+
       const metrics: AnalyticsMetrics = {
         totalDesigns,
         totalRenders,
         activeUsers,
         revenue,
         conversionRate: Math.round(currentConversionRate * 100) / 100, // 2 décimales
-        avgSessionDuration: '8m 30s' // TODO: Calculer depuis UsageMetric si disponible
+        avgSessionDuration
       };
 
       const charts = {
@@ -605,19 +608,40 @@ export class AnalyticsService {
         },
       });
 
-      // Pour l'instant, on utilise des données estimées basées sur les utilisateurs
-      // TODO: Utiliser table Attribution si disponible pour les vrais pays
-      const totalUsers = users.length;
-      
-      // Distribution estimée par pays (à remplacer par vraies données)
-      const countryDistribution: Record<string, number> = {
-        'FR': Math.round(totalUsers * 0.35),
-        'US': Math.round(totalUsers * 0.25),
-        'GB': Math.round(totalUsers * 0.15),
-        'DE': Math.round(totalUsers * 0.10),
-        'ES': Math.round(totalUsers * 0.08),
-        'IT': Math.round(totalUsers * 0.07),
-      };
+      // Utiliser table Attribution pour les vrais pays si disponible
+      const attributions = await this.prisma.attribution.findMany({
+        where: {
+          timestamp: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        select: {
+          location: true,
+        },
+      });
+
+      // Extraire les pays depuis location JSON
+      const countryDistribution: Record<string, number> = {};
+      attributions.forEach(attr => {
+        if (attr.location && typeof attr.location === 'object') {
+          const country = (attr.location as any).country || (attr.location as any).countryCode;
+          if (country) {
+            countryDistribution[country] = (countryDistribution[country] || 0) + 1;
+          }
+        }
+      });
+
+      // Si pas de données Attribution, utiliser estimation basée sur utilisateurs
+      if (Object.keys(countryDistribution).length === 0) {
+        const totalUsers = users.length;
+        countryDistribution['FR'] = Math.round(totalUsers * 0.35);
+        countryDistribution['US'] = Math.round(totalUsers * 0.25);
+        countryDistribution['GB'] = Math.round(totalUsers * 0.15);
+        countryDistribution['DE'] = Math.round(totalUsers * 0.10);
+        countryDistribution['ES'] = Math.round(totalUsers * 0.08);
+        countryDistribution['IT'] = Math.round(totalUsers * 0.07);
+      }
 
       const countryFlags: Record<string, string> = {
         'FR': '🇫🇷',
@@ -711,6 +735,76 @@ export class AnalyticsService {
     } catch (error) {
       this.logger.error(`Failed to get realtime users: ${error.message}`);
       return { users: [] };
+    }
+  }
+
+  /**
+   * Calculer la durée moyenne de session depuis WebVital
+   */
+  private async getAvgSessionDuration(startDate: Date, endDate: Date): Promise<string> {
+    try {
+      // Récupérer toutes les sessions avec leurs timestamps
+      const sessions = await this.prisma.webVital.findMany({
+        where: {
+          sessionId: { not: null },
+          timestamp: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        select: {
+          sessionId: true,
+          timestamp: true,
+        },
+        orderBy: {
+          timestamp: 'asc',
+        },
+      });
+
+      if (sessions.length === 0) {
+        return '0m';
+      }
+
+      // Grouper par sessionId et calculer la durée de chaque session
+      const sessionDurations: Record<string, { first: Date; last: Date }> = {};
+      
+      sessions.forEach(session => {
+        if (!session.sessionId) return;
+        
+        if (!sessionDurations[session.sessionId]) {
+          sessionDurations[session.sessionId] = {
+            first: session.timestamp,
+            last: session.timestamp,
+          };
+        } else {
+          if (session.timestamp < sessionDurations[session.sessionId].first) {
+            sessionDurations[session.sessionId].first = session.timestamp;
+          }
+          if (session.timestamp > sessionDurations[session.sessionId].last) {
+            sessionDurations[session.sessionId].last = session.timestamp;
+          }
+        }
+      });
+
+      // Calculer la durée moyenne en secondes
+      const durations = Object.values(sessionDurations).map(session => {
+        return (session.last.getTime() - session.first.getTime()) / 1000; // en secondes
+      });
+
+      const avgDurationSeconds = durations.reduce((sum, duration) => sum + duration, 0) / durations.length;
+
+      // Formater en "Xm Ys" ou "Xs"
+      const minutes = Math.floor(avgDurationSeconds / 60);
+      const seconds = Math.floor(avgDurationSeconds % 60);
+
+      if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+      } else {
+        return `${seconds}s`;
+      }
+    } catch (error) {
+      this.logger.error(`Failed to calculate avg session duration: ${error.message}`);
+      return '0m';
     }
   }
 }
