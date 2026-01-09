@@ -25,7 +25,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
-import type * as multer from 'multer';
+import type { File } from 'multer';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Roles } from '@/common/guards/roles.guard';
