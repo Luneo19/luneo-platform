@@ -44,6 +44,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import { useChartData } from '@/lib/hooks/useChartData';
+import { useNotifications } from '@/lib/hooks/useNotifications';
 import { DemoModeBanner } from '@/components/demo/DemoModeBanner';
 import { DemoModeToggle } from '@/components/demo/DemoModeToggle';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -138,6 +140,8 @@ export default function DashboardPage() {
 
   // Get real data from API
   const { stats, recentActivity, topDesigns, loading, error, refresh } = useDashboardData(selectedPeriod);
+  const { chartData, loading: chartLoading } = useChartData(selectedPeriod);
+  const { notifications, loading: notificationsLoading } = useNotifications(10);
   const { isDemoMode } = useDemoMode();
 
   // Fallback data si erreur mais on veut quand même afficher quelque chose
@@ -148,44 +152,10 @@ export default function DashboardPage() {
     { title: 'Revenus', value: '€0.00', change: '+0 commandes', changeType: 'positive' as const, icon: 'DollarSign' },
   ];
 
-  // Mock data for demo (could come from API in production)
-  const chartData = useMemo(() => ({
-    designs: [12, 19, 15, 25, 22, 30, 28],
-    views: [150, 230, 180, 290, 320, 280, 350],
-    revenue: [45, 72, 68, 95, 88, 120, 135],
-    conversion: 3.2,
-    conversionChange: 0.5,
-  }), []);
+  // Chart data et notifications récupérés depuis les APIs
+  // Les données sont maintenant réelles au lieu de mockées
 
-  // Notifications (mock data - would come from API)
-  const notifications: Notification[] = useMemo(() => [
-    {
-      id: '1',
-      type: 'success',
-      title: 'Nouveau client',
-      message: 'Un nouveau client a créé son premier design',
-      time: '5 min',
-      read: false,
-    },
-    {
-      id: '2',
-      type: 'info',
-      title: 'Mise à jour disponible',
-      message: 'Une nouvelle version du SDK est disponible',
-      time: '1h',
-      read: false,
-    },
-    {
-      id: '3',
-      type: 'warning',
-      title: 'Limite approchante',
-      message: 'Vous avez utilisé 80% de votre quota mensuel',
-      time: '3h',
-      read: true,
-    },
-  ], []);
-
-  // Quick actions
+  // Quick actions - Actions de navigation statiques (configuration)
   const quickActions: QuickAction[] = useMemo(() => [
     {
       id: 'ai-studio',
