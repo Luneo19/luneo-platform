@@ -39,35 +39,70 @@ export class AuthController {
   @Post('signup')
   @Public()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Inscription d\'un nouvel utilisateur' })
+  @ApiOperation({ 
+    summary: 'Inscription d\'un nouvel utilisateur',
+    description: 'Crée un nouveau compte utilisateur. Les tokens JWT sont automatiquement définis dans des cookies httpOnly pour la sécurité. Un email de vérification est envoyé.',
+  })
   @ApiResponse({
     status: 201,
-    description: 'Utilisateur créé avec succès',
+    description: 'Utilisateur créé avec succès. Les tokens sont définis dans des cookies httpOnly.',
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: { type: 'boolean', example: true },
         data: {
           type: 'object',
           properties: {
             user: {
               type: 'object',
               properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                firstName: { type: 'string' },
-                lastName: { type: 'string' },
-                role: { type: 'string' },
+                id: { type: 'string', example: 'user_123' },
+                email: { type: 'string', example: 'user@example.com' },
+                firstName: { type: 'string', example: 'John' },
+                lastName: { type: 'string', example: 'Doe' },
+                role: { type: 'string', example: 'USER' },
+                emailVerified: { type: 'boolean', example: false },
               },
             },
           },
         },
-        timestamp: { type: 'string' },
+        timestamp: { type: 'string', format: 'date-time' },
+      },
+    },
+    headers: {
+      'Set-Cookie': {
+        description: 'Cookies httpOnly contenant accessToken et refreshToken',
+        schema: {
+          type: 'string',
+          example: 'accessToken=...; HttpOnly; Secure; SameSite=Lax',
+        },
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Données invalides' })
-  @ApiResponse({ status: 409, description: 'Utilisateur déjà existant' })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Données invalides - Vérifier le format de l\'email et la force du mot de passe',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'array', items: { type: 'string' } },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 409, 
+    description: 'Utilisateur déjà existant - L\'email est déjà utilisé',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 409 },
+        message: { type: 'string', example: 'User already exists' },
+        error: { type: 'string', example: 'Conflict' },
+      },
+    },
+  })
   async signup(
     @Body() signupDto: SignupDto,
     @Res({ passthrough: false }) res: ExpressResponse,
@@ -92,34 +127,50 @@ export class AuthController {
   @Post('login')
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Connexion utilisateur' })
+  @ApiOperation({ 
+    summary: 'Connexion utilisateur',
+    description: 'Authentifie un utilisateur avec email et mot de passe. Les tokens JWT sont automatiquement définis dans des cookies httpOnly. Met à jour lastLoginAt.',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Connexion réussie',
+    description: 'Connexion réussie. Les tokens sont définis dans des cookies httpOnly.',
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        data: {
+        user: {
           type: 'object',
           properties: {
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                firstName: { type: 'string' },
-                lastName: { type: 'string' },
-                role: { type: 'string' },
-              },
-            },
+            id: { type: 'string', example: 'user_123' },
+            email: { type: 'string', example: 'user@example.com' },
+            firstName: { type: 'string', example: 'John' },
+            lastName: { type: 'string', example: 'Doe' },
+            role: { type: 'string', example: 'USER' },
           },
         },
-        timestamp: { type: 'string' },
+      },
+    },
+    headers: {
+      'Set-Cookie': {
+        description: 'Cookies httpOnly contenant accessToken (15min) et refreshToken (7 jours)',
+        schema: {
+          type: 'string',
+          example: 'accessToken=...; HttpOnly; Secure; SameSite=Lax; Max-Age=900',
+        },
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Identifiants invalides' })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Identifiants invalides - Email ou mot de passe incorrect',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 401 },
+        message: { type: 'string', example: 'Invalid credentials' },
+        error: { type: 'string', example: 'Unauthorized' },
+      },
+    },
+  })
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: false }) res: ExpressResponse,
@@ -144,34 +195,49 @@ export class AuthController {
   @Post('refresh')
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Rafraîchir le token d\'accès' })
+  @ApiOperation({ 
+    summary: 'Rafraîchir le token d\'accès',
+    description: 'Génère un nouveau accessToken et refreshToken à partir d\'un refreshToken valide. Le refreshToken peut être fourni dans le body ou dans un cookie httpOnly. Les nouveaux tokens sont définis dans des cookies httpOnly.',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Token rafraîchi avec succès',
+    description: 'Token rafraîchi avec succès. Nouveaux tokens définis dans des cookies httpOnly.',
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        data: {
+        user: {
           type: 'object',
           properties: {
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                firstName: { type: 'string' },
-                lastName: { type: 'string' },
-                role: { type: 'string' },
-              },
-            },
+            id: { type: 'string', example: 'user_123' },
+            email: { type: 'string', example: 'user@example.com' },
+            firstName: { type: 'string', example: 'John' },
+            lastName: { type: 'string', example: 'Doe' },
+            role: { type: 'string', example: 'USER' },
           },
         },
-        timestamp: { type: 'string' },
+      },
+    },
+    headers: {
+      'Set-Cookie': {
+        description: 'Nouveaux cookies httpOnly avec accessToken et refreshToken',
+        schema: {
+          type: 'string',
+        },
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Refresh token invalide' })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Refresh token invalide, expiré ou non trouvé',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 401 },
+        message: { type: 'string', example: 'Invalid or expired refresh token' },
+        error: { type: 'string', example: 'Unauthorized' },
+      },
+    },
+  })
   async refreshToken(
     @Body() refreshTokenDto: RefreshTokenDto,
     @Request() req: any,
@@ -204,23 +270,33 @@ export class AuthController {
   @Post('logout')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Déconnexion utilisateur' })
+  @ApiOperation({ 
+    summary: 'Déconnexion utilisateur',
+    description: 'Déconnecte l\'utilisateur et supprime le refreshToken de la base de données. Les cookies httpOnly sont automatiquement effacés.',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Déconnexion réussie',
+    description: 'Déconnexion réussie. Cookies httpOnly effacés.',
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        data: {
-          type: 'object',
-          properties: {
-            message: { type: 'string' },
-          },
-        },
-        timestamp: { type: 'string' },
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Logged out successfully' },
       },
     },
+    headers: {
+      'Set-Cookie': {
+        description: 'Cookies effacés (Max-Age=0)',
+        schema: {
+          type: 'string',
+          example: 'accessToken=; HttpOnly; Max-Age=0',
+        },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Non authentifié - Token JWT manquant ou invalide',
   })
   async logout(
     @Request() req: any,

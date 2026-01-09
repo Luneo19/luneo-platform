@@ -11,8 +11,48 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('dashboard')
-  @ApiOperation({ summary: 'Get dashboard analytics' })
-  @ApiResponse({ status: 200, description: 'Dashboard analytics retrieved successfully' })
+  @ApiOperation({ 
+    summary: 'Get dashboard analytics',
+    description: 'Récupère les métriques complètes du dashboard pour une période donnée. Inclut les designs, renders, utilisateurs actifs, revenus, commandes, et graphiques temporels.',
+  })
+  @ApiQuery({ 
+    name: 'period', 
+    required: false, 
+    enum: ['last_7_days', 'last_30_days', 'last_90_days', 'last_year'],
+    description: 'Période d\'analyse. Par défaut: last_30_days',
+    example: 'last_30_days',
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Dashboard analytics retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        metrics: {
+          type: 'object',
+          properties: {
+            totalDesigns: { type: 'number', example: 150 },
+            totalRenders: { type: 'number', example: 300 },
+            activeUsers: { type: 'number', example: 45 },
+            revenue: { type: 'number', example: 12500.50 },
+            orders: { type: 'number', example: 25 },
+            conversionChange: { type: 'number', example: 2.5 },
+          },
+        },
+        charts: {
+          type: 'object',
+          properties: {
+            designsOverTime: { type: 'array' },
+            revenueOverTime: { type: 'array' },
+            viewsOverTime: { type: 'array' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
+  @ApiResponse({ status: 403, description: 'Non autorisé - Permissions insuffisantes' })
+  @ApiResponse({ status: 500, description: 'Erreur serveur lors du calcul des métriques' })
   async getDashboard(@Query('period') period: string = 'last_30_days') {
     return this.analyticsService.getDashboard(period);
   }
@@ -54,24 +94,108 @@ export class AnalyticsController {
   }
 
   @Get('pages')
-  @ApiOperation({ summary: 'Get top pages analytics' })
-  @ApiResponse({ status: 200, description: 'Top pages retrieved successfully' })
-  @ApiQuery({ name: 'period', required: false, description: 'Period: last_7_days, last_30_days, last_90_days' })
+  @ApiOperation({ 
+    summary: 'Get top pages analytics',
+    description: 'Récupère les pages les plus visitées avec le nombre de vues pour chaque page. Les données proviennent des événements analytics enregistrés.',
+  })
+  @ApiQuery({ 
+    name: 'period', 
+    required: false, 
+    enum: ['last_7_days', 'last_30_days', 'last_90_days'],
+    description: 'Période d\'analyse. Par défaut: last_30_days',
+    example: 'last_30_days',
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Top pages retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', example: '/dashboard' },
+          views: { type: 'number', example: 1250 },
+          percentage: { type: 'number', example: 35.5 },
+        },
+      },
+      example: [
+        { path: '/dashboard', views: 1250, percentage: 35.5 },
+        { path: '/products', views: 890, percentage: 25.2 },
+        { path: '/orders', views: 450, percentage: 12.8 },
+      ],
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Non authentifié' })
+  @ApiResponse({ status: 500, description: 'Erreur serveur' })
   async getTopPages(@Query('period') period: string = 'last_30_days') {
     return this.analyticsService.getTopPages(period);
   }
 
   @Get('countries')
-  @ApiOperation({ summary: 'Get top countries analytics' })
-  @ApiResponse({ status: 200, description: 'Top countries retrieved successfully' })
-  @ApiQuery({ name: 'period', required: false, description: 'Period: last_7_days, last_30_days, last_90_days' })
+  @ApiOperation({ 
+    summary: 'Get top countries analytics',
+    description: 'Récupère la répartition géographique des utilisateurs par pays. Utilise les données d\'attribution si disponibles, sinon estimation basée sur la distribution des utilisateurs.',
+  })
+  @ApiQuery({ 
+    name: 'period', 
+    required: false, 
+    enum: ['last_7_days', 'last_30_days', 'last_90_days'],
+    description: 'Période d\'analyse. Par défaut: last_30_days',
+    example: 'last_30_days',
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Top countries retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          country: { type: 'string', example: 'FR' },
+          countryName: { type: 'string', example: 'France' },
+          users: { type: 'number', example: 200 },
+          percentage: { type: 'number', example: 44.4 },
+        },
+      },
+      example: [
+        { country: 'FR', countryName: 'France', users: 200, percentage: 44.4 },
+        { country: 'US', countryName: 'United States', users: 150, percentage: 33.3 },
+        { country: 'GB', countryName: 'United Kingdom', users: 100, percentage: 22.2 },
+      ],
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Non authentifié' })
+  @ApiResponse({ status: 500, description: 'Erreur serveur' })
   async getTopCountries(@Query('period') period: string = 'last_30_days') {
     return this.analyticsService.getTopCountries(period);
   }
 
   @Get('realtime')
-  @ApiOperation({ summary: 'Get realtime users analytics' })
-  @ApiResponse({ status: 200, description: 'Realtime users retrieved successfully' })
+  @ApiOperation({ 
+    summary: 'Get realtime users analytics',
+    description: 'Récupère la liste des utilisateurs actifs dans les 5 dernières minutes. Utile pour afficher l\'activité en temps réel sur le dashboard.',
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Realtime users retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'user_123' },
+          email: { type: 'string', example: 'user@example.com' },
+          lastLoginAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      example: [
+        { id: 'user_123', email: 'user1@example.com', lastLoginAt: '2024-01-09T12:00:00Z' },
+        { id: 'user_456', email: 'user2@example.com', lastLoginAt: '2024-01-09T11:58:00Z' },
+      ],
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Non authentifié' })
+  @ApiResponse({ status: 500, description: 'Erreur serveur' })
   async getRealtimeUsers() {
     return this.analyticsService.getRealtimeUsers();
   }
