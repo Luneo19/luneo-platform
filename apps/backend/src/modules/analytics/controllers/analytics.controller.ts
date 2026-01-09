@@ -52,6 +52,29 @@ export class AnalyticsController {
   ) {
     return this.analyticsService.getWebVitals(req.user.id, { name, startDate, endDate });
   }
+
+  @Get('pages')
+  @ApiOperation({ summary: 'Get top pages analytics' })
+  @ApiResponse({ status: 200, description: 'Top pages retrieved successfully' })
+  @ApiQuery({ name: 'period', required: false, description: 'Period: last_7_days, last_30_days, last_90_days' })
+  async getTopPages(@Query('period') period: string = 'last_30_days') {
+    return this.analyticsService.getTopPages(period);
+  }
+
+  @Get('countries')
+  @ApiOperation({ summary: 'Get top countries analytics' })
+  @ApiResponse({ status: 200, description: 'Top countries retrieved successfully' })
+  @ApiQuery({ name: 'period', required: false, description: 'Period: last_7_days, last_30_days, last_90_days' })
+  async getTopCountries(@Query('period') period: string = 'last_30_days') {
+    return this.analyticsService.getTopCountries(period);
+  }
+
+  @Get('realtime')
+  @ApiOperation({ summary: 'Get realtime users analytics' })
+  @ApiResponse({ status: 200, description: 'Realtime users retrieved successfully' })
+  async getRealtimeUsers() {
+    return this.analyticsService.getRealtimeUsers();
+  }
 }
 
 
