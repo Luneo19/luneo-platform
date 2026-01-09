@@ -60,8 +60,6 @@ export class AuthController {
                 role: { type: 'string' },
               },
             },
-            accessToken: { type: 'string' },
-            refreshToken: { type: 'string' },
           },
         },
         timestamp: { type: 'string' },
@@ -84,13 +82,10 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data (tokens are in cookies)
+    // Return user data (tokens are in httpOnly cookies)
+    // Tokens removed from response for security (httpOnly cookies only)
     return {
       user: result.user,
-      // Tokens also in response for backward compatibility during migration
-      // TODO: Remove tokens from response once frontend is fully migrated
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     };
   }
 
@@ -118,8 +113,6 @@ export class AuthController {
                 role: { type: 'string' },
               },
             },
-            accessToken: { type: 'string' },
-            refreshToken: { type: 'string' },
           },
         },
         timestamp: { type: 'string' },
@@ -141,13 +134,10 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data (tokens are in cookies)
+    // Return user data (tokens are in httpOnly cookies)
+    // Tokens removed from response for security (httpOnly cookies only)
     return {
       user: result.user,
-      // Tokens also in response for backward compatibility during migration
-      // TODO: Remove tokens from response once frontend is fully migrated
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     };
   }
 
@@ -175,8 +165,6 @@ export class AuthController {
                 role: { type: 'string' },
               },
             },
-            accessToken: { type: 'string' },
-            refreshToken: { type: 'string' },
           },
         },
         timestamp: { type: 'string' },
@@ -206,12 +194,10 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data (tokens are in cookies)
+    // Return user data (tokens are in httpOnly cookies)
+    // Tokens removed from response for security (httpOnly cookies only)
     return {
       user: result.user,
-      // Tokens also in response for backward compatibility
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     };
   }
 
