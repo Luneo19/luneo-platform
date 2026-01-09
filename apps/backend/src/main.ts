@@ -75,6 +75,10 @@ async function bootstrap() {
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
+    // Parse cookies (required for httpOnly cookies)
+    const cookieParser = require('cookie-parser');
+    server.use(cookieParser());
+    
     logger.log('Creating NestJS application with ExpressAdapter...');
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually

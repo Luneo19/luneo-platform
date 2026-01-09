@@ -49,13 +49,10 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(data.error || 'Erreur de connexion');
           }
 
-          const { user: userData, accessToken, refreshToken } = await response.json();
+          const { user: userData } = await response.json();
           
-          // Stocker tokens
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', refreshToken);
-          }
+          // Tokens are now in httpOnly cookies, no need to store in localStorage
+          // Cookies are automatically sent with each request via withCredentials: true
           
           set({ 
             user: userData as AuthUser, 
@@ -85,13 +82,10 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(data.error || 'Erreur lors de l\'inscription');
           }
 
-          const { user: newUser, accessToken, refreshToken } = await response.json();
+          const { user: newUser } = await response.json();
           
-          // Stocker tokens
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', refreshToken);
-          }
+          // Tokens are now in httpOnly cookies, no need to store in localStorage
+          // Cookies are automatically sent with each request via withCredentials: true
           
           set({ 
             user: newUser as AuthUser, 
@@ -118,11 +112,8 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           logger.error('Logout error', error instanceof Error ? error : new Error(String(error)));
         } finally {
-          // Nettoyer tokens
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-          }
+          // Cookies are cleared by backend on logout
+          // No need to manually remove from localStorage
           
           set({ 
             user: null, 

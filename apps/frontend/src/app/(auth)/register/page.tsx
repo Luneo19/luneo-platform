@@ -193,12 +193,11 @@ function RegisterPageContent() {
 
       if (response.accessToken && response.user) {
         // Store token for API calls
-        localStorage.setItem('accessToken', response.accessToken);
-        if (response.refreshToken) {
-          localStorage.setItem('refreshToken', response.refreshToken);
-        }
+        // Tokens are now in httpOnly cookies (set by backend)
+        // No need to store in localStorage for security
+        // Cookies are automatically sent with each request via withCredentials: true
         if (response.user) {
-          localStorage.setItem('user', JSON.stringify(response.user));
+          localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
         }
         
         setSuccess('🎉 Compte créé avec succès ! Redirection...');

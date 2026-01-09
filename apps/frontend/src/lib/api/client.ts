@@ -43,17 +43,16 @@ const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // ✅ NEW: Try to get token from cookie first (httpOnly cookies)
-    // If not available, fallback to localStorage (backward compatibility)
+    // ✅ Tokens are now in httpOnly cookies
+    // Cookies are automatically sent with each request via withCredentials: true
+    // No need to manually add Authorization header - backend reads from cookies first
+    // Keep Authorization header as fallback for backward compatibility during migration
     const token = typeof window !== 'undefined' 
-      ? (document.cookie
-          .split('; ')
-          .find(row => row.startsWith('accessToken='))
-          ?.split('=')[1] || localStorage.getItem('accessToken'))
+      ? localStorage.getItem('accessToken') // Fallback only during migration
       : null;
     
-    // Only add Authorization header if token available
-    // If using httpOnly cookies, token will be sent automatically
+    // Only add Authorization header as fallback if token available in localStorage
+    // Primary method is httpOnly cookies (sent automatically)
     if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -97,22 +96,17 @@ apiClient.interceptors.response.use(
           { withCredentials: true }
         );
 
-        const newAccessToken = refreshResponse.data.accessToken;
+        // New tokens are in httpOnly cookies (set by backend)
+        // No need to store in localStorage
+        // Cookies are automatically sent with retry request via withCredentials: true
         
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('accessToken', newAccessToken);
-        }
-
-        // Retry original request with new token
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        }
-        
+        // Retry original request - cookies will be sent automatically
         return apiClient(originalRequest);
       } catch (refreshError) {
         // Refresh failed - redirect to login
+        // Cookies are cleared by backend on logout
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
+          localStorage.removeItem('accessToken'); // Cleanup fallback
           localStorage.removeItem('user');
           window.location.href = '/login';
         }
