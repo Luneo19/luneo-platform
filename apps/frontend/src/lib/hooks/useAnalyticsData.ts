@@ -155,24 +155,68 @@ export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d')
         { name: 'Tablet', percentage: 10, count: Math.round(metrics.downloads.count * 0.10), color: 'pink' },
       ]);
 
-      // Top pages (mock pour l'instant)
-      setTopPages([
-        { path: '/customize/t-shirt', views: Math.round(metrics.downloads.count * 0.3), conversions: Math.round(metrics.orders.count * 0.3), rate: '2.91%' },
-        { path: '/customize/mug', views: Math.round(metrics.downloads.count * 0.2), conversions: Math.round(metrics.orders.count * 0.2), rate: '3.06%' },
-      ]);
+      // Récupérer top pages depuis l'API
+      try {
+        const pagesResponse = await fetch(`/api/analytics/top-pages?period=${timeRange}`, {
+          credentials: 'include',
+        });
+        if (pagesResponse.ok) {
+          const pagesData = await pagesResponse.json();
+          const data = pagesData.success === true ? pagesData.data : pagesData;
+          if (data?.pages && Array.isArray(data.pages)) {
+            setTopPages(data.pages);
+          } else {
+            setTopPages([]);
+          }
+        } else {
+          setTopPages([]);
+        }
+      } catch (err) {
+        logger.warn('Erreur récupération top pages', { error: err });
+        setTopPages([]);
+      }
 
-      // Top countries (mock pour l'instant)
-      setTopCountries([
-        { name: 'France', flag: '🇫🇷', users: Math.round(metrics.downloads.count * 0.45), percentage: 45 },
-        { name: 'États-Unis', flag: '🇺🇸', users: Math.round(metrics.downloads.count * 0.25), percentage: 25 },
-      ]);
+      // Récupérer top countries depuis l'API
+      try {
+        const countriesResponse = await fetch(`/api/analytics/top-countries?period=${timeRange}`, {
+          credentials: 'include',
+        });
+        if (countriesResponse.ok) {
+          const countriesData = await countriesResponse.json();
+          const data = countriesData.success === true ? countriesData.data : countriesData;
+          if (data?.countries && Array.isArray(data.countries)) {
+            setTopCountries(data.countries);
+          } else {
+            setTopCountries([]);
+          }
+        } else {
+          setTopCountries([]);
+        }
+      } catch (err) {
+        logger.warn('Erreur récupération top countries', { error: err });
+        setTopCountries([]);
+      }
 
-      // Realtime users (mock)
-      setRealtimeUsers([
-        { time: '14:00', count: Math.floor(Math.random() * 20 + 20) },
-        { time: '14:10', count: Math.floor(Math.random() * 20 + 25) },
-        { time: '14:20', count: Math.floor(Math.random() * 20 + 30) },
-      ]);
+      // Récupérer realtime users depuis l'API
+      try {
+        const realtimeResponse = await fetch('/api/analytics/realtime-users', {
+          credentials: 'include',
+        });
+        if (realtimeResponse.ok) {
+          const realtimeData = await realtimeResponse.json();
+          const data = realtimeData.success === true ? realtimeData.data : realtimeData;
+          if (data?.users && Array.isArray(data.users)) {
+            setRealtimeUsers(data.users);
+          } else {
+            setRealtimeUsers([]);
+          }
+        } else {
+          setRealtimeUsers([]);
+        }
+      } catch (err) {
+        logger.warn('Erreur récupération realtime users', { error: err });
+        setRealtimeUsers([]);
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement analytics', {
