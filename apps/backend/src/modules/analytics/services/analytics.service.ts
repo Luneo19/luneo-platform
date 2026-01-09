@@ -29,7 +29,7 @@ export class AnalyticsService {
         this.getTotalDesigns(startDate, endDate),
         this.getTotalRenders(startDate, endDate),
         this.getActiveUsers(startDate, endDate),
-        this.getRevenue(startDate, endDate),
+        this.getRevenueByDateRange(startDate, endDate),
         this.getOrders(startDate, endDate),
         this.getDesignsOverTime(startDate, endDate),
         this.getRevenueOverTime(startDate, endDate),
@@ -181,23 +181,23 @@ export class AnalyticsService {
   }
 
   /**
-   * Récupérer le revenu total dans la période
+   * Récupérer le revenu total dans la période (méthode privée)
    */
-  private async getRevenue(startDate: Date, endDate: Date): Promise<number> {
+  private async getRevenueByDateRange(startDate: Date, endDate: Date): Promise<number> {
     const orders = await this.prisma.order.findMany({
       where: {
-        status: { in: ['PAID', 'COMPLETED', 'SHIPPED'] },
+        status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
         createdAt: {
           gte: startDate,
           lte: endDate,
         },
       },
       select: {
-        totalAmountCents: true,
+        totalCents: true,
       },
     });
 
-    const totalCents = orders.reduce((sum, order) => sum + Number(order.totalAmountCents || 0), 0);
+    const totalCents = orders.reduce((sum, order) => sum + Number(order.totalCents || 0), 0);
     return totalCents / 100; // Convertir en euros
   }
 
@@ -207,7 +207,7 @@ export class AnalyticsService {
   private async getOrders(startDate: Date, endDate: Date): Promise<number> {
     return this.prisma.order.count({
       where: {
-        status: { in: ['PAID', 'COMPLETED', 'SHIPPED'] },
+        status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -254,7 +254,7 @@ export class AnalyticsService {
   private async getRevenueOverTime(startDate: Date, endDate: Date): Promise<Array<{ date: string; amount: number }>> {
     const orders = await this.prisma.order.findMany({
       where: {
-        status: { in: ['PAID', 'COMPLETED', 'SHIPPED'] },
+        status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -262,7 +262,7 @@ export class AnalyticsService {
       },
       select: {
         createdAt: true,
-        totalAmountCents: true,
+        totalCents: true,
       },
       orderBy: {
         createdAt: 'asc',
@@ -272,7 +272,7 @@ export class AnalyticsService {
     // Grouper par jour
     const grouped = orders.reduce((acc, order) => {
       const date = order.createdAt.toISOString().split('T')[0];
-      const amount = Number(order.totalAmountCents || 0) / 100; // Convertir en euros
+      const amount = Number(order.totalCents || 0) / 100; // Convertir en euros
       acc[date] = (acc[date] || 0) + amount;
       return acc;
     }, {} as Record<string, number>);
@@ -369,15 +369,21 @@ export class AnalyticsService {
     try {
       this.logger.log(`Getting revenue analytics for period: ${period}`);
 
+      // Calculer les dates pour la période
+      const { startDate, endDate } = this.getPeriodDates(period);
+      
+      // Utiliser la méthode privée pour calculer le revenu réel
+      const totalRevenue = await this.getRevenueByDateRange(startDate, endDate);
+
       return {
         success: true,
         period,
         revenue: {
-          total: 15420.50,
+          total: totalRevenue,
           currency: 'EUR',
           breakdown: {
-            subscriptions: 12000.00,
-            usage: 3420.50
+            subscriptions: Math.round(totalRevenue * 0.78), // Estimation
+            usage: Math.round(totalRevenue * 0.22) // Estimation
           }
         }
       };
