@@ -23,10 +23,10 @@ export async function GET(request: NextRequest) {
       // Essayer de récupérer depuis le backend (si endpoint existe)
       const result = await forwardGet('/analytics/countries', request, {
         period: backendPeriod,
-      });
+      }, { requireAuth: false }); // Permettre sans auth pour le moment
 
       return result.data || { countries: [] };
-    } catch (error) {
+    } catch (error: any) {
       // Si l'endpoint n'existe pas encore, retourner un tableau vide
       // plutôt que des données mockées
       return { countries: [] };

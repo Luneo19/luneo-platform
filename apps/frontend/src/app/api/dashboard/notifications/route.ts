@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { forwardGet } from '@/lib/backend-forward';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/dashboard/notifications
@@ -14,11 +15,11 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10', 10);
 
     try {
-      // Essayer de récupérer depuis le backend
+      // Essayer de récupérer depuis le backend (sans auth requise pour le moment)
       const result = await forwardGet('/notifications', request, {
         limit,
         unreadOnly: false, // Récupérer toutes les notifications (lues et non lues)
-      });
+      }, { requireAuth: false });
 
       // Transformer les notifications du backend en format frontend
       // Le backend retourne { notifications: [...], pagination: {...} }
@@ -34,9 +35,12 @@ export async function GET(request: NextRequest) {
       }));
 
       return { notifications };
-    } catch (error) {
-      // Si le backend n'a pas d'endpoint notifications, retourner un tableau vide
+    } catch (error: any) {
+      // Si le backend n'a pas d'endpoint notifications ou erreur, retourner un tableau vide
       // plutôt que des données mockées
+      logger.debug('Notifications endpoint failed, returning empty array', { 
+        error: error?.message || error 
+      });
       return { notifications: [] };
     }
   }, '/api/dashboard/notifications', 'GET');

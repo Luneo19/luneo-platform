@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { forwardGet } from '@/lib/backend-forward';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/dashboard/chart-data
@@ -19,12 +20,21 @@ export async function GET(request: NextRequest) {
       : period === '90d' ? 'last_90_days'
       : 'last_7_days';
 
-    const result = await forwardGet('/analytics/dashboard', request, {
-      period: backendPeriod,
-    });
+    let backendData: any = null;
+    
+    try {
+      const result = await forwardGet('/analytics/dashboard', request, {
+        period: backendPeriod,
+      }, { requireAuth: false }); // Permettre sans auth pour le moment
+      
+      backendData = result.data;
+    } catch (error: any) {
+      // Si erreur 401 ou autre, utiliser fallback
+      logger.debug('Backend request failed, using fallback', { error: error?.message || error });
+      backendData = null;
+    }
 
     // Transformer les données du backend en format attendu par le frontend
-    const backendData = result.data;
     
     // Si le backend retourne des charts, les utiliser, sinon générer depuis les métriques
     if (backendData?.charts) {

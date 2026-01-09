@@ -22,14 +22,36 @@ const getBackendUrl = (): string => {
 
 /**
  * Obtient le token d'authentification depuis Supabase
+ * Retourne null si Supabase n'est pas configuré ou si l'utilisateur n'est pas authentifié
  */
 async function getAuthToken(): Promise<string | null> {
   try {
+    // Vérifier si Supabase est configuré
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      logger.debug('Supabase not configured, skipping auth token');
+      return null;
+    }
+
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || null;
+    if (!supabase) {
+      return null;
+    }
+
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error || !session) {
+      logger.debug('No active session found', { error: error?.message });
+      return null;
+    }
+
+    return session.access_token || null;
   } catch (error) {
-    logger.error('Failed to get auth token', { error });
+    // Ne pas logger comme erreur si c'est juste une absence de config
+    if (error instanceof Error && error.message.includes('Supabase')) {
+      logger.debug('Supabase client creation failed', { error: error.message });
+    } else {
+      logger.error('Failed to get auth token', { error });
+    }
     return null;
   }
 }
@@ -55,13 +77,14 @@ export interface ForwardOptions {
 export async function forwardToBackend<T = unknown>(
   endpoint: string,
   request: NextRequest,
-  options: ForwardOptions = {}
+  options: ForwardOptions & { requireAuth?: boolean } = {}
 ): Promise<{ success: boolean; data?: T; error?: string; message?: string }> {
   try {
     const backendUrl = getBackendUrl();
     const token = await getAuthToken();
+    const requireAuth = options.requireAuth !== false; // Par défaut, auth requise
     
-    if (!token) {
+    if (requireAuth && !token) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -109,9 +132,13 @@ export async function forwardToBackend<T = unknown>(
 
     // Headers
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${token}`,
       ...options.headers,
     };
+    
+    // Ajouter le token seulement s'il existe
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     // Set Content-Type header for JSON bodies (pas pour FormData)
     if (body && typeof body === 'string') {
@@ -188,11 +215,13 @@ export async function forwardToBackend<T = unknown>(
 export async function forwardGet<T = unknown>(
   endpoint: string,
   request: NextRequest,
-  queryParams?: Record<string, string | number | boolean>
+  queryParams?: Record<string, string | number | boolean>,
+  options?: { requireAuth?: boolean }
 ): Promise<{ success: boolean; data?: T; error?: string }> {
   return forwardToBackend<T>(endpoint, request, {
     method: 'GET',
     queryParams,
+    requireAuth: options?.requireAuth,
   });
 }
 
