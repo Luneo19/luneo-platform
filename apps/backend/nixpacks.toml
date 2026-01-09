@@ -16,13 +16,13 @@ cmds = [
 
 [phases.install]
 cmds = [
-  "pnpm install --frozen-lockfile"
+  "cd /app && pnpm install --frozen-lockfile"
 ]
 
 [phases.build]
 cmds = [
-  "pnpm prisma generate",
-  "pnpm build"
+  "cd /app && pnpm --filter @luneo/backend-vercel exec prisma generate || cd apps/backend && pnpm prisma generate",
+  "cd /app && pnpm --filter @luneo/backend-vercel build || cd apps/backend && pnpm build"
 ]
 
 [start]

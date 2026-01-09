@@ -22,10 +22,11 @@ RUN pnpm install --frozen-lockfile
 COPY apps/backend ./apps/backend
 
 # Builder l'application backend
+# Générer Prisma Client avant le build (depuis apps/backend car prisma.json est là)
 WORKDIR /app/apps/backend
-# Générer Prisma Client avant le build
 RUN pnpm prisma generate
-RUN pnpm build
+# Builder en utilisant le script build du package.json qui utilise npx
+RUN pnpm build || npx --yes @nestjs/cli build || cd /app && pnpm --filter @luneo/backend-vercel build
 
 # Exposer le port (Railway fournira PORT via variable d'environnement)
 EXPOSE ${PORT:-3000}
@@ -34,6 +35,7 @@ EXPOSE ${PORT:-3000}
 WORKDIR /app/apps/backend
 RUN echo '#!/bin/sh\n\
 set -e\n\
+cd /app/apps/backend\n\
 echo "🚀 Exécution des migrations Prisma..."\n\
 pnpm prisma migrate deploy || echo "⚠️  Migrations échouées ou déjà appliquées"\n\
 echo "✅ Démarrage de l\'application..."\n\

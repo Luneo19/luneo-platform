@@ -7,8 +7,8 @@
   "license": "UNLICENSED",
   "main": "api/index.js",
   "scripts": {
-    "build": "nest build",
-    "vercel-build": "nest build",
+    "build": "npx --yes @nestjs/cli build || pnpm exec nest build || nest build",
+    "vercel-build": "npx --yes @nestjs/cli build || pnpm exec nest build || nest build",
     "postinstall": "prisma generate || true",
     "start": "node dist/src/main.js",
     "test": "jest",
