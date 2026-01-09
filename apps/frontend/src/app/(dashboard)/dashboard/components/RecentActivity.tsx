@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Activity, Package, ShoppingCart } from 'lucide-react';
 import { trpc } from '@/lib/trpc/client';
 import { formatRelativeDate } from '@/lib/utils/formatters';
+import { logger } from '@/lib/logger';
 
 interface RecentActivityProps {
   period: '7d' | '30d' | '90d';
@@ -38,7 +39,9 @@ function RecentActivityContent({ period }: RecentActivityProps) {
           setRecentOrders(data.data?.orders || data.orders || []);
         }
       } catch (error) {
-        console.error('[RecentActivity] Error fetching orders', error);
+        logger.error('[RecentActivity] Error fetching orders', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       } finally {
         setOrdersLoading(false);
       }
