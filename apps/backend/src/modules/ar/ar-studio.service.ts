@@ -404,13 +404,27 @@ export class ArStudioService {
         throw new BadRequestException(`Model does not have ${format.toUpperCase()} format available`);
       }
 
-      // Pour l'instant, retourner l'URL directement
+      // Calculer la taille du fichier depuis les headers HTTP
+      let fileSize = 0;
+      try {
+        const headResponse = await fetch(sourceUrl, { method: 'HEAD' });
+        if (headResponse.ok) {
+          const contentLength = headResponse.headers.get('content-length');
+          if (contentLength) {
+            fileSize = parseInt(contentLength, 10);
+          }
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to get file size from headers for ${sourceUrl}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Continue avec fileSize = 0 si échec
+      }
+
       // TODO: Implémenter compression/optimisation si nécessaire
       // TODO: Générer URL signée avec expiration si stockage privé
 
       return {
         downloadUrl: sourceUrl,
-        fileSize: 0, // TODO: Calculer depuis headers HTTP
+        fileSize,
         format,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
       };
@@ -514,6 +528,21 @@ export class ArStudioService {
         usdzUrl = data.usdz_url || data.url;
       }
 
+      // Calculer la taille du fichier USDZ depuis les headers HTTP
+      let usdzFileSize = 0;
+      try {
+        const headResponse = await fetch(usdzUrl, { method: 'HEAD' });
+        if (headResponse.ok) {
+          const contentLength = headResponse.headers.get('content-length');
+          if (contentLength) {
+            usdzFileSize = parseInt(contentLength, 10);
+          }
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to get USDZ file size from headers: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Continue avec usdzFileSize = 0 si échec
+      }
+
       // Sauvegarder USDZ dans le produit si arModelId fourni
       if (options.arModelId) {
         const product = await this.prisma.product.findUnique({
@@ -528,7 +557,7 @@ export class ArStudioService {
               modelConfig: {
                 ...currentConfig,
                 usdzUrl,
-                usdzFileSize: 0, // TODO: Calculer depuis headers
+                usdzFileSize,
                 usdzConvertedAt: new Date().toISOString(),
               } as any,
             },
@@ -538,7 +567,7 @@ export class ArStudioService {
 
       return {
         usdzUrl,
-        fileSize: 0, // TODO: Calculer depuis headers HTTP
+        fileSize: usdzFileSize,
         conversionTime: Date.now() - startTime,
         cached: false,
       };
