@@ -438,7 +438,7 @@ export class AuthService {
       // Mark email as verified
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { emailVerified: true, emailVerifiedAt: new Date() },
+        data: { emailVerified: true },
       });
 
       this.logger.log('Email verified successfully', { userId: user.id, email: user.email });

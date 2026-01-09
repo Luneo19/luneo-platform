@@ -25,7 +25,8 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
-import type { Multer } from 'multer';
+// Multer types are provided by @nestjs/platform-express
+type MulterFile = Express.Multer.File;
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Roles } from '@/common/guards/roles.guard';
@@ -146,7 +147,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Uploader un avatar' })
   @ApiResponse({ status: 200, description: 'Avatar uploadé avec succès' })
   async uploadAvatar(
-    @UploadedFile() file: Multer.File,
+    @UploadedFile() file: MulterFile,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.usersService.uploadAvatar(req.user.id, file);
