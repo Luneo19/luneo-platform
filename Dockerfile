@@ -7,6 +7,9 @@ FROM node:20
 # Installer pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Installer @nestjs/cli globalement pour avoir accès à la commande 'nest'
+RUN npm install -g @nestjs/cli@latest
+
 # Définir le répertoire de travail
 WORKDIR /app
 
@@ -16,7 +19,8 @@ COPY apps/backend/package.json ./apps/backend/
 COPY packages ./packages/
 
 # Installer les dépendances (depuis la racine pour le monorepo)
-RUN pnpm install --frozen-lockfile
+# Inclure les devDependencies car TypeScript et @nestjs/cli sont nécessaires pour le build
+RUN pnpm install --frozen-lockfile --include-workspace-root
 
 # Copier le code source
 COPY apps/backend ./apps/backend
@@ -25,8 +29,10 @@ COPY apps/backend ./apps/backend
 # Générer Prisma Client avant le build (depuis apps/backend car prisma.json est là)
 WORKDIR /app/apps/backend
 RUN pnpm prisma generate
-# Builder en utilisant le script build du package.json qui utilise npx
-RUN pnpm build || npx --yes @nestjs/cli build || cd /app && pnpm --filter @luneo/backend-vercel build
+
+# Builder depuis apps/backend maintenant que nest est installé globalement
+WORKDIR /app/apps/backend
+RUN nest build || pnpm build
 
 # Exposer le port (Railway fournira PORT via variable d'environnement)
 EXPOSE ${PORT:-3000}
