@@ -6,16 +6,6 @@
   "outputDirectory": ".next",
   "devCommand": "pnpm run dev",
   "regions": ["cdg1"],
-  "crons": [
-    {
-      "path": "/api/cron/cleanup",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/analytics-digest",
-      "schedule": "0 8 * * 1"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
