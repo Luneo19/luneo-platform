@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { FadeIn, SlideUp } from '@/components/animations';
 import { 
   Eye, 
   EyeOff, 
@@ -212,32 +213,28 @@ function LoginPageContent() {
 
           {/* Error Message */}
           {error && (
-        <motion
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3"
-          data-testid="login-error"
-        >
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-300">{error}</p>
-        </motion>
+        <FadeIn>
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3" data-testid="login-error">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        </FadeIn>
       )}
 
       {/* Success Message */}
       {success && (
-        <motion
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3"
-        >
-          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-green-300">{success}</p>
-        </motion>
+        <FadeIn>
+          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-green-300">{success}</p>
+          </div>
+        </FadeIn>
           )}
 
           {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Email */}
+        <SlideUp delay={0.4}>
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-slate-300">
             Adresse email
@@ -260,8 +257,10 @@ function LoginPageContent() {
             )}
               </div>
             </div>
+        </SlideUp>
 
         {/* Password */}
+        <SlideUp delay={0.5}>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password" className="text-sm font-medium text-slate-300">
@@ -301,6 +300,7 @@ function LoginPageContent() {
             </div>
 
         {/* Remember me */}
+        <SlideUp delay={0.6}>
             <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
                 <input
@@ -320,8 +320,10 @@ function LoginPageContent() {
             <span>Connexion sécurisée</span>
           </div>
             </div>
+        </SlideUp>
 
         {/* Submit Button */}
+        <SlideUp delay={0.7}>
             <Button
               type="submit"
           disabled={isLoading || !formData.email || !formData.password}
@@ -340,9 +342,11 @@ function LoginPageContent() {
                 </>
               )}
             </Button>
+        </SlideUp>
           </form>
 
           {/* Divider */}
+        <FadeIn delay={0.8}>
       <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-slate-700" />
@@ -351,8 +355,10 @@ function LoginPageContent() {
           <span className="px-4 bg-slate-900 text-slate-500">ou continuer avec</span>
             </div>
           </div>
+        </FadeIn>
 
           {/* Social Login */}
+        <SlideUp delay={0.9}>
       <div className="grid grid-cols-2 gap-3">
             <Button
               type="button"
@@ -388,8 +394,10 @@ function LoginPageContent() {
           )}
             </Button>
           </div>
+        </SlideUp>
 
           {/* Sign up link */}
+        <FadeIn delay={1.0}>
       <div className="mt-8 text-center">
         <p className="text-sm text-slate-400">
               Pas encore de compte ?{' '}
@@ -402,8 +410,10 @@ function LoginPageContent() {
               </Link>
             </p>
       </div>
+        </FadeIn>
 
       {/* Security indicators */}
+        <FadeIn delay={1.1}>
       <div className="mt-8 pt-6 border-t border-slate-800">
         <div className="flex items-center justify-center gap-6 text-xs text-slate-500">
           <div className="flex items-center gap-1">
@@ -420,6 +430,7 @@ function LoginPageContent() {
           </div>
         </div>
       </div>
+        </FadeIn>
       </motion>
   );
 }

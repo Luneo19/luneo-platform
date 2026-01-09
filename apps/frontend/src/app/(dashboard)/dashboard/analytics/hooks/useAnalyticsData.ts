@@ -14,13 +14,29 @@ export function useAnalyticsData(
   customDateFrom?: string,
   customDateTo?: string
 ) {
-  const analyticsQuery = trpc.analytics.getDashboard.useQuery({
-    timeRange,
-    compare,
-    metrics: Array.from(selectedMetrics),
-    dateFrom: timeRange === 'custom' ? customDateFrom : undefined,
-    dateTo: timeRange === 'custom' ? customDateTo : undefined,
-  });
+  // Convertir Set en Array de manière stable pour éviter les re-renders
+  const metricsArray = useMemo(() => Array.from(selectedMetrics), [selectedMetrics]);
+  
+  // Options de query avec cache et staleTime optimisés
+  const analyticsQuery = trpc.analytics.getDashboard.useQuery(
+    {
+      timeRange,
+      compare,
+      metrics: metricsArray,
+      dateFrom: timeRange === 'custom' ? customDateFrom : undefined,
+      dateTo: timeRange === 'custom' ? customDateTo : undefined,
+    },
+    {
+      // Cache les données pendant 30 secondes
+      staleTime: 30000,
+      // Garde les données en cache pendant 5 minutes
+      gcTime: 300000,
+      // Retry automatique en cas d'erreur
+      retry: 2,
+      // Refetch on window focus désactivé pour les analytics (évite trop de requêtes)
+      refetchOnWindowFocus: false,
+    }
+  );
 
   const metrics = useMemo<AnalyticsMetric[]>(() => {
     const data = analyticsQuery.data;

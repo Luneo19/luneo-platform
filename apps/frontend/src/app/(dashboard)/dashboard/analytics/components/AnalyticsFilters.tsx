@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { cn } from '@/lib/utils';
 import { TIME_RANGES } from '../constants/analytics';
 import type { TimeRange } from '../types';
@@ -70,21 +71,12 @@ export function AnalyticsFilters({
         </div>
 
         {timeRange === 'custom' && (
-          <div className="flex items-center gap-2">
-            <Input
-              type="date"
-              value={customDateFrom}
-              onChange={(e) => onCustomDateFromChange(e.target.value)}
-              className="bg-gray-900 border-gray-600 text-white"
-            />
-            <span className="text-gray-400">→</span>
-            <Input
-              type="date"
-              value={customDateTo}
-              onChange={(e) => onCustomDateToChange(e.target.value)}
-              className="bg-gray-900 border-gray-600 text-white"
-            />
-          </div>
+          <DateRangePicker
+            from={customDateFrom}
+            to={customDateTo}
+            onFromChange={onCustomDateFromChange}
+            onToChange={onCustomDateToChange}
+          />
         )}
 
         <div className="flex items-center gap-2 ml-auto">

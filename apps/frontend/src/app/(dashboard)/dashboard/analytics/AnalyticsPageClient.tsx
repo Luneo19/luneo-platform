@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { AnalyticsHeader } from './components/AnalyticsHeader';
 import { AnalyticsFilters } from './components/AnalyticsFilters';
 import { AnalyticsKPIs } from './components/AnalyticsKPIs';
@@ -23,15 +23,47 @@ export function AnalyticsPageClient() {
   );
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
+  // États pour le debounce des dates personnalisées
+  const [debouncedDateFrom, setDebouncedDateFrom] = useState('');
+  const [debouncedDateTo, setDebouncedDateTo] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+  
+  // Debounce pour les dates personnalisées (évite trop de requêtes)
+  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  useEffect(() => {
+    if (timeRange === 'custom') {
+      // Clear le timeout précédent
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      // Débouncer les changements de dates (500ms)
+      debounceTimeoutRef.current = setTimeout(() => {
+        setDebouncedDateFrom(customDateFrom);
+        setDebouncedDateTo(customDateTo);
+      }, 500);
+      
+      return () => {
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current);
+        }
+      };
+    } else {
+      // Si on n'est plus en mode custom, mettre à jour immédiatement
+      setDebouncedDateFrom('');
+      setDebouncedDateTo('');
+    }
+  }, [customDateFrom, customDateTo, timeRange]);
 
+  // Utiliser les dates débouncées pour éviter trop de requêtes
   const { data, metrics, isLoading, error, refetch } = useAnalyticsData(
     timeRange,
     comparePeriod,
     selectedMetrics,
-    customDateFrom,
-    customDateTo
+    debouncedDateFrom,
+    debouncedDateTo
   );
 
   const { exportAnalytics } = useAnalyticsExport();
