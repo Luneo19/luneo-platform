@@ -1,5 +1,5 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerException, ThrottlerLimitDetail } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 
 /**
@@ -46,7 +46,7 @@ export class RateLimitAuthGuard extends ThrottlerGuard {
     return super.canActivate(context);
   }
 
-  protected async throwThrottlingException(context: ExecutionContext, throttlerLimitDetail: ThrottlerLimitDetail): Promise<void> {
+  protected async throwThrottlingException(context: ExecutionContext, throttlerLimitDetail?: any): Promise<void> {
     const request = context.switchToHttp().getRequest();
     const route = request.route?.path || request.url;
 
