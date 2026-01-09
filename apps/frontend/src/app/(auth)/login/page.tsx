@@ -298,6 +298,7 @@ function LoginPageContent() {
                 </button>
               </div>
             </div>
+        </SlideUp>
 
         {/* Remember me */}
         <SlideUp delay={0.6}>

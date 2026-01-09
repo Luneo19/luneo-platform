@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { FadeIn, SlideUp } from '@/components/animations';
 import { 
   Eye, 
   EyeOff, 
