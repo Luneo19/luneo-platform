@@ -290,5 +290,115 @@ describe('AuthService', () => {
       await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
     });
   });
+
+  describe('verifyEmail', () => {
+    const verifyEmailDto = {
+      token: 'valid_verification_token',
+    };
+
+    it('should verify email with valid token', async () => {
+      // Arrange
+      jwtService.verifyAsync = jest.fn().mockResolvedValue({
+        sub: testFixtures.user.id,
+        email: testFixtures.user.email,
+        type: 'email_verification',
+      });
+      (prismaService.user.findUnique as any).mockResolvedValue({
+        ...testFixtures.user,
+        emailVerified: false,
+      } as any);
+      (prismaService.user.update as any).mockResolvedValue({
+        ...testFixtures.user,
+        emailVerified: true,
+      } as any);
+
+      // Act
+      const result = await service.verifyEmail(verifyEmailDto);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.success).toBe(true);
+      expect(prismaService.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: testFixtures.user.id },
+          data: { emailVerified: true },
+        }),
+      );
+    });
+
+    it('should throw UnauthorizedException if token is invalid', async () => {
+      // Arrange
+      jwtService.verifyAsync = jest.fn().mockRejectedValue(new Error('Invalid token'));
+
+      // Act & Assert
+      await expect(service.verifyEmail(verifyEmailDto)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      // Arrange
+      jwtService.verifyAsync = jest.fn().mockResolvedValue({
+        sub: testFixtures.user.id,
+        email: testFixtures.user.email,
+        type: 'email_verification',
+      });
+      (prismaService.user.findUnique as any).mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.verifyEmail(verifyEmailDto)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('resetPassword', () => {
+    const resetPasswordDto = {
+      token: 'valid_reset_token',
+      newPassword: 'newPassword123',
+    };
+
+    it('should reset password with valid token', async () => {
+      // Arrange
+      jwtService.verifyAsync = jest.fn().mockResolvedValue({
+        sub: testFixtures.user.id,
+        email: testFixtures.user.email,
+        type: 'password_reset',
+      });
+      (prismaService.user.findUnique as any).mockResolvedValue({
+        ...testFixtures.user,
+        password: 'old_hashed_password',
+      } as any);
+      mockedBcrypt.compare.mockResolvedValue(false as never); // New password different
+      mockedBcrypt.hash.mockResolvedValue('new_hashed_password' as never);
+      (prismaService.user.update as any).mockResolvedValue({
+        ...testFixtures.user,
+        password: 'new_hashed_password',
+      } as any);
+
+      // Act
+      const result = await service.resetPassword(resetPasswordDto);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.success).toBe(true);
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith(resetPasswordDto.newPassword, 12);
+      expect(prismaService.user.update).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if new password same as old', async () => {
+      // Arrange
+      jwtService.verifyAsync = jest.fn().mockResolvedValue({
+        sub: testFixtures.user.id,
+        email: testFixtures.user.email,
+        type: 'password_reset',
+      });
+      (prismaService.user.findUnique as any).mockResolvedValue({
+        ...testFixtures.user,
+        password: 'old_hashed_password',
+      } as any);
+      mockedBcrypt.compare.mockResolvedValue(true as never); // Same password
+
+      // Act & Assert
+      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(BadRequestException);
+      expect(mockedBcrypt.hash).not.toHaveBeenCalled();
+    });
+  });
 });
 
