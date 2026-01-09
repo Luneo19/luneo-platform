@@ -424,20 +424,24 @@ export class AIImageService {
       let cropHeight = metadata.height;
 
       // Calculate crop area
+      let focusY = 0.5; // Default center
+      if (focusPoint !== 'center' && focusPoint !== 'auto') {
+        // Use specified focus point
+        focusY = focusPoint === 'face' ? 0.3 : 0.5; // Face typically upper third
+      } else if (focusPoint === 'auto') {
+        // Auto-detect focus point
+        focusY = await this.detectFocusPoint(imageUrl, targetAspect);
+      }
+
       if (sourceAspect > targetAspect) {
         // Image wider, crop horizontally
         cropWidth = Math.round(metadata.height * targetAspect);
-        cropX =
-          focusPoint === 'center'
-            ? Math.round((metadata.width - cropWidth) / 2)
-            : await this.detectFocusPoint(imageUrl, aspectRatio);
+        cropX = Math.round((metadata.width - cropWidth) * 0.5); // Center horizontally
       } else {
         // Image taller, crop vertically
         cropHeight = Math.round(metadata.width / targetAspect);
-        cropY =
-          focusPoint === 'center'
-            ? Math.round((metadata.height - cropHeight) / 2)
-            : 0;
+        // Use detected focus point for vertical positioning
+        cropY = Math.round((metadata.height - cropHeight) * focusY);
       }
 
       // Apply crop and resize
