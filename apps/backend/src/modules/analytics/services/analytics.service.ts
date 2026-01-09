@@ -632,15 +632,22 @@ export class AnalyticsService {
         }
       });
 
-      // Si pas de données Attribution, utiliser estimation basée sur utilisateurs
-      if (Object.keys(countryDistribution).length === 0) {
-        const totalUsers = users.length;
+      // Calculer le total d'utilisateurs pour le pourcentage
+      let totalUsers: number;
+      if (Object.keys(countryDistribution).length > 0) {
+        // Utiliser le total depuis Attribution
+        totalUsers = Object.values(countryDistribution).reduce((sum, count) => sum + count, 0);
+      } else {
+        // Si pas de données Attribution, utiliser estimation basée sur utilisateurs
+        totalUsers = users.length;
         countryDistribution['FR'] = Math.round(totalUsers * 0.35);
         countryDistribution['US'] = Math.round(totalUsers * 0.25);
         countryDistribution['GB'] = Math.round(totalUsers * 0.15);
         countryDistribution['DE'] = Math.round(totalUsers * 0.10);
         countryDistribution['ES'] = Math.round(totalUsers * 0.08);
         countryDistribution['IT'] = Math.round(totalUsers * 0.07);
+        // Recalculer totalUsers après avoir ajouté les estimations
+        totalUsers = Object.values(countryDistribution).reduce((sum, count) => sum + count, 0);
       }
 
       const countryFlags: Record<string, string> = {
