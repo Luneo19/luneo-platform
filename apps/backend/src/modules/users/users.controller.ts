@@ -146,7 +146,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Uploader un avatar' })
   @ApiResponse({ status: 200, description: 'Avatar uploadé avec succès' })
   async uploadAvatar(
-    @UploadedFile() file: multer.File,
+    @UploadedFile() file: File,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.usersService.uploadAvatar(req.user.id, file);
