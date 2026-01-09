@@ -430,7 +430,7 @@ export class AIImageService {
         cropX =
           focusPoint === 'center'
             ? Math.round((metadata.width - cropWidth) / 2)
-            : 0; // TODO: Implement face/product detection
+            : await this.detectFocusPoint(imageUrl, aspectRatio);
       } else {
         // Image taller, crop vertically
         cropHeight = Math.round(metadata.width / targetAspect);
@@ -510,6 +510,120 @@ export class AIImageService {
     } catch (error) {
       this.logger.error(`Failed to smart crop image: ${error.message}`, error.stack);
       throw new BadRequestException(`Failed to smart crop image: ${error.message}`);
+    }
+  }
+
+  /**
+   * Détecte le point focal (visage ou produit) pour smart crop
+   */
+  private async detectFocusPoint(
+    imageUrl: string,
+    aspectRatio: number,
+  ): Promise<number> {
+    try {
+      // Utiliser Replicate pour détection visage/produit si disponible
+      if (this.replicateApiKey) {
+        try {
+          // Détection visage avec MediaPipe ou modèle similaire
+          const faceDetectionResponse = await axios.post(
+            'https://api.replicate.com/v1/predictions',
+            {
+              model: 'cjwbw/face-detection',
+              input: {
+                image: imageUrl,
+              },
+            },
+            {
+              headers: {
+                Authorization: `Token ${this.replicateApiKey}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          );
+
+          // Poll for result
+          let prediction = faceDetectionResponse.data;
+          let attempts = 0;
+          while ((prediction.status === 'starting' || prediction.status === 'processing') && attempts < 30) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            const statusResponse = await axios.get(prediction.urls.get, {
+              headers: { Authorization: `Token ${this.replicateApiKey}` },
+            });
+            prediction = statusResponse.data;
+            attempts++;
+          }
+
+          if (prediction.status === 'succeeded' && prediction.output) {
+            // Si visage détecté, calculer position Y centrée sur le visage
+            const faces = Array.isArray(prediction.output) ? prediction.output : [prediction.output];
+            if (faces.length > 0) {
+              const face = faces[0];
+              // Retourner position Y normalisée (0-1) centrée sur le visage
+              return face.y ? Math.max(0, Math.min(1, face.y)) : 0.5;
+            }
+          }
+        } catch (faceError) {
+          this.logger.debug('Face detection failed, trying product detection', faceError);
+        }
+
+        // Fallback: détection produit avec modèle object detection
+        try {
+          const productDetectionResponse = await axios.post(
+            'https://api.replicate.com/v1/predictions',
+            {
+              model: 'yolov8',
+              input: {
+                image: imageUrl,
+              },
+            },
+            {
+              headers: {
+                Authorization: `Token ${this.replicateApiKey}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          );
+
+          let prediction = productDetectionResponse.data;
+          let attempts = 0;
+          while ((prediction.status === 'starting' || prediction.status === 'processing') && attempts < 30) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            const statusResponse = await axios.get(prediction.urls.get, {
+              headers: { Authorization: `Token ${this.replicateApiKey}` },
+            });
+            prediction = statusResponse.data;
+            attempts++;
+          }
+
+          if (prediction.status === 'succeeded' && prediction.output) {
+            const detections = Array.isArray(prediction.output) ? prediction.output : [prediction.output];
+            if (detections.length > 0) {
+              // Prendre le premier objet détecté et centrer sur lui
+              const detection = detections[0];
+              return detection.y ? Math.max(0, Math.min(1, detection.y)) : 0.5;
+            }
+          }
+        } catch (productError) {
+          this.logger.debug('Product detection failed, using center crop', productError);
+        }
+      }
+
+      // Fallback: utiliser Sharp pour détecter la région la plus intéressante (saliency)
+      try {
+        const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const imageBuffer = Buffer.from(imageResponse.data);
+        const metadata = await sharp(imageBuffer).metadata();
+
+        // Simple heuristic: centre de l'image si pas de détection
+        // Pour améliorer, on pourrait utiliser sharp pour analyser la composition
+        return 0.5; // Centre par défaut
+      } catch (sharpError) {
+        this.logger.warn('Failed to analyze image for focus point', sharpError);
+        return 0.5; // Centre par défaut
+      }
+    } catch (error) {
+      this.logger.warn(`Focus point detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return 0.5; // Centre par défaut si échec
     }
   }
 

@@ -404,10 +404,26 @@ export class ArStudioService {
         throw new BadRequestException(`Model does not have ${format.toUpperCase()} format available`);
       }
 
-      // Calculer la taille du fichier depuis les headers HTTP
+      // Optimiser/compresser le modèle si demandé
+      let finalUrl = sourceUrl;
       let fileSize = 0;
+
+      if (options.optimize !== false) {
+        try {
+          const optimizedUrl = await this.optimizeModel(sourceUrl, format, options.compressionLevel || 'medium');
+          if (optimizedUrl) {
+            finalUrl = optimizedUrl;
+            this.logger.log(`Model optimized: ${sourceUrl} → ${finalUrl}`);
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to optimize model, using original: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          // Continue avec l'URL originale si optimisation échoue
+        }
+      }
+
+      // Calculer la taille du fichier depuis les headers HTTP
       try {
-        const headResponse = await fetch(sourceUrl, { method: 'HEAD' });
+        const headResponse = await fetch(finalUrl, { method: 'HEAD' });
         if (headResponse.ok) {
           const contentLength = headResponse.headers.get('content-length');
           if (contentLength) {
@@ -415,15 +431,14 @@ export class ArStudioService {
           }
         }
       } catch (error) {
-        this.logger.warn(`Failed to get file size from headers for ${sourceUrl}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        this.logger.warn(`Failed to get file size from headers for ${finalUrl}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         // Continue avec fileSize = 0 si échec
       }
 
-      // TODO: Implémenter compression/optimisation si nécessaire
       // TODO: Générer URL signée avec expiration si stockage privé
 
       return {
-        downloadUrl: sourceUrl,
+        downloadUrl: finalUrl,
         fileSize,
         format,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
@@ -574,6 +589,109 @@ export class ArStudioService {
     } catch (error) {
       this.logger.error(`Failed to convert GLB to USDZ: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
+    }
+  }
+
+  /**
+   * Optimise/compresse un modèle 3D via CloudConvert
+   */
+  private async optimizeModel(
+    modelUrl: string,
+    format: 'glb' | 'usdz',
+    compressionLevel: 'low' | 'medium' | 'high' = 'medium',
+  ): Promise<string | null> {
+    try {
+      const cloudConvertKey = this.configService.get<string>('CLOUDCONVERT_API_KEY');
+      if (!cloudConvertKey) {
+        this.logger.debug('CloudConvert API key not configured, skipping optimization');
+        return null;
+      }
+
+      // Mapping compression level vers CloudConvert options
+      const compressionLevels = {
+        low: 3,
+        medium: 5,
+        high: 7,
+      };
+
+      const compressionValue = compressionLevels[compressionLevel] || 5;
+
+      // Pour GLB, utiliser l'optimisation GLTF
+      if (format === 'glb') {
+        const optimizeResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cloudConvertKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tasks: {
+              'import-model': {
+                operation: 'import/url',
+                url: modelUrl,
+              },
+              'optimize-model': {
+                operation: 'optimize/model',
+                input: 'import-model',
+                input_format: 'glb',
+                output_format: 'glb',
+                options: {
+                  compression_level: compressionValue,
+                  optimize_meshes: true,
+                  optimize_textures: true,
+                },
+              },
+              'export-model': {
+                operation: 'export/url',
+                input: 'optimize-model',
+                inline: false,
+              },
+            },
+          }),
+        });
+
+        if (!optimizeResponse.ok) {
+          throw new Error(`CloudConvert optimization failed: ${optimizeResponse.statusText}`);
+        }
+
+        const jobData = await optimizeResponse.json();
+        const jobId = jobData.data.id;
+
+        // Attendre la fin du job (polling)
+        let attempts = 0;
+        const maxAttempts = 60; // 5 minutes max
+
+        while (attempts < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 5000)); // Attendre 5 secondes
+
+          const statusResponse = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobId}`, {
+            headers: {
+              'Authorization': `Bearer ${cloudConvertKey}`,
+            },
+          });
+
+          const statusData = await statusResponse.json();
+          const task = statusData.data.tasks?.find((t: { name: string }) => t.name === 'export-model');
+
+          if (task?.status === 'finished') {
+            return task.result?.files?.[0]?.url || null;
+          }
+
+          if (task?.status === 'error') {
+            throw new Error(`CloudConvert optimization error: ${task.message}`);
+          }
+
+          attempts++;
+        }
+
+        throw new Error('CloudConvert optimization timeout');
+      }
+
+      // Pour USDZ, l'optimisation est déjà gérée dans convertGLBToUSDZ
+      return null;
+    } catch (error) {
+      this.logger.warn(`Model optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return null;
     }
   }
 
