@@ -25,12 +25,24 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
-import type { File } from 'multer';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
+
+// Type pour le fichier uploadé (compatible avec multer)
+type UploadedFile = {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+  destination?: string;
+  filename?: string;
+  path?: string;
+};
 
 @ApiTags('users')
 @Controller('users')
@@ -146,7 +158,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Uploader un avatar' })
   @ApiResponse({ status: 200, description: 'Avatar uploadé avec succès' })
   async uploadAvatar(
-    @UploadedFile() file: File,
+    @UploadedFile() file: UploadedFile,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.usersService.uploadAvatar(req.user.id, file);
