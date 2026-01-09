@@ -5,15 +5,28 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { AnalyticsHeader } from './components/AnalyticsHeader';
 import { AnalyticsFilters } from './components/AnalyticsFilters';
 import { AnalyticsKPIs } from './components/AnalyticsKPIs';
-import { AnalyticsCharts } from './components/AnalyticsCharts';
 import { MetricSelector } from './components/MetricSelector';
 import { ExportAnalyticsModal } from './components/modals/ExportAnalyticsModal';
 import { useAnalyticsData } from './hooks/useAnalyticsData';
 import { useAnalyticsExport } from './hooks/useAnalyticsExport';
 import type { TimeRange } from './types';
+
+// Lazy load AnalyticsCharts (Recharts est lourd ~200KB)
+const AnalyticsCharts = dynamic(() => import('./components/AnalyticsCharts').then(mod => ({ default: mod.AnalyticsCharts })), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-96 bg-gray-800/50 rounded-lg">
+      <div className="text-center">
+        <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p className="text-gray-400 text-sm">Chargement des graphiques...</p>
+      </div>
+    </div>
+  ),
+});
 
 export function AnalyticsPageClient() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');

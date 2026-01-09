@@ -1,19 +1,51 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { AnalyticsDashboard, AnalyticsMetrics } from '../interfaces/analytics.interface';
 
 @Injectable()
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
+  private readonly CACHE_TTL = 300; // 5 minutes pour analytics
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: SmartCacheService,
+  ) {}
 
   async getDashboard(period: string = 'last_30_days'): Promise<AnalyticsDashboard> {
     try {
       this.logger.log(`Getting dashboard analytics for period: ${period}`);
 
-      // Calculer les dates pour la période actuelle et précédente
-      const { startDate, endDate, previousStartDate, previousEndDate } = this.getPeriodDates(period);
+      // Utiliser cache Redis pour les requêtes fréquentes
+      const cacheKey = `dashboard:${period}`;
+      const cached = await this.cache.get<AnalyticsDashboard>(
+        cacheKey,
+        'analytics',
+        async () => {
+          return this.fetchDashboardData(period);
+        },
+        { ttl: this.CACHE_TTL, tags: ['analytics', 'dashboard'] },
+      );
+
+      if (cached) {
+        return cached;
+      }
+
+      // Fallback si cache échoue
+      return this.fetchDashboardData(period);
+    } catch (error) {
+      this.logger.error(`Failed to get dashboard analytics: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch dashboard data from database (sans cache)
+   */
+  private async fetchDashboardData(period: string): Promise<AnalyticsDashboard> {
+    // Calculer les dates pour la période actuelle et précédente
+    const { startDate, endDate, previousStartDate, previousEndDate } = this.getPeriodDates(period);
 
       // Récupérer les données de la période actuelle
       const [
@@ -73,10 +105,6 @@ export class AnalyticsService {
         metrics,
         charts
       };
-    } catch (error) {
-      this.logger.error(`Failed to get dashboard analytics: ${error.message}`);
-      throw error;
-    }
   }
 
   /**
@@ -120,170 +148,218 @@ export class AnalyticsService {
 
   /**
    * Récupérer le nombre total de designs créés dans la période
+   * Optimisé avec cache et select minimal
    */
   private async getTotalDesigns(startDate: Date, endDate: Date): Promise<number> {
-    return this.prisma.design.count({
-      where: {
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
+    const cacheKey = `totalDesigns:${startDate.toISOString()}:${endDate.toISOString()}`;
+    
+    return this.cache.get<number>(
+      cacheKey,
+      'analytics',
+      async () => {
+        return this.prisma.design.count({
+          where: {
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+        });
       },
-    });
+      { ttl: this.CACHE_TTL },
+    ) || 0;
   }
 
   /**
    * Récupérer le nombre total de renders dans la période
+   * Optimisé avec cache et requête optimisée
    */
   private async getTotalRenders(startDate: Date, endDate: Date): Promise<number> {
-    // Utiliser UsageMetric si disponible, sinon compter les designs avec renderUrl
-    const rendersFromMetrics = await this.prisma.usageMetric.count({
-      where: {
-        metric: 'renders_2d',
-        timestamp: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-    });
+    const cacheKey = `totalRenders:${startDate.toISOString()}:${endDate.toISOString()}`;
+    
+    return this.cache.get<number>(
+      cacheKey,
+      'analytics',
+      async () => {
+        // Utiliser UsageMetric si disponible, sinon compter les designs avec renderUrl
+        const rendersFromMetrics = await this.prisma.usageMetric.count({
+          where: {
+            metric: 'renders_2d',
+            timestamp: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+        });
 
-    if (rendersFromMetrics > 0) {
-      return rendersFromMetrics;
-    }
+        if (rendersFromMetrics > 0) {
+          return rendersFromMetrics;
+        }
 
-    // Fallback: compter les designs avec renderUrl
-    return this.prisma.design.count({
-      where: {
-        renderUrl: { not: null },
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
+        // Fallback: compter les designs avec renderUrl
+        return this.prisma.design.count({
+          where: {
+            renderUrl: { not: null },
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+        });
       },
-    });
+      { ttl: this.CACHE_TTL },
+    ) || 0;
   }
 
   /**
    * Récupérer le nombre d'utilisateurs actifs dans la période
+   * Optimisé avec cache et requête optimisée (select minimal)
    */
   private async getActiveUsers(startDate: Date, endDate: Date): Promise<number> {
-    const uniqueUsers = await this.prisma.design.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      select: {
-        userId: true,
-      },
-      distinct: ['userId'],
-    });
+    const cacheKey = `activeUsers:${startDate.toISOString()}:${endDate.toISOString()}`;
+    
+    return this.cache.get<number>(
+      cacheKey,
+      'analytics',
+      async () => {
+        // Utiliser groupBy pour éviter de charger toutes les données
+        const uniqueUsers = await this.prisma.design.groupBy({
+          by: ['userId'],
+          where: {
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+            userId: { not: null },
+          },
+        });
 
-    return uniqueUsers.filter(u => u.userId).length;
+        return uniqueUsers.length;
+      },
+      { ttl: this.CACHE_TTL },
+    ) || 0;
   }
 
   /**
    * Récupérer le revenu total dans la période (méthode privée)
+   * Optimisé avec cache et aggregate Prisma (plus efficace que findMany + reduce)
    */
   private async getRevenueByDateRange(startDate: Date, endDate: Date): Promise<number> {
-    const orders = await this.prisma.order.findMany({
-      where: {
-        status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      select: {
-        totalCents: true,
-      },
-    });
+    const cacheKey = `revenue:${startDate.toISOString()}:${endDate.toISOString()}`;
+    
+    return this.cache.get<number>(
+      cacheKey,
+      'analytics',
+      async () => {
+        // Utiliser aggregate pour calculer directement en DB (plus efficace)
+        const result = await this.prisma.order.aggregate({
+          where: {
+            status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+          _sum: {
+            totalCents: true,
+          },
+        });
 
-    const totalCents = orders.reduce((sum, order) => sum + Number(order.totalCents || 0), 0);
-    return totalCents / 100; // Convertir en euros
+        const totalCents = result._sum.totalCents || 0;
+        return totalCents / 100; // Convertir en euros
+      },
+      { ttl: this.CACHE_TTL },
+    ) || 0;
   }
 
   /**
    * Récupérer le nombre de commandes dans la période
+   * Optimisé avec cache
    */
   private async getOrders(startDate: Date, endDate: Date): Promise<number> {
-    return this.prisma.order.count({
-      where: {
-        status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
+    const cacheKey = `orders:${startDate.toISOString()}:${endDate.toISOString()}`;
+    
+    return this.cache.get<number>(
+      cacheKey,
+      'analytics',
+      async () => {
+        return this.prisma.order.count({
+          where: {
+            status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+        });
       },
-    });
+      { ttl: this.CACHE_TTL },
+    ) || 0;
   }
 
   /**
    * Récupérer les designs créés au fil du temps (groupés par jour)
+   * Optimisé avec cache et requête SQL groupBy (plus efficace)
    */
   private async getDesignsOverTime(startDate: Date, endDate: Date): Promise<Array<{ date: string; count: number }>> {
-    const designs = await this.prisma.design.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      select: {
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+    const cacheKey = `designsOverTime:${startDate.toISOString()}:${endDate.toISOString()}`;
+    
+    return this.cache.get<Array<{ date: string; count: number }>>(
+      cacheKey,
+      'analytics',
+      async () => {
+        // Utiliser raw SQL pour groupBy par jour (plus efficace que findMany + reduce)
+        const result = await this.prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+          SELECT 
+            DATE(created_at) as date,
+            COUNT(*)::int as count
+          FROM "Design"
+          WHERE created_at >= ${startDate}::timestamp
+            AND created_at <= ${endDate}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `;
 
-    // Grouper par jour
-    const grouped = designs.reduce((acc, design) => {
-      const date = design.createdAt.toISOString().split('T')[0];
-      acc[date] = (acc[date] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Convertir en array et trier par date
-    return Object.entries(grouped)
-      .map(([date, count]) => ({ date, count }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+        return result.map(row => ({
+          date: row.date,
+          count: Number(row.count),
+        }));
+      },
+      { ttl: this.CACHE_TTL },
+    ) || [];
   }
 
   /**
    * Récupérer le revenu au fil du temps (groupé par jour)
+   * Optimisé avec cache et requête SQL groupBy (plus efficace)
    */
   private async getRevenueOverTime(startDate: Date, endDate: Date): Promise<Array<{ date: string; amount: number }>> {
-    const orders = await this.prisma.order.findMany({
-      where: {
-        status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      select: {
-        createdAt: true,
-        totalCents: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+    const cacheKey = `revenueOverTime:${startDate.toISOString()}:${endDate.toISOString()}`;
+    
+    return this.cache.get<Array<{ date: string; amount: number }>>(
+      cacheKey,
+      'analytics',
+      async () => {
+        // Utiliser raw SQL pour groupBy par jour avec SUM (plus efficace)
+        const result = await this.prisma.$queryRaw<Array<{ date: string; total_cents: bigint }>>`
+          SELECT 
+            DATE(created_at) as date,
+            SUM(total_cents)::bigint as total_cents
+          FROM "Order"
+          WHERE status IN ('PAID', 'SHIPPED', 'DELIVERED')
+            AND created_at >= ${startDate}::timestamp
+            AND created_at <= ${endDate}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `;
 
-    // Grouper par jour
-    const grouped = orders.reduce((acc, order) => {
-      const date = order.createdAt.toISOString().split('T')[0];
-      const amount = Number(order.totalCents || 0) / 100; // Convertir en euros
-      acc[date] = (acc[date] || 0) + amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Convertir en array et trier par date
-    return Object.entries(grouped)
-      .map(([date, amount]) => ({ date, amount: Math.round(amount * 100) / 100 }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+        return result.map(row => ({
+          date: row.date,
+          amount: Math.round(Number(row.total_cents) / 100 * 100) / 100, // Convertir en euros avec 2 décimales
+        }));
+      },
+      { ttl: this.CACHE_TTL },
+    ) || [];
   }
 
   /**
@@ -535,51 +611,48 @@ export class AnalyticsService {
       this.logger.log(`Getting top pages for period: ${period}`);
       
       const { startDate, endDate } = this.getPeriodDates(period);
+      const cacheKey = `topPages:${period}:${startDate.toISOString()}:${endDate.toISOString()}`;
 
-      // Utiliser WebVital pour tracker les pages visitées
-      const pageViews = await this.prisma.webVital.findMany({
-        where: {
-          timestamp: {
-            gte: startDate,
-            lte: endDate,
-          },
+      return this.cache.get<{ pages: Array<{ path: string; views: number; conversions: number; rate: string }> }>(
+        cacheKey,
+        'analytics',
+        async () => {
+          // Utiliser raw SQL pour groupBy par page (plus efficace)
+          const pageViews = await this.prisma.$queryRaw<Array<{ page: string; views: bigint }>>`
+            SELECT 
+              COALESCE(page, '/') as page,
+              COUNT(*)::bigint as views
+            FROM "WebVital"
+            WHERE timestamp >= ${startDate}::timestamp
+              AND timestamp <= ${endDate}::timestamp
+            GROUP BY page
+            ORDER BY views DESC
+            LIMIT 10
+          `;
+
+          // Récupérer les conversions (orders) par page si disponible
+          const totalViews = pageViews.reduce((sum, p) => sum + Number(p.views), 0);
+          const totalOrders = await this.getOrders(startDate, endDate);
+          const avgConversionRate = totalViews > 0 ? (totalOrders / totalViews) * 100 : 0;
+
+          // Convertir en array avec conversions estimées
+          const pages = pageViews.map((p) => {
+            const views = Number(p.views);
+            const conversions = Math.round(views * (avgConversionRate / 100));
+            const rate = avgConversionRate > 0 ? `${avgConversionRate.toFixed(2)}%` : '0%';
+            
+            return {
+              path: p.page || '/',
+              views,
+              conversions,
+              rate,
+            };
+          });
+
+          return { pages };
         },
-        select: {
-          page: true,
-        },
-      });
-
-      // Grouper par page
-      const pageCounts = pageViews.reduce((acc, view) => {
-        const path = view.page || '/';
-        acc[path] = (acc[path] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      // Récupérer les conversions (orders) par page si disponible
-      // Pour l'instant, on utilise un taux de conversion estimé
-      const totalViews = Object.values(pageCounts).reduce((sum, count) => sum + count, 0);
-      const totalOrders = await this.getOrders(startDate, endDate);
-      const avgConversionRate = totalViews > 0 ? (totalOrders / totalViews) * 100 : 0;
-
-      // Convertir en array et trier par vues
-      const pages = Object.entries(pageCounts)
-        .map(([path, views]) => {
-          // Estimer les conversions basées sur le taux moyen
-          const conversions = Math.round(views * (avgConversionRate / 100));
-          const rate = avgConversionRate > 0 ? `${(avgConversionRate).toFixed(2)}%` : '0%';
-          
-          return {
-            path,
-            views,
-            conversions,
-            rate,
-          };
-        })
-        .sort((a, b) => b.views - a.views)
-        .slice(0, 10); // Top 10
-
-      return { pages };
+        { ttl: this.CACHE_TTL },
+      ) || { pages: [] };
     } catch (error) {
       this.logger.error(`Failed to get top pages: ${error.message}`);
       return { pages: [] };
@@ -588,98 +661,102 @@ export class AnalyticsService {
 
   /**
    * Récupérer les pays des utilisateurs
+   * Optimisé avec cache et requête optimisée
    */
   async getTopCountries(period: string = 'last_30_days'): Promise<{ countries: Array<{ name: string; flag: string; users: number; percentage: number }> }> {
     try {
       this.logger.log(`Getting top countries for period: ${period}`);
       
       const { startDate, endDate } = this.getPeriodDates(period);
+      const cacheKey = `topCountries:${period}:${startDate.toISOString()}:${endDate.toISOString()}`;
 
-      // Récupérer les utilisateurs actifs avec leurs pays depuis User ou Attribution
-      const users = await this.prisma.user.findMany({
-        where: {
-          createdAt: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
+      return this.cache.get<{ countries: Array<{ name: string; flag: string; users: number; percentage: number }> }>(
+        cacheKey,
+        'analytics',
+        async () => {
+          // Utiliser table Attribution pour les vrais pays si disponible
+          const attributions = await this.prisma.attribution.findMany({
+            where: {
+              timestamp: {
+                gte: startDate,
+                lte: endDate,
+              },
+            },
+            select: {
+              location: true,
+            },
+          });
 
-      // Utiliser table Attribution pour les vrais pays si disponible
-      const attributions = await this.prisma.attribution.findMany({
-        where: {
-          timestamp: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        select: {
-          location: true,
-        },
-      });
+          // Extraire les pays depuis location JSON
+          const countryDistribution: Record<string, number> = {};
+          attributions.forEach(attr => {
+            if (attr.location && typeof attr.location === 'object') {
+              const country = (attr.location as any).country || (attr.location as any).countryCode;
+              if (country) {
+                countryDistribution[country] = (countryDistribution[country] || 0) + 1;
+              }
+            }
+          });
 
-      // Extraire les pays depuis location JSON
-      const countryDistribution: Record<string, number> = {};
-      attributions.forEach(attr => {
-        if (attr.location && typeof attr.location === 'object') {
-          const country = (attr.location as any).country || (attr.location as any).countryCode;
-          if (country) {
-            countryDistribution[country] = (countryDistribution[country] || 0) + 1;
+          // Calculer le total d'utilisateurs pour le pourcentage
+          let totalUsers: number;
+          if (Object.keys(countryDistribution).length > 0) {
+            // Utiliser le total depuis Attribution
+            totalUsers = Object.values(countryDistribution).reduce((sum, count) => sum + count, 0);
+          } else {
+            // Si pas de données Attribution, utiliser estimation basée sur utilisateurs
+            const userCount = await this.prisma.user.count({
+              where: {
+                createdAt: {
+                  gte: startDate,
+                  lte: endDate,
+                },
+              },
+            });
+            totalUsers = userCount;
+            countryDistribution['FR'] = Math.round(totalUsers * 0.35);
+            countryDistribution['US'] = Math.round(totalUsers * 0.25);
+            countryDistribution['GB'] = Math.round(totalUsers * 0.15);
+            countryDistribution['DE'] = Math.round(totalUsers * 0.10);
+            countryDistribution['ES'] = Math.round(totalUsers * 0.08);
+            countryDistribution['IT'] = Math.round(totalUsers * 0.07);
+            // Recalculer totalUsers après avoir ajouté les estimations
+            totalUsers = Object.values(countryDistribution).reduce((sum, count) => sum + count, 0);
           }
-        }
-      });
 
-      // Calculer le total d'utilisateurs pour le pourcentage
-      let totalUsers: number;
-      if (Object.keys(countryDistribution).length > 0) {
-        // Utiliser le total depuis Attribution
-        totalUsers = Object.values(countryDistribution).reduce((sum, count) => sum + count, 0);
-      } else {
-        // Si pas de données Attribution, utiliser estimation basée sur utilisateurs
-        totalUsers = users.length;
-        countryDistribution['FR'] = Math.round(totalUsers * 0.35);
-        countryDistribution['US'] = Math.round(totalUsers * 0.25);
-        countryDistribution['GB'] = Math.round(totalUsers * 0.15);
-        countryDistribution['DE'] = Math.round(totalUsers * 0.10);
-        countryDistribution['ES'] = Math.round(totalUsers * 0.08);
-        countryDistribution['IT'] = Math.round(totalUsers * 0.07);
-        // Recalculer totalUsers après avoir ajouté les estimations
-        totalUsers = Object.values(countryDistribution).reduce((sum, count) => sum + count, 0);
-      }
+          const countryFlags: Record<string, string> = {
+            'FR': '🇫🇷',
+            'US': '🇺🇸',
+            'GB': '🇬🇧',
+            'DE': '🇩🇪',
+            'ES': '🇪🇸',
+            'IT': '🇮🇹',
+          };
 
-      const countryFlags: Record<string, string> = {
-        'FR': '🇫🇷',
-        'US': '🇺🇸',
-        'GB': '🇬🇧',
-        'DE': '🇩🇪',
-        'ES': '🇪🇸',
-        'IT': '🇮🇹',
-      };
+          const countryNames: Record<string, string> = {
+            'FR': 'France',
+            'US': 'United States',
+            'GB': 'United Kingdom',
+            'DE': 'Germany',
+            'ES': 'Spain',
+            'IT': 'Italy',
+          };
 
-      const countryNames: Record<string, string> = {
-        'FR': 'France',
-        'US': 'United States',
-        'GB': 'United Kingdom',
-        'DE': 'Germany',
-        'ES': 'Spain',
-        'IT': 'Italy',
-      };
+          const countries = Object.entries(countryDistribution)
+            .filter(([_, count]) => count > 0)
+            .map(([code, users]) => ({
+              name: countryNames[code] || code,
+              flag: countryFlags[code] || '🌍',
+              users,
+              percentage: totalUsers > 0 ? Math.round((users / totalUsers) * 100) : 0,
+            }))
+            .sort((a, b) => b.users - a.users)
+            .slice(0, 10); // Top 10
 
-      const countries = Object.entries(countryDistribution)
-        .filter(([_, count]) => count > 0)
-        .map(([code, users]) => ({
-          name: countryNames[code] || code,
-          flag: countryFlags[code] || '🌍',
-          users,
-          percentage: totalUsers > 0 ? Math.round((users / totalUsers) * 100) : 0,
-        }))
-        .sort((a, b) => b.users - a.users)
-        .slice(0, 10); // Top 10
-
-      return { countries };
+          return { countries };
+        },
+        { ttl: this.CACHE_TTL },
+      ) || { countries: [] };
     } catch (error) {
       this.logger.error(`Failed to get top countries: ${error.message}`);
       return { countries: [] };

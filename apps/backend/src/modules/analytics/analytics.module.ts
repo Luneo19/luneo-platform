@@ -7,9 +7,10 @@ import { AttributionService } from './services/attribution.service';
 import { AnalyticsAdvancedService } from './services/analytics-advanced.service';
 import { AnalyticsCalculationsService } from './services/analytics-calculations.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
+import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, SmartCacheModule],
   controllers: [AnalyticsController, AnalyticsAdvancedController],
   providers: [
     AnalyticsService,
