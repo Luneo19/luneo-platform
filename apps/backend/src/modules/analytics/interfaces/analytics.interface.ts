@@ -19,6 +19,8 @@ export interface AnalyticsDashboard {
   charts: {
     designsOverTime: AnalyticsChart[];
     revenueOverTime: AnalyticsChart[];
+    viewsOverTime?: AnalyticsChart[];
+    conversionChange?: number;
   };
 }
 

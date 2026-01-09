@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         views: charts.viewsOverTime?.map((item: any) => item.count) || [],
         revenue: charts.revenueOverTime?.map((item: any) => item.amount) || [],
         conversion: backendData.metrics?.conversionRate || 0,
-        conversionChange: 0.5, // TODO: Calculer depuis données précédentes
+        conversionChange: charts.conversionChange ?? 0, // Utiliser conversionChange du backend
       };
     }
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       views: Array.from({ length: 7 }, () => Math.floor(metrics.totalRenders / 7) || 0),
       revenue: Array.from({ length: 7 }, () => Math.floor((metrics.revenue || 0) / 7) || 0),
       conversion: metrics.conversionRate || 0,
-      conversionChange: 0.5,
+      conversionChange: backendData?.charts?.conversionChange ?? 0,
     };
   }, '/api/dashboard/chart-data', 'GET');
 }

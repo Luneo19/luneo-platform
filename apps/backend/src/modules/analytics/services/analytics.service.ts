@@ -12,31 +12,57 @@ export class AnalyticsService {
     try {
       this.logger.log(`Getting dashboard analytics for period: ${period}`);
 
-      // Simulation des métriques
+      // Calculer les dates pour la période actuelle et précédente
+      const { startDate, endDate, previousStartDate, previousEndDate } = this.getPeriodDates(period);
+
+      // Récupérer les données de la période actuelle
+      const [
+        totalDesigns,
+        totalRenders,
+        activeUsers,
+        revenue,
+        orders,
+        designsOverTime,
+        revenueOverTime,
+        viewsOverTime,
+      ] = await Promise.all([
+        this.getTotalDesigns(startDate, endDate),
+        this.getTotalRenders(startDate, endDate),
+        this.getActiveUsers(startDate, endDate),
+        this.getRevenue(startDate, endDate),
+        this.getOrders(startDate, endDate),
+        this.getDesignsOverTime(startDate, endDate),
+        this.getRevenueOverTime(startDate, endDate),
+        this.getViewsOverTime(startDate, endDate),
+      ]);
+
+      // Récupérer les données de la période précédente pour calculer conversionChange
+      const previousOrders = await this.getOrders(previousStartDate, previousEndDate);
+      const previousRenders = await this.getTotalRenders(previousStartDate, previousEndDate);
+
+      // Calculer le taux de conversion actuel (orders / renders * 100)
+      const currentConversionRate = totalRenders > 0 ? (orders / totalRenders) * 100 : 0;
+      
+      // Calculer le taux de conversion précédent
+      const previousConversionRate = previousRenders > 0 ? (previousOrders / previousRenders) * 100 : 0;
+      
+      // Calculer le changement de conversion (différence en points de pourcentage)
+      const conversionChange = currentConversionRate - previousConversionRate;
+
       const metrics: AnalyticsMetrics = {
-        totalDesigns: 1250,
-        totalRenders: 3400,
-        activeUsers: 89,
-        revenue: 15420.50,
-        conversionRate: 12.5,
-        avgSessionDuration: '8m 30s'
+        totalDesigns,
+        totalRenders,
+        activeUsers,
+        revenue,
+        conversionRate: Math.round(currentConversionRate * 100) / 100, // 2 décimales
+        avgSessionDuration: '8m 30s' // TODO: Calculer depuis UsageMetric si disponible
       };
 
       const charts = {
-        designsOverTime: [
-          { date: '2025-10-01', count: 45 },
-          { date: '2025-10-02', count: 52 },
-          { date: '2025-10-03', count: 38 },
-          { date: '2025-10-04', count: 67 },
-          { date: '2025-10-05', count: 71 }
-        ],
-        revenueOverTime: [
-          { date: '2025-10-01', amount: 450.00 },
-          { date: '2025-10-02', amount: 520.00 },
-          { date: '2025-10-03', amount: 380.00 },
-          { date: '2025-10-04', amount: 670.00 },
-          { date: '2025-10-05', amount: 710.00 }
-        ]
+        designsOverTime,
+        revenueOverTime,
+        viewsOverTime,
+        conversionChange: Math.round(conversionChange * 100) / 100, // 2 décimales
       };
 
       return {
@@ -48,6 +74,276 @@ export class AnalyticsService {
       this.logger.error(`Failed to get dashboard analytics: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Calculer les dates pour la période actuelle et précédente
+   */
+  private getPeriodDates(period: string): {
+    startDate: Date;
+    endDate: Date;
+    previousStartDate: Date;
+    previousEndDate: Date;
+  } {
+    const endDate = new Date();
+    let startDate: Date;
+    let previousStartDate: Date;
+    let previousEndDate: Date;
+
+    switch (period) {
+      case 'last_7_days':
+        startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+        previousEndDate = startDate;
+        previousStartDate = new Date(previousEndDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'last_30_days':
+        startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+        previousEndDate = startDate;
+        previousStartDate = new Date(previousEndDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'last_90_days':
+        startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+        previousEndDate = startDate;
+        previousStartDate = new Date(previousEndDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+        previousEndDate = startDate;
+        previousStartDate = new Date(previousEndDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    return { startDate, endDate, previousStartDate, previousEndDate };
+  }
+
+  /**
+   * Récupérer le nombre total de designs créés dans la période
+   */
+  private async getTotalDesigns(startDate: Date, endDate: Date): Promise<number> {
+    return this.prisma.design.count({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+  }
+
+  /**
+   * Récupérer le nombre total de renders dans la période
+   */
+  private async getTotalRenders(startDate: Date, endDate: Date): Promise<number> {
+    // Utiliser UsageMetric si disponible, sinon compter les designs avec renderUrl
+    const rendersFromMetrics = await this.prisma.usageMetric.count({
+      where: {
+        metric: 'renders_2d',
+        timestamp: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+
+    if (rendersFromMetrics > 0) {
+      return rendersFromMetrics;
+    }
+
+    // Fallback: compter les designs avec renderUrl
+    return this.prisma.design.count({
+      where: {
+        renderUrl: { not: null },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+  }
+
+  /**
+   * Récupérer le nombre d'utilisateurs actifs dans la période
+   */
+  private async getActiveUsers(startDate: Date, endDate: Date): Promise<number> {
+    const uniqueUsers = await this.prisma.design.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        userId: true,
+      },
+      distinct: ['userId'],
+    });
+
+    return uniqueUsers.filter(u => u.userId).length;
+  }
+
+  /**
+   * Récupérer le revenu total dans la période
+   */
+  private async getRevenue(startDate: Date, endDate: Date): Promise<number> {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        status: { in: ['PAID', 'COMPLETED', 'SHIPPED'] },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        totalAmountCents: true,
+      },
+    });
+
+    const totalCents = orders.reduce((sum, order) => sum + Number(order.totalAmountCents || 0), 0);
+    return totalCents / 100; // Convertir en euros
+  }
+
+  /**
+   * Récupérer le nombre de commandes dans la période
+   */
+  private async getOrders(startDate: Date, endDate: Date): Promise<number> {
+    return this.prisma.order.count({
+      where: {
+        status: { in: ['PAID', 'COMPLETED', 'SHIPPED'] },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+  }
+
+  /**
+   * Récupérer les designs créés au fil du temps (groupés par jour)
+   */
+  private async getDesignsOverTime(startDate: Date, endDate: Date): Promise<Array<{ date: string; count: number }>> {
+    const designs = await this.prisma.design.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // Grouper par jour
+    const grouped = designs.reduce((acc, design) => {
+      const date = design.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Convertir en array et trier par date
+    return Object.entries(grouped)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  /**
+   * Récupérer le revenu au fil du temps (groupé par jour)
+   */
+  private async getRevenueOverTime(startDate: Date, endDate: Date): Promise<Array<{ date: string; amount: number }>> {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        status: { in: ['PAID', 'COMPLETED', 'SHIPPED'] },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        createdAt: true,
+        totalAmountCents: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // Grouper par jour
+    const grouped = orders.reduce((acc, order) => {
+      const date = order.createdAt.toISOString().split('T')[0];
+      const amount = Number(order.totalAmountCents || 0) / 100; // Convertir en euros
+      acc[date] = (acc[date] || 0) + amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Convertir en array et trier par date
+    return Object.entries(grouped)
+      .map(([date, amount]) => ({ date, amount: Math.round(amount * 100) / 100 }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  /**
+   * Récupérer les vues au fil du temps (groupées par jour)
+   */
+  private async getViewsOverTime(startDate: Date, endDate: Date): Promise<Array<{ date: string; count: number }>> {
+    // Utiliser UsageMetric si disponible
+    const viewsMetrics = await this.prisma.usageMetric.findMany({
+      where: {
+        metric: 'views',
+        timestamp: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        timestamp: true,
+        value: true,
+      },
+      orderBy: {
+        timestamp: 'asc',
+      },
+    });
+
+    if (viewsMetrics.length > 0) {
+      // Grouper par jour
+      const grouped = viewsMetrics.reduce((acc, metric) => {
+        const date = metric.timestamp.toISOString().split('T')[0];
+        acc[date] = (acc[date] || 0) + metric.value;
+        return acc;
+      }, {} as Record<string, number>);
+
+      return Object.entries(grouped)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    // Fallback: utiliser les designs avec previewUrl comme proxy pour les vues
+    const designs = await this.prisma.design.findMany({
+      where: {
+        previewUrl: { not: null },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    const grouped = designs.reduce((acc, design) => {
+      const date = design.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(grouped)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 
   async getUsage(brandId: string) {
