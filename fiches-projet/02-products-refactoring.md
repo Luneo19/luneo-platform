@@ -178,3 +178,4 @@ apps/frontend/src/app/(dashboard)/dashboard/products/
 - Exemple refactoring : `apps/frontend/src/app/(dashboard)/dashboard/orders/` (architecture similaire)
 
 
+

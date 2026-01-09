@@ -227,8 +227,8 @@ async function handleRateLimit(
   request: NextRequest,
   pathname: string
 ): Promise<NextResponse | null> {
-  // Skip rate limiting in development
-  if (process.env.NODE_ENV === 'development') {
+  // Skip rate limiting in development (but can be enabled for testing)
+  if (process.env.NODE_ENV === 'development' && process.env.ENABLE_RATE_LIMIT_IN_DEV !== 'true') {
     return null;
   }
 
@@ -324,9 +324,14 @@ function handleCSRF(request: NextRequest): NextResponse | null {
   const csrfToken = request.headers.get('x-csrf-token');
   const csrfCookie = request.cookies.get('csrf-token')?.value;
 
-  // In development, skip CSRF
+  // In development, skip CSRF (but log for awareness)
   if (process.env.NODE_ENV === 'development') {
-    return null;
+    // Log in development to remind about production security
+    if (process.env.ENABLE_CSRF_IN_DEV === 'true') {
+      // Allow enabling CSRF in dev for testing
+    } else {
+      return null;
+    }
   }
 
   // Skip if no CSRF cookie is set (first request)

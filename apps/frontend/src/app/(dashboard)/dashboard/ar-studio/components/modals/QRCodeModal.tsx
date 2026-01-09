@@ -92,3 +92,4 @@ export function QRCodeModal({ open, onOpenChange, model }: QRCodeModalProps) {
 }
 
 
+

@@ -1,71 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { logger } from '@/lib/logger';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
+import { forwardGet, forwardPost } from '@/lib/backend-forward';
 
+/**
+ * GET /api/support/tickets
+ * Liste les tickets de support de l'utilisateur
+ * Forward vers backend NestJS: GET /support/tickets
+ */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const category = searchParams.get('category');
+    const page = searchParams.get('page');
+    const limit = searchParams.get('limit');
 
-    let query = supabase
-      .from('tickets')
-      .select('*, ticket_messages(count)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    const queryParams = new URLSearchParams();
+    if (status) queryParams.set('status', status);
+    if (category) queryParams.set('category', category);
+    if (page) queryParams.set('page', page);
+    if (limit) queryParams.set('limit', limit);
 
-    if (status && status !== 'all') {
-      query = query.eq('status', status);
-    }
-
-    if (category && category !== 'all') {
-      query = query.eq('category', category);
-    }
-
-    const { data: tickets, error } = await query;
-
-    if (error) {
-      logger.dbError('fetch tickets', error, { userId: user.id });
-      throw {
-        status: 500,
-        message: 'Erreur lors de la récupération des tickets',
-        code: 'DATABASE_ERROR',
-      };
-    }
-
-    const formattedTickets = (tickets || []).map((ticket: any) => ({
-      id: ticket.id,
-      subject: ticket.subject,
-      description: ticket.description,
-      status: ticket.status,
-      priority: ticket.priority,
-      category: ticket.category,
-      created_at: ticket.created_at,
-      updated_at: ticket.updated_at,
-      messages_count: ticket.ticket_messages?.[0]?.count || 0,
-    }));
-
-    return { tickets: formattedTickets };
+    const queryString = queryParams.toString();
+    const url = `/support/tickets${queryString ? `?${queryString}` : ''}`;
+    const result = await forwardGet(url, request);
+    return result.data;
   }, '/api/support/tickets', 'GET');
 }
 
+/**
+ * POST /api/support/tickets
+ * Crée un nouveau ticket de support
+ * Forward vers backend NestJS: POST /support/tickets
+ */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
     const body = await request.json();
     const { subject, description, category, priority } = body;
 
@@ -77,52 +46,12 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const { data: ticket, error } = await supabase
-      .from('tickets')
-      .insert({
-        user_id: user.id,
-        subject,
-        description,
-        category: category || 'technical',
-        priority: priority || 'medium',
-        status: 'open',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      logger.dbError('create ticket', error, {
-        userId: user.id,
-        subject,
-        category,
-        priority,
-      });
-      throw {
-        status: 500,
-        message: 'Erreur lors de la création du ticket',
-        code: 'DATABASE_ERROR',
-      };
-    }
-
-    logger.info('Ticket created successfully', {
-      userId: user.id,
-      ticketId: ticket.id,
+    const result = await forwardPost('/support/tickets', request, {
       subject,
+      description,
+      category,
+      priority,
     });
-
-    return {
-      ticket: {
-        id: ticket.id,
-        subject: ticket.subject,
-        description: ticket.description,
-        status: ticket.status,
-        priority: ticket.priority,
-        category: ticket.category,
-        created_at: ticket.created_at,
-        updated_at: ticket.updated_at,
-        messages_count: 0,
-      },
-      message: 'Ticket créé avec succès',
-    };
+    return result.data;
   }, '/api/support/tickets', 'POST');
 }

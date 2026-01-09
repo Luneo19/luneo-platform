@@ -626,3 +626,4 @@ Pour chaque fonctionnalité développée, vérifier :
 **Prochaine révision** : Après Phase 1 (Semaine 2)
 
 
+

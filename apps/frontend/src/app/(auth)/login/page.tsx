@@ -91,50 +91,35 @@ function LoginPageContent() {
     }
 
     try {
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
-
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { endpoints } = await import('@/lib/api/client');
+      
+      const response = await endpoints.auth.login({
         email: formData.email,
         password: formData.password,
       });
 
-      if (signInError) {
-        if (signInError.message.includes('Invalid login credentials')) {
-          setError('Email ou mot de passe incorrect');
-        } else if (signInError.message.includes('Email not confirmed')) {
-          setError("Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte de réception.");
-        } else {
-        setError(signInError.message);
-        }
-        return;
-      }
-
-      if (data.user && data.session) {
+      if (response.accessToken && response.user) {
         // Store token for API calls
-        if (data.session.access_token) {
-          localStorage.setItem('accessToken', data.session.access_token);
-          if (rememberMe) {
-            localStorage.setItem('rememberMe', 'true');
-          }
+        localStorage.setItem('accessToken', response.accessToken);
+        if (response.refreshToken) {
+          localStorage.setItem('refreshToken', response.refreshToken);
+        }
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        }
+        if (response.user) {
+          localStorage.setItem('user', JSON.stringify(response.user));
         }
         
         setSuccess('Connexion réussie ! Redirection...');
         
-        // Wait for session to be fully established and cookies to be set
-        // Then refresh the router to ensure session is available
-        setTimeout(async () => {
-          // Verify session is available before redirecting
-          const { data: { session: verifySession } } = await supabase.auth.getSession();
-          if (verifySession) {
-            // Use window.location for a full page reload to ensure cookies are set
-            window.location.href = '/overview';
-          } else {
-            // Fallback: try router.push if session verification fails
-            router.push('/overview');
-            router.refresh();
-          }
-        }, 800);
+        // Redirect to overview
+        setTimeout(() => {
+          router.push('/overview');
+          router.refresh();
+        }, 500);
+      } else {
+        setError('Réponse invalide du serveur');
       }
     } catch (err: unknown) {
       logger.error('Login error', {
@@ -142,7 +127,19 @@ function LoginPageContent() {
         email: formData.email,
         message: err instanceof Error ? err.message : 'Unknown error',
       });
-      setError('Une erreur est survenue. Veuillez réessayer.');
+      
+      // Handle specific error messages
+      if (err instanceof Error) {
+        if (err.message.includes('Invalid credentials') || err.message.includes('401')) {
+          setError('Email ou mot de passe incorrect');
+        } else if (err.message.includes('Email not confirmed')) {
+          setError("Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte de réception.");
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Une erreur est survenue. Veuillez réessayer.');
+      }
     } finally {
       setIsLoading(false);
     }

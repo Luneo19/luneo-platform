@@ -65,3 +65,4 @@ Le déploiement Railway échoue avec "Deploy failed" après le build Prisma.
 - **Commit**: `f65c20c`
 - **Documentation Corrections**: `CORRECTIONS_BUILD_RAILWAY.md`
 
+

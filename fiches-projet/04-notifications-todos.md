@@ -198,3 +198,4 @@ apps/frontend/src/app/(dashboard)/notifications/
 - Exemple export : `apps/frontend/src/app/(dashboard)/dashboard/products/` (pour référence)
 
 
+

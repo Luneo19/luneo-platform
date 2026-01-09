@@ -175,96 +175,40 @@ function RegisterPageContent() {
     }
 
     try {
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
+      const { endpoints } = await import('@/lib/api/client');
+      
+      // Split fullName into firstName and lastName
+      const nameParts = formData.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const response = await endpoints.auth.signup({
         email: formData.email,
         password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            company: formData.company || undefined,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/overview`,
-        },
+        firstName,
+        lastName,
+        // Note: company field not in signup DTO, can be added later if needed
       });
 
-      if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          setError('Un compte existe déjà avec cette adresse email. Essayez de vous connecter.');
-        } else {
-        setError(signUpError.message);
+      if (response.accessToken && response.user) {
+        // Store token for API calls
+        localStorage.setItem('accessToken', response.accessToken);
+        if (response.refreshToken) {
+          localStorage.setItem('refreshToken', response.refreshToken);
         }
-        return;
-      }
-
-      if (data.user) {
-        // Optional: Call onboarding API
-        try {
-          await fetch('/api/auth/onboarding', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: data.user.id,
-              email: formData.email,
-              fullName: formData.fullName,
-              company: formData.company,
-            }),
-          });
-        } catch (onboardingError) {
-          logger.warn('Onboarding API failed (non-blocking)', {
-            error: onboardingError,
-            userId: data.user?.id,
-          });
+        if (response.user) {
+          localStorage.setItem('user', JSON.stringify(response.user));
         }
-
-        // Check if user has a session (email confirmation might be disabled)
-        const { data: { session } } = await supabase.auth.getSession();
         
-        if (session && data.session) {
-          // User is automatically logged in (email confirmation disabled)
-          // Store token for API calls
-          if (data.session.access_token) {
-            localStorage.setItem('accessToken', data.session.access_token);
-          }
-          
-          setSuccess('🎉 Compte créé avec succès ! Redirection...');
-          
-          // Wait for session to be fully established
-          setTimeout(async () => {
-            // Verify session is available before redirecting
-            const { data: { session: verifySession } } = await supabase.auth.getSession();
-            if (verifySession) {
-              // Use window.location for a full page reload to ensure cookies are set
-              window.location.href = '/overview';
-            } else {
-              // Fallback: try router.push if session verification fails
-              router.push('/overview');
-              router.refresh();
-            }
-          }, 800);
-        } else {
-          // Email confirmation required
-          setSuccess(
-            '🎉 Compte créé avec succès ! Vérifiez votre email pour activer votre compte.'
-          );
-          
-          // Reset form
-          setFormData({
-            fullName: '',
-            email: '',
-            company: '',
-            password: '',
-            confirmPassword: '',
-          });
-          setAcceptedTerms(false);
-
-          // Redirect to login after delay
-          setTimeout(() => {
-            router.push('/login');
-          }, 3000);
-        }
+        setSuccess('🎉 Compte créé avec succès ! Redirection...');
+        
+        // Redirect to overview
+        setTimeout(() => {
+          router.push('/overview');
+          router.refresh();
+        }, 500);
+      } else {
+        setError('Réponse invalide du serveur');
       }
     } catch (err: unknown) {
       logger.error('Registration error', {
@@ -272,7 +216,17 @@ function RegisterPageContent() {
         email: formData.email,
         message: err instanceof Error ? err.message : 'Unknown error',
       });
-      setError("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+      
+      // Handle specific error messages
+      if (err instanceof Error) {
+        if (err.message.includes('already exists') || err.message.includes('409')) {
+          setError('Un compte existe déjà avec cette adresse email. Essayez de vous connecter.');
+        } else {
+          setError(err.message || "Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+        }
+      } else {
+        setError("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+      }
     } finally {
       setIsLoading(false);
     }

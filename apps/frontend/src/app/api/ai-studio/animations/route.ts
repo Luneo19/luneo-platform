@@ -4,10 +4,9 @@
  * Respecte la Bible Luneo : Server Component, ApiResponseBuilder, validation
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder, getPaginationParams } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { forwardGet, forwardPost } from '@/lib/backend-forward';
 import { z } from 'zod';
 
 const GenerateAnimationSchema = z.object({
@@ -18,61 +17,34 @@ const GenerateAnimationSchema = z.object({
   resolution: z.enum(['720p', '1080p', '4k']).default('1080p'),
 });
 
+/**
+ * GET /api/ai-studio/animations
+ * Liste toutes les animations AI
+ * Forward vers backend NestJS: GET /api/ai-studio/animations
+ */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
     const { searchParams } = new URL(request.url);
-    const { page, limit, offset } = getPaginationParams(searchParams);
+    const { page, limit } = getPaginationParams(searchParams);
     const status = searchParams.get('status') || undefined;
 
-    // Appel backend NestJS
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-
-    // Récupérer le token d'accès
-    const { data: { session } } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
-
-    if (!accessToken) {
-      throw { status: 401, message: 'Token d\'accès manquant', code: 'UNAUTHORIZED' };
-    }
-
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
+    const result = await forwardGet('/ai-studio/animations', request, {
+      page,
+      limit,
       ...(status && { status }),
     });
-
-    const response = await fetch(`${backendUrl}/api/ai-studio/animations?${queryParams}`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw { status: response.status, message: 'Erreur backend', code: 'BACKEND_ERROR' };
-    }
-
-    const data = await response.json();
-    return data;
+    return result.data;
   }, '/api/ai-studio/animations', 'GET');
 }
 
+/**
+ * POST /api/ai-studio/animations
+ * Génère une nouvelle animation AI
+ * Body: { prompt, style?, duration?, fps?, resolution? }
+ * Forward vers backend NestJS: POST /api/ai-studio/animations/generate
+ */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
     const body = await request.json();
     const validation = GenerateAnimationSchema.safeParse(body);
 
@@ -80,34 +52,8 @@ export async function POST(request: NextRequest) {
       throw { status: 400, message: 'Données invalides', code: 'VALIDATION_ERROR', details: validation.error.issues };
     }
 
-    // Appel backend NestJS pour générer l'animation
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-
-    // Récupérer le token d'accès
-    const { data: { session } } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
-
-    if (!accessToken) {
-      throw { status: 401, message: 'Token d\'accès manquant', code: 'UNAUTHORIZED' };
-    }
-
-    const response = await fetch(`${backendUrl}/api/ai-studio/animations/generate`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(validation.data),
-    });
-
-    if (!response.ok) {
-      throw { status: response.status, message: 'Erreur backend', code: 'BACKEND_ERROR' };
-    }
-
-    const data = await response.json();
-    logger.info('AI animation generation started', { animationId: data.animation?.id, userId: user.id });
-
-    return data;
+    const result = await forwardPost('/ai-studio/animations/generate', request, validation.data);
+    return result.data;
   }, '/api/ai-studio/animations', 'POST');
 }
 

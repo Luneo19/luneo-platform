@@ -3,8 +3,7 @@
 import { useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
-
-export default function Error({
+import { logger } from '@/lib/logger';export default function Error({
   error,
   reset,
 }: {
@@ -12,7 +11,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('AR Studio Integrations page error:', error);
+    logger.error('AR Studio Integrations page error:', error);
   }, [error]);
 
   return (
@@ -29,5 +28,6 @@ export default function Error({
     </ErrorBoundary>
   );
 }
+
 
 

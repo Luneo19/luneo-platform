@@ -84,3 +84,4 @@ echo ""
 echo "Ou utilisez le dashboard Railway:"
 echo "  https://railway.app/project/$PROJECT_ID"
 
+

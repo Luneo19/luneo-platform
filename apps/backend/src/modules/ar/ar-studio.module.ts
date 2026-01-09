@@ -5,6 +5,7 @@
  */
 
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { ArStudioController } from './ar-studio.controller';
 import { ArStudioService } from './ar-studio.service';
 import { ArIntegrationsController } from './controllers/ar-integrations.controller';
@@ -14,7 +15,7 @@ import { ArCollaborationService } from './services/ar-collaboration.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, ConfigModule],
   controllers: [
     ArStudioController,
     ArIntegrationsController,

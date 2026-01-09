@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/logger';
 
 export default function Error({
   error,
@@ -12,7 +13,12 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('AR Studio Preview page error:', error);
+    logger.error('AR Studio Preview page error', {
+      error,
+      message: error.message,
+      stack: error.stack,
+      digest: error.digest,
+    });
   }, [error]);
 
   return (
@@ -29,5 +35,6 @@ export default function Error({
     </ErrorBoundary>
   );
 }
+
 
 

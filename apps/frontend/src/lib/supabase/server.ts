@@ -1,13 +1,49 @@
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export async function createClient() {
-  const cookieStore = await cookies();
+/**
+ * Creates a Supabase server client
+ * Returns mock client if Supabase is not configured
+ */
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+// Mock client
+const createMockServerClient = () => ({
+  auth: {
+    getUser: async () => ({ data: { user: null }, error: null }),
+    getSession: async () => ({ data: { session: null }, error: null }),
+  },
+});
+
+// Lazy loader
+let supabaseServerModule: any = null;
+
+async function loadSupabaseServerModule() {
+  if (supabaseServerModule) return supabaseServerModule;
+  
+  try {
+    supabaseServerModule = await import('@supabase/ssr');
+    return supabaseServerModule;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function createClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // If Supabase is not configured, return mock client
+  if (!url || !key || !url.trim() || !key.trim()) {
+    return createMockServerClient() as any;
+  }
+
+  const module = await loadSupabaseServerModule();
+  if (!module || !module.createServerClient) {
+    return createMockServerClient() as any;
+  }
+
+  try {
+    const cookieStore = await cookies();
+    return module.createServerClient(url, key, {
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value;
@@ -27,7 +63,8 @@ export async function createClient() {
           }
         },
       },
-    }
-  );
+    });
+  } catch (error) {
+    return createMockServerClient() as any;
+  }
 }
-

@@ -4,7 +4,7 @@
  * Respecte la Bible Luneo : pas de any, types stricts, logging professionnel
  */
 
-import { Controller, Get, Post, Query, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { ArStudioService } from './ar-studio.service';
@@ -116,6 +116,112 @@ export class ArStudioController {
       },
     };
   }
+
+  @Post('convert-2d-to-3d')
+  @ApiOperation({ summary: 'Convertir une image 2D en modèle 3D via Meshy.ai' })
+  @ApiResponse({ status: 201, description: 'Conversion initiée' })
+  async convert2DTo3D(
+    @Body() body: { design_id: string; image_url: string },
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new Error('User must have a brandId');
+    }
+
+    const result = await this.arStudioService.convert2DTo3D(
+      req.user.id,
+      brandId,
+      body.design_id,
+      body.image_url,
+    );
+    return { success: true, data: result };
+  }
+
+  @Get('convert-2d-to-3d')
+  @ApiOperation({ summary: 'Vérifier le statut d\'une conversion 2D→3D' })
+  @ApiQuery({ name: 'task_id', description: 'ID de la tâche Meshy.ai' })
+  @ApiResponse({ status: 200, description: 'Statut de conversion' })
+  async getConversionStatus(
+    @Query('task_id') taskId: string,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new Error('User must have a brandId');
+    }
+
+    const result = await this.arStudioService.getConversionStatus(
+      taskId,
+      req.user.id,
+      brandId,
+    );
+    return { success: true, data: result };
+  }
+
+  @Post('export')
+  @ApiOperation({ summary: 'Exporte un modèle AR en différents formats (GLB, USDZ)' })
+  @ApiResponse({ status: 200, description: 'Modèle exporté avec succès' })
+  async exportModel(
+    @Body() body: {
+      ar_model_id: string;
+      format: 'glb' | 'usdz';
+      optimize?: boolean;
+      include_textures?: boolean;
+      compression_level?: 'low' | 'medium' | 'high';
+    },
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new Error('User must have a brandId');
+    }
+
+    const result = await this.arStudioService.exportModel(
+      body.ar_model_id,
+      brandId,
+      body.format,
+      {
+        optimize: body.optimize,
+        includeTextures: body.include_textures,
+        compressionLevel: body.compression_level,
+      },
+    );
+    return { success: true, data: result };
+  }
+
+  @Post('convert-usdz')
+  @ApiOperation({ summary: 'Convertit un modèle GLB en USDZ' })
+  @ApiResponse({ status: 200, description: 'Conversion réussie' })
+  async convertUSDZ(
+    @Body() body: {
+      glb_url: string;
+      ar_model_id?: string;
+      product_name?: string;
+      scale?: number;
+      optimize?: boolean;
+    },
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new Error('User must have a brandId');
+    }
+
+    const result = await this.arStudioService.convertGLBToUSDZ(
+      body.glb_url,
+      req.user.id,
+      brandId,
+      {
+        productName: body.product_name,
+        scale: body.scale,
+        optimize: body.optimize,
+        arModelId: body.ar_model_id,
+      },
+    );
+    return { success: true, data: result };
+  }
 }
+
 
 

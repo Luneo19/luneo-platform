@@ -1,0 +1,86 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { ClipartsService } from './cliparts.service';
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+
+@ApiTags('cliparts')
+@Controller('cliparts')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class ClipartsController {
+  constructor(private readonly clipartsService: ClipartsService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Lister les cliparts' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'category', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'publicOnly', required: false, type: Boolean })
+  @ApiResponse({ status: 200, description: 'Liste des cliparts' })
+  async findAll(
+    @Request() req,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+    @Query('publicOnly') publicOnly?: string,
+  ) {
+    return this.clipartsService.findAll(req.user.id, req.user.brandId || null, {
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      category,
+      search,
+      publicOnly: publicOnly === 'true',
+    });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Obtenir un clipart' })
+  @ApiParam({ name: 'id', description: 'ID du clipart' })
+  @ApiResponse({ status: 200, description: 'Détails du clipart' })
+  async findOne(@Param('id') id: string, @Request() req) {
+    return this.clipartsService.findOne(id, req.user.id, req.user.brandId || null);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Créer un nouveau clipart' })
+  @ApiResponse({ status: 201, description: 'Clipart créé' })
+  async create(@Body() createDto: any, @Request() req) {
+    return this.clipartsService.create(createDto, req.user.id, req.user.brandId || null);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Mettre à jour un clipart' })
+  @ApiParam({ name: 'id', description: 'ID du clipart' })
+  @ApiResponse({ status: 200, description: 'Clipart mis à jour' })
+  async update(@Param('id') id: string, @Body() updateDto: any, @Request() req) {
+    return this.clipartsService.update(id, updateDto, req.user.id, req.user.brandId || null);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Supprimer un clipart' })
+  @ApiParam({ name: 'id', description: 'ID du clipart' })
+  @ApiResponse({ status: 200, description: 'Clipart supprimé' })
+  async delete(@Param('id') id: string, @Request() req) {
+    return this.clipartsService.delete(id, req.user.id, req.user.brandId || null);
+  }
+}

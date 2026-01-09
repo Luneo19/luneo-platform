@@ -27,33 +27,29 @@ function VerifyEmailPageContent() {
     }
 
     try {
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
+      // ✅ Migré vers API backend NestJS
+      const { endpoints } = await import('@/lib/api/client');
+      
+      const response = await endpoints.auth.verifyEmail(token);
 
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: type === 'recovery' ? 'recovery' : 'signup',
-      });
-
-      if (verifyError) {
-        throw verifyError;
-      }
-
-      if (data.user) {
-        setEmail(data.user.email || '');
+      if (response.verified) {
+        setEmail(''); // Email disponible dans le token JWT si nécessaire
         setStatus('success');
-        logger.info('Email verified successfully', { userId: data.user.id });
+        logger.info('Email verified successfully');
 
         setTimeout(() => {
           router.push('/overview');
         }, 3000);
       }
     } catch (err) {
-      logger.error('Email verification error', err);
+      logger.error('Email verification error', {
+        error: err,
+        message: err instanceof Error ? err.message : 'Unknown error',
+      });
       setError(err instanceof Error ? err.message : 'Verification failed');
       setStatus('error');
     }
-  }, [token, type, router]);
+  }, [token, router]);
 
   useEffect(() => {
     verifyEmail();

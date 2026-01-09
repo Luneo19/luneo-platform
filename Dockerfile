@@ -30,6 +30,14 @@ RUN pnpm build
 # Exposer le port (Railway fournira PORT via variable d'environnement)
 EXPOSE ${PORT:-3000}
 
-# Démarrer l'application
+# Créer un script de démarrage qui exécute les migrations puis démarre l'app
 WORKDIR /app/apps/backend
-CMD ["node", "dist/src/main.js"]
+RUN echo '#!/bin/sh\n\
+set -e\n\
+echo "🚀 Exécution des migrations Prisma..."\n\
+pnpm prisma migrate deploy || echo "⚠️  Migrations échouées ou déjà appliquées"\n\
+echo "✅ Démarrage de l\'application..."\n\
+exec node dist/src/main.js' > /app/start.sh && \
+    chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]

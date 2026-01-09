@@ -129,7 +129,7 @@ export class StripeConnectService {
   async processScheduledPayouts() {
     const artisans = await this.prisma.artisan.findMany({
       where: {
-        status: 'active',
+        stripeAccountStatus: 'active',
         stripeAccountId: { not: null },
       },
     });
@@ -169,6 +169,150 @@ export class StripeConnectService {
     // TODO: Implémenter logique de schedule (daily, weekly, etc.)
     // Pour l'instant, weekly par défaut
     return true;
+  }
+
+  /**
+   * Crée un compte Stripe Connect pour un seller (marketplace seller)
+   */
+  async createSellerConnectAccount(
+    userId: string,
+    userEmail: string,
+    options: {
+      country?: string;
+      businessType?: 'individual' | 'company';
+      businessName?: string;
+      firstName?: string;
+      lastName?: string;
+    },
+  ): Promise<{ accountId: string; onboardingUrl: string; isExisting: boolean }> {
+    const stripe = await this.getStripe();
+    const frontendUrl = this.configService.get<string>('app.frontendUrl') || 'https://luneo.app';
+
+    // Vérifier si l'utilisateur a déjà un compte Connect (via Artisan)
+    const existingArtisan = await this.prisma.artisan.findUnique({
+      where: { userId },
+    });
+
+    if (existingArtisan?.stripeAccountId) {
+      // Retourner le lien d'onboarding existant
+      const accountLink = await stripe.accountLinks.create({
+        account: existingArtisan.stripeAccountId,
+        refresh_url: `${frontendUrl}/dashboard/seller?refresh=true`,
+        return_url: `${frontendUrl}/dashboard/seller?success=true`,
+        type: 'account_onboarding',
+      });
+
+      return {
+        accountId: existingArtisan.stripeAccountId,
+        onboardingUrl: accountLink.url,
+        isExisting: true,
+      };
+    }
+
+    // Créer un nouveau compte Connect
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country: options.country || 'FR',
+      email: userEmail,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+      metadata: {
+        userId,
+        businessType: options.businessType || 'individual',
+      },
+    });
+
+    // Créer ou mettre à jour l'artisan (on utilise Artisan comme modèle pour seller)
+    if (existingArtisan) {
+      await this.prisma.artisan.update({
+        where: { userId },
+        data: {
+          stripeAccountId: account.id,
+          stripeAccountStatus: 'pending',
+          email: userEmail,
+          businessName: options.businessName || existingArtisan.businessName,
+        },
+      });
+    } else {
+      await this.prisma.artisan.create({
+        data: {
+          userId,
+          businessName: options.businessName || 'My Business',
+          stripeAccountId: account.id,
+          stripeAccountStatus: 'pending',
+          email: userEmail,
+          address: options.country ? { country: options.country } : undefined,
+        },
+      });
+    }
+
+    // Créer le lien d'onboarding
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: `${frontendUrl}/dashboard/seller?refresh=true`,
+      return_url: `${frontendUrl}/dashboard/seller?success=true`,
+      type: 'account_onboarding',
+    });
+
+    this.logger.log('Stripe Connect account created for seller', {
+      userId,
+      accountId: account.id,
+    });
+
+    return {
+      accountId: account.id,
+      onboardingUrl: accountLink.url,
+      isExisting: false,
+    };
+  }
+
+  /**
+   * Récupère le statut du compte Connect d'un seller
+   */
+  async getSellerConnectStatus(userId: string): Promise<{
+    hasAccount: boolean;
+    accountId?: string;
+    status?: string;
+    chargesEnabled?: boolean;
+    payoutsEnabled?: boolean;
+    detailsSubmitted?: boolean;
+    requirements?: any;
+    commissionRate?: number;
+    createdAt?: Date;
+  }> {
+    const artisan = await this.prisma.artisan.findUnique({
+      where: { userId },
+    });
+
+    if (!artisan?.stripeAccountId) {
+      return { hasAccount: false };
+    }
+
+    // Récupérer le statut depuis Stripe
+    const stripe = await this.getStripe();
+    const account = await stripe.accounts.retrieve(artisan.stripeAccountId);
+
+    // Mettre à jour le statut local si nécessaire
+    const newStatus = account.charges_enabled && account.payouts_enabled ? 'active' : 'pending';
+    if (artisan.stripeAccountStatus !== newStatus) {
+      await this.prisma.artisan.update({
+        where: { id: artisan.id },
+        data: { stripeAccountStatus: newStatus },
+      });
+    }
+
+    return {
+      hasAccount: true,
+      accountId: artisan.stripeAccountId || undefined,
+      status: newStatus,
+      chargesEnabled: account.charges_enabled,
+      payoutsEnabled: account.payouts_enabled,
+      detailsSubmitted: account.details_submitted,
+      requirements: account.requirements as any,
+      createdAt: artisan.createdAt,
+    };
   }
 
   /**
@@ -218,6 +362,7 @@ export class StripeConnectService {
     }
   }
 }
+
 
 
 

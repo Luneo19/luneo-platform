@@ -1,77 +1,59 @@
-/**
- * ★★★ API ROUTE - EDITOR PROJECT BY ID ★★★
- * Next.js route for get/update/delete editor project
- */
-
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
+import { forwardGet, forwardPut, forwardDelete } from '@/lib/backend-forward';
 
+type EditorProjectRouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+/**
+ * GET /api/editor/projects/[id]
+ * Récupère un projet d'édition spécifique
+ * Forward vers backend NestJS: GET /api/editor/projects/:id
+ */
 export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: EditorProjectRouteContext,
 ) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) throw { status: 401, message: 'Non authentifié' };
-    const { data: { session } } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
-    if (!accessToken) throw { status: 401, message: 'Token manquant' };
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-    const resp = await fetch(`${backendUrl}/api/editor/projects/${params.id}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!resp.ok) throw { status: resp.status, message: 'Erreur backend' };
-    return await resp.json();
+    const { id } = await params;
+    const result = await forwardGet(`/editor/projects/${id}`, request);
+    return result.data;
   }, '/api/editor/projects/[id]', 'GET');
 }
 
+/**
+ * PUT /api/editor/projects/[id]
+ * Met à jour un projet d'édition
+ * Forward vers backend NestJS: PUT /api/editor/projects/:id
+ */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: EditorProjectRouteContext,
 ) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) throw { status: 401, message: 'Non authentifié' };
+    const { id } = await params;
     const body = await request.json();
-    const { data: { session } } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
-    if (!accessToken) throw { status: 401, message: 'Token manquant' };
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-    const resp = await fetch(`${backendUrl}/api/editor/projects/${params.id}`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    if (!resp.ok) throw { status: resp.status, message: 'Erreur backend' };
-    return await resp.json();
+    const result = await forwardPut(`/editor/projects/${id}`, request, body);
+    return result.data;
   }, '/api/editor/projects/[id]', 'PUT');
 }
 
+/**
+ * DELETE /api/editor/projects/[id]
+ * Supprime un projet d'édition
+ * Forward vers backend NestJS: DELETE /api/editor/projects/:id
+ */
 export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: EditorProjectRouteContext,
 ) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) throw { status: 401, message: 'Non authentifié' };
-    const { data: { session } } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
-    if (!accessToken) throw { status: 401, message: 'Token manquant' };
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-    const resp = await fetch(`${backendUrl}/api/editor/projects/${params.id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!resp.ok) throw { status: resp.status, message: 'Erreur backend' };
-    return { success: true };
+    const { id } = await params;
+    const result = await forwardDelete(`/editor/projects/${id}`, request);
+    return result.data || { success: true };
   }, '/api/editor/projects/[id]', 'DELETE');
 }
+
 
 

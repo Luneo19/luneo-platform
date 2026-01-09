@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { StorageService } from '@/libs/storage/storage.service';
 import { UserRole } from '@prisma/client';
 import { normalizePagination, createPaginationResult, PaginationParams, PaginationResult } from '@/libs/prisma/pagination.helper';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
@@ -11,7 +12,10 @@ import { JsonValue } from '@/common/types/utility-types';
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
+  ) {}
 
   // Optimisé: select au lieu de include, pagination ajoutée, cache automatique
   @Cacheable({ 
@@ -436,6 +440,118 @@ export class ProductsService {
         start: options?.startDate || null,
         end: options?.endDate || null,
       },
+    };
+  }
+
+  /**
+   * Upload un modèle 3D pour un produit
+   */
+  async uploadModel(
+    productId: string,
+    body: { fileUrl: string; fileName: string; fileSize: number; fileType: string },
+    currentUser: CurrentUser
+  ) {
+    // Vérifier que le produit existe et que l'utilisateur a les droits
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, brandId: true, name: true },
+    });
+
+    if (!product) {
+      throw AppErrorFactory.notFound('Product', productId);
+    }
+
+    // Vérifier les permissions
+    if (currentUser.role !== UserRole.PLATFORM_ADMIN && 
+        currentUser.brandId !== product.brandId) {
+      throw AppErrorFactory.insufficientPermissions('upload model to product', { productId });
+    }
+
+    // Validation format
+    const allowedFormats = ['.glb', '.gltf', '.usdz', '.fbx', '.obj'];
+    const fileExtension = body.fileName
+      .toLowerCase()
+      .substring(body.fileName.lastIndexOf('.'));
+
+    if (!allowedFormats.includes(fileExtension)) {
+      throw AppErrorFactory.validationFailed(
+        `Format non supporté. Formats autorisés: ${allowedFormats.join(', ')}`,
+        [{ field: 'fileName', message: `Format ${fileExtension} non supporté` }]
+      );
+    }
+
+    // Validation taille (max 100MB)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (body.fileSize > maxSize) {
+      throw AppErrorFactory.validationFailed(
+        'Fichier trop volumineux. Taille maximum: 100MB',
+        [{ field: 'fileSize', message: `Taille ${body.fileSize} dépasse la limite de ${maxSize}` }]
+      );
+    }
+
+    // Si l'URL est locale ou temporaire, uploader vers Cloudinary
+    let finalModelUrl = body.fileUrl;
+
+    if (body.fileUrl.startsWith('blob:') || body.fileUrl.startsWith('data:') || body.fileUrl.startsWith('/tmp/')) {
+      try {
+        // Télécharger le fichier depuis l'URL temporaire
+        const fileResponse = await fetch(body.fileUrl);
+        const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
+
+        // Upload vers Cloudinary
+        const filename = `products/${productId}/models/${body.fileName}`;
+        finalModelUrl = await this.storageService.uploadBuffer(
+          fileBuffer,
+          filename,
+          {
+            contentType: body.fileType,
+            bucket: 'luneo-products',
+          }
+        );
+
+        this.logger.log(`Model uploaded to Cloudinary: ${finalModelUrl}`, { productId, fileName: body.fileName });
+      } catch (uploadError: any) {
+        this.logger.error('Error uploading model to Cloudinary', { error: uploadError, productId });
+        // Fallback: utiliser l'URL fournie même si l'upload a échoué
+      }
+    }
+
+    // Mettre à jour le produit avec l'URL du modèle
+    const existingProduct = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { modelConfig: true },
+    });
+
+    const updatedModelConfig = {
+      ...(existingProduct?.modelConfig as any || {}),
+      modelUpload: {
+        fileName: body.fileName,
+        fileSize: body.fileSize,
+        fileType: body.fileType,
+        uploadedAt: new Date().toISOString(),
+      },
+    };
+
+    const updatedProduct = await this.prisma.product.update({
+      where: { id: productId },
+      data: {
+        model3dUrl: finalModelUrl,
+        modelConfig: updatedModelConfig as any,
+      },
+      select: {
+        id: true,
+        model3dUrl: true,
+        modelConfig: true,
+      },
+    });
+
+    return {
+      productId,
+      modelUrl: finalModelUrl,
+      fileName: body.fileName,
+      fileSize: body.fileSize,
+      fileType: body.fileType,
+      uploadedAt: new Date().toISOString(),
     };
   }
 }

@@ -1,28 +1,20 @@
-import { createClient } from '@/lib/supabase/server';
+import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { ApiResponseBuilder, validateRequest } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
-import crypto from 'crypto';
+import { ApiResponseBuilder } from '@/lib/api-response';
+import { forwardGet } from '@/lib/backend-forward';
 
 /**
  * GET /api/integrations/shopify/connect
  * Initie le flux OAuth Shopify
+ * Forward vers backend NestJS: POST /api/ecommerce/shopify/install
+ * Note: Le backend gère l'OAuth flow, cette route peut rediriger vers le backend
+ * ou utiliser POST /ecommerce/shopify/install avec les paramètres
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
     const { searchParams } = new URL(request.url);
-    const shop = searchParams.get('shop'); // ex: monshop.myshopify.com
+    const shop = searchParams.get('shop');
 
-    // Validation
     if (!shop) {
       throw {
         status: 400,
@@ -31,7 +23,6 @@ export async function GET(request: Request) {
       };
     }
 
-    // Valider le format du shop
     if (!shop.endsWith('.myshopify.com')) {
       throw {
         status: 400,
@@ -40,48 +31,12 @@ export async function GET(request: Request) {
       };
     }
 
-    const clientId = process.env.SHOPIFY_CLIENT_ID;
-    if (!clientId) {
-      logger.error('SHOPIFY_CLIENT_ID not configured', new Error('Missing SHOPIFY_CLIENT_ID'));
-      throw {
-        status: 500,
-        message: 'Configuration Shopify manquante',
-        code: 'CONFIGURATION_ERROR',
-      };
-    }
-
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/api/integrations/shopify/callback`;
-    
-    // Scopes Shopify requis
-    const scopes = [
-      'read_products',
-      'write_products',
-      'read_inventory',
-      'write_inventory',
-      'read_orders',
-      'read_customers',
-    ].join(',');
-
-    // Générer un state pour CSRF protection
-    const state = crypto.randomBytes(32).toString('hex');
-
-    // Sauvegarder le state temporairement (vous pouvez utiliser Redis ou la session)
-    // Pour simplifier, on le passe dans l'URL et on vérifie côté callback
-
-    // Construire l'URL d'autorisation Shopify
-    const authUrl = `https://${shop}/admin/oauth/authorize?` + new URLSearchParams({
-      client_id: clientId,
-      scope: scopes,
-      redirect_uri: redirectUri,
-      state: `${state}:${user.id}`, // State contient user_id pour le callback
-    }).toString();
-
-    logger.info('Shopify OAuth initiated', {
-      userId: user.id,
+    // Le backend gère l'installation Shopify via POST /ecommerce/shopify/install
+    // Cette route génère l'URL d'installation OAuth
+    const result = await forwardPost('/ecommerce/shopify/install', request, {
       shop,
+      brandId: null, // Sera récupéré depuis le token JWT dans le backend
     });
-
-    // Rediriger vers Shopify pour autorisation
-    return NextResponse.redirect(authUrl);
+    return result.data;
   }, '/api/integrations/shopify/connect', 'GET');
 }

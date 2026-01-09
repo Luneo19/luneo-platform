@@ -1,8 +1,32 @@
 /**
  * Shopify Webhook Handler
- * EC-003: Gestion des webhooks Shopify
+ * Forward les webhooks Shopify vers le backend NestJS
+ * Backend: POST /ecommerce/shopify/webhook
  */
 
+import { NextRequest } from 'next/server';
+import { forwardWebhookToBackend } from '@/lib/backend-webhook-forward';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: NextRequest) {
+  return forwardWebhookToBackend(
+    '/ecommerce/shopify/webhook',
+    request,
+    [
+      'x-shopify-topic',
+      'x-shopify-shop-domain',
+      'x-shopify-hmac-sha256',
+    ]
+  );
+}
+
+/**
+ * @deprecated Old implementation - now forwards to backend
+ * This code is kept for reference but is no longer used
+ */
+/*
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
@@ -39,7 +63,7 @@ function verifyShopifyWebhook(
   );
 }
 
-export async function POST(request: NextRequest) {
+export async function POST_OLD(request: NextRequest) {
   try {
     const body = await request.text();
     const hmac = request.headers.get('X-Shopify-Hmac-Sha256');

@@ -3,10 +3,9 @@
  * Route API Next.js pour ajouter un commentaire à un projet AR
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { forwardGet, forwardPost } from '@/lib/backend-forward';
 import { z } from 'zod';
 
 const AddCommentSchema = z.object({
@@ -19,18 +18,32 @@ const AddCommentSchema = z.object({
   }).optional(),
 });
 
+/**
+ * GET /api/ar-studio/collaboration/projects/[id]/comments
+ * Liste les commentaires d'un projet de collaboration AR
+ * Forward vers backend NestJS: GET /api/ar-studio/collaboration/projects/:id/comments
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  return ApiResponseBuilder.handle(async () => {
+    const result = await forwardGet(`/ar-studio/collaboration/projects/${params.id}/comments`, request);
+    return result.data;
+  }, '/api/ar-studio/collaboration/projects/[id]/comments', 'GET');
+}
+
+/**
+ * POST /api/ar-studio/collaboration/projects/[id]/comments
+ * Ajoute un commentaire à un projet de collaboration AR
+ * Body: { content, modelId?, position? }
+ * Forward vers backend NestJS: POST /api/ar-studio/collaboration/projects/:id/comments
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
     const body = await request.json();
     const validation = AddCommentSchema.safeParse(body);
 
@@ -38,31 +51,8 @@ export async function POST(
       throw { status: 400, message: 'Données invalides', code: 'VALIDATION_ERROR', details: validation.error.issues };
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-    const { data: { session } } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
-
-    if (!accessToken) {
-      throw { status: 401, message: 'Token d\'accès manquant', code: 'UNAUTHORIZED' };
-    }
-
-    const response = await fetch(`${backendUrl}/api/ar-studio/collaboration/projects/${params.id}/comments`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(validation.data),
-    });
-
-    if (!response.ok) {
-      throw { status: response.status, message: 'Erreur backend', code: 'BACKEND_ERROR' };
-    }
-
-    const data = await response.json();
-    logger.info('Comment added to AR project', { projectId: params.id, userId: user.id });
-
-    return data;
+    const result = await forwardPost(`/ar-studio/collaboration/projects/${params.id}/comments`, request, validation.data);
+    return result.data;
   }, '/api/ar-studio/collaboration/projects/[id]/comments', 'POST');
 }
 

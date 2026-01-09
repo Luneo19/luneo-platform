@@ -7,7 +7,9 @@ import {
   Param,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
@@ -110,6 +112,33 @@ export class MarketplaceController {
   // STRIPE CONNECT
   // ========================================
 
+  @Post('seller/connect')
+  @ApiOperation({ summary: 'Crée un compte Stripe Connect pour un seller' })
+  @ApiResponse({ status: 201, description: 'Compte Connect créé' })
+  async createSellerConnect(
+    @Body() body: {
+      country?: string;
+      businessType?: 'individual' | 'company';
+      businessName?: string;
+      firstName?: string;
+      lastName?: string;
+    },
+    @Request() req: ExpressRequest & { user: { id: string; email?: string } },
+  ) {
+    return this.stripeConnect.createSellerConnectAccount(
+      req.user.id,
+      req.user.email || '',
+      body,
+    );
+  }
+
+  @Get('seller/connect')
+  @ApiOperation({ summary: 'Récupère le statut du compte Connect d\'un seller' })
+  @ApiResponse({ status: 200, description: 'Statut récupéré' })
+  async getSellerConnectStatus(@Request() req: ExpressRequest & { user: { id: string } }) {
+    return this.stripeConnect.getSellerConnectStatus(req.user.id);
+  }
+
   @Post('payouts')
   @ApiOperation({ summary: 'Crée un payout pour un artisan' })
   @ApiResponse({ status: 201, description: 'Payout créé' })
@@ -153,6 +182,7 @@ export class MarketplaceController {
     return this.qcSystem.getArtisanQCStats(artisanId);
   }
 }
+
 
 
 

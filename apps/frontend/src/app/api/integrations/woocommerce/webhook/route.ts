@@ -1,8 +1,33 @@
 /**
  * WooCommerce Webhook Handler
- * EC-003: Gestion des webhooks WooCommerce
+ * Forward les webhooks WooCommerce vers le backend NestJS
+ * Backend: POST /ecommerce/woocommerce/webhook
  */
 
+import { NextRequest } from 'next/server';
+import { forwardWebhookToBackend } from '@/lib/backend-webhook-forward';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: NextRequest) {
+  return forwardWebhookToBackend(
+    '/ecommerce/woocommerce/webhook',
+    request,
+    [
+      'x-wc-webhook-topic',
+      'x-wc-webhook-signature',
+      'x-wc-webhook-source',
+      'x-wc-webhook-delivery-id',
+    ]
+  );
+}
+
+/**
+ * @deprecated Old implementation - now forwards to backend
+ * This code is kept for reference but is no longer used
+ */
+/*
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
@@ -37,7 +62,7 @@ function verifyWooCommerceWebhook(
   );
 }
 
-export async function POST(request: NextRequest) {
+export async function POST_OLD(request: NextRequest) {
   try {
     const body = await request.text();
     const signature = request.headers.get('X-WC-Webhook-Signature');

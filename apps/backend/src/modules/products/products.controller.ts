@@ -217,4 +217,20 @@ export class ProductsController {
       endDate: endDate ? new Date(endDate) : undefined,
     });
   }
+
+  @Post(':id/upload-model')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload un modèle 3D pour un produit' })
+  @ApiParam({ name: 'id', description: 'ID du produit' })
+  @ApiResponse({
+    status: 200,
+    description: 'Modèle uploadé avec succès',
+  })
+  async uploadModel(
+    @Param('id') id: string,
+    @Body() body: { fileUrl: string; fileName: string; fileSize: number; fileType: string },
+    @Request() req: ExpressRequest & { user: CurrentUser }
+  ) {
+    return this.productsService.uploadModel(id, body, req.user);
+  }
 }

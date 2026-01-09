@@ -1,342 +1,296 @@
-# 🚀 GUIDE DE DÉPLOIEMENT - SOCLE 3D/AR + PERSONNALISATION
+# 🚀 Guide de Déploiement - Luneo Platform
 
-**Date**: Décembre 2024  
-**Version**: 1.0.0
+## ✅ Pré-requis Terminés
 
----
-
-## ✅ PRÉ-REQUIS
-
-### 1. Vérifications
-
-- [ ] Schema Prisma à jour
-- [ ] Migrations créées
-- [ ] Workers créés
-- [ ] Tests passent
-- [ ] Lint OK
-- [ ] Typecheck OK
-
-### 2. Environnement
-
-- [ ] PostgreSQL accessible
-- [ ] Redis accessible
-- [ ] Cloudinary/S3 configuré
-- [ ] Variables d'environnement configurées
+- ✅ Routes backend créées (23 routes)
+- ✅ Routes frontend migrées (25 routes)
+- ✅ Builds backend et frontend: OK
+- ✅ Railway CLI installé
+- ✅ Configuration Railway (`railway.toml`)
+- ✅ Configuration Vercel (`vercel.json`)
 
 ---
 
-## 📋 ÉTAPES DE DÉPLOIEMENT
+## 🚂 Déploiement Backend sur Railway
 
-### Phase 1 : Staging
-
-#### 1.1 Backup Database
-
-```bash
-# Backup staging DB
-pg_dump $STAGING_DATABASE_URL > backup_staging_$(date +%Y%m%d_%H%M%S).sql
-```
-
-#### 1.2 Appliquer Migrations
+### Étape 1 : Connexion à Railway
 
 ```bash
 cd apps/backend
-
-# Vérifier l'état des migrations
-npx prisma migrate status
-
-# Appliquer les migrations
-npx prisma migrate deploy
-
-# Vérifier que tout est OK
-npx prisma studio
+railway login
 ```
 
-#### 1.3 Générer Prisma Client
+Cette commande va ouvrir votre navigateur pour vous connecter.
+
+### Étape 2 : Lier le Projet (si pas déjà fait)
 
 ```bash
-npx prisma generate
+# Si vous avez déjà un projet Railway
+railway link -p <PROJECT_ID>
+
+# Ou créer un nouveau projet
+railway init
 ```
 
-#### 1.4 Build & Test
+### Étape 3 : Configurer les Variables d'Environnement
+
+Dans Railway Dashboard ou via CLI:
 
 ```bash
-# Build backend
-npm run build
+# Variables OBLIGATOIRES
+railway variables set DATABASE_URL="${{Postgres.DATABASE_URL}}"
+railway variables set NODE_ENV="production"
+railway variables set PORT="3001"
+railway variables set JWT_SECRET="$(openssl rand -base64 32)"
+railway variables set JWT_REFRESH_SECRET="$(openssl rand -base64 32)"
+railway variables set JWT_EXPIRES_IN="15m"
+railway variables set JWT_REFRESH_EXPIRES_IN="7d"
 
-# Tests
-npm run test
+# Variables IMPORTANTES (selon vos besoins)
+railway variables set FRONTEND_URL="https://www.luneo.app"
+railway variables set CORS_ORIGIN="https://www.luneo.app"
+railway variables set API_PREFIX="/api"
 
-# Lint
-npm run lint
-
-# Typecheck
-npm run type-check
+# Variables pour les services externes (à configurer)
+# railway variables set SENDGRID_API_KEY="SG.xxx..."
+# railway variables set STRIPE_SECRET_KEY="sk_live_..."
+# railway variables set OPENAI_API_KEY="sk-..."
+# railway variables set CLOUDINARY_CLOUD_NAME="xxx"
+# railway variables set CLOUDINARY_API_KEY="xxx"
+# railway variables set CLOUDINARY_API_SECRET="xxx"
 ```
 
-#### 1.5 Déployer Backend
+**⚠️ Important**: Créez d'abord une base PostgreSQL dans Railway Dashboard:
+- Cliquez sur "+ New" → "Database" → "PostgreSQL"
+- Railway génère automatiquement `DATABASE_URL`
+- Utilisez `${{Postgres.DATABASE_URL}}` pour référencer la DB
+
+### Étape 4 : Configurer le Root Directory
+
+Dans Railway Dashboard:
+- Allez dans votre service backend
+- Settings → Root Directory
+- Configurez: `apps/backend` (ou laissez vide si configuré dans `railway.toml`)
+
+### Étape 5 : Exécuter les Migrations Prisma
 
 ```bash
-# Selon votre plateforme (Railway, Hetzner, etc.)
-# Exemple Railway:
+cd apps/backend
+railway run pnpm prisma migrate deploy
+```
+
+### Étape 6 : Déployer
+
+```bash
+# Option 1: Via Railway CLI
+cd apps/backend
 railway up
+
+# Option 2: Via GitHub (automatique après push)
+git push origin main
 ```
 
-#### 1.6 Vérifier
+### Étape 7 : Vérifier le Déploiement
 
-- [ ] API endpoints répondent
-- [ ] Workers démarrent
-- [ ] Queues BullMQ fonctionnent
-- [ ] Cache Redis fonctionne
-- [ ] Logs OK
+```bash
+# Voir les logs
+railway logs
+
+# Obtenir l'URL du service
+railway domain
+
+# Tester le health check
+curl https://<your-railway-domain>/health
+```
 
 ---
 
-### Phase 2 : Production
+## 🌐 Déploiement Frontend sur Vercel
 
-#### 2.1 Maintenance Window
-
-**⚠️ IMPORTANT** : Planifier une fenêtre de maintenance
-
-- Durée estimée : 15-30 minutes
-- Notifier les utilisateurs si nécessaire
-
-#### 2.2 Backup Production
+### Étape 1 : Connexion à Vercel (si via CLI)
 
 ```bash
-# Backup production DB (CRITIQUE)
-pg_dump $PRODUCTION_DATABASE_URL > backup_prod_$(date +%Y%m%d_%H%M%S).sql
-
-# Vérifier la taille du backup
-ls -lh backup_prod_*.sql
+cd apps/frontend
+vercel login
 ```
 
-#### 2.3 Appliquer Migrations
+### Étape 2 : Lier le Projet
 
+```bash
+cd apps/frontend
+vercel link
+```
+
+### Étape 3 : Configurer les Variables d'Environnement
+
+Dans Vercel Dashboard ou via CLI:
+
+```bash
+# Variables OBLIGATOIRES
+vercel env add NEXT_PUBLIC_BACKEND_URL "https://<your-railway-domain>" production
+vercel env add NEXT_PUBLIC_API_URL "https://<your-railway-domain>/api" production
+
+# Variables pour Supabase (si utilisées)
+# vercel env add NEXT_PUBLIC_SUPABASE_URL "https://xxx.supabase.co" production
+# vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY "xxx" production
+
+# Variables pour les services externes
+# vercel env add STRIPE_PUBLISHABLE_KEY "pk_live_xxx" production
+# vercel env add CLOUDINARY_CLOUD_NAME "xxx" production
+```
+
+### Étape 4 : Configurer le Root Directory
+
+Dans Vercel Dashboard:
+- Allez dans votre projet
+- Settings → General → Root Directory
+- Configurez: `apps/frontend`
+
+### Étape 5 : Déployer
+
+```bash
+# Option 1: Via Vercel CLI
+cd apps/frontend
+vercel --prod
+
+# Option 2: Via GitHub (automatique après push)
+git push origin main
+```
+
+### Étape 6 : Vérifier le Déploiement
+
+```bash
+# Voir les logs
+vercel logs
+
+# Ouvrir le dashboard
+vercel open
+```
+
+---
+
+## 🔄 Workflow Automatique (Recommandé)
+
+### Via GitHub
+
+1. **Connecter Railway à GitHub**:
+   - Railway Dashboard → Service Backend → Settings → Source
+   - Connecter votre repo `luneo-platform`
+   - Root Directory: `apps/backend`
+   - Branch: `main`
+
+2. **Connecter Vercel à GitHub**:
+   - Vercel Dashboard → Add New Project
+   - Importez votre repo `luneo-platform`
+   - Root Directory: `apps/frontend`
+   - Framework Preset: Next.js
+
+3. **Déploiements automatiques**:
+   ```bash
+   git add .
+   git commit -m "Deploy: Migrations routes et modules backend"
+   git push origin main
+   ```
+   - Railway déploie automatiquement le backend
+   - Vercel déploie automatiquement le frontend
+
+---
+
+## ✅ Checklist Post-Déploiement
+
+### Backend (Railway)
+- [ ] Health check fonctionne: `curl https://<domain>/health`
+- [ ] Migrations Prisma appliquées: `railway run pnpm prisma migrate deploy`
+- [ ] Variables d'environnement configurées
+- [ ] Logs accessibles: `railway logs`
+- [ ] Domaine Railway configuré (optionnel)
+
+### Frontend (Vercel)
+- [ ] Build réussit
+- [ ] Variables d'environnement configurées
+- [ ] URL backend correcte dans `NEXT_PUBLIC_BACKEND_URL`
+- [ ] Déploiement accessible
+- [ ] Logs accessibles: `vercel logs`
+
+---
+
+## 🧪 Tests Post-Déploiement
+
+### Tester les Nouvelles Routes Backend
+
+```bash
+# Backend URL
+BACKEND_URL="https://<your-railway-domain>"
+
+# Health check
+curl $BACKEND_URL/health
+
+# Test des nouvelles routes (avec authentification)
+curl -X POST $BACKEND_URL/api/render/3d/highres \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"configurationId": "test"}'
+
+curl -X POST $BACKEND_URL/api/customization/generate \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"productId": "test", "zoneId": "test", "prompt": "test"}'
+```
+
+### Tester le Frontend
+
+1. Accéder à `https://<your-vercel-domain>`
+2. Tester le login/register
+3. Tester les nouvelles fonctionnalités migrées
+4. Vérifier les appels API vers le backend
+
+---
+
+## 📊 Résumé des Routes Migrées
+
+### Backend Routes Créées (23 routes)
+- ✅ Design: versions, export-print
+- ✅ Webhooks: Stripe, Shopify, WooCommerce
+- ✅ AR: export, convert-usdz, render-highres, export-ar
+- ✅ AI: smart-crop, text-to-design
+- ✅ Referral: join, withdraw
+- ✅ Marketplace: seller/connect
+- ✅ Cron: analytics-digest, cleanup
+- ✅ Products: upload-model, zones
+- ✅ Customization: generate
+- ✅ Bracelet: render
+
+### Frontend Routes Migrées (25 routes)
+- ✅ Toutes les routes prioritaires forwardent vers le backend
+
+---
+
+## 🆘 Dépannage
+
+### Backend ne démarre pas sur Railway
+- Vérifier les logs: `railway logs`
+- Vérifier `DATABASE_URL` est correct
+- Vérifier que les migrations Prisma sont appliquées
+- Vérifier le Root Directory dans Railway
+
+### Frontend ne se connecte pas au backend
+- Vérifier `NEXT_PUBLIC_BACKEND_URL` dans Vercel
+- Vérifier CORS est configuré dans le backend
+- Vérifier les logs Vercel: `vercel logs`
+
+### Migrations Prisma échouent
 ```bash
 cd apps/backend
-
-# Vérifier l'état
-npx prisma migrate status
-
-# Appliquer (ATTENTION: Production)
-npx prisma migrate deploy
-
-# Vérifier
-npx prisma studio
-```
-
-#### 2.4 Vérifier Données Migrées
-
-```sql
--- Vérifier que les OrderItems ont été créés
-SELECT COUNT(*) FROM "OrderItem";
-
--- Vérifier que les Orders existants ont des OrderItems
-SELECT o.id, COUNT(oi.id) as item_count
-FROM "Order" o
-LEFT JOIN "OrderItem" oi ON oi."orderId" = o.id
-GROUP BY o.id
-HAVING COUNT(oi.id) = 0; -- Devrait être 0
-
--- Vérifier les index
-SELECT indexname, indexdef 
-FROM pg_indexes 
-WHERE tablename IN ('DesignSpec', 'Snapshot', 'OrderItem');
-```
-
-#### 2.5 Déployer Code
-
-```bash
-# Build
-npm run build
-
-# Déployer (selon votre plateforme)
-# Railway:
-railway up --service backend
-
-# Ou Vercel:
-vercel deploy --prod
-```
-
-#### 2.6 Redémarrer Workers
-
-```bash
-# Redémarrer les workers BullMQ
-# Selon votre setup (PM2, systemd, etc.)
-pm2 restart all
-# ou
-systemctl restart luneo-workers
-```
-
-#### 2.7 Vérifier Production
-
-- [ ] Health check OK
-- [ ] Endpoints API répondent
-- [ ] Workers traitent les jobs
-- [ ] Logs OK
-- [ ] Métriques OK (Sentry, etc.)
-
----
-
-## 🔍 VÉRIFICATIONS POST-DÉPLOIEMENT
-
-### 1. Endpoints API
-
-```bash
-# Test Specs
-curl -X POST https://api.luneo.com/api/v1/specs \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"productId": "...", "zoneInputs": {...}}'
-
-# Test Snapshots
-curl -X POST https://api.luneo.com/api/v1/snapshots \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"specHash": "..."}'
-
-# Test Personalization
-curl -X POST https://api.luneo.com/api/v1/personalization/validate \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"productId": "...", "zoneInputs": {...}}'
-```
-
-### 2. Workers BullMQ
-
-```bash
-# Vérifier les queues (via Redis CLI ou dashboard)
-redis-cli KEYS "bull:*"
-
-# Vérifier les jobs en cours
-# (via dashboard BullMQ si configuré)
-```
-
-### 3. Database
-
-```sql
--- Vérifier les nouvelles tables
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
-AND table_name IN ('DesignSpec', 'Snapshot', 'OrderItem');
-
--- Vérifier les index
-SELECT indexname 
-FROM pg_indexes 
-WHERE tablename IN ('DesignSpec', 'Snapshot', 'OrderItem');
-```
-
-### 4. Logs
-
-```bash
-# Vérifier les logs des workers
-tail -f logs/workers.log
-
-# Vérifier les erreurs
-grep ERROR logs/*.log
+railway run pnpm prisma migrate deploy
+railway run pnpm prisma generate
 ```
 
 ---
 
-## 🚨 ROLLBACK PLAN
+## 🎯 Prochaines Étapes
 
-### Si migration échoue
-
-```bash
-# 1. Restaurer le backup
-psql $DATABASE_URL < backup_prod_YYYYMMDD_HHMMSS.sql
-
-# 2. Revenir à la version précédente du code
-git checkout <previous-commit>
-npm run build
-# Déployer
-```
-
-### Si code déployé échoue
-
-```bash
-# 1. Revenir à la version précédente
-git checkout <previous-commit>
-npm run build
-# Déployer
-
-# 2. Redémarrer services
-pm2 restart all
-```
-
----
-
-## 📊 MÉTRIQUES À MONITORER
-
-### 1. Performance
-
-- Temps de réponse API (p50, p95, p99)
-- Durée des renders
-- Durée des exports
-
-### 2. Erreurs
-
-- Taux d'erreur API
-- Taux d'échec workers
-- Erreurs Sentry
-
-### 3. Ressources
-
-- CPU usage
-- Memory usage
-- Database connections
-- Redis connections
-
-### 4. Queues
-
-- Taille des queues
-- Temps d'attente
-- Taux de traitement
-
----
-
-## ✅ CHECKLIST FINALE
-
-### Avant déploiement
-
-- [ ] Backup DB créé
-- [ ] Migrations testées sur staging
-- [ ] Tests passent
-- [ ] Code review OK
-- [ ] Documentation à jour
-- [ ] Plan de rollback préparé
-
-### Après déploiement
-
-- [ ] Migrations appliquées
-- [ ] Endpoints répondent
-- [ ] Workers fonctionnent
-- [ ] Pas d'erreurs critiques
-- [ ] Métriques OK
-- [ ] Logs OK
-
----
-
-## 🆘 SUPPORT
-
-En cas de problème :
-
-1. Vérifier les logs
-2. Vérifier Sentry
-3. Vérifier les métriques
-4. Contacter l'équipe
-
----
-
-**BON DÉPLOIEMENT ! 🚀**
-
-
-
-
-
-
-
-
-
-
+1. ✅ Déployer backend sur Railway
+2. ✅ Déployer frontend sur Vercel
+3. ✅ Configurer les variables d'environnement
+4. ✅ Tester les routes en production
+5. ✅ Configurer les domaines personnalisés (optionnel)

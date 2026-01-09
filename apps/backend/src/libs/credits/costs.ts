@@ -7,9 +7,15 @@ export const ENDPOINT_COSTS: Record<string, number> = {
   // Génération IA
   '/api/ai/generate': 5,                    // DALL-E 3 standard (1024x1024)
   '/api/ai/generate/hd': 10,                // DALL-E 3 HD (1792x1024 ou 1024x1792)
+  '/api/ai/upscale': 2,                      // Real-ESRGAN 2x
+  '/api/ai/upscale/4x': 4,                   // Real-ESRGAN 4x
   '/api/ai/background-removal': 2,          // Remove.bg ou équivalent
   '/api/ai/extract-colors': 1,              // Analyse simple
   '/api/ai/variants': 3,                    // Génération 3 variantes
+  'ai/generate': 5,                         // DALL-E 3 (endpoint backend)
+  'ai/upscale': 2,                          // Real-ESRGAN (endpoint backend)
+  'ai/background-removal': 2,               // Background removal (endpoint backend)
+  'ai/extract-colors': 1,                   // Extract colors (endpoint backend)
   
   // Rendus
   '/api/3d/render-highres': 8,              // Rendu 3D haute résolution
@@ -75,6 +81,7 @@ export function getEndpointCost(endpoint: string): number {
 export function getRealCost(endpoint: string): number {
   return REAL_COSTS_CENTS[endpoint] || 0;
 }
+
 
 
 

@@ -132,4 +132,3 @@ export function LineChart(props: LineChartProps) {
 
 // Default export for backward compatibility
 export default LineChart;
-

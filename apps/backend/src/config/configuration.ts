@@ -139,8 +139,8 @@ export const stripeConfig = registerAs('stripe', () => ({
   pricePro: process.env.STRIPE_PRICE_PRO,
   priceBusiness: process.env.STRIPE_PRICE_BUSINESS,
   priceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE,
-  successUrl: process.env.STRIPE_SUCCESS_URL || 'https://app.luneo.app/dashboard/billing/success',
-  cancelUrl: process.env.STRIPE_CANCEL_URL || 'https://app.luneo.app/dashboard/billing/cancel',
+  successUrl: process.env.STRIPE_SUCCESS_URL || 'https://www.luneo.app/dashboard/billing/success',
+  cancelUrl: process.env.STRIPE_CANCEL_URL || 'https://www.luneo.app/dashboard/billing/cancel',
 }));
 
 // Cloudinary configuration
@@ -204,7 +204,7 @@ export const appConfig = registerAs('app', () => {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || process.env.$PORT || '3000', 10),
     apiPrefix: apiPrefix,
-    frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app',
+    frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.luneo.app',
     corsOrigin: process.env.CORS_ORIGIN || '*',
     rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
     rateLimitLimit: parseInt(process.env.RATE_LIMIT_LIMIT || '100', 10),

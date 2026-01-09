@@ -1,6 +1,6 @@
 import { CurrentUser } from '@/common/types/user.types';
-import { BadRequestException, Body, Controller, Get, Headers, HttpCode, HttpStatus, Logger, Post, RawBodyRequest, Request, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Logger, Post, Query, RawBodyRequest, Request, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import Stripe from 'stripe';
 import { Public } from '../../common/decorators/public.decorator';
@@ -39,6 +39,76 @@ export class BillingController {
         error: error.message,
       };
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('subscription')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Récupérer les informations d\'abonnement de l\'utilisateur' })
+  @ApiResponse({ status: 200, description: 'Informations d\'abonnement récupérées avec succès' })
+  async getSubscription(
+    @Request() req: ExpressRequest & { user: CurrentUser }
+  ) {
+    return this.billingService.getSubscription(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('invoices')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Récupérer les factures de l\'utilisateur' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
+  @ApiResponse({ status: 200, description: 'Factures récupérées avec succès' })
+  async getInvoices(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    return this.billingService.getInvoices(req.user.id, pageNum, limitNum);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('payment-methods')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Récupérer les méthodes de paiement de l\'utilisateur' })
+  @ApiResponse({ status: 200, description: 'Méthodes de paiement récupérées avec succès' })
+  async getPaymentMethods(
+    @Request() req: ExpressRequest & { user: CurrentUser }
+  ) {
+    return this.billingService.getPaymentMethods(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('payment-methods')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Ajouter une méthode de paiement' })
+  @ApiResponse({ status: 200, description: 'Méthode de paiement ajoutée avec succès' })
+  async addPaymentMethod(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Body() body: { paymentMethodId: string; setAsDefault?: boolean }
+  ) {
+    return this.billingService.addPaymentMethod(
+      req.user.id,
+      body.paymentMethodId,
+      body.setAsDefault || false
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('payment-methods')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Supprimer une méthode de paiement' })
+  @ApiResponse({ status: 200, description: 'Méthode de paiement supprimée avec succès' })
+  async removePaymentMethod(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Query('id') paymentMethodId: string
+  ) {
+    if (!paymentMethodId) {
+      throw new BadRequestException('Payment method ID is required');
+    }
+    return this.billingService.removePaymentMethod(req.user.id, paymentMethodId);
   }
 
   @UseGuards(JwtAuthGuard)

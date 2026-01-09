@@ -1,14 +1,12 @@
 /**
- * ★★★ API ROUTE - ZONES PRODUIT ★★★
- * API route pour gérer les zones d'un produit
- * - GET: Récupère les zones
- * - PUT: Met à jour les zones
+ * GET/PUT /api/products/[id]/zones
+ * Gère les zones d'un produit
+ * Forward vers backend NestJS: GET/PUT /product-engine/products/:id/zones
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { logger } from '@/lib/logger';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
+import { forwardGet, forwardPut } from '@/lib/backend-forward';
 import { z } from 'zod';
 
 // ========================================
@@ -37,10 +35,6 @@ const UpdateZonesSchema = z.array(
   })
 );
 
-// ========================================
-// GET - Récupère les zones
-// ========================================
-
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -48,23 +42,10 @@ export async function GET(
   return ApiResponseBuilder.handle(async () => {
     const productId = params.id;
 
-    logger.info('Fetching zones', { productId });
-
-    const zones = await db.zone.findMany({
-      where: {
-        productId,
-        isActive: true,
-      },
-      orderBy: { order: 'asc' },
-    });
-
-    return ApiResponseBuilder.success(zones);
+    const result = await forwardGet(`/product-engine/products/${productId}/zones`, request);
+    return result.data;
   }, '/api/products/[id]/zones', 'GET');
 }
-
-// ========================================
-// PUT - Met à jour les zones
-// ========================================
 
 export async function PUT(
   request: NextRequest,
@@ -77,30 +58,8 @@ export async function PUT(
     // Validation
     const validatedZones = UpdateZonesSchema.parse(body);
 
-    logger.info('Updating zones', { productId, count: validatedZones.length });
-
-    // Transaction pour mettre à jour toutes les zones
-    const result = await db.$transaction(async (tx) => {
-      // Supprime les zones existantes
-      await tx.zone.deleteMany({
-        where: { productId },
-      });
-
-      // Crée les nouvelles zones
-      const createdZones = await Promise.all(
-        validatedZones.map((zone) =>
-          tx.zone.create({
-            data: {
-              ...zone,
-              productId,
-            },
-          })
-        )
-      );
-
-      return createdZones;
-    });
-
-    return ApiResponseBuilder.success(result);
+    // Forward vers le backend - le backend gère la mise à jour de toutes les zones
+    const result = await forwardPut(`/product-engine/products/${productId}/zones`, request, validatedZones);
+    return result.data;
   }, '/api/products/[id]/zones', 'PUT');
 }

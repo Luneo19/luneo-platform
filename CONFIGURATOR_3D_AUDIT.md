@@ -148,3 +148,4 @@ configurator-3d/
 - **Performance** : Optimiser le rendu 3D pour les performances
 
 
+

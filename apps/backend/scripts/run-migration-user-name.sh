@@ -26,3 +26,4 @@ psql "$DATABASE_URL" -c "SELECT column_name, data_type, is_nullable FROM informa
 
 
 
+

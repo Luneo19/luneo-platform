@@ -4,54 +4,31 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
+import { forwardGet, forwardPost } from '@/lib/backend-forward';
 
-export async function GET() {
+/**
+ * GET /api/editor/projects
+ * Liste tous les projets editor
+ * Forward vers backend NestJS: GET /api/editor/projects
+ */
+export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié' };
-    }
-    const { data: { session } } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
-    if (!accessToken) {
-      throw { status: 401, message: 'Token manquant' };
-    }
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-    const resp = await fetch(`${backendUrl}/api/editor/projects`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!resp.ok) throw { status: resp.status, message: 'Erreur backend' };
-    return await resp.json();
+    const result = await forwardGet('/editor/projects', request);
+    return result.data;
   }, '/api/editor/projects', 'GET');
 }
 
+/**
+ * POST /api/editor/projects
+ * Crée un nouveau projet editor
+ * Forward vers backend NestJS: POST /api/editor/projects
+ */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié' };
-    }
     const body = await request.json();
-    const { data: { session } } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
-    if (!accessToken) {
-      throw { status: 401, message: 'Token manquant' };
-    }
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-    const resp = await fetch(`${backendUrl}/api/editor/projects`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    if (!resp.ok) throw { status: resp.status, message: 'Erreur backend' };
-    return await resp.json();
+    const result = await forwardPost('/editor/projects', request, body);
+    return result.data;
   }, '/api/editor/projects', 'POST');
 }
 

@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { logger } from '@/lib/logger';
 
 export default function Error({
   error,
@@ -17,7 +18,12 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[DashboardError]', error);
+    logger.error('Dashboard page error', {
+      error,
+      message: error.message,
+      stack: error.stack,
+      digest: error.digest,
+    });
     // Envoyer à Sentry si configuré
   }, [error]);
 
@@ -50,5 +56,6 @@ export default function Error({
     </div>
   );
 }
+
 
 

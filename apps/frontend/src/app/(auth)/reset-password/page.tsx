@@ -92,17 +92,19 @@ function ResetPasswordPageContent() {
     
     const init = async () => {
       try {
-        const { createClient } = await import('@/lib/supabase/client');
-        const supabase = createClient();
+        // Extract token from URL query params
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
         
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
-        
-        if (exchangeError) {
-          throw new Error(exchangeError.message);
+        if (!token) {
+          throw new Error('Token manquant dans l\'URL');
         }
         
+        // Store token for later use in form submission
         if (isMounted) {
           setIsReady(true);
+          // Store token in state or use it directly in handleSubmit
+          (window as any).__resetToken = token;
         }
       } catch (err) {
         logger.error('Token validation error', {
@@ -144,13 +146,29 @@ function ResetPasswordPageContent() {
     }
 
     try {
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
+      // Get token from URL or stored value
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token') || (window as any).__resetToken;
 
-      const { error: passwordError } = await supabase.auth.updateUser({ password });
+      if (!token) {
+        setError('Token de réinitialisation manquant');
+        setLoading(false);
+        return;
+      }
 
-      if (passwordError) {
-        throw new Error(passwordError.message);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/v1/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Une erreur est survenue');
       }
 
       setSuccess(true);

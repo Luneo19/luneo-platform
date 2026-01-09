@@ -1,0 +1,178 @@
+# 🔧 CURSOR RULES - LUNEO PLATFORM
+
+## 🏗️ Architecture
+
+### Monorepo Structure
+- `apps/backend/` - NestJS API (TypeScript)
+- `apps/frontend/` - Next.js 15 App (TypeScript)
+- `packages/` - Shared packages
+- `apps/ai-engine/` - Python FastAPI service
+
+### Stack Technique
+- **Backend** : NestJS 10, Prisma 5.22, PostgreSQL, Redis, BullMQ
+- **Frontend** : Next.js 15, React 18, TypeScript, Tailwind, shadcn/ui
+- **Auth** : JWT + OAuth (Google, GitHub)
+- **Payments** : Stripe
+- **AI** : OpenAI
+- **Storage** : Cloudinary
+
+---
+
+## 🔐 Authentification
+
+### API Backend (NestJS)
+**Endpoints** :
+- `POST /api/v1/auth/signup` - Inscription
+- `POST /api/v1/auth/login` - Connexion
+- `POST /api/v1/auth/refresh` - Refresh token
+- `POST /api/v1/auth/logout` - Déconnexion
+- `POST /api/v1/auth/forgot-password` - Demander réinitialisation
+- `POST /api/v1/auth/reset-password` - Réinitialiser mot de passe
+- `GET /api/v1/auth/me` - Profil utilisateur
+
+**Service** : `apps/backend/src/modules/auth/auth.service.ts`
+**Controller** : `apps/backend/src/modules/auth/auth.controller.ts`
+
+**Tokens** :
+- Access Token : JWT (15min expiration)
+- Refresh Token : JWT stocké en DB (7 jours)
+- Reset Token : JWT temporaire (1h)
+
+**⚠️ IMPORTANT** : Actuellement tokens stockés dans localStorage. À migrer vers httpOnly cookies.
+
+### Frontend
+**Pages** : `apps/frontend/src/app/(auth)/`
+- `/login` - Utilise `endpoints.auth.login()`
+- `/register` - Utilise `endpoints.auth.signup()`
+- `/forgot-password` - Utilise `endpoints.auth.forgotPassword()`
+- `/reset-password` - Utilise `endpoints.auth.resetPassword()`
+
+**API Client** : `apps/frontend/src/lib/api/client.ts`
+
+---
+
+## 📝 Conventions de Code
+
+### Backend (NestJS)
+- **DTOs** : Toujours utiliser class-validator pour validation
+- **Services** : Logique métier uniquement
+- **Controllers** : Routing et validation DTO uniquement
+- **Guards** : `@Public()` pour routes publiques, `@Roles()` pour RBAC
+- **Errors** : Utiliser exceptions NestJS (NotFoundException, UnauthorizedException, etc.)
+- **Logging** : Utiliser `Logger` de NestJS
+
+### Frontend (Next.js)
+- **Components** : 'use client' pour interactivité
+- **Error Handling** : Utiliser `logger.error()` (PAS `console.error`)
+- **API Calls** : Utiliser `endpoints` depuis `@/lib/api/client`
+- **State** : React Query pour données serveur, Zustand pour état global
+- **Styling** : Tailwind CSS + shadcn/ui components
+
+---
+
+## 🚨 Points d'Attention
+
+### Sécurité
+1. **CSRF** : Activé en production, peut être testé en dev avec `ENABLE_CSRF_IN_DEV=true`
+2. **Rate Limiting** : Activé en production, configurable via `ENABLE_RATE_LIMIT_IN_DEV=true`
+3. **Headers Sécurité** : Configurés dans `middleware.ts` (CSP, HSTS, etc.)
+4. **Tokens** : Migration vers httpOnly cookies en cours
+
+### Email
+- Service : `EmailService` dans `apps/backend/src/modules/email/`
+- Providers : SendGrid, Mailgun, SMTP
+- Templates : Configurés pour welcome, password-reset, confirmation
+
+### Database
+- ORM : Prisma
+- Migrations : `npx prisma migrate dev`
+- Seeds : `npm run seed` (si disponible)
+
+---
+
+## 🧪 Tests
+
+### Backend
+```bash
+cd apps/backend
+npm run test          # Tests unitaires
+npm run test:e2e      # Tests E2E
+npm run test:cov      # Coverage
+```
+
+### Frontend
+```bash
+cd apps/frontend
+npm run test          # Tests unitaires (Vitest)
+npm run test:e2e      # Tests E2E (Playwright)
+```
+
+---
+
+## 📚 Documentation
+
+- **Audit** : `AUDIT_COMPLET_APPLICATION_SAAS.md`
+- **Corrections** : `CORRECTIONS_IMPLÉMENTÉES.md`
+- **API Docs** : `http://localhost:3001/api/docs` (Swagger)
+
+---
+
+## ⚡ Commandes Utiles
+
+```bash
+# Development
+pnpm dev              # Start all services
+cd apps/backend && npm run start:dev
+cd apps/frontend && npm run dev
+
+# Build
+pnpm build            # Build all
+
+# Database
+cd apps/backend && npx prisma studio
+cd apps/backend && npx prisma migrate dev
+
+# Linting
+pnpm lint
+```
+
+---
+
+## 🐛 Débogage
+
+### Backend
+- Logs : Winston logger configuré
+- Monitoring : Sentry intégré
+- Health : `/health` endpoint
+
+### Frontend
+- Logs : Logger dans `@/lib/logger`
+- Error Boundaries : Configurés pour toutes les pages
+- Monitoring : Sentry intégré
+
+---
+
+## ✅ Checklist Avant Commit
+
+- [ ] Tests passent
+- [ ] Linting OK (`pnpm lint`)
+- [ ] TypeScript OK (`pnpm type-check`)
+- [ ] Pas de `console.log` (utiliser `logger`)
+- [ ] DTOs validés avec class-validator
+- [ ] Errors gérées correctement
+- [ ] Documentation mise à jour si nécessaire
+
+---
+
+## 🔄 Workflow Recommandé
+
+1. Créer feature branch
+2. Implémenter avec tests
+3. Vérifier linting/type-check
+4. Commit avec message clair
+5. Push et créer PR
+6. Review et merge
+
+---
+
+*Dernière mise à jour : Décembre 2024*

@@ -326,3 +326,4 @@ Si un blocker est identifié, le documenter immédiatement.
 **Ce guide est un complément au prompt principal. Utilisez-le pour maximiser l'efficacité du développement.** 🚀
 
 
+

@@ -11,3 +11,4 @@ export class AddHistoryEntryDto {
   data: Record<string, unknown>;
 }
 
+

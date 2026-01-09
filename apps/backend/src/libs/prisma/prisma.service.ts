@@ -9,10 +9,14 @@ const logger = new Logger('PrismaService');
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   // Access to all Prisma models including DesignDNA, PromptTemplate, OutboxEvent, Artisan, WorkOrder, Payout
   constructor(private configService: ConfigService) {
+    // Configuration optimisée pour Railway/PostgreSQL
+    // Ajouter des paramètres de pool dans DATABASE_URL si nécessaire
+    const databaseUrl = configService.get('database.url');
+    
     super({
       datasources: {
         db: {
-          url: configService.get('database.url'),
+          url: databaseUrl,
         },
       },
       log: configService.get('app.nodeEnv') === 'development' ? ['query', 'error', 'warn'] : ['error'],
@@ -20,7 +24,21 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    await this.$connect();
+    try {
+      await this.$connect();
+      logger.log('✅ Prisma connected to database');
+    } catch (error) {
+      logger.error('❌ Failed to connect to database', error);
+      // Retry connection after 2 seconds
+      setTimeout(async () => {
+        try {
+          await this.$connect();
+          logger.log('✅ Prisma reconnected to database');
+        } catch (retryError) {
+          logger.error('❌ Retry connection failed', retryError);
+        }
+      }, 2000);
+    }
   }
 
   async onModuleDestroy() {

@@ -25,3 +25,4 @@ export function validateWidgetConfig(config: unknown): config is WidgetConfig {
 
 
 
+

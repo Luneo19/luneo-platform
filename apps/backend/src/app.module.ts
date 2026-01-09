@@ -60,6 +60,15 @@ import { ManufacturingModule } from './modules/manufacturing/manufacturing.modul
 import { WidgetModule } from './modules/widget/widget.module';
 import { GenerationModule } from './modules/generation/generation.module';
 import { EditorModule } from './modules/editor/editor.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CollectionsModule } from './modules/collections/collections.module';
+import { TeamModule } from './modules/team/team.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { ClipartsModule } from './modules/cliparts/cliparts.module';
+import { ReferralModule } from './modules/referral/referral.module';
+import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
+import { CustomizationModule } from './modules/customization/customization.module';
+import { BraceletModule } from './modules/bracelet/bracelet.module';
 
 // Common
 import { CommonModule } from './common/common.module';
@@ -214,6 +223,15 @@ import { TracingModule } from './libs/tracing/tracing.module';
     CreditsModule,
     MonitoringModule,
     SupportModule,
+    NotificationsModule,
+    CollectionsModule,
+    TeamModule,
+    FavoritesModule,
+    ClipartsModule,
+    ReferralModule,
+    CronJobsModule,
+    CustomizationModule,
+    BraceletModule,
     CollaborationModule,
 
     // Common utilities

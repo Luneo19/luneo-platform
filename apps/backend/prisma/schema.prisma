@@ -198,6 +198,15 @@ model User {
   sharedResourcesCreated SharedResource[] @relation("SharedResourcesCreated")
   comments               Comment[]
 
+  // Collections & Team
+  designCollections    DesignCollection[]
+  collectionItemsAdded DesignCollectionItem[] @relation("CollectionItemsAdded")
+  libraryFavorites     LibraryFavorite[]
+  teamMembers          TeamMember[]
+  teamInvitesSent      TeamInvite[]           @relation("TeamInvitesSent")
+  teamMembersInvited   TeamMember[]           @relation("TeamInviter")
+  cliparts             Clipart[]
+
   @@index([email])
   @@index([brandId])
   @@index([role])
@@ -316,6 +325,12 @@ model Brand {
   generations    Generation[]
   templates      Template[]
   invoices       Invoice[]
+
+  // Collections & Team
+  designCollections DesignCollection[]
+  teamMembers       TeamMember[]
+  teamInvites       TeamInvite[]
+  cliparts          Clipart[]
 
   @@index([slug])
   @@index([status])
@@ -578,10 +593,14 @@ model Design {
   orderItems     OrderItem[]     @relation("OrderItemDesign") // NOUVEAU
   assets         Asset[]
   customizations Customization[]
+  versions       DesignVersion[] // Historique des versions
   RenderResult   RenderResult[]
 
   // NOUVEAU: Layers relation
   layers DesignLayer[]
+
+  // Collections
+  collectionItems DesignCollectionItem[]
 
   @@index([userId])
   @@index([brandId])
@@ -591,6 +610,44 @@ model Design {
   @@index([createdAt])
   @@index([specId]) // NOUVEAU
   @@index([brandId, status]) // NOUVEAU: Composite
+}
+
+// ========================================
+// DESIGN VERSION (Versioning)
+// ========================================
+
+model DesignVersion {
+  id       String @id @default(cuid())
+  designId String
+  design   Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  // Version metadata
+  versionNumber Int // Version number (1, 2, 3, ...)
+  name          String? // Optional name for this version
+  description   String? // Optional description
+
+  // Snapshot of design state at version creation
+  prompt     String
+  options    Json // Generation options snapshot
+  previewUrl String? // Preview URL snapshot
+  highResUrl String? // High-res URL snapshot
+  imageUrl   String? // Main image URL snapshot
+  renderUrl  String? // Render URL snapshot
+  metadata   Json? // AI generation metadata snapshot
+  designData Json? // Widget editor data snapshot
+
+  // Version type
+  isAutoSave Boolean @default(false) // Auto-saved version or manual
+  snapshot   Json? // Full snapshot of design state
+
+  // Tracking
+  createdBy String? // User ID who created this version
+  createdAt DateTime @default(now())
+
+  @@index([designId])
+  @@index([designId, versionNumber])
+  @@index([designId, isAutoSave])
+  @@index([createdBy])
 }
 
 model Order {
@@ -2655,6 +2712,155 @@ model Comment {
 //   aiCollections       AICollection[]
 //   sharedResourcesCreated SharedResource[] @relation("SharedResourcesCreated")
 //   comments           Comment[]
+
+// ========================================
+// COLLECTIONS & FAVORITES
+// ========================================
+
+model DesignCollection {
+  id          String   @id @default(cuid())
+  userId      String
+  brandId     String
+  name        String
+  description String?
+  isPublic    Boolean  @default(false)
+  coverImage  String?
+  itemCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  items DesignCollectionItem[]
+
+  @@index([userId])
+  @@index([brandId])
+  @@index([isPublic])
+  @@map("DesignCollection")
+}
+
+model DesignCollectionItem {
+  id           String   @id @default(cuid())
+  collectionId String
+  designId     String
+  notes        String?
+  addedBy      String
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  collection  DesignCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  design      Design           @relation(fields: [designId], references: [id], onDelete: Cascade)
+  addedByUser User             @relation("CollectionItemsAdded", fields: [addedBy], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, designId])
+  @@index([collectionId])
+  @@index([designId])
+  @@map("DesignCollectionItem")
+}
+
+model LibraryFavorite {
+  id           String   @id @default(cuid())
+  userId       String
+  resourceId   String
+  resourceType String // 'template', 'clipart', 'design', etc.
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceId, resourceType])
+  @@index([userId])
+  @@index([resourceType])
+  @@map("LibraryFavorite")
+}
+
+model Clipart {
+  id            String   @id @default(cuid())
+  userId        String?
+  brandId       String?
+  name          String
+  description   String?
+  category      String
+  tags          String[]
+  url           String
+  thumbnailUrl  String?
+  width         Int?
+  height        Int?
+  fileSize      Int?
+  isPublic      Boolean  @default(false)
+  downloadCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  brand Brand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([brandId])
+  @@index([category])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@map("Clipart")
+}
+
+// ========================================
+// TEAM MANAGEMENT
+// ========================================
+
+model TeamMember {
+  id             String    @id @default(cuid())
+  organizationId String // Brand ID or User ID (for organization)
+  userId         String? // User ID if user exists
+  email          String
+  role           String    @default("member") // 'admin', 'manager', 'designer', 'member', 'viewer'
+  permissions    String[] // Array of permission strings
+  status         String    @default("pending") // 'active', 'inactive', 'pending', 'invited'
+  invitedBy      String?
+  joinedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  user    User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  inviter User?  @relation("TeamInviter", fields: [invitedBy], references: [id], onDelete: SetNull)
+  brand   Brand? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+  @@map("TeamMember")
+}
+
+model TeamInvite {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  role           String    @default("member")
+  token          String    @unique
+  invitedBy      String
+  status         String    @default("pending") // 'pending', 'accepted', 'cancelled', 'expired'
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  inviter User   @relation("TeamInvitesSent", fields: [invitedBy], references: [id], onDelete: Cascade)
+  brand   Brand? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email, status])
+  @@index([organizationId])
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("TeamInvite")
+}
 
 // Add relations to Brand model
 // Add to Brand model:

@@ -1,17 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import Stripe from 'stripe';
+import { NextRequest } from 'next/server';
+import { forwardWebhookToBackend } from '@/lib/backend-webhook-forward';
 
 export const runtime = 'nodejs';
-
-// Disable body parsing, need raw body for signature verification
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/webhooks/stripe
- * Gère les événements Stripe (abonnements, paiements, etc.)
+ * Forward les webhooks Stripe vers le backend NestJS
+ * Backend: POST /billing/webhook
  */
 export async function POST(request: NextRequest) {
+  return forwardWebhookToBackend(
+    '/billing/webhook',
+    request,
+    ['stripe-signature']
+  );
+}
+
+/**
+ * @deprecated Old implementation - now forwards to backend
+ * This code is kept for reference but is no longer used
+ */
+/*
+import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+import Stripe from 'stripe';
+
+export async function POST_OLD(request: NextRequest) {
   try {
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');

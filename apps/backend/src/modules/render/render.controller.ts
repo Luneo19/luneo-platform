@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { Render2DService } from './services/render-2d.service';
 import { Render3DService } from './services/render-3d.service';
@@ -165,6 +166,35 @@ export class RenderController {
       ...request,
     };
     return this.renderPrintReadyService.renderPrintReady(renderRequest);
+  }
+
+  @Post('3d/highres')
+  @ApiOperation({ summary: 'Génère un rendu 3D haute résolution' })
+  @ApiResponse({ status: 200, description: 'Rendu 3D haute résolution généré' })
+  async render3DHighRes(@Body() body: {
+    configurationId: string;
+    preset?: 'thumbnail' | 'preview' | 'hd' | '2k' | '4k' | 'print';
+    width?: number;
+    height?: number;
+    format?: 'png' | 'jpg' | 'webp';
+    quality?: number;
+    transparent?: boolean;
+    watermark?: string;
+  }, @Request() req: ExpressRequest & { user: { id: string } }) {
+    return this.render3DService.render3DHighRes(body, req.user.id);
+  }
+
+  @Post('3d/export-ar')
+  @ApiOperation({ summary: 'Exporte un modèle 3D pour AR (iOS/Android/Web)' })
+  @ApiResponse({ status: 200, description: 'Modèle AR exporté' })
+  async exportAR(@Body() body: {
+    configurationId: string;
+    platform: 'ios' | 'android' | 'web';
+    includeTextures?: boolean;
+    maxTextureSize?: number;
+    compression?: boolean;
+  }, @Request() req: ExpressRequest & { user: { id: string } }) {
+    return this.render3DService.exportAR(body, req.user.id);
   }
 }
 

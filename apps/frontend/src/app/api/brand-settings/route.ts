@@ -1,55 +1,49 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
-import { ApiResponseBuilder, validateRequest } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { NextRequest } from 'next/server';
+import { ApiResponseBuilder } from '@/lib/api-response';
+import { forwardGet, forwardPatch } from '@/lib/backend-forward';
 
 /**
  * GET /api/brand-settings
  * Récupère les paramètres de marque de l'utilisateur
+ * Forward vers backend NestJS: GET /api/users/me puis GET /api/brands/:id
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
+    // Récupérer le profil utilisateur pour obtenir le brandId
+    const userResult = await forwardGet('/users/me', request);
+    const user = userResult.data as { brandId?: string | null };
+    
+    if (!user?.brandId) {
+      // Pas de brand associé, retourner des valeurs par défaut
+      return {
+        brandSettings: {
+          primary_color: '#000000',
+          secondary_color: '#ffffff',
+          logo_url: null,
+          favicon_url: null,
+          brand_name: null,
+          brand_domain: null,
+        },
+        message: 'Paramètres de marque par défaut',
+      };
     }
 
-    // Récupérer les paramètres de marque
-    const { data: brandSettings, error: brandSettingsError } = await supabase
-      .from('brand_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    // Récupérer les détails de la brand (qui contient les settings)
+    const brandResult = await forwardGet(`/brands/${user.brandId}`, request);
+    const brand = brandResult.data as { settings?: Record<string, unknown> } | null;
 
-    if (brandSettingsError) {
-      if (brandSettingsError.code === 'PGRST116') {
-        // Pas de paramètres de marque, retourner des valeurs par défaut
-        return {
-          brandSettings: {
-            primary_color: '#000000',
-            secondary_color: '#ffffff',
-            logo_url: null,
-            favicon_url: null,
-            brand_name: null,
-            brand_domain: null,
-          },
-          message: 'Paramètres de marque par défaut',
-        };
-      }
-      logger.dbError('fetch brand settings', brandSettingsError, {
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la récupération des paramètres de marque' };
-    }
-
-    logger.info('Brand settings fetched', {
-      userId: user.id,
-    });
-
+    // Extraire les settings de la brand ou retourner des valeurs par défaut
+    const settings = brand?.settings || {};
+    
     return {
-      brandSettings: brandSettings || null,
+      brandSettings: {
+        primary_color: (settings as any)?.primary_color || '#000000',
+        secondary_color: (settings as any)?.secondary_color || '#ffffff',
+        logo_url: (settings as any)?.logo_url || brand?.logo || null,
+        favicon_url: (settings as any)?.favicon_url || null,
+        brand_name: brand?.name || null,
+        brand_domain: brand?.website || null,
+      },
     };
   }, '/api/brand-settings', 'GET');
 }
@@ -57,16 +51,10 @@ export async function GET(request: NextRequest) {
 /**
  * PUT /api/brand-settings
  * Met à jour les paramètres de marque de l'utilisateur
+ * Forward vers backend NestJS: GET /api/users/me puis PATCH /api/brands/:id
  */
 export async function PUT(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
     const body = await request.json();
     const {
       primary_color,
@@ -107,74 +95,59 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Vérifier si les paramètres existent déjà
-    const { data: existingSettings, error: checkError } = await supabase
-      .from('brand_settings')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    let updatedSettings;
-
-    if (checkError && checkError.code === 'PGRST116') {
-      // Créer les paramètres
-      const { data: createdSettings, error: createError } = await supabase
-        .from('brand_settings')
-        .insert({
-          user_id: user.id,
-          primary_color: primary_color || '#000000',
-          secondary_color: secondary_color || '#ffffff',
-          logo_url: logo_url || null,
-          favicon_url: favicon_url || null,
-          brand_name: brand_name || null,
-          brand_domain: brand_domain || null,
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        logger.dbError('create brand settings', createError, {
-          userId: user.id,
-        });
-        throw { status: 500, message: 'Erreur lors de la création des paramètres de marque' };
-      }
-
-      updatedSettings = createdSettings;
-    } else {
-      // Mettre à jour les paramètres
-      const { data: updated, error: updateError } = await supabase
-        .from('brand_settings')
-        .update({
-          primary_color: primary_color || undefined,
-          secondary_color: secondary_color || undefined,
-          logo_url: logo_url !== undefined ? logo_url : undefined,
-          favicon_url: favicon_url !== undefined ? favicon_url : undefined,
-          brand_name: brand_name || undefined,
-          brand_domain: brand_domain || undefined,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        logger.dbError('update brand settings', updateError, {
-          userId: user.id,
-        });
-        throw { status: 500, message: 'Erreur lors de la mise à jour des paramètres de marque' };
-      }
-
-      updatedSettings = updated;
+    // Récupérer le profil utilisateur pour obtenir le brandId
+    const userResult = await forwardGet('/users/me', request);
+    const user = userResult.data as { brandId?: string | null };
+    
+    if (!user?.brandId) {
+      throw {
+        status: 400,
+        message: 'Aucune marque associée à votre compte',
+        code: 'NO_BRAND',
+      };
     }
 
-    logger.info('Brand settings updated', {
-      userId: user.id,
-      hasLogo: !!logo_url,
-      hasFavicon: !!favicon_url,
-    });
+    // Récupérer la brand actuelle pour préserver les settings existants
+    const brandResult = await forwardGet(`/brands/${user.brandId}`, request);
+    const currentBrand = brandResult.data as { settings?: Record<string, unknown> } | null;
+    const currentSettings = (currentBrand?.settings as Record<string, unknown>) || {};
+
+    // Mettre à jour les settings dans la brand
+    const updatedSettings = {
+      ...currentSettings,
+      ...(primary_color && { primary_color }),
+      ...(secondary_color && { secondary_color }),
+      ...(logo_url !== undefined && { logo_url }),
+      ...(favicon_url !== undefined && { favicon_url }),
+    };
+
+    // Mettre à jour la brand avec les nouveaux settings et autres champs
+    const updateData: Record<string, unknown> = {
+      settings: updatedSettings,
+    };
+
+    if (brand_name !== undefined) {
+      updateData.name = brand_name;
+    }
+    if (brand_domain !== undefined) {
+      updateData.website = brand_domain;
+    }
+    if (logo_url !== undefined) {
+      updateData.logo = logo_url;
+    }
+
+    const result = await forwardPatch(`/brands/${user.brandId}`, request, updateData);
+    const updatedBrand = result.data as { settings?: Record<string, unknown> } | null;
 
     return {
-      brandSettings: updatedSettings,
+      brandSettings: {
+        primary_color: (updatedBrand?.settings as any)?.primary_color || primary_color || '#000000',
+        secondary_color: (updatedBrand?.settings as any)?.secondary_color || secondary_color || '#ffffff',
+        logo_url: (updatedBrand?.settings as any)?.logo_url || updatedBrand?.logo || logo_url || null,
+        favicon_url: (updatedBrand?.settings as any)?.favicon_url || favicon_url || null,
+        brand_name: updatedBrand?.name || brand_name || null,
+        brand_domain: updatedBrand?.website || brand_domain || null,
+      },
       message: 'Paramètres de marque mis à jour avec succès',
     };
   }, '/api/brand-settings', 'PUT');

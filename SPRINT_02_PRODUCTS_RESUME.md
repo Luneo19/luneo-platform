@@ -192,3 +192,4 @@ Refactoriser la page Products en composants modulaires respectant la Bible Luneo
 **Sprint 2 terminé avec succès ! ✅**
 
 
+

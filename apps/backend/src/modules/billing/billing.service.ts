@@ -86,15 +86,266 @@ export class BillingService {
     }
   }
 
+  async getPaymentMethods(userId: string) {
+    try {
+      // Récupérer le brand de l'utilisateur
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { brand: true },
+      });
+
+      if (!user?.brand?.stripeCustomerId) {
+        return { paymentMethods: [] };
+      }
+
+      // Récupérer les méthodes de paiement depuis Stripe
+      const stripe = await this.getStripe();
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: user.brand.stripeCustomerId,
+        type: 'card',
+      });
+
+      const sanitizedMethods = paymentMethods.data.map((pm) => ({
+        id: pm.id,
+        type: pm.type,
+        card: pm.card
+          ? {
+              brand: pm.card.brand,
+              last4: pm.card.last4,
+              exp_month: pm.card.exp_month,
+              exp_year: pm.card.exp_year,
+            }
+          : null,
+        created: pm.created,
+      }));
+
+      return { paymentMethods: sanitizedMethods };
+    } catch (error) {
+      this.logger.error('Error getting payment methods', error, { userId });
+      throw new Error('Erreur lors de la récupération des méthodes de paiement');
+    }
+  }
+
+  async addPaymentMethod(userId: string, paymentMethodId: string, setAsDefault: boolean = false) {
+    try {
+      // Récupérer le brand de l'utilisateur
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { brand: true },
+      });
+
+      if (!user?.brand) {
+        throw new Error('Brand not found for user');
+      }
+
+      let customerId = user.brand.stripeCustomerId;
+
+      // Créer un customer Stripe si nécessaire
+      if (!customerId) {
+        const stripe = await this.getStripe();
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          metadata: {
+            userId: user.id,
+            brandId: user.brand.id,
+          },
+        });
+
+        customerId = customer.id;
+
+        // Sauvegarder le customer ID
+        await this.prisma.brand.update({
+          where: { id: user.brand.id },
+          data: { stripeCustomerId: customerId },
+        });
+      }
+
+      // Attacher la méthode de paiement au customer
+      const stripe = await this.getStripe();
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customerId,
+      });
+
+      // Définir comme méthode par défaut si demandé
+      if (setAsDefault) {
+        await stripe.customers.update(customerId, {
+          invoice_settings: {
+            default_payment_method: paymentMethodId,
+          },
+        });
+      }
+
+      return {
+        paymentMethod: {
+          id: paymentMethodId,
+          attached: true,
+          setAsDefault,
+        },
+        message: 'Méthode de paiement ajoutée avec succès',
+      };
+    } catch (error) {
+      this.logger.error('Error adding payment method', error, { userId, paymentMethodId });
+      throw new Error(`Erreur lors de l'ajout de la méthode de paiement: ${error.message}`);
+    }
+  }
+
+  async removePaymentMethod(userId: string, paymentMethodId: string) {
+    try {
+      // Détacher la méthode de paiement
+      const stripe = await this.getStripe();
+      await stripe.paymentMethods.detach(paymentMethodId);
+
+      return { message: 'Méthode de paiement supprimée avec succès' };
+    } catch (error) {
+      this.logger.error('Error removing payment method', error, { userId, paymentMethodId });
+      throw new Error(`Erreur lors de la suppression de la méthode de paiement: ${error.message}`);
+    }
+  }
+
+  async getInvoices(userId: string, page: number = 1, limit: number = 20) {
+    try {
+      // Récupérer le brand de l'utilisateur
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { brand: true },
+      });
+
+      if (!user?.brand?.stripeCustomerId) {
+        return {
+          invoices: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+        };
+      }
+
+      // Récupérer les factures depuis Stripe
+      const stripe = await this.getStripe();
+      const invoices = await stripe.invoices.list({
+        customer: user.brand.stripeCustomerId,
+        limit,
+      });
+
+      const formattedInvoices = invoices.data.map((invoice) => ({
+        id: invoice.id,
+        number: invoice.number,
+        amount: invoice.amount_paid || invoice.amount_due,
+        currency: invoice.currency,
+        status: invoice.status,
+        created: invoice.created,
+        dueDate: invoice.due_date,
+        paidAt: invoice.status_transitions.paid_at,
+        invoicePdf: invoice.invoice_pdf,
+        hostedInvoiceUrl: invoice.hosted_invoice_url,
+        lineItems: invoice.lines.data.map((line) => ({
+          description: line.description,
+          amount: line.amount,
+          quantity: line.quantity,
+        })),
+      }));
+
+      return {
+        invoices: formattedInvoices,
+        pagination: {
+          page,
+          limit,
+          total: invoices.data.length,
+          totalPages: Math.ceil(invoices.data.length / limit),
+          hasNext: invoices.has_more,
+          hasPrev: page > 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Error getting invoices', error, { userId });
+      throw new Error('Erreur lors de la récupération des factures');
+    }
+  }
+
+  async getSubscription(userId: string) {
+    try {
+      // Récupérer le brand de l'utilisateur
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { brand: true },
+      });
+
+      if (!user?.brandId || !user.brand) {
+        return {
+          subscription: {
+            tier: 'free',
+            status: 'inactive',
+            period: null,
+            stripe: {
+              customerId: null,
+              subscriptionId: null,
+              currentPeriodEnd: null,
+              cancelAtPeriodEnd: false,
+            },
+          },
+        };
+      }
+
+      const brand = user.brand;
+      let stripeSubscription: Stripe.Subscription | null = null;
+
+      // Récupérer les détails depuis Stripe si subscription ID existe
+      if (brand.stripeSubscriptionId) {
+        try {
+          const stripe = await this.getStripe();
+          stripeSubscription = await stripe.subscriptions.retrieve(brand.stripeSubscriptionId);
+        } catch (stripeError) {
+          this.logger.warn('Failed to retrieve Stripe subscription', {
+            subscriptionId: brand.stripeSubscriptionId,
+            userId,
+            error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+          });
+        }
+      }
+
+      return {
+        subscription: {
+          tier: brand.plan || 'free',
+          status: stripeSubscription?.status === 'active' ? 'active' : stripeSubscription?.status === 'canceled' ? 'cancelled' : 'inactive',
+          period: stripeSubscription?.current_period_end
+            ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+            : null,
+          stripe: {
+            customerId: brand.stripeCustomerId ? `***${brand.stripeCustomerId.slice(-4)}` : null,
+            subscriptionId: brand.stripeSubscriptionId ? `***${brand.stripeSubscriptionId.slice(-4)}` : null,
+            currentPeriodEnd: stripeSubscription?.current_period_end
+              ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+              : null,
+            cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
+          },
+        },
+      };
+    } catch (error) {
+      this.logger.error('Error getting subscription', error, { userId });
+      throw new Error('Erreur lors de la récupération de l\'abonnement');
+    }
+  }
+
   async createCustomerPortalSession(userId: string) {
     try {
       const stripe = await this.getStripe();
-      // Ici vous devriez récupérer le customer_id depuis votre base de données
-      // Pour l'instant, on utilise un placeholder
-      const customerId = `cus_${userId}`;
+      
+      // Récupérer le customer_id depuis la base de données
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { brand: true },
+      });
+
+      if (!user?.brand?.stripeCustomerId) {
+        throw new Error('Stripe customer ID not found');
+      }
       
       const session = await stripe.billingPortal.sessions.create({
-        customer: customerId,
+        customer: user.brand.stripeCustomerId,
         return_url: `${this.configService.get<string>('app.frontendUrl')}/dashboard/billing`,
       });
 

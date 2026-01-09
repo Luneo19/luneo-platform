@@ -27,3 +27,4 @@ Ajouter un try-catch autour des appels asynchrones dans `layout.tsx` pour évite
 
 
 
+

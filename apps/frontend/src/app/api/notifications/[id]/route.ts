@@ -1,12 +1,29 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { forwardGet, forwardDelete } from '@/lib/backend-forward';
 
 export const runtime = 'nodejs';
 
 /**
+ * GET /api/notifications/[id]
+ * Récupère une notification spécifique
+ * Forward vers backend NestJS: GET /notifications/:id
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return ApiResponseBuilder.handle(async () => {
+    const { id } = await params;
+    const result = await forwardGet(`/notifications/${id}`, request);
+    return result.data;
+  }, '/api/notifications/[id]', 'GET');
+}
+
+/**
  * DELETE /api/notifications/[id]
  * Supprime une notification
+ * Forward vers backend NestJS: DELETE /notifications/:id
  */
 export async function DELETE(
   request: NextRequest,
@@ -14,27 +31,7 @@ export async function DELETE(
 ) {
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
-    
-    const { createClient } = await import('@/lib/supabase/server');
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
-
-    if (error) {
-      logger.warn('Error deleting notification', { error, notificationId: id });
-    }
-
-    logger.info('Notification deleted', { notificationId: id, userId: user.id });
-
-    return { success: true };
+    const result = await forwardDelete(`/notifications/${id}`, request);
+    return result.data;
   }, '/api/notifications/[id]', 'DELETE');
 }

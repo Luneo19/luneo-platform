@@ -155,3 +155,4 @@ apps/frontend/src/app/(dashboard)/dashboard/orders/
 - Exemple similaire : `apps/frontend/src/app/(dashboard)/dashboard/products/` (pour les modals)
 
 
+

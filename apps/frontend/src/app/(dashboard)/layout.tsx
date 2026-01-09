@@ -22,6 +22,26 @@ export default function DashboardLayoutGroup({
         const { createClient } = await import('@/lib/supabase/client');
         const supabase = createClient();
         
+        // Skip auth check if Supabase is not configured
+        if (!supabase || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+          // Use backend API auth check instead
+          try {
+            const response = await fetch('/api/v1/auth/me');
+            if (!response.ok) {
+              setIsAuthenticated(false);
+              const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
+              router.push('/login?redirect=' + encodeURIComponent(currentPath));
+              return;
+            }
+            setIsAuthenticated(true);
+            return;
+          } catch (err) {
+            setIsAuthenticated(false);
+            router.push('/login');
+            return;
+          }
+        }
+        
         // First try to get existing session
         let { data: { session }, error } = await supabase.auth.getSession();
 

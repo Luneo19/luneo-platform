@@ -193,3 +193,4 @@ psql "$DATABASE_URL" -c "\d \"User\"" | grep name
 
 
 
+

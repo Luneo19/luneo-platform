@@ -1,61 +1,26 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
-import { ApiResponseBuilder, validateRequest } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { NextRequest } from 'next/server';
+import { ApiResponseBuilder } from '@/lib/api-response';
+import { forwardGet, forwardPatch } from '@/lib/backend-forward';
 
+/**
+ * GET /api/settings/profile
+ * Récupère le profil de l'utilisateur
+ * Forward vers backend NestJS: GET /api/users/me (même route que /api/profile)
+ */
 export async function GET(_request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // Créer un profil par défaut
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email,
-            name: user.email?.split('@')[0] || 'User',
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          logger.dbError('create default profile', createError, { userId: user.id });
-          throw { status: 500, message: 'Erreur lors de la création du profil' };
-        }
-
-        return { profile: newProfile };
-      }
-
-      logger.dbError('fetch profile', error, { userId: user.id });
-      throw { status: 500, message: 'Erreur lors de la récupération du profil' };
-    }
-
-    return { profile };
+    const result = await forwardGet('/users/me', _request);
+    return { profile: result.data };
   }, '/api/settings/profile', 'GET');
 }
 
+/**
+ * PUT /api/settings/profile
+ * Met à jour le profil de l'utilisateur
+ * Forward vers backend NestJS: PATCH /api/users/me (même route que /api/profile)
+ */
 export async function PUT(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
     const body = await request.json();
     const { name, company, phone, website, timezone } = body;
 
@@ -81,40 +46,22 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Récupérer le profil existant pour préserver les métadonnées
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('metadata')
-      .eq('id', user.id)
-      .single();
-
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .update({
-        name: name?.trim() || null,
-        company: company?.trim() || null,
-        metadata: {
-          ...(existingProfile?.metadata || {}),
-          phone: phone?.trim() || null,
-          website: website?.trim() || null,
-          timezone: timezone || null,
-          ...(body.metadata || {}),
-        },
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id)
-      .select()
-      .single();
-
-    if (error) {
-      logger.dbError('update profile', error, { userId: user.id });
-      throw { status: 500, message: 'Erreur lors de la mise à jour du profil' };
+    // Préparer les données pour le backend
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.firstName = name.trim();
+    if (company !== undefined) updateData.company = company.trim();
+    if (phone !== undefined || website !== undefined || timezone !== undefined) {
+      updateData.metadata = {
+        ...(body.metadata || {}),
+        ...(phone !== undefined && { phone: phone.trim() }),
+        ...(website !== undefined && { website: website.trim() }),
+        ...(timezone !== undefined && { timezone }),
+      };
     }
 
-    logger.info('Profile updated via settings', { userId: user.id });
-
+    const result = await forwardPatch('/users/me', request, updateData);
     return {
-      profile,
+      profile: result.data,
       message: 'Profil mis à jour avec succès',
     };
   }, '/api/settings/profile', 'PUT');

@@ -61,3 +61,4 @@ export function GeographicAnalysis({ geographicData }: GeographicAnalysisProps) 
 }
 
 
+

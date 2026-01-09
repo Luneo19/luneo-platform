@@ -34,7 +34,7 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies (JWT refresh tokens)
+  withCredentials: true, // ✅ IMPORTANT: Required for httpOnly cookies
 });
 
 /**
@@ -43,10 +43,18 @@ const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // Get access token from localStorage or session
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    // ✅ NEW: Try to get token from cookie first (httpOnly cookies)
+    // If not available, fallback to localStorage (backward compatibility)
+    const token = typeof window !== 'undefined' 
+      ? (document.cookie
+          .split('; ')
+          .find(row => row.startsWith('accessToken='))
+          ?.split('=')[1] || localStorage.getItem('accessToken'))
+      : null;
     
-    if (token) {
+    // Only add Authorization header if token available
+    // If using httpOnly cookies, token will be sent automatically
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -188,15 +196,22 @@ export const endpoints = {
   // Auth
   auth: {
     login: (credentials: LoginCredentials) =>
-      api.post<AuthSessionResponse>('/auth/login', credentials),
+      api.post<AuthSessionResponse>('/api/v1/auth/login', credentials),
+    signup: (data: RegisterData) =>
+      api.post<AuthSessionResponse>('/api/v1/auth/signup', data),
     register: (data: RegisterData) =>
-      api.post<AuthSessionResponse>('/auth/register', data),
-    logout: () => api.post<void>('/auth/logout'),
-    me: () => api.get<User>('/auth/me'),
-    refresh: () => api.post('/auth/refresh'),
+      api.post<AuthSessionResponse>('/api/v1/auth/signup', data),
+    logout: () => api.post<void>('/api/v1/auth/logout'),
+    me: () => api.get<User>('/api/v1/auth/me'),
+    refresh: (refreshToken: string) => api.post('/api/v1/auth/refresh', { refreshToken }),
+    forgotPassword: (email: string) => api.post('/api/v1/auth/forgot-password', { email }),
+    resetPassword: (token: string, password: string) => 
+      api.post('/api/v1/auth/reset-password', { token, password }),
+    verifyEmail: (token: string) => 
+      api.post<{ message: string; verified: boolean }>('/api/v1/auth/verify-email', { token }),
     oauth: {
-      google: () => api.get('/auth/google'),
-      github: () => api.get('/auth/github'),
+      google: () => api.get('/api/v1/auth/google'),
+      github: () => api.get('/api/v1/auth/github'),
     },
   },
 
@@ -306,7 +321,5 @@ export const endpoints = {
   },
 };
 
-export default api;
-export type { AuthSessionResponse, GenerateDesignResponse };
 export default api;
 export type { AuthSessionResponse, GenerateDesignResponse };
