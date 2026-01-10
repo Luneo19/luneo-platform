@@ -1,22 +1,18 @@
-// Log très tôt pour confirmer que le fichier est chargé
-import { Logger } from '@nestjs/common';
-const earlyLogger = new Logger('MainBootstrap');
-
-earlyLogger.log('Starting main.ts...');
-earlyLogger.debug(`NODE_ENV: ${process.env.NODE_ENV}`);
-earlyLogger.debug(`PORT: ${process.env.PORT}`);
-
 // IMPORTANT: Make sure to import `instrument.ts` at the top of your file.
 // If you're using CommonJS (CJS) syntax, use `require("./instrument.ts");`
 try {
   require("./instrument");
-  earlyLogger.log('Instrument loaded successfully');
 } catch (error) {
-  earlyLogger.error('Failed to load instrument', error instanceof Error ? error.stack : String(error));
-  // Continue anyway
+  // Continue anyway if instrument fails
 }
 
 import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
+
+// Log très tôt pour confirmer que le fichier est chargé
+const earlyLogger = new Logger('MainBootstrap');
+earlyLogger.log('Starting main.ts...');
+earlyLogger.debug(`NODE_ENV: ${process.env.NODE_ENV}`);
+earlyLogger.debug(`PORT: ${process.env.PORT}`);
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';

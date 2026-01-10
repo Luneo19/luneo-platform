@@ -317,7 +317,7 @@ describe('AuthService', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.success).toBe(true);
+      expect(result.verified).toBe(true);
       expect(prismaService.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: testFixtures.user.id },

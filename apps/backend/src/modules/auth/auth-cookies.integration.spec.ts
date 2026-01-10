@@ -89,6 +89,7 @@ describe('Auth Cookies Integration', () => {
           brand: {
             create: {
               name: 'Test Brand',
+              slug: 'test-brand',
             },
           },
         },
@@ -164,6 +165,7 @@ describe('Auth Cookies Integration', () => {
           brand: {
             create: {
               name: 'Test Brand',
+              slug: 'test-brand',
             },
           },
         },
@@ -207,6 +209,7 @@ describe('Auth Cookies Integration', () => {
           brand: {
             create: {
               name: 'Test Brand',
+              slug: 'test-brand',
             },
           },
         },
