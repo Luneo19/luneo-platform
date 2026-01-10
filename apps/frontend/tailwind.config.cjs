@@ -90,6 +90,12 @@ module.exports = {
         lg: tokens.spacing.lg,
         xl: tokens.spacing.xl,
         '2xl': tokens.spacing['2xl'],
+        '15': '3.75rem', // 60px
+        '5.5': '1.375rem', // 22px
+      },
+      zIndex: {
+        '999': '999',
+        '1000': '1000',
       },
       fontFamily: {
         sans: [tokens.font.family, 'ui-sans-serif', 'system-ui'],
@@ -141,6 +147,12 @@ module.exports = {
           '0%': { transform: 'translateX(100%)' },
           '100%': { transform: 'translateX(0)' },
         },
+        'float': {
+          '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+          '25%': { transform: 'translate(20px, -30px) rotate(5deg)' },
+          '50%': { transform: 'translate(-20px, 20px) rotate(-5deg)' },
+          '75%': { transform: 'translate(30px, 10px) rotate(3deg)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -151,6 +163,7 @@ module.exports = {
         'slide-in-from-bottom': 'slide-in-from-bottom 0.3s ease-out',
         'slide-in-from-left': 'slide-in-from-left 0.3s ease-out',
         'slide-in-from-right': 'slide-in-from-right 0.3s ease-out',
+        'float': 'float 20s ease-in-out infinite',
       },
     },
   },

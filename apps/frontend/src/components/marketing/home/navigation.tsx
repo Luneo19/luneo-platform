@@ -32,9 +32,9 @@ export function Navigation() {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-1000 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-[1000] transition-all duration-300 ${
           scrolled
-            ? 'bg-white/90 backdrop-blur-20 border-b border-gray-100 py-3'
+            ? 'bg-white/90 backdrop-blur-md border-b border-gray-100 py-3'
             : 'py-4'
         }`}
       >
@@ -110,7 +110,7 @@ export function Navigation() {
 
       {/* Mobile Menu */}
       <div
-        className={`fixed inset-0 bg-white z-999 transition-all duration-300 ${
+        className={`fixed inset-0 bg-white z-[999] transition-all duration-300 ${
           mobileMenuOpen
             ? 'opacity-100 visible'
             : 'opacity-0 invisible pointer-events-none'

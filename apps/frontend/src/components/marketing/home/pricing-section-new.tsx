@@ -100,7 +100,7 @@ export function PricingSectionNew() {
               }`}
             />
             <span
-              className={`absolute w-5.5 h-5.5 bg-white rounded-full top-0.5 left-0.5 transition-transform shadow-sm ${
+              className={`absolute w-[22px] h-[22px] bg-white rounded-full top-0.5 left-0.5 transition-transform shadow-sm ${
                 isYearly ? 'translate-x-7' : ''
               }`}
             />

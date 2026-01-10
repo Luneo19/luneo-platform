@@ -75,7 +75,7 @@ export function HowItWorksNew() {
                   <p className="text-gray-600 leading-relaxed">{step.description}</p>
                 </div>
                 <div className="flex-shrink-0">
-                  <div className={`w-15 h-15 ${colors} rounded-xl flex items-center justify-center text-white`}>
+                  <div className={`w-[60px] h-[60px] ${colors} rounded-xl flex items-center justify-center text-white`}>
                     {step.icon}
                   </div>
                 </div>

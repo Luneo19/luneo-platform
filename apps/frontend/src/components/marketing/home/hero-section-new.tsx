@@ -183,7 +183,7 @@ function DashboardMockup() {
       {/* Dashboard Content */}
       <div className="flex min-h-[400px]">
         {/* Sidebar */}
-        <div className="w-15 bg-gray-900 p-5 flex flex-col items-center gap-4">
+        <div className="w-[60px] bg-gray-900 p-5 flex flex-col items-center gap-4">
           {['home', 'chart', 'users', 'settings'].map((icon, i) => (
             <div
               key={icon}
