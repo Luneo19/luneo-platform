@@ -23,15 +23,24 @@ export default function WidgetEditorPage() {
           locale: 'fr',
           theme: 'light',
           onSave: (designData) => {
-            console.log('Design saved:', designData);
+            // Widget callback - logging acceptable for external widget debugging
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Design saved:', designData);
+            }
             alert('Design sauvegardé avec succès!');
           },
           onError: (error) => {
-            console.error('Widget error:', error);
+            // Widget callback - logging acceptable for external widget debugging
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Widget error:', error);
+            }
             alert(`Erreur: ${error.message}`);
           },
           onReady: () => {
-            console.log('Widget ready');
+            // Widget callback - logging acceptable for external widget debugging
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Widget ready');
+            }
           },
         };
 
@@ -40,7 +49,10 @@ export default function WidgetEditorPage() {
       }
     };
     script.onerror = () => {
-      console.error('Failed to load widget script');
+      // Widget script loading error - use logger if available
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to load widget script');
+      }
     };
     document.head.appendChild(script);
 

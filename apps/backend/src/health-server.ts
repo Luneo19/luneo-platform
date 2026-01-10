@@ -7,6 +7,9 @@
  */
 
 import * as http from 'http';
+import { Logger } from '@nestjs/common';
+
+const logger = new Logger('HealthServer');
 
 const HEALTH_PORT = process.env.HEALTH_PORT 
   ? parseInt(process.env.HEALTH_PORT, 10) 
@@ -35,8 +38,8 @@ export function startHealthServer(): http.Server {
   });
 
   server.listen(HEALTH_PORT, '0.0.0.0', () => {
-    console.log(`✅ Health check server listening on port ${HEALTH_PORT}`);
-    console.log(`   Health endpoint: http://0.0.0.0:${HEALTH_PORT}/health`);
+    logger.log(`✅ Health check server listening on port ${HEALTH_PORT}`);
+    logger.log(`   Health endpoint: http://0.0.0.0:${HEALTH_PORT}/health`);
   });
 
   return server;

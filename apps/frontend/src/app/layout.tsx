@@ -136,7 +136,10 @@ export default async function RootLayout({
     timezone = i18nConfig.timezone;
     availableLocales = i18nConfig.availableLocales;
   } catch (error) {
-    console.error('[Layout] Failed to load i18n config:', error);
+    // Logger not available in Server Component, use console for critical errors
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Layout] Failed to load i18n config:', error);
+    }
     // Utiliser les valeurs par défaut
     locale = 'en';
     messages = {} as TranslationMessages;
@@ -152,7 +155,10 @@ export default async function RootLayout({
   try {
     featureFlags = await loadFeatureFlags();
   } catch (error) {
-    console.error('[Layout] Failed to load feature flags:', error);
+    // Logger not available in Server Component, use console for critical errors
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Layout] Failed to load feature flags:', error);
+    }
     // Utiliser les valeurs par défaut
     featureFlags = {
       flags: {

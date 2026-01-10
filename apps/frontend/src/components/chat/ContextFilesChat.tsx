@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 import {
   Send,
   FileText,
@@ -71,7 +72,9 @@ export function ContextFilesChat({
         setContextFiles(files);
         onContextFilesChange?.(files);
       } catch (error) {
-        console.error('Error loading context files:', error);
+        logger.error('Error loading context files', error instanceof Error ? error : new Error(String(error)), {
+          contextId,
+        });
         toast({
           title: 'Erreur',
           description: 'Impossible de charger les fichiers contextuels',
