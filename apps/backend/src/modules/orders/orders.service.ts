@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UserRole, OrderStatus, PaymentStatus } from '@prisma/client';
 import type Stripe from 'stripe';
@@ -6,15 +6,18 @@ import { ConfigService } from '@nestjs/config';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
 import { JsonValue } from '@/common/types/utility-types';
 import { CurrentUser } from '@/common/types/user.types';
+import { DiscountService } from './services/discount.service';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
   private stripeInstance: Stripe | null = null;
   private stripeModule: typeof import('stripe') | null = null;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private discountService: DiscountService,
   ) {}
 
   /**
@@ -281,13 +284,36 @@ export class OrdersService {
       shippingCents = 500; // 5€ standard
     }
 
-    // Calculate tax (20% VAT)
-    const taxCents = Math.round((subtotalCents + shippingCents) * 0.20);
+    // Apply discount code if provided
+    let discountCents = 0;
+    let discountMetadata: Record<string, unknown> | undefined;
+    if (discountCode) {
+      try {
+        const discountResult = await this.discountService.validateAndApplyDiscount(
+          discountCode,
+          subtotalCents,
+          brandId,
+          currentUser.id,
+        );
+        discountCents = discountResult.discountCents;
+        discountMetadata = {
+          discountCode: discountResult.code,
+          discountCents: discountResult.discountCents,
+          discountPercent: discountResult.discountPercent,
+          discountType: discountResult.type,
+          discountDescription: discountResult.description,
+        };
+        this.logger.log(`Applied discount code ${discountCode}: ${discountCents} cents off`);
+      } catch (error) {
+        this.logger.warn(`Failed to apply discount code ${discountCode}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw error; // Re-throw pour que l'utilisateur soit informé du code invalide
+      }
+    }
+
+    // Calculate tax (20% VAT) on subtotal after discount + shipping
+    const taxCents = Math.round((subtotalCents - discountCents + shippingCents) * 0.20);
     
-    // TODO: Apply discount code if provided
-    // const discountCents = 0; // To be implemented
-    
-    const totalCents = subtotalCents + shippingCents + taxCents;
+    const totalCents = subtotalCents - discountCents + shippingCents + taxCents;
 
     // Create order with items
     const order = await this.prisma.order.create({
@@ -305,6 +331,7 @@ export class OrdersService {
         brandId,
         designId: orderItems.length === 1 && orderItems[0].designId ? orderItems[0].designId : null, // Legacy support
         productId: orderItems.length === 1 ? orderItems[0].productId : null, // Legacy support
+        metadata: discountMetadata ? { discount: discountMetadata } as any : undefined,
         items: {
           create: orderItems.map(item => ({
             productId: item.productId,

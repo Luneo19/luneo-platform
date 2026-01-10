@@ -1,35 +1,37 @@
 import {
-  HeroSection,
-  Integrations,
-  FeaturesSection,
-  HowItWorks,
-  StatsSection,
-  Testimonials,
-  PricingPreview,
-  FAQSection,
-  CTAFinal,
+  Navigation,
+  HeroSectionNew,
+  FeaturesSectionNew,
+  HowItWorksNew,
+  TestimonialsNew,
+  PricingSectionNew,
+  CTASectionNew,
+  FooterNew,
+  CursorGlow,
 } from '@/components/marketing/home';
 
 /**
  * Homepage - Modern landing page with all sections
- * Style inspired by Pandawa/Gladia
+ * Based on Pandawa template design, adapted for Luneo
  * This is a Server Component - all child components are Client Components
  * 
  * REFONTE COMPLÈTE - Janvier 2025
- * Remplace l'ancienne homepage avec HeroBannerOptimized
+ * Nouveau design basé sur le template Pandawa avec animations et effets modernes
  */
 export default function HomePage() {
   return (
-    <main className="min-h-screen">
-      <HeroSection />
-      <Integrations />
-      <FeaturesSection />
-      <HowItWorks />
-      <StatsSection />
-      <Testimonials />
-      <PricingPreview />
-      <FAQSection />
-      <CTAFinal />
-    </main>
+    <>
+      <CursorGlow />
+      <Navigation />
+      <main className="min-h-screen">
+        <HeroSectionNew />
+        <FeaturesSectionNew />
+        <HowItWorksNew />
+        <TestimonialsNew />
+        <PricingSectionNew />
+        <CTASectionNew />
+      </main>
+      <FooterNew />
+    </>
   );
 }

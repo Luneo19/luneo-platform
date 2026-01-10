@@ -7,6 +7,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { StorageService } from '@/libs/storage/storage.service';
 
 export interface ARModel {
   id: string;
@@ -40,6 +41,7 @@ export class ArStudioService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly storageService: StorageService,
   ) {}
 
   /**
@@ -435,13 +437,42 @@ export class ArStudioService {
         // Continue avec fileSize = 0 si échec
       }
 
-      // TODO: Générer URL signée avec expiration si stockage privé
+      // Générer URL signée avec expiration si stockage privé
+      let signedUrl = finalUrl;
+      const expiresIn = 24 * 60 * 60; // 24 heures en secondes
+      
+      // Vérifier si le modèle est privé (basé sur les permissions ou la configuration)
+      // Un modèle est privé si le produit n'est pas public
+      // Récupérer le produit pour vérifier isPublic
+      const product = await this.prisma.product.findUnique({
+        where: { id: model.productId || model.id },
+        select: { isPublic: true },
+      });
+      const isPrivate = !product?.isPublic || false;
+      
+      if (isPrivate && this.storageService && finalUrl.includes('cloudinary.com')) {
+        try {
+          // Extraire la clé/publicId depuis l'URL Cloudinary
+          // Format: https://res.cloudinary.com/{cloud_name}/image/upload/{version}/{public_id}.{format}
+          const urlMatch = finalUrl.match(/\/upload\/(?:v\d+\/)?([^\/]+)\.(glb|usdz|gltf)/);
+          if (urlMatch && urlMatch[1]) {
+            const publicId = urlMatch[1];
+            signedUrl = await this.storageService.getSignedUrl(publicId, expiresIn);
+            this.logger.log(`Generated signed URL for private AR model: ${model.id}`);
+          } else {
+            this.logger.warn(`Could not extract publicId from Cloudinary URL: ${finalUrl}`);
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to generate signed URL, using original URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          // Continue avec l'URL originale si la génération échoue
+        }
+      }
 
       return {
-        downloadUrl: finalUrl,
+        downloadUrl: signedUrl,
         fileSize,
         format,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+        expiresAt: new Date(Date.now() + expiresIn * 1000), // 24h
       };
     } catch (error) {
       this.logger.error(`Failed to export AR model: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);

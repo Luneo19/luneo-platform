@@ -2,173 +2,118 @@
 
 import React, { useState, useEffect, createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 import type { AuthContextType, AuthUser } from './types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// API Base URL - Use environment variable or fallback
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://api.luneo.app'
+    : 'http://localhost:3001');
+
+/**
+ * Map backend user response to AuthUser
+ */
+const mapBackendUser = (backendUser: any): AuthUser => ({
+  id: backendUser.id || '',
+  email: backendUser.email || '',
+  firstName: backendUser.firstName || backendUser.first_name || '',
+  lastName: backendUser.lastName || backendUser.last_name || '',
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-
-  // If Supabase is not configured, skip Supabase auth and use backend API instead
-  const isSupabaseConfigured = useMemo(() => {
-    return !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const mapSupabaseUser = useCallback((authUser: any): AuthUser => ({
-    id: authUser.id,
-    email: authUser.email,
-    firstName: authUser.user_metadata?.first_name || authUser.user_metadata?.firstName || '',
-    lastName: authUser.user_metadata?.last_name || authUser.user_metadata?.lastName || '',
-  }), []);
-
   const login = useCallback(async (credentials: { email: string; password: string }) => {
     setIsLoading(true);
     setError(null);
 
-    // If Supabase is not configured, use backend API instead
-    if (!isSupabaseConfigured || !supabase) {
-      try {
-        // TODO: Use backend API endpoint instead
-        const response = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Login failed');
-        }
-
-        const data = await response.json();
-        // TODO: Map backend user response to AuthUser
-        setUser({
-          id: data.user?.id || '',
-          email: data.user?.email || credentials.email,
-          firstName: data.user?.firstName || '',
-          lastName: data.user?.lastName || '',
-        });
-        router.push('/overview');
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Login failed');
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password,
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
+        body: JSON.stringify(credentials),
       });
 
-      if (signInError) {
-        throw new Error(signInError.message);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Login failed');
       }
 
-      if (data.user) {
-        setUser(mapSupabaseUser(data.user));
-        router.push('/overview');
-      }
+      const data = await response.json();
+      const mappedUser = mapBackendUser(data.user);
+      setUser(mappedUser);
+      logger.info('User logged in successfully', { userId: mappedUser.id, email: mappedUser.email });
+      router.push('/overview');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
+      logger.error('Login failed', err instanceof Error ? err : new Error(String(err)), {
+        email: credentials.email,
+      });
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [mapSupabaseUser, router, supabase, isSupabaseConfigured]);
+  }, [router]);
 
   const register = useCallback(async (userData: { email: string; password: string; firstName: string; lastName: string }) => {
     setIsLoading(true);
     setError(null);
 
-    // If Supabase is not configured, use backend API instead
-    if (!isSupabaseConfigured || !supabase) {
-      try {
-        // TODO: Use backend API endpoint instead
-        const response = await fetch('/api/v1/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: userData.email,
-            password: userData.password,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-          }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Registration failed');
-        }
-
-        const data = await response.json();
-        // TODO: Map backend user response to AuthUser
-        setUser({
-          id: data.user?.id || '',
-          email: data.user?.email || userData.email,
-          firstName: data.user?.firstName || userData.firstName,
-          lastName: data.user?.lastName || userData.lastName,
-        });
-        router.push('/overview');
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Registration failed');
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-        options: {
-          data: {
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-          },
-        },
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
+        body: JSON.stringify({
+          email: userData.email,
+          password: userData.password,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+        }),
       });
 
-      if (signUpError) {
-        throw new Error(signUpError.message);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Registration failed');
       }
 
-      if (data.user) {
-        setUser(mapSupabaseUser(data.user));
-        router.push('/overview');
-      }
+      const data = await response.json();
+      const mappedUser = mapBackendUser(data.user);
+      setUser(mappedUser);
+      logger.info('User registered successfully', { userId: mappedUser.id, email: mappedUser.email });
+      router.push('/overview');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      setError(errorMessage);
+      logger.error('Registration failed', err instanceof Error ? err : new Error(String(err)), {
+        email: userData.email,
+      });
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [mapSupabaseUser, router, supabase, isSupabaseConfigured]);
+  }, [router]);
 
   const logout = useCallback(async () => {
     try {
-      if (isSupabaseConfigured && supabase) {
-        await supabase.auth.signOut();
-      } else {
-        // TODO: Call backend logout endpoint
-        await fetch('/api/v1/auth/logout', { method: 'POST' });
-      }
+      await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
+      });
       logger.info('User logged out', { userId: user?.id });
     } catch (err) {
       logger.error('Logout error', err instanceof Error ? err : new Error(String(err)), {
@@ -178,62 +123,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       router.push('/login');
     }
-  }, [router, supabase, isSupabaseConfigured, user?.id]);
+  }, [router, user?.id]);
 
   useEffect(() => {
-    // Skip Supabase auth if not configured
-    if (!isSupabaseConfigured || !supabase) {
-      setIsLoading(false);
-      setUser(null);
-      return;
-    }
-
     let isMounted = true;
 
     const loadUser = async () => {
       setIsLoading(true);
       try {
-        const { data, error: fetchError } = await supabase.auth.getUser();
+        const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+          method: 'GET',
+          credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
+        });
 
         if (!isMounted) return;
 
-        if (fetchError) {
-          logger.warn('Unable to fetch Supabase user', {
-            error: fetchError.message,
-            code: fetchError.status,
-          });
-          setUser(null);
-        } else if (data.user) {
-          setUser(mapSupabaseUser(data.user));
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Not authenticated - clear user
+            setUser(null);
+            return;
+          }
+          throw new Error(`Failed to fetch user: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        // Backend returns user directly or in data.user
+        const userData = data.user || data.data?.user || data;
+        if (userData && userData.id) {
+          const mappedUser = mapBackendUser(userData);
+          setUser(mappedUser);
+          logger.debug('User loaded successfully', { userId: mappedUser.id });
         } else {
           setUser(null);
         }
       } catch (err) {
-        logger.warn('Error loading user', { error: err });
+        logger.warn('Error loading user', { error: err instanceof Error ? err.message : String(err) });
         setUser(null);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted) return;
-      if (session?.user) {
-        setUser(mapSupabaseUser(session.user));
-      } else {
-        setUser(null);
-      }
-    });
 
     loadUser();
 
+    // Poll for user changes every 5 minutes (refresh token might have been refreshed)
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        loadUser();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
     return () => {
       isMounted = false;
-      if (listener?.subscription) {
-        listener.subscription.unsubscribe();
-      }
+      clearInterval(intervalId);
     };
-  }, [mapSupabaseUser, supabase, isSupabaseConfigured]);
+  }, []);
 
   const value = {
     user,

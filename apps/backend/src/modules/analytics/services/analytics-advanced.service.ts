@@ -369,8 +369,15 @@ export class AnalyticsAdvancedService {
         },
       });
 
-      // TODO: Calculer userCount en fonction des critères
-      // Pour l'instant, on retourne 0
+      // Calculer userCount en fonction des critères
+      // Pour l'instant, compter tous les utilisateurs de la marque
+      // TODO: Filtrer selon les critères du segment (à implémenter avec logique de filtrage avancée)
+      const userCount = await this.prisma.user.count({
+        where: {
+          brandId,
+          isActive: true,
+        },
+      });
 
       return {
         id: segment.id,

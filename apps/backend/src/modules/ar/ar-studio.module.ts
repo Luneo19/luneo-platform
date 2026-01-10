@@ -13,9 +13,10 @@ import { ArCollaborationController } from './controllers/ar-collaboration.contro
 import { ArIntegrationsService } from './services/ar-integrations.service';
 import { ArCollaborationService } from './services/ar-collaboration.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
+import { StorageModule } from '@/libs/storage/storage.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule],
+  imports: [PrismaModule, ConfigModule, StorageModule],
   controllers: [
     ArStudioController,
     ArIntegrationsController,

@@ -11,12 +11,39 @@ export class ReferralService {
     private configService: ConfigService,
   ) {}
 
+  /**
+   * Récupère les statistiques de referral pour un utilisateur
+   * @param userId - ID de l'utilisateur
+   * @returns Statistiques de referral (totalReferrals, activeReferrals, totalEarnings, etc.)
+   * 
+   * @remarks
+   * Pour l'instant, retourne des stats basiques. Une implémentation complète nécessiterait :
+   * - Modèle Referral dans Prisma pour tracker les referrals
+   * - Modèle Commission pour tracker les commissions gagnées
+   * - Logique de calcul des commissions basée sur les commandes des referrals
+   */
   async getStats(userId: string) {
+    // Récupérer l'utilisateur pour vérifier s'il existe
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, createdAt: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
     // Pour l'instant, retourner des stats basiques
     // TODO: Implémenter la logique de referral complète avec un modèle Referral dans Prisma
-    
     // Compter les utilisateurs qui ont été invités par cet utilisateur
-    // (basé sur une relation future ou un champ referralCode)
+    // (basé sur une relation future ou un champ referralCode dans metadata)
+    
+    // Vérifier si l'utilisateur a des referrals dans metadata (solution temporaire)
+    // À remplacer par un vrai modèle Referral
+    const referralCode = `REF-${userId.substring(0, 8).toUpperCase()}`;
+    
+    // Compter les utilisateurs qui ont utilisé ce code (solution temporaire via metadata)
+    // À remplacer par une vraie relation Referral
     const totalReferrals = 0; // À implémenter avec le modèle Referral
     const activeReferrals = 0;
     const totalEarnings = 0;
@@ -27,7 +54,7 @@ export class ReferralService {
       activeReferrals,
       totalEarnings,
       pendingEarnings,
-      referralCode: `REF-${userId.substring(0, 8).toUpperCase()}`,
+      referralCode,
       referralLink: `${this.configService.get('app.frontendUrl') || 'https://www.luneo.app'}/signup?ref=${userId.substring(0, 8)}`,
       recentReferrals: [],
     };
@@ -122,13 +149,24 @@ export class ReferralService {
   }
 
   /**
-   * Request withdrawal of commissions
+   * Demande de retrait des commissions
+   * @param userId - ID de l'utilisateur qui demande le retrait
+   * @returns Détails de la demande de retrait (withdrawalId, amount, status, message)
+   * 
+   * @throws BadRequestException si le montant minimum n'est pas atteint ou si l'utilisateur n'existe pas
+   * 
+   * @remarks
+   * Pour une implémentation complète, il faudrait :
+   * - Modèle Commission dans Prisma pour tracker les commissions
+   * - Modèle Withdrawal dans Prisma pour tracker les retraits
+   * - Champ IBAN dans User ou dans un modèle UserProfile séparé
+   * - Validation IBAN et intégration avec un service de paiement (Stripe, etc.)
    */
   async withdraw(userId: string): Promise<{ withdrawalId: string; amount: number; status: string; message: string }> {
     // Vérifier le montant disponible
     // TODO: Implémenter avec le modèle Commission dans Prisma
     // Pour l'instant, vérifier dans une table commissions si elle existe
-    const totalPending = 0; // À implémenter
+    const totalPending = 0; // À implémenter avec le modèle Commission
     
     if (totalPending < 50) {
       throw new BadRequestException('Montant minimum de retrait non atteint (50€)');
@@ -141,6 +179,7 @@ export class ReferralService {
         id: true,
         email: true,
         // TODO: Ajouter champ iban dans User ou dans un profil séparé
+        // Pour l'instant, on peut stocker IBAN dans metadata ou créer un modèle UserProfile
       },
     });
 
@@ -149,6 +188,9 @@ export class ReferralService {
     }
 
     // TODO: Vérifier IBAN depuis profil ou settings
+    // Option 1: Ajouter champ iban dans User (migration Prisma nécessaire)
+    // Option 2: Créer modèle UserProfile avec relation 1:1 vers User
+    // Option 3: Stocker IBAN dans User.metadata (JSON) - solution temporaire
     // const profile = await this.prisma.user.findUnique({ where: { id: userId }, include: { profile: true } });
     // if (!profile?.iban) {
     //   throw new BadRequestException('Veuillez configurer vos informations bancaires dans les paramètres');
@@ -158,6 +200,18 @@ export class ReferralService {
     const withdrawalId = `WD-${Date.now().toString(36).toUpperCase()}`;
 
     // TODO: Créer withdrawal dans Prisma
+    // Nécessite création du modèle Withdrawal dans schema.prisma :
+    // model Withdrawal {
+    //   id String @id @default(cuid())
+    //   userId String
+    //   user User @relation(fields: [userId], references: [id])
+    //   amount Int // Montant en centimes
+    //   status WithdrawalStatus @default(PENDING)
+    //   iban String
+    //   processedAt DateTime?
+    //   createdAt DateTime @default(now())
+    //   updatedAt DateTime @updatedAt
+    // }
     // await this.prisma.withdrawal.create({
     //   data: {
     //     id: withdrawalId,

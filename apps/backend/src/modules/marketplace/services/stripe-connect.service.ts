@@ -166,9 +166,38 @@ export class StripeConnectService {
    * Détermine si un payout doit être effectué selon le schedule
    */
   private shouldPayout(schedule: string, artisanId: string): boolean {
-    // TODO: Implémenter logique de schedule (daily, weekly, etc.)
-    // Pour l'instant, weekly par défaut
-    return true;
+    // Implémenter logique de schedule (daily, weekly, monthly, etc.)
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfMonth = now.getDate();
+    const hour = now.getHours();
+
+    switch (schedule.toLowerCase()) {
+      case 'daily':
+        // Payout quotidien à 2h du matin
+        return hour === 2;
+      
+      case 'weekly':
+        // Payout hebdomadaire le lundi à 2h du matin
+        return dayOfWeek === 1 && hour === 2;
+      
+      case 'bi-weekly':
+        // Payout bi-hebdomadaire le 1er et 15 de chaque mois à 2h du matin
+        return (dayOfMonth === 1 || dayOfMonth === 15) && hour === 2;
+      
+      case 'monthly':
+        // Payout mensuel le 1er de chaque mois à 2h du matin
+        return dayOfMonth === 1 && hour === 2;
+      
+      case 'manual':
+        // Payout manuel uniquement
+        return false;
+      
+      default:
+        // Par défaut: weekly le lundi
+        this.logger.warn(`Unknown schedule '${schedule}', defaulting to weekly`);
+        return dayOfWeek === 1 && hour === 2;
+    }
   }
 
   /**
