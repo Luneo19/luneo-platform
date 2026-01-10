@@ -35,11 +35,43 @@ export class ProductsController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Liste des produits avec filtres avancés' })
+  @ApiOperation({ 
+    summary: 'Liste des produits avec filtres avancés',
+    description: 'Récupère une liste paginée de produits avec filtres optionnels (catégorie, prix, disponibilité, etc.). Route publique accessible sans authentification.',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Numéro de page (défaut: 1)', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Nombre d\'éléments par page (défaut: 50, max: 100)', example: 50 })
   @ApiResponse({
     status: 200,
-    description: 'Liste des produits',
+    description: 'Liste des produits récupérée avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'prod_123' },
+              name: { type: 'string', example: 'Collier personnalisé' },
+              price: { type: 'number', example: 49.99 },
+              category: { type: 'string', example: 'jewelry' },
+            },
+          },
+        },
+        pagination: {
+          type: 'object',
+          properties: {
+            page: { type: 'number', example: 1 },
+            limit: { type: 'number', example: 50 },
+            total: { type: 'number', example: 150 },
+            totalPages: { type: 'number', example: 3 },
+          },
+        },
+      },
+    },
   })
+  @ApiResponse({ status: 400, description: 'Paramètres de requête invalides' })
   async findAll(@Query() query: ProductQueryDto) {
     const { page = 1, limit = 50, ...filters } = query;
     return this.productsService.findAll(filters, { page, limit });
@@ -47,23 +79,54 @@ export class ProductsController {
 
   @Get(':id')
   @Public()
-  @ApiOperation({ summary: 'Obtenir un produit par ID' })
-  @ApiParam({ name: 'id', description: 'ID du produit' })
+  @ApiOperation({ 
+    summary: 'Obtenir un produit par ID',
+    description: 'Récupère les détails complets d\'un produit spécifique, incluant ses variantes, options de personnalisation, et métadonnées. Route publique.',
+  })
+  @ApiParam({ name: 'id', description: 'ID unique du produit', example: 'prod_123' })
   @ApiResponse({
     status: 200,
-    description: 'Détails du produit',
+    description: 'Détails du produit récupérés avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'prod_123' },
+        name: { type: 'string', example: 'Collier personnalisé' },
+        description: { type: 'string', example: 'Collier en or 18k avec pendentif personnalisable' },
+        price: { type: 'number', example: 49.99 },
+        category: { type: 'string', example: 'jewelry' },
+        variants: { type: 'array', items: { type: 'object' } },
+        customizationOptions: { type: 'array', items: { type: 'object' } },
+      },
+    },
   })
+  @ApiResponse({ status: 404, description: 'Produit non trouvé - L\'ID fourni n\'existe pas' })
   async findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
 
   @Post()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Créer un nouveau produit' })
+  @ApiOperation({ 
+    summary: 'Créer un nouveau produit',
+    description: 'Crée un nouveau produit pour la marque de l\'utilisateur authentifié. Nécessite les permissions Brand Admin. Le produit est créé avec les options de personnalisation et variantes spécifiées.',
+  })
   @ApiResponse({
     status: 201,
-    description: 'Produit créé',
+    description: 'Produit créé avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'prod_123' },
+        name: { type: 'string', example: 'Collier personnalisé' },
+        brandId: { type: 'string', example: 'brand_456' },
+        createdAt: { type: 'string', format: 'date-time' },
+      },
+    },
   })
+  @ApiResponse({ status: 400, description: 'Données invalides - Vérifier le format des données envoyées' })
+  @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
+  @ApiResponse({ status: 403, description: 'Non autorisé - L\'utilisateur n\'a pas les permissions Brand Admin' })
   async create(
     @Body() createProductDto: CreateProductDto,
     @Request() req: ExpressRequest & { user: CurrentUser }

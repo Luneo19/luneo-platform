@@ -51,11 +51,28 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  @ApiOperation({ summary: 'Obtenir le profil de l\'utilisateur connecté' })
+  @ApiOperation({ 
+    summary: 'Obtenir le profil de l\'utilisateur connecté',
+    description: 'Récupère les informations complètes du profil de l\'utilisateur authentifié, incluant les détails personnels, préférences, quota, et informations de la marque associée.',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Profil utilisateur',
+    description: 'Profil utilisateur récupéré avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'user_123' },
+        email: { type: 'string', example: 'user@example.com' },
+        firstName: { type: 'string', example: 'John' },
+        lastName: { type: 'string', example: 'Doe' },
+        role: { type: 'string', example: 'USER' },
+        brandId: { type: 'string', example: 'brand_456' },
+        emailVerified: { type: 'boolean', example: true },
+        createdAt: { type: 'string', format: 'date-time' },
+      },
+    },
   })
+  @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
   async getProfile(@Request() req: ExpressRequest & { user: CurrentUser }) {
     return this.usersService.findOne(req.user.id, req.user);
   }

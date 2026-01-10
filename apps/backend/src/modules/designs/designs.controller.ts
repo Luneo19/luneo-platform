@@ -26,11 +26,46 @@ export class DesignsController {
   constructor(private readonly designsService: DesignsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister tous les designs de l\'utilisateur' })
+  @ApiOperation({ 
+    summary: 'Lister tous les designs de l\'utilisateur',
+    description: 'Récupère une liste paginée des designs créés par l\'utilisateur authentifié, avec filtres optionnels par statut et recherche textuelle. Les designs sont triés par date de création (plus récents en premier).',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Numéro de page (défaut: 1)', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Nombre d\'éléments par page (défaut: 20, max: 100)', example: 20 })
+  @ApiQuery({ name: 'status', required: false, enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'], description: 'Filtrer par statut de génération', example: 'COMPLETED' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Recherche textuelle dans les noms et descriptions de designs', example: 'collier' })
   @ApiResponse({
     status: 200,
-    description: 'Liste des designs',
+    description: 'Liste des designs récupérée avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'design_123' },
+              name: { type: 'string', example: 'Collier personnalisé' },
+              status: { type: 'string', example: 'COMPLETED' },
+              imageUrl: { type: 'string', example: 'https://cdn.luneo.app/designs/123.png' },
+              createdAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+        pagination: {
+          type: 'object',
+          properties: {
+            page: { type: 'number', example: 1 },
+            limit: { type: 'number', example: 20 },
+            total: { type: 'number', example: 150 },
+          },
+        },
+      },
+    },
   })
+  @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
+  @ApiResponse({ status: 400, description: 'Paramètres de requête invalides' })
   async findAll(
     @Request() req,
     @Query('page') page?: string,
@@ -47,11 +82,30 @@ export class DesignsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Créer un nouveau design avec IA' })
+  @ApiOperation({ 
+    summary: 'Créer un nouveau design avec IA',
+    description: 'Crée un nouveau design et lance la génération avec IA. Le design est créé avec le statut PENDING et la génération est traitée de manière asynchrone via une queue BullMQ. Retourne l\'ID du design et le statut initial.',
+  })
   @ApiResponse({
     status: 201,
-    description: 'Design créé et génération IA lancée',
+    description: 'Design créé avec succès. Génération IA lancée en arrière-plan.',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'design_123' },
+        status: { type: 'string', example: 'PENDING' },
+        productId: { type: 'string', example: 'prod_456' },
+        prompt: { type: 'string', example: 'Collier minimaliste or 18k' },
+        estimatedTime: { type: 'number', example: 30 },
+        message: { type: 'string', example: 'Génération en cours...' },
+      },
+    },
   })
+  @ApiResponse({ status: 400, description: 'Données invalides - Vérifier le prompt, productId et options' })
+  @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
+  @ApiResponse({ status: 402, description: 'Crédits insuffisants - L\'utilisateur n\'a pas assez de crédits pour cette génération' })
+  @ApiResponse({ status: 404, description: 'Produit non trouvé - Le productId fourni n\'existe pas' })
+  @ApiResponse({ status: 429, description: 'Trop de requêtes - Limite de générations par minute atteinte' })
   async create(@Body() createDesignDto: any, @Request() req) {
     return this.designsService.create(createDesignDto, req.user);
   }
