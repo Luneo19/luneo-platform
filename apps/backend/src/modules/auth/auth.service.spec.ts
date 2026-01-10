@@ -351,7 +351,7 @@ describe('AuthService', () => {
   describe('resetPassword', () => {
     const resetPasswordDto = {
       token: 'valid_reset_token',
-      newPassword: 'newPassword123',
+      password: 'NewPassword123!',
     };
 
     it('should reset password with valid token', async () => {
@@ -377,8 +377,8 @@ describe('AuthService', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.success).toBe(true);
-      expect(mockedBcrypt.hash).toHaveBeenCalledWith(resetPasswordDto.newPassword, 12);
+      expect(result.message).toBe('Password reset successfully');
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith(resetPasswordDto.password, 12);
       expect(prismaService.user.update).toHaveBeenCalled();
     });
 

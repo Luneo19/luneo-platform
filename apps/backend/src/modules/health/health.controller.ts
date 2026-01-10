@@ -4,7 +4,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { HealthCheck, HealthCheckService, HealthIndicatorResult } from '@nestjs/terminus';
+import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/terminus';
 
 @ApiTags('Health')
 @Controller('health') // Will be /health (excluded from global prefix) OR /api/v1/health
@@ -47,7 +47,7 @@ export class HealthController {
     status: 503, 
     description: 'Service unhealthy - One or more dependencies are down',
   })
-  async check(): Promise<HealthIndicatorResult> {
+  async check(): Promise<HealthCheckResult> {
     return this.health.check([
       // Database health check
       async () => {

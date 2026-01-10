@@ -4,10 +4,10 @@ import { HealthController } from './health.controller';
 import { RailwayHealthController } from './railway-health.controller';
 import { MetricsModule } from '@/libs/metrics/metrics.module';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
-import { RedisModule } from '@/libs/redis/redis.module';
+import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
 
 @Module({
-  imports: [TerminusModule, MetricsModule, PrismaModule, RedisModule],
+  imports: [TerminusModule, MetricsModule, PrismaModule, RedisOptimizedModule],
   controllers: [HealthController, RailwayHealthController],
   exports: [],
 })
