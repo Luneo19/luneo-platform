@@ -7,8 +7,10 @@
 FROM node:20-alpine AS builder
 
 # Installer les dépendances système nécessaires pour compiler canvas et autres packages natifs
+# py3-setuptools est nécessaire pour distutils (requis par node-gyp)
 RUN apk add --no-cache \
     python3 \
+    py3-setuptools \
     make \
     g++ \
     cairo-dev \
