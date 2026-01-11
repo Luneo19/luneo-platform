@@ -218,11 +218,9 @@ function AIDesignHubPageContent() {
         }}
       />
 
-    <div className="min-h-screen bg-white text-gray-900">
-      <section id="demo" className="py-20 px-4 bg-gray-50">
-
-      {/* Demo interactive */}
-      <section className="py-20 px-4 bg-gray-900/90 border-y border-pink-500/10">
+      <div className="min-h-screen bg-white text-gray-900">
+        {/* Demo interactive */}
+        <section id="demo" className="py-20 px-4 bg-gray-900/90 border-y border-pink-500/10">
         <div className="max-w-6xl mx-auto grid gap-8 lg:grid-cols-2">
           <Card className="bg-gray-900 border-pink-500/30 p-8">
             <h2 className="text-2xl font-bold text-white mb-4">Générateur IA (démo live)</h2>
