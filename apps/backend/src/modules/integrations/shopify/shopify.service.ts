@@ -117,8 +117,10 @@ export class ShopifyService {
     private readonly cache: SmartCacheService,
     @InjectQueue('integration-sync') private readonly syncQueue: Queue,
   ) {
-    this.clientId = this.configService.getOrThrow<string>('SHOPIFY_CLIENT_ID');
-    this.clientSecret = this.configService.getOrThrow<string>('SHOPIFY_CLIENT_SECRET');
+    // Rendre les variables Shopify optionnelles pour éviter l'erreur au démarrage
+    // Elles seront requises uniquement lors de l'utilisation réelle de l'intégration
+    this.clientId = this.configService.get<string>('SHOPIFY_CLIENT_ID') || '';
+    this.clientSecret = this.configService.get<string>('SHOPIFY_CLIENT_SECRET') || '';
     this.scopes = [
       'read_products',
       'write_products',
@@ -126,6 +128,12 @@ export class ShopifyService {
       'read_inventory',
       'write_inventory',
     ];
+    
+    if (!this.clientId || !this.clientSecret) {
+      this.logger.warn(
+        'Shopify credentials not configured. Shopify integration will not be available.',
+      );
+    }
   }
 
   // ==========================================================================
@@ -136,6 +144,10 @@ export class ShopifyService {
    * Génère l'URL d'autorisation OAuth
    */
   generateAuthUrl(shopDomain: string, redirectUri: string, state: string): string {
+    if (!this.clientId) {
+      throw new Error('Shopify Client ID not configured. Please set SHOPIFY_CLIENT_ID environment variable.');
+    }
+    
     const params = new URLSearchParams({
       client_id: this.clientId,
       scope: this.scopes.join(','),
@@ -153,6 +165,10 @@ export class ShopifyService {
     shopDomain: string,
     code: string,
   ): Promise<{ accessToken: string; scope: string }> {
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error('Shopify credentials not configured. Please set SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET environment variables.');
+    }
+    
     try {
       const response = await firstValueFrom(
         this.httpService.post(
