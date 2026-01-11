@@ -16,6 +16,7 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { StorageModule } from '@/libs/storage/storage.module';
 import { ProductsModule } from '@/modules/products/products.module';
 import { AnalyticsModule } from '@/modules/analytics/analytics.module';
+import { AiModule } from '@/modules/ai/ai.module';
 import { LLMRouterService } from '../services/llm-router.service';
 import { ConversationService } from '../services/conversation.service';
 import { AgentMemoryService } from '../services/agent-memory.service';
@@ -27,6 +28,7 @@ import { AgentMemoryService } from '../services/agent-memory.service';
     StorageModule,
     ProductsModule,
     AnalyticsModule, // Pour ReportsService
+    AiModule, // Pour AiService utilisé par LLMRouterService
     HttpModule,
   ],
   controllers: [LunaController],
