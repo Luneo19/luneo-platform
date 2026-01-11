@@ -46,7 +46,18 @@ COPY apps/backend ./apps/backend/
 WORKDIR /app/apps/backend
 RUN pnpm prisma generate
 
+# Créer un tar du Prisma Client pour le copier facilement dans le stage production
+# Cela évite les problèmes de COPY si le répertoire n'existe pas
+WORKDIR /app
+RUN if [ -d "node_modules/.prisma" ]; then \
+        tar -czf /tmp/prisma-client.tar.gz -C node_modules .prisma; \
+    else \
+        echo "Prisma Client directory not found, creating empty tar"; \
+        mkdir -p /tmp/empty_prisma && tar -czf /tmp/prisma-client.tar.gz -C /tmp empty_prisma 2>/dev/null || touch /tmp/prisma-client.tar.gz; \
+    fi
+
 # Builder l'application
+WORKDIR /app/apps/backend
 RUN nest build || pnpm build
 
 # ============================================
@@ -99,18 +110,17 @@ RUN pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeo
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
-# Copier le Prisma Client généré depuis le builder
-# Dans un monorepo pnpm, Prisma Client est dans node_modules/.prisma à la racine
-# Utiliser un script RUN avec mount pour copier conditionnellement
-RUN --mount=from=builder,source=/app/node_modules/.prisma,target=/tmp/builder_prisma \
-    if [ -d "/tmp/builder_prisma" ] && [ "$(ls -A /tmp/builder_prisma 2>/dev/null)" ]; then \
-        echo "Copying Prisma Client from builder..."; \
-        mkdir -p /app/node_modules/.prisma && \
-        cp -r /tmp/builder_prisma/* /app/node_modules/.prisma/; \
+# Copier le Prisma Client généré depuis le builder via tar
+# Cette approche évite les problèmes de COPY si le répertoire n'existe pas
+COPY --from=builder /tmp/prisma-client.tar.gz /tmp/prisma-client.tar.gz
+RUN mkdir -p /app/node_modules/.prisma && \
+    if [ -s /tmp/prisma-client.tar.gz ]; then \
+        tar -xzf /tmp/prisma-client.tar.gz -C /app/node_modules 2>/dev/null && \
+        echo "Prisma Client copied from builder"; \
     else \
-        echo "Prisma Client not found in builder, will be generated at runtime if needed"; \
-        mkdir -p /app/node_modules/.prisma || true; \
-    fi
+        echo "Prisma Client tar is empty or not found, will be generated at runtime if needed"; \
+    fi && \
+    rm -f /tmp/prisma-client.tar.gz
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
