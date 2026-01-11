@@ -107,17 +107,18 @@ export class LLMRouterService {
     this.mistralApiKey = this.configService.getOrThrow<string>('MISTRAL_API_KEY');
 
     // Initialiser les circuit breakers pour chaque provider
+    // Les options par défaut sont déjà configurées (failureThreshold: 5, timeoutMs: 60000)
     this.circuitBreakers.set(
       LLMProvider.OPENAI,
-      new CircuitBreakerService({ failureThreshold: 5, timeoutMs: 60000 }),
+      new CircuitBreakerService(),
     );
     this.circuitBreakers.set(
       LLMProvider.ANTHROPIC,
-      new CircuitBreakerService({ failureThreshold: 5, timeoutMs: 60000 }),
+      new CircuitBreakerService(),
     );
     this.circuitBreakers.set(
       LLMProvider.MISTRAL,
-      new CircuitBreakerService({ failureThreshold: 5, timeoutMs: 60000 }),
+      new CircuitBreakerService(),
     );
   }
 
