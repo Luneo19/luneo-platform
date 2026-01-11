@@ -112,13 +112,18 @@ COPY apps/backend/package.json ./apps/backend/
 # Copier les packages nécessaires AVANT de copier node_modules
 COPY packages ./packages/
 
-# Installer les dépendances de production dans le stage production
+# Installer les dépendances de production + prisma (nécessaire pour générer Prisma Client)
 # Cela garantit que la structure pnpm est correcte et que les modules sont accessibles
 # Canvas sera compilé avec les outils de build installés ci-dessus
 # Ajouter retries pour gérer les erreurs réseau temporaires
 RUN pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000 || \
     (echo "Retry 1..." && sleep 5 && pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000) || \
     (echo "Retry 2..." && sleep 10 && pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000)
+
+# Installer prisma comme dépendance de production pour pouvoir régénérer Prisma Client si nécessaire
+WORKDIR /app/apps/backend
+RUN pnpm add -D prisma@^5.22.0 --fetch-timeout=60000 || echo "Failed to install prisma, will try to use from node_modules"
+WORKDIR /app
 
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
@@ -134,7 +139,10 @@ RUN echo "Extracting Prisma Client..." && \
         echo "Prisma Client extracted successfully" && \
         ls -la /app/node_modules/.prisma 2>/dev/null | head -10; \
     else \
-        echo "WARNING: Prisma Client tar is empty or not found"; \
+        echo "WARNING: Prisma Client tar is empty or not found, generating now..."; \
+        cd /app/apps/backend && \
+        pnpm prisma generate && \
+        echo "Prisma Client generated successfully"; \
     fi && \
     rm -f /tmp/prisma-client.tar.gz
 
@@ -146,7 +154,7 @@ COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 
 # Créer le script de démarrage
 # Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
-RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Verification Prisma Client..."\nif [ ! -d "/app/node_modules/.prisma/client" ]; then\n  echo "WARNING: Prisma Client not found, regenerating..."\n  cd /app/apps/backend\n  pnpm prisma generate || echo "WARNING: Failed to generate Prisma Client"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ] || [ -f "/app/apps/backend/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  if [ -f "/app/node_modules/.bin/prisma" ]; then\n    /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\n  else\n    /app/apps/backend/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\n  fi\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Verification Prisma Client..."\nif [ ! -d "/app/node_modules/.prisma/client" ] && [ ! -d "/app/apps/backend/node_modules/.prisma/client" ]; then\n  echo "WARNING: Prisma Client not found, regenerating..."\n  cd /app/apps/backend\n  pnpm prisma generate || echo "WARNING: Failed to generate Prisma Client"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Nettoyer les fichiers inutiles pour réduire la taille
 
