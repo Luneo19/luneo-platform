@@ -132,6 +132,8 @@ RUN echo "Extracting Prisma Client from builder..." && \
     tar -xzf /tmp/prisma-client.tar.gz -C /app/node_modules 2>&1 && \
     echo "Prisma Client extracted successfully" && \
     ls -la /app/node_modules/.prisma/client 2>/dev/null | head -5 && \
+    echo "Verifying Prisma Client structure..." && \
+    find /app/node_modules -name ".prisma" -type d 2>/dev/null | head -3 && \
     rm -f /tmp/prisma-client.tar.gz
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
@@ -147,12 +149,15 @@ RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Execution des migrations Prisma...
 # Nettoyer les fichiers inutiles pour réduire la taille
 
 # Nettoyer les fichiers inutiles
+# IMPORTANT: Ne PAS supprimer .prisma/client car il est nécessaire au runtime
 RUN rm -rf /app/node_modules/.cache \
     && rm -rf /tmp/* \
     && rm -rf /var/cache/apk/* \
-    && find /app/node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" -o -name "*.test.js" -o -name "*.spec.js" \) -exec rm -rf {} + 2>/dev/null || true \
-    && find /app/node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.ts" ! -path "*/node_modules/.prisma/*" \) -delete 2>/dev/null || true \
-    && find /app/node_modules -type d -empty -delete 2>/dev/null || true
+    && find /app/node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" -o -name "*.test.js" -o -name "*.spec.js" \) ! -path "*/node_modules/.prisma/*" -exec rm -rf {} + 2>/dev/null || true \
+    && find /app/node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.ts" ! -path "*/node_modules/.prisma/*" ! -path "*/node_modules/@prisma/*" \) -delete 2>/dev/null || true \
+    && find /app/node_modules -type d -empty ! -path "*/node_modules/.prisma/*" -delete 2>/dev/null || true \
+    && echo "Verifying Prisma Client after cleanup..." && \
+    ls -la /app/node_modules/.prisma/client 2>/dev/null | head -3 || echo "WARNING: Prisma Client not found after cleanup"
 
 # Exposer le port
 EXPOSE ${PORT:-3000}
