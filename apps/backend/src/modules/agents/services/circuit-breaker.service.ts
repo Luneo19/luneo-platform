@@ -9,7 +9,7 @@
  * - ✅ Types explicites
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 
 // ============================================================================
 // TYPES
@@ -54,8 +54,8 @@ export class CircuitBreakerService {
   private readonly circuits: Map<string, CircuitBreakerState> = new Map();
   private readonly options: Required<CircuitBreakerOptions>;
 
-  constructor(options: CircuitBreakerOptions = {}) {
-    this.options = { ...DEFAULT_OPTIONS, ...options };
+  constructor(@Optional() options?: CircuitBreakerOptions) {
+    this.options = { ...DEFAULT_OPTIONS, ...(options || {}) };
   }
 
   /**
