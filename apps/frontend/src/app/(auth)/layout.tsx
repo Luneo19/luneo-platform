@@ -4,6 +4,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Logo } from '@/components/Logo';
+import { Navigation } from '@/components/marketing/home/navigation';
+import { FooterNew } from '@/components/marketing/home/footer-new';
+import { CursorGlow } from '@/components/marketing/home/cursor-glow';
 import {
   Sparkles,
   Shield,
@@ -112,9 +115,12 @@ export default function AuthLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left Panel - Marketing/Branding (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
+      <CursorGlow />
+      <Navigation />
+      <div className="min-h-screen flex flex-col lg:flex-row pt-16 lg:pt-0">
+        {/* Left Panel - Marketing/Branding (hidden on mobile) */}
+        <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 relative overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(6,182,212,0.15),transparent_50%)]" />
@@ -283,16 +289,7 @@ export default function AuthLayout({
       </div>
 
       {/* Right Panel - Auth Forms */}
-      <div className="flex-1 lg:w-1/2 xl:w-[45%] bg-slate-950 lg:bg-slate-900 relative min-h-screen">
-        {/* Mobile header */}
-        <div className="lg:hidden absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-slate-950 to-transparent">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">L</span>
-            </div>
-            <span className="text-white font-bold">Luneo</span>
-          </Link>
-        </div>
+      <div className="flex-1 lg:w-1/2 xl:w-[45%] bg-white lg:bg-gray-50 relative min-h-screen">
 
         {/* Form container */}
         <div className="min-h-screen flex items-center justify-center px-4 py-16 lg:py-8">
@@ -303,6 +300,8 @@ export default function AuthLayout({
 
         {/* Background gradient for right panel - removed on mobile to avoid overlay blocking */}
       </div>
+      </div>
+      <FooterNew />
     </div>
   );
 }
