@@ -384,34 +384,9 @@ export default function EcommercePage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-gradient-to-br from-emerald-900 to-green-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Pret a booster vos ventes ?
-          </h2>
-          <p className="text-xl text-gray-200 mb-8">
-            +35% de conversion en moyenne
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button className="bg-white text-emerald-900 hover:bg-gray-100 px-8 h-12 text-lg font-semibold">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Installer gratuitement
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button
-                variant="outline"
-                className="border-white/50 text-white hover:bg-white/20 h-12 px-8 text-lg"
-              >
-                <Share2 className="w-5 h-5 mr-2" />
-                Parler a un expert
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <CTASectionNew />
     </div>
+    </>
     </ErrorBoundary>
   );
 }
