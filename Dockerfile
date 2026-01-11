@@ -90,15 +90,10 @@ COPY packages ./packages/
 # Canvas sera compilé avec les outils de build installés ci-dessus
 RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
-# Copier le schéma Prisma AVANT de générer le client
+# Copier le schéma Prisma et le Prisma Client généré depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
-
-# Générer Prisma Client dans le stage production
-WORKDIR /app/apps/backend
-RUN pnpm prisma generate
-
-# Revenir à la racine
-WORKDIR /app
+# Copier le Prisma Client généré depuis le builder (il est dans node_modules/.prisma/client)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
