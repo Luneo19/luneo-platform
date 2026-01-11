@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import type { LunaResponse, LunaAction, AriaResponse, AriaSuggestion, AgentConversation } from '@/types/agents';
 import type { Design, DesignSummary, LoginCredentials, RegisterData, User } from '@/lib/types';
 import { logger } from '@/lib/logger';
 
@@ -20,12 +21,13 @@ interface GenerateDesignResponse {
 
 // API Base URL
 // Use NEXT_PUBLIC_API_URL from environment variables
-// Fallback to localhost for development only
-// In production, NEXT_PUBLIC_API_URL must be configured in Vercel
+// IMPORTANT: Do NOT include /api in NEXT_PUBLIC_API_URL - endpoints already include /api/v1
+// For production: NEXT_PUBLIC_API_URL=https://api.luneo.app
+// For development: NEXT_PUBLIC_API_URL=http://localhost:3001
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? null // Should be configured in Vercel - this will cause errors if not set
-    : 'http://localhost:3001');
+    ? 'https://api.luneo.app' // Fallback for production
+    : 'http://localhost:3001'); // Fallback for development
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -212,105 +214,143 @@ export const endpoints = {
   // Users
   users: {
     list: (params?: { page?: number; limit?: number }) => 
-      api.get('/users', { params }),
-    get: (id: string) => api.get(`/users/${id}`),
-    update: (id: string, data: any) => api.put(`/users/${id}`, data),
-    delete: (id: string) => api.delete(`/users/${id}`),
+      api.get('/api/v1/users', { params }),
+    get: (id: string) => api.get(`/api/v1/users/${id}`),
+    update: (id: string, data: any) => api.put(`/api/v1/users/${id}`, data),
+    delete: (id: string) => api.delete(`/api/v1/users/${id}`),
   },
 
   // Brands
   brands: {
-    current: () => api.get('/brands/current'),
-    update: (data: any) => api.put('/brands/current', data),
-    settings: () => api.get('/brands/settings'),
-    updateSettings: (data: any) => api.put('/brands/settings', data),
+    current: () => api.get('/api/v1/brands/current'),
+    update: (data: any) => api.put('/api/v1/brands/current', data),
+    settings: () => api.get('/api/v1/brands/settings'),
+    updateSettings: (data: any) => api.put('/api/v1/brands/settings', data),
   },
 
   // Products
   products: {
     list: (params?: { page?: number; limit?: number }) => 
-      api.get('/products', { params }),
-    get: (id: string) => api.get(`/products/${id}`),
-    create: (data: any) => api.post('/products', data),
-    update: (id: string, data: any) => api.put(`/products/${id}`, data),
-    delete: (id: string) => api.delete(`/products/${id}`),
+      api.get('/api/v1/products', { params }),
+    get: (id: string) => api.get(`/api/v1/products/${id}`),
+    create: (data: any) => api.post('/api/v1/products', data),
+    update: (id: string, data: any) => api.put(`/api/v1/products/${id}`, data),
+    delete: (id: string) => api.delete(`/api/v1/products/${id}`),
   },
 
   // Designs
   designs: {
     list: (params?: { page?: number; limit?: number; status?: string }) =>
-      api.get<DesignSummary[]>('/designs', { params }),
-    get: (id: string) => api.get<Design>(`/designs/${id}`),
-    create: (data: Partial<Design>) => api.post<Design>('/designs', data),
-    delete: (id: string) => api.delete<void>(`/designs/${id}`),
+      api.get<DesignSummary[]>('/api/v1/designs', { params }),
+    get: (id: string) => api.get<Design>(`/api/v1/designs/${id}`),
+    create: (data: Partial<Design>) => api.post<Design>('/api/v1/designs', data),
+    delete: (id: string) => api.delete<void>(`/api/v1/designs/${id}`),
   },
 
   // AI
   ai: {
     generate: (data: { prompt: string; productId: string; options?: Record<string, unknown> }) =>
-      api.post<GenerateDesignResponse>('/ai/generate', data),
-    status: (jobId: string) => api.get(`/ai/status/${jobId}`),
+      api.post<GenerateDesignResponse>('/api/v1/ai/generate', data),
+    status: (jobId: string) => api.get(`/api/v1/ai/status/${jobId}`),
   },
 
   // Orders
   orders: {
     list: (params?: { page?: number; limit?: number; status?: string }) => 
-      api.get('/orders', { params }),
-    get: (id: string) => api.get(`/orders/${id}`),
-    create: (data: any) => api.post('/orders', data),
-    update: (id: string, data: any) => api.put(`/orders/${id}`, data),
+      api.get('/api/v1/orders', { params }),
+    get: (id: string) => api.get(`/api/v1/orders/${id}`),
+    create: (data: any) => api.post('/api/v1/orders', data),
+    update: (id: string, data: any) => api.put(`/api/v1/orders/${id}`, data),
   },
 
   // Analytics
   analytics: {
-    overview: () => api.get('/analytics/overview'),
+    overview: () => api.get('/api/v1/analytics/overview'),
     designs: (params?: { startDate?: string; endDate?: string }) => 
-      api.get('/analytics/designs', { params }),
+      api.get('/api/v1/analytics/designs', { params }),
     orders: (params?: { startDate?: string; endDate?: string }) => 
-      api.get('/analytics/orders', { params }),
+      api.get('/api/v1/analytics/orders', { params }),
     revenue: (params?: { startDate?: string; endDate?: string }) => 
-      api.get('/analytics/revenue', { params }),
+      api.get('/api/v1/analytics/revenue', { params }),
   },
 
   // Billing
   billing: {
-    subscription: () => api.get('/billing/subscription'),
-    plans: () => api.get('/billing/plans'),
-    subscribe: (planId: string) => api.post('/billing/subscribe', { planId }),
-    cancel: () => api.post('/billing/cancel'),
-    invoices: () => api.get('/billing/invoices'),
-    paymentMethods: () => api.get('/billing/payment-methods'),
+    subscription: () => api.get('/api/v1/billing/subscription'),
+    plans: () => api.get('/api/v1/billing/plans'),
+    subscribe: (planId: string) => api.post('/api/v1/billing/subscribe', { planId }),
+    cancel: () => api.post('/api/v1/billing/cancel'),
+    invoices: () => api.get('/api/v1/billing/invoices'),
+    paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
   },
 
   // Integrations
   integrations: {
-    list: () => api.get('/integrations'),
-    enable: (type: string, config: any) => api.post(`/integrations/${type}/enable`, config),
-    disable: (type: string) => api.delete(`/integrations/${type}`),
-    test: (type: string, config: any) => api.post(`/integrations/${type}/test`, config),
+    list: () => api.get('/api/v1/integrations'),
+    enable: (type: string, config: any) => api.post(`/api/v1/integrations/${type}/enable`, config),
+    disable: (type: string) => api.delete(`/api/v1/integrations/${type}`),
+    test: (type: string, config: any) => api.post(`/api/v1/integrations/${type}/test`, config),
   },
 
   // Team
   team: {
-    members: () => api.get('/team/members'),
-    invite: (email: string, role: string) => api.post('/team/invite', { email, role }),
-    remove: (userId: string) => api.delete(`/team/members/${userId}`),
-    updateRole: (userId: string, role: string) => api.put(`/team/members/${userId}/role`, { role }),
+    members: () => api.get('/api/v1/team/members'),
+    invite: (email: string, role: string) => api.post('/api/v1/team/invite', { email, role }),
+    remove: (userId: string) => api.delete(`/api/v1/team/members/${userId}`),
+    updateRole: (userId: string, role: string) => api.put(`/api/v1/team/members/${userId}/role`, { role }),
   },
 
   // Public API
   publicApi: {
     keys: {
-      list: () => api.get('/api-keys'),
-      create: (data: any) => api.post('/api-keys', data),
-      delete: (id: string) => api.delete(`/api-keys/${id}`),
-      regenerate: (id: string) => api.post(`/api-keys/${id}/regenerate`),
+      list: () => api.get('/api/v1/api-keys'),
+      create: (data: any) => api.post('/api/v1/api-keys', data),
+      delete: (id: string) => api.delete(`/api/v1/api-keys/${id}`),
+      regenerate: (id: string) => api.post(`/api/v1/api-keys/${id}/regenerate`),
     },
     webhooks: {
       history: (params?: { page?: number; limit?: number }) => 
-        api.get('/webhooks/history', { params }),
+        api.get('/api/v1/webhooks/history', { params }),
       test: (url: string, secret?: string) => 
-        api.post('/webhooks/test', { url, secret }),
+        api.post('/api/v1/webhooks/test', { url, secret }),
+    },
+  },
+
+  // Agents
+  agents: {
+    luna: {
+      chat: (data: { message: string; conversationId?: string; context?: unknown }) =>
+        api.post<{ success: boolean; data: LunaResponse }>('/api/v1/agents/luna/chat', data),
+      action: (data: { action: LunaAction }) =>
+        api.post<{ success: boolean; data: unknown }>('/api/v1/agents/luna/action', data),
+      conversations: () =>
+        api.get<{ success: boolean; data: { conversations: AgentConversation[] } }>('/api/v1/agents/luna/conversations'),
+      conversationMessages: (conversationId: string) =>
+        api.get<{ success: boolean; data: { conversationId: string; messages: Array<{ role: string; content: string; createdAt: string }> } }>(`/api/v1/agents/luna/conversations/${conversationId}`),
+    },
+    aria: {
+      chat: (data: { sessionId: string; productId: string; message: string; context?: unknown }) =>
+        api.post<{ success: boolean; data: AriaResponse }>('/api/v1/agents/aria/chat', data),
+      quickSuggest: (productId: string, occasion: string, language?: string) =>
+        api.get<{ success: boolean; data: AriaSuggestion[] }>(`/api/v1/agents/aria/quick-suggest?productId=${productId}&occasion=${occasion}&language=${language || 'fr'}`),
+      improveText: (data: { text: string; style: string; language?: string; productId?: string }) =>
+        api.post<{ success: boolean; data: { original: string; improved: string; variations: string[] } }>('/api/v1/agents/aria/improve', data),
+      recommendStyle: (data: { text: string; occasion: string; productType?: string }) =>
+        api.post<{ success: boolean; data: Array<{ font: string; color: string; reason: string }> }>('/api/v1/agents/aria/recommend-style', data),
+      translate: (data: { text: string; targetLanguage: string; sourceLanguage?: string }) =>
+        api.post<{ success: boolean; data: { original: string; translated: string; sourceLanguage: string; targetLanguage: string } }>('/api/v1/agents/aria/translate', data),
+      spellCheck: (data: { text: string; language?: string }) =>
+        api.post<{ success: boolean; data: { original: string; corrected: string; errors: Array<{ word: string; suggestion: string; position: number }> } }>('/api/v1/agents/aria/spell-check', data),
+      giftIdeas: (data: { occasion: string; recipient: string; budget?: string; preferences?: string }) =>
+        api.post<{ success: boolean; data: Array<{ idea: string; product: string; personalization: string; reason: string }> }>('/api/v1/agents/aria/gift-ideas', data),
+    },
+    nova: {
+      chat: (data: { message: string }) =>
+        api.post<{ success: boolean; data: { message: string; intent: string; resolved: boolean; ticketId?: string; articles?: Array<{ id: string; title: string; url: string }>; escalated: boolean } }>('/api/v1/agents/nova/chat', data),
+      faq: (query: string, limit?: number) =>
+        api.get<{ success: boolean; data: Array<{ id: string; title: string; slug: string; content: string }> }>(`/api/v1/agents/nova/faq?query=${encodeURIComponent(query)}&limit=${limit || 5}`),
+      ticket: (data: { subject: string; description: string; priority: 'low' | 'medium' | 'high' | 'urgent'; category?: 'TECHNICAL' | 'BILLING' | 'FEATURE' | 'OTHER' }) =>
+        api.post<{ success: boolean; data: { id: string; ticketNumber: string } }>('/api/v1/agents/nova/ticket', data),
     },
   },
 };
