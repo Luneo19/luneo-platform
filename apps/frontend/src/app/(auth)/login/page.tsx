@@ -202,10 +202,10 @@ function LoginPageContent() {
         >
           <span className="text-white font-bold text-2xl">L</span>
         </motion>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2" data-testid="login-title">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2" data-testid="login-title">
           Bon retour ! 👋
             </h1>
-        <p className="text-slate-400" data-testid="login-subtitle">
+        <p className="text-gray-600" data-testid="login-subtitle">
           Connectez-vous à votre espace Luneo
             </p>
           </div>
@@ -308,10 +308,10 @@ function LoginPageContent() {
                   type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500/20 focus:ring-offset-0"
+              className="w-4 h-4 rounded border-gray-300 bg-white text-indigo-600 focus:ring-indigo-500/20 focus:ring-offset-0"
                   data-testid="login-remember"
                 />
-            <Label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer">
+            <Label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
               Rester connecté
                 </Label>
               </div>
