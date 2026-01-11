@@ -281,7 +281,7 @@ function RegisterPageContent() {
       {/* Header */}
       <div className="text-center mb-6">
         <FadeIn delay={0.1}>
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl mb-6 shadow-lg shadow-cyan-500/25 lg:hidden">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl mb-6 shadow-lg shadow-indigo-500/25 lg:hidden">
             <span className="text-white font-bold text-2xl">L</span>
           </div>
         </FadeIn>
@@ -302,7 +302,7 @@ function RegisterPageContent() {
         <FadeIn>
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-300">{error}</p>
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         </FadeIn>
           )}
@@ -313,8 +313,8 @@ function RegisterPageContent() {
           <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3">
             <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-green-300">{success}</p>
-              <p className="text-xs text-green-400/70 mt-1">Redirection vers la connexion...</p>
+              <p className="text-sm text-green-600">{success}</p>
+              <p className="text-xs text-green-600/70 mt-1">Redirection vers la connexion...</p>
             </div>
           </div>
         </FadeIn>
@@ -408,7 +408,7 @@ function RegisterPageContent() {
                   data-testid="register-password"
                   type={showPassword ? 'text' : 'password'}
               placeholder="Créez un mot de passe sécurisé"
-              className="pl-10 pr-12 bg-slate-800 border-2 border-slate-600 text-white placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base"
+              className="pl-10 pr-12 bg-white border-2 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -533,7 +533,7 @@ function RegisterPageContent() {
                 type="checkbox"
             checked={acceptedTerms}
             onChange={(e) => setAcceptedTerms(e.target.checked)}
-            className="w-5 h-5 mt-0.5 rounded border-2 border-slate-600 bg-slate-800 text-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:ring-offset-0 cursor-pointer"
+            className="w-5 h-5 mt-0.5 rounded border-2 border-gray-300 bg-white text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-0 cursor-pointer"
                 required
               />
           <Label htmlFor="terms" className="text-sm text-slate-300 cursor-pointer leading-relaxed flex-1">
