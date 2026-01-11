@@ -101,15 +101,16 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
 # Copier le Prisma Client généré depuis le builder
 # Dans un monorepo pnpm, Prisma Client est dans node_modules/.prisma à la racine
-# Utiliser un script shell pour gérer le cas où le répertoire n'existe pas
-RUN if [ -d "/tmp/builder_prisma" ]; then rm -rf /tmp/builder_prisma; fi && \
-    mkdir -p /tmp/builder_prisma && \
-    (cp -r /app/node_modules/.prisma /tmp/builder_prisma/ 2>/dev/null || echo "Prisma Client not found in expected location") && \
-    if [ -d "/tmp/builder_prisma/.prisma" ]; then \
+# Utiliser un script RUN avec mount pour copier conditionnellement
+RUN --mount=from=builder,source=/app/node_modules/.prisma,target=/tmp/builder_prisma \
+    if [ -d "/tmp/builder_prisma" ] && [ "$(ls -A /tmp/builder_prisma 2>/dev/null)" ]; then \
+        echo "Copying Prisma Client from builder..."; \
         mkdir -p /app/node_modules/.prisma && \
-        cp -r /tmp/builder_prisma/.prisma/* /app/node_modules/.prisma/; \
-    fi || true
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma 2>/dev/null || echo "Prisma Client will be generated at runtime if needed"
+        cp -r /tmp/builder_prisma/* /app/node_modules/.prisma/; \
+    else \
+        echo "Prisma Client not found in builder, will be generated at runtime if needed"; \
+        mkdir -p /app/node_modules/.prisma || true; \
+    fi
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
