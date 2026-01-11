@@ -55,13 +55,18 @@ async function bootstrap() {
     const path = require('path');
     // Utiliser le répertoire du backend pour Prisma
     const backendDir = path.join(__dirname, '../..');
+    
+    // Note: User.name has been removed from schema.prisma as it's not used
+    // and doesn't exist in the database. Prisma Client will be regenerated during build.
+    
+    // Then run Prisma migrations
     execSync('pnpm prisma migrate deploy', { 
       stdio: 'inherit',
       env: { ...process.env, PATH: process.env.PATH },
       cwd: backendDir
     });
     logger.log('Database migrations completed');
-  } catch (error) {
+  } catch (error: any) {
     logger.warn(`Database migration failed: ${error.message}. Continuing anyway...`);
     // Continue even if migrations fail (might be already up to date or DATABASE_URL not configured)
   }
@@ -152,12 +157,11 @@ async function bootstrap() {
   });
 
   // Global prefix - set prefix for all routes
-  // We'll register /health directly using app.getHttpAdapter().get() after app.init()
-  // This is the EXACT pattern from shopify/main.ts which works correctly
-  // The shopify app sets a global prefix but still registers /health directly
-  const apiPrefix = configService.get('app.apiPrefix');
+  // IMPORTANT: setGlobalPrefix must be called BEFORE app.init()
+  // This ensures all controllers are registered with the correct prefix
+  const apiPrefix = configService.get('app.apiPrefix') || '/api/v1';
   app.setGlobalPrefix(apiPrefix);
-  logger.log(`Global prefix set to: ${apiPrefix}`);
+  logger.log(`✅ Global prefix set to: ${apiPrefix}`);
 
   // Validation pipe
   app.useGlobalPipes(

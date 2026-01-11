@@ -20,18 +20,13 @@ import {
  */
 export default function HomePage() {
   return (
-    <>
-      <CursorGlow />
-      <Navigation />
-      <main className="min-h-screen">
-        <HeroSectionNew />
-        <FeaturesSectionNew />
-        <HowItWorksNew />
-        <TestimonialsNew />
-        <PricingSectionNew />
-        <CTASectionNew />
-      </main>
-      <FooterNew />
-    </>
+    <main className="min-h-screen">
+      <HeroSectionNew />
+      <FeaturesSectionNew />
+      <HowItWorksNew />
+      <TestimonialsNew />
+      <PricingSectionNew />
+      <CTASectionNew />
+    </main>
   );
 }

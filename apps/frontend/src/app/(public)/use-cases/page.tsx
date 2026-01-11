@@ -1,39 +1,92 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import Link from 'next/link';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, ShoppingCart, Megaphone, Briefcase, Package, Truck, Users } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
 
 function UseCasesPageContent() {
   const useCases = useMemo(() => [
-    { name: 'E-commerce', link: '/use-cases/e-commerce' },
-    { name: 'Marketing', link: '/use-cases/marketing' },
-    { name: 'Branding', link: '/use-cases/branding' },
-    { name: 'Print-on-Demand', link: '/use-cases/print-on-demand' },
-    { name: 'Dropshipping', link: '/use-cases/dropshipping' },
-    { name: 'Agency', link: '/use-cases/agency' },
+    { 
+      name: 'E-commerce', 
+      description: 'Personnalisez vos produits pour augmenter les ventes et améliorer l\'expérience client sur votre boutique en ligne',
+      icon: <ShoppingCart className="w-6 h-6" />,
+      link: '/use-cases/e-commerce',
+      color: 'green' as const
+    },
+    { 
+      name: 'Marketing', 
+      description: 'Créez des visuels marketing personnalisés en masse pour vos campagnes publicitaires et réseaux sociaux',
+      icon: <Megaphone className="w-6 h-6" />,
+      link: '/use-cases/marketing',
+      color: 'orange' as const
+    },
+    { 
+      name: 'Branding', 
+      description: 'Maintenez la cohérence de votre marque avec des outils de personnalisation intégrés à votre identité',
+      icon: <Briefcase className="w-6 h-6" />,
+      link: '/use-cases/branding',
+      color: 'indigo' as const
+    },
+    { 
+      name: 'Print-on-Demand', 
+      description: 'Gérez efficacement vos commandes de produits personnalisés avec intégration complète POD',
+      icon: <Package className="w-6 h-6" />,
+      link: '/use-cases/print-on-demand',
+      color: 'blue' as const
+    },
+    { 
+      name: 'Dropshipping', 
+      description: 'Automatisez la création de visuels pour vos produits dropshipping et augmentez vos conversions',
+      icon: <Truck className="w-6 h-6" />,
+      link: '/use-cases/dropshipping',
+      color: 'cyan' as const
+    },
+    { 
+      name: 'Agency', 
+      description: 'Offrez des services de personnalisation à vos clients avec une plateforme professionnelle complète',
+      icon: <Users className="w-6 h-6" />,
+      link: '/use-cases/agency',
+      color: 'purple' as const
+    },
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="bg-gradient-to-r from-orange-600 to-red-600 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <Lightbulb className="w-16 h-16 mx-auto mb-6" />
-          <h1 className="text-5xl font-bold mb-4">Use Cases</h1>
-          <p className="text-xl text-orange-100">Découvrez comment utiliser Luneo</p>
+    <>
+      <PageHero
+        title="Cas d'Usage"
+        description="Découvrez comment Luneo s'adapte à votre secteur d'activité et transforme votre façon de créer des produits personnalisés"
+        badge="Cas d'Usage"
+        gradient="from-orange-600 via-red-600 to-pink-600"
+        cta={{
+          label: 'Commencer maintenant',
+          href: '/register'
+        }}
+      />
+
+      <section className="py-24 sm:py-32 bg-gray-50 relative">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            title="Des solutions adaptées à chaque secteur"
+            description="Que vous soyez e-commerce, agence, ou entreprise, Luneo s'adapte à vos besoins spécifiques"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {useCases.map((useCase, index) => (
+              <FeatureCard
+                key={useCase.name}
+                icon={useCase.icon}
+                title={useCase.name}
+                description={useCase.description}
+                href={useCase.link}
+                color={useCase.color}
+                delay={index * 100}
+              />
+            ))}
+          </div>
         </div>
       </section>
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-3 gap-8">
-          {useCases.map((useCase) => (
-            <Link key={useCase.name} href={useCase.link} className="bg-gray-800/50 rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow border border-gray-700">
-              <h3 className="font-bold text-xl text-white">{useCase.name}</h3>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </div>
+    </>
   );
 }
 

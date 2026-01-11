@@ -1,118 +1,81 @@
 #!/bin/bash
 
-# Script de déploiement Railway
-# Ce script prépare et déploie l'application sur Railway
+# Script de déploiement Railway pour Backend
+# Usage: ./scripts/deploy-railway.sh
 
 set -e
 
-echo "🚀 Déploiement Railway - Luneo Platform"
-echo "========================================"
+echo "🚀 DÉPLOIEMENT RAILWAY - BACKEND"
+echo "=================================="
 echo ""
 
-# Couleurs
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
-# Vérifier que Railway CLI est installé
+# Vérifier Railway CLI
 if ! command -v railway &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Railway CLI n'est pas installé${NC}"
-    echo "Installation de Railway CLI..."
-    npm install -g @railway/cli
-fi
-
-# Vérifier que nous sommes dans le bon répertoire
-if [ ! -f "package.json" ]; then
-    echo -e "${RED}❌ Erreur: package.json non trouvé${NC}"
-    echo "Assurez-vous d'être dans le répertoire racine du projet"
+    echo "❌ Railway CLI non installé"
+    echo "Installation: npm i -g @railway/cli"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Vérifications préliminaires OK${NC}"
+echo "✅ Railway CLI détecté"
 echo ""
 
-# Vérifier les variables d'environnement requises
-echo "📋 Vérification des variables d'environnement..."
+# Vérifier connexion
+echo "🔐 Vérification connexion Railway..."
+if ! railway whoami &> /dev/null; then
+    echo "❌ Non connecté à Railway"
+    echo "Connexion: railway login"
+    exit 1
+fi
+
+echo "✅ Connecté à Railway"
 echo ""
 
+# Variables d'environnement requises
 REQUIRED_VARS=(
     "DATABASE_URL"
-    "JWT_SECRET"
-    "NODE_ENV"
+    "REDIS_URL"
+    "OPENAI_API_KEY"
+    "ANTHROPIC_API_KEY"
+    "MISTRAL_API_KEY"
+    "FRONTEND_URL"
 )
 
+echo "📋 Vérification variables d'environnement..."
 MISSING_VARS=()
 
 for var in "${REQUIRED_VARS[@]}"; do
-    if [ -z "${!var}" ]; then
+    if ! railway variables get "$var" &> /dev/null; then
         MISSING_VARS+=("$var")
     fi
 done
 
 if [ ${#MISSING_VARS[@]} -gt 0 ]; then
-    echo -e "${YELLOW}⚠️  Variables d'environnement manquantes:${NC}"
+    echo "⚠️  Variables manquantes:"
     for var in "${MISSING_VARS[@]}"; do
         echo "   - $var"
     done
     echo ""
-    echo "Ces variables doivent être configurées dans Railway Dashboard"
-    echo ""
+    echo "Pour ajouter: railway variables set $var=value"
+    read -p "Continuer quand même? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
 fi
 
-# Build local (optionnel, pour tester)
-if [ "$1" == "--build" ]; then
-    echo "🔨 Build local..."
-    cd apps/backend
-    pnpm install
-    pnpm prisma generate
-    pnpm build
-    cd ../..
-    echo -e "${GREEN}✅ Build local réussi${NC}"
-    echo ""
-fi
-
-# Migration Prisma (optionnel)
-if [ "$1" == "--migrate" ]; then
-    echo "🗄️  Exécution des migrations Prisma..."
-    cd apps/backend
-    pnpm prisma migrate deploy
-    cd ../..
-    echo -e "${GREEN}✅ Migrations appliquées${NC}"
-    echo ""
-fi
-
-# Déploiement Railway
-echo "🚂 Déploiement sur Railway..."
+echo "✅ Variables d'environnement OK"
 echo ""
 
-# Vérifier si Railway est connecté
-if ! railway status &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Railway n'est pas connecté${NC}"
-    echo "Connexion à Railway..."
-    railway login
-fi
+# Déploiement
+echo "🚀 Déploiement en cours..."
+cd apps/backend
 
-# Déployer
-echo "Déploiement en cours..."
-railway up
+railway up --service backend
 
 echo ""
-echo -e "${GREEN}✅ Déploiement terminé !${NC}"
+echo "✅ Déploiement terminé!"
 echo ""
-echo "📊 Prochaines étapes:"
-echo "   1. Vérifier les logs: railway logs"
-echo "   2. Vérifier le health check: railway open"
-echo "   3. Tester l'API: curl \$(railway domain)/health"
-echo ""
-
-
-
-
-
-
-
-
-
-
-
+echo "📊 Vérifications:"
+echo "1. Health check: curl https://your-app.railway.app/health"
+echo "2. Metrics: curl https://your-app.railway.app/health/metrics"
+echo "3. Logs: railway logs"

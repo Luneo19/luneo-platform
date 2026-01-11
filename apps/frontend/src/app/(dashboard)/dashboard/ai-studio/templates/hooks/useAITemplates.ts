@@ -57,7 +57,7 @@ export function useAITemplates() {
   };
 
   const filteredAndSortedTemplates = useMemo(() => {
-    let filtered = templates.filter((template) => {
+    const filtered = templates.filter((template) => {
       const matchesSearch =
         searchTerm === '' ||
         template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

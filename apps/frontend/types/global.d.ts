@@ -3,9 +3,7 @@
 // Global type definitions to satisfy TypeScript compiler
 // This file ensures all implicit type libraries are available
 
-import 'react';
-
-declare global {
+import 'react';declare global {
   namespace JSX {
     interface IntrinsicElements {
       // Framer Motion component

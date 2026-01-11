@@ -197,8 +197,9 @@ export const emailDomainConfig = registerAs('emailDomain', () => ({
 // App configuration
 export const appConfig = registerAs('app', () => {
   // Use API_PREFIX from env, or default to /api/v1 for backward compatibility
-  // But if API_PREFIX is explicitly set to /api, use that
-  const apiPrefix = process.env.API_PREFIX || '/api/v1';
+  // IMPORTANT: If API_PREFIX is /api, override to /api/v1 for consistency
+  const envApiPrefix = process.env.API_PREFIX;
+  const apiPrefix = (envApiPrefix === '/api' || !envApiPrefix) ? '/api/v1' : envApiPrefix;
   
   return {
     nodeEnv: process.env.NODE_ENV || 'development',

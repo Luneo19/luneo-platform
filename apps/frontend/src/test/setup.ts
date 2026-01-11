@@ -165,9 +165,7 @@ vi.mock('@/lib/supabase/server', () => ({
       getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
     },
   })),
-}));
-
-vi.mock('@/lib/supabase/client', () => ({
+}));vi.mock('@/lib/supabase/client', () => ({
   createClient: vi.fn(() => ({
     auth: {
       getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),

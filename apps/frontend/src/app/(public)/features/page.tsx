@@ -2,70 +2,83 @@
 
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import Link from 'next/link';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Palette, Box, Camera, Sparkles, Zap, Shield } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 function FeaturesPageContent() {
   const features = [
-    { icon: <Palette className="w-8 h-8" />, title: 'Customizer 2D', desc: 'Éditeur visuel Konva.js', color: 'from-blue-500 to-cyan-500' },
-    { icon: <Box className="w-8 h-8" />, title: 'Configurator 3D', desc: 'Three.js + PBR materials', color: 'from-purple-500 to-pink-500' },
-    { icon: <Camera className="w-8 h-8" />, title: 'Virtual Try-On', desc: 'AR temps réel MediaPipe', color: 'from-green-500 to-teal-500' },
-    { icon: <Sparkles className="w-8 h-8" />, title: 'AI Generation', desc: 'DALL-E 3 + Bulk', color: 'from-orange-500 to-red-500' },
-    { icon: <Zap className="w-8 h-8" />, title: 'Performance', desc: '60 FPS, lazy loading', color: 'from-yellow-500 to-orange-500' },
-    { icon: <Shield className="w-8 h-8" />, title: 'Security', desc: 'OAuth, JWT, RBAC', color: 'from-indigo-500 to-purple-500' },
+    { 
+      icon: <Palette className="w-6 h-6" />, 
+      title: 'Customizer 2D', 
+      description: 'Éditeur visuel puissant avec Konva.js pour personnaliser vos produits en temps réel avec des layers illimités',
+      color: 'blue' as const
+    },
+    { 
+      icon: <Box className="w-6 h-6" />, 
+      title: 'Configurator 3D', 
+      description: 'Visualisation 3D photoréaliste avec Three.js et matériaux PBR pour un rendu de qualité professionnelle',
+      color: 'purple' as const
+    },
+    { 
+      icon: <Camera className="w-6 h-6" />, 
+      title: 'Virtual Try-On', 
+      description: 'Essayage virtuel en temps réel avec MediaPipe pour une expérience AR immersive sur mobile et web',
+      color: 'green' as const
+    },
+    { 
+      icon: <Sparkles className="w-6 h-6" />, 
+      title: 'AI Generation', 
+      description: 'Génération IA avec DALL-E 3 et bulk generation pour créer des milliers de designs en quelques minutes',
+      color: 'orange' as const
+    },
+    { 
+      icon: <Zap className="w-6 h-6" />, 
+      title: 'Performance', 
+      description: 'Optimisations avancées avec 60 FPS, lazy loading et code splitting pour des performances optimales',
+      color: 'cyan' as const
+    },
+    { 
+      icon: <Shield className="w-6 h-6" />, 
+      title: 'Security', 
+      description: 'Sécurité enterprise avec OAuth, JWT, RBAC et chiffrement de bout en bout pour protéger vos données',
+      color: 'indigo' as const
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 py-20 px-4">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,black,transparent)]" />
-        </div>
+    <>
+      <PageHero
+        title="Fonctionnalités"
+        description="Une plateforme complète de personnalisation produits avec tous les outils dont vous avez besoin pour réussir"
+        badge="Fonctionnalités"
+        gradient="from-blue-600 via-purple-600 to-pink-600"
+      />
 
-        <div className="relative max-w-7xl mx-auto text-center">
-          <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-              Features
-              <br />
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Tout ce dont vous avez besoin
-              </span>
-            </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Plateforme complète de personnalisation produits
-            </p>
-          </motion>
-        </div>
-      </section>
+      <section className="py-24 sm:py-32 bg-gray-50 relative">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            title="Tout ce dont vous avez besoin pour réussir"
+            description="Des fonctionnalités puissantes conçues pour vous aider à créer, lancer et faire croître vos produits personnalisés"
+          />
 
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, i) => (
-              <Card key={i} className="p-6 bg-gray-800/50 border-gray-700">
-                <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center text-white mb-4`}>
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.desc}</p>
-              </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
+              <FeatureCard
+                key={feature.title}
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.description}
+                color={feature.color}
+                delay={index * 100}
+              />
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-4 bg-gray-800/50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Commencez Maintenant</h2>
-          <Link href="/register">
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 h-12 text-lg">Essayer gratuitement</Button>
-          </Link>
-        </div>
-      </section>
-    </div>
+      <CTASectionNew />
+    </>
   );
 }
 

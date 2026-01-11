@@ -145,7 +145,6 @@ model User {
   password      String? // Null for OAuth users
   firstName     String?
   lastName      String?
-  name          String? // Full name field
   avatar        String?
   role          UserRole  @default(CONSUMER)
   isActive      Boolean   @default(true)
@@ -331,6 +330,9 @@ model Brand {
   teamMembers       TeamMember[]
   teamInvites       TeamInvite[]
   cliparts          Clipart[]
+
+  // Agents IA
+  agentConversations AgentConversation[]
 
   @@index([slug])
   @@index([status])
@@ -2872,3 +2874,51 @@ model TeamInvite {
 //   aiGenerations      AIGeneration[]
 //   aiCollections      AICollection[]
 //   sharedResources    SharedResource[]
+
+// ========================================
+// AGENTS IA
+// ========================================
+
+model AgentConversation {
+  id          String   @id @default(cuid())
+  brandId     String?
+  brand       Brand?   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  agentType   String   // luna, aria, nova
+  sessionId   String?
+  userId      String?
+
+  // Contexte
+  context     Json     @default("{}")
+
+  // Messages
+  messages    AgentMessage[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([agentType])
+  @@index([sessionId])
+  @@map("AgentConversation")
+}
+
+model AgentMessage {
+  id             String            @id @default(cuid())
+  conversationId String
+  conversation   AgentConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role           String            // user, assistant, system
+  content        String
+
+  // Metadata
+  intent         String?
+  actions        Json?
+  metadata       Json              @default("{}")
+
+  createdAt      DateTime          @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("AgentMessage")
+}

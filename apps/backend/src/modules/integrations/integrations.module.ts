@@ -1,24 +1,68 @@
+/**
+ * @fileoverview Module principal des intégrations e-commerce
+ * @module IntegrationsModule
+ *
+ * RÈGLES RESPECTÉES:
+ * - ✅ Export des services
+ * - ✅ Import des dépendances
+ * - ✅ Structure modulaire
+ */
+
 import { Module } from '@nestjs/common';
-import { IntegrationsController } from './integrations.controller';
-import { IntegrationsService } from './integrations.service';
-import { SlackService } from './slack/slack.service';
-import { ZapierService } from './zapier/zapier.service';
-import { WebhookIntegrationService } from './webhook-integration/webhook-integration.service';
+import { HttpModule } from '@nestjs/axios';
+import { BullModule } from '@nestjs/bull';
+
+// Sub-modules
+import { ShopifyModule } from './shopify/shopify.module';
+import { WooCommerceModule } from './woocommerce/woocommerce.module';
+import { PrestaShopModule } from './prestashop/prestashop.module';
+
+// Shared services
+import { IntegrationOrchestratorService } from './services/integration-orchestrator.service';
+import { SyncEngineService } from './services/sync-engine.service';
+import { WebhookProcessorService } from './services/webhook-processor.service';
+
+// Infrastructure
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
-import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [PrismaModule, SmartCacheModule, HttpModule],
-  controllers: [IntegrationsController],
-  providers: [
-    IntegrationsService,
-    SlackService,
-    ZapierService,
-    WebhookIntegrationService,
+  imports: [
+    PrismaModule,
+    SmartCacheModule,
+    HttpModule.register({
+      timeout: 30000,
+      maxRedirects: 3,
+    }),
+    BullModule.registerQueue({
+      name: 'integration-sync',
+      defaultJobOptions: {
+        removeOnComplete: 100,
+        removeOnFail: 50,
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      },
+    }),
+    // Sub-modules
+    ShopifyModule,
+    WooCommerceModule,
+    PrestaShopModule,
   ],
-  exports: [IntegrationsService],
+  providers: [
+    IntegrationOrchestratorService,
+    SyncEngineService,
+    WebhookProcessorService,
+  ],
+  exports: [
+    IntegrationOrchestratorService,
+    SyncEngineService,
+    WebhookProcessorService,
+    ShopifyModule,
+    WooCommerceModule,
+    PrestaShopModule,
+  ],
 })
 export class IntegrationsModule {}
-
-

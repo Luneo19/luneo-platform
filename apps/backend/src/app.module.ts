@@ -26,6 +26,7 @@ import {
 // Modules
 import { AdminModule } from './modules/admin/admin.module';
 import { AiModule } from './modules/ai/ai.module';
+import { AgentsModule } from './modules/agents/agents.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ArStudioModule } from './modules/ar/ar-studio.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -191,6 +192,7 @@ import { TracingModule } from './libs/tracing/tracing.module';
     AuthModule,
     UsersModule,
     BrandsModule,
+    AgentsModule,
     ProductsModule,
     DesignsModule,
     OrdersModule,
