@@ -49,11 +49,24 @@ RUN pnpm prisma generate
 # Créer un tar du Prisma Client pour le copier facilement dans le stage production
 # Cela évite les problèmes de COPY si le répertoire n'existe pas
 WORKDIR /app
-RUN if [ -d "node_modules/.prisma" ]; then \
-        tar -czf /tmp/prisma-client.tar.gz -C node_modules .prisma; \
+RUN echo "Checking for Prisma Client..." && \
+    ls -la node_modules/.prisma 2>/dev/null || echo "Prisma Client not in node_modules/.prisma" && \
+    find node_modules -name ".prisma" -type d 2>/dev/null | head -5 && \
+    if [ -d "node_modules/.prisma" ]; then \
+        echo "Found Prisma Client in node_modules/.prisma, creating tar..."; \
+        tar -czf /tmp/prisma-client.tar.gz -C node_modules .prisma && \
+        ls -lh /tmp/prisma-client.tar.gz; \
     else \
-        echo "Prisma Client directory not found, creating empty tar"; \
-        mkdir -p /tmp/empty_prisma && tar -czf /tmp/prisma-client.tar.gz -C /tmp empty_prisma 2>/dev/null || touch /tmp/prisma-client.tar.gz; \
+        echo "Prisma Client not found, searching in node_modules..."; \
+        PRISMA_DIR=$(find node_modules -name ".prisma" -type d | head -1); \
+        if [ -n "$PRISMA_DIR" ]; then \
+            echo "Found Prisma Client at $PRISMA_DIR, creating tar..."; \
+            tar -czf /tmp/prisma-client.tar.gz -C node_modules $(echo $PRISMA_DIR | sed 's|node_modules/||'); \
+            ls -lh /tmp/prisma-client.tar.gz; \
+        else \
+            echo "Prisma Client not found anywhere, creating empty tar"; \
+            touch /tmp/prisma-client.tar.gz; \
+        fi; \
     fi
 
 # Builder l'application
@@ -113,12 +126,15 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 # Copier le Prisma Client généré depuis le builder via tar
 # Cette approche évite les problèmes de COPY si le répertoire n'existe pas
 COPY --from=builder /tmp/prisma-client.tar.gz /tmp/prisma-client.tar.gz
-RUN mkdir -p /app/node_modules/.prisma && \
+RUN echo "Extracting Prisma Client..." && \
+    ls -lh /tmp/prisma-client.tar.gz && \
+    mkdir -p /app/node_modules/.prisma && \
     if [ -s /tmp/prisma-client.tar.gz ]; then \
-        tar -xzf /tmp/prisma-client.tar.gz -C /app/node_modules 2>/dev/null && \
-        echo "Prisma Client copied from builder"; \
+        tar -xzf /tmp/prisma-client.tar.gz -C /app/node_modules 2>&1 && \
+        echo "Prisma Client extracted successfully" && \
+        ls -la /app/node_modules/.prisma 2>/dev/null | head -10; \
     else \
-        echo "Prisma Client tar is empty or not found, will be generated at runtime if needed"; \
+        echo "WARNING: Prisma Client tar is empty or not found"; \
     fi && \
     rm -f /tmp/prisma-client.tar.gz
 
