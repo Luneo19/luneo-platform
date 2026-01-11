@@ -58,25 +58,24 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Installer uniquement les dépendances de production
 WORKDIR /app
 
-# Copier package.json et pnpm-lock.yaml
+# Copier package.json et pnpm-lock.yaml (nécessaires pour pnpm)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/
 
-# Installer uniquement les dépendances de production (sans devDependencies)
-# Note: --filter=backend peut ne pas fonctionner, utiliser --prod à la place
-RUN pnpm install --frozen-lockfile --include-workspace-root --prod
+# Copier les packages nécessaires AVANT de copier node_modules
+COPY packages ./packages/
+
+# Copier les node_modules compilés depuis le builder pour éviter la recompilation
+# (surtout pour canvas et autres packages natifs)
+# Cela évite d'avoir à réinstaller et recompiler les dépendances
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/backend/node_modules ./apps/backend/node_modules || true
 
 # Copier uniquement les fichiers nécessaires depuis le builder
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
-# Copier le Prisma Client généré depuis le builder
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/apps/backend/node_modules/.prisma ./apps/backend/node_modules/.prisma || true
-
-# Copier les packages nécessaires (si utilisés par le backend)
-# Note: Ne copier que les packages réellement utilisés pour réduire la taille
-COPY packages ./packages/
+# Le Prisma Client est déjà dans node_modules copié depuis le builder
 
 # Créer le script de démarrage
 WORKDIR /app/apps/backend
