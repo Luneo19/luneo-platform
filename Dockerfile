@@ -120,31 +120,28 @@ RUN pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeo
     (echo "Retry 1..." && sleep 5 && pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000) || \
     (echo "Retry 2..." && sleep 10 && pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000)
 
-# Installer prisma comme dépendance de production pour pouvoir régénérer Prisma Client si nécessaire
-WORKDIR /app/apps/backend
-RUN pnpm add -D prisma@^5.22.0 --fetch-timeout=60000 || echo "Failed to install prisma, will try to use from node_modules"
-WORKDIR /app
+# Installer prisma comme dépendance de développement pour pouvoir générer Prisma Client
+# On l'installe après les dépendances de production pour éviter de polluer node_modules
+RUN pnpm add -D prisma@^5.22.0 --fetch-timeout=60000 || \
+    (echo "Failed to install prisma with pnpm, trying npm..." && \
+     cd apps/backend && \
+     npm install --save-dev prisma@^5.22.0 || echo "Failed to install prisma")
 
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
-# Copier le Prisma Client généré depuis le builder via tar
-# Cette approche évite les problèmes de COPY si le répertoire n'existe pas
-COPY --from=builder /tmp/prisma-client.tar.gz /tmp/prisma-client.tar.gz
-RUN echo "Extracting Prisma Client..." && \
-    ls -lh /tmp/prisma-client.tar.gz && \
-    mkdir -p /app/node_modules/.prisma && \
-    if [ -s /tmp/prisma-client.tar.gz ]; then \
-        tar -xzf /tmp/prisma-client.tar.gz -C /app/node_modules 2>&1 && \
-        echo "Prisma Client extracted successfully" && \
-        ls -la /app/node_modules/.prisma 2>/dev/null | head -10; \
-    else \
-        echo "WARNING: Prisma Client tar is empty or not found, generating now..."; \
-        cd /app/apps/backend && \
-        pnpm prisma generate && \
-        echo "Prisma Client generated successfully"; \
-    fi && \
-    rm -f /tmp/prisma-client.tar.gz
+# Générer Prisma Client dans le stage production
+# C'est plus fiable que de copier depuis le builder
+WORKDIR /app/apps/backend
+RUN echo "Generating Prisma Client..." && \
+    pnpm prisma generate || \
+    (echo "pnpm prisma generate failed, trying npx..." && \
+     npx prisma generate || \
+     (echo "npx failed, trying node_modules/.bin..." && \
+      node_modules/.bin/prisma generate || \
+      ../../node_modules/.bin/prisma generate)) && \
+    echo "Prisma Client generated successfully"
+WORKDIR /app
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
