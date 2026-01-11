@@ -233,7 +233,7 @@ export default function DashboardPage() {
             <div className="w-16 h-16 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mx-auto" />
             <Sparkles className="w-6 h-6 text-cyan-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
           </div>
-          <p className="text-slate-400 mt-4">Chargement de vos données...</p>
+          <p className="text-gray-600 mt-4">Chargement de vos données...</p>
         </div>
       </div>
     );
@@ -244,10 +244,10 @@ export default function DashboardPage() {
   if (error && !stats.length && !recentActivity.length) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Card className="p-8 max-w-md bg-red-950/20 border-red-500/30 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">Erreur de chargement</h3>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
+        <Card className="p-8 max-w-md bg-red-50 border-red-200 text-center">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Erreur de chargement</h3>
+          <p className="text-sm text-gray-600 mb-6">{error}</p>
           <div className="flex gap-3 justify-center">
             <Button onClick={refresh} className="bg-red-600 hover:bg-red-700">
               <RefreshCw className="w-4 h-4 mr-2" />
@@ -256,7 +256,7 @@ export default function DashboardPage() {
             <Button 
               onClick={() => router.push('/dashboard/ai-studio')} 
               variant="outline"
-              className="border-slate-600 hover:bg-slate-800"
+              className="border-gray-300 hover:bg-gray-100"
             >
               Continuer quand même
             </Button>
@@ -275,22 +275,22 @@ export default function DashboardPage() {
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Dashboard
             </h1>
             {isDemoMode && (
-              <span className="px-2.5 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-medium text-purple-300">
+              <span className="px-2.5 py-1 bg-purple-100 border border-purple-200 rounded-full text-xs font-medium text-purple-700">
                 Mode Démo
               </span>
             )}
           </div>
-          <p className="text-slate-400 mt-1">
+          <p className="text-gray-600 mt-1">
             Bienvenue ! Voici un aperçu de votre activité.
           </p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-800/50 rounded-lg p-1">
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
             {(['24h', '7d', '30d', '90d'] as const).map((period) => (
               <button
                 key={period}
