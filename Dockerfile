@@ -15,15 +15,12 @@ WORKDIR /app
 
 # Copier les fichiers nécessaires pour le monorepo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/backend/package.json ./apps/backend/
+COPY apps ./apps/
 COPY packages ./packages/
 
 # Installer les dépendances (depuis la racine pour le monorepo)
 # Inclure les devDependencies car TypeScript et @nestjs/cli sont nécessaires pour le build
 RUN pnpm install --frozen-lockfile --include-workspace-root
-
-# Copier le code source
-COPY apps/backend ./apps/backend
 
 # Builder l'application backend
 # Générer Prisma Client avant le build (depuis apps/backend car prisma.json est là)
