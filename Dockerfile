@@ -95,8 +95,7 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
 # Copier le Prisma Client généré depuis le builder
 # Dans un monorepo pnpm, Prisma Client est dans node_modules/.prisma à la racine
-# Créer le répertoire d'abord pour éviter les erreurs
-RUN mkdir -p /app/node_modules/.prisma
+# Le répertoire node_modules existe déjà après pnpm install, donc on peut copier directement
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
