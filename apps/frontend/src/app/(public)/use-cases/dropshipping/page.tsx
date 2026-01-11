@@ -2,6 +2,9 @@
 
 import React, { memo, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
+import { Check } from 'lucide-react';
 
 function DropshippingPageContent() {
   const features = useMemo(() => [
@@ -12,20 +15,33 @@ function DropshippingPageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 py-20">
-        <h1 className="text-5xl font-bold mb-6 text-white">Dropshipping</h1>
-        <p className="text-xl text-gray-300 mb-8">Personnalisation produits pour dropshipping</p>
-        <ul className="space-y-3 text-gray-300">
-          {features.map((feature) => (
-            <li key={feature} className="flex items-start gap-2">
-              <span className="text-green-400">✓</span>
-              <span>{feature}</span>
-            </li>
-          ))}
-        </ul>
+    <>
+      <PageHero
+        title="Dropshipping"
+        description="Personnalisation produits pour dropshipping. Intégration avec AliExpress et CJDropshipping."
+        badge="Cas d'usage"
+        gradient="from-blue-600 via-indigo-600 to-purple-600"
+      />
+
+      <div className="min-h-screen bg-white text-gray-900">
+        <section className="max-w-7xl mx-auto px-4 py-20 bg-gray-50">
+          <SectionHeader
+            title="Fonctionnalités Dropshipping"
+            description="Tout ce dont vous avez besoin pour votre business dropshipping"
+          />
+          <div className="grid md:grid-cols-2 gap-8 mt-12">
+            {features.map((feature) => (
+              <div key={feature} className="flex items-start gap-3 bg-white p-4 rounded-lg border border-gray-200">
+                <Check className="w-6 h-6 text-green-500 flex-shrink-0" />
+                <span className="text-gray-700">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <CTASectionNew />
       </div>
-    </div>
+    </>
   );
 }
 

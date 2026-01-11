@@ -4,6 +4,8 @@ import React, { memo, useMemo } from 'react';
 import Link from 'next/link';
 import { Megaphone, Check } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 function MarketingUseCasePageContent() {
   const features = useMemo(() => [
@@ -18,32 +20,37 @@ function MarketingUseCasePageContent() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-24">
-        <div className="max-w-4xl mx-auto px-4">
-          <Megaphone className="w-16 h-16 mb-6 text-white" />
-          <h1 className="text-5xl font-bold mb-6 text-white">Marketing & Automation</h1>
-          <p className="text-2xl text-pink-100 mb-8">
-            Automatisez la création de visuels marketing avec IA. Gagnez 10h/semaine.
-          </p>
-          <Link href="/contact" className="bg-white text-pink-600 px-8 py-3 rounded-lg font-semibold hover:bg-pink-50 inline-block">
-            Réserver une démo
-          </Link>
-        </div>
-      </section>
+    <>
+      <PageHero
+        title="Marketing & Automation"
+        description="Automatisez la création de visuels marketing avec IA. Gagnez 10h/semaine."
+        badge="Cas d'usage"
+        gradient="from-pink-600 via-rose-600 to-purple-600"
+        cta={{
+          label: 'Réserver une démo',
+          href: '/contact'
+        }}
+      />
 
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <h2 className="text-4xl font-bold text-center mb-12 text-white">Pour les Équipes Marketing</h2>
-        <div className="grid md:grid-cols-2 gap-8">
-          {features.map((feature) => (
-            <div key={feature} className="flex items-start gap-3">
-              <Check className="w-6 h-6 text-green-400 flex-shrink-0" />
-              <span className="text-gray-300">{feature}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
+      <div className="min-h-screen bg-white text-gray-900">
+        <section className="max-w-7xl mx-auto px-4 py-20 bg-gray-50">
+          <SectionHeader
+            title="Pour les Équipes Marketing"
+            description="Tout ce dont vous avez besoin pour automatiser votre marketing"
+          />
+          <div className="grid md:grid-cols-2 gap-8 mt-12">
+            {features.map((feature) => (
+              <div key={feature} className="flex items-start gap-3 bg-white p-4 rounded-lg border border-gray-200">
+                <Check className="w-6 h-6 text-green-500 flex-shrink-0" />
+                <span className="text-gray-700">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <CTASectionNew />
+      </div>
+    </>
   );
 }
 
