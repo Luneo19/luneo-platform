@@ -67,13 +67,9 @@ COPY apps/backend/package.json ./apps/backend/
 # Copier les packages nécessaires AVANT de copier node_modules
 COPY packages ./packages/
 
-# Copier les node_modules compilés depuis le builder pour éviter la recompilation
-# (surtout pour canvas et autres packages natifs)
-# Dans un monorepo pnpm, les node_modules sont à la racine
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+# Installer les dépendances de production dans le stage production
+# Cela garantit que la structure pnpm est correcte et que les modules sont accessibles
+RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier uniquement les fichiers nécessaires depuis le builder
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
