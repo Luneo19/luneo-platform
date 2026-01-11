@@ -196,7 +196,7 @@ export class NovaService {
           content: a.excerpt || a.content.substring(0, 200),
         }));
       },
-      { ttl: 3600 },
+      3600
     );
   }
 
@@ -234,7 +234,7 @@ export class NovaService {
         description: data.description,
         status: 'OPEN',
         priority: priorityMap[data.priority] || 'MEDIUM',
-        category: data.category || 'TECHNICAL',
+        category: (data.category || 'TECHNICAL') as any,
         userId: data.userId,
         tags: [],
         metadata: {},

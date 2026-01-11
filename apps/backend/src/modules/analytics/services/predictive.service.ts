@@ -130,7 +130,7 @@ export class PredictiveService {
           },
           select: {
             createdAt: true,
-            totalAmount: true,
+            totalCents: true,
           },
           orderBy: { createdAt: 'asc' },
         });
@@ -139,7 +139,7 @@ export class PredictiveService {
           const revenueTrend = this.calculateTrend(
             ordersData.map((o, i) => ({
               date: o.createdAt,
-              value: Number(o.totalAmount),
+              value: Number(o.totalCents) / 100, // Convert cents to currency
             })),
             horizon,
           );
@@ -151,7 +151,7 @@ export class PredictiveService {
 
         return predictions;
       },
-      { ttl: 3600 }, // Cache 1 heure
+      3600 // Cache 1 heure
     );
   }
 
@@ -193,7 +193,7 @@ export class PredictiveService {
 
         return anomalies;
       },
-      { ttl: 1800 }, // Cache 30 minutes
+      1800 // Cache 30 minutes
     );
   }
 
@@ -258,17 +258,22 @@ Génère un JSON array avec le format:
             maxTokens: 1024,
           });
 
-          const recommendations = JSON.parse(response.content);
-          return recommendations.map((r: unknown, index: number) => ({
+          const recommendations = JSON.parse(response.content) as Array<Partial<Recommendation>>;
+          return recommendations.map((r, index: number) => ({
             id: `rec-${brandId}-${index}`,
-            ...r,
+            type: r.type || 'operational',
+            title: r.title || 'Recommandation',
+            description: r.description || '',
+            impact: r.impact || 'medium',
+            effort: r.effort || 'medium',
+            metrics: r.metrics || [],
           })) as Recommendation[];
         } catch (error) {
           this.logger.error('Failed to generate recommendations:', error);
           return this.getDefaultRecommendations(brand);
         }
       },
-      { ttl: 7200 }, // Cache 2 heures
+      7200 // Cache 2 heures
     );
   }
 

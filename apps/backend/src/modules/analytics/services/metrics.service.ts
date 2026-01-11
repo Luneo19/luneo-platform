@@ -50,7 +50,7 @@ export class MetricsService {
           conversionRate: designsToday > 0 ? (ordersToday / designsToday) * 100 : 0,
         };
       },
-      { ttl: 60 }, // Cache 1 minute
+      60 // Cache 1 minute
     );
   }
 }

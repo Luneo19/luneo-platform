@@ -35,20 +35,21 @@ export class AgentMetricsService implements OnModuleInit {
   private readonly logger = new Logger(AgentMetricsService.name);
 
   // Métriques Prometheus
-  private readonly requestDuration: any;
-  private readonly requestTotal: any;
-  private readonly tokensTotal: any;
-  private readonly costTotal: any;
-  private readonly errorsTotal: any;
-  private readonly retriesTotal: any;
-  private readonly circuitBreakerState: any;
-  private readonly cacheHits: any;
-  private readonly cacheMisses: any;
+  private requestDuration: any;
+  private requestTotal: any;
+  private tokensTotal: any;
+  private costTotal: any;
+  private errorsTotal: any;
+  private retriesTotal: any;
+  private circuitBreakerState: any;
+  private cacheHits: any;
+  private cacheMisses: any;
 
   constructor(private readonly prometheus: PrometheusService) {
     // Initialiser les métriques si prom-client est disponible
-    if (this.prometheus.registry) {
-      this.initializeMetrics();
+    const registry = (prometheus as any).registry;
+    if (registry) {
+      this.initializeMetrics(registry);
     } else {
       // Fallback: créer des objets vides
       this.requestDuration = { observe: () => {} };
@@ -65,7 +66,8 @@ export class AgentMetricsService implements OnModuleInit {
   }
 
   onModuleInit() {
-    if (this.prometheus.registry) {
+    const registry = (this.prometheus as any).registry;
+    if (registry) {
       this.logger.log('Agent metrics service initialized');
     }
   }
@@ -73,9 +75,8 @@ export class AgentMetricsService implements OnModuleInit {
   /**
    * Initialise les métriques Prometheus pour les agents
    */
-  private initializeMetrics(): void {
+  private initializeMetrics(registry: any): void {
     const { Registry, Histogram, Counter, Gauge } = require('prom-client');
-    const registry = this.prometheus.registry;
 
     // Durée des requêtes agents (Histogram)
     this.requestDuration = new Histogram({

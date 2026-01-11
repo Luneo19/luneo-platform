@@ -21,7 +21,8 @@ export class VectorStoreService {
     private readonly httpService: HttpService,
   ) {
     this.openaiApiKey = this.configService.getOrThrow<string>('OPENAI_API_KEY');
-    this.useVectorStore = this.configService.get<boolean>('USE_VECTOR_STORE') === 'true';
+    const useVectorStoreEnv = this.configService.get<string>('USE_VECTOR_STORE');
+    this.useVectorStore = useVectorStoreEnv === 'true' || useVectorStoreEnv === '1';
   }
 
   /**

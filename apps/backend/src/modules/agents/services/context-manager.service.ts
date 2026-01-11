@@ -64,7 +64,9 @@ export class ContextManagerService {
 
     // Vérifier cache pour le résumé
     const cacheKey = `context-summary:${this.hashMessages(oldMessages)}`;
-    let summary = await this.cache.get<string>(cacheKey);
+    let summary = await this.cache.get<string>(cacheKey, 'context', async () => {
+      return await this.summarizeMessages(oldMessages, brandId);
+    }, { ttl: 86400 });
 
     if (!summary) {
       // Générer résumé des messages anciens

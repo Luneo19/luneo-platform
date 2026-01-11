@@ -55,12 +55,12 @@ export class AgentMemoryService {
         context: {
           ...currentContext,
           ...context,
-        },
+        } as any,
       },
     });
 
     // Invalider le cache
-    await this.cache.delete(`agent-context:${conversationId}`);
+    await this.cache.invalidate(`agent-context:${conversationId}`, 'cache');
   }
 
   /**
@@ -82,7 +82,7 @@ export class AgentMemoryService {
 
         return (conversation.context || {}) as AgentContext;
       },
-      { ttl: 300 }, // Cache 5 minutes
+      300 // Cache 5 minutes
     );
   }
 }

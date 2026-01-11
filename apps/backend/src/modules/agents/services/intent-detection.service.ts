@@ -51,7 +51,10 @@ export class IntentDetectionService {
     const cacheKey = `intent:${agentType}:${this.hashMessage(message)}:${possibleIntents.join(',')}`;
 
     // Vérifier le cache
-    const cached = await this.cache.get<IntentDetectionResult>(cacheKey);
+    const cached = await this.cache.get<IntentDetectionResult>(cacheKey, 'intent', async () => {
+      // Will be filled below
+      return null as any;
+    }, { ttl: 3600 });
     if (cached) {
       this.metrics.recordCacheHit(agentType, 'intent');
       return cached;

@@ -35,7 +35,8 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RateLimit, RateLimitPresets } from '@/libs/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '@/libs/rate-limit/rate-limit.guard';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
-import type { CurrentUser } from '@/common/types/user.types';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { CurrentUser as CurrentUserType } from '@/common/types/user.types';
 import { LunaService, LunaAction } from './luna.service';
 import { ConversationService } from '../services/conversation.service';
 import { LLMStreamService } from '../services/llm-stream.service';
@@ -95,7 +96,7 @@ export class LunaController {
   @ApiResponse({ status: 200, description: 'Stream de réponse Luna' })
   chatStream(
     @CurrentBrand() brand: { id: string } | null,
-    @CurrentUser() user: CurrentUser,
+    @CurrentUser() user: CurrentUserType,
     @Query('message') message: string,
     @Query('conversationId') conversationId?: string,
   ): Observable<MessageEvent> {
@@ -147,7 +148,7 @@ export class LunaController {
   async chat(
     @Body() body: unknown,
     @CurrentBrand() brand: { id: string } | null,
-    @CurrentUser() user: CurrentUser,
+    @CurrentUser() user: CurrentUserType,
   ) {
     if (!brand) {
       throw new Error('Brand not found');
@@ -183,7 +184,7 @@ export class LunaController {
   async executeAction(
     @Body() body: unknown,
     @CurrentBrand() brand: { id: string } | null,
-    @CurrentUser() user: CurrentUser,
+    @CurrentUser() user: CurrentUserType,
   ) {
     if (!brand) {
       throw new Error('Brand not found');
@@ -215,7 +216,7 @@ export class LunaController {
   @ApiResponse({ status: 200, description: 'Liste des conversations' })
   async getConversations(
     @CurrentBrand() brand: { id: string } | null,
-    @CurrentUser() user: CurrentUser,
+    @CurrentUser() user: CurrentUserType,
   ) {
     if (!brand) {
       throw new Error('Brand not found');

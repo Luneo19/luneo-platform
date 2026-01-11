@@ -117,10 +117,10 @@ export class RealtimeGateway {
       // Get user info
       const user = await this.prisma.user.findUnique({
         where: { id: client.userId },
-        select: { name: true, email: true, avatar: true },
+        select: { firstName: true, lastName: true, email: true, avatar: true },
       });
 
-      client.userName = user?.name || user?.email || 'Unknown';
+      client.userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown';
 
       this.connections.set(client.id, client);
 

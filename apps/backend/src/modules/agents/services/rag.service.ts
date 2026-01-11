@@ -73,8 +73,11 @@ export class RAGService {
 
     // Vérifier cache
     const cacheKey = `rag:search:${this.hashQuery(query)}:${brandId}:${limit}`;
-    const cached = await this.cache.get<Document[]>(cacheKey);
-    if (cached) {
+    const cached = await this.cache.get<Document[]>(cacheKey, 'rag', async () => {
+      // Will be filled below
+      return [] as Document[];
+    }, { ttl: 3600 });
+    if (cached && cached.length > 0) {
       return cached;
     }
 
@@ -137,12 +140,8 @@ export class RAGService {
     //   LIMIT ${limit}
     // `;
 
-    return results.map((r) => ({
-      id: r.id,
-      content: r.content,
-      metadata: (r.metadata || {}) as Record<string, unknown>,
-      score: r.similarity,
-    }));
+    // Fallback vers recherche textuelle pour l'instant
+    return this.searchTextual(query, brandId, limit);
   }
 
   /**

@@ -701,7 +701,7 @@ export class LunaService {
 
           const product = await this.productsService.create(
             brandId,
-            productData as Record<string, unknown>,
+            productData as Record<string, any>,
             currentUser,
           );
 
@@ -719,7 +719,7 @@ export class LunaService {
           const product = await this.productsService.update(
             brandId,
             productId,
-            updateData as Record<string, unknown>,
+            updateData as Record<string, any>,
             currentUser,
           );
 

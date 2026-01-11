@@ -103,8 +103,8 @@ export class ConversationService {
         role: message.role,
         content: message.content,
         intent: message.metadata?.intent as string | undefined,
-        actions: message.metadata?.actions as unknown,
-        metadata: message.metadata || {},
+        actions: message.metadata?.actions as any,
+        metadata: (message.metadata || {}) as any,
       },
     });
 

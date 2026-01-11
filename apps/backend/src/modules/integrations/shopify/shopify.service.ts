@@ -19,7 +19,7 @@ import { Injectable, Logger, BadRequestException, UnauthorizedException } from '
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { Queue } from 'bullmq';
 import { z } from 'zod';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
@@ -404,7 +404,7 @@ export class ShopifyService {
         brandId,
         userId: null, // À récupérer depuis l'email si possible
         status: 'CREATED',
-        totalAmount: parseFloat(order.total_price),
+        totalCents: Math.round(parseFloat(order.total_price) * 100),
         currency: order.currency,
         paymentStatus: order.financial_status === 'paid' ? 'SUCCEEDED' : 'PENDING',
         metadata: {

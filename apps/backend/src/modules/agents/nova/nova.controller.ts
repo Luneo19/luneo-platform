@@ -55,6 +55,7 @@ const TicketRequestSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   userId: z.string().uuid().optional(),
   brandId: z.string().uuid().optional(),
+  category: z.enum(['TECHNICAL', 'BILLING', 'ACCOUNT', 'FEATURE_REQUEST', 'BUG', 'INTEGRATION', 'OTHER']).optional(),
 });
 
 // ============================================================================

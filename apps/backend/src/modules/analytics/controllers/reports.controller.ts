@@ -93,9 +93,16 @@ export class ReportsController {
 
     const validated = GenerateReportSchema.parse(body);
 
+    if (!validated.dateRange.start || !validated.dateRange.end) {
+      throw new Error('Date range start and end are required');
+    }
+
     const report = await this.reportsService.generatePDFReport(
       brand.id,
-      validated.dateRange,
+      {
+        start: new Date(validated.dateRange.start),
+        end: new Date(validated.dateRange.end),
+      },
     );
 
     return {
