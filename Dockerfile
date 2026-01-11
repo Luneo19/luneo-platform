@@ -83,8 +83,8 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
 # Créer le script de démarrage
 # Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
-# NODE_PATH permet à Node.js de trouver les modules depuis la racine
-RUN printf '#!/bin/sh\nset -e\nexport NODE_PATH=/app/node_modules\nexport PATH="/app/node_modules/.bin:$PATH"\ncd /app\necho "Execution des migrations Prisma..."\ncd apps/backend\nif [ -f "../../node_modules/.bin/prisma" ]; then\n  ../../node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Demarrage de l application..."\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+# Utiliser node avec le module-resolve pour trouver les dépendances depuis la racine
+RUN printf '#!/bin/sh\nset -e\nexport NODE_PATH=/app/node_modules:/app/node_modules/.pnpm\ncd /app\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node --require /app/node_modules/.pnpm/registry.npmjs.org/@nestjs+common@10.4.9/node_modules/@nestjs/common/dist/index.js dist/src/main.js 2>/dev/null || node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Nettoyer les fichiers inutiles pour réduire la taille
 # Supprimer les outils de build après copie (ils ne sont plus nécessaires)
