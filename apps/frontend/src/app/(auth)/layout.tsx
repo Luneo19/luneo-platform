@@ -108,19 +108,19 @@ export default function AuthLayout({
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden">
+    <div className="min-h-screen flex flex-col overflow-x-hidden bg-white">
       <CursorGlow />
       <Navigation />
       <div className="min-h-screen flex flex-col lg:flex-row pt-16 lg:pt-0">
         {/* Left Panel - Marketing/Branding (hidden on mobile) */}
-        <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 relative overflow-hidden">
+        <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 relative overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(6,182,212,0.15),transparent_50%)]" />
@@ -130,7 +130,7 @@ export default function AuthLayout({
           {particles.map((particle) => (
             <motion
               key={particle.id}
-              className="absolute w-1 h-1 bg-cyan-400/20 rounded-full"
+              className="absolute w-1 h-1 bg-white/20 rounded-full"
               style={{ left: particle.left, top: particle.top }}
               animate={{
                 y: [0, -20, 0],
@@ -158,7 +158,7 @@ export default function AuthLayout({
         <div className="relative z-10 flex flex-col justify-between p-8 xl:p-12 w-full">
           {/* Logo */}
           <div>
-            <Logo href="/" size="large" showText={true} variant="dark" />
+            <Logo href="/" size="large" showText={true} variant="light" />
           </div>
 
           {/* Main Content */}
@@ -170,12 +170,12 @@ export default function AuthLayout({
             >
               <h1 className="text-3xl xl:text-4xl 2xl:text-5xl font-bold text-white leading-tight mb-6">
                 La plateforme de<br />
-                <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-yellow-300 to-pink-300 bg-clip-text text-transparent">
                   personnalisation produit
                 </span>
                 <br />n°1 en Europe
               </h1>
-              <p className="text-lg text-slate-400 mb-10 max-w-lg leading-relaxed">
+              <p className="text-lg text-white/90 mb-10 max-w-lg leading-relaxed">
                 Créez des expériences d&apos;achat uniques avec notre suite d&apos;outils de personnalisation, 
                 configuration 3D et essayage virtuel.
               </p>
@@ -189,14 +189,14 @@ export default function AuthLayout({
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + index * 0.1 }}
-                  className="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10 hover:border-cyan-500/30 transition-colors"
+                  className="flex items-start gap-3 p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 transition-colors backdrop-blur-sm"
                 >
-                  <div className="w-10 h-10 bg-cyan-500/10 rounded-lg flex items-center justify-center text-cyan-400 flex-shrink-0">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-white flex-shrink-0">
                     {feature.icon}
                   </div>
                   <div>
                     <h3 className="font-medium text-white text-sm">{feature.title}</h3>
-                    <p className="text-xs text-slate-500">{feature.description}</p>
+                    <p className="text-xs text-white/80">{feature.description}</p>
                   </div>
                 </motion>
               ))}
@@ -227,25 +227,25 @@ export default function AuthLayout({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-white/5 rounded-xl p-6 border border-white/10"
+                  className="bg-white/10 rounded-xl p-6 border border-white/20 backdrop-blur-sm"
                 >
                   <div className="flex items-center gap-1 mb-3">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <Star key={i} className="w-4 h-4 fill-yellow-300 text-yellow-300" />
                     ))}
                   </div>
                   <p className="text-white text-sm leading-relaxed mb-4">
                     &quot;{testimonials[currentTestimonial].quote}&quot;
                   </p>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-sm font-medium backdrop-blur-sm">
                       {testimonials[currentTestimonial].avatar}
                     </div>
                     <div>
                       <div className="text-white text-sm font-medium">
                         {testimonials[currentTestimonial].author}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-white/70">
                         {testimonials[currentTestimonial].role}, {testimonials[currentTestimonial].company}
                       </div>
                     </div>
@@ -261,8 +261,8 @@ export default function AuthLayout({
                     onClick={() => setCurrentTestimonial(index)}
                     className={`w-2 h-2 rounded-full transition-all ${
                       index === currentTestimonial 
-                        ? 'bg-cyan-400 w-6' 
-                        : 'bg-slate-600 hover:bg-slate-500'
+                        ? 'bg-white w-6' 
+                        : 'bg-white/40 hover:bg-white/60'
                     }`}
                   />
                 ))}
@@ -272,15 +272,15 @@ export default function AuthLayout({
 
           {/* Bottom Section - Security badges */}
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-slate-500 text-xs">
+            <div className="flex items-center gap-2 text-white/80 text-xs">
               <Shield className="w-4 h-4" />
               <span>RGPD Compliant</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-500 text-xs">
+            <div className="flex items-center gap-2 text-white/80 text-xs">
               <Globe className="w-4 h-4" />
               <span>CDN Europe</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-500 text-xs">
+            <div className="flex items-center gap-2 text-white/80 text-xs">
               <CheckCircle className="w-4 h-4" />
               <span>SOC 2 Type II</span>
             </div>
