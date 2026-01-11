@@ -34,6 +34,8 @@ import { Card } from '@/components/ui/card';
 import { logger } from '@/lib/logger';
 import { useSolutionData } from '@/lib/hooks/useSolutionData';
 import { FAQStructuredData, ProductStructuredData } from '@/components/seo/StructuredData';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 // Types
 interface Product {
@@ -387,30 +389,37 @@ function VirtualTryOnPageContent() {
   }, [recording, recordedChunks, selectedProduct]);
 
   return (
+    <>
+      <PageHero
+        title="Virtual Try-On"
+        description="Permettez à vos clients d'essayer vos produits en temps réel directement depuis leur navigateur. Augmentez vos conversions et réduisez les retours avec notre technologie AR de pointe."
+        badge="Solution AR"
+        gradient="from-cyan-600 via-blue-600 to-purple-600"
+        cta={{
+          label: 'Essayer maintenant',
+          href: '#demo'
+        }}
+      />
+
     <div className="min-h-screen bg-white text-gray-900">
-      {/* Hero Section - Clean and Professional */}
-      <section className="relative py-20 md:py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+      {/* Demo Section */}
+      <section id="demo" className="relative py-20 md:py-32 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left: Text Content */}
             <div>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-gray-900 leading-tight">
-                Virtual Try-On
-                <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
-                  pour votre E-commerce
-                </span>
-              </h1>
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Permettez à vos clients d&apos;essayer vos produits en temps réel directement depuis leur navigateur. 
-                Augmentez vos conversions et réduisez les retours avec notre technologie AR de pointe.
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 leading-tight">
+                Essayez en direct
+              </h2>
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                Activez votre caméra pour tester le Virtual Try-On en temps réel
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   size="lg"
                   onClick={handleStartCamera}
                   disabled={cameraActive}
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-6 text-lg"
+                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-8 py-6 text-lg"
                 >
                   {cameraActive ? 'Caméra Active' : 'Essayer Maintenant'}
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -970,41 +979,9 @@ function VirtualTryOnPageContent() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-600 to-pink-600 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Prêt à Transformer Votre E-commerce ?
-          </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
-            Rejoignez les marques qui utilisent le Virtual Try-On pour augmenter leurs conversions de 40% et réduire leurs retours de 60%.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              onClick={handleStartCamera}
-              className="bg-white text-purple-600 hover:bg-gray-100 px-8 py-6 text-lg"
-            >
-              <Play className="mr-2 w-5 h-5" />
-              Essayer la Démo
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-            <Link href="/contact">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg"
-              >
-                Parler à un Expert
-              </Button>
-            </Link>
-          </div>
-          <p className="text-sm mt-8 opacity-75">
-            Aucune carte de crédit requise • Essai gratuit 14 jours • Annulez quand vous voulez
-          </p>
-        </div>
-      </section>
+      <CTASectionNew />
     </div>
+    </>
   );
 }
 
