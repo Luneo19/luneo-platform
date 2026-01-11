@@ -235,16 +235,16 @@ function LoginPageContent() {
         {/* Email */}
         <SlideUp delay={0.4}>
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+          <Label htmlFor="email" className="text-sm font-medium text-gray-700">
             Adresse email
               </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="votre@email.com"
-              className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-12"
+              className="pl-10 bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500/20 h-12"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -262,7 +262,7 @@ function LoginPageContent() {
         <SlideUp delay={0.5}>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-sm font-medium text-slate-300">
+            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                 Mot de passe
               </Label>
             <Link 
@@ -274,7 +274,7 @@ function LoginPageContent() {
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -289,7 +289,7 @@ function LoginPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               tabIndex={-1}
                   data-testid="login-toggle-password"
                 >
@@ -315,7 +315,7 @@ function LoginPageContent() {
               Rester connecté
                 </Label>
               </div>
-          <div className="flex items-center gap-1 text-xs text-slate-500">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
             <Shield className="w-3 h-3" />
             <span>Connexion sécurisée</span>
           </div>
@@ -327,7 +327,7 @@ function LoginPageContent() {
             <Button
               type="submit"
           disabled={isLoading || !formData.email || !formData.password}
-          className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-12 text-base font-medium shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white h-12 text-base font-medium shadow-lg shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="login-submit"
             >
               {isLoading ? (
