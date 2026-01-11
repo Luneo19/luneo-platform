@@ -79,6 +79,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useSolutionData } from '@/lib/hooks/useSolutionData';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 // ============================================
 // TYPES
@@ -920,52 +922,23 @@ function CustomizerPageContent() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-white">
-      {/* ============================================ */}
-      {/* HERO SECTION */}
-      {/* ============================================ */}
-      <section className="relative overflow-hidden py-16 sm:py-20 lg:py-28">
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(168,85,247,0.15),transparent_50%)]" />
-          <motion
-            className="absolute inset-0"
-            animate={{
-              background: [
-                'radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 70% 50%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 50% 70%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%)',
-              ],
-            }}
-            transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-          />
-        </div>
+    <>
+      <PageHero
+        title="Personnalisation Produits"
+        description="Éditeur canvas professionnel avec texte, images, formes, cliparts. Layers illimités, export PNG/SVG haute qualité, et intégration e-commerce native."
+        badge="Visual Customizer"
+        gradient="from-purple-600 via-pink-600 to-blue-600"
+        cta={{
+          label: 'Essayer la démo',
+          href: '#demo'
+        }}
+      />
 
+    <div className="min-h-screen bg-white text-gray-900">
+      <section id="demo" className="relative overflow-hidden py-16 sm:py-20 lg:py-28 bg-gray-50">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-6">
-              <Palette className="w-4 h-4 text-purple-400" />
-              <span className="text-sm font-medium text-purple-400">Visual Product Customizer</span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 leading-tight">
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                Personnalisation Produits
-              </span>
-              <br />
-              <span className="text-white">Sans Limites</span>
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+          <div className="text-center mb-12">
+            <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
               Éditeur canvas professionnel avec texte, images, formes, cliparts.{' '}
               <span className="text-purple-400 font-semibold">Export print 300 DPI</span> et{' '}
               <span className="text-pink-400 font-semibold">collaboration temps réel</span>.
@@ -1463,76 +1436,9 @@ import { LuneoCustomizer } from '@luneo/customizer';
         </div>
       </section>
 
-      {/* ============================================ */}
-      {/* FINAL CTA */}
-      {/* ============================================ */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-600 via-pink-600 to-purple-600 relative overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 opacity-30">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <motion
-              key={i}
-              className="absolute w-2 h-2 bg-white rounded-full"
-              animate={{ y: [0, -600], opacity: [0, 1, 0] }}
-              transition={{ 
-                duration: 4 + Math.random() * 2, 
-                repeat: Infinity, 
-                delay: Math.random() * 4,
-                ease: 'linear'
-              }}
-              style={{ left: `${Math.random() * 100}%`, top: '100%' }}
-            />
-          ))}
-        </div>
-
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <motion
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <Sparkles className="w-16 h-16 text-white mx-auto mb-6" />
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-              Lancez Votre Customizer Aujourd'hui
-          </h2>
-            <p className="text-lg text-purple-100 mb-10 max-w-2xl mx-auto">
-              Rejoignez des milliers d'entreprises qui utilisent Luneo pour offrir une expérience de personnalisation exceptionnelle.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-              <Link href="/register">
-                <Button size="lg" className="w-full sm:w-auto bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 font-bold px-10 py-6 text-lg shadow-2xl">
-                  Essai gratuit 14 jours
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
-              <Link href="/contact">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 font-bold px-10 py-6 text-lg">
-                  <Headphones className="mr-2 w-5 h-5" />
-                  Parler à un expert
-                </Button>
-              </Link>
-            </div>
-
-            {/* Trust Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-6 text-white/80 text-sm">
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-300" />
-                <span>Sans carte bancaire</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-300" />
-                <span>Installation en 2 min</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-300" />
-                <span>Support français 24/7</span>
-              </div>
-            </div>
-          </motion>
-        </div>
-      </section>
+      <CTASectionNew />
     </div>
+    </>
   );
 }
 

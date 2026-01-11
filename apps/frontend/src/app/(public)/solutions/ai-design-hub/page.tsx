@@ -21,6 +21,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { logger } from '@/lib/logger';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 function AIDesignHubPageContent() {
   const [prompt, setPrompt] = useState('');
@@ -204,62 +206,20 @@ function AIDesignHubPageContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-pink-900 to-purple-900 py-20 px-4">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,black,transparent)]" />
-        </div>
+    <>
+      <PageHero
+        title="AI Design Hub"
+        description="Générez des milliers de designs uniques avec DALL-E 3. Du concept à l'export en quelques secondes. Parfait pour e-commerce, marketing, et print on demand."
+        badge="IA Générative"
+        gradient="from-pink-600 via-purple-600 to-indigo-600"
+        cta={{
+          label: 'Tester maintenant',
+          href: '#demo'
+        }}
+      />
 
-        <div className="relative max-w-7xl mx-auto">
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-500/10 border border-pink-500/20 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 text-pink-400" />
-              <span className="text-pink-300 text-sm font-medium">AI-Powered Design Generation</span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
-              AI Design Hub
-              <br />
-              <span className="bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-                Création Infinie
-              </span>
-            </h1>
-
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Générez des milliers de designs uniques avec DALL-E 3. Du concept à l'export en
-              quelques secondes. Parfait pour e-commerce, marketing, et print on demand.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={() => {
-                  const textarea = document.getElementById('ai-demo-prompt');
-                  textarea?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }}
-                className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white px-8 h-12 text-lg"
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Tester maintenant
-              </Button>
-              <Link href="/register">
-                <Button
-                  variant='outline'
-                  className="border-blue-500 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 h-12 px-8 text-lg font-semibold"
-                >
-                  Commencer gratuitement
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
-          </motion>
-        </div>
-      </section>
+    <div className="min-h-screen bg-white text-gray-900">
+      <section id="demo" className="py-20 px-4 bg-gray-50">
 
       {/* Demo interactive */}
       <section className="py-20 px-4 bg-gray-900/90 border-y border-pink-500/10">
@@ -468,35 +428,9 @@ function AIDesignHubPageContent() {
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="py-20 px-4 bg-gradient-to-br from-pink-900 to-purple-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Prêt à créer avec l'IA ?
-          </h2>
-          <p className="text-xl text-gray-200 mb-8">
-            Rejoignez des milliers de créateurs qui utilisent Luneo AI
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button className="bg-white text-pink-900 hover:bg-gray-100 px-8 h-12 text-lg font-semibold">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Commencer maintenant
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button
-                variant="outline"
-                className="border-white/50 text-white hover:bg-white/20 h-12 px-8 text-lg"
-              >
-                <Share2 className="w-5 h-5 mr-2" />
-                Parler à un expert
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <CTASectionNew />
     </div>
+    </>
   );
 }
 
