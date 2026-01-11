@@ -4,6 +4,8 @@ import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
+import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 function FashionIndustryPageContent() {
   return (

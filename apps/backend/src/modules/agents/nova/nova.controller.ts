@@ -126,7 +126,18 @@ export class NovaController {
   async createTicket(@Body() body: unknown) {
     const validated = TicketRequestSchema.parse(body);
 
-    const ticket = await this.novaService.createTicket(validated);
+    if (!validated.subject || !validated.description) {
+      throw new Error('Subject and description are required');
+    }
+
+    const ticket = await this.novaService.createTicket({
+      subject: validated.subject,
+      description: validated.description,
+      priority: validated.priority || 'medium',
+      userId: validated.userId,
+      brandId: validated.brandId,
+      category: validated.category,
+    });
 
     return {
       success: true,

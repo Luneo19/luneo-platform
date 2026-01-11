@@ -208,7 +208,8 @@ export class GDPRService {
         where: { id: userId },
         data: {
           email: anonymousEmail,
-          name: 'Deleted User',
+          firstName: 'Deleted',
+          lastName: 'User',
           password: null,
           // phone: null, // Commenté car pas dans UserUpdateInput
           avatar: null,

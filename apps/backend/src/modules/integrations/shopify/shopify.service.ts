@@ -347,7 +347,7 @@ export class ShopifyService {
       // Créer un nouveau produit
       const product = await this.prisma.product.create({
         data: {
-          brandId,
+          brand: { connect: { id: brandId } },
           name: shopifyProduct.title,
           description: shopifyProduct.body_html || '',
           price: parseFloat(shopifyProduct.variants[0]?.price || '0'),
@@ -401,7 +401,7 @@ export class ShopifyService {
     // Créer la commande dans Luneo
     const luneoOrder = await this.prisma.order.create({
       data: {
-        brandId,
+        brand: { connect: { id: brandId } },
         userId: null, // À récupérer depuis l'email si possible
         status: 'CREATED',
         totalCents: Math.round(parseFloat(order.total_price) * 100),
@@ -412,7 +412,7 @@ export class ShopifyService {
           shopifyOrderNumber: order.order_number,
           financialStatus: order.financial_status,
           fulfillmentStatus: order.fulfillment_status,
-        },
+        } as any,
       },
     });
 
