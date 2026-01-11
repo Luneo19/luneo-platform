@@ -69,9 +69,8 @@ COPY packages ./packages/
 
 # Copier les node_modules compilés depuis le builder pour éviter la recompilation
 # (surtout pour canvas et autres packages natifs)
-# Cela évite d'avoir à réinstaller et recompiler les dépendances
+# Dans un monorepo pnpm, les node_modules sont à la racine
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/backend/node_modules ./apps/backend/node_modules || true
 
 # Copier uniquement les fichiers nécessaires depuis le builder
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
