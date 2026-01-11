@@ -9,7 +9,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { LLMProvider, LLM_MODELS } from './llm-router.service';
+import { LLMProvider, LLM_MODELS } from './llm-provider.enum';
 
 // ============================================================================
 // TYPES
@@ -36,11 +36,9 @@ export interface CostCalculation {
 /**
  * Coûts par 1M tokens (input/output)
  * Source: Documentation officielle des providers (Décembre 2024)
- * 
- * IMPORTANT: Utiliser des valeurs littérales pour éviter les problèmes d'import circulaire
  */
 const COST_PER_1M_TOKENS: Record<
-  string,
+  LLMProvider,
   Record<string, { input: number; output: number }>
 > = {
   [LLMProvider.OPENAI]: {
@@ -76,11 +74,6 @@ export class LLMCostCalculatorService {
     model: string,
     usage: TokenUsage,
   ): CostCalculation {
-    // Vérifier que LLMProvider est bien défini
-    if (!LLMProvider || !LLMProvider.OPENAI) {
-      this.logger.error('LLMProvider is undefined, using fallback');
-      throw new Error('LLMProvider is not properly imported');
-    }
     const costs = COST_PER_1M_TOKENS[provider]?.[model];
 
     if (!costs) {
