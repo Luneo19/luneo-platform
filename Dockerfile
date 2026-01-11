@@ -6,6 +6,17 @@
 # ============================================
 FROM node:20-alpine AS builder
 
+# Installer les dépendances système nécessaires pour compiler canvas et autres packages natifs
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev
+
 # Installer pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
