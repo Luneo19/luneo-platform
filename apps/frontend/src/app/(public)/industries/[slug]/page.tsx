@@ -8,6 +8,8 @@ import { ArrowRight, CheckCircle, Package, Sparkles, Zap, Box } from 'lucide-rea
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 const industriesData: Record<string, any> = {
   'printing': {
@@ -213,83 +215,35 @@ function IndustryPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Hero */}
-      <section className="relative overflow-hidden py-16 sm:py-20 md:py-24 lg:py-32">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-blue-900">
-          <div className="absolute inset-0 opacity-20">
-            <div className="grid grid-cols-8 sm:grid-cols-12 grid-rows-6 h-full w-full">
-              {Array.from({ length: 72 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="border border-blue-500/20 animate-pulse"
-                  style={{ animationDelay: `${(i * 0.1) % 3}s`, animationDuration: '3s' }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+    <>
+      <PageHero
+        title={industry.name}
+        description={industry.description}
+        badge="Industrie"
+        gradient="from-blue-600 via-purple-600 to-pink-600"
+        cta={{
+          label: 'Voir la démo',
+          href: '/demo'
+        }}
+      />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="text-center mb-12">
-            <motion initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }}>
-              <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                {industry.icon}
-              </div>
-            </motion>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6"
-            >
-              {industry.name}
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8"
-            >
-              {industry.description}
-            </motion.p>
-
-            <motion
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-            >
-              <Link href="/demo">
-                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white w-full sm:w-auto">
-                  Voir la démo
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="lg" variant="outline" className="bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 w-full sm:w-auto">
-                  Essayer gratuitement
-                </Button>
-              </Link>
-            </motion>
-          </div>
-
+      <div className="min-h-screen bg-white text-gray-900">
           {/* Stats */}
+        <section className="py-16 sm:py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {industry.stats.map((stat: any, i: number) => (
               <motion
                 key={i}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + i * 0.1 }}
+                  transition={{ delay: 0.2 + i * 0.1 }}
               >
-                <Card className="p-6 bg-gray-800/50 backdrop-blur-sm border-gray-700 text-center">
-                  <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                  <Card className="p-6 bg-white border border-gray-200 text-center shadow-sm">
+                    <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
                     {stat.value}
                   </div>
-                  <div className="text-sm text-gray-400">{stat.label}</div>
+                    <div className="text-sm text-gray-600">{stat.label}</div>
                 </Card>
               </motion>
             ))}
@@ -298,21 +252,12 @@ function IndustryPageContent() {
       </section>
 
       {/* Use Cases */}
-      <section className="py-16 sm:py-20 bg-gray-800/50">
+      <section className="py-16 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
-              Cas d'usage
-            </h2>
-            <p className="text-base sm:text-lg text-gray-400">
-              Solutions adaptées à vos besoins
-            </p>
-          </motion>
+          <SectionHeader
+            title="Cas d'usage"
+            description="Solutions adaptées à vos besoins"
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {industry.useCases.map((useCase: string, i: number) => (
@@ -323,10 +268,10 @@ function IndustryPageContent() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="p-6 bg-gray-800/30 backdrop-blur-sm border-gray-700 hover:bg-gray-800/50 transition-all">
+                <Card className="p-6 bg-white border border-gray-200 hover:border-blue-300 transition-all shadow-sm">
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-                    <span className="text-sm sm:text-base text-gray-300">{useCase}</span>
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-sm sm:text-base text-gray-700">{useCase}</span>
                   </div>
                 </Card>
               </motion>
@@ -336,66 +281,42 @@ function IndustryPageContent() {
       </section>
 
       {/* Testimonial */}
-      <section className="py-16 sm:py-20 bg-gray-900">
+      <section className="py-16 sm:py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
           <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Card className="p-6 sm:p-8 md:p-10 bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-blue-400/30">
+            <Card className="p-6 sm:p-8 md:p-10 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
                   {industry.testimonial.author.split(' ').map((n: string) => n[0]).join('')}
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                     {industry.testimonial.metric}
                   </div>
-                  <div className="text-sm text-gray-400">{industry.testimonial.company}</div>
+                  <div className="text-sm text-gray-600">{industry.testimonial.company}</div>
                 </div>
               </div>
 
-              <blockquote className="text-base sm:text-lg md:text-xl text-gray-300 mb-6 italic leading-relaxed">
+              <blockquote className="text-base sm:text-lg md:text-xl text-gray-700 mb-6 italic leading-relaxed">
                 "{industry.testimonial.quote}"
               </blockquote>
 
               <div>
-                <div className="font-semibold text-white">{industry.testimonial.author}</div>
-                <div className="text-sm text-gray-400">{industry.testimonial.role}</div>
+                <div className="font-semibold text-gray-900">{industry.testimonial.author}</div>
+                <div className="text-sm text-gray-600">{industry.testimonial.role}</div>
               </div>
             </Card>
           </motion>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 sm:py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 text-center">
-          <motion initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
-              Prêt à transformer votre business ?
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-10">
-              Rejoignez des centaines d'entreprises qui font confiance à Luneo
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/register">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-50 font-bold w-full sm:w-auto">
-                  Essayer gratuitement
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-              <Link href="/contact">
-                <Button size="lg" className="bg-white/20 border-2 border-white/50 text-white hover:bg-white/30 font-bold w-full sm:w-auto">
-                  Nous contacter
-                </Button>
-              </Link>
-            </div>
-          </motion>
-        </div>
-      </section>
+      <CTASectionNew />
     </div>
+    </>
   );
 }
 
