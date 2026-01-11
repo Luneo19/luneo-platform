@@ -71,6 +71,9 @@ COPY packages ./packages/
 # (surtout pour canvas et autres packages natifs)
 # Dans un monorepo pnpm, les node_modules sont à la racine
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 
 # Copier uniquement les fichiers nécessaires depuis le builder
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
@@ -81,7 +84,7 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 # Créer le script de démarrage
 # Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
 # NODE_PATH permet à Node.js de trouver les modules depuis la racine
-RUN printf '#!/bin/sh\nset -e\nexport NODE_PATH=/app/node_modules\ncd /app\necho "Execution des migrations Prisma..."\ncd apps/backend\npnpm prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\necho "Demarrage de l application..."\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+RUN printf '#!/bin/sh\nset -e\nexport NODE_PATH=/app/node_modules\nexport PATH="/app/node_modules/.bin:$PATH"\ncd /app\necho "Execution des migrations Prisma..."\ncd apps/backend\nif [ -f "../../node_modules/.bin/prisma" ]; then\n  ../../node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Demarrage de l application..."\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Nettoyer les fichiers inutiles pour réduire la taille
 # Supprimer les outils de build après copie (ils ne sont plus nécessaires)
