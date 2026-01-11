@@ -38,6 +38,9 @@ RUN nest build || pnpm build
 # ============================================
 FROM node:20-alpine AS production
 
+# Installer les dépendances système nécessaires pour Alpine
+RUN apk add --no-cache libc6-compat openssl
+
 # Installer pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -49,14 +52,19 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/
 
 # Installer uniquement les dépendances de production (sans devDependencies)
-RUN pnpm install --frozen-lockfile --include-workspace-root --prod --filter=backend
+# Note: --filter=backend peut ne pas fonctionner, utiliser --prod à la place
+RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier uniquement les fichiers nécessaires depuis le builder
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+
+# Copier le Prisma Client généré depuis le builder
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/apps/backend/node_modules/.prisma ./apps/backend/node_modules/.prisma || true
 
 # Copier les packages nécessaires (si utilisés par le backend)
+# Note: Ne copier que les packages réellement utilisés pour réduire la taille
 COPY packages ./packages/
 
 # Créer le script de démarrage
@@ -67,8 +75,9 @@ RUN printf '#!/bin/sh\nset -e\ncd /app/apps/backend\necho "Execution des migrati
 RUN rm -rf /app/node_modules/.cache \
     && rm -rf /tmp/* \
     && rm -rf /var/cache/apk/* \
-    && find /app/node_modules -type d -name "test" -o -name "tests" -o -name "__tests__" | xargs rm -rf || true \
-    && find /app/node_modules -type f -name "*.md" -o -name "*.map" -o -name "*.ts" ! -path "*/node_modules/.prisma/*" | xargs rm -f || true
+    && find /app/node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" -o -name "*.test.js" -o -name "*.spec.js" \) -exec rm -rf {} + 2>/dev/null || true \
+    && find /app/node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.ts" ! -path "*/node_modules/.prisma/*" \) -delete 2>/dev/null || true \
+    && find /app/node_modules -type d -empty -delete 2>/dev/null || true
 
 # Exposer le port
 EXPOSE ${PORT:-3000}
