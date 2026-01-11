@@ -92,11 +92,12 @@ RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+
 # Copier le Prisma Client généré depuis le builder
-# Dans un monorepo pnpm, Prisma Client est dans node_modules/.prisma/client à la racine
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma || true
-# Aussi copier depuis apps/backend/node_modules si présent (structure alternative)
-COPY --from=builder /app/apps/backend/node_modules/.prisma ./apps/backend/node_modules/.prisma 2>/dev/null || true
+# Dans un monorepo pnpm, Prisma Client est dans node_modules/.prisma à la racine
+# Créer le répertoire d'abord pour éviter les erreurs
+RUN mkdir -p /app/node_modules/.prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
