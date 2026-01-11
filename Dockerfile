@@ -129,11 +129,14 @@ COPY --from=builder /tmp/prisma-client.tar.gz /tmp/prisma-client.tar.gz
 RUN echo "Extracting Prisma Client from builder..." && \
     ls -lh /tmp/prisma-client.tar.gz && \
     mkdir -p /app/node_modules/.prisma && \
-    tar -xzf /tmp/prisma-client.tar.gz -C /app/node_modules 2>&1 && \
+    cd /app/node_modules && \
+    tar -xzf /tmp/prisma-client.tar.gz 2>&1 && \
     echo "Prisma Client extracted successfully" && \
     ls -la /app/node_modules/.prisma/client 2>/dev/null | head -5 && \
     echo "Verifying Prisma Client structure..." && \
     find /app/node_modules -name ".prisma" -type d 2>/dev/null | head -3 && \
+    echo "Checking if @prisma/client exists..." && \
+    ls -la /app/node_modules/@prisma/client 2>/dev/null | head -3 || echo "WARNING: @prisma/client not found" && \
     rm -f /tmp/prisma-client.tar.gz
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
@@ -144,7 +147,7 @@ COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 
 # Créer le script de démarrage
 # Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
-RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ] || [ -f "/app/apps/backend/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  if [ -f "/app/node_modules/.bin/prisma" ]; then\n    /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\n  else\n    /app/apps/backend/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\n  fi\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Verification Prisma Client..."\nif [ ! -d "/app/node_modules/.prisma/client" ] && [ ! -d "/app/apps/backend/node_modules/.prisma/client" ]; then\n  echo "WARNING: Prisma Client not found, regenerating..."\n  cd /app/apps/backend\n  pnpm prisma generate || echo "WARNING: Failed to generate Prisma Client"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Verification Prisma Client..."\nif [ -d "/app/node_modules/.prisma/client" ]; then\n  echo "✅ Prisma Client found in /app/node_modules/.prisma/client"\n  ls -la /app/node_modules/.prisma/client | head -5\nelif [ -d "/app/apps/backend/node_modules/.prisma/client" ]; then\n  echo "✅ Prisma Client found in /app/apps/backend/node_modules/.prisma/client"\nelse\n  echo "❌ WARNING: Prisma Client not found in expected locations"\n  echo "Searching for Prisma Client..."\n  find /app/node_modules -name ".prisma" -type d 2>/dev/null | head -5\nfi\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ] || [ -f "/app/apps/backend/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  if [ -f "/app/node_modules/.bin/prisma" ]; then\n    /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\n  else\n    /app/apps/backend/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\n  fi\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Nettoyer les fichiers inutiles pour réduire la taille
 

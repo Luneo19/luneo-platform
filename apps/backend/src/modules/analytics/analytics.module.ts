@@ -8,7 +8,7 @@
  * - ✅ Structure modulaire
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
 import { HttpModule } from '@nestjs/axios';
@@ -29,13 +29,12 @@ import { AnalyticsCalculationsService } from './services/analytics-calculations.
 import { PredictiveService } from './services/predictive.service';
 import { ReportsService } from './services/reports.service';
 import { MetricsService } from './services/metrics.service';
-import { LLMRouterService } from '@/modules/agents/services/llm-router.service';
-import { AgentsModule } from '@/modules/agents/agents.module';
 
 // Infrastructure
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { StorageModule } from '@/libs/storage/storage.module';
+import { AgentsModule } from '@/modules/agents/agents.module';
 
 @Module({
   imports: [
@@ -63,7 +62,7 @@ import { StorageModule } from '@/libs/storage/storage.module';
         },
       },
     ),
-    AgentsModule, // Pour LLMRouterService
+    forwardRef(() => AgentsModule), // Pour LLMRouterService - utiliser forwardRef pour éviter dépendance circulaire
   ],
   controllers: [
     AnalyticsController,
