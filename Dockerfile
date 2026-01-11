@@ -90,18 +90,25 @@ COPY packages ./packages/
 # Canvas sera compilé avec les outils de build installés ci-dessus
 RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
+# Copier le schéma Prisma AVANT de générer le client
+COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+
+# Générer Prisma Client dans le stage production
+WORKDIR /app/apps/backend
+RUN pnpm prisma generate
+
+# Revenir à la racine
+WORKDIR /app
+
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
 
 # Copier uniquement les fichiers nécessaires depuis le builder
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
-
-# Le Prisma Client est déjà dans node_modules copié depuis le builder
 
 # Créer le script de démarrage
 # Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
-RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Verification Prisma Client..."\nif [ ! -d "/app/node_modules/.prisma/client" ]; then\n  echo "WARNING: Prisma Client not found, regenerating..."\n  cd /app/apps/backend\n  pnpm prisma generate || echo "WARNING: Failed to generate Prisma Client"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Nettoyer les fichiers inutiles pour réduire la taille
 
