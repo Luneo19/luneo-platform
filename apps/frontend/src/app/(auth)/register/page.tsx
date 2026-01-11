@@ -325,11 +325,11 @@ function RegisterPageContent() {
         {/* Full Name */}
         <SlideUp delay={0.4}>
         <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-sm font-medium text-slate-200 block mb-1.5">
+          <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 block mb-1.5">
             Nom complet <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                 <Input
                   id="fullName"
                   data-testid="register-name"
@@ -351,11 +351,11 @@ function RegisterPageContent() {
         {/* Email */}
         <SlideUp delay={0.5}>
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-slate-200 block mb-1.5">
+          <Label htmlFor="email" className="text-sm font-medium text-gray-700 block mb-1.5">
             Email professionnel <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                 <Input
                   id="email"
                   data-testid="register-email"
@@ -377,11 +377,11 @@ function RegisterPageContent() {
         {/* Company */}
         <SlideUp delay={0.6}>
         <div className="space-y-2">
-          <Label htmlFor="company" className="text-sm font-medium text-slate-200 block mb-1.5">
-            Entreprise <span className="text-slate-400">(optionnel)</span>
+          <Label htmlFor="company" className="text-sm font-medium text-gray-700 block mb-1.5">
+            Entreprise <span className="text-gray-500">(optionnel)</span>
               </Label>
           <div className="relative">
-            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
+            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                 <Input
                   id="company"
                   type="text"
@@ -398,11 +398,11 @@ function RegisterPageContent() {
         {/* Password */}
         <SlideUp delay={0.7}>
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-slate-200 block mb-1.5">
+          <Label htmlFor="password" className="text-sm font-medium text-gray-700 block mb-1.5">
             Mot de passe <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                 <Input
                   id="password"
                   data-testid="register-password"
@@ -417,7 +417,7 @@ function RegisterPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors z-10"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
               tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -433,12 +433,12 @@ function RegisterPageContent() {
             >
               {/* Strength bar */}
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden flex gap-0.5">
+                <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden flex gap-0.5">
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
                       className={`h-full flex-1 rounded-full transition-colors ${
-                        i < passwordStrength.score ? passwordStrength.color : 'bg-slate-700'
+                        i < passwordStrength.score ? passwordStrength.color : 'bg-gray-200'
                       }`}
                     />
                   ))}
@@ -465,7 +465,7 @@ function RegisterPageContent() {
                     className={`flex items-center gap-1 ${
                       passwordStrength.requirements[key as keyof typeof passwordStrength.requirements] 
                         ? 'text-green-400' 
-                        : 'text-slate-500'
+                        : 'text-gray-500'
                     }`}
                   >
                     {passwordStrength.requirements[key as keyof typeof passwordStrength.requirements] ? (
@@ -485,11 +485,11 @@ function RegisterPageContent() {
         {/* Confirm Password */}
         <SlideUp delay={0.8}>
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-200 block mb-1.5">
+          <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 block mb-1.5">
             Confirmer le mot de passe <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                 <Input
                   id="confirmPassword"
                   data-testid="register-confirm-password"
@@ -498,7 +498,7 @@ function RegisterPageContent() {
               className={`pl-10 pr-12 bg-white border-2 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base ${
                 formData.confirmPassword && !passwordsMatch 
                   ? 'border-red-500 focus:border-red-500' 
-                  : 'border-slate-600 focus:border-cyan-500'
+                  : 'border-gray-200 focus:border-indigo-500'
               }`}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
@@ -508,7 +508,7 @@ function RegisterPageContent() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors z-10"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
               tabIndex={-1}
             >
               {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -536,13 +536,13 @@ function RegisterPageContent() {
             className="w-5 h-5 mt-0.5 rounded border-2 border-gray-300 bg-white text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-0 cursor-pointer"
                 required
               />
-          <Label htmlFor="terms" className="text-sm text-slate-300 cursor-pointer leading-relaxed flex-1">
+          <Label htmlFor="terms" className="text-sm text-gray-700 cursor-pointer leading-relaxed flex-1">
             J&apos;accepte les{' '}
-            <Link href="/legal/terms" className="text-cyan-400 hover:text-cyan-300 underline font-medium">
+            <Link href="/legal/terms" className="text-indigo-600 hover:text-indigo-700 underline font-medium">
               conditions d&apos;utilisation
                 </Link>{' '}
                 et la{' '}
-            <Link href="/legal/privacy" className="text-cyan-400 hover:text-cyan-300 underline font-medium">
+            <Link href="/legal/privacy" className="text-indigo-600 hover:text-indigo-700 underline font-medium">
                   politique de confidentialité
                 </Link>
               </Label>
@@ -576,7 +576,7 @@ function RegisterPageContent() {
         <FadeIn delay={1.1}>
       <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-600" />
+          <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
           <span className="px-4 bg-gray-50 text-gray-500">ou s&apos;inscrire avec</span>
@@ -630,7 +630,7 @@ function RegisterPageContent() {
           {/* Sign in link */}
         <FadeIn delay={1.3}>
       <div className="mt-6 text-center">
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-gray-500">
               Vous avez déjà un compte ?{' '}
           <Link
             href="/login"
