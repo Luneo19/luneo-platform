@@ -25,6 +25,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/lib/logger';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 // Dynamic import du customizer (lourd)
 const DemoCustomizer = dynamic(
@@ -171,59 +173,24 @@ export default function VisualCustomizerPage() {
 
   return (
     <ErrorBoundary level="page" componentName="VisualCustomizerPage">
-    <div className="min-h-screen bg-gray-900">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-orange-900 to-red-900 py-20 px-4">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,black,transparent)]" />
-        </div>
+    <>
+      <PageHero
+        title="Visual Customizer"
+        description="Éditeur canvas professionnel basé sur Konva.js. Texte, formes, images, layers - tout pour créer des designs print-ready en quelques clics."
+        badge="Visual Editor 2D"
+        gradient="from-orange-600 via-red-600 to-pink-600"
+        cta={{
+          label: 'Ouvrir l\'éditeur',
+          href: '#visual-editor-demo'
+        }}
+      />
 
-        <div className="relative max-w-7xl mx-auto">
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-full mb-6">
-              <Layers className="w-4 h-4 text-orange-400" />
-              <span className="text-orange-300 text-sm font-medium">Visual Editor 2D</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-              Visual Customizer
-              <br />
-              <span className="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-                Éditeur Canvas Pro
-              </span>
-            </h1>
-
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Éditeur canvas professionnel basé sur Konva.js. Texte, formes, images, layers - tout pour créer des designs print-ready en quelques clics.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={scrollToDemo}
-                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-8 h-12 text-lg"
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Ouvrir l'éditeur
-              </Button>
-              <Link href="/register">
-                <Button variant="outline" className="border-white/50 text-white hover:bg-white/20 h-12 px-8 text-lg">
-                  Commencer
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
-          </motion>
-        </div>
-      </section>
+    <div className="min-h-screen bg-white text-gray-900">
 
       {/* Interactive Demo Section */}
       <section
         id="visual-editor-demo"
-        className="py-20 px-4 bg-gray-950 border-y border-orange-900/30 relative overflow-hidden"
+        className="py-20 px-4 bg-gray-50 border-y border-orange-200 relative overflow-hidden"
       >
         <div className="absolute inset-0 opacity-30 blur-3xl bg-gradient-to-r from-orange-900/40 via-red-900/20 to-transparent" />
         <div className="relative max-w-7xl mx-auto">
@@ -376,28 +343,9 @@ export default function VisualCustomizerPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 px-4 bg-gradient-to-br from-orange-900 to-red-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Créez vos designs maintenant</h2>
-          <p className="text-xl text-gray-200 mb-8">Éditeur professionnel, export print-ready, illimité</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button className="bg-white text-orange-900 hover:bg-gray-100 px-8 h-12 text-lg font-semibold">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Commencer gratuitement
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button variant="outline" className="border-white/30 text-white hover:bg-white/10 h-12 px-8 text-lg">
-                <Share2 className="w-5 h-5 mr-2" />
-                Contact
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <CTASectionNew />
     </div>
+    </>
     </ErrorBoundary>
   );
 }

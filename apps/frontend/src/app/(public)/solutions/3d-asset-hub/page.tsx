@@ -25,6 +25,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 export default function AssetHubPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -164,97 +166,43 @@ export default function AssetHubPage() {
 
   return (
     <ErrorBoundary level="page" componentName="AssetHubPage">
-    <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8">
-        {/* Animated Background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]" />
-          <motion
-            className="absolute inset-0"
-            animate={{
-              background: [
-                'radial-gradient(circle at 20% 50%, rgba(168, 85, 247, 0.15) 0%, transparent 50%)',
-                'radial-gradient(circle at 80% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
-                'radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 50%)',
-                'radial-gradient(circle at 20% 50%, rgba(168, 85, 247, 0.15) 0%, transparent 50%)',
-              ],
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-          />
-        </div>
+    <>
+      <PageHero
+        title="Gérez Vos Assets 3D"
+        description="Uploadez, optimisez, convertissez et déployez vos modèles 3D partout. 1000+ assets/heure avec notre pipeline AI automatisé."
+        badge="3D Asset Hub"
+        gradient="from-blue-600 via-purple-600 to-green-600"
+        cta={{
+          label: 'Voir la Démo Interactive',
+          href: '#demo-section'
+        }}
+      />
 
-        <div className="relative max-w-7xl mx-auto text-center">
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
-              <Database className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-400">3D Asset Hub</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-              Gérez Vos Assets 3D
-              <br />
-              Comme un Pro
-            </h1>
-
-            <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Uploadez, optimisez, convertissez et déployez vos modèles 3D partout.
-              <br className="hidden sm:block" />
-              <span className="text-blue-400 font-semibold">1000+ assets/heure</span> avec notre
-              pipeline AI automatisé.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button
-                onClick={() => {
-                  const anchor = document.getElementById('demo-section');
-                  anchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg group"
+    <div className="min-h-screen bg-white text-gray-900">
+      {/* Stats */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto">
+            {stats.map((stat, index) => (
+              <motion
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + index * 0.1 }}
+                className="text-center bg-white p-6 rounded-lg border border-gray-200 shadow-sm"
               >
-                <Sparkles className="mr-2 w-5 h-5" />
-                Voir la Démo Interactive
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Link href="/register">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-blue-500 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 px-8 py-6 text-lg font-semibold"
-                >
-                  Commencer Gratuitement
-                </Button>
-              </Link>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              {stats.map((stat, index) => (
-                <motion
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
-                  className="text-center"
-                >
-                  <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-gray-400">{stat.label}</div>
-                </motion>
-              ))}
-            </div>
-          </motion>
+                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-gray-600">{stat.label}</div>
+              </motion>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Demo Section - Interactive */}
-      <section id="demo-section" className="py-20 px-4 sm:px-6 lg:px-8 bg-black/50">
+      <section id="demo-section" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <motion
             initial={{ opacity: 0 }}
@@ -1125,27 +1073,9 @@ await fetch('/api/assets/convert', {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-blue-900/20">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white">
-            Commencez en 30 Secondes
-          </h2>
-          <p className="text-gray-300 mb-6">
-            Aucune carte de crédit requise · Essai gratuit · Annulez quand vous voulez
-          </p>
-          <Link href="/register">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4"
-            >
-              Créer un Compte Gratuit
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
-        </div>
-      </section>
+      <CTASectionNew />
     </div>
+    </>
     </ErrorBoundary>
   );
 }
