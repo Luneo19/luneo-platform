@@ -52,7 +52,15 @@ RUN nest build || pnpm build
 FROM node:20-alpine AS production
 
 # Installer les dépendances système nécessaires pour Alpine
-RUN apk add --no-cache libc6-compat openssl
+# Inclure les dépendances pour canvas (nécessaires même en production)
+RUN apk add --no-cache \
+    libc6-compat \
+    openssl \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    pixman
 
 # Installer pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -79,8 +87,7 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
 # Créer le script de démarrage
 # Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
-# Utiliser node avec le module-resolve pour trouver les dépendances depuis la racine
-RUN printf '#!/bin/sh\nset -e\nexport NODE_PATH=/app/node_modules:/app/node_modules/.pnpm\ncd /app\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node --require /app/node_modules/.pnpm/registry.npmjs.org/@nestjs+common@10.4.9/node_modules/@nestjs/common/dist/index.js dist/src/main.js 2>/dev/null || node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Execution des migrations Prisma..."\nif [ -f "/app/node_modules/.bin/prisma" ]; then\n  cd apps/backend\n  /app/node_modules/.bin/prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\nelse\n  echo "WARNING: Prisma CLI not found, skipping migrations"\nfi\necho "Demarrage de l application..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Nettoyer les fichiers inutiles pour réduire la taille
 # Supprimer les outils de build après copie (ils ne sont plus nécessaires)
