@@ -80,7 +80,8 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
 # Créer le script de démarrage
 # Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
-RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Execution des migrations Prisma..."\ncd apps/backend\npnpm prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\necho "Demarrage de l application..."\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+# NODE_PATH permet à Node.js de trouver les modules depuis la racine
+RUN printf '#!/bin/sh\nset -e\nexport NODE_PATH=/app/node_modules\ncd /app\necho "Execution des migrations Prisma..."\ncd apps/backend\npnpm prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\necho "Demarrage de l application..."\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Nettoyer les fichiers inutiles pour réduire la taille
 # Supprimer les outils de build après copie (ils ne sont plus nécessaires)
