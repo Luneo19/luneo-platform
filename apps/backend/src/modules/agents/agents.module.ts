@@ -8,7 +8,7 @@
  * - ✅ Structure NestJS standard
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bull';
 
@@ -60,10 +60,10 @@ import { MetricsModule } from '@/libs/metrics/metrics.module';
         },
       },
     }),
-    // Sub-modules
-    LunaModule,
-    AriaModule,
-    NovaModule,
+    // Sub-modules - utiliser forwardRef pour éviter dépendance circulaire
+    forwardRef(() => LunaModule),
+    forwardRef(() => AriaModule),
+    forwardRef(() => NovaModule),
   ],
   providers: [
     AgentOrchestratorService,
