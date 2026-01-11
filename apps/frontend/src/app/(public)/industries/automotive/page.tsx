@@ -4,36 +4,51 @@ import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
 import { Car } from 'lucide-react';
+import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 function AutomotiveIndustryPageContent() {
+  const solutions = [
+    { title: 'Vehicle Configurator', description: 'Configuration complète du véhicule', icon: <Car className="w-6 h-6" /> },
+    { title: 'AR Showroom', description: 'Showroom en réalité augmentée', icon: <Car className="w-6 h-6" /> },
+    { title: 'Virtual Test Drive', description: 'Essai virtuel immersif', icon: <Car className="w-6 h-6" /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-24">
-        <div className="max-w-4xl mx-auto px-4">
-          <Car className="w-16 h-16 mb-6 text-white" />
-          <h1 className="text-5xl font-bold mb-6 text-white">Automotive</h1>
-          <p className="text-2xl text-blue-100 mb-8">Configurateur véhicule 3D, AR showroom</p>
-          <Link href="/contact" className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 inline-block">Démo automotive</Link>
-        </div>
-      </section>
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <h2 className="text-4xl font-bold text-center mb-12 text-white">Solutions Automotive</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">Vehicle Configurator</h3>
-            <p className="text-gray-300">Configuration complète du véhicule</p>
+    <>
+      <PageHero
+        title="Automotive"
+        description="Configurateur véhicule 3D, AR showroom"
+        badge="Industrie"
+        gradient="from-blue-600 via-cyan-600 to-teal-600"
+        cta={{
+          label: 'Démo automotive',
+          href: '/contact'
+        }}
+      />
+
+      <div className="min-h-screen bg-white text-gray-900">
+        <section className="max-w-7xl mx-auto px-4 py-20 bg-gray-50">
+          <SectionHeader
+            title="Solutions Automotive"
+            description="Tout ce dont vous avez besoin pour transformer votre showroom"
+          />
+          <div className="grid md:grid-cols-3 gap-8 mt-12">
+            {solutions.map((solution, i) => (
+              <FeatureCard
+                key={i}
+                title={solution.title}
+                description={solution.description}
+                icon={solution.icon}
+                color="blue"
+              />
+            ))}
           </div>
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">AR Showroom</h3>
-            <p className="text-gray-300">Showroom en réalité augmentée</p>
-          </div>
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">Virtual Test Drive</h3>
-            <p className="text-gray-300">Essai virtuel immersif</p>
-          </div>
-        </div>
-      </section>
-    </div>
+        </section>
+
+        <CTASectionNew />
+      </div>
+    </>
   );
 }
 

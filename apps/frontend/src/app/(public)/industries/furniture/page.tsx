@@ -4,36 +4,51 @@ import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
 import { Armchair } from 'lucide-react';
+import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 function FurnitureIndustryPageContent() {
+  const solutions = [
+    { title: 'AR Placement', description: 'Visualisation dans votre intérieur', icon: <Armchair className="w-6 h-6" /> },
+    { title: 'Material Configurator', description: 'Choix tissus, couleurs, finitions', icon: <Armchair className="w-6 h-6" /> },
+    { title: 'Room Planner', description: 'Aménagement 3D complet', icon: <Armchair className="w-6 h-6" /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="bg-gradient-to-r from-amber-600 to-orange-600 text-white py-24">
-        <div className="max-w-4xl mx-auto px-4">
-          <Armchair className="w-16 h-16 mb-6 text-white" />
-          <h1 className="text-5xl font-bold mb-6 text-white">Furniture & Home Decor</h1>
-          <p className="text-2xl text-amber-100 mb-8">AR placement, 3D configurator pour mobilier</p>
-          <Link href="/contact" className="bg-white text-amber-600 px-8 py-3 rounded-lg font-semibold hover:bg-amber-50 inline-block">Démo furniture</Link>
-        </div>
-      </section>
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <h2 className="text-4xl font-bold text-center mb-12 text-white">Solutions Mobilier</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">AR Placement</h3>
-            <p className="text-gray-300">Visualisation dans votre intérieur</p>
+    <>
+      <PageHero
+        title="Furniture & Home Decor"
+        description="AR placement, 3D configurator pour mobilier"
+        badge="Industrie"
+        gradient="from-amber-600 via-orange-600 to-red-600"
+        cta={{
+          label: 'Démo furniture',
+          href: '/contact'
+        }}
+      />
+
+      <div className="min-h-screen bg-white text-gray-900">
+        <section className="max-w-7xl mx-auto px-4 py-20 bg-gray-50">
+          <SectionHeader
+            title="Solutions Mobilier"
+            description="Tout ce dont vous avez besoin pour transformer votre showroom mobilier"
+          />
+          <div className="grid md:grid-cols-3 gap-8 mt-12">
+            {solutions.map((solution, i) => (
+              <FeatureCard
+                key={i}
+                title={solution.title}
+                description={solution.description}
+                icon={solution.icon}
+                color="orange"
+              />
+            ))}
           </div>
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">Material Configurator</h3>
-            <p className="text-gray-300">Choix tissus, couleurs, finitions</p>
-          </div>
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">Room Planner</h3>
-            <p className="text-gray-300">Aménagement 3D complet</p>
-          </div>
-        </div>
-      </section>
-    </div>
+        </section>
+
+        <CTASectionNew />
+      </div>
+    </>
   );
 }
 

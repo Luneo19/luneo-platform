@@ -130,13 +130,24 @@ export class NovaController {
       throw new Error('Subject and description are required');
     }
 
+    // Mapper les catégories du schema Zod vers celles du service
+    const categoryMap: Record<string, 'TECHNICAL' | 'BILLING' | 'FEATURE' | 'OTHER'> = {
+      'TECHNICAL': 'TECHNICAL',
+      'BILLING': 'BILLING',
+      'ACCOUNT': 'OTHER',
+      'FEATURE_REQUEST': 'FEATURE',
+      'BUG': 'TECHNICAL',
+      'INTEGRATION': 'TECHNICAL',
+      'OTHER': 'OTHER',
+    };
+
     const ticket = await this.novaService.createTicket({
       subject: validated.subject,
       description: validated.description,
       priority: validated.priority || 'medium',
       userId: validated.userId,
       brandId: validated.brandId,
-      category: validated.category,
+      category: validated.category ? categoryMap[validated.category] || 'TECHNICAL' : undefined,
     });
 
     return {

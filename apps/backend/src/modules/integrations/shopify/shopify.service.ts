@@ -345,10 +345,17 @@ export class ShopifyService {
       });
     } else {
       // Créer un nouveau produit
+      // Générer un slug à partir du handle Shopify ou du titre
+      const slug = shopifyProduct.handle || shopifyProduct.title.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .substring(0, 100);
+
       const product = await this.prisma.product.create({
         data: {
           brand: { connect: { id: brandId } },
           name: shopifyProduct.title,
+          slug,
           description: shopifyProduct.body_html || '',
           price: parseFloat(shopifyProduct.variants[0]?.price || '0'),
           images: shopifyProduct.images.map(img => img.src),
@@ -399,10 +406,11 @@ export class ShopifyService {
     }
 
     // Créer la commande dans Luneo
+    // Utiliser OrderUncheckedCreateInput en passant brandId directement
     const luneoOrder = await this.prisma.order.create({
       data: {
-        brand: { connect: { id: brandId } },
-        userId: null, // À récupérer depuis l'email si possible
+        brandId, // Utiliser brandId directement au lieu de la relation
+        // userId est optionnel, on l'omet si null
         status: 'CREATED',
         totalCents: Math.round(parseFloat(order.total_price) * 100),
         currency: order.currency,
@@ -413,7 +421,7 @@ export class ShopifyService {
           financialStatus: order.financial_status,
           fulfillmentStatus: order.fulfillment_status,
         } as any,
-      },
+      } as any,
     });
 
     // Créer les order items avec les générations

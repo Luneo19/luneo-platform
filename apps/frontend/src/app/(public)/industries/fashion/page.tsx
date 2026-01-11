@@ -8,34 +8,47 @@ import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/sha
 import { CTASectionNew } from '@/components/marketing/home';
 
 function FashionIndustryPageContent() {
+  const solutions = [
+    { title: 'Virtual Try-On', description: 'Essayage virtuel avec AR', icon: <Sparkles className="w-6 h-6" /> },
+    { title: '3D Configurator', description: 'Personnalisation vêtements 3D', icon: <Sparkles className="w-6 h-6" /> },
+    { title: 'Lookbook AR', description: 'Collections en réalité augmentée', icon: <Sparkles className="w-6 h-6" /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-24">
-        <div className="max-w-4xl mx-auto px-4">
-          <Sparkles className="w-16 h-16 mb-6 text-white" />
-          <h1 className="text-5xl font-bold mb-6 text-white">Fashion & Apparel</h1>
-          <p className="text-2xl text-purple-100 mb-8">Virtual try-on, 3D configurator, AR showcase pour la mode</p>
-          <Link href="/contact" className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 inline-block">Parler à un expert mode</Link>
-        </div>
-      </section>
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <h2 className="text-4xl font-bold text-center mb-12 text-white">Solutions pour la Mode</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">Virtual Try-On</h3>
-            <p className="text-gray-300">Essayage virtuel avec AR</p>
+    <>
+      <PageHero
+        title="Fashion & Apparel"
+        description="Virtual try-on, 3D configurator, AR showcase pour la mode"
+        badge="Industrie"
+        gradient="from-purple-600 via-pink-600 to-rose-600"
+        cta={{
+          label: 'Parler à un expert mode',
+          href: '/contact'
+        }}
+      />
+
+      <div className="min-h-screen bg-white text-gray-900">
+        <section className="max-w-7xl mx-auto px-4 py-20 bg-gray-50">
+          <SectionHeader
+            title="Solutions pour la Mode"
+            description="Tout ce dont vous avez besoin pour transformer votre business mode"
+          />
+          <div className="grid md:grid-cols-3 gap-8 mt-12">
+            {solutions.map((solution, i) => (
+              <FeatureCard
+                key={i}
+                title={solution.title}
+                description={solution.description}
+                icon={solution.icon}
+                color="purple"
+              />
+            ))}
           </div>
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">3D Configurator</h3>
-            <p className="text-gray-300">Personnalisation vêtements 3D</p>
-          </div>
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="font-bold text-xl mb-3 text-white">Lookbook AR</h3>
-            <p className="text-gray-300">Collections en réalité augmentée</p>
-          </div>
-        </div>
-      </section>
-    </div>
+        </section>
+
+        <CTASectionNew />
+      </div>
+    </>
   );
 }
 
