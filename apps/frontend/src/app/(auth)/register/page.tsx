@@ -286,12 +286,12 @@ function RegisterPageContent() {
           </div>
         </FadeIn>
         <SlideUp delay={0.2}>
-          <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-white mb-2">
+          <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Créer un compte 🚀
           </h1>
         </SlideUp>
         <FadeIn delay={0.3}>
-          <p className="text-slate-300">
+          <p className="text-gray-600">
             Commencez gratuitement pendant 14 jours
           </p>
         </FadeIn>
@@ -335,7 +335,7 @@ function RegisterPageContent() {
                   data-testid="register-name"
                   type="text"
                   placeholder="Jean Dupont"
-              className="pl-10 bg-slate-800 border-2 border-slate-600 text-white placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base"
+              className="pl-10 bg-white border-2 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
@@ -361,7 +361,7 @@ function RegisterPageContent() {
                   data-testid="register-email"
                   type="email"
               placeholder="votre@entreprise.com"
-              className="pl-10 bg-slate-800 border-2 border-slate-600 text-white placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base"
+              className="pl-10 bg-white border-2 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -386,7 +386,7 @@ function RegisterPageContent() {
                   id="company"
                   type="text"
                   placeholder="Votre entreprise"
-              className="pl-10 bg-slate-800 border-2 border-slate-600 text-white placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base"
+              className="pl-10 bg-white border-2 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               disabled={isLoading}
@@ -495,7 +495,7 @@ function RegisterPageContent() {
                   data-testid="register-confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirmez votre mot de passe"
-              className={`pl-10 pr-12 bg-slate-800 border-2 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-cyan-500/20 h-12 text-base ${
+              className={`pl-10 pr-12 bg-white border-2 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base ${
                 formData.confirmPassword && !passwordsMatch 
                   ? 'border-red-500 focus:border-red-500' 
                   : 'border-slate-600 focus:border-cyan-500'
@@ -555,7 +555,7 @@ function RegisterPageContent() {
               type="submit"
               data-testid="register-submit"
           disabled={isLoading || !isFormValid}
-          className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-12 text-base font-medium shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white h-12 text-base font-medium shadow-lg shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
             >
               {isLoading ? (
                 <>
@@ -579,7 +579,7 @@ function RegisterPageContent() {
           <div className="w-full border-t border-slate-600" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-slate-900 text-slate-400">ou s&apos;inscrire avec</span>
+          <span className="px-4 bg-gray-50 text-gray-500">ou s&apos;inscrire avec</span>
             </div>
           </div>
         </FadeIn>
@@ -592,7 +592,7 @@ function RegisterPageContent() {
               variant="outline"
               data-testid="register-oauth-google"
               aria-label="S'inscrire avec Google"
-          className="bg-slate-800 border-2 border-slate-600 hover:bg-slate-700 hover:border-slate-500 text-white h-12 text-sm sm:text-base"
+          className="bg-white border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-900 h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('google')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -611,7 +611,7 @@ function RegisterPageContent() {
               variant="outline"
               data-testid="register-oauth-github"
               aria-label="S'inscrire avec GitHub"
-          className="bg-slate-800 border-2 border-slate-600 hover:bg-slate-700 hover:border-slate-500 text-white h-12 text-sm sm:text-base"
+          className="bg-white border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-900 h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('github')}
           disabled={isLoading || oauthLoading !== null}
             >
