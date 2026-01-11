@@ -34,7 +34,10 @@ COPY apps/backend/package.json ./apps/backend/
 COPY packages ./packages/
 
 # Installer les dépendances (inclure devDependencies pour le build)
-RUN pnpm install --frozen-lockfile --include-workspace-root
+# Ajouter retries pour gérer les erreurs réseau temporaires
+RUN pnpm install --frozen-lockfile --include-workspace-root --network-timeout=60000 || \
+    (echo "Retry 1..." && sleep 5 && pnpm install --frozen-lockfile --include-workspace-root --network-timeout=60000) || \
+    (echo "Retry 2..." && sleep 10 && pnpm install --frozen-lockfile --include-workspace-root --network-timeout=60000)
 
 # Copier le code source backend
 COPY apps/backend ./apps/backend/
@@ -88,7 +91,10 @@ COPY packages ./packages/
 # Installer les dépendances de production dans le stage production
 # Cela garantit que la structure pnpm est correcte et que les modules sont accessibles
 # Canvas sera compilé avec les outils de build installés ci-dessus
-RUN pnpm install --frozen-lockfile --include-workspace-root --prod
+# Ajouter retries pour gérer les erreurs réseau temporaires
+RUN pnpm install --frozen-lockfile --include-workspace-root --prod --network-timeout=60000 || \
+    (echo "Retry 1..." && sleep 5 && pnpm install --frozen-lockfile --include-workspace-root --prod --network-timeout=60000) || \
+    (echo "Retry 2..." && sleep 10 && pnpm install --frozen-lockfile --include-workspace-root --prod --network-timeout=60000)
 
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
