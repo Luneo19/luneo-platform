@@ -72,6 +72,10 @@ WORKDIR /app/apps/backend
 RUN printf '#!/bin/sh\nset -e\ncd /app/apps/backend\necho "Execution des migrations Prisma..."\npnpm prisma migrate deploy || echo "WARNING: Migrations echouees ou deja appliquees"\necho "Demarrage de l application..."\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Nettoyer les fichiers inutiles pour réduire la taille
+# Supprimer les outils de build après installation
+RUN apk del python3 make g++ || true
+
+# Nettoyer les fichiers inutiles
 RUN rm -rf /app/node_modules/.cache \
     && rm -rf /tmp/* \
     && rm -rf /var/cache/apk/* \
