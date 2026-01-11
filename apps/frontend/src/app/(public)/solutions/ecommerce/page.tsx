@@ -23,6 +23,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/lib/logger';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 export default function EcommercePage() {
   const [selectedPlatform, setSelectedPlatform] = useState('Shopify');
@@ -181,65 +183,22 @@ export default function EcommercePage() {
 
   return (
     <ErrorBoundary level="page" componentName="EcommercePage">
-    <div className="min-h-screen bg-gray-900">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-emerald-900 to-green-900 py-20 px-4">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,black,transparent)]" />
-        </div>
+    <>
+      <PageHero
+        title="E-commerce"
+        description="Connectez Luneo à votre boutique en ligne. Shopify, WooCommerce, Magento, PrestaShop - intégration native en 15 minutes. Augmentez vos conversions de 35%."
+        badge="Intégration E-commerce"
+        gradient="from-emerald-600 via-green-600 to-teal-600"
+        cta={{
+          label: 'Voir la démo',
+          href: '#ecommerce-demo-form'
+        }}
+      />
 
-        <div className="relative max-w-7xl mx-auto">
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-              <Store className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-300 text-sm font-medium">E-commerce Integration</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-              E-commerce
-              <br />
-              <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
-                Integration Parfaite
-              </span>
-            </h1>
-
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Connectez Luneo a votre boutique en ligne. Shopify, WooCommerce, Magento,
-              PrestaShop - integration native en 15 minutes. Augmentez vos conversions de 35%.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-8 h-12 text-lg"
-                onClick={() => {
-                  const anchor = document.getElementById('ecommerce-demo-form');
-                  anchor?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }}
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Voir la demo
-              </Button>
-              <Link href="/register">
-                <Button
-                  variant="outline"
-                  className="border-white/50 text-white hover:bg-white/20 h-12 px-8 text-lg"
-                >
-                  Installer maintenant
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
-          </motion>
-        </div>
-      </section>
+    <div className="min-h-screen bg-white text-gray-900">
 
       {/* Platforms */}
-      <section className="py-20 px-4 bg-gray-900">
+      <section className="py-20 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">

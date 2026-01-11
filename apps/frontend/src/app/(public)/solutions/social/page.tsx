@@ -23,6 +23,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/lib/logger';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 const defaultCalendar = [
   { id: 1, day: 'Lundi', time: '09:00', platform: 'Instagram', status: 'À préparer', format: 'Story' },
@@ -269,54 +271,19 @@ ${platformGuidelines.hook}
 
   return (
     <ErrorBoundary level="page" componentName="SocialPage">
-    <div className="min-h-screen bg-gray-900">
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-violet-900 to-fuchsia-900 py-20 px-4">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,black,transparent)]" />
-        </div>
+    <>
+      <PageHero
+        title="Social Media"
+        description="Créez, planifiez et publiez sur tous vos réseaux sociaux. Génération IA, analytics, multi-comptes - gérez votre présence sociale en un seul endroit."
+        badge="Social Media Manager"
+        gradient="from-violet-600 via-fuchsia-600 to-pink-600"
+        cta={{
+          label: 'Voir la Social Studio',
+          href: '#social-studio'
+        }}
+      />
 
-        <div className="relative max-w-7xl mx-auto">
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full mb-6">
-              <Share2 className="w-4 h-4 text-violet-400" />
-              <span className="text-violet-300 text-sm font-medium">Social Media Manager</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-              Social Media
-              <br />
-              <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-                Gestion Simplifiée
-              </span>
-            </h1>
-
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Créez, planifiez et publiez sur tous vos réseaux sociaux. Génération IA, analytics,
-              multi-comptes - gérez votre présence sociale en un seul endroit.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={scrollToInteractive}
-                className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white px-8 h-12 text-lg"
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Voir la Social Studio
-              </Button>
-              <Link href="/register">
-                <Button variant="outline" className="border-white/50 text-white hover:bg-white/20 h-12 px-8 text-lg">
-                  Commencer
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
-          </motion>
-        </div>
-      </section>
+    <div className="min-h-screen bg-white text-gray-900">
 
       <section
         id="social-studio"

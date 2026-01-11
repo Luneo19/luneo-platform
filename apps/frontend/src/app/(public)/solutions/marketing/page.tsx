@@ -21,6 +21,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/lib/logger';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 export default function MarketingPage() {
   const [channel, setChannel] = useState<'Email' | 'Social Ads' | 'Display' | 'Print'>('Email');
@@ -238,54 +240,19 @@ export default function MarketingPage() {
 
   return (
     <ErrorBoundary level="page" componentName="MarketingPage">
-    <div className="min-h-screen bg-gray-900">
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-rose-900 to-pink-900 py-20 px-4">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,black,transparent)]" />
-        </div>
+    <>
+      <PageHero
+        title="Marketing"
+        description="Créez des campagnes marketing ultra-personnalisées. Génération AI, A/B testing, analytics - tout pour maximiser votre ROI marketing."
+        badge="Marketing Automation"
+        gradient="from-rose-600 via-pink-600 to-purple-600"
+        cta={{
+          label: 'Voir l\'orchestrateur',
+          href: '#marketing-orchestrator'
+        }}
+      />
 
-        <div className="relative max-w-7xl mx-auto">
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-500/10 border border-rose-500/20 rounded-full mb-6">
-              <Megaphone className="w-4 h-4 text-rose-400" />
-              <span className="text-rose-300 text-sm font-medium">Marketing Automation</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-              Marketing
-              <br />
-              <span className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">
-                Campagnes Performantes
-              </span>
-            </h1>
-
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Créez des campagnes marketing ultra-personnalisées. Génération AI, A/B testing,
-              analytics - tout pour maximiser votre ROI marketing.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={scrollToInteractive}
-                className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white px-8 h-12 text-lg"
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Voir l'orchestrateur
-              </Button>
-              <Link href="/register">
-                <Button variant="outline" className="border-white/50 text-white hover:bg-white/20 h-12 px-8 text-lg">
-                  Commencer
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
-          </motion>
-        </div>
-      </section>
+    <div className="min-h-screen bg-white text-gray-900">
 
       <section
         id="marketing-orchestrator"

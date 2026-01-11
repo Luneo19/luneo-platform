@@ -22,6 +22,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/lib/logger';
+import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { CTASectionNew } from '@/components/marketing/home';
 
 const initialPalette = [
   { name: 'Primaire', hex: '#4C52FF' },
@@ -210,59 +212,19 @@ export default function BrandingPage() {
 
   return (
     <ErrorBoundary level="page" componentName="BrandingPage">
-    <div className="min-h-screen bg-gray-900">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 py-20 px-4">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,black,transparent)]" />
-        </div>
+    <>
+      <PageHero
+        title="Branding"
+        description="Créez un brand kit professionnel en minutes. Logo, couleurs, typographies, templates - tout pour une identité de marque cohérente sur tous vos supports."
+        badge="Brand Identity Suite"
+        gradient="from-indigo-600 via-purple-600 to-pink-600"
+        cta={{
+          label: 'Ouvrir le brand kit',
+          href: '#brand-kit-designer'
+        }}
+      />
 
-        <div className="relative max-w-7xl mx-auto">
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-6">
-              <Palette className="w-4 h-4 text-indigo-400" />
-              <span className="text-indigo-300 text-sm font-medium">Brand Identity Suite</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-              Branding
-              <br />
-              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                Identité Cohérente
-              </span>
-            </h1>
-
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Créez un brand kit professionnel en minutes. Logo, couleurs, typographies,
-              templates - tout pour une identité de marque cohérente sur tous vos supports.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={scrollToDesigner}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 h-12 text-lg"
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Ouvrir le brand kit
-              </Button>
-              <Link href="/register">
-                <Button
-                  variant="outline"
-                  className="border-white/50 text-white hover:bg-white/20 h-12 px-8 text-lg"
-                >
-                  Créer mon brand kit
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
-          </motion>
-        </div>
-      </section>
+    <div className="min-h-screen bg-white text-gray-900">
 
       <section
         id="brand-kit-designer"
