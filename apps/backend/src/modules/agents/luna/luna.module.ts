@@ -7,7 +7,7 @@
  * - ✅ Import des dépendances
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { LunaController } from './luna.controller';
 import { LunaService } from './luna.service';
@@ -16,10 +16,7 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { StorageModule } from '@/libs/storage/storage.module';
 import { ProductsModule } from '@/modules/products/products.module';
 import { AnalyticsModule } from '@/modules/analytics/analytics.module';
-import { AiModule } from '@/modules/ai/ai.module';
-import { LLMRouterService } from '../services/llm-router.service';
-import { ConversationService } from '../services/conversation.service';
-import { AgentMemoryService } from '../services/agent-memory.service';
+import { AgentsModule } from '../agents.module';
 
 @Module({
   imports: [
@@ -28,16 +25,11 @@ import { AgentMemoryService } from '../services/agent-memory.service';
     StorageModule,
     ProductsModule,
     AnalyticsModule, // Pour ReportsService
-    AiModule, // Pour AiService utilisé par LLMRouterService
+    forwardRef(() => AgentsModule), // Pour LLMRouterService, ConversationService, AgentMemoryService et tous leurs dépendances
     HttpModule,
   ],
   controllers: [LunaController],
-  providers: [
-    LunaService,
-    LLMRouterService,
-    ConversationService,
-    AgentMemoryService,
-  ],
+  providers: [LunaService],
   exports: [LunaService], // ✅ RÈGLE: Export obligatoire
 })
 export class LunaModule {}

@@ -8,27 +8,23 @@
  * @module AriaModule
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AriaController } from './aria.controller';
 import { AriaService } from './aria.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
-import { AiModule } from '@/modules/ai/ai.module';
-import { LLMRouterService } from '../services/llm-router.service';
+import { AgentsModule } from '../agents.module';
 
 @Module({
   imports: [
     PrismaModule,
     SmartCacheModule,
-    AiModule, // Pour AiService utilisé par LLMRouterService
+    forwardRef(() => AgentsModule), // Pour LLMRouterService et tous ses dépendances
     HttpModule,
   ],
   controllers: [AriaController],
-  providers: [
-    AriaService,
-    LLMRouterService,
-  ],
+  providers: [AriaService],
   exports: [AriaService],
 })
 export class AriaModule {}

@@ -8,27 +8,23 @@
  * @module NovaModule
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { NovaController } from './nova.controller';
 import { NovaService } from './nova.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
-import { AiModule } from '@/modules/ai/ai.module';
-import { LLMRouterService } from '../services/llm-router.service';
+import { AgentsModule } from '../agents.module';
 
 @Module({
   imports: [
     PrismaModule,
     SmartCacheModule,
-    AiModule, // Pour AiService utilisé par LLMRouterService
+    forwardRef(() => AgentsModule), // Pour LLMRouterService et tous ses dépendances
     HttpModule,
   ],
   controllers: [NovaController],
-  providers: [
-    NovaService,
-    LLMRouterService,
-  ],
+  providers: [NovaService],
   exports: [NovaService],
 })
 export class NovaModule {}
