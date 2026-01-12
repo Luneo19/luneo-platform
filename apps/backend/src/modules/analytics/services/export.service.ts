@@ -76,9 +76,10 @@ export class AnalyticsExportService {
           },
         },
       }),
-      this.prisma.render.count({
+      this.prisma.design.count({
         where: {
           brandId,
+          renderUrl: { not: null },
           createdAt: {
             ...(startDate && { gte: startDate }),
             ...(endDate && { lte: endDate }),
@@ -176,9 +177,10 @@ export class AnalyticsExportService {
           },
         },
       }),
-      this.prisma.render.count({
+      this.prisma.design.count({
         where: {
           brandId,
+          renderUrl: { not: null },
           createdAt: {
             ...(startDate && { gte: startDate }),
             ...(endDate && { lte: endDate }),

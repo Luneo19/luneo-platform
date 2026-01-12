@@ -29,6 +29,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
@@ -627,7 +628,7 @@ const SHAPE_TYPES = [
   { value: 'rect', label: 'Rectangle', icon: SquareIconType2 },
   { value: 'circle', label: 'Cercle', icon: CircleIcon },
   { value: 'star', label: 'Étoile', icon: StarIconType2 },
-  { value: 'line', label: 'Ligne', icon: Minus },
+  { value: 'line', label: 'Ligne', icon: MinusCircleIcon },
 ];
 
 const EXPORT_FORMATS = [
@@ -690,7 +691,7 @@ function CustomizerPageContent() {
   const productsQuery = trpc.product.list.useQuery({
     search: filters.search || undefined,
     category: filters.category !== 'all' ? (filters.category as ProductCategory) : undefined,
-    status: filters.status !== 'all' ? (filters.status as ProductStatus) : undefined,
+    isActive: filters.status !== 'all' ? filters.status === 'active' : undefined,
     limit: 50,
     offset: 0,
   });
@@ -936,7 +937,7 @@ function CustomizerPageContent() {
                     {CATEGORIES.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
                         <div className="flex items-center gap-2">
-                          <cat.icon className="w-4 h-4" />
+                          {cat.icon && React.createElement(cat.icon as React.ElementType, { className: 'w-4 h-4' })}
                           {cat.label}
                         </div>
                       </SelectItem>
