@@ -223,8 +223,9 @@ ARG CACHE_BUSTER=2025-01-15T11:30:00Z
 | `7591386` | Fix OAuth Service & Cache Warming errors | 5 erreurs TypeScript |
 | `65ce044` | Fix OAuth Accounts field name & provider types | 2 erreurs TypeScript |
 | `ee0dbdd` | Fix Google Strategy provider type with 'as const' | 1 erreur TypeScript |
+| `[next]` | Fix CacheExtensionService dependency injection | 1 erreur runtime NestJS |
 
-**Total**: **18 erreurs corrigées** (17 TypeScript + 1 runtime OAuth)
+**Total**: **19 erreurs corrigées** (17 TypeScript + 2 runtime)
 
 ---
 
