@@ -37,42 +37,69 @@ export class AnalyticsExportService {
     doc.pipe(res);
 
     // Header
-    doc.fontSize(20).text('Rapport Analytics', { align: 'center' });
+    doc.fontSize(20).text('Rapport Analytics Luneo', { align: 'center' });
     doc.moveDown();
-    doc.fontSize(12).text(`Période: ${startDate?.toLocaleDateString()} - ${endDate?.toLocaleDateString()}`);
+    doc.fontSize(12).text(`Période: ${startDate?.toLocaleDateString('fr-FR') || 'Toutes'} - ${endDate?.toLocaleDateString('fr-FR') || 'Aujourd\'hui'}`);
     doc.moveDown();
+    doc.fontSize(10).text(`Généré le ${new Date().toLocaleString('fr-FR')}`, { align: 'center' });
+    doc.moveDown(2);
 
     // Get analytics data
-    const orders = await this.prisma.order.findMany({
-      where: {
-        brandId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
+    const [orders, designs, users, renders] = await Promise.all([
+      this.prisma.order.findMany({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
         },
-      },
-      include: {
-        items: true,
-      },
-    });
+        include: {
+          items: true,
+        },
+      }),
+      this.prisma.design.findMany({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
+        },
+      }),
+      this.prisma.render.count({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
+        },
+      }),
+    ]);
 
-    const designs = await this.prisma.design.findMany({
-      where: {
-        brandId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-    });
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.totalCents / 100 || 0), 0);
+    const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
 
     // Summary statistics
-    doc.fontSize(16).text('Résumé', { underline: true });
+    doc.fontSize(16).text('Résumé Exécutif', { underline: true });
     doc.moveDown();
     doc.fontSize(12);
     doc.text(`Total Commandes: ${orders.length}`);
     doc.text(`Total Designs: ${designs.length}`);
-    doc.text(`Revenus: ${orders.reduce((sum, o) => sum + (o.totalCents / 100 || 0), 0).toFixed(2)}€`);
+    doc.text(`Total Renders: ${renders}`);
+    doc.text(`Nouveaux Utilisateurs: ${users}`);
+    doc.text(`Revenus Total: ${totalRevenue.toFixed(2)}€`);
+    doc.text(`Panier Moyen: ${avgOrderValue.toFixed(2)}€`);
     doc.moveDown();
 
     // Orders table
@@ -118,18 +145,50 @@ export class AnalyticsExportService {
     };
 
     // Get analytics data
-    const orders = await this.prisma.order.findMany({
-      where: {
-        brandId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
+    const [orders, designs, users, renders] = await Promise.all([
+      this.prisma.order.findMany({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
         },
-      },
-      include: {
-        items: true,
-      },
-    });
+        include: {
+          items: true,
+        },
+      }),
+      this.prisma.design.findMany({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
+        },
+      }),
+      this.prisma.render.count({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
+        },
+      }),
+    ]);
+
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.totalCents / 100 || 0), 0);
+    const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
 
     // Summary sheet
     const summarySheet = workbook.addWorksheet('Résumé');
@@ -143,13 +202,14 @@ export class AnalyticsExportService {
       cell.style = headerStyle;
     });
     summarySheet.addRow({ metric: 'Total Commandes', value: orders.length });
-    summarySheet.addRow({
-      metric: 'Revenus Total',
-      value: orders.reduce((sum, o) => sum + (o.totalCents / 100 || 0), 0).toFixed(2) + '€',
-    });
+    summarySheet.addRow({ metric: 'Total Designs', value: designs.length });
+    summarySheet.addRow({ metric: 'Total Renders', value: renders });
+    summarySheet.addRow({ metric: 'Nouveaux Utilisateurs', value: users });
+    summarySheet.addRow({ metric: 'Revenus Total', value: totalRevenue.toFixed(2) + '€' });
+    summarySheet.addRow({ metric: 'Panier Moyen', value: avgOrderValue.toFixed(2) + '€' });
     summarySheet.addRow({
       metric: 'Période',
-      value: `${startDate?.toLocaleDateString()} - ${endDate?.toLocaleDateString()}`,
+      value: `${startDate?.toLocaleDateString('fr-FR') || 'Toutes'} - ${endDate?.toLocaleDateString('fr-FR') || 'Aujourd\'hui'}`,
     });
 
     // Orders sheet
@@ -196,29 +256,63 @@ export class AnalyticsExportService {
   async exportToCSV(options: ExportOptions, res: Response): Promise<void> {
     const { startDate, endDate, brandId } = options;
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        brandId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
+    const [orders, designs] = await Promise.all([
+      this.prisma.order.findMany({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
         },
-      },
-    });
+      }),
+      this.prisma.design.findMany({
+        where: {
+          brandId,
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
 
     // CSV header
-    const csvRows = ['ID,Date,Montant,Statut,Client'];
+    const csvRows = [
+      '# Analytics Export - Luneo',
+      `# Période: ${startDate?.toLocaleDateString('fr-FR') || 'Toutes'} - ${endDate?.toLocaleDateString('fr-FR') || 'Aujourd\'hui'}`,
+      `# Généré le: ${new Date().toLocaleString('fr-FR')}`,
+      '',
+      '## Commandes',
+      'ID,Date,Montant,Statut,Client',
+    ];
 
-    // CSV rows
+    // CSV rows for orders
     orders.forEach((order) => {
       csvRows.push(
-        `${order.id.substring(0, 8)},${order.createdAt.toLocaleDateString()},${(order.totalCents / 100).toFixed(2)},${order.status},${order.userId.substring(0, 8)}`,
+        `${order.id.substring(0, 8)},${order.createdAt.toLocaleDateString('fr-FR')},${(order.totalCents / 100).toFixed(2)},${order.status},${order.userId.substring(0, 8)}`,
+      );
+    });
+
+    // Add designs section
+    csvRows.push('');
+    csvRows.push('## Designs');
+    csvRows.push('ID,Nom,Créé le,Modifié le');
+    designs.forEach((design) => {
+      csvRows.push(
+        `${design.id.substring(0, 8)},${design.name || 'Sans nom'},${design.createdAt.toLocaleDateString('fr-FR')},${design.updatedAt.toLocaleDateString('fr-FR')}`,
       );
     });
 
     const csv = csvRows.join('\n');
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="analytics-${brandId}-${Date.now()}.csv"`,
