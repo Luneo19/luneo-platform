@@ -17,6 +17,7 @@ export interface Ticket {
   createdAt: Date;
   updatedAt: Date;
   messages: TicketMessage[];
+  tags?: string[];
 }
 
 export interface TicketMessage {

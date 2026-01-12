@@ -884,9 +884,9 @@ function SupportPageContent() {
                       </span>
                       <span className="flex items-center gap-1">
                         <MessageSquare className="w-3 h-3" />
-                                {ticket._count?.messages || 0} messages
+                                {ticket.messages?.length || 0} messages
                       </span>
-                              {ticket.tags.length > 0 && (
+                              {ticket.tags && ticket.tags.length > 0 && (
                                 <span className="flex items-center gap-1">
                                   <Tag className="w-3 h-3" />
                                   {ticket.tags.length} tags
@@ -1258,7 +1258,7 @@ function SupportPageContent() {
                     </div>
                     <DialogTitle className="text-xl">{selectedTicket.subject}</DialogTitle>
                     <DialogDescription className="text-gray-400 mt-2">
-                      {formatDate(selectedTicket.createdAt)} • {selectedTicket._count?.messages || 0} messages
+                      {formatDate(selectedTicket.createdAt)} • {selectedTicket.messages?.length || 0} messages
                     </DialogDescription>
                   </div>
                   <div className="flex items-center gap-2">
