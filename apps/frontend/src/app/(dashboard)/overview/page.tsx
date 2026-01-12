@@ -95,7 +95,7 @@ const ProgressRing = ({
         cx={size / 2}
         cy={size / 2}
       />
-      <motion.circle
+      <circle
         className={color}
         fill="transparent"
         strokeWidth={strokeWidth}
