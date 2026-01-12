@@ -152,7 +152,23 @@ export class GrafanaDatasourceService {
   private async getCacheHitRate(startTime: Date, endTime: Date) {
     try {
       const stats = await this.redis.getStats();
-      const hitRate = stats.hits / (stats.hits + stats.misses) * 100 || 0;
+      
+      // Parse Redis INFO stats string to extract hits and misses
+      // Redis INFO stats format: "keyspace_hits:123\nkeyspace_misses:456\n..."
+      let hits = 0;
+      let misses = 0;
+      
+      if (typeof stats.stats === 'string') {
+        const hitsMatch = stats.stats.match(/keyspace_hits:(\d+)/);
+        const missesMatch = stats.stats.match(/keyspace_misses:(\d+)/);
+        
+        hits = hitsMatch ? parseInt(hitsMatch[1], 10) : 0;
+        misses = missesMatch ? parseInt(missesMatch[1], 10) : 0;
+      }
+      
+      // Calculate hit rate percentage
+      const total = hits + misses;
+      const hitRate = total > 0 ? (hits / total) * 100 : 0;
 
       return [{
         time: Date.now(),
@@ -160,7 +176,11 @@ export class GrafanaDatasourceService {
       }];
     } catch (error) {
       this.logger.error('Failed to get cache hit rate:', error);
-      return [];
+      // Return default value if stats unavailable
+      return [{
+        time: Date.now(),
+        value: 0,
+      }];
     }
   }
 
