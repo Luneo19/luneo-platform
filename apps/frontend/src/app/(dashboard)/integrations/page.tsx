@@ -191,10 +191,10 @@ function IntegrationsPageContent() {
                   </div>
                   <Button
                     onClick={handleCreateShopify}
-                    disabled={createShopifyMutation.isLoading}
+                    disabled={createShopifyMutation.isPending}
                     className="w-full"
                   >
-                    {createShopifyMutation.isLoading ? (
+                    {createShopifyMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Connexion...
@@ -264,10 +264,10 @@ function IntegrationsPageContent() {
                   </div>
                   <Button
                     onClick={handleCreateWooCommerce}
-                    disabled={createWooCommerceMutation.isLoading}
+                    disabled={createWooCommerceMutation.isPending}
                     className="w-full"
                   >
-                    {createWooCommerceMutation.isLoading ? (
+                    {createWooCommerceMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Connexion...
@@ -330,7 +330,7 @@ function IntegrationsPageContent() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleSync(integration.id)}
-                          disabled={syncMutation.isLoading}
+                          disabled={syncMutation.isPending}
                         >
                           <RefreshCw className="h-4 w-4 mr-2" />
                           Sync

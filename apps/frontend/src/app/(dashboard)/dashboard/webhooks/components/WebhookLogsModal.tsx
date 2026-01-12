@@ -44,7 +44,7 @@ export function WebhookLogsModal({
     queryKey: ['webhook-logs', webhookId, page],
     queryFn: async () => {
       const response = await endpoints.webhooks.logs(webhookId, { page, limit: 20 });
-      return response.data;
+      return (response as any).data || response;
     },
     enabled: open,
   });
@@ -81,10 +81,10 @@ export function WebhookLogsModal({
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
               <p className="text-gray-400 mt-4">Chargement...</p>
             </div>
-          ) : data && data.data && data.data.length > 0 ? (
+          ) : data && (data as any).data && (data as any).data.length > 0 ? (
             <>
               <div className="space-y-3">
-                {data.data.map((log: WebhookLog) => (
+                {((data as any).data || data.logs || []).map((log: WebhookLog) => (
                   <div
                     key={log.id}
                     className="p-4 bg-gray-700/50 rounded-lg border border-gray-600"

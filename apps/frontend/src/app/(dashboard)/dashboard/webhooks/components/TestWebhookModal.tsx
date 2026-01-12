@@ -41,13 +41,13 @@ export function TestWebhookModal({
   const testMutation = useMutation({
     mutationFn: async () => {
       const response = await endpoints.webhooks.test(testUrl, testSecret || '');
-      return response as { success: boolean; message?: string; data?: any };
+      return response as { success: boolean; message?: string; error?: string; statusCode?: number; data?: any };
     },
     onSuccess: (data) => {
       if (data.success) {
         toast({
           title: 'Test réussi',
-          description: `Le webhook a répondu avec le statut ${data.statusCode}`,
+          description: `Le webhook a répondu avec le statut ${data.statusCode || data.data?.statusCode || 'N/A'}`,
         });
       } else {
         toast({

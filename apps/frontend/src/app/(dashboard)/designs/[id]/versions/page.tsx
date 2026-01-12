@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -86,7 +86,7 @@ function DesignVersionsPageContent() {
   });
 
   // Transform data
-  const versions: DesignVersion[] = (versionsQuery.data?.versions || []).map((v) => ({
+  const versions: DesignVersion[] = (versionsQuery.data?.versions || []).map((v: any) => ({
     id: v.id,
     design_id: designId,
     version_number: v.version,
@@ -286,7 +286,7 @@ function DesignVersionsPageContent() {
                 Historique des Versions
               </h1>
               {design && (
-                <p className="text-gray-400 mt-1">{design.design_name || 'Design'}</p>
+                <p className="text-gray-400 mt-1">{design.name || 'Design'}</p>
               )}
             </div>
           </div>
@@ -437,13 +437,11 @@ function DesignVersionsPageContent() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden border border-gray-700">
                             {version.design_data?.thumbnail_url ||
-                            version.design_data?.preview_url ||
-                            design?.thumbnail_url ? (
+                            version.design_data?.preview_url ? (
                               <Image
                                 src={
                                   version.design_data?.thumbnail_url ||
                                   version.design_data?.preview_url ||
-                                  design?.thumbnail_url ||
                                   ''
                                 }
                                 alt={`Version ${version.version_number}`}

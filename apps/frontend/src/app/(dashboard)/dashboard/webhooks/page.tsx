@@ -70,7 +70,7 @@ export default function WebhooksPage() {
     queryKey: ['webhooks'],
     queryFn: async () => {
       const response = await endpoints.webhooks.list();
-      return response.data;
+      return (response as any).data || response;
     },
   });
 
@@ -79,7 +79,7 @@ export default function WebhooksPage() {
     queryKey: ['webhook-history'],
     queryFn: async () => {
       const response = await endpoints.webhooks.history({ page: 1, limit: 50 });
-      return response.data;
+      return (response as any).data || response;
     },
   });
 
@@ -93,7 +93,7 @@ export default function WebhooksPage() {
       isActive?: boolean;
     }) => {
       const response = await endpoints.webhooks.create(data);
-      return response.data;
+      return (response as any).data || response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
@@ -116,7 +116,7 @@ export default function WebhooksPage() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const response = await endpoints.webhooks.update(id, data);
-      return response.data;
+      return (response as any).data || response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
@@ -161,7 +161,7 @@ export default function WebhooksPage() {
   const retryMutation = useMutation({
     mutationFn: async (logId: string) => {
       const response = await endpoints.webhooks.retry(logId);
-      return response.data;
+      return (response as any).data || response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhook-history'] });
