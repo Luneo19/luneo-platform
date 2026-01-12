@@ -11,6 +11,7 @@ export interface Ticket {
   subject: string;
   description?: string;
   ticketNumber?: string;
+  category?: string;
   status: 'open' | 'closed' | 'pending';
   priority: 'low' | 'medium' | 'high';
   createdAt: Date;

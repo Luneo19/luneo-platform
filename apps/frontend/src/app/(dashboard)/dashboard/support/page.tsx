@@ -257,7 +257,7 @@ function SupportPageContent() {
         (ticket.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
       const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
       const matchesPriority = filterPriority === 'all' || ticket.priority === filterPriority;
-      const matchesCategory = filterCategory === 'all' || ticket.category === filterCategory;
+      const matchesCategory = filterCategory === 'all' || (ticket.category && ticket.category === filterCategory);
       return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
     });
   }, [tickets, searchTerm, filterStatus, filterPriority, filterCategory]);
@@ -268,7 +268,7 @@ function SupportPageContent() {
       (article) =>
         article.title.toLowerCase().includes(kbSearch.toLowerCase()) ||
         article.content.toLowerCase().includes(kbSearch.toLowerCase()) ||
-        article.tags.some((tag) => tag.toLowerCase().includes(kbSearch.toLowerCase()))
+        article.tags.some((tag: string) => tag.toLowerCase().includes(kbSearch.toLowerCase()))
     );
   }, [knowledgeBase, kbSearch]);
 
@@ -300,7 +300,7 @@ function SupportPageContent() {
       name: 'Standard SLA',
       firstResponseTime: Math.max(0, firstResponseTime - minutesSinceCreation),
       resolutionTime: Math.max(0, resolutionTime - hoursSinceCreation),
-      status: ticket.status === 'RESOLVED' || ticket.status === 'CLOSED' ? 'on-track' : resolutionStatus,
+      status: ticket.status === 'closed' ? 'on-track' : resolutionStatus,
     };
   }, []);
 
@@ -314,11 +314,11 @@ function SupportPageContent() {
           subject: '',
           description: '',
           category: 'TECHNICAL',
-          priority: 'MEDIUM',
+          priority: 'medium',
         });
         toast({
           title: 'Ticket créé',
-          description: `Le ticket ${ticket.ticketNumber} a été créé avec succès`,
+          description: `Le ticket ${ticket.ticketId || 'a été créé'} avec succès`,
         });
       } catch (err) {
         logger.error('Error creating ticket', { error: err });
@@ -350,10 +350,7 @@ function SupportPageContent() {
 
       setSendingMessage(true);
       try {
-        await addMessage(ticketId, {
-          content: newMessage,
-          type: 'USER',
-        });
+        await addMessage(ticketId, newMessage);
         setNewMessage('');
         toast({
           title: 'Message envoyé',
