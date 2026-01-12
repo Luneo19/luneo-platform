@@ -1,12 +1,14 @@
 name: Deploy Frontend to Vercel
 
+# DÉSACTIVÉ: Déploiement automatique désactivé pour économiser les crédits Vercel
+# Pour déployer manuellement, utilisez: gh workflow run deploy-vercel-frontend.yml
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/frontend/**'
-      - '.github/workflows/deploy-vercel-frontend.yml'
-  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'apps/frontend/**'
+  #     - '.github/workflows/deploy-vercel-frontend.yml'
+  workflow_dispatch: # Seulement déploiement manuel
 
 jobs:
   deploy:
