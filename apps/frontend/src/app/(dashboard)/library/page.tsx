@@ -86,7 +86,7 @@ function LibraryPageContent() {
 
   useEffect(() => {
     if (templatesQuery.data) {
-      const formattedTemplates: Template[] = templatesQuery.data.templates.map((template) => ({
+      const formattedTemplates: Template[] = templatesQuery.data.templates.map((template: any) => ({
         id: template.id,
         name: template.name,
         category: template.category,
