@@ -221,7 +221,48 @@ ARG CACHE_BUSTER=2025-01-15T11:30:00Z
 | `c0814c0` | Fix ExcelJS types + Strategy classes | 4 erreurs TypeScript |
 | `f7fe07a` | Fix OAuth strategies conditional loading | 1 erreur runtime OAuth |
 
-**Total**: **8 erreurs corrigées** (7 TypeScript + 1 runtime OAuth)
+**Total**: **10 erreurs corrigées** (9 TypeScript + 1 runtime OAuth)
+
+---
+
+### 6. Erreur RenderResult Model (2 erreurs)
+
+**Problème**: 
+- `prisma.render.count()` n'existe pas - le modèle s'appelle `RenderResult`
+- `RenderResult` n'a pas de champ `brandId` direct
+- Erreur: `Property 'render' does not exist on type 'PrismaService'`
+
+**Fichier corrigé**:
+- `apps/backend/src/modules/analytics/services/export.service.ts`
+
+**Correction**:
+```typescript
+// ❌ Avant
+this.prisma.render.count({
+  where: {
+    brandId,
+    createdAt: { ... },
+  },
+})
+
+// ✅ Après
+this.prisma.design.count({
+  where: {
+    brandId,
+    renderUrl: { not: null },
+    createdAt: { ... },
+  },
+})
+```
+
+**Raison**: 
+- Utiliser la même logique que `getTotalRenders()` dans `analytics.service.ts`
+- Compter les designs avec `renderUrl` au lieu de compter `RenderResult`
+- `RenderResult` n'a pas de `brandId`, il faut filtrer via les relations
+
+**Lignes**: 79, 179
+
+**Commit**: `[commit hash]`
 
 ---
 
