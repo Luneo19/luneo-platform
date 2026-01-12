@@ -130,12 +130,16 @@ export function createLazyComponent<P extends object>(
 ) {
   const LazyComponent = lazy(importFn);
 
-  return memo((props: P) => (
+  const EnhancedComponent = memo((props: P) => (
     <ErrorBoundary level="component" componentName={componentName}>
       <Suspense fallback={<PageLoader />}>
         <LazyComponent {...props} />
       </Suspense>
     </ErrorBoundary>
   ));
+
+  EnhancedComponent.displayName = componentName || 'LazyLoadedComponent';
+
+  return EnhancedComponent;
 }
 

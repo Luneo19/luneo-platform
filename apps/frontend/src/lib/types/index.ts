@@ -61,6 +61,7 @@ export interface RegisterData {
   firstName?: string;
   lastName?: string;
   name?: string;
+  captchaToken?: string;
 }
 
 export interface ApiKeySummary {

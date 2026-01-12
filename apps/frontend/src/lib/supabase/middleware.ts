@@ -36,13 +36,13 @@ export function createClient(request: NextRequest, response: NextResponse) {
     return createMockMiddlewareClient() as any;
   }
 
-  const module = loadSupabaseMiddlewareModule();
-  if (!module || !module.createServerClient) {
+  const supabaseModule = loadSupabaseMiddlewareModule();
+  if (!supabaseModule || !supabaseModule.createServerClient) {
     return createMockMiddlewareClient() as any;
   }
 
   try {
-    return module.createServerClient(url, key, {
+    return supabaseModule.createServerClient(url, key, {
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value;

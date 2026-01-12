@@ -29,5 +29,3 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return user;
   }
 }
-
-

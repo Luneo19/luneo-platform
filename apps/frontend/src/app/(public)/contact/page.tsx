@@ -66,12 +66,27 @@ function ContactPageContent() {
     setError(null);
 
     try {
+      // ✅ CAPTCHA verification
+      let captchaToken = '';
+      try {
+        const { executeRecaptcha } = await import('@/lib/captcha/recaptcha');
+        captchaToken = await executeRecaptcha('contact');
+      } catch (captchaError) {
+        // In development, continue without CAPTCHA if not configured
+        if (process.env.NODE_ENV === 'production') {
+          setError('Vérification CAPTCHA requise. Veuillez réessayer.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
           type: 'general',
+          captchaToken, // Send CAPTCHA token
         }),
       });
 

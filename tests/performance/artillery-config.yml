@@ -1,0 +1,105 @@
+config:
+  target: 'http://localhost:3001'
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    # Ramp up phase
+    - duration: 120
+      arrivalRate: 5
+      rampTo: 50
+      name: "Ramp up load"
+    # Sustained load phase
+    - duration: 300
+      arrivalRate: 50
+      name: "Sustained load"
+    # Spike test phase
+    - duration: 60
+      arrivalRate: 50
+      rampTo: 200
+      name: "Spike test"
+    # Cool down phase
+    - duration: 60
+      arrivalRate: 200
+      rampTo: 0
+      name: "Cool down"
+  processor: "./artillery-processor.js"
+  plugins:
+    expect: {}
+    metrics-by-endpoint:
+      stripQueryString: true
+  payload:
+    path: "./test-data.csv"
+    fields:
+      - "email"
+      - "password"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  ensure:
+    maxErrorRate: 1
+    p95: 500
+    p99: 1000
+
+scenarios:
+  # Health check scenario
+  - name: "Health Check"
+    weight: 20
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: status
+
+  # Public endpoints scenario
+  - name: "Public Endpoints"
+    weight: 30
+    flow:
+      - get:
+          url: "/api/v1/products?limit=10"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      - think: 1
+      - get:
+          url: "/api/v1/products/{{ $randomString() }}"
+          expect:
+            - statusCode: [200, 404]
+
+  # Authenticated endpoints scenario
+  - name: "Authenticated Endpoints"
+    weight: 50
+    flow:
+      # Login
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.data.user.id"
+              as: "userId"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      - think: 1
+      # Get profile
+      - get:
+          url: "/api/v1/auth/me"
+          headers:
+            Cookie: "accessToken={{ $processEnvironment.ACCESS_TOKEN }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      - think: 1
+      # Get analytics
+      - get:
+          url: "/api/v1/analytics/overview"
+          headers:
+            Cookie: "accessToken={{ $processEnvironment.ACCESS_TOKEN }}"
+          expect:
+            - statusCode: [200, 401]
+      - think: 2

@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose,
 } from '../dialog';
 import { Button } from '../button';
 
@@ -157,7 +158,9 @@ describe('Dialog Component', () => {
         <Dialog defaultOpen>
           <DialogContent>
             <DialogTitle>Test</DialogTitle>
-            <DialogClose>Close</DialogClose>
+            <DialogClose asChild>
+              <button>Close</button>
+            </DialogClose>
           </DialogContent>
         </Dialog>
       );

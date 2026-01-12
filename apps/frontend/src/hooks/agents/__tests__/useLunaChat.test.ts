@@ -2,6 +2,7 @@
  * useLunaChat - Tests unitaires
  */
 
+import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useLunaChat } from '../useLunaChat';
@@ -33,9 +34,11 @@ describe('useLunaChat', () => {
     jest.clearAllMocks();
   });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  const wrapper = ({ children }: { children: React.ReactNode }) => {
+    return (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  };
 
   it('should send a message successfully', async () => {
     // Arrange

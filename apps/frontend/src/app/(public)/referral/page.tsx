@@ -99,23 +99,25 @@ function ReferralPageContent() {
             Programme de parrainage
           </motion>
 
-          <motion.h1
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-4xl md:text-6xl font-bold text-white mb-6"
+            as="h1"
           >
             Gagnez jusqu'à <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">35%</span> de commission
-          </motion.h1>
+          </motion>
 
-          <motion.p
+          <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="text-xl text-gray-400 max-w-2xl mx-auto mb-8"
+            as="p"
           >
             Partagez Luneo avec votre réseau et recevez des commissions récurrentes sur chaque abonnement généré.
-          </motion.p>
+          </motion>
 
           {/* Stats */}
           <motion

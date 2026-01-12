@@ -1,0 +1,282 @@
+{
+  "info": {
+    "name": "Luneo Public API",
+    "description": "Complete collection for Luneo Public API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "luneo-platform"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.luneo.com/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your_api_key_here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check API health status. No authentication required."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of results (max: 100)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Pagination offset"
+                },
+                {
+                  "key": "category",
+                  "value": "",
+                  "description": "Filter by category",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search query",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all available products"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/:productId",
+              "host": ["{{base_url}}"],
+              "path": ["products", ":productId"],
+              "variable": [
+                {
+                  "key": "productId",
+                  "value": "prod_123",
+                  "description": "Product ID"
+                }
+              ]
+            },
+            "description": "Get details of a specific product"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Designs",
+      "item": [
+        {
+          "name": "Create Design",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_123\",\n  \"prompt\": \"Collier minimaliste or 18k, pendentif coeur, gravure 'A.'\",\n  \"options\": {\n    \"material\": \"gold\",\n    \"size\": \"S\",\n    \"color\": \"yellow\",\n    \"engravingText\": \"A.\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/designs",
+              "host": ["{{base_url}}"],
+              "path": ["designs"]
+            },
+            "description": "Create a new design with AI"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Design",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/designs/:designId",
+              "host": ["{{base_url}}"],
+              "path": ["designs", ":designId"],
+              "variable": [
+                {
+                  "key": "designId",
+                  "value": "design_456",
+                  "description": "Design ID"
+                }
+              ]
+            },
+            "description": "Get status and details of a design"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"prod_123\",\n      \"designId\": \"design_456\",\n      \"quantity\": 1,\n      \"unitPrice\": 4900\n    }\n  ],\n  \"shipping\": {\n    \"address\": \"123 Rue de la Paix, 75001 Paris, France\",\n    \"method\": \"express\",\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"phone\": \"+33123456789\"\n  },\n  \"currency\": \"EUR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            },
+            "description": "Create a new order"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/:orderId",
+              "host": ["{{base_url}}"],
+              "path": ["orders", ":orderId"],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "order_789",
+                  "description": "Order ID"
+                }
+              ]
+            },
+            "description": "Get details of a specific order"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/:orderId/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["orders", ":orderId", "cancel"],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "order_789",
+                  "description": "Order ID"
+                }
+              ]
+            },
+            "description": "Cancel an order"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/overview?start=2024-01-01T00:00:00Z&end=2024-01-31T23:59:59Z",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "overview"],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2024-01-01T00:00:00Z",
+                  "description": "Start date (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "end",
+                  "value": "2024-01-31T23:59:59Z",
+                  "description": "End date (ISO 8601)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get analytics overview"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

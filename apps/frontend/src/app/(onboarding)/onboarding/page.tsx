@@ -287,12 +287,12 @@ function OnboardingPageContent() {
 
                 <div className="grid grid-cols-2 gap-4">
                   {USE_CASES.map((useCase) => (
-                    <motion.button
+                    <motion.div
                       key={useCase.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => updateData({ useCase: useCase.id })}
-                      className={`p-4 rounded-xl border text-left transition-all ${
+                      className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                         data.useCase === useCase.id
                           ? 'bg-blue-600/20 border-blue-500'
                           : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
@@ -301,7 +301,7 @@ function OnboardingPageContent() {
                       <useCase.icon className={`w-8 h-8 mb-3 ${data.useCase === useCase.id ? 'text-blue-400' : 'text-slate-400'}`} />
                       <h3 className="font-semibold mb-1">{useCase.name}</h3>
                       <p className="text-sm text-slate-400">{useCase.description}</p>
-                    </motion.button>
+                    </motion.div>
                   ))}
                 </div>
 
@@ -309,12 +309,12 @@ function OnboardingPageContent() {
                   <Label className="mb-3 block">Votre industrie</Label>
                   <div className="grid grid-cols-3 gap-3">
                     {INDUSTRIES.map((industry) => (
-                      <motion.button
+                      <motion.div
                         key={industry.id}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => updateData({ industry: industry.id })}
-                        className={`p-3 rounded-lg border text-center transition-all ${
+                        className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
                           data.industry === industry.id
                             ? 'bg-blue-600/20 border-blue-500'
                             : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
@@ -322,7 +322,7 @@ function OnboardingPageContent() {
                       >
                         <industry.icon className={`w-6 h-6 mx-auto mb-2 ${data.industry === industry.id ? 'text-blue-400' : 'text-slate-400'}`} />
                         <span className="text-sm">{industry.name}</span>
-                      </motion.button>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
@@ -345,12 +345,12 @@ function OnboardingPageContent() {
 
                 <div className="grid grid-cols-2 gap-4">
                   {GOALS.map((goal) => (
-                    <motion.button
+                    <motion.div
                       key={goal.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => toggleArrayItem('goals', goal.id)}
-                      className={`p-4 rounded-xl border text-left transition-all ${
+                      className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                         data.goals.includes(goal.id)
                           ? 'bg-green-600/20 border-green-500'
                           : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
@@ -363,7 +363,7 @@ function OnboardingPageContent() {
                           <Check className="w-5 h-5 text-green-400 ml-auto" />
                         )}
                       </div>
-                    </motion.button>
+                    </motion.div>
                   ))}
                 </div>
               </motion>
@@ -385,12 +385,12 @@ function OnboardingPageContent() {
 
                 <div className="grid grid-cols-3 gap-4">
                   {INTEGRATIONS.map((integration) => (
-                    <motion.button
+                    <motion.div
                       key={integration.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => toggleArrayItem('integrations', integration.id)}
-                      className={`p-4 rounded-xl border text-center transition-all ${
+                      className={`p-4 rounded-xl border text-center transition-all cursor-pointer ${
                         data.integrations.includes(integration.id)
                           ? 'bg-purple-600/20 border-purple-500'
                           : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
@@ -401,7 +401,7 @@ function OnboardingPageContent() {
                       {data.integrations.includes(integration.id) && (
                         <Check className="w-4 h-4 text-purple-400 mx-auto mt-2" />
                       )}
-                    </motion.button>
+                    </motion.div>
                   ))}
                 </div>
               </motion>

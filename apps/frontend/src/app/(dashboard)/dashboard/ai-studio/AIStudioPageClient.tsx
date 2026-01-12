@@ -35,9 +35,19 @@ export function AIStudioPageClient() {
     type: GenerationType,
     settings: AISettings
   ) => {
+    // Filter out 'template' type as it's not supported by useAIGenerate
+    if (type === 'template') {
+      toast({
+        title: 'Erreur',
+        description: 'Le type "template" n\'est pas encore supporté',
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+    
     const result = await generate({
       prompt,
-      type,
+      type: type as '2d' | '3d' | 'animation',
       ...settings,
     });
 

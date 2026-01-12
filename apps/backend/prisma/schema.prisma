@@ -130,6 +130,17 @@ enum ProductStatus {
 }
 
 enum WebhookEvent {
+  DESIGN_CREATED
+  DESIGN_UPDATED
+  DESIGN_COMPLETED
+  DESIGN_FAILED
+  ORDER_CREATED
+  ORDER_UPDATED
+  ORDER_PAID
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  TEST
   GENERATION_STARTED
   GENERATION_COMPLETED
   GENERATION_FAILED
@@ -151,8 +162,15 @@ model User {
   isActive      Boolean   @default(true)
   emailVerified Boolean   @default(false)
   lastLoginAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+
+  // 2FA
+  is2FAEnabled  Boolean  @default(false) @map("is_2fa_enabled")
+  twoFASecret   String?  @map("two_fa_secret")
+  temp2FASecret String?  @map("temp_2fa_secret")
+  backupCodes   String[] @default([]) @map("backup_codes")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   brandId String?
@@ -206,6 +224,9 @@ model User {
   teamInvitesSent      TeamInvite[]           @relation("TeamInvitesSent")
   teamMembersInvited   TeamMember[]           @relation("TeamInviter")
   cliparts             Clipart[]
+
+  // Super Admin - Customer relation
+  customer Customer?
 
   @@index([email])
   @@index([brandId])
@@ -1154,6 +1175,9 @@ model WebhookLog {
   webhookId String
   webhook   Webhook? @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
+  eventId       String?
+  eventRelation Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
   event      String
   payload    Json
   statusCode Int?
@@ -1164,6 +1188,7 @@ model WebhookLog {
   createdAt DateTime @default(now())
 
   @@index([webhookId])
+  @@index([eventId])
   @@index([event])
   @@index([createdAt])
 }
@@ -2881,22 +2906,22 @@ model TeamInvite {
 // ========================================
 
 model AgentConversation {
-  id          String   @id @default(cuid())
-  brandId     String?
-  brand       Brand?   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  id      String  @id @default(cuid())
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
-  agentType   String   // luna, aria, nova
-  sessionId   String?
-  userId      String?
+  agentType String // luna, aria, nova
+  sessionId String?
+  userId    String?
 
   // Contexte
-  context     Json     @default("{}")
+  context Json @default("{}")
 
   // Messages
-  messages    AgentMessage[]
+  messages AgentMessage[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([brandId])
   @@index([agentType])
@@ -2907,19 +2932,455 @@ model AgentConversation {
 model AgentMessage {
   id             String            @id @default(cuid())
   conversationId String
-  conversation   AgentConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  role           String            // user, assistant, system
-  content        String
+  role    String // user, assistant, system
+  content String
 
   // Metadata
-  intent         String?
-  actions        Json?
-  metadata       Json              @default("{}")
+  intent   String?
+  actions  Json?
+  metadata Json    @default("{}")
 
-  createdAt      DateTime          @default(now())
+  createdAt DateTime @default(now())
 
   @@index([conversationId])
   @@index([createdAt])
   @@map("AgentMessage")
+}
+
+// ========================================
+// SUPER ADMIN DASHBOARD MODELS
+// ========================================
+
+// ========================================
+// GESTION CLIENTS ÉTENDUE
+// ========================================
+
+model Customer {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Métriques
+  totalRevenue    Float  @default(0)
+  ltv             Float  @default(0)
+  engagementScore Int    @default(100)
+  churnRisk       String @default("low") // low, medium, high
+
+  // Tracking
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  totalSessions  Int      @default(0)
+  totalTimeSpent Int      @default(0) // en secondes
+
+  // Relations
+  segments   CustomerSegment[]
+  activities CustomerActivity[]
+  emailsSent EmailLog[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  AutomationRun AutomationRun[]
+  Event         Event[]
+
+  @@index([userId])
+  @@index([churnRisk])
+  @@index([lastSeenAt])
+  @@index([createdAt])
+}
+
+model CustomerActivity {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  type     String // login, action, page_view, etc.
+  action   String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId, createdAt])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model CustomerSegment {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  // Critères dynamiques
+  criteria Json // { engagementScore: { gte: 80 }, plan: "pro" }
+
+  // Relations
+  customers Customer[]
+  campaigns EmailCampaign[] @relation("CampaignSegment")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+// ========================================
+// EMAIL MARKETING
+// ========================================
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  subject     String
+  htmlContent String   @db.Text
+  textContent String?  @db.Text
+  variables   String[] // ["firstName", "planName", etc.]
+
+  // Relations
+  campaigns       EmailCampaign[]
+  automationSteps AutomationStep[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model EmailCampaign {
+  id         String         @id @default(cuid())
+  name       String
+  subject    String
+  templateId String?
+  template   EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  status String @default("draft") // draft, scheduled, sending, sent
+
+  // Ciblage
+  segmentId String?
+  segment   CustomerSegment? @relation("CampaignSegment", fields: [segmentId], references: [id], onDelete: SetNull)
+
+  // Stats
+  sentCount  Int @default(0)
+  openCount  Int @default(0)
+  clickCount Int @default(0)
+
+  scheduledAt DateTime?
+  sentAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model EmailAutomation {
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  trigger       String // user.created, trial.started, etc.
+  triggerConfig Json?
+
+  status String @default("draft") // draft, active, paused
+
+  // Relations
+  steps AutomationStep[]
+  runs  AutomationRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([trigger])
+  @@index([status])
+}
+
+model AutomationStep {
+  id           String          @id @default(cuid())
+  automationId String
+  automation   EmailAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  order Int
+
+  type String // email, wait, condition
+
+  // Pour type "email"
+  templateId String?
+  template   EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  subject    String?
+
+  // Pour type "wait"
+  waitDuration Int? // en minutes
+
+  // Pour type "condition"
+  condition Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([automationId, order])
+}
+
+model AutomationRun {
+  id           String          @id @default(cuid())
+  automationId String
+  automation   EmailAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  status      String @default("active") // active, completed, cancelled
+  currentStep Int    @default(0)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  nextStepAt  DateTime?
+
+  @@index([automationId])
+  @@index([customerId])
+  @@index([status])
+  @@index([nextStepAt])
+}
+
+model EmailLog {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  messageId String @unique // ID du provider (Resend, etc.)
+  type      String // campaign, automation, transactional
+
+  campaignId   String?
+  automationId String?
+
+  subject  String
+  template String?
+
+  status String @default("sent") // sent, delivered, opened, clicked, bounced
+
+  openedAt  DateTime?
+  clickedAt DateTime?
+  bouncedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId, createdAt])
+  @@index([type])
+  @@index([status])
+  @@index([messageId])
+}
+
+// ========================================
+// INTÉGRATIONS ADS
+// ========================================
+
+model AdPlatformConnection {
+  id          String  @id @default(cuid())
+  platform    String // meta, google, tiktok
+  accountId   String // ID du compte pub
+  accountName String?
+
+  accessToken  String    @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+
+  status String @default("active") // active, expired, error
+
+  lastSyncAt DateTime?
+  metadata   Json? // Infos additionnelles du compte
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([platform, accountId])
+  @@index([platform])
+  @@index([status])
+}
+
+model AdCampaignSync {
+  id         String @id @default(cuid())
+  platform   String
+  externalId String // ID de la campagne sur la plateforme
+  name       String
+  status     String
+
+  // Métriques synchronisées
+  spend       Float @default(0)
+  impressions Int   @default(0)
+  clicks      Int   @default(0)
+  conversions Int   @default(0)
+  revenue     Float @default(0)
+
+  // Période des données
+  dateFrom DateTime
+  dateTo   DateTime
+
+  syncedAt DateTime @default(now())
+
+  @@unique([platform, externalId, dateFrom, dateTo])
+  @@index([platform, dateFrom])
+  @@index([dateFrom, dateTo])
+}
+
+// ========================================
+// WEBHOOKS & EVENTS (Extension)
+// ========================================
+
+model Event {
+  id         String    @id @default(cuid())
+  type       String // user.created, subscription.cancelled, etc.
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  data Json // Payload de l'événement
+
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  // Relations
+  webhookLogs WebhookLog[] @relation
+
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([customerId, createdAt])
+  @@index([processed, createdAt])
+}
+
+// Note: Webhook et WebhookLog existent déjà dans le schema
+// On ajoute juste la relation avec Event
+// Il faut ajouter dans WebhookLog:
+//   eventId String?
+//   event   Event? @relation(fields: [eventId], references: [id])
+
+// ========================================
+// ANALYTICS & METRICS SNAPSHOTS
+// ========================================
+
+model DailyMetrics {
+  id   String   @id @default(cuid())
+  date DateTime @db.Date
+
+  // Revenue
+  mrr     Float @default(0)
+  arr     Float @default(0)
+  revenue Float @default(0)
+
+  // Customers
+  totalCustomers   Int @default(0)
+  activeCustomers  Int @default(0)
+  newCustomers     Int @default(0)
+  churnedCustomers Int @default(0)
+
+  // Trials
+  activeTrials    Int @default(0)
+  trialsStarted   Int @default(0)
+  trialsConverted Int @default(0)
+
+  // Churn
+  churnRate Float @default(0)
+
+  // Ads
+  adSpend       Float @default(0)
+  adConversions Int   @default(0)
+  adRevenue     Float @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([date])
+  @@index([date])
+}
+
+model MonthlyMetrics {
+  id    String @id @default(cuid())
+  year  Int
+  month Int
+
+  // Revenue
+  mrr          Float @default(0)
+  arr          Float @default(0)
+  totalRevenue Float @default(0)
+
+  // Growth
+  mrrGrowth Float @default(0)
+
+  // Customers
+  startingCustomers Int @default(0)
+  endingCustomers   Int @default(0)
+  newCustomers      Int @default(0)
+  churnedCustomers  Int @default(0)
+
+  // Rates
+  churnRate      Float @default(0)
+  conversionRate Float @default(0)
+
+  // LTV & CAC
+  avgLtv      Float @default(0)
+  avgCac      Float @default(0)
+  ltvCacRatio Float @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([year, month])
+  @@index([year, month])
+}
+
+model CohortData {
+  id          String   @id @default(cuid())
+  cohortMonth DateTime @db.Date // Mois de la cohorte (inscription)
+
+  // Données par mois après inscription
+  monthNumber    Int // 0 = mois d'inscription, 1 = mois suivant, etc.
+  startingCount  Int // Nombre de clients au départ de la cohorte
+  remainingCount Int // Nombre de clients restants ce mois
+  retentionRate  Float // % de rétention
+  revenue        Float @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([cohortMonth, monthNumber])
+  @@index([cohortMonth])
+}
+
+// ========================================
+// NOTIFICATIONS ADMIN
+// ========================================
+
+model AdminNotification {
+  id      String @id @default(cuid())
+  type    String // alert, info, success, warning
+  title   String
+  message String
+
+  // Lien vers une action
+  actionUrl   String?
+  actionLabel String?
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([read, createdAt])
+}
+
+// ========================================
+// AUDIT LOG (Actions Admin)
+// ========================================
+
+model AdminAuditLog {
+  id         String  @id @default(cuid())
+  adminId    String // ID de l'admin qui a fait l'action
+  action     String // create, update, delete, export, etc.
+  resource   String // customer, campaign, webhook, etc.
+  resourceId String?
+
+  changes Json? // Détail des changements (before/after)
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([resource, resourceId])
 }

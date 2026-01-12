@@ -270,6 +270,7 @@ import {
   BookOpen,
   Mail,
   Play,
+  Beaker,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -999,7 +1000,7 @@ function AIStudio3DPageContent() {
                         <Label className="text-white">G n ration par lot</Label>
                         <Checkbox
                           checked={enableBatch}
-                          onCheckedChange={setEnableBatch}
+                          onCheckedChange={(checked) => setEnableBatch(checked === true)}
                           className="border-slate-600"
                         />
                       </div>
@@ -3687,7 +3688,7 @@ function AIStudio3DPageContent() {
             <Card className="bg-slate-900/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FlaskConical className="w-5 h-5 text-teal-400" />
+                  <Beaker className="w-5 h-5 text-teal-400" />
                   Tests d'Accessibilit 
                 </CardTitle>
               </CardHeader>

@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { TwoFactorForm } from '@/components/auth/TwoFactorForm';
 import { memo } from 'react';
 
 // Google Icon Component
@@ -60,6 +61,8 @@ function LoginPageContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -98,6 +101,14 @@ function LoginPageContent() {
         email: formData.email,
         password: formData.password,
       });
+
+      // Si 2FA requis
+      if (response.requires2FA && response.tempToken) {
+        setRequires2FA(true);
+        setTempToken(response.tempToken);
+        setSuccess('Veuillez entrer votre code 2FA');
+        return;
+      }
 
       if (response.accessToken && response.user) {
         // Store token for API calls
@@ -145,35 +156,18 @@ function LoginPageContent() {
     }
   }, [formData, rememberMe, router]);
 
-  // OAuth login
+  // OAuth login - ✅ Migré vers NestJS backend
   const handleOAuthLogin = useCallback(async (provider: 'google' | 'github') => {
     try {
       setOauthLoading(provider);
       setError('');
       
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
-
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 
-        (typeof window !== 'undefined' ? window.location.origin : 'https://app.luneo.app');
-      const redirectTo = `${appUrl}/auth/callback?next=/overview`;
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-          queryParams: provider === 'google' ? {
-            access_type: 'offline',
-            prompt: 'consent',
-          } : undefined,
-        },
-      });
-
-      if (error) {
-        setError(`Erreur ${provider}: ${error.message}`);
-        setOauthLoading(null);
-      }
-      // Redirect happens automatically
+      // Redirect to backend OAuth endpoint
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const oauthUrl = `${apiUrl}/api/v1/auth/${provider}`;
+      
+      // Redirect to backend OAuth
+      window.location.href = oauthUrl;
     } catch (err: unknown) {
       logger.error('OAuth error', {
         error: err,
@@ -230,8 +224,23 @@ function LoginPageContent() {
         </FadeIn>
           )}
 
-          {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-5">
+          {/* 2FA Form */}
+      {requires2FA ? (
+        <TwoFactorForm
+          tempToken={tempToken}
+          email={formData.email}
+          onSuccess={() => {
+            setSuccess('Connexion réussie ! Redirection...');
+            setTimeout(() => {
+              router.push('/overview');
+              router.refresh();
+            }, 500);
+          }}
+          onError={(error) => setError(error)}
+        />
+      ) : (
+        <>
+        <form onSubmit={handleSubmit} className="space-y-5">
         {/* Email */}
         <SlideUp delay={0.4}>
         <div className="space-y-2">
@@ -431,6 +440,8 @@ function LoginPageContent() {
         </div>
       </div>
         </FadeIn>
+        </>
+      )}
       </motion>
   );
 }

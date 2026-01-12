@@ -1,17 +1,27 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [
+    ['html'],
+    ['list'],
+    ['json', { outputFile: 'test-results/results.json' }],
+  ],
   use: {
     baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
+  // Include tests from src directories as well
+  testMatch: [
+    '**/*.e2e.spec.ts',
+    '**/tests/e2e/**/*.spec.ts',
+  ],
   projects: [
     {
       name: 'chromium',

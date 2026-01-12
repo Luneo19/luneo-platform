@@ -1,7 +1,7 @@
 import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
@@ -94,6 +94,8 @@ import { MetricsModule } from './libs/metrics/metrics.module';
 
 // Tracing
 import { TracingModule } from './libs/tracing/tracing.module';
+import { GlobalRateLimitGuard } from './common/guards/global-rate-limit.guard';
+import { CacheModule } from './modules/cache/cache.module';
 
 @Module({
   imports: [
@@ -236,6 +238,9 @@ import { TracingModule } from './libs/tracing/tracing.module';
     BraceletModule,
     CollaborationModule,
 
+    // Cache Module (Global)
+    CacheModule,
+
     // Common utilities
     CommonModule,
 
@@ -269,6 +274,10 @@ import { TracingModule } from './libs/tracing/tracing.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: CacheableInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: GlobalRateLimitGuard,
     },
   ],
 })

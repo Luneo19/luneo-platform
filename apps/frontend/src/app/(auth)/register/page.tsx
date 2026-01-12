@@ -183,13 +183,26 @@ function RegisterPageContent() {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      const response = await endpoints.auth.signup({
-        email: formData.email,
-        password: formData.password,
-        firstName,
-        lastName,
-        // Note: company field not in signup DTO, can be added later if needed
-      });
+        // Get CAPTCHA token
+        let captchaToken = '';
+        try {
+          const { executeRecaptcha } = await import('@/lib/captcha/recaptcha');
+          captchaToken = await executeRecaptcha('register');
+        } catch (captchaError) {
+          // In development, continue without CAPTCHA if not configured
+          if (process.env.NODE_ENV === 'production') {
+            throw new Error('CAPTCHA verification required');
+          }
+        }
+
+        const response = await endpoints.auth.signup({
+          email: formData.email,
+          password: formData.password,
+          firstName,
+          lastName,
+          captchaToken, // Send CAPTCHA token to backend
+          // Note: company field not in signup DTO, can be added later if needed
+        });
 
       if (response.accessToken && response.user) {
         // Store token for API calls
@@ -232,34 +245,18 @@ function RegisterPageContent() {
     }
   }, [formData, passwordStrength.score, acceptedTerms, router]);
 
-  // OAuth register
+  // OAuth register - ✅ Migré vers NestJS backend
   const handleOAuthRegister = useCallback(async (provider: 'google' | 'github') => {
     try {
       setOauthLoading(provider);
       setError('');
-
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
-
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 
-        (typeof window !== 'undefined' ? window.location.origin : 'https://app.luneo.app');
-      const redirectTo = `${appUrl}/auth/callback?next=/overview`;
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-          queryParams: provider === 'google' ? {
-            access_type: 'offline',
-            prompt: 'consent',
-          } : undefined,
-        },
-      });
-
-      if (error) {
-        setError(`Erreur ${provider}: ${error.message}`);
-        setOauthLoading(null);
-      }
+      
+      // Redirect to backend OAuth endpoint
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const oauthUrl = `${apiUrl}/api/v1/auth/${provider}`;
+      
+      // Redirect to backend OAuth
+      window.location.href = oauthUrl;
     } catch (err: unknown) {
       logger.error('OAuth registration error', {
         error: err,

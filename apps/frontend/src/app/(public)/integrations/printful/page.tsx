@@ -807,15 +807,15 @@ Pour résoudre:
                 <Printer className="w-12 h-12 text-white" />
               </motion>
             </div>
-            <motion.h1
+            <motion as="h1"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
             >
               Intégration Printful
-            </motion.h1>
-            <motion.p
+            </motion>
+            <motion as="p"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -824,7 +824,7 @@ Pour résoudre:
               Print-on-Demand automatique pour vos produits personnalisés. Plus de 300 produits,
               <br />
               <span className="font-semibold text-white">fulfillment automatique, expédition mondiale.</span>
-            </motion.p>
+            </motion>
             <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

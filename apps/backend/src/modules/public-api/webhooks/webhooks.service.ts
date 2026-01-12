@@ -1,10 +1,12 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
 import { WebhookEvent } from '../dto';
+import { CreateWebhookDto } from './dto/create-webhook.dto';
+import { UpdateWebhookDto } from './dto/update-webhook.dto';
 
 @Injectable()
 export class WebhookService {
@@ -93,6 +95,171 @@ export class WebhookService {
         error: error.message,
       };
     }
+  }
+
+  /**
+   * Create a new webhook
+   */
+  async create(brandId: string, createWebhookDto: CreateWebhookDto) {
+    const webhook = await this.prisma.webhook.create({
+      data: {
+        brandId,
+        name: createWebhookDto.name,
+        url: createWebhookDto.url,
+        secret: createWebhookDto.secret || '',
+        events: createWebhookDto.events as any, // Type assertion for enum compatibility
+        isActive: createWebhookDto.isActive ?? true,
+      },
+      include: {
+        webhookLogs: {
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    this.logger.log(`Webhook created: ${webhook.id} for brand ${brandId}`);
+    return webhook;
+  }
+
+  /**
+   * Find all webhooks for a brand
+   */
+  async findAll(brandId: string) {
+    const webhooks = await this.prisma.webhook.findMany({
+      where: { brandId },
+      include: {
+        _count: {
+          select: { webhookLogs: true },
+        },
+        webhookLogs: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return webhooks;
+  }
+
+  /**
+   * Find one webhook by ID
+   */
+  async findOne(id: string, brandId: string) {
+    const webhook = await this.prisma.webhook.findFirst({
+      where: { id, brandId },
+      include: {
+        webhookLogs: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+        },
+        _count: {
+          select: { webhookLogs: true },
+        },
+      },
+    });
+
+    if (!webhook) {
+      throw new NotFoundException(`Webhook with ID ${id} not found`);
+    }
+
+    return webhook;
+  }
+
+  /**
+   * Update webhook
+   */
+  async update(id: string, brandId: string, updateWebhookDto: UpdateWebhookDto) {
+    const webhook = await this.prisma.webhook.findFirst({
+      where: { id, brandId },
+    });
+
+    if (!webhook) {
+      throw new NotFoundException(`Webhook with ID ${id} not found`);
+    }
+
+    const updated = await this.prisma.webhook.update({
+      where: { id },
+      data: {
+        ...(updateWebhookDto.name && { name: updateWebhookDto.name }),
+        ...(updateWebhookDto.url && { url: updateWebhookDto.url }),
+        ...(updateWebhookDto.secret !== undefined && { secret: updateWebhookDto.secret }),
+        ...(updateWebhookDto.events && { events: updateWebhookDto.events as any }), // Type assertion needed
+        ...(updateWebhookDto.isActive !== undefined && { isActive: updateWebhookDto.isActive }),
+      },
+      include: {
+        webhookLogs: {
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    this.logger.log(`Webhook updated: ${id}`);
+    return updated;
+  }
+
+  /**
+   * Remove webhook
+   */
+  async remove(id: string, brandId: string) {
+    const webhook = await this.prisma.webhook.findFirst({
+      where: { id, brandId },
+    });
+
+    if (!webhook) {
+      throw new NotFoundException(`Webhook with ID ${id} not found`);
+    }
+
+    await this.prisma.webhook.delete({
+      where: { id },
+    });
+
+    this.logger.log(`Webhook deleted: ${id}`);
+  }
+
+  /**
+   * Get webhook logs
+   */
+  async getWebhookLogs(
+    webhookId: string,
+    brandId: string,
+    page: number = 1,
+    limit: number = 20,
+  ) {
+    // Verify webhook belongs to brand
+    const webhook = await this.prisma.webhook.findFirst({
+      where: { id: webhookId, brandId },
+    });
+
+    if (!webhook) {
+      throw new NotFoundException(`Webhook with ID ${webhookId} not found`);
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      this.prisma.webhookLog.findMany({
+        where: { webhookId },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.webhookLog.count({
+        where: { webhookId },
+      }),
+    ]);
+
+    return {
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
   }
 
   /**

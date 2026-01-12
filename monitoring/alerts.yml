@@ -1,0 +1,146 @@
+# 🔔 Configuration des Alertes de Monitoring
+# Pour Sentry, Prometheus, Grafana, etc.
+
+# Alertes Sentry
+sentry_alerts:
+  # Erreurs critiques
+  critical_errors:
+    name: "Critical Errors Detected"
+    conditions:
+      - type: "error_rate"
+        threshold: 10
+        window: "5m"
+        environment: ["production"]
+    actions:
+      - type: "email"
+        recipients: ["devops@luneo.com"]
+      - type: "slack"
+        channel: "#alerts-critical"
+      - type: "pagerduty"
+        severity: "critical"
+
+  # Taux d'erreur élevé
+  high_error_rate:
+    name: "High Error Rate"
+    conditions:
+      - type: "error_rate"
+        threshold: 5
+        window: "10m"
+        environment: ["production"]
+    actions:
+      - type: "email"
+        recipients: ["devops@luneo.com"]
+      - type: "slack"
+        channel: "#alerts"
+
+  # Performance dégradée
+  performance_degradation:
+    name: "Performance Degradation"
+    conditions:
+      - type: "p95_latency"
+        threshold: 1000  # ms
+        window: "15m"
+        environment: ["production"]
+    actions:
+      - type: "email"
+        recipients: ["devops@luneo.com"]
+      - type: "slack"
+        channel: "#alerts"
+
+  # Disponibilité
+  availability:
+    name: "Service Availability Below Threshold"
+    conditions:
+      - type: "availability"
+        threshold: 99.9  # %
+        window: "1h"
+        environment: ["production"]
+    actions:
+      - type: "email"
+        recipients: ["devops@luneo.com", "cto@luneo.com"]
+      - type: "pagerduty"
+        severity: "critical"
+
+# Alertes Prometheus/Grafana
+prometheus_alerts:
+  # Latence élevée
+  - alert: HighLatency
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High latency detected"
+      description: "p95 latency is above 1s for 5 minutes"
+
+  # Taux d'erreur élevé
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.01
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is above 1% for 5 minutes"
+
+  # CPU élevé
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is above 80% for 10 minutes"
+
+  # Mémoire élevée
+  - alert: HighMemoryUsage
+    expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is above 85% for 10 minutes"
+
+  # Disponibilité
+  - alert: ServiceDown
+    expr: up{job="luneo-backend"} == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service is down"
+      description: "Luneo backend service is down"
+
+# Alertes Vercel Analytics
+vercel_alerts:
+  # Performance dégradée
+  performance:
+    name: "Vercel Performance Degradation"
+    conditions:
+      - metric: "TTFB"
+        threshold: 500  # ms
+        window: "30m"
+      - metric: "FCP"
+        threshold: 2000  # ms
+        window: "30m"
+      - metric: "LCP"
+        threshold: 2500  # ms
+        window: "30m"
+    actions:
+      - type: "email"
+        recipients: ["devops@luneo.com"]
+
+  # Erreurs frontend
+  frontend_errors:
+    name: "Frontend Errors"
+    conditions:
+      - metric: "error_rate"
+        threshold: 1  # %
+        window: "15m"
+    actions:
+      - type: "email"
+        recipients: ["devops@luneo.com"]
+      - type: "slack"
+        channel: "#alerts"

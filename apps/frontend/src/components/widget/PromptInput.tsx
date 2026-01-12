@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Sparkles, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
+import { Loader2, Sparkles, CheckCircle2, AlertCircle, Zap, RotateCcw } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';

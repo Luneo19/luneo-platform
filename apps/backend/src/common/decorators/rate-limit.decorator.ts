@@ -1,51 +1,14 @@
 import { SetMetadata } from '@nestjs/common';
+import { ThrottlerOptions } from '@nestjs/throttler';
 
 export const RATE_LIMIT_KEY = 'rateLimit';
-export const RATE_LIMIT_TTL_KEY = 'rateLimitTtl';
 
 /**
- * Decorator to configure rate limiting per endpoint
- * @param limit Maximum number of requests
- * @param ttl Time window in seconds
+ * Custom rate limit decorator
+ * Inspired by Stripe and GitHub API rate limiting
+ * 
+ * Usage:
+ * @RateLimit({ limit: 10, ttl: 60000 }) // 10 requests per minute
  */
-export const RateLimit = (limit: number, ttl: number = 60) => {
-  return (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) => {
-    if (descriptor) {
-      SetMetadata(RATE_LIMIT_KEY, limit)(target, propertyKey, descriptor);
-      SetMetadata(RATE_LIMIT_TTL_KEY, ttl)(target, propertyKey, descriptor);
-    }
-  };
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export const RateLimit = (options: ThrottlerOptions) =>
+  SetMetadata(RATE_LIMIT_KEY, options);

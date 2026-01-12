@@ -10,7 +10,13 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { Setup2FADto } from './dto/setup-2fa.dto';
+import { Verify2FADto } from './dto/verify-2fa.dto';
+import { Login2FADto } from './dto/login-2fa.dto';
 import { UserRole } from '@prisma/client';
+import { BruteForceService } from './services/brute-force.service';
+import { TwoFactorService } from './services/two-factor.service';
+import { CaptchaService } from './services/captcha.service';
 
 @Injectable()
 export class AuthService {
@@ -21,10 +27,23 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
+    private bruteForceService: BruteForceService,
+    private twoFactorService: TwoFactorService,
+    private captchaService: CaptchaService,
   ) {}
 
   async signup(signupDto: SignupDto) {
-    const { email, password, firstName, lastName, role } = signupDto;
+    const { email, password, firstName, lastName, role, captchaToken } = signupDto;
+
+    // ✅ Verify CAPTCHA (if provided)
+    if (captchaToken) {
+      try {
+        await this.captchaService.verifyToken(captchaToken, 'register');
+      } catch (error) {
+        this.logger.warn('CAPTCHA verification failed', { email });
+        throw new BadRequestException('CAPTCHA verification failed. Please try again.');
+      }
+    }
 
     // ✅ Validate password strength
     if (!this.isPasswordStrong(password)) {
@@ -113,8 +132,12 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, ip?: string) {
     const { email, password } = loginDto;
+    const clientIp = ip || 'unknown';
+
+    // Vérifier protection brute force
+    await this.bruteForceService.checkAndThrow(email, clientIp);
 
     // Find user
     const user = await this.prisma.user.findUnique({
@@ -125,14 +148,46 @@ export class AuthService {
     });
 
     if (!user || !user.password) {
+      // Enregistrer tentative échouée
+      await this.bruteForceService.recordFailedAttempt(email, clientIp);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      // Enregistrer tentative échouée
+      await this.bruteForceService.recordFailedAttempt(email, clientIp);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    // Si 2FA activé, retourner token temporaire
+    if (user.is2FAEnabled) {
+      const tempToken = await this.jwtService.signAsync(
+        { sub: user.id, email: user.email, type: 'temp-2fa' },
+        {
+          secret: this.configService.get('jwt.secret'),
+          expiresIn: '5m', // 5 minutes pour compléter 2FA
+        },
+      );
+
+      // Réinitialiser tentatives brute force (première étape réussie)
+      await this.bruteForceService.resetAttempts(email, clientIp);
+
+      return {
+        requires2FA: true,
+        tempToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      };
+    }
+
+    // Réinitialiser tentatives brute force (connexion réussie)
+    await this.bruteForceService.resetAttempts(email, clientIp);
 
     // Update last login
     await this.prisma.user.update({
@@ -158,6 +213,178 @@ export class AuthService {
       },
       ...tokens,
     };
+  }
+
+  /**
+   * Login avec 2FA (deuxième étape)
+   */
+  async loginWith2FA(login2FADto: Login2FADto, ip?: string) {
+    const { tempToken, token } = login2FADto;
+
+    try {
+      // Vérifier token temporaire
+      const payload = await this.jwtService.verifyAsync(tempToken, {
+        secret: this.configService.get('jwt.secret'),
+      });
+
+      if (payload.type !== 'temp-2fa') {
+        throw new BadRequestException('Invalid token type');
+      }
+
+      // Trouver utilisateur
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        include: {
+          brand: true,
+        },
+      });
+
+      if (!user || !user.is2FAEnabled || !user.twoFASecret) {
+        throw new UnauthorizedException('2FA not enabled for this user');
+      }
+
+      // Vérifier code 2FA
+      const isValid = this.twoFactorService.verifyToken(user.twoFASecret, token);
+      if (!isValid) {
+        // Vérifier codes de backup
+        if (user.backupCodes.length > 0) {
+          const isBackupCode = this.twoFactorService.validateBackupCode(user.backupCodes, token);
+          if (isBackupCode) {
+            // Retirer le code de backup utilisé
+            await this.prisma.user.update({
+              where: { id: user.id },
+              data: {
+                backupCodes: {
+                  set: user.backupCodes.filter(code => code !== token.toUpperCase()),
+                },
+              },
+            });
+          } else {
+            throw new UnauthorizedException('Invalid 2FA code');
+          }
+        } else {
+          throw new UnauthorizedException('Invalid 2FA code');
+        }
+      }
+
+      // Update last login
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      // Generate tokens
+      const tokens = await this.generateTokens(user.id, user.email, user.role);
+
+      // Save refresh token
+      await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          brandId: user.brandId,
+          brand: user.brand,
+        },
+        ...tokens,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid or expired temporary token');
+    }
+  }
+
+  /**
+   * Setup 2FA - Génère secret et QR code
+   */
+  async setup2FA(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Générer secret
+    const { secret, otpauthUrl } = this.twoFactorService.generateSecret(user.email);
+
+    // Générer QR code
+    const qrCodeUrl = await this.twoFactorService.generateQRCode(otpauthUrl);
+
+    // Générer codes de backup
+    const backupCodes = this.twoFactorService.generateBackupCodes(10);
+
+    // Sauvegarder secret temporairement (pas encore activé)
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        temp2FASecret: secret,
+        backupCodes,
+      },
+    });
+
+    return {
+      secret,
+      qrCodeUrl,
+      backupCodes, // Afficher une seule fois à l'utilisateur
+    };
+  }
+
+  /**
+   * Vérifier et activer 2FA
+   */
+  async verifyAndEnable2FA(userId: string, verify2FADto: Verify2FADto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.temp2FASecret) {
+      throw new BadRequestException('2FA setup not initiated');
+    }
+
+    // Vérifier code
+    const isValid = this.twoFactorService.verifyToken(user.temp2FASecret, verify2FADto.token);
+    if (!isValid) {
+      throw new BadRequestException('Invalid 2FA code');
+    }
+
+    // Activer 2FA
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        is2FAEnabled: true,
+        twoFASecret: user.temp2FASecret,
+        temp2FASecret: null,
+      },
+    });
+
+    return {
+      message: '2FA enabled successfully',
+      backupCodes: user.backupCodes,
+    };
+  }
+
+  /**
+   * Désactiver 2FA
+   */
+  async disable2FA(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        is2FAEnabled: false,
+        twoFASecret: null,
+        temp2FASecret: null,
+        backupCodes: [],
+      },
+    });
+
+    return { message: '2FA disabled successfully' };
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
@@ -226,7 +453,7 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  private async generateTokens(userId: string, email: string, role: UserRole) {
+  async generateTokens(userId: string, email: string, role: UserRole) {
     const payload = { sub: userId, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -246,7 +473,7 @@ export class AuthService {
     };
   }
 
-  private async saveRefreshToken(userId: string, token: string) {
+  async saveRefreshToken(userId: string, token: string) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
@@ -454,5 +681,229 @@ export class AuthService {
       });
       throw new BadRequestException('Invalid or expired verification token');
     }
+  }
+
+  /**
+   * Find or create OAuth user
+   */
+  async findOrCreateOAuthUser(oauthData: {
+    provider: string;
+    providerId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    picture?: string;
+    accessToken: string;
+    refreshToken?: string;
+  }) {
+    const { provider, providerId, email, firstName, lastName, picture, accessToken, refreshToken } = oauthData;
+
+    // Check if OAuth account exists
+    const existingOAuth = await this.prisma.oAuthAccount.findUnique({
+      where: {
+        provider_providerId: {
+          provider,
+          providerId,
+        },
+      },
+      include: {
+        user: {
+          include: {
+            brand: true,
+          },
+        },
+      },
+    });
+
+    if (existingOAuth) {
+      // Update tokens
+      await this.prisma.oAuthAccount.update({
+        where: {
+          provider_providerId: {
+            provider,
+            providerId,
+          },
+        },
+        data: {
+          accessToken,
+          refreshToken: refreshToken || existingOAuth.refreshToken,
+        },
+      });
+
+      // Update user last login
+      await this.prisma.user.update({
+        where: { id: existingOAuth.userId },
+        data: { lastLoginAt: new Date() },
+      });
+
+      return existingOAuth.user;
+    }
+
+    // Check if user exists with this email
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+      include: {
+        brand: true,
+      },
+    });
+
+    if (!user) {
+      // Create new user
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          avatar: picture,
+          emailVerified: true, // OAuth emails are pre-verified
+          role: UserRole.CONSUMER,
+        },
+        include: {
+          brand: true,
+        },
+      });
+
+      // Create user quota
+      await this.prisma.userQuota.create({
+        data: {
+          userId: user.id,
+        },
+      });
+    } else {
+      // Update user info if needed
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          firstName: firstName || user.firstName,
+          lastName: lastName || user.lastName,
+          avatar: picture || user.avatar,
+          emailVerified: true,
+          lastLoginAt: new Date(),
+        },
+        include: {
+          brand: true,
+        },
+      });
+    }
+
+    // Create OAuth account
+    await this.prisma.oAuthAccount.upsert({
+      where: {
+        provider_providerId: {
+          provider,
+          providerId,
+        },
+      },
+      create: {
+        provider,
+        providerId,
+        userId: user.id,
+        accessToken,
+        refreshToken: refreshToken || null,
+      },
+      update: {
+        accessToken,
+        refreshToken: refreshToken || undefined,
+      },
+    });
+
+    return user;
+  }
+
+  /**
+   * Find user by email
+   */
+  async findUserByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      include: { brand: true },
+    });
+  }
+
+  /**
+   * Create user from SSO (SAML/OIDC)
+   */
+  async createUserFromSSO(data: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    provider: string;
+    providerId: string;
+    emailVerified?: boolean;
+  }) {
+    const user = await this.prisma.user.create({
+      data: {
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        emailVerified: data.emailVerified ?? true,
+        role: UserRole.CONSUMER,
+      },
+      include: {
+        brand: true,
+      },
+    });
+
+    // Create user quota
+    await this.prisma.userQuota.create({
+      data: {
+        userId: user.id,
+      },
+    });
+
+    return user;
+  }
+
+  /**
+   * Update user from SSO
+   */
+  async updateUserFromSSO(userId: string, data: {
+    firstName?: string;
+    lastName?: string;
+  }) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.firstName && { firstName: data.firstName }),
+        ...(data.lastName && { lastName: data.lastName }),
+        lastLoginAt: new Date(),
+      },
+      include: {
+        brand: true,
+      },
+    });
+  }
+
+  /**
+   * Link OAuth account to user
+   */
+  async linkOAuthAccount(userId: string, data: {
+    provider: string;
+    providerId: string;
+    accessToken: string | null;
+    refreshToken: string | null;
+    expiresAt: Date | null;
+  }) {
+    return this.prisma.oAuthAccount.upsert({
+      where: {
+        provider_providerId: {
+          provider: data.provider,
+          providerId: data.providerId,
+        },
+      },
+      create: {
+        provider: data.provider,
+        providerId: data.providerId,
+        userId,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresAt: data.expiresAt,
+      },
+      update: {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresAt: data.expiresAt,
+      },
+    });
   }
 }

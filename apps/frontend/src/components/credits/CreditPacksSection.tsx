@@ -251,7 +251,6 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
     </section>
   );
 }
-  const [packs, setPacks] = useState<Pack[]>([]);
 
 
 

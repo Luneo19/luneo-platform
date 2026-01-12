@@ -39,7 +39,8 @@ import {
   TrendingUp,
   Edit,
   Video,
-  Shield
+  Shield,
+  Webhook
 } from 'lucide-react';
 import { useFeatureFlag } from '@/contexts/FeatureFlagContext';
 
@@ -140,6 +141,12 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
           { name: 'Analytics Avancées', href: '/dashboard/analytics-advanced', icon: TrendingUp, description: 'Analyses approfondies' },
           { name: 'A/B Testing', href: '/dashboard/ab-testing', icon: FlaskConical, description: 'Tests d\'optimisation' }
         ]
+      },
+      {
+        name: 'Webhooks',
+        href: '/dashboard/webhooks',
+        icon: Webhook,
+        description: 'Gestion des webhooks',
       },
       {
         name: 'Seller',

@@ -13,6 +13,7 @@ import { ARModelsList } from './components/ARModelsList';
 import { QRCodeModal } from './components/modals/QRCodeModal';
 import { useARPreview } from './hooks/useARPreview';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, QrCode } from 'lucide-react';

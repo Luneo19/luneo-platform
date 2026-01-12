@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
@@ -19,6 +19,8 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Logo } from '@/components/Logo';
 
 const navigationItems = [
   {

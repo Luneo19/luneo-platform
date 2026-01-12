@@ -49,13 +49,13 @@ export function createClient() {
   }
 
   // Try to load and use Supabase module
-  const module = loadSupabaseModule();
-  if (!module || !module.createBrowserClient) {
+  const supabaseModule = loadSupabaseModule();
+  if (!supabaseModule || !supabaseModule.createBrowserClient) {
     return createMockClient() as any;
   }
 
   try {
-    return module.createBrowserClient(url, key);
+    return supabaseModule.createBrowserClient(url, key);
   } catch (error) {
     return createMockClient() as any;
   }

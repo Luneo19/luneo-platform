@@ -26,7 +26,16 @@ import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Logo } from '@/components/Logo';
 
-const navigationItems = useMemo(() => [
+interface SidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
+  const pathname = usePathname();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  const navigationItems = useMemo(() => [
   {
     title: 'Tableau de bord',
     href: '/overview',
@@ -57,7 +66,7 @@ const navigationItems = useMemo(() => [
   }
 ], []);
 
-const businessItems = useMemo(() => [
+  const businessItems = useMemo(() => [
   {
     title: 'Facturation',
     href: '/dashboard/billing',
@@ -88,7 +97,7 @@ const businessItems = useMemo(() => [
   }
 ], []);
 
-const supportItems = useMemo(() => [
+  const supportItems = useMemo(() => [
   {
     title: 'Aide',
     href: '/help',
@@ -111,15 +120,6 @@ const supportItems = useMemo(() => [
     description: 'État des services'
   }
 ], []);
-
-interface SidebarProps {
-  isCollapsed: boolean;
-  onToggle: () => void;
-}
-
-function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
-  const pathname = usePathname();
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const handleItemHover = useCallback((href: string | null) => {
     setHoveredItem(href);

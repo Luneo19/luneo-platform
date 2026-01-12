@@ -343,7 +343,7 @@ function AIStudioPageContent() {
             </CardHeader>
             <CardContent className="space-y-2">
               {AI_TOOLS.map((tool) => (
-                <motion.button
+                <motion
                   key={tool.id}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -352,7 +352,7 @@ function AIStudioPageContent() {
                     setResult(null);
                     setExtractedColors([]);
                   }}
-                  className={`w-full p-4 rounded-xl border text-left transition-all ${
+                  className={`w-full p-4 rounded-xl border text-left transition-all cursor-pointer ${
                     selectedTool === tool.id
                       ? 'bg-gradient-to-r ' + tool.color + ' border-transparent'
                       : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
@@ -376,7 +376,7 @@ function AIStudioPageContent() {
                     </div>
                     <ChevronRight className="w-4 h-4 opacity-50" />
                   </div>
-                </motion.button>
+                </motion>
               ))}
             </CardContent>
           </Card>

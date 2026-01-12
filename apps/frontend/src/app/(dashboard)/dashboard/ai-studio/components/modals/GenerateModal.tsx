@@ -78,7 +78,7 @@ export function GenerateModal({
             <Label className="text-gray-300 mb-2 block">Type de génération</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {GENERATION_TYPES.map((genType) => {
-                const Icon = genType.icon;
+                const Icon = genType.icon as React.ComponentType<{ className?: string }>;
                 return (
                   <button
                     key={genType.value}
@@ -89,7 +89,7 @@ export function GenerateModal({
                         : 'border-gray-600 bg-gray-900/50 hover:border-gray-500'
                     }`}
                   >
-                    <Icon className="w-5 h-5 mb-2 text-purple-400" />
+                    {Icon && <Icon className="w-5 h-5 mb-2 text-purple-400" />}
                     <p className="text-sm font-medium text-white">{genType.label}</p>
                     <p className="text-xs text-gray-400">{genType.description}</p>
                     <p className="text-xs text-yellow-400 mt-1">{genType.credits} crédits</p>

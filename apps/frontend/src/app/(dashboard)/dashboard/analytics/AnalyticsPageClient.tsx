@@ -11,6 +11,7 @@ import { AnalyticsFilters } from './components/AnalyticsFilters';
 import { AnalyticsKPIs } from './components/AnalyticsKPIs';
 import { MetricSelector } from './components/MetricSelector';
 import { ExportAnalyticsModal } from './components/modals/ExportAnalyticsModal';
+import { ExportButton } from '@/components/analytics/ExportButton';
 import { useAnalyticsData } from './hooks/useAnalyticsData';
 import { useAnalyticsExport } from './hooks/useAnalyticsExport';
 import type { TimeRange } from './types';
@@ -132,11 +133,17 @@ export function AnalyticsPageClient() {
 
   return (
     <div className="space-y-6 pb-10">
-      <AnalyticsHeader
-        onExport={() => setShowExportModal(true)}
-        onRefresh={() => refetch()}
-        isRefreshing={isLoading}
-      />
+      <div className="flex items-center justify-between">
+        <AnalyticsHeader
+          onExport={() => setShowExportModal(true)}
+          onRefresh={() => refetch()}
+          isRefreshing={isLoading}
+        />
+        <ExportButton
+          startDate={debouncedDateFrom ? new Date(debouncedDateFrom) : undefined}
+          endDate={debouncedDateTo ? new Date(debouncedDateTo) : undefined}
+        />
+      </div>
 
       <AnalyticsFilters
         timeRange={timeRange}

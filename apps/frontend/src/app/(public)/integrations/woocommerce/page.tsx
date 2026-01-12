@@ -894,15 +894,15 @@ Si les traductions ne s'affichent pas:
                 <Package className="w-12 h-12 text-white" />
               </motion>
             </div>
-            <motion.h1
+            <motion as="h1"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
             >
               Intégration WooCommerce
-            </motion.h1>
-            <motion.p
+            </motion>
+            <motion as="p"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -911,7 +911,7 @@ Si les traductions ne s'affichent pas:
               Plugin WordPress/WooCommerce pour ajouter la personnalisation 3D/AR à vos produits.
               <br />
               <span className="font-semibold text-white">Installation en 10 minutes, augmentation des conversions de 35%.</span>
-            </motion.p>
+            </motion>
             <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

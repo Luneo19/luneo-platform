@@ -36,14 +36,14 @@ export async function createClient() {
     return createMockServerClient() as any;
   }
 
-  const module = await loadSupabaseServerModule();
-  if (!module || !module.createServerClient) {
+  const supabaseModule = await loadSupabaseServerModule();
+  if (!supabaseModule || !supabaseModule.createServerClient) {
     return createMockServerClient() as any;
   }
 
   try {
     const cookieStore = await cookies();
-    return module.createServerClient(url, key, {
+    return supabaseModule.createServerClient(url, key, {
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value;

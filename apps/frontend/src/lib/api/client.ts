@@ -7,6 +7,8 @@ interface AuthSessionResponse {
   accessToken?: string;
   refreshToken?: string;
   user?: User;
+  requires2FA?: boolean;
+  tempToken?: string;
 }
 
 interface GenerateDesignResponse {
@@ -205,6 +207,11 @@ export const endpoints = {
       api.post('/api/v1/auth/reset-password', { token, password }),
     verifyEmail: (token: string) => 
       api.post<{ message: string; verified: boolean }>('/api/v1/auth/verify-email', { token }),
+    setup2FA: () => api.post<{ secret: string; qrCodeUrl: string; backupCodes: string[] }>('/api/v1/auth/2fa/setup'),
+    verify2FA: (token: string) => api.post<{ message: string; backupCodes: string[] }>('/api/v1/auth/2fa/verify', { token }),
+    disable2FA: () => api.post<{ message: string }>('/api/v1/auth/2fa/disable'),
+    loginWith2FA: (tempToken: string, token: string) => 
+      api.post<AuthSessionResponse>('/api/v1/auth/login/2fa', { tempToken, token }),
     oauth: {
       google: () => api.get('/api/v1/auth/google'),
       github: () => api.get('/api/v1/auth/github'),
@@ -272,6 +279,14 @@ export const endpoints = {
       api.get('/api/v1/analytics/orders', { params }),
     revenue: (params?: { startDate?: string; endDate?: string }) => 
       api.get('/api/v1/analytics/revenue', { params }),
+    export: {
+      csv: (params: { metrics: string; timeRange: string; startDate?: string; endDate?: string }) =>
+        api.get('/api/v1/analytics/export/csv', { params }),
+      excel: (params: { metrics: string; timeRange: string; startDate?: string; endDate?: string }) =>
+        api.get('/api/v1/analytics/export/excel', { params }),
+      pdf: (params: { metrics: string; timeRange: string; startDate?: string; endDate?: string }) =>
+        api.get('/api/v1/analytics/export/pdf', { params }),
+    },
   },
 
   // Billing
@@ -309,10 +324,30 @@ export const endpoints = {
       regenerate: (id: string) => api.post(`/api/v1/api-keys/${id}/regenerate`),
     },
     webhooks: {
-      history: (params?: { page?: number; limit?: number }) => 
-        api.get('/api/v1/webhooks/history', { params }),
-      test: (url: string, secret?: string) => 
+      list: () => api.get('/api/v1/webhooks'),
+      get: (id: string) => api.get(`/api/v1/webhooks/${id}`),
+      create: (data: {
+        name: string;
+        url: string;
+        secret?: string;
+        events: string[];
+        isActive?: boolean;
+      }) => api.post('/api/v1/webhooks', data),
+      update: (id: string, data: {
+        name?: string;
+        url?: string;
+        secret?: string;
+        events?: string[];
+        isActive?: boolean;
+      }) => api.put(`/api/v1/webhooks/${id}`, data),
+      delete: (id: string) => api.delete(`/api/v1/webhooks/${id}`),
+      test: (url: string, secret?: string) =>
         api.post('/api/v1/webhooks/test', { url, secret }),
+      logs: (id: string, params?: { page?: number; limit?: number }) =>
+        api.get(`/api/v1/webhooks/${id}/logs`, { params }),
+      history: (params?: { page?: number; limit?: number }) =>
+        api.get('/api/v1/webhooks/history', { params }),
+      retry: (logId: string) => api.post(`/api/v1/webhooks/${logId}/retry`),
     },
   },
 

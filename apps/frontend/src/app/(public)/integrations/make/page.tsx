@@ -118,6 +118,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -670,15 +671,15 @@ Pour améliorer:
                 <Workflow className="w-12 h-12 text-white" />
               </motion>
             </div>
-            <motion.h1
+            <motion as="h1"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
             >
               Intégration Make
-            </motion.h1>
-            <motion.p
+            </motion>
+            <motion as="p"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -687,7 +688,7 @@ Pour améliorer:
               Automatisez vos workflows Luneo avec Make. Scénarios visuels avancés,
               <br />
               <span className="font-semibold text-white">1000+ applications, performance optimisée.</span>
-            </motion.p>
+            </motion>
             <motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

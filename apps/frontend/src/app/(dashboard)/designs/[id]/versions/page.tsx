@@ -28,6 +28,7 @@ import {
   Save,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import {

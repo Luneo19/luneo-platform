@@ -7,7 +7,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Heart, Download, MoreVertical, Trash2, Eye } from 'lucide-react';
+import { Play, Heart, Download, MoreVertical, Trash2, Eye, Video } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,

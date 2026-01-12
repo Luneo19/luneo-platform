@@ -17,6 +17,8 @@ import { ConfigModule } from '@nestjs/config';
 // Controllers
 import { AnalyticsController } from './controllers/analytics.controller';
 import { AnalyticsAdvancedController } from './controllers/analytics-advanced.controller';
+// import { AdvancedAnalyticsController } from './controllers/advanced-analytics.controller'; // File not found
+import { AnalyticsExportController } from './controllers/export.controller';
 import { PredictiveController } from './controllers/predictive.controller';
 import { ReportsController } from './controllers/reports.controller';
 
@@ -25,6 +27,8 @@ import { AnalyticsService } from './services/analytics.service';
 import { ABTestingService } from './services/ab-testing.service';
 import { AttributionService } from './services/attribution.service';
 import { AnalyticsAdvancedService } from './services/analytics-advanced.service';
+import { AdvancedAnalyticsService } from './services/advanced-analytics.service';
+import { AnalyticsExportService } from './services/export.service';
 import { AnalyticsCalculationsService } from './services/analytics-calculations.service';
 import { PredictiveService } from './services/predictive.service';
 import { ReportsService } from './services/reports.service';
@@ -35,11 +39,13 @@ import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { StorageModule } from '@/libs/storage/storage.module';
 import { AgentsModule } from '@/modules/agents/agents.module';
+import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
 
 @Module({
   imports: [
     PrismaModule,
     SmartCacheModule,
+    RedisOptimizedModule,
     StorageModule,
     HttpModule,
     ConfigModule,
@@ -67,6 +73,8 @@ import { AgentsModule } from '@/modules/agents/agents.module';
   controllers: [
     AnalyticsController,
     AnalyticsAdvancedController,
+    // AdvancedAnalyticsController, // File not found
+    AnalyticsExportController,
     PredictiveController,
     ReportsController,
   ],
@@ -75,6 +83,8 @@ import { AgentsModule } from '@/modules/agents/agents.module';
     ABTestingService,
     AttributionService,
     AnalyticsAdvancedService,
+    AdvancedAnalyticsService,
+    AnalyticsExportService,
     AnalyticsCalculationsService,
     PredictiveService,
     ReportsService,
@@ -85,6 +95,8 @@ import { AgentsModule } from '@/modules/agents/agents.module';
     ABTestingService,
     AttributionService,
     AnalyticsAdvancedService,
+    AdvancedAnalyticsService,
+    AnalyticsExportService,
     AnalyticsCalculationsService,
     PredictiveService,
     ReportsService,

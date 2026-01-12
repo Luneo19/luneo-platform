@@ -15,6 +15,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { WebVitalsReporter } from "@/components/WebVitalsReporter";
 import { LazyAnalytics } from "@/components/LazyAnalytics";
+import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 
 // Initialize Sentry monitoring
 if (typeof window !== 'undefined') {
@@ -149,6 +150,8 @@ export default async function RootLayout({
       { locale: 'en', label: 'English', region: 'United States', flag: '🇺🇸' },
       { locale: 'fr', label: 'Français', region: 'France', flag: '🇫🇷' },
       { locale: 'de', label: 'Deutsch', region: 'Deutschland', flag: '🇩🇪' },
+      { locale: 'es', label: 'Español', region: 'España', flag: '🇪🇸' },
+      { locale: 'it', label: 'Italiano', region: 'Italia', flag: '🇮🇹' },
     ];
   }
 
@@ -212,12 +215,14 @@ export default async function RootLayout({
           featureFlags={featureFlags.flags}
           featureFlagsUpdatedAt={featureFlags.updatedAt}
         >
-          {children}
-          <CookieBanner />
-          <Analytics />
-          <SpeedInsights />
-          <LazyAnalytics />
-          <WebVitalsReporter />
+          <AnalyticsProvider>
+            {children}
+            <CookieBanner />
+            <Analytics />
+            <SpeedInsights />
+            <LazyAnalytics />
+            <WebVitalsReporter />
+          </AnalyticsProvider>
         </Providers>
       </body>
     </html>

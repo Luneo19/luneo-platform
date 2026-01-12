@@ -31,4 +31,9 @@ export class SignupDto {
   @IsOptional()
   @IsEnum(UserRole, { message: 'Role must be a valid UserRole enum value' })
   role?: UserRole;
+
+  @ApiPropertyOptional({ description: 'Token CAPTCHA pour vérification', example: '03AGdBq...' })
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }

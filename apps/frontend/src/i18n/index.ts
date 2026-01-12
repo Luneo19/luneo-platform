@@ -5,24 +5,27 @@
 
 import en from './locales/en.json';
 import fr from './locales/fr.json';
+import de from './locales/de.json';
+import es from './locales/es.json';
+import it from './locales/it.json';
 
 export type Locale = 'fr' | 'en' | 'de' | 'es' | 'it';
 
-export const DEFAULT_LOCALE: Locale = 'fr';
+export const DEFAULT_LOCALE: Locale = 'en';
 
-export const SUPPORTED_LOCALES: Locale[] = ['fr', 'en'];
+export const SUPPORTED_LOCALES: Locale[] = ['en', 'fr', 'de', 'es', 'it'];
 
 export const LOCALE_NAMES: Record<Locale, string> = {
-  fr: 'Français',
   en: 'English',
+  fr: 'Français',
   de: 'Deutsch',
   es: 'Español',
   it: 'Italiano',
 };
 
 export const LOCALE_FLAGS: Record<Locale, string> = {
-  fr: '🇫🇷',
   en: '🇬🇧',
+  fr: '🇫🇷',
   de: '🇩🇪',
   es: '🇪🇸',
   it: '🇮🇹',
@@ -33,6 +36,9 @@ type TranslationDict = typeof en;
 const translations: Record<string, TranslationDict> = {
   en,
   fr,
+  de,
+  es,
+  it,
 };
 
 /**

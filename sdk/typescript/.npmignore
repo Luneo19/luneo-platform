@@ -1,0 +1,10 @@
+src/
+tsconfig.json
+*.test.ts
+*.spec.ts
+node_modules/
+.git/
+.gitignore
+README.md
+.eslintrc.json
+jest.config.js

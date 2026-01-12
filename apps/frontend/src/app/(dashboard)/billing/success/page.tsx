@@ -214,14 +214,15 @@ function BillingSuccessPageContent() {
             </motion>
 
             {/* Confirmation email notice */}
-            <motion.p
+            <motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
               className="text-sm text-gray-500 mt-8"
+              as="p"
             >
               Un email de confirmation a été envoyé à <span className="text-gray-300">{sessionData?.customerEmail}</span>
-            </motion.p>
+            </motion>
           </Card>
         </motion>
       </div>

@@ -24,9 +24,15 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { Setup2FADto } from './dto/setup-2fa.dto';
+import { Verify2FADto } from './dto/verify-2fa.dto';
+import { Login2FADto } from './dto/login-2fa.dto';
 import { Public } from '@/common/guards/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
 import { AuthCookiesHelper } from './auth-cookies.helper';
+import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -171,11 +177,51 @@ export class AuthController {
       },
     },
   })
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute
   async login(
     @Body() loginDto: LoginDto,
+    @Request() req: any,
     @Res({ passthrough: false }) res: ExpressResponse,
   ) {
-    const result = await this.authService.login(loginDto);
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const result = await this.authService.login(loginDto, ip);
+    
+    // Si 2FA requis, retourner tempToken sans cookies
+    if ('requires2FA' in result && result.requires2FA) {
+      return {
+        requires2FA: true,
+        tempToken: result.tempToken,
+        user: result.user,
+      };
+    }
+    
+    // Set httpOnly cookies
+    if ('accessToken' in result && 'refreshToken' in result) {
+      AuthCookiesHelper.setAuthCookies(
+        res,
+        result.accessToken,
+        result.refreshToken,
+        this.configService,
+      );
+    }
+    
+    // Return user data (tokens are in httpOnly cookies)
+    return {
+      user: result.user,
+    };
+  }
+
+  @Post('login/2fa')
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 tentatives par minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Connexion avec code 2FA' })
+  async loginWith2FA(
+    @Body() login2FADto: Login2FADto,
+    @Request() req: any,
+    @Res({ passthrough: false }) res: ExpressResponse,
+  ) {
+    const result = await this.authService.loginWith2FA(login2FADto, req.ip);
     
     // Set httpOnly cookies
     AuthCookiesHelper.setAuthCookies(
@@ -185,11 +231,36 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data (tokens are in httpOnly cookies)
-    // Tokens removed from response for security (httpOnly cookies only)
     return {
       user: result.user,
     };
+  }
+
+  @Post('2fa/setup')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Configurer l\'authentification à deux facteurs' })
+  async setup2FA(@Request() req: any) {
+    return this.authService.setup2FA(req.user.id);
+  }
+
+  @Post('2fa/verify')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Vérifier et activer 2FA' })
+  async verify2FA(@Request() req: any, @Body() verify2FADto: Verify2FADto) {
+    return this.authService.verifyAndEnable2FA(req.user.id, verify2FADto);
+  }
+
+  @Post('2fa/disable')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Désactiver 2FA' })
+  async disable2FA(@Request() req: any) {
+    return this.authService.disable2FA(req.user.id);
   }
 
   @Post('refresh')
@@ -405,5 +476,178 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyEmailDto);
+  }
+
+  // ========================================
+  // OAUTH ENDPOINTS
+  // ========================================
+
+  @Get('google')
+  @Public()
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  @ApiResponse({ status: 302, description: 'Redirects to Google OAuth' })
+  async googleAuth() {
+    // Guard handles redirect
+  }
+
+  @Get('google/callback')
+  @Public()
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
+  async googleAuthCallback(@Request() req: any, @Res() res: ExpressResponse) {
+    const user = req.user;
+    
+    if (!user) {
+      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+    }
+
+    // Generate tokens
+    const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
+    
+    // Save refresh token
+    await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+
+    // Set httpOnly cookies
+    AuthCookiesHelper.setAuthCookies(
+      res,
+      tokens.accessToken,
+      tokens.refreshToken,
+      this.configService,
+    );
+
+    // Redirect to frontend callback
+    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+  }
+
+  @Get('github')
+  @Public()
+  @UseGuards(AuthGuard('github'))
+  @ApiOperation({ summary: 'Initiate GitHub OAuth login' })
+  @ApiResponse({ status: 302, description: 'Redirects to GitHub OAuth' })
+  async githubAuth() {
+    // Guard handles redirect
+  }
+
+  @Get('github/callback')
+  @Public()
+  @UseGuards(AuthGuard('github'))
+  @ApiOperation({ summary: 'GitHub OAuth callback' })
+  @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
+  async githubAuthCallback(@Request() req: any, @Res() res: ExpressResponse) {
+    const user = req.user;
+    
+    if (!user) {
+      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+    }
+
+    // Generate tokens
+    const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
+    
+    // Save refresh token
+    await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+
+    // Set httpOnly cookies
+    AuthCookiesHelper.setAuthCookies(
+      res,
+      tokens.accessToken,
+      tokens.refreshToken,
+      this.configService,
+    );
+
+    // Redirect to frontend callback
+    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+  }
+
+  // ========================================
+  // ENTERPRISE SSO ENDPOINTS (SAML/OIDC)
+  // ========================================
+
+  @Get('saml')
+  @Public()
+  @UseGuards(AuthGuard('saml'))
+  @ApiOperation({ summary: 'Initiate SAML SSO login' })
+  @ApiResponse({ status: 302, description: 'Redirects to SAML IdP' })
+  async samlAuth() {
+    // Guard handles redirect
+  }
+
+  @Post('saml/callback')
+  @Get('saml/callback')
+  @Public()
+  @UseGuards(AuthGuard('saml'))
+  @ApiOperation({ summary: 'SAML SSO callback (supports both POST and GET)' })
+  @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
+  async samlAuthCallback(@Request() req: any, @Res() res: ExpressResponse) {
+    const user = req.user;
+    
+    if (!user) {
+      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=saml_failed`);
+    }
+
+    // Generate tokens
+    const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
+    
+    // Save refresh token
+    await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+
+    // Set httpOnly cookies
+    AuthCookiesHelper.setAuthCookies(
+      res,
+      tokens.accessToken,
+      tokens.refreshToken,
+      this.configService,
+    );
+
+    // Redirect to frontend callback
+    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+  }
+
+  @Get('oidc')
+  @Public()
+  @UseGuards(AuthGuard('oidc'))
+  @ApiOperation({ summary: 'Initiate OIDC SSO login' })
+  @ApiResponse({ status: 302, description: 'Redirects to OIDC IdP' })
+  async oidcAuth() {
+    // Guard handles redirect
+  }
+
+  @Get('oidc/callback')
+  @Public()
+  @UseGuards(AuthGuard('oidc'))
+  @ApiOperation({ summary: 'OIDC SSO callback' })
+  @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
+  async oidcAuthCallback(@Request() req: any, @Res() res: ExpressResponse) {
+    const user = req.user;
+    
+    if (!user) {
+      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=oidc_failed`);
+    }
+
+    // Generate tokens
+    const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
+    
+    // Save refresh token
+    await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+
+    // Set httpOnly cookies
+    AuthCookiesHelper.setAuthCookies(
+      res,
+      tokens.accessToken,
+      tokens.refreshToken,
+      this.configService,
+    );
+
+    // Redirect to frontend callback
+    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
   }
 }

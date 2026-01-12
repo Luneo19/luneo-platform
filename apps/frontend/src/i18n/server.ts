@@ -14,6 +14,8 @@ const MESSAGE_LOADERS: Record<SupportedLocale, () => Promise<Messages>> = {
   en: () => import('./locales/en').then((module) => module.default),
   fr: () => import('./locales/fr').then((module) => module.default),
   de: () => import('./locales/de').then((module) => module.default),
+  es: () => import('./locales/es').then((module) => module.default),
+  it: () => import('./locales/it').then((module) => module.default),
 };
 
 const SUPPORTED_SET = new Set<SupportedLocale>(SUPPORTED_LOCALES);

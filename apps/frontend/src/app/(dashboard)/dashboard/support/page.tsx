@@ -44,6 +44,7 @@ import {
   User,
   Tag,
   FileText,
+  File,
   BookOpen,
   HelpCircle,
   ThumbsUp,
