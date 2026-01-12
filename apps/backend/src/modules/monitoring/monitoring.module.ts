@@ -8,9 +8,10 @@ import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
 import { PerformanceMonitoringService } from './services/performance-monitoring.service';
 import { PerformanceController } from './controllers/performance.controller';
+import { GrafanaModule } from './grafana/grafana.module';
 
 @Module({
-  imports: [PrismaModule, RedisOptimizedModule],
+  imports: [PrismaModule, RedisOptimizedModule, GrafanaModule],
   controllers: [PerformanceController],
   providers: [PerformanceMonitoringService],
   exports: [PerformanceMonitoringService],
