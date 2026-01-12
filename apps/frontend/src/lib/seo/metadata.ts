@@ -1,6 +1,6 @@
 /**
  * SEO Metadata Helper
- * Inspired by Vercel and Shopify SEO best practices
+ * Centralized SEO metadata generation for all pages
  */
 
 import { Metadata } from 'next';
@@ -9,53 +9,100 @@ export interface SEOConfig {
   title: string;
   description: string;
   keywords?: string[];
-  image?: string;
-  url?: string;
-  type?: 'website' | 'article' | 'product';
+  canonicalUrl?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article' | 'product';
+  noindex?: boolean;
+  nofollow?: boolean;
+  locale?: string;
+  alternateLocales?: Array<{ locale: string; url: string }>;
   publishedTime?: string;
   modifiedTime?: string;
   author?: string;
   section?: string;
   tags?: string[];
-  noindex?: boolean;
-  nofollow?: boolean;
 }
 
-const DEFAULT_IMAGE = '/og-image.png';
-const DEFAULT_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
-const SITE_NAME = 'Luneo - Plateforme SaaS de Personnalisation IA';
+const defaultConfig = {
+  siteName: 'Luneo Platform',
+  siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app',
+  defaultOgImage: '/og-image.png',
+  defaultLocale: 'fr_FR',
+  twitterHandle: '@luneo_app',
+  googleSiteVerification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+};
 
 /**
- * Generate complete SEO metadata
+ * Generate comprehensive SEO metadata
  */
 export function generateMetadata(config: SEOConfig): Metadata {
   const {
     title,
     description,
     keywords = [],
-    image = DEFAULT_IMAGE,
-    url,
-    type = 'website',
+    canonicalUrl,
+    ogImage = defaultConfig.defaultOgImage,
+    ogType = 'website',
+    noindex = false,
+    nofollow = false,
+    locale = defaultConfig.defaultLocale,
+    alternateLocales = [],
     publishedTime,
     modifiedTime,
     author,
     section,
     tags = [],
-    noindex = false,
-    nofollow = false,
   } = config;
 
-  const fullTitle = `${title} | ${SITE_NAME}`;
-  const fullUrl = url ? `${DEFAULT_URL}${url}` : DEFAULT_URL;
-  const fullImage = image.startsWith('http') ? image : `${DEFAULT_URL}${image}`;
+  const fullTitle = title.includes('Luneo') ? title : `${title} | Luneo Platform`;
+  const canonical = canonicalUrl || `${defaultConfig.siteUrl}${canonicalUrl || ''}`;
+  const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${defaultConfig.siteUrl}${ogImage}`;
 
-  return {
+  const metadata: Metadata = {
     title: fullTitle,
     description,
-    keywords: keywords.length > 0 ? keywords.join(', ') : undefined,
-    authors: author ? [{ name: author }] : undefined,
-    creator: SITE_NAME,
-    publisher: SITE_NAME,
+    keywords: keywords.length > 0 ? keywords : undefined,
+    authors: author ? [{ name: author }] : [{ name: 'Luneo Team' }],
+    creator: 'Luneo',
+    publisher: 'Luneo',
+    metadataBase: new URL(defaultConfig.siteUrl),
+    alternates: {
+      canonical,
+      languages: alternateLocales.reduce(
+        (acc, alt) => {
+          acc[alt.locale] = alt.url;
+          return acc;
+        },
+        { [locale]: canonical } as Record<string, string>
+      ),
+    },
+    openGraph: {
+      type: ogType,
+      locale,
+      url: canonical,
+      siteName: defaultConfig.siteName,
+      title: fullTitle,
+      description,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      ...(publishedTime && { publishedTime }),
+      ...(modifiedTime && { modifiedTime }),
+      ...(section && { section }),
+      ...(tags.length > 0 && { tags }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: fullTitle,
+      description,
+      images: [ogImageUrl],
+      creator: defaultConfig.twitterHandle,
+    },
     robots: {
       index: !noindex,
       follow: !nofollow,
@@ -67,104 +114,67 @@ export function generateMetadata(config: SEOConfig): Metadata {
         'max-snippet': -1,
       },
     },
-    openGraph: {
-      type,
-      siteName: SITE_NAME,
-      title: fullTitle,
-      description,
-      url: fullUrl,
-      images: [
-        {
-          url: fullImage,
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ],
-      locale: 'fr_FR',
-      ...(publishedTime && { publishedTime }),
-      ...(modifiedTime && { modifiedTime }),
-      ...(section && { section }),
-      ...(tags.length > 0 && { tags }),
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: fullTitle,
-      description,
-      images: [fullImage],
-      creator: '@luneo_app',
-      site: '@luneo_app',
-    },
-    alternates: {
-      canonical: fullUrl,
-    },
-    other: {
-      'apple-mobile-web-app-title': SITE_NAME,
-      'application-name': SITE_NAME,
-      'msapplication-TileColor': '#0071e3',
-      'theme-color': '#0071e3',
-    },
-  };
-}
-
-/**
- * Generate JSON-LD structured data
- */
-export function generateStructuredData(config: {
-  type: 'Organization' | 'WebSite' | 'Product' | 'Article' | 'BreadcrumbList';
-  data: Record<string, any>;
-}): object {
-  const baseSchema = {
-    '@context': 'https://schema.org',
-    '@type': config.type,
-    ...config.data,
-  };
-
-  return baseSchema;
-}
-
-/**
- * Organization structured data
- */
-export function getOrganizationSchema() {
-  return generateStructuredData({
-    type: 'Organization',
-    data: {
-      name: 'Luneo',
-      url: DEFAULT_URL,
-      logo: `${DEFAULT_URL}/logo.png`,
-      description: 'Plateforme SaaS de personnalisation de produits avec IA',
-      sameAs: [
-        'https://twitter.com/luneo_app',
-        'https://linkedin.com/company/luneo',
-        'https://github.com/luneo',
-      ],
-      contactPoint: {
-        '@type': 'ContactPoint',
-        contactType: 'Customer Service',
-        email: 'contact@luneo.app',
+    ...(defaultConfig.googleSiteVerification && {
+      verification: {
+        google: defaultConfig.googleSiteVerification,
       },
-    },
+    }),
+  };
+
+  return metadata;
+}
+
+/**
+ * Generate metadata for product pages
+ */
+export function generateProductMetadata(product: {
+  name: string;
+  description: string;
+  image?: string;
+  price?: number;
+  currency?: string;
+  availability?: 'in_stock' | 'out_of_stock' | 'preorder';
+  brand?: string;
+  category?: string;
+}): Metadata {
+  return generateMetadata({
+    title: product.name,
+    description: product.description,
+    keywords: [
+      product.name,
+      product.category || '',
+      'personnalisation produits',
+      'customizer',
+      'product configurator',
+    ].filter(Boolean),
+    ogType: 'product',
+    ogImage: product.image,
   });
 }
 
 /**
- * Website structured data
+ * Generate metadata for article/blog pages
  */
-export function getWebsiteSchema() {
-  return generateStructuredData({
-    type: 'WebSite',
-    data: {
-      name: SITE_NAME,
-      url: DEFAULT_URL,
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${DEFAULT_URL}/search?q={search_term_string}`,
-        },
-        'query-input': 'required name=search_term_string',
-      },
-    },
+export function generateArticleMetadata(article: {
+  title: string;
+  description: string;
+  image?: string;
+  publishedTime: string;
+  modifiedTime?: string;
+  author?: string;
+  section?: string;
+  tags?: string[];
+}): Metadata {
+  return generateMetadata({
+    title: article.title,
+    description: article.description,
+    keywords: article.tags,
+    ogType: 'article',
+    ogImage: article.image,
+    publishedTime: article.publishedTime,
+    modifiedTime: article.modifiedTime,
+    author: article.author,
+    section: article.section,
+    tags: article.tags,
   });
 }

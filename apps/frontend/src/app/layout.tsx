@@ -26,6 +26,7 @@ if (typeof window !== 'undefined') {
 
 import { loadI18nConfig, type SupportedLocale, type TranslationMessages } from "@/i18n/server";
 import { loadFeatureFlags } from "@/lib/feature-flags/loadFeatureFlags";
+import { getDefaultOrganizationSchema, getDefaultWebSiteSchema } from "@/lib/seo/schema";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://luneo.app'),
@@ -198,6 +199,20 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Luneo" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        
+        {/* Structured Data (Schema.org) for SEO */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: getDefaultOrganizationSchema(),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: getDefaultWebSiteSchema(),
+          }}
+        />
       </head>
       <body className={`${inter.className} ${inter.variable} overflow-x-hidden`}>
         <a 
