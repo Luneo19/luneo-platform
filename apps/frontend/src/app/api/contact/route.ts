@@ -11,6 +11,7 @@ const ContactSchema = z.object({
   subject: z.string().min(3, 'Sujet trop court').max(200),
   message: z.string().min(10, 'Message trop court').max(5000),
   type: z.enum(['general', 'support', 'enterprise', 'partnership']).optional().default('general'),
+  captchaToken: z.string().optional(), // CAPTCHA token from reCAPTCHA v3
 });
 
 export const runtime = 'nodejs';
@@ -67,7 +68,104 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const { name, email, company, subject, message, type } = validation.data;
+    const { name, email, company, subject, message, type, captchaToken } = validation.data;
+
+    // ✅ Verify CAPTCHA (if provided)
+    if (captchaToken) {
+      try {
+        const secretKey = process.env.RECAPTCHA_SECRET_KEY || process.env.NEXT_PUBLIC_RECAPTCHA_SECRET_KEY;
+        if (secretKey) {
+          const verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
+          const response = await fetch(verifyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              secret: secretKey,
+              response: captchaToken,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!data.success) {
+            logger.warn('CAPTCHA verification failed', {
+              errors: data['error-codes'],
+              email,
+            });
+            throw {
+              status: 400,
+              message: 'Vérification CAPTCHA échouée. Veuillez réessayer.',
+              code: 'CAPTCHA_FAILED',
+            };
+          }
+
+          // Verify action matches
+          if (data.action !== 'contact') {
+            logger.warn('CAPTCHA action mismatch', {
+              expected: 'contact',
+              received: data.action,
+            });
+            throw {
+              status: 400,
+              message: 'Vérification CAPTCHA échouée.',
+              code: 'CAPTCHA_ACTION_MISMATCH',
+            };
+          }
+
+          // Verify score meets threshold (0.5 minimum)
+          if (data.score < 0.5) {
+            logger.warn('CAPTCHA score too low', {
+              score: data.score,
+              email,
+            });
+            throw {
+              status: 400,
+              message: 'Vérification CAPTCHA échouée. Veuillez réessayer.',
+              code: 'CAPTCHA_SCORE_TOO_LOW',
+            };
+          }
+
+          logger.debug('CAPTCHA verification successful', {
+            action: data.action,
+            score: data.score,
+            email,
+          });
+        } else {
+          // In development, allow requests without CAPTCHA if not configured
+          if (process.env.NODE_ENV === 'development') {
+            logger.warn('CAPTCHA secret key not configured, skipping verification in development');
+          } else {
+            throw {
+              status: 400,
+              message: 'Vérification CAPTCHA requise mais non configurée.',
+              code: 'CAPTCHA_NOT_CONFIGURED',
+            };
+          }
+        }
+      } catch (error: any) {
+        if (error.status) {
+          throw error;
+        }
+        logger.error('CAPTCHA verification error', { error });
+        throw {
+          status: 400,
+          message: 'Erreur lors de la vérification CAPTCHA. Veuillez réessayer.',
+          code: 'CAPTCHA_ERROR',
+        };
+      }
+    } else {
+      // In production, CAPTCHA is required
+      if (process.env.NODE_ENV === 'production') {
+        const secretKey = process.env.RECAPTCHA_SECRET_KEY || process.env.NEXT_PUBLIC_RECAPTCHA_SECRET_KEY;
+        if (secretKey) {
+          throw {
+            status: 400,
+            message: 'Token CAPTCHA requis.',
+            code: 'CAPTCHA_TOKEN_REQUIRED',
+          };
+        }
+      }
+    }
 
     // Log du message de contact
     logger.info('Contact form submission', {
