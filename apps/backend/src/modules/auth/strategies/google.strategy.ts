@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from '../auth.service';
+import { OAuthService } from '../services/oauth.service';
 import { Logger } from '@nestjs/common';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly authService: AuthService,
+    private readonly oauthService: OAuthService,
   ) {
     const clientID = configService.get<string>('oauth.google.clientId') ||
                      configService.get<string>('GOOGLE_CLIENT_ID') ||
@@ -56,14 +56,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       };
 
       // Find or create user in database
-      const dbUser = await this.authService.findOrCreateOAuthUser(user);
+      const dbUser = await this.oauthService.findOrCreateOAuthUser(user);
       
       this.logger.log(`Google OAuth successful for user: ${user.email}`);
       
       return done(null, dbUser);
     } catch (error) {
       this.logger.error('Google OAuth validation error', error);
-      return done(error, null);
+      return done(new UnauthorizedException('Google OAuth authentication failed'), null);
     }
   }
 }

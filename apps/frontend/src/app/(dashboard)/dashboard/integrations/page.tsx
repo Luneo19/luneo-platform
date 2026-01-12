@@ -490,7 +490,7 @@ function IntegrationsPageContent() {
           {!selectedPlatform ? (
             <div className="grid grid-cols-2 gap-4 py-4">
               {PLATFORMS.map((platform) => (
-                <motion.button
+                <motion.div
                   key={platform.id}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -519,7 +519,7 @@ function IntegrationsPageContent() {
                       </Badge>
                     ))}
                   </div>
-                </motion.button>
+                </motion.div>
               ))}
             </div>
           ) : (

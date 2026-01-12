@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthController } from './auth.controller';
+import { OAuthController } from './controllers/oauth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -11,6 +12,7 @@ import { EmailModule } from '../email/email.module';
 import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
+import { OAuthService } from './services/oauth.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 
 // Helper function to check if OAuth is configured
@@ -94,7 +96,7 @@ try {
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, OAuthController],
   providers: [
     AuthService,
     JwtStrategy,
@@ -105,8 +107,9 @@ try {
     BruteForceService,
     TwoFactorService,
     CaptchaService,
+    OAuthService,
     RedisOptimizedService,
   ],
-  exports: [AuthService, JwtStrategy, TwoFactorService],
+  exports: [AuthService, JwtStrategy, TwoFactorService, OAuthService],
 })
 export class AuthModule {}
