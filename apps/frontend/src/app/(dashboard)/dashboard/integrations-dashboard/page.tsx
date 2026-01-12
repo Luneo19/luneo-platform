@@ -282,22 +282,6 @@ import {
   Badge as BadgeIcon,
   Gift,
   GiftIcon,
-  GiftCardMessageExternal,
-  GiftCardMessageLock,
-  GiftCardMessageUnlock,
-  GiftCardMessageShield,
-  GiftCardMessageShieldCheck,
-  GiftCardMessageShieldAlert,
-  GiftCardMessageShieldOff,
-  GiftCardMessageStar,
-  GiftCardMessageStar2,
-  GiftCardMessageStarOff,
-  GiftCardMessageHeart,
-  GiftCardMessageHeartOff,
-  GiftCardMessageBookmark,
-  GiftCardMessageBookmarkCheck,
-  GiftCardMessageBookmarkX,
-  GiftCardMessageBookmarkOff,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

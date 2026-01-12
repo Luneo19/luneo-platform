@@ -1,18 +1,18 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { PerformanceService } from './performance.service';
-import { PerformanceMiddleware } from './performance.middleware';
-import { MonitoringController } from './monitoring.controller';
+/**
+ * Monitoring Module
+ * Performance monitoring, health checks, and metrics
+ */
+
+import { Module } from '@nestjs/common';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
+import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
+import { PerformanceMonitoringService } from './services/performance-monitoring.service';
+import { PerformanceController } from './controllers/performance.controller';
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [MonitoringController],
-  providers: [PerformanceService],
-  exports: [PerformanceService],
+  imports: [PrismaModule, RedisOptimizedModule],
+  controllers: [PerformanceController],
+  providers: [PerformanceMonitoringService],
+  exports: [PerformanceMonitoringService],
 })
-export class MonitoringModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    // Apply performance middleware to all routes
-    consumer.apply(PerformanceMiddleware).forRoutes('*');
-  }
-}
+export class MonitoringModule {}

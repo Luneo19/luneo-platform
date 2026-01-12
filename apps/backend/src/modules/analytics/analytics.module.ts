@@ -21,6 +21,7 @@ import { AnalyticsAdvancedController } from './controllers/analytics-advanced.co
 import { AnalyticsExportController } from './controllers/export.controller';
 import { PredictiveController } from './controllers/predictive.controller';
 import { ReportsController } from './controllers/reports.controller';
+import { WebVitalsController } from './controllers/web-vitals.controller';
 
 // Services
 import { AnalyticsService } from './services/analytics.service';
@@ -33,6 +34,7 @@ import { AnalyticsCalculationsService } from './services/analytics-calculations.
 import { PredictiveService } from './services/predictive.service';
 import { ReportsService } from './services/reports.service';
 import { MetricsService } from './services/metrics.service';
+import { WebVitalsService } from './services/web-vitals.service';
 
 // Infrastructure
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -77,6 +79,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     AnalyticsExportController,
     PredictiveController,
     ReportsController,
+    WebVitalsController,
   ],
   providers: [
     AnalyticsService,
@@ -89,6 +92,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     PredictiveService,
     ReportsService,
     MetricsService,
+    WebVitalsService,
   ],
   exports: [
     AnalyticsService,
@@ -101,6 +105,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     PredictiveService,
     ReportsService,
     MetricsService,
+    WebVitalsService,
   ],
 })
 export class AnalyticsModule {}
