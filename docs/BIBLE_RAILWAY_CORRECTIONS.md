@@ -222,8 +222,9 @@ ARG CACHE_BUSTER=2025-01-15T11:30:00Z
 | `f7fe07a` | Fix OAuth strategies conditional loading | 1 erreur runtime OAuth |
 | `7591386` | Fix OAuth Service & Cache Warming errors | 5 erreurs TypeScript |
 | `65ce044` | Fix OAuth Accounts field name & provider types | 2 erreurs TypeScript |
+| `ee0dbdd` | Fix Google Strategy provider type with 'as const' | 1 erreur TypeScript |
 
-**Total**: **17 erreurs corrigées** (16 TypeScript + 1 runtime OAuth)
+**Total**: **18 erreurs corrigées** (17 TypeScript + 1 runtime OAuth)
 
 ---
 
