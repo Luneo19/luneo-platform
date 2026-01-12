@@ -155,3 +155,33 @@ Can't reach database server at `postgres.railway.internal:5432`
 
 **Status**: ⚠️ Configuration infrastructure requise  
 **Priorité**: 🔴 Haute - Bloque le démarrage de l'application
+
+---
+
+## ✅ AMÉLIORATIONS IMPLÉMENTÉES
+
+### 1. Gestion d'Erreurs Redis Améliorée
+
+**Changements**:
+- Détection des erreurs de limite Upstash (`max requests limit exceeded`)
+- Mode dégradé gracieux : retourne `null` au lieu de crasher
+- Logging amélioré pour identifier les problèmes
+
+**Impact**: L'application continue de fonctionner même si Redis atteint sa limite
+
+### 2. Gestion d'Erreurs Database Améliorée
+
+**Changements**:
+- Retry logic avec backoff exponentiel (3 tentatives)
+- Mode dégradé : l'application démarre même si la DB n'est pas accessible
+- Health check endpoint toujours disponible
+
+**Impact**: L'application peut démarrer et répondre aux health checks même sans DB
+
+---
+
+## 📝 NOTES IMPORTANTES
+
+- Ces améliorations permettent à l'application de démarrer en mode dégradé
+- **Cependant**, la configuration correcte de Railway reste nécessaire pour un fonctionnement complet
+- Le mode dégradé permet au moins de vérifier que l'application démarre correctement
