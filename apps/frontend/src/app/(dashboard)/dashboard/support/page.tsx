@@ -55,6 +55,7 @@ import {
   Download,
   Share2,
   Copy,
+  Link2,
   MoreVertical,
   ArrowRight,
   Eye,
@@ -78,6 +79,7 @@ import {
   Shield,
   GitBranch,
   Trophy,
+  Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1456,7 +1458,7 @@ function SupportPageContent() {
                             <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
                             <div>
                               <p>
-                                <span className="font-medium text-white">{activity.action}</span>
+                                <span className="font-medium text-white">{activity.action || activity.description}</span>
                                 {activity.oldValue && activity.newValue && (
                                   <span>
                                     {' '}
@@ -2643,7 +2645,7 @@ function SupportPageContent() {
                   { name: 'API de Support Complète', description: 'Intégrer le support via API REST, GraphQL, et Webhooks', icon: Code, status: 'active', features: ['REST', 'GraphQL', 'Webhooks'] },
                   { name: 'Gestion SLA Avancée', description: 'Gérer les SLA avec alertes et escalades automatiques', icon: Clock, status: 'active', features: ['SLA', 'Alertes', 'Escalades'] },
                   { name: 'Satisfaction Client CSAT/NPS', description: 'Mesurer la satisfaction client avec CSAT et NPS', icon: Star, status: 'active', features: ['CSAT', 'NPS', 'Feedback'] },
-                  { name: 'Intégrations Tierces', description: 'Intégrer avec CRM, helpdesk, et autres outils', icon: Link, status: 'active', features: ['CRM', 'Helpdesk', 'Outils'] },
+                  { name: 'Intégrations Tierces', description: 'Intégrer avec CRM, helpdesk, et autres outils', icon: Link2, status: 'active', features: ['CRM', 'Helpdesk', 'Outils'] },
                 ].map((tool, idx) => {
                   const Icon = tool.icon;
                   return (

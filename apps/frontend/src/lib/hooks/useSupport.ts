@@ -18,6 +18,7 @@ export interface Ticket {
   updatedAt: Date;
   messages: TicketMessage[];
   tags?: string[];
+  activities?: Array<{ id: string; type: string; description: string; action?: string; oldValue?: string; newValue?: string; createdAt: Date; user?: string }>;
 }
 
 export interface TicketMessage {
@@ -27,6 +28,7 @@ export interface TicketMessage {
   createdAt: Date;
   isFromSupport: boolean;
   isInternal?: boolean;
+  attachments?: Array<{ id: string; name: string; url: string }>;
 }
 
 export interface CreateTicketDto {

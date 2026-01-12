@@ -79,8 +79,13 @@ export class RedisOptimizedService {
       this.logger.log('Redis connected successfully');
     });
 
-    this.redis.on('error', (error) => {
-      this.logger.error('Redis connection error:', error);
+    this.redis.on('error', (error: any) => {
+      // Gérer spécifiquement les erreurs de limite Upstash
+      if (error.message?.includes('max requests limit exceeded')) {
+        this.logger.warn('Redis request limit exceeded. Cache will work in degraded mode.');
+        return;
+      }
+      this.logger.error('Redis connection error:', error.message || error);
     });
 
     this.redis.on('ready', () => {
@@ -117,8 +122,20 @@ export class RedisOptimizedService {
    */
   async get<T>(key: string, type: string = 'api'): Promise<T | null> {
     try {
+      // Si Redis n'est pas disponible, retourner null (mode dégradé)
+      if (!this.redis) {
+        return null;
+      }
+
       const fullKey = this.buildKey(key, type);
-      const data = await this.redis.get(fullKey);
+      const data = await this.redis.get(fullKey).catch((error) => {
+        // Gérer spécifiquement les erreurs de limite Upstash
+        if (error.message?.includes('max requests limit exceeded')) {
+          this.logger.warn(`Redis request limit exceeded for key ${key}, returning null`);
+          return null;
+        }
+        throw error;
+      });
       
       if (!data) return null;
 
@@ -131,8 +148,13 @@ export class RedisOptimizedService {
       }
 
       return JSON.parse(data);
-    } catch (error) {
-      this.logger.error(`Failed to get cache key ${key}:`, error);
+    } catch (error: any) {
+      // Gérer gracieusement les erreurs Redis (limite dépassée, connexion échouée, etc.)
+      if (error.message?.includes('max requests limit exceeded')) {
+        this.logger.warn(`Redis request limit exceeded for key ${key}, returning null`);
+        return null;
+      }
+      this.logger.error(`Failed to get cache key ${key}:`, error.message || error);
       return null;
     }
   }
@@ -147,6 +169,11 @@ export class RedisOptimizedService {
     options: CacheOptions = {}
   ): Promise<boolean> {
     try {
+      // Si Redis n'est pas disponible, retourner false (mode dégradé)
+      if (!this.redis) {
+        return false;
+      }
+
       const config = this.cacheConfigs[type];
       const ttl = options.ttl || config?.ttl || 300;
       const fullKey = this.buildKey(key, type);
@@ -159,16 +186,30 @@ export class RedisOptimizedService {
         serializedData = `gzip:${serializedData}`;
       }
 
-      await this.redis.setex(fullKey, ttl, serializedData);
+      await this.redis.setex(fullKey, ttl, serializedData).catch((error) => {
+        // Gérer spécifiquement les erreurs de limite Upstash
+        if (error.message?.includes('max requests limit exceeded')) {
+          this.logger.warn(`Redis request limit exceeded for key ${key}, skipping cache`);
+          throw error;
+        }
+        throw error;
+      });
       
       // Ajouter des tags pour invalidation groupée
       if (options.tags && options.tags.length > 0) {
-        await this.addTags(fullKey, options.tags);
+        await this.addTags(fullKey, options.tags).catch(() => {
+          // Ignorer les erreurs de tags si Redis a des problèmes
+        });
       }
 
       return true;
-    } catch (error) {
-      this.logger.error(`Failed to set cache key ${key}:`, error);
+    } catch (error: any) {
+      // Gérer gracieusement les erreurs Redis (limite dépassée, connexion échouée, etc.)
+      if (error.message?.includes('max requests limit exceeded')) {
+        this.logger.warn(`Redis request limit exceeded for key ${key}, skipping cache`);
+        return false;
+      }
+      this.logger.error(`Failed to set cache key ${key}:`, error.message || error);
       return false;
     }
   }

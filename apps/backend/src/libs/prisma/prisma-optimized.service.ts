@@ -19,8 +19,34 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
   }
 
   async onModuleInit() {
-    await this.$connect();
-    this.logger.log('Prisma connected to database');
+    try {
+      // Retry logic avec backoff exponentiel
+      let retries = 3;
+      let delay = 1000;
+      
+      while (retries > 0) {
+        try {
+          await this.$connect();
+          this.logger.log('Prisma connected to database');
+          return;
+        } catch (error: any) {
+          retries--;
+          if (retries === 0) {
+            this.logger.error('❌ Failed to connect to database', error.message);
+            // Ne pas throw pour permettre à l'application de démarrer en mode dégradé
+            // L'application pourra toujours répondre aux health checks
+            this.logger.warn('⚠️ Application starting in degraded mode (database unavailable)');
+            return;
+          }
+          this.logger.warn(`⚠️ Database connection failed, retrying in ${delay}ms... (${retries} retries left)`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2; // Backoff exponentiel
+        }
+      }
+    } catch (error: any) {
+      this.logger.error('❌ Failed to connect to database', error.message);
+      this.logger.warn('⚠️ Application starting in degraded mode (database unavailable)');
+    }
   }
 
   async onModuleDestroy() {
