@@ -61,6 +61,7 @@ export function LibraryPageClient() {
       setShowPreview(false);
       setPreviewTemplate(null);
     }
+    return result;
   };
 
   if (isLoading && page === 1) {
