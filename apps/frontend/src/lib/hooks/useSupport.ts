@@ -26,6 +26,7 @@ export interface TicketMessage {
   author: string;
   createdAt: Date;
   isFromSupport: boolean;
+  isInternal?: boolean;
 }
 
 export interface CreateTicketDto {

@@ -7,7 +7,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
-import { CacheExtensionService } from '@/libs/redis/cache-extension.service';
 
 @Injectable()
 export class CacheWarmingService {
@@ -17,7 +16,6 @@ export class CacheWarmingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisOptimizedService,
-    private readonly cacheExtension: CacheExtensionService,
   ) {}
 
   /**

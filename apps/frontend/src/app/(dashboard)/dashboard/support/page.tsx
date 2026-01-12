@@ -1407,7 +1407,7 @@ function SupportPageContent() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="font-medium text-white">
-                                      {message.user?.name || message.user?.email || 'Utilisateur'}
+                                      {message.author || 'Utilisateur'}
                                     </span>
                                     {message.isInternal && (
                                       <Badge variant="outline" className="text-xs border-yellow-500/30">
