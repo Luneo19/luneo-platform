@@ -115,10 +115,11 @@ COPY packages ./packages/
 # Installer les dépendances de production + prisma (nécessaire pour générer Prisma Client)
 # Cela garantit que la structure pnpm est correcte et que les modules sont accessibles
 # Canvas sera compilé avec les outils de build installés ci-dessus
+# Utiliser --no-frozen-lockfile pour permettre la mise à jour du lockfile si nécessaire
 # Ajouter retries pour gérer les erreurs réseau temporaires
-RUN pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000 || \
-    (echo "Retry 1..." && sleep 5 && pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000) || \
-    (echo "Retry 2..." && sleep 10 && pnpm install --frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000)
+RUN pnpm install --no-frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000 || \
+    (echo "Retry 1..." && sleep 5 && pnpm install --no-frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000) || \
+    (echo "Retry 2..." && sleep 10 && pnpm install --no-frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000)
 
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
