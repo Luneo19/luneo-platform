@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -74,7 +74,7 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
                         'border-gray-500/50 text-gray-400',
                       )}
                     >
-                      <RoleIcon className="w-3 h-3 mr-1" />
+                      {RoleIcon && React.createElement(RoleIcon as React.ElementType, { className: 'w-3 h-3 mr-1' })}
                       {String(roleInfo.name)}
                     </Badge>
                   </div>

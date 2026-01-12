@@ -25,19 +25,31 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     try {
-      await this.$connect();
-      logger.log('✅ Prisma connected to database');
-    } catch (error) {
-      logger.error('❌ Failed to connect to database', error);
-      // Retry connection after 2 seconds
-      setTimeout(async () => {
+      // Retry logic avec backoff exponentiel
+      let retries = 3;
+      let delay = 1000;
+      
+      while (retries > 0) {
         try {
           await this.$connect();
-          logger.log('✅ Prisma reconnected to database');
-        } catch (retryError) {
-          logger.error('❌ Retry connection failed', retryError);
+          logger.log('✅ Prisma connected to database');
+          return;
+        } catch (error: any) {
+          retries--;
+          if (retries === 0) {
+            logger.error('❌ Failed to connect to database', error.message);
+            // Ne pas throw pour permettre à l'application de démarrer en mode dégradé
+            logger.warn('⚠️ Application starting in degraded mode (database unavailable)');
+            return;
+          }
+          logger.warn(`⚠️ Database connection failed, retrying in ${delay}ms... (${retries} retries left)`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2; // Backoff exponentiel
         }
-      }, 2000);
+      }
+    } catch (error: any) {
+      logger.error('❌ Failed to connect to database', error.message);
+      logger.warn('⚠️ Application starting in degraded mode (database unavailable)');
     }
   }
 
