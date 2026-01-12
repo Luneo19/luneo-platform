@@ -1,0 +1,170 @@
+/**
+ * Rate Limiting Library for Next.js
+ * Uses Upstash Redis for distributed rate limiting
+ * Inspired by Vercel Edge Rate Limiting and Stripe API
+ */
+
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+// Initialize Redis client (Upstash)
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL || '',
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+});
+
+/**
+ * Rate limit configurations for different endpoints
+ */
+export const rateLimitConfigs = {
+  // Auth endpoints - strict (5 req/min)
+  auth: {
+    limit: 5,
+    window: '1 m',
+  },
+  // API endpoints - standard (100 req/min)
+  api: {
+    limit: 100,
+    window: '1 m',
+  },
+  // Public endpoints - generous (200 req/min)
+  public: {
+    limit: 200,
+    window: '1 m',
+  },
+  // Upload endpoints - strict (10 req/hour)
+  upload: {
+    limit: 10,
+    window: '1 h',
+  },
+  // Webhook endpoints - very generous (1000 req/hour)
+  webhook: {
+    limit: 1000,
+    window: '1 h',
+  },
+} as const;
+
+/**
+ * Create rate limiter instance
+ */
+function createRateLimiter(limit: number, window: string) {
+  return new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(limit, window),
+    analytics: true,
+    prefix: '@luneo/rate-limit',
+  });
+}
+
+/**
+ * Rate limiters for each endpoint type
+ */
+export const rateLimiters = {
+  auth: createRateLimiter(rateLimitConfigs.auth.limit, rateLimitConfigs.auth.window),
+  api: createRateLimiter(rateLimitConfigs.api.limit, rateLimitConfigs.api.window),
+  public: createRateLimiter(rateLimitConfigs.public.limit, rateLimitConfigs.public.window),
+  upload: createRateLimiter(rateLimitConfigs.upload.limit, rateLimitConfigs.upload.window),
+  webhook: createRateLimiter(rateLimitConfigs.webhook.limit, rateLimitConfigs.webhook.window),
+};
+
+/**
+ * Get client identifier for rate limiting
+ * Priority: User ID > Session ID > IP Address
+ */
+export function getClientIdentifier(request: Request): string {
+  // Try to get user ID from headers (set by auth middleware)
+  const userId = request.headers.get('x-user-id');
+  if (userId) {
+    return `user:${userId}`;
+  }
+
+  // Try to get session ID from cookies
+  const sessionId = request.headers.get('cookie')?.match(/sessionId=([^;]+)/)?.[1];
+  if (sessionId) {
+    return `session:${sessionId}`;
+  }
+
+  // Fallback to IP address
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
+
+  return `ip:${ip}`;
+}
+
+/**
+ * Check rate limit for a given identifier and config
+ */
+export async function checkRateLimit(
+  identifier: string,
+  config: { limit: number; window: string },
+): Promise<{ success: boolean; remaining: number; reset: Date }> {
+  // If Redis is not configured, allow all requests in development
+  if (!process.env.UPSTASH_REDIS_REST_URL && process.env.NODE_ENV === 'development') {
+    return {
+      success: true,
+      remaining: config.limit,
+      reset: new Date(Date.now() + 60000), // 1 minute from now
+    };
+  }
+
+  // If Redis is not configured in production, log warning but allow
+  if (!process.env.UPSTASH_REDIS_REST_URL) {
+    console.warn('Rate limiting disabled: UPSTASH_REDIS_REST_URL not configured');
+    return {
+      success: true,
+      remaining: config.limit,
+      reset: new Date(Date.now() + 60000),
+    };
+  }
+
+  const limiter = createRateLimiter(config.limit, config.window);
+  const result = await limiter.limit(identifier);
+
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
+}
+
+/**
+ * Get rate limit config for API endpoints
+ */
+export function getApiRateLimit(): { limit: number; window: string } {
+  return rateLimitConfigs.api;
+}
+
+/**
+ * Get rate limit config for auth endpoints
+ */
+export function getAuthRateLimit(): { limit: number; window: string } {
+  return rateLimitConfigs.auth;
+}
+
+/**
+ * Get rate limit config for upload endpoints
+ */
+export function getUploadRateLimit(): { limit: number; window: string } {
+  return rateLimitConfigs.upload;
+}
+
+/**
+ * Get rate limit config based on pathname
+ */
+export function getRateLimitConfig(pathname: string): { limit: number; window: string } {
+  if (pathname.startsWith('/api/auth')) {
+    return rateLimitConfigs.auth;
+  }
+  if (pathname.startsWith('/api/upload') || pathname.startsWith('/api/files')) {
+    return rateLimitConfigs.upload;
+  }
+  if (pathname.startsWith('/api/webhook')) {
+    return rateLimitConfigs.webhook;
+  }
+  if (pathname.startsWith('/api/')) {
+    return rateLimitConfigs.api;
+  }
+  return rateLimitConfigs.public;
+}

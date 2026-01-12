@@ -222,6 +222,7 @@ function isAllowedOrigin(origin: string): boolean {
 
 /**
  * Handle Rate Limiting
+ * Uses Upstash Redis for distributed rate limiting
  */
 async function handleRateLimit(
   request: NextRequest,
@@ -232,49 +233,62 @@ async function handleRateLimit(
     return null;
   }
 
-  const ip = getClientIP(request);
-  const key = `${ip}:${getRateLimitBucket(pathname)}`;
-  const now = Date.now();
+  // Skip rate limiting for excluded paths
+  const excludedPaths = [
+    '/api/stripe/webhook',
+    '/api/auth/callback',
+    '/api/health',
+    '/api/robots',
+    '/api/sitemap',
+  ];
 
-  let record = rateLimitStore.get(key);
-
-  // Reset if window expired
-  if (!record || now > record.resetTime) {
-    record = {
-      count: 0,
-      resetTime: now + config.rateLimit.windowMs,
-    };
+  if (excludedPaths.some(path => pathname.startsWith(path))) {
+    return null;
   }
 
-  record.count++;
-  rateLimitStore.set(key, record);
+  try {
+    // Use Upstash rate limiting if available
+    const { checkRateLimit, getClientIdentifier, getRateLimitConfig } = await import('@/lib/rate-limit');
+    
+    const identifier = getClientIdentifier(request as any);
+    const config = getRateLimitConfig(pathname);
+    const result = await checkRateLimit(identifier, config);
 
-  // Get limit for this bucket
-  const maxRequests = getMaxRequests(pathname);
+    if (!result.success) {
+      const retryAfter = Math.ceil((result.reset.getTime() - Date.now()) / 1000);
 
-  if (record.count > maxRequests) {
-    const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Too Many Requests',
+          message: 'Rate limit exceeded. Please try again later.',
+          retryAfter,
+          reset: result.reset.toISOString(),
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(retryAfter),
+            'X-RateLimit-Limit': String(config.limit),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': result.reset.toISOString(),
+          },
+        }
+      );
+    }
 
-    return new NextResponse(
-      JSON.stringify({
-        error: 'Too Many Requests',
-        message: 'Rate limit exceeded. Please try again later.',
-        retryAfter,
-      }),
-      {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': String(retryAfter),
-          'X-RateLimit-Limit': String(maxRequests),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': String(record.resetTime),
-        },
-      }
-    );
+    // Add rate limit headers to successful response
+    const response = NextResponse.next();
+    response.headers.set('X-RateLimit-Limit', String(config.limit));
+    response.headers.set('X-RateLimit-Remaining', String(result.remaining));
+    response.headers.set('X-RateLimit-Reset', result.reset.toISOString());
+
+    return null; // Continue to next middleware
+  } catch (error) {
+    // If rate limiting fails, log but allow request (fail open)
+    console.error('Rate limiting error:', error);
+    return null;
   }
-
-  return null;
 }
 
 function getClientIP(request: NextRequest): string {
@@ -285,6 +299,8 @@ function getClientIP(request: NextRequest): string {
   );
 }
 
+// Legacy functions - kept for backward compatibility but not used anymore
+// Rate limiting now uses Upstash Redis via @/lib/rate-limit
 function getRateLimitBucket(pathname: string): string {
   if (pathname.startsWith('/api/auth')) return 'auth';
   if (pathname.startsWith('/api/')) return 'api';
