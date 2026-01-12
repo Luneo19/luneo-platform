@@ -26,6 +26,32 @@ import type {
   EventAction,
 } from './types';
 
+// Lazy load analytics integrations to avoid blocking initial render
+let googleAnalytics: typeof import('./google-analytics') | null = null;
+let mixpanel: typeof import('./mixpanel') | null = null;
+
+async function loadGoogleAnalytics() {
+  if (!googleAnalytics && typeof window !== 'undefined') {
+    try {
+      googleAnalytics = await import('./google-analytics');
+    } catch (error) {
+      logger.warn('Failed to load Google Analytics', { error });
+    }
+  }
+  return googleAnalytics;
+}
+
+async function loadMixpanel() {
+  if (!mixpanel && typeof window !== 'undefined') {
+    try {
+      mixpanel = await import('./mixpanel');
+    } catch (error) {
+      logger.warn('Failed to load Mixpanel', { error });
+    }
+  }
+  return mixpanel;
+}
+
 // Default configuration
 const DEFAULT_CONFIG: AnalyticsConfig = {
   enabled: true,
@@ -128,9 +154,64 @@ class AnalyticsService {
       logger.debug('Event tracked', { category, action, ...options });
     }
 
+    // Send to Google Analytics and Mixpanel immediately (non-blocking)
+    this.sendToExternalAnalytics(event).catch((error) => {
+      if (this.config.debug) {
+        logger.warn('Failed to send to external analytics', { error });
+      }
+    });
+
     // Flush if queue is full
     if (this.eventQueue.length >= this.config.batchSize) {
       this.flush();
+    }
+  }
+
+  /**
+   * Send event to external analytics providers (Google Analytics, Mixpanel)
+   */
+  private async sendToExternalAnalytics(event: TrackedEvent): Promise<void> {
+    if (typeof window === 'undefined') return;
+
+    const eventName = `${event.category}_${event.action}`;
+    const properties = {
+      category: event.category,
+      action: event.action,
+      label: event.label,
+      value: event.value,
+      ...event.metadata,
+      sessionId: event.sessionId,
+      userId: event.userId,
+      anonymousId: event.anonymousId,
+      page: event.pageInfo?.path,
+      referrer: event.referrer,
+      ...event.utm,
+    };
+
+    // Send to Google Analytics
+    try {
+      const ga = await loadGoogleAnalytics();
+      if (ga) {
+        ga.trackEvent(eventName, {
+          category: event.category,
+          action: event.action,
+          label: event.label,
+          value: event.value,
+          ...properties,
+        });
+      }
+    } catch (error) {
+      // Silently fail - GA is optional
+    }
+
+    // Send to Mixpanel
+    try {
+      const mp = await loadMixpanel();
+      if (mp) {
+        mp.trackMixpanelEvent(eventName, properties);
+      }
+    } catch (error) {
+      // Silently fail - Mixpanel is optional
     }
   }
 
@@ -140,13 +221,25 @@ class AnalyticsService {
   public trackPageView(path?: string): void {
     if (!this.config.trackPageViews) return;
 
+    const pagePath = path || (typeof window !== 'undefined' ? window.location.pathname : '');
+    const pageTitle = typeof document !== 'undefined' ? document.title : '';
+
     this.track('page_view', 'page_enter', {
-      label: path || window.location.pathname,
+      label: pagePath,
       metadata: {
-        title: document.title,
-        referrer: document.referrer,
+        title: pageTitle,
+        referrer: typeof document !== 'undefined' ? document.referrer : undefined,
       },
     });
+
+    // Also send directly to Google Analytics for page views
+    if (typeof window !== 'undefined') {
+      loadGoogleAnalytics().then((ga) => {
+        if (ga) {
+          ga.trackPageView(pagePath, pageTitle);
+        }
+      });
+    }
   }
 
   /**
@@ -259,6 +352,33 @@ class AnalyticsService {
       metadata: { userId: user.id, plan: user.plan },
     });
 
+    // Identify user in external analytics
+    if (typeof window !== 'undefined') {
+      // Google Analytics
+      loadGoogleAnalytics().then((ga) => {
+        if (ga && user.id) {
+          ga.setUserId(user.id);
+          ga.setUserProperties({
+            email: user.email,
+            plan: user.plan,
+            name: user.name,
+          });
+        }
+      });
+
+      // Mixpanel
+      loadMixpanel().then((mp) => {
+        if (mp && user.id) {
+          mp.identifyMixpanelUser(user.id, {
+            email: user.email,
+            plan: user.plan,
+            name: user.name,
+            ...user.metadata,
+          });
+        }
+      });
+    }
+
     if (this.config.debug) {
       logger.info('User identified', { userId: user.id });
     }
@@ -276,6 +396,15 @@ class AnalyticsService {
 
     this.track('auth', 'logout');
     this.initSession(); // Start new session
+
+    // Reset external analytics
+    if (typeof window !== 'undefined') {
+      loadMixpanel().then((mp) => {
+        if (mp) {
+          mp.resetMixpanel();
+        }
+      });
+    }
 
     if (this.config.debug) {
       logger.info('Analytics reset');
