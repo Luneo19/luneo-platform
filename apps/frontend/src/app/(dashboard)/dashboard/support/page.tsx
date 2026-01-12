@@ -544,11 +544,11 @@ function SupportPageContent() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {[
           { label: 'Total', value: stats?.total || tickets.length, color: 'cyan', icon: TicketIcon },
-          { label: 'Ouverts', value: stats?.byStatus?.open || openTickets.length, color: 'blue', icon: AlertCircle },
-          { label: 'En cours', value: stats?.byStatus?.inProgress || inProgressTickets.length, color: 'yellow', icon: Clock },
-          { label: 'Résolus', value: stats?.byStatus?.resolved || resolvedTickets.length, color: 'green', icon: CheckCircle },
-          { label: 'En attente', value: tickets.filter(t => t.status === 'WAITING_CUSTOMER').length, color: 'orange', icon: Timer },
-          { label: 'Urgents', value: tickets.filter(t => t.priority === 'URGENT').length, color: 'red', icon: AlertTriangle },
+          { label: 'Ouverts', value: stats?.open || openTickets.length, color: 'blue', icon: AlertCircle },
+          { label: 'En cours', value: stats?.pending || inProgressTickets.length, color: 'yellow', icon: Clock },
+          { label: 'Résolus', value: stats?.closed || resolvedTickets.length, color: 'green', icon: CheckCircle },
+          { label: 'En attente', value: tickets.filter(t => t.status === 'pending').length, color: 'orange', icon: Timer },
+          { label: 'Urgents', value: tickets.filter(t => t.priority === 'high').length, color: 'red', icon: AlertTriangle },
         ].map((stat) => {
           const Icon = stat.icon;
           return (

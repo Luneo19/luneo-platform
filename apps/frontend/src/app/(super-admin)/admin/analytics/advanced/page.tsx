@@ -9,6 +9,9 @@ import React, { useState } from 'react';
 import { HeatmapChart } from '@/components/admin/analytics/heatmap-chart';
 import { ScatterChart } from '@/components/admin/analytics/scatter-chart';
 import { AreaChart } from '@/components/admin/analytics/area-chart';
+import { LineChart } from '@/components/admin/analytics/line-chart';
+import { ComboChart } from '@/components/admin/analytics/combo-chart';
+import { RadarChart } from '@/components/admin/analytics/radar-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
@@ -61,6 +64,9 @@ export default function AdvancedAnalyticsPage() {
           <TabsTrigger value="heatmap">Activity Heatmap</TabsTrigger>
           <TabsTrigger value="scatter">Correlation Analysis</TabsTrigger>
           <TabsTrigger value="area">Trend Analysis</TabsTrigger>
+          <TabsTrigger value="line">Line Chart</TabsTrigger>
+          <TabsTrigger value="combo">Combo Chart</TabsTrigger>
+          <TabsTrigger value="radar">Radar Chart</TabsTrigger>
         </TabsList>
 
         <TabsContent value="heatmap" className="space-y-4">
@@ -93,6 +99,56 @@ export default function AdvancedAnalyticsPage() {
             ]}
             isLoading={isLoading}
             stacked={false}
+          />
+        </TabsContent>
+
+        <TabsContent value="line" className="space-y-4">
+          <LineChart
+            title="Revenue & Growth Over Time"
+            data={areaData}
+            dataKeys={[
+              { key: 'revenue', name: 'Revenue', color: '#3b82f6' },
+              { key: 'orders', name: 'Orders', color: '#10b981' },
+            ]}
+            isLoading={isLoading}
+            showReferenceLine={true}
+            referenceLineValue={7000}
+            xLabel="Date"
+            yLabel="Value"
+          />
+        </TabsContent>
+
+        <TabsContent value="combo" className="space-y-4">
+          <ComboChart
+            title="Revenue & Orders Combined"
+            data={areaData}
+            barSeries={[
+              { key: 'revenue', name: 'Revenue', color: '#3b82f6' },
+            ]}
+            lineSeries={[
+              { key: 'orders', name: 'Orders', color: '#10b981' },
+              { key: 'customers', name: 'Customers', color: '#f59e0b', yAxisId: 'right' },
+            ]}
+            isLoading={isLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="radar" className="space-y-4">
+          <RadarChart
+            title="Performance Metrics"
+            data={[
+              { category: 'Revenue', current: 85, target: 100 },
+              { category: 'Orders', current: 70, target: 90 },
+              { category: 'Customers', current: 90, target: 100 },
+              { category: 'Retention', current: 75, target: 85 },
+              { category: 'Satisfaction', current: 88, target: 95 },
+            ]}
+            series={[
+              { key: 'current', name: 'Current', color: '#3b82f6', fillOpacity: 0.6 },
+              { key: 'target', name: 'Target', color: '#10b981', fillOpacity: 0.3 },
+            ]}
+            isLoading={isLoading}
+            maxValue={100}
           />
         </TabsContent>
       </Tabs>

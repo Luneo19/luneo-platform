@@ -106,6 +106,11 @@ export const adminNavigation: NavigationGroup[] = [
             href: '/admin/analytics/funnel',
             icon: BarChart3,
           },
+          {
+            title: 'Advanced',
+            href: '/admin/analytics/advanced',
+            icon: BarChart3,
+          },
         ],
       },
     ],
