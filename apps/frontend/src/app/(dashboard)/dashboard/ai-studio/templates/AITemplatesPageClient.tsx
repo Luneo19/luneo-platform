@@ -119,11 +119,11 @@ export function AITemplatesPageClient() {
               </SelectTrigger>
               <SelectContent>
                 {TEMPLATE_CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
+                  const Icon = cat.icon as React.ComponentType<{ className?: string }>;
                   return (
                     <SelectItem key={cat.value} value={cat.value}>
                       <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4" />
+                        {Icon && <Icon className="w-4 h-4" />}
                         {cat.label}
                       </div>
                     </SelectItem>
