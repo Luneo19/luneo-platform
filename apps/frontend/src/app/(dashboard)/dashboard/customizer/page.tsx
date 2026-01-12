@@ -1135,7 +1135,7 @@ function CustomizerPageContent() {
       {showCustomizer && selectedProduct && (
         <ProductCustomizer
           productId={selectedProduct.id}
-          productImage={selectedProduct.image_url}
+          productImage={selectedProduct.images?.[0] || selectedProduct.baseAssetUrl || ''}
           productName={selectedProduct.name}
           onSave={handleSaveDesign}
           onClose={handleCloseCustomizer}

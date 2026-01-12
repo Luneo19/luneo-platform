@@ -30,7 +30,7 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   
-  // Image optimization
+  // Image optimization with CDN support
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -38,6 +38,30 @@ const nextConfig = {
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // CDN Configuration
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com',
+        pathname: '/**',
+      },
+      // Cloudflare R2 / Custom CDN
+      ...(process.env.NEXT_PUBLIC_CDN_URL ? [{
+        protocol: 'https',
+        hostname: new URL(process.env.NEXT_PUBLIC_CDN_URL).hostname,
+        pathname: '/**',
+      }] : []),
+    ],
+    // Use Cloudinary loader if configured
+    ...(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && {
+      loader: 'cloudinary',
+      loaderFile: './src/lib/cdn/cloudinary-loader.ts',
+    }),
   },
 
   // Compiler optimizations
@@ -182,7 +206,7 @@ const nextConfig = {
     return config;
   },
 
-  // Headers for security and performance
+  // Headers for security, performance, and CDN optimization
   async headers() {
     return [
       {
@@ -214,6 +238,49 @@ const nextConfig = {
           },
         ],
       },
+      // Static assets - Long cache with CDN
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Images - CDN optimized
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      // Fonts - Long cache
+      {
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // API routes - Short cache with revalidation
       {
         source: '/api/:path*',
         headers: [
@@ -223,12 +290,17 @@ const nextConfig = {
           },
         ],
       },
+      // Public assets - Medium cache
       {
-        source: '/_next/static/:path*',
+        source: '/(.*\\.(jpg|jpeg|png|gif|webp|avif|svg|ico|woff|woff2|ttf|eot))',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
           },
         ],
       },
