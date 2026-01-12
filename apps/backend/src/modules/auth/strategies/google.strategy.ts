@@ -13,10 +13,24 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
   ) {
+    const clientID = configService.get<string>('oauth.google.clientId') ||
+                     configService.get<string>('GOOGLE_CLIENT_ID') ||
+                     configService.get<string>('GOOGLE_OAUTH_CLIENT_ID');
+    const clientSecret = configService.get<string>('oauth.google.clientSecret') ||
+                        configService.get<string>('GOOGLE_CLIENT_SECRET') ||
+                        configService.get<string>('GOOGLE_OAUTH_CLIENT_SECRET');
+    const callbackURL = configService.get<string>('oauth.google.callbackUrl') ||
+                       configService.get<string>('GOOGLE_CALLBACK_URL') ||
+                       configService.get<string>('GOOGLE_OAUTH_CALLBACK_URL');
+
+    if (!clientID || !clientSecret) {
+      throw new Error('Google OAuth clientID and clientSecret are required');
+    }
+
     super({
-      clientID: configService.get<string>('oauth.google.clientId'),
-      clientSecret: configService.get<string>('oauth.google.clientSecret'),
-      callbackURL: configService.get<string>('oauth.google.callbackUrl'),
+      clientID,
+      clientSecret,
+      callbackURL: callbackURL || '/api/v1/auth/google/callback',
       scope: ['email', 'profile'],
     });
   }

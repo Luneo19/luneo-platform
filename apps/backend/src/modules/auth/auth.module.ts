@@ -12,12 +12,54 @@ import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
-import { GoogleStrategy } from './strategies/google.strategy';
-import { GitHubStrategy } from './strategies/github.strategy';
-// SAML and OIDC strategies are optional - only load if packages are installed
+
+// Helper function to check if OAuth is configured
+function isOAuthConfigured(provider: 'google' | 'github'): boolean {
+  const env = process.env;
+  if (provider === 'google') {
+    return !!(
+      env.GOOGLE_CLIENT_ID ||
+      env.GOOGLE_OAUTH_CLIENT_ID ||
+      env['oauth.google.clientId']
+    );
+  }
+  if (provider === 'github') {
+    return !!(
+      env.GITHUB_CLIENT_ID ||
+      env.GITHUB_OAUTH_CLIENT_ID ||
+      env['oauth.github.clientId']
+    );
+  }
+  return false;
+}
+
+// OAuth strategies are optional - only load if configured
+let GoogleStrategy: any = null;
+let GitHubStrategy: any = null;
 let SamlStrategy: any = null;
 let OidcStrategy: any = null;
 
+// Check if Google OAuth is configured
+if (isOAuthConfigured('google')) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    GoogleStrategy = require('./strategies/google.strategy').GoogleStrategy;
+  } catch {
+    // Google Strategy not available
+  }
+}
+
+// Check if GitHub OAuth is configured
+if (isOAuthConfigured('github')) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    GitHubStrategy = require('./strategies/github.strategy').GitHubStrategy;
+  } catch {
+    // GitHub Strategy not available
+  }
+}
+
+// SAML and OIDC strategies are optional - only load if packages are installed
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@node-saml/passport-saml');
@@ -56,8 +98,8 @@ try {
   providers: [
     AuthService,
     JwtStrategy,
-    GoogleStrategy,
-    GitHubStrategy,
+    ...(GoogleStrategy ? [GoogleStrategy] : []),
+    ...(GitHubStrategy ? [GitHubStrategy] : []),
     ...(SamlStrategy ? [SamlStrategy] : []),
     ...(OidcStrategy ? [OidcStrategy] : []),
     BruteForceService,
