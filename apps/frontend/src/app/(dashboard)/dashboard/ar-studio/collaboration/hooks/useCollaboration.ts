@@ -9,6 +9,7 @@ import type {
   CollaborationMember,
   CollaborationComment,
   CollaborationActivity,
+  CollaborationRole,
 } from '../types';
 
 export function useCollaboration() {

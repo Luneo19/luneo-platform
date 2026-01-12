@@ -243,8 +243,8 @@ export class AdvancedAnalyticsService {
           }
         }
 
-        // Revenus et commandes
-        cohort.revenue += userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        // Revenus et commandes (convertir totalCents en euros)
+        cohort.revenue += userOrders.reduce((sum, order) => sum + (order.totalCents / 100 || 0), 0);
         cohort.orders += userOrders.length;
       }
     }

@@ -90,7 +90,7 @@ export function useARModels(
 
   const handleDelete = useCallback(
     (modelId: string) => {
-      deleteModel.mutate({ modelId });
+      deleteModel.mutate({ id: modelId });
     },
     [deleteModel]
   );

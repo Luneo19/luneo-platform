@@ -72,7 +72,7 @@ export class AnalyticsExportService {
     doc.fontSize(12);
     doc.text(`Total Commandes: ${orders.length}`);
     doc.text(`Total Designs: ${designs.length}`);
-    doc.text(`Revenus: ${orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toFixed(2)}€`);
+    doc.text(`Revenus: ${orders.reduce((sum, o) => sum + (o.totalCents / 100 || 0), 0).toFixed(2)}€`);
     doc.moveDown();
 
     // Orders table
@@ -83,7 +83,7 @@ export class AnalyticsExportService {
       doc.fontSize(10);
       doc.text(`${index + 1}. Commande #${order.id.substring(0, 8)}`);
       doc.text(`   Date: ${order.createdAt.toLocaleDateString()}`);
-      doc.text(`   Montant: ${order.totalAmount?.toFixed(2)}€`);
+      doc.text(`   Montant: ${(order.totalCents / 100).toFixed(2)}€`);
       doc.text(`   Statut: ${order.status}`);
       doc.moveDown(0.5);
     });
@@ -138,11 +138,14 @@ export class AnalyticsExportService {
       { header: 'Valeur', key: 'value', width: 20 },
     ];
 
-    summarySheet.getRow(1).style = headerStyle;
+    // Apply header style to each cell in the header row
+    summarySheet.getRow(1).eachCell((cell) => {
+      cell.style = headerStyle;
+    });
     summarySheet.addRow({ metric: 'Total Commandes', value: orders.length });
     summarySheet.addRow({
       metric: 'Revenus Total',
-      value: orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toFixed(2) + '€',
+      value: orders.reduce((sum, o) => sum + (o.totalCents / 100 || 0), 0).toFixed(2) + '€',
     });
     summarySheet.addRow({
       metric: 'Période',
@@ -158,13 +161,16 @@ export class AnalyticsExportService {
       { header: 'Client', key: 'customer', width: 30 },
     ];
 
-    worksheet.getRow(1).style = headerStyle;
+    // Apply header style to each cell in the header row
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.style = headerStyle;
+    });
 
     orders.forEach((order) => {
       worksheet.addRow({
         id: order.id.substring(0, 8),
         date: order.createdAt.toLocaleDateString(),
-        amount: order.totalAmount?.toFixed(2) + '€',
+        amount: (order.totalCents / 100).toFixed(2) + '€',
         status: order.status,
         customer: order.userId.substring(0, 8),
       });
@@ -206,7 +212,7 @@ export class AnalyticsExportService {
     // CSV rows
     orders.forEach((order) => {
       csvRows.push(
-        `${order.id.substring(0, 8)},${order.createdAt.toLocaleDateString()},${order.totalAmount?.toFixed(2)},${order.status},${order.userId.substring(0, 8)}`,
+        `${order.id.substring(0, 8)},${order.createdAt.toLocaleDateString()},${(order.totalCents / 100).toFixed(2)},${order.status},${order.userId.substring(0, 8)}`,
       );
     });
 

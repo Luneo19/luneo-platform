@@ -4,6 +4,7 @@
 
 'use client';
 
+import React from 'react';
 import { Search, Filter, Grid, List } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -56,11 +57,11 @@ export function ARFilters({
             </SelectTrigger>
             <SelectContent>
               {MODEL_TYPES.map((type) => {
-                const Icon = type.icon;
+                const Icon = type.icon as React.ElementType;
                 return (
                   <SelectItem key={type.value} value={type.value}>
                     <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4" />
+                      {Icon && React.createElement(Icon, { className: 'w-4 h-4' })}
                       {type.label}
                     </div>
                   </SelectItem>

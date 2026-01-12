@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -202,11 +202,11 @@ export function UploadARModal({
                   </SelectTrigger>
                   <SelectContent>
                     {MODEL_TYPES.filter((t) => t.value !== 'all').map((type) => {
-                      const Icon = type.icon;
+                      const Icon = type.icon as React.ElementType;
                       return (
                         <SelectItem key={type.value} value={type.value}>
                           <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4" />
+                            {Icon && React.createElement(Icon, { className: 'w-4 h-4' })}
                             {type.label}
                           </div>
                         </SelectItem>

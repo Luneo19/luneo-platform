@@ -1,8 +1,12 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy as SamlPassportStrategy } from '@node-saml/passport-saml';
+// import { Strategy as SamlPassportStrategy } from '@node-saml/passport-saml';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
+
+// Note: @node-saml/passport-saml package not installed - commenting out for now
+// To enable: npm install @node-saml/passport-saml
+type SamlPassportStrategy = any;
 
 /**
  * SAML Strategy for Enterprise SSO
