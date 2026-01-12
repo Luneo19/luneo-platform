@@ -45,7 +45,7 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
       const { id, username, displayName, photos, emails } = profile;
       
       const user = {
-        provider: 'github',
+        provider: 'github' as const,
         providerId: id.toString(),
         email: emails?.[0]?.value || `${username}@github.noreply`,
         firstName: displayName || username,

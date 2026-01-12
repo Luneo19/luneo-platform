@@ -598,7 +598,7 @@ function SupportPageContent() {
       </div>
 
       {/* SLA Alerts */}
-      {tickets.filter(t => t.status !== 'RESOLVED' && t.status !== 'CLOSED').slice(0, 3).map(ticket => {
+      {tickets.filter(t => t.status !== 'closed').slice(0, 3).map(ticket => {
         const sla = calculateSLA(ticket);
         if (sla.status === 'breached' || sla.status === 'at-risk') {
           return (
@@ -816,7 +816,7 @@ function SupportPageContent() {
             )}>
               <AnimatePresence>
                 {filteredTickets.map((ticket, index) => {
-                  const CategoryIcon = categoryConfig[ticket.category]?.icon || HelpCircle;
+                  const CategoryIcon = ticket.category ? (categoryConfig[ticket.category]?.icon || HelpCircle) : HelpCircle;
                   const sla = calculateSLA(ticket);
                   return (
             <motion

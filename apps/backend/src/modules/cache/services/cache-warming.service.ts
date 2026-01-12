@@ -107,7 +107,9 @@ export class CacheWarmingService {
     try {
       const brands = await this.prisma.brand.findMany({
         take: 100,
-        where: { isActive: true },
+        where: { 
+          status: 'ACTIVE', // Use status field instead of isActive
+        },
         include: {
           _count: {
             select: {
@@ -210,7 +212,7 @@ export class CacheWarmingService {
   private async calculateTotalRevenue(): Promise<number> {
     const orders = await this.prisma.order.findMany({
       where: {
-        status: 'COMPLETED',
+        status: 'DELIVERED', // Use DELIVERED instead of COMPLETED
       },
       select: {
         totalCents: true,

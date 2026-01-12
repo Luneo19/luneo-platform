@@ -189,8 +189,8 @@ export class OAuthService {
           email: oauthUser.email,
           firstName: oauthUser.firstName || '',
           lastName: oauthUser.lastName || '',
-          picture: oauthUser.picture,
-          isEmailVerified: true, // OAuth providers verify emails
+          avatar: oauthUser.picture || undefined, // Use 'avatar' field instead of 'picture'
+          emailVerified: true, // OAuth providers verify emails
           role: UserRole.CONSUMER,
           oAuthAccounts: {
             create: {
