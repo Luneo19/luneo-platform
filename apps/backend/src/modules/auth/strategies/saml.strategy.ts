@@ -6,7 +6,12 @@ import { AuthService } from '../auth.service';
 
 // Note: @node-saml/passport-saml package not installed - commenting out for now
 // To enable: npm install @node-saml/passport-saml
-type SamlPassportStrategy = any;
+// Using a mock strategy class since the package is not installed
+class MockSamlStrategy {
+  constructor(options: any, verify: any) {
+    // Mock implementation
+  }
+}
 
 /**
  * SAML Strategy for Enterprise SSO
@@ -17,9 +22,11 @@ type SamlPassportStrategy = any;
  * - SAML_ISSUER: SAML issuer (your application identifier)
  * - SAML_CERT: SAML certificate from IdP
  * - SAML_CALLBACK_URL: Callback URL for SAML responses
+ * 
+ * NOTE: This strategy is disabled until @node-saml/passport-saml is installed
  */
 @Injectable()
-export class SamlStrategy extends PassportStrategy(SamlPassportStrategy, 'saml') {
+export class SamlStrategy extends PassportStrategy(MockSamlStrategy as any, 'saml') {
   private readonly logger = new Logger(SamlStrategy.name);
   constructor(
     private readonly configService: ConfigService,

@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { IntegrationsHeader } from './components/IntegrationsHeader';
 import { IntegrationsStats } from './components/IntegrationsStats';
@@ -144,7 +144,7 @@ export function ARIntegrationsPageClient() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {integrations.map((integration) => {
                     const categoryConfig = CATEGORY_CONFIG[integration.category];
-                    const CategoryIcon = categoryConfig.icon;
+                    const CategoryIcon = categoryConfig.icon as React.ElementType;
 
                     return (
                       <Card
@@ -162,7 +162,7 @@ export function ARIntegrationsPageClient() {
                                     : 'bg-gray-700'
                                 )}
                               >
-                                <CategoryIcon className={cn('w-5 h-5', categoryConfig.color)} />
+                                {CategoryIcon && React.createElement(CategoryIcon, { className: cn('w-5 h-5', categoryConfig.color) })}
                               </div>
                               <div>
                                 <CardTitle className="text-white text-lg">{integration.name}</CardTitle>

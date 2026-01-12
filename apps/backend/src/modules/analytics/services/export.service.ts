@@ -110,11 +110,11 @@ export class AnalyticsExportService {
     const headerStyle = {
       font: { bold: true, color: { argb: 'FFFFFFFF' } },
       fill: {
-        type: 'pattern',
-        pattern: 'solid',
+        type: 'pattern' as const,
+        pattern: 'solid' as const,
         fgColor: { argb: 'FF0071E3' },
       },
-      alignment: { vertical: 'middle', horizontal: 'center' },
+      alignment: { vertical: 'middle' as const, horizontal: 'center' as const },
     };
 
     // Get analytics data

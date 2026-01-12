@@ -5,7 +5,7 @@
  * Affiche les actions principales accessibles rapidement
  */
 
-import { memo } from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -74,14 +74,14 @@ function QuickActionsContent() {
       <CardContent>
         <div className="grid grid-cols-2 gap-2">
           {QUICK_ACTIONS.map((action) => {
-            const Icon = action.icon;
+            const Icon = action.icon as React.ElementType;
             return (
               <Link key={action.href} href={action.href as string}>
                 <Button
                   variant="outline"
                   className="w-full h-auto flex flex-col items-center gap-2 p-4 border-gray-700 hover:border-blue-500 hover:bg-blue-500/10"
                 >
-                  <Icon className="h-5 w-5" />
+                  {Icon && React.createElement(Icon, { className: 'h-5 w-5' })}
                   <div className="text-center">
                     <p className="text-sm font-medium">{action.label}</p>
                     <p className="text-xs text-gray-400">{action.description}</p>

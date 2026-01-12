@@ -6,7 +6,12 @@ import { AuthService } from '../auth.service';
 
 // Note: passport-openidconnect package not installed - commenting out for now
 // To enable: npm install passport-openidconnect
-type OidcPassportStrategy = any;
+// Using a mock strategy class since the package is not installed
+class MockOidcStrategy {
+  constructor(options: any, verify: any) {
+    // Mock implementation
+  }
+}
 
 /**
  * OpenID Connect (OIDC) Strategy for Enterprise SSO
@@ -18,9 +23,11 @@ type OidcPassportStrategy = any;
  * - OIDC_CLIENT_SECRET: OIDC client secret
  * - OIDC_CALLBACK_URL: Callback URL for OIDC responses
  * - OIDC_SCOPE: OIDC scopes (default: 'openid profile email')
+ * 
+ * NOTE: This strategy is disabled until passport-openidconnect is installed
  */
 @Injectable()
-export class OidcStrategy extends PassportStrategy(OidcPassportStrategy, 'oidc') {
+export class OidcStrategy extends PassportStrategy(MockOidcStrategy as any, 'oidc') {
   private readonly logger = new Logger(OidcStrategy.name);
   constructor(
     private readonly configService: ConfigService,

@@ -83,7 +83,7 @@ export function QRCodeModal({ open, onClose, qrCodeUrl, shareUrl, modelName }: Q
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
-                {navigator.share && (
+                 {'share' in navigator && (
                   <Button
                     variant="outline"
                     onClick={handleShare}
