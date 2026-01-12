@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
-import { OAuthService } from '../services/oauth.service';
+import { OAuthService, OAuthUser } from '../services/oauth.service';
 import { Logger } from '@nestjs/common';
 
 @Injectable()

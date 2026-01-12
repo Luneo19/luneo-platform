@@ -192,7 +192,7 @@ export class OAuthService {
           avatar: oauthUser.picture || undefined, // Use 'avatar' field instead of 'picture'
           emailVerified: true, // OAuth providers verify emails
           role: UserRole.CONSUMER,
-          oAuthAccounts: {
+          oauthAccounts: {
             create: {
               provider: oauthUser.provider,
               providerId: oauthUser.providerId,

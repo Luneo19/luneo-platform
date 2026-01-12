@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-github2';
 import { ConfigService } from '@nestjs/config';
-import { OAuthService } from '../services/oauth.service';
+import { OAuthService, OAuthUser } from '../services/oauth.service';
 import { Logger } from '@nestjs/common';
 
 @Injectable()
@@ -44,8 +44,8 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
     try {
       const { id, username, displayName, photos, emails } = profile;
       
-      const user = {
-        provider: 'github' as const,
+      const user: OAuthUser = {
+        provider: 'github',
         providerId: id.toString(),
         email: emails?.[0]?.value || `${username}@github.noreply`,
         firstName: displayName || username,

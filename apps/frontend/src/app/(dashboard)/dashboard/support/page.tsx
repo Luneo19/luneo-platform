@@ -859,8 +859,8 @@ function SupportPageContent() {
                                 {ticket.ticketNumber}
                               </Badge>
                               <div className="flex items-center gap-1 text-xs text-gray-500">
-                                <CategoryIcon className="w-3 h-3" />
-                                <span>{categoryConfig[ticket.category]?.label}</span>
+                                {CategoryIcon && React.createElement(CategoryIcon as React.ElementType, { className: 'w-3 h-3' })}
+                                <span>{ticket.category ? categoryConfig[ticket.category]?.label : 'Non catégorisé'}</span>
                               </div>
                               {sla.status !== 'on-track' && (
                                 <Badge
