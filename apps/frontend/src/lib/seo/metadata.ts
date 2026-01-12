@@ -178,3 +178,8 @@ export function generateArticleMetadata(article: {
     tags: article.tags,
   });
 }
+
+// Export aliases for backward compatibility
+export const generateSEOMetadata = generateMetadata;
+export { getDefaultOrganizationSchema as getOrganizationSchema } from './schema';
+export { getDefaultWebSiteSchema as getWebsiteSchema } from './schema';
