@@ -220,8 +220,9 @@ ARG CACHE_BUSTER=2025-01-15T11:30:00Z
 | `b0fd134` | Fix Prisma schema errors + Dockerfile | 2 erreurs TypeScript + 1 erreur Dockerfile |
 | `c0814c0` | Fix ExcelJS types + Strategy classes | 4 erreurs TypeScript |
 | `f7fe07a` | Fix OAuth strategies conditional loading | 1 erreur runtime OAuth |
+| `7591386` | Fix OAuth Service & Cache Warming errors | 5 erreurs TypeScript |
 
-**Total**: **10 erreurs corrigées** (9 TypeScript + 1 runtime OAuth)
+**Total**: **15 erreurs corrigées** (14 TypeScript + 1 runtime OAuth)
 
 ---
 
@@ -262,7 +263,96 @@ this.prisma.design.count({
 
 **Lignes**: 79, 179
 
-**Commit**: `[commit hash]`
+**Commit**: `7591386`
+
+---
+
+### 7. Erreurs OAuth Service & Cache Warming (5 erreurs)
+
+**Problème**:
+1. Le champ `picture` n'existe pas dans le modèle `User` - utiliser `avatar`
+2. Le champ `isEmailVerified` n'existe pas - utiliser `emailVerified`
+3. Le type `provider` doit être un type littéral (`'google' | 'github' | 'saml' | 'oidc'`) au lieu de `string`
+4. Le champ `isActive` n'existe pas dans `Brand` - utiliser `status: 'ACTIVE'`
+5. Le statut `'COMPLETED'` n'existe pas dans `OrderStatus` - utiliser `'DELIVERED'`
+
+**Fichiers corrigés**:
+- `apps/backend/src/modules/auth/services/oauth.service.ts`
+- `apps/backend/src/modules/auth/strategies/google.strategy.ts`
+- `apps/backend/src/modules/auth/strategies/github.strategy.ts`
+- `apps/backend/src/modules/cache/services/cache-warming.service.ts`
+
+**Corrections**:
+
+1. **OAuth Service - picture → avatar**:
+```typescript
+// ❌ Avant
+picture: oauthUser.picture,
+
+// ✅ Après
+avatar: oauthUser.picture || undefined,
+```
+
+2. **OAuth Service - isEmailVerified → emailVerified**:
+```typescript
+// ❌ Avant
+isEmailVerified: true,
+
+// ✅ Après
+emailVerified: true,
+```
+
+3. **Google Strategy - provider type**:
+```typescript
+// ❌ Avant
+const user = {
+  provider: 'google',
+  // ...
+};
+
+// ✅ Après
+const user = {
+  provider: 'google' as const,
+  // ...
+};
+```
+
+4. **GitHub Strategy - provider type**:
+```typescript
+// ❌ Avant
+const user = {
+  provider: 'github',
+  // ...
+};
+
+// ✅ Après
+const user = {
+  provider: 'github' as const,
+  // ...
+};
+```
+
+5. **Cache Warming - Brand isActive → status**:
+```typescript
+// ❌ Avant
+where: { isActive: true },
+
+// ✅ Après
+where: { 
+  status: 'ACTIVE',
+},
+```
+
+6. **Cache Warming - OrderStatus COMPLETED → DELIVERED**:
+```typescript
+// ❌ Avant
+status: 'COMPLETED',
+
+// ✅ Après
+status: 'DELIVERED',
+```
+
+**Commit**: `7591386`
 
 ---
 
