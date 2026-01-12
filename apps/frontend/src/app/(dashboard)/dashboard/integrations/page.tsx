@@ -490,14 +490,13 @@ function IntegrationsPageContent() {
           {!selectedPlatform ? (
             <div className="grid grid-cols-2 gap-4 py-4">
               {PLATFORMS.map((platform) => (
-                <motion.div
+                <motion
                   key={platform.id}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => !platform.comingSoon && setSelectedPlatform(platform.id)}
-                  disabled={platform.comingSoon}
                   className={`
-                    p-4 rounded-xl border text-left transition-all relative
+                    p-4 rounded-xl border text-left transition-all relative cursor-pointer
                     ${platform.comingSoon
                       ? 'border-slate-700 bg-slate-800/30 cursor-not-allowed opacity-60'
                       : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
@@ -519,7 +518,7 @@ function IntegrationsPageContent() {
                       </Badge>
                     ))}
                   </div>
-                </motion.div>
+                </motion>
               ))}
             </div>
           ) : (

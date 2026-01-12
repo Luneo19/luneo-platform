@@ -4,6 +4,7 @@
 
 'use client';
 
+import React from 'react';
 import { Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -55,7 +56,7 @@ export function LibraryFilters({
                 return (
                   <SelectItem key={category.value} value={category.value}>
                     <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4" />
+                      {Icon && React.createElement(Icon as React.ElementType, { className: 'w-4 h-4' })}
                       {category.label}
                     </div>
                   </SelectItem>

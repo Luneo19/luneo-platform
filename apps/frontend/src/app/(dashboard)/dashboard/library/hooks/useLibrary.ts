@@ -25,7 +25,7 @@ export function useLibrary(
     limit: 12,
     category: categoryFilter !== 'all' ? categoryFilter : undefined,
     search: searchTerm || undefined,
-    sortBy,
+    sortBy: sortBy === 'size' ? 'name' : sortBy,
   });
 
   useEffect(() => {
