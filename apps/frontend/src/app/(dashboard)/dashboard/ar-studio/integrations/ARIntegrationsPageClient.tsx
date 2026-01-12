@@ -125,11 +125,11 @@ export function ARIntegrationsPageClient() {
                   <SelectContent>
                     <SelectItem value="all">Toutes les catégories</SelectItem>
                     {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
-                      const Icon = config.icon;
+                      const Icon = config.icon as React.ElementType;
                       return (
                         <SelectItem key={key} value={key}>
                           <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4" />
+                            {Icon && React.createElement(Icon, { className: 'w-4 h-4' })}
                             {config.label}
                           </div>
                         </SelectItem>

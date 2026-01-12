@@ -74,7 +74,7 @@ export class AdvancedAnalyticsService {
           count = await this.prisma.usageMetric.count({
             where: {
               brandId,
-              metricType: 'PAGE_VIEW',
+              metric: 'PAGE_VIEW',
               timestamp: { gte: startDate, lte: endDate },
             },
           });
