@@ -96,6 +96,7 @@ import { MetricsModule } from './libs/metrics/metrics.module';
 import { TracingModule } from './libs/tracing/tracing.module';
 import { GlobalRateLimitGuard } from './common/guards/global-rate-limit.guard';
 import { CacheModule } from './modules/cache/cache.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [

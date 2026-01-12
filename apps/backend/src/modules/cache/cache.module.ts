@@ -1,22 +1,11 @@
-import { Module, Global } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { CacheWarmingService } from './services/cache-warming.service';
+import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
-import { EnhancedCacheableInterceptor } from '@/libs/cache/enhanced-cacheable.interceptor';
-import { CacheInvalidationService } from '@/libs/cache/cache-invalidation.service';
 
-/**
- * Global Cache Module
- * Provides caching functionality across all modules
- */
-@Global()
 @Module({
-  imports: [RedisOptimizedModule],
-  providers: [
-    EnhancedCacheableInterceptor,
-    CacheInvalidationService,
-  ],
-  exports: [
-    EnhancedCacheableInterceptor,
-    CacheInvalidationService,
-  ],
+  imports: [PrismaModule, RedisOptimizedModule],
+  providers: [CacheWarmingService],
+  exports: [CacheWarmingService],
 })
 export class CacheModule {}
