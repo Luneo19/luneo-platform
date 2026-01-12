@@ -15,6 +15,7 @@ export function useFileUpload() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileMapRef = useRef<Map<string, File>>(new Map());
 
   const validateFile = useCallback((file: File): { valid: boolean; error?: string } => {
     // Vérifier la taille

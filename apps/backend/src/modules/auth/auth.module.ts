@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthController } from './auth.controller';
 import { OAuthController } from './controllers/oauth.controller';
+import { SSOEnterpriseController } from './controllers/sso-enterprise.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -13,6 +14,7 @@ import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
 import { OAuthService } from './services/oauth.service';
+import { SSOEnterpriseService } from './services/sso-enterprise.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 
 // Helper function to check if OAuth is configured
@@ -96,7 +98,7 @@ try {
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, OAuthController],
+  controllers: [AuthController, OAuthController, SSOEnterpriseController],
   providers: [
     AuthService,
     JwtStrategy,
@@ -108,8 +110,9 @@ try {
     TwoFactorService,
     CaptchaService,
     OAuthService,
+    SSOEnterpriseService,
     RedisOptimizedService,
   ],
-  exports: [AuthService, JwtStrategy, TwoFactorService, OAuthService],
+  exports: [AuthService, JwtStrategy, TwoFactorService, OAuthService, SSOEnterpriseService],
 })
 export class AuthModule {}

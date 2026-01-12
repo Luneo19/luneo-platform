@@ -90,7 +90,7 @@ export function LibraryPageClient() {
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
         sortBy={sortBy}
-        onSortByChange={setSortBy}
+        onSortByChange={(value) => setSortBy(value as SortOption)}
         templatesCount={templates.length}
       />
       <LibraryGrid
