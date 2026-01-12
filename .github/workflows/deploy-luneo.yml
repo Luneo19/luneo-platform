@@ -1,9 +1,10 @@
 name: Deploy Luneo to Vercel
 
+# DÉSACTIVÉ: Déploiement automatique désactivé pour économiser les crédits Vercel
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+  # push:
+  #   branches: [ main ]
+  workflow_dispatch: # Seulement déploiement manuel
 
 jobs:
   deploy:

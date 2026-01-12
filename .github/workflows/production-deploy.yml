@@ -5,12 +5,13 @@
 
 name: 🚀 Production Deploy
 
+# DÉSACTIVÉ: Déploiement automatique désactivé pour économiser les crédits Vercel
 on:
-  push:
-    branches: [main]
-    tags:
-      - 'v*'
-  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  #   tags:
+  #     - 'v*'
+  workflow_dispatch: # Seulement déploiement manuel
     inputs:
       environment:
         description: 'Environment to deploy'
