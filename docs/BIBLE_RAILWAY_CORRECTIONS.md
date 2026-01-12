@@ -224,8 +224,9 @@ ARG CACHE_BUSTER=2025-01-15T11:30:00Z
 | `65ce044` | Fix OAuth Accounts field name & provider types | 2 erreurs TypeScript |
 | `ee0dbdd` | Fix Google Strategy provider type with 'as const' | 1 erreur TypeScript |
 | `[next]` | Fix CacheExtensionService dependency injection | 1 erreur runtime NestJS |
+| `498c569` | Fix Grafana datasource cache hit rate calculation | 3 erreurs TypeScript |
 
-**Total**: **19 erreurs corrigées** (17 TypeScript + 2 runtime)
+**Total**: **22 erreurs corrigées** (20 TypeScript + 2 runtime)
 
 ---
 
@@ -406,6 +407,11 @@ status: 'DELIVERED',
 - Ajouter des retries pour les installations de dépendances
 - Utiliser un cache buster pour forcer les rebuilds si nécessaire
 
+### 5. Redis Stats Parsing
+- `redis.info('stats')` retourne une chaîne de caractères, pas un objet
+- Toujours parser la chaîne avec des regex pour extraire les valeurs
+- Gérer les cas où les valeurs ne sont pas trouvées (valeurs par défaut)
+
 ---
 
 ## 🚀 PROCHAINES ÉTAPES
@@ -431,6 +437,54 @@ status: 'DELIVERED',
 
 ---
 
+### 12. Erreur Grafana Datasource Cache Hit Rate (3 erreurs)
+
+**Problème**: 
+- `stats.hits` et `stats.misses` n'existent pas sur le type retourné par `getStats()`
+- `getStats()` retourne `{ memory, keyspace, clients, stats }` où `stats` est une chaîne de caractères (résultat de `redis.info('stats')`)
+- Erreur: `Property 'hits' does not exist on type '{ memory: any; keyspace: any; clients: any; stats: any; }'`
+
+**Fichier corrigé**:
+- `apps/backend/src/modules/monitoring/grafana/datasource.service.ts`
+
+**Correction**:
+```typescript
+// ❌ Avant
+const stats = await this.redis.getStats();
+const hitRate = stats.hits / (stats.hits + stats.misses) * 100 || 0;
+
+// ✅ Après
+const stats = await this.redis.getStats();
+
+// Parse Redis INFO stats string to extract hits and misses
+// Redis INFO stats format: "keyspace_hits:123\nkeyspace_misses:456\n..."
+let hits = 0;
+let misses = 0;
+
+if (typeof stats.stats === 'string') {
+  const hitsMatch = stats.stats.match(/keyspace_hits:(\d+)/);
+  const missesMatch = stats.stats.match(/keyspace_misses:(\d+)/);
+  
+  hits = hitsMatch ? parseInt(hitsMatch[1], 10) : 0;
+  misses = missesMatch ? parseInt(missesMatch[1], 10) : 0;
+}
+
+// Calculate hit rate percentage
+const total = hits + misses;
+const hitRate = total > 0 ? (hits / total) * 100 : 0;
+```
+
+**Raison**: 
+- `redis.info('stats')` retourne une chaîne de caractères, pas un objet
+- Il faut parser la chaîne avec des regex pour extraire `keyspace_hits` et `keyspace_misses`
+- Gérer le cas où les valeurs ne sont pas trouvées (valeurs par défaut)
+
+**Lignes**: 152-165
+
+**Commit**: `498c569`
+
+---
+
 ## ✅ SUCCÈS FINAL
 
 **Date**: 15 janvier 2025  
@@ -442,10 +496,11 @@ Tous les modules sont initialisés correctement :
 - ✅ RedisOptimizedModule  
 - ✅ CacheModule
 - ✅ AuthModule
+- ✅ MonitoringModule (avec GrafanaModule)
 - ✅ Tous les autres modules (50+)
 
-**Total erreurs corrigées**: **19 erreurs**
-- 17 erreurs TypeScript
+**Total erreurs corrigées**: **22 erreurs**
+- 20 erreurs TypeScript
 - 2 erreurs runtime
 
 L'application est maintenant **production-ready** sur Railway ! 🚀
