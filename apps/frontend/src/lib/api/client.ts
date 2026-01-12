@@ -351,6 +351,34 @@ export const endpoints = {
     },
   },
 
+  // Webhooks (alias direct pour compatibilité)
+  webhooks: {
+    list: () => api.get('/api/v1/webhooks'),
+    get: (id: string) => api.get(`/api/v1/webhooks/${id}`),
+    create: (data: {
+      name: string;
+      url: string;
+      secret?: string;
+      events: string[];
+      isActive?: boolean;
+    }) => api.post('/api/v1/webhooks', data),
+    update: (id: string, data: {
+      name?: string;
+      url?: string;
+      secret?: string;
+      events?: string[];
+      isActive?: boolean;
+    }) => api.put(`/api/v1/webhooks/${id}`, data),
+    delete: (id: string) => api.delete(`/api/v1/webhooks/${id}`),
+    test: (url: string, secret?: string) =>
+      api.post('/api/v1/webhooks/test', { url, secret }),
+    logs: (id: string, params?: { page?: number; limit?: number }) =>
+      api.get(`/api/v1/webhooks/${id}/logs`, { params }),
+    history: (params?: { page?: number; limit?: number }) =>
+      api.get('/api/v1/webhooks/history', { params }),
+    retry: (logId: string) => api.post(`/api/v1/webhooks/${logId}/retry`),
+  },
+
   // Agents
   agents: {
     luna: {

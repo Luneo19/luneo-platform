@@ -40,8 +40,8 @@ export function TestWebhookModal({
 
   const testMutation = useMutation({
     mutationFn: async () => {
-      const response = await endpoints.webhooks.test(testUrl, testSecret || undefined);
-      return response.data;
+      const response = await endpoints.webhooks.test(testUrl, testSecret || '');
+      return response as { success: boolean; message?: string; data?: any };
     },
     onSuccess: (data) => {
       if (data.success) {
