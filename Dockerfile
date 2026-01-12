@@ -69,9 +69,11 @@ RUN echo "Checking for Prisma Client..." && \
         fi; \
     fi
 
-# Builder l'application
-WORKDIR /app/apps/backend
-RUN nest build || pnpm build
+    # Builder l'application
+    WORKDIR /app/apps/backend
+    # Force rebuild by adding timestamp comment
+    # Build timestamp: 2025-01-15T11:30:00Z
+    RUN nest build || pnpm build
 
 # ============================================
 # STAGE 2: Production - Image finale légère
