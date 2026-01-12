@@ -58,9 +58,6 @@ export class CacheWarmingService {
       // Warm up user sessions
       await this.warmupUserSessions();
 
-      // Use cache extension warmup
-      await this.cacheExtension.warmupCache();
-
       const duration = Date.now() - startTime;
       this.logger.log(`Cache warmup completed in ${duration}ms`);
     } catch (error) {
