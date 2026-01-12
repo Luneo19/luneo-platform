@@ -14,10 +14,12 @@ export function useSessions() {
   const { toast } = useToast();
   const [sessions, setSessions] = useState<SecuritySession[]>([]);
 
-  const sessionsQuery = trpc.profile.getSessions.useQuery(undefined, {
-    onSuccess: (data) => {
+  const sessionsQuery = trpc.profile.getSessions.useQuery();
+
+  useEffect(() => {
+    if (sessionsQuery.data) {
       setSessions(
-        (data.sessions || []).map((s: any) => ({
+        (sessionsQuery.data.sessions || []).map((s: any) => ({
           id: s.id || 'unknown',
           device: s.device || 'Unknown Device',
           deviceType: s.device_type || 'other',
@@ -34,8 +36,8 @@ export function useSessions() {
           expires_at: s.expires_at,
         }))
       );
-    },
-  });
+    }
+  }, [sessionsQuery.data]);
 
   const revokeSession = useCallback(
     async (sessionId: string): Promise<{ success: boolean }> => {

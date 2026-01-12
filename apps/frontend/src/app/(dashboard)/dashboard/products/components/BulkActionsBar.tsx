@@ -4,6 +4,7 @@
 
 'use client';
 
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
@@ -50,7 +51,7 @@ export function BulkActionsBar({
               size="sm"
               onClick={() => onBulkAction(action.type)}
             >
-              <Icon className="w-4 h-4 mr-2" />
+              {Icon && React.createElement(Icon as React.ElementType, { className: 'w-4 h-4 mr-2' })}
               {actionLabel}
             </Button>
           );

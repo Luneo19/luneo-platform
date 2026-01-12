@@ -240,9 +240,9 @@ function SupportPageContent() {
   const [csatComment, setCsatComment] = useState('');
   const [newTicket, setNewTicket] = useState<CreateTicketDto>({
     subject: '',
-    description: '',
+    message: '',
     category: 'TECHNICAL',
-    priority: 'MEDIUM',
+    priority: 'medium',
   });
   const [kbSearch, setKbSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'tickets' | 'knowledge' | 'templates' | 'analytics'>('tickets');
@@ -253,8 +253,8 @@ function SupportPageContent() {
     return tickets.filter((ticket) => {
       const matchesSearch =
         ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase());
+        (ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+        (ticket.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
       const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
       const matchesPriority = filterPriority === 'all' || ticket.priority === filterPriority;
       const matchesCategory = filterCategory === 'all' || ticket.category === filterCategory;
