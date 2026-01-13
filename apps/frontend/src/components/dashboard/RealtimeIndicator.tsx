@@ -29,7 +29,7 @@ interface RealtimeIndicatorProps {
   position?: 'top-right' | 'bottom-right' | 'bottom-left';
 }
 
-function RealtimeIndicator({
+function RealtimeIndicatorComponent({
   showFeed = true,
   maxFeedItems = 5,
   position = 'bottom-right',
@@ -240,16 +240,16 @@ function RealtimeIndicator({
   );
 }
 
-const RealtimeIndicatorMemo = memo(RealtimeIndicator);
+const RealtimeIndicatorMemo = memo(RealtimeIndicatorComponent);
 
-export const RealtimeIndicator = RealtimeIndicatorMemo;
-
-export default function RealtimeIndicatorWithErrorBoundary(props: RealtimeIndicatorProps) {
+export function RealtimeIndicator(props: RealtimeIndicatorProps) {
   return (
     <ErrorBoundary componentName="RealtimeIndicator">
       <RealtimeIndicatorMemo {...props} />
     </ErrorBoundary>
   );
 }
+
+export default RealtimeIndicator;
 
 
