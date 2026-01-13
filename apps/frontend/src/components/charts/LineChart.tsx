@@ -86,14 +86,11 @@ function LineChartContent({
         ))}
         
         {/* Line path */}
-        <motion.path
+        <path
           d={pathData}
           fill="none"
           stroke={color}
           strokeWidth={2}
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1, ease: "easeInOut" }}
         />
         
         {/* Data points */}
@@ -102,16 +99,12 @@ function LineChartContent({
           const y = chartData.padding + chartData.chartHeight - ((point.y - chartData.minY) / chartData.rangeY) * chartData.chartHeight;
           
           return (
-            <motion.circle
+            <circle
               key={index}
               cx={x}
               cy={y}
               r={4}
               fill={color}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileHover={{ scale: 1.5, stroke: color, strokeWidth: 2 }}
             />
           );
         })}
