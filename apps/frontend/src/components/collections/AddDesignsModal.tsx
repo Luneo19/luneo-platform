@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { Check, Image as ImageIcon, Plus, Search, X } from 'lucide-react';
 import Image from 'next/image';
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useState, useMemo } from 'react';
 
 interface Design {
   id: string;

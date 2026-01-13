@@ -342,7 +342,7 @@ function CommentThreadComponent({
 
 const CommentThreadMemo = memo(CommentThreadComponent);
 
-export function CommentThreadWrapper(props: CommentThreadProps) {
+export function CommentThread(props: CommentThreadProps) {
   return (
     <ErrorBoundary componentName="CommentThread">
       <CommentThreadMemo {...props} />
@@ -350,7 +350,6 @@ export function CommentThreadWrapper(props: CommentThreadProps) {
   );
 }
 
-export const CommentThread = CommentThreadWrapper;
-export default CommentThreadWrapper;
+export default CommentThread;
 
 
