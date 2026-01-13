@@ -17,6 +17,7 @@ import {
 import Link from 'next/link';
 import React, { memo, useCallback, useState } from 'react';
 import { logger } from '../../lib/logger';
+import { useIsAuthenticated } from '@/lib/hooks/useAuth';
 
 interface HeaderProps {
   title: string;
@@ -33,6 +34,7 @@ const Header = memo(function Header({
   onMenuToggle, 
   isMobileMenuOpen 
 }: HeaderProps) {
+  const { user } = useIsAuthenticated();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleMenuToggle = useCallback(() => {
@@ -105,7 +107,7 @@ const Header = memo(function Header({
             {actions}
 
             {/* Credits Display */}
-            <CreditsDisplay variant="inline" />
+            <CreditsDisplay userId={user?.id || ''} inline />
 
             {/* Notifications */}
             <NotificationCenter />
