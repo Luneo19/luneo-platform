@@ -46,7 +46,7 @@ interface CommentThreadProps {
 
 const REACTION_EMOJIS = ['👍', '❤️', '🎉', '🤔', '👀', '🚀'];
 
-function CommentThread({
+function CommentThreadComponent({
   comments,
   currentUserId,
   position,
@@ -340,7 +340,7 @@ function CommentThread({
   );
 }
 
-const CommentThreadMemo = memo(CommentThread);
+const CommentThreadMemo = memo(CommentThreadComponent);
 
 export function CommentThreadWrapper(props: CommentThreadProps) {
   return (

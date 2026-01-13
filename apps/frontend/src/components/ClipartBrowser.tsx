@@ -58,7 +58,6 @@ interface ClipartBrowserProps {
 export function ClipartBrowser({ className, onClipartSelect, showUploadButton = true }: ClipartBrowserProps) {
   const { toast } = useToast();
   const [cliparts, setCliparts] = useState<Clipart[]>([]);
-  const [filteredCliparts, setFilteredCliparts] = useState<Clipart[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
