@@ -184,10 +184,13 @@ function ARViewerContent() {
 
           if (hitTestResults.length > 0 && model) {
             const hit = hitTestResults[0];
-            const pose = hit.getPose(renderer.xr.getReferenceSpace());
+            const referenceSpace = renderer.xr.getReferenceSpace();
+            if (!referenceSpace) return;
+            const pose = hit.getPose(referenceSpace);
 
             if (pose) {
-              model.position.setFromMatrixPosition(pose.transform.matrix);
+              const matrix = new THREE.Matrix4().fromArray(Array.from(pose.transform.matrix));
+              model.position.setFromMatrixPosition(matrix);
               modelPlaced = true;
 
               // Track placement success

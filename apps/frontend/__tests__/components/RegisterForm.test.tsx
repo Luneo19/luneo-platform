@@ -36,8 +36,9 @@ vi.mock('next/navigation', () => ({
 
 // Import dynamique pour permettre les mocks
 const loadRegisterPage = async () => {
-  const module = await import('@/app/(auth)/register/page');
-  return module.default;
+  // eslint-disable-next-line @next/next/no-assign-module-variable
+  const registerModule = await import('@/app/(auth)/register/page');
+  return registerModule.default;
 };
 
 describe('RegisterForm/RegisterPage Component', () => {

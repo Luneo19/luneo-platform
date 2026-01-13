@@ -41,8 +41,9 @@ vi.mock('@/lib/canvas-editor/export/PrintReadyExporter', () => ({
 
 // Import dynamique pour permettre les mocks
 const loadProductCustomizer = async () => {
-  const module = await import('@/components/Customizer/ProductCustomizer');
-  return module.default || module.ProductCustomizer;
+  // eslint-disable-next-line @next/next/no-assign-module-variable
+  const customizerModule = await import('@/components/Customizer/ProductCustomizer');
+  return customizerModule.default || customizerModule.ProductCustomizer;
 };
 
 describe('ProductCustomizer Component', () => {
