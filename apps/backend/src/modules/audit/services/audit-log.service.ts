@@ -75,29 +75,35 @@ export class AuditLogService {
    */
   async log(data: AuditLogData): Promise<void> {
     try {
-      // In a real implementation, this would use a Prisma model `AuditLog`
-      // For now, we'll log to console and optionally store in database
-      const auditLog = {
-        userId: data.userId,
-        brandId: data.brandId,
-        action: data.action,
-        resourceType: data.resourceType,
-        resourceId: data.resourceId,
-        metadata: data.metadata || {},
-        ipAddress: data.ipAddress,
-        userAgent: data.userAgent,
-        success: data.success,
-        errorMessage: data.errorMessage,
-        timestamp: new Date(),
-      };
+      if (!data.userId) {
+        this.logger.warn('Audit log requires userId');
+        return;
+      }
+
+      // Store in database using Prisma AuditLog model
+      await this.prisma.auditLog.create({
+        data: {
+          eventType: data.action,
+          userId: data.userId,
+          resourceType: data.resourceType || 'unknown',
+          resourceId: data.resourceId || 'unknown',
+          action: data.action,
+          success: data.success,
+          metadata: {
+            ...(data.metadata || {}),
+            brandId: data.brandId,
+            errorMessage: data.errorMessage,
+          },
+          ipAddress: data.ipAddress,
+          userAgent: data.userAgent,
+          timestamp: new Date(),
+        },
+      });
 
       // Log to console in development
       if (process.env.NODE_ENV === 'development') {
         this.logger.log(`[AUDIT] ${data.action} - User: ${data.userId} - Success: ${data.success}`);
       }
-
-      // TODO: Store in database when Prisma model is created
-      // await this.prisma.auditLog.create({ data: auditLog });
     } catch (error) {
       this.logger.error('Failed to log audit event:', error);
       // Don't throw - audit logging should not break the application
@@ -118,29 +124,120 @@ export class AuditLogService {
     limit?: number;
     offset?: number;
   }): Promise<any[]> {
-    // TODO: Implement with Prisma model
-    return [];
+    try {
+      const where: any = {};
+
+      if (filters.userId) {
+        where.userId = filters.userId;
+      }
+
+      if (filters.action) {
+        where.action = filters.action;
+      }
+
+      if (filters.resourceType) {
+        where.resourceType = filters.resourceType;
+      }
+
+      if (filters.resourceId) {
+        where.resourceId = filters.resourceId;
+      }
+
+      if (filters.startDate || filters.endDate) {
+        where.timestamp = {};
+        if (filters.startDate) {
+          where.timestamp.gte = filters.startDate;
+        }
+        if (filters.endDate) {
+          where.timestamp.lte = filters.endDate;
+        }
+      }
+
+      // Filter by brandId from metadata if provided
+      if (filters.brandId) {
+        where.metadata = {
+          path: ['brandId'],
+          equals: filters.brandId,
+        };
+      }
+
+      const logs = await this.prisma.auditLog.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: filters.limit || 100,
+        skip: filters.offset || 0,
+      });
+
+      return logs;
+    } catch (error) {
+      this.logger.error('Failed to get audit logs:', error);
+      return [];
+    }
   }
 
   /**
    * Get audit log by ID
    */
   async getAuditLogById(id: string): Promise<any | null> {
-    // TODO: Implement with Prisma model
-    return null;
+    try {
+      const log = await this.prisma.auditLog.findUnique({
+        where: { id },
+      });
+
+      return log;
+    } catch (error) {
+      this.logger.error('Failed to get audit log by ID:', error);
+      return null;
+    }
   }
 
   /**
-   * Export audit logs
+   * Export audit logs to CSV
    */
-  async exportAuditLogs(filters: {
-    userId?: string;
-    brandId?: string;
-    action?: AuditAction;
-    startDate?: Date;
-    endDate?: Date;
-  }): Promise<Buffer> {
-    // TODO: Implement export to CSV/JSON
-    return Buffer.from('');
+  async exportAuditLogs(
+    filters: {
+      userId?: string;
+      brandId?: string;
+      action?: AuditAction;
+      startDate?: Date;
+      endDate?: Date;
+    },
+    format: 'csv' | 'json' = 'csv',
+  ): Promise<Buffer> {
+    try {
+      const logs = await this.getAuditLogs({
+        ...filters,
+        limit: 10000, // Max export limit
+      });
+
+      if (format === 'json') {
+        return Buffer.from(JSON.stringify(logs, null, 2), 'utf-8');
+      }
+
+      // CSV format
+      const headers = ['ID', 'Event Type', 'User ID', 'Resource Type', 'Resource ID', 'Action', 'Success', 'IP Address', 'User Agent', 'Timestamp'];
+      const rows = logs.map((log) => [
+        log.id,
+        log.eventType,
+        log.userId,
+        log.resourceType,
+        log.resourceId,
+        log.action,
+        log.success ? 'Yes' : 'No',
+        log.ipAddress || '',
+        log.userAgent || '',
+        log.timestamp.toISOString(),
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+
+      return Buffer.from(csvContent, 'utf-8');
+    } catch (error) {
+      this.logger.error('Failed to export audit logs:', error);
+      return Buffer.from('');
+    }
   }
 }

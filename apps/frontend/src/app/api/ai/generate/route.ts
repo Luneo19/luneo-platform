@@ -42,6 +42,6 @@ export async function POST(request: NextRequest) {
       style,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ai/generate', 'POST');
 }

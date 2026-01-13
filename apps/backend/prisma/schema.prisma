@@ -228,6 +228,14 @@ model User {
   // Super Admin - Customer relation
   customer Customer?
 
+  // Discount & Referral
+  discountUsages DiscountUsage[]
+  referralsAsReferrer Referral[] @relation("Referrer")
+  referralsAsReferred Referral? @relation("Referred")
+  commissions Commission[]
+  withdrawals Withdrawal[]
+  userProfile UserProfile?
+
   @@index([email])
   @@index([brandId])
   @@index([role])
@@ -355,6 +363,12 @@ model Brand {
 
   // Agents IA
   agentConversations AgentConversation[]
+
+  // SSO Enterprise
+  ssoConfigurations SSOConfiguration[]
+
+  // Discounts
+  discounts Discount[]
 
   @@index([slug])
   @@index([status])
@@ -731,6 +745,10 @@ model Order {
   customizations Customization[]
   workOrder      WorkOrder?
   quotes         Quote[]
+
+  // Discount & Referral
+  discountUsages DiscountUsage[]
+  commissions    Commission[]
 
   @@index([userId])
   @@index([brandId])
@@ -1354,12 +1372,181 @@ model UserConsent {
   ipAddress   String?
   userAgent   String?
 
-  // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([consentType])
   @@index([recordedAt])
+}
+
+// ========================================
+// DISCOUNT & PROMO CODES
+// ========================================
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model Discount {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  type           DiscountType
+  value          Int // Pourcentage (0-100) ou montant fixe en centimes
+  minPurchaseCents Int?       @map("min_purchase_cents")
+  maxDiscountCents Int?       @map("max_discount_cents")
+  validFrom      DateTime     @map("valid_from")
+  validUntil     DateTime     @map("valid_until")
+  usageLimit     Int?         @map("usage_limit")
+  usageCount     Int          @default(0) @map("usage_count")
+  isActive       Boolean      @default(true) @map("is_active")
+  brandId        String?
+  brand          Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  description    String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  discountUsages DiscountUsage[]
+
+  @@index([code])
+  @@index([brandId])
+  @@index([isActive])
+  @@index([validFrom, validUntil])
+  @@map("discounts")
+}
+
+model DiscountUsage {
+  id         String   @id @default(cuid())
+  discountId String   @map("discount_id")
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  userId     String?  @map("user_id")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderId    String?  @map("order_id")
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  usedAt     DateTime @default(now()) @map("used_at")
+
+  @@index([discountId])
+  @@index([userId])
+  @@index([orderId])
+  @@map("discount_usages")
+}
+
+// ========================================
+// REFERRAL PROGRAM
+// ========================================
+
+enum ReferralStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Referral {
+  id              String         @id @default(cuid())
+  referrerId      String         @map("referrer_id")
+  referrer        User           @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUserId  String?        @unique @map("referred_user_id")
+  referredUser    User?          @relation("Referred", fields: [referredUserId], references: [id], onDelete: SetNull)
+  referralCode    String         @map("referral_code")
+  status          ReferralStatus @default(PENDING)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  completedAt     DateTime?      @map("completed_at")
+
+  commissions Commission[]
+
+  @@index([referrerId])
+  @@index([referredUserId])
+  @@index([referralCode])
+  @@index([status])
+  @@map("referrals")
+}
+
+model Commission {
+  id            String          @id @default(cuid())
+  referralId    String          @map("referral_id")
+  referral      Referral        @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  userId        String          @map("user_id")
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId       String?         @map("order_id")
+  order         Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  amountCents   Int             @map("amount_cents")
+  percentage    Float           @default(0.1) // 10% par défaut
+  status        CommissionStatus @default(PENDING)
+  approvedAt    DateTime?       @map("approved_at")
+  paidAt        DateTime?       @map("paid_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  @@index([referralId])
+  @@index([userId])
+  @@index([orderId])
+  @@index([status])
+  @@map("commissions")
+}
+
+model Withdrawal {
+  id          String          @id @default(cuid())
+  userId      String          @map("user_id")
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountCents Int             @map("amount_cents")
+  iban        String
+  status      WithdrawalStatus @default(PENDING)
+  processedAt DateTime?        @map("processed_at")
+  failureReason String?        @map("failure_reason")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("withdrawals")
+}
+
+model ReferralApplication {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  status    String   @default("pending") // 'pending', 'approved', 'rejected'
+  appliedAt DateTime @default(now()) @map("applied_at")
+  reviewedAt DateTime? @map("reviewed_at")
+
+  @@index([email])
+  @@index([status])
+  @@map("referral_applications")
+}
+
+// ========================================
+// USER PROFILE (for IBAN and additional info)
+// ========================================
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  iban      String?
+  bic       String?
+  bankName  String?  @map("bank_name")
+  address   Json?    // Full address as JSON
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
 }
 
 model UsageMetric {
@@ -3383,4 +3570,48 @@ model AdminAuditLog {
 
   @@index([adminId, createdAt])
   @@index([resource, resourceId])
+}
+
+// ========================================
+// SSO CONFIGURATION (Enterprise SSO)
+// ========================================
+
+model SSOConfiguration {
+  id       String  @id @default(cuid())
+  brandId  String
+  brand    Brand   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  provider String // 'saml' | 'oidc'
+  name     String
+  enabled  Boolean @default(true)
+
+  // SAML Configuration
+  samlEntryPoint    String?
+  samlIssuer        String?
+  samlCert          String? // Base64 encoded certificate
+  samlCallbackUrl   String?
+  samlDecryptionPvk String? // Encrypted private key
+
+  // OIDC Configuration
+  oidcIssuer       String?
+  oidcClientId     String?
+  oidcClientSecret String? // Encrypted
+  oidcCallbackUrl  String?
+  oidcScope        String? @default("openid profile email")
+
+  // Metadata
+  metadataUrl String?
+  metadataXml String? // SAML metadata XML
+
+  // Settings
+  autoProvisioning Boolean @default(true)
+  defaultRole      String?
+  attributeMapping Json? // { email: "email", firstName: "given_name", ... }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, provider])
+  @@index([brandId])
+  @@index([provider])
+  @@index([enabled])
 }

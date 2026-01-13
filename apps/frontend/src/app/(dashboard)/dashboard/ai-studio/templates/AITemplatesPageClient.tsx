@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Filter } from 'lucide-react';
 import { TEMPLATE_CATEGORIES, SORT_OPTIONS } from './constants/templates';
 import type { TemplateCategory } from './types';
+import { logger } from '@/lib/logger';
 
 export function AITemplatesPageClient() {
   const { toast } = useToast();
@@ -53,11 +54,40 @@ export function AITemplatesPageClient() {
       return;
     }
 
-    // TODO: Implement download
-    toast({
-      title: 'Téléchargement',
-      description: `Téléchargement de "${template.name}"...`,
-    });
+    try {
+      // Get template result URL (from template data or API)
+      const downloadUrl = template.resultUrl || template.imageUrl || template.thumbnailUrl;
+      
+      if (!downloadUrl) {
+        toast({
+          title: 'Erreur',
+          description: 'URL de téléchargement non disponible',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Create temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${template.name || 'template'}-${Date.now()}.${downloadUrl.split('.').pop() || 'png'}`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: 'Téléchargement',
+        description: `Téléchargement de "${template.name}" démarré`,
+      });
+    } catch (error: any) {
+      logger.error('Failed to download template', { error, templateId: template.id });
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors du téléchargement',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleToggleFavorite = async (templateId: string) => {

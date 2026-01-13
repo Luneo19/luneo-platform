@@ -9,7 +9,7 @@ import { logger } from '../../../../../../lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function CreateOrderPageContent() {
-  const [copied, setCopied] = React.useState('');
+  const [copied, setCopied] = React.useState(false);
 
   const copyCode = useCallback(() => {
     navigator.clipboard.writeText(exampleCode);

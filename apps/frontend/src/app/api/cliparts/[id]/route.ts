@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: ClipartRouteContext)
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/cliparts/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/cliparts/[id]', 'GET');
 }
 
@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: ClipartRouteContex
     const { id } = await params;
     const body = await request.json();
     const result = await forwardPut(`/cliparts/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/cliparts/[id]', 'PATCH');
 }
 
@@ -42,6 +42,6 @@ export async function DELETE(request: NextRequest, { params }: ClipartRouteConte
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardDelete(`/cliparts/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/cliparts/[id]', 'DELETE');
 }

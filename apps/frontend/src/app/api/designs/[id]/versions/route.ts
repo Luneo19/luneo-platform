@@ -28,7 +28,7 @@ export async function GET(
     const queryString = queryParams.toString();
     const url = `/designs/${designId}/versions${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/designs/[id]/versions', 'GET');
 }
 
@@ -54,7 +54,7 @@ export async function POST(
     const validatedBody = createVersionSchema.parse(body || {});
 
     const result = await forwardPost(`/designs/${designId}/versions`, request, validatedBody);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/designs/[id]/versions', 'POST');
 }
 

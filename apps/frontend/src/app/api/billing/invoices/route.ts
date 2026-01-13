@@ -18,6 +18,6 @@ export async function GET(request: NextRequest) {
       page,
       limit,
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/billing/invoices', 'GET');
 }

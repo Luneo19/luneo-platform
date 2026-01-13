@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const fullUrl = `${url}${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(fullUrl, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/monitoring/metrics', 'GET');
 }
 

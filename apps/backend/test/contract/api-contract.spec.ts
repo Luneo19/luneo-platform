@@ -7,7 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '@/app.module';
-import * as Ajv from 'ajv';
+import Ajv from 'ajv';
 
 describe('API Contract Tests', () => {
   let app: INestApplication;

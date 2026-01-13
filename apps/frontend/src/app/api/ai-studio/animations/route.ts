@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       limit,
       ...(status && { status }),
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ai-studio/animations', 'GET');
 }
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/ai-studio/animations/generate', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ai-studio/animations', 'POST');
 }
 

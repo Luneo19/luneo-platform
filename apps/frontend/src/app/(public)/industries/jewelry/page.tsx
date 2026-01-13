@@ -35,7 +35,7 @@ function JewelryIndustryPageContent() {
                 title={solution.title}
                 description={solution.description}
                 icon={solution.icon}
-                color="yellow"
+                color="orange"
               />
             ))}
           </div>

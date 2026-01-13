@@ -8,7 +8,7 @@ import { logger } from '../../../../../../lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function VirtualTryOnGettingStartedPageContent() {
-  const [copied, setCopied] = React.useState('');
+  const [copied, setCopied] = React.useState<string>('');
   const copyCode = useCallback((code: string, id: string) => {
     navigator.clipboard.writeText(code);
     setCopied(id);

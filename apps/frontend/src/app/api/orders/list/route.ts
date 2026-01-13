@@ -31,6 +31,6 @@ export async function GET(request: NextRequest) {
       sortOrder,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/orders/list', 'GET');
 }

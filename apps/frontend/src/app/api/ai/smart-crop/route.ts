@@ -38,6 +38,6 @@ export async function POST(request: NextRequest) {
       focusPoint: input.focusPoint,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ai/smart-crop', 'POST');
 }

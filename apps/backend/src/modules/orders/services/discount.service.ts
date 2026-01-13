@@ -75,32 +75,71 @@ export class DiscountService {
 
     const normalizedCode = code.toUpperCase().trim();
 
-    // TODO: Implémenter avec modèle Discount dans Prisma
-    // Pour l'instant, validation simple avec codes hardcodés pour démonstration
-    // À remplacer par une vraie table Discount dans Prisma
+    // Récupérer le code promo depuis la base de données
+    const discount = await this.prisma.discount.findUnique({
+      where: { code: normalizedCode },
+    });
 
-    // Codes promo de démonstration
-    const demoCodes: Record<string, { percent: number; fixed?: number; description: string }> = {
-      'WELCOME10': { percent: 10, description: '10% de réduction sur votre première commande' },
-      'SAVE20': { percent: 20, description: '20% de réduction' },
-      'FREESHIP': { percent: 0, fixed: 500, description: 'Livraison gratuite (5€)' },
-      'FLASH50': { percent: 50, description: '50% de réduction flash' },
-    };
-
-    const discountConfig = demoCodes[normalizedCode];
-
-    if (!discountConfig) {
+    if (!discount) {
       throw new BadRequestException(`Invalid discount code: ${code}`);
     }
 
+    // Vérifier si le code est actif
+    if (!discount.isActive) {
+      throw new BadRequestException(`Discount code ${code} is not active`);
+    }
+
+    // Vérifier les dates de validité
+    const now = new Date();
+    if (discount.validFrom > now || discount.validUntil < now) {
+      throw new BadRequestException(`Discount code ${code} is expired or not yet valid`);
+    }
+
+    // Vérifier la limite d'utilisation
+    if (discount.usageLimit && discount.usageCount >= discount.usageLimit) {
+      throw new BadRequestException(`Discount code ${code} has reached its usage limit`);
+    }
+
+    // Vérifier le montant minimum d'achat
+    if (discount.minPurchaseCents && subtotalCents < discount.minPurchaseCents) {
+      throw new BadRequestException(
+        `Minimum purchase amount of ${discount.minPurchaseCents / 100}€ required for this discount code`,
+      );
+    }
+
+    // Vérifier si le code est spécifique à une marque
+    if (discount.brandId && brandId && discount.brandId !== brandId) {
+      throw new BadRequestException(`Discount code ${code} is not valid for this brand`);
+    }
+
+    // Vérifier si l'utilisateur a déjà utilisé ce code
+    if (userId) {
+      const existingUsage = await this.prisma.discountUsage.findFirst({
+        where: {
+          discountId: discount.id,
+          userId,
+        },
+      });
+
+      if (existingUsage) {
+        throw new BadRequestException(`You have already used discount code ${code}`);
+      }
+    }
+
+    // Calculer la réduction
     let discountCents = 0;
 
-    if (discountConfig.fixed) {
+    if (discount.type === 'FIXED') {
       // Réduction fixe
-      discountCents = Math.min(discountConfig.fixed, subtotalCents);
+      discountCents = Math.min(discount.value, subtotalCents);
     } else {
       // Réduction en pourcentage
-      discountCents = Math.round((subtotalCents * discountConfig.percent) / 100);
+      discountCents = Math.round((subtotalCents * discount.value) / 100);
+    }
+
+    // Appliquer la limite maximale de réduction si définie
+    if (discount.maxDiscountCents) {
+      discountCents = Math.min(discountCents, discount.maxDiscountCents);
     }
 
     // Ne pas permettre une réduction supérieure au montant total
@@ -110,10 +149,10 @@ export class DiscountService {
 
     return {
       discountCents,
-      discountPercent: discountConfig.percent,
+      discountPercent: discount.type === 'PERCENTAGE' ? discount.value : 0,
       code: normalizedCode,
-      type: discountConfig.fixed ? 'fixed' : 'percentage',
-      description: discountConfig.description,
+      type: discount.type === 'FIXED' ? 'fixed' : 'percentage',
+      description: discount.description || undefined,
     };
   }
 
@@ -134,10 +173,62 @@ export class DiscountService {
   async validateDiscountCode(code: string): Promise<boolean> {
     try {
       const normalizedCode = code.toUpperCase().trim();
-      const demoCodes = ['WELCOME10', 'SAVE20', 'FREESHIP', 'FLASH50'];
-      return demoCodes.includes(normalizedCode);
+      const discount = await this.prisma.discount.findUnique({
+        where: { code: normalizedCode },
+      });
+
+      if (!discount || !discount.isActive) {
+        return false;
+      }
+
+      const now = new Date();
+      if (discount.validFrom > now || discount.validUntil < now) {
+        return false;
+      }
+
+      if (discount.usageLimit && discount.usageCount >= discount.usageLimit) {
+        return false;
+      }
+
+      return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Enregistre l'utilisation d'un code promo
+   * À appeler après validation et application réussie
+   */
+  async recordDiscountUsage(
+    discountId: string,
+    orderId: string,
+    userId?: string,
+  ): Promise<void> {
+    try {
+      // Créer l'enregistrement d'utilisation
+      await this.prisma.discountUsage.create({
+        data: {
+          discountId,
+          orderId,
+          userId,
+        },
+      });
+
+      // Incrémenter le compteur d'utilisation
+      await this.prisma.discount.update({
+        where: { id: discountId },
+        data: {
+          usageCount: {
+            increment: 1,
+          },
+        },
+      });
+
+      this.logger.log(`Recorded discount usage: discountId=${discountId}, orderId=${orderId}`);
+    } catch (error) {
+      this.logger.error('Failed to record discount usage', error);
+      // Ne pas throw pour ne pas bloquer le processus de commande
     }
   }
 }

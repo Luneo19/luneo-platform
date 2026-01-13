@@ -12,6 +12,6 @@ import { exportARConfigurationSchema } from '@/lib/validation/zod-schemas';
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.validateWithZod(exportARConfigurationSchema, request, async (validatedData) => {
     const result = await forwardPost('/render/3d/export-ar', request, validatedData);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   });
 }

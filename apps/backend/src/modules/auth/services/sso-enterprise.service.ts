@@ -100,46 +100,60 @@ export class SSOEnterpriseService {
       ? this.encrypt(dto.samlDecryptionPvk)
       : null;
 
-    // Create SSO configuration in database
-    // Note: This assumes a Prisma model `SSOConfiguration` exists
-    // For now, we'll use a JSON storage approach or create the model
-    const ssoConfig = {
-      id: crypto.randomUUID(),
-      brandId: dto.brandId,
-      provider: dto.provider,
-      name: dto.name,
-      enabled: dto.enabled ?? true,
-      samlEntryPoint: dto.samlEntryPoint,
-      samlIssuer: dto.samlIssuer,
-      samlCert: dto.samlCert,
-      samlCallbackUrl: dto.samlCallbackUrl || this.getDefaultCallbackUrl(dto.provider),
-      samlDecryptionPvk: encryptedDecryptionPvk,
-      oidcIssuer: dto.oidcIssuer,
-      oidcClientId: dto.oidcClientId,
-      oidcClientSecret: encryptedClientSecret,
-      oidcCallbackUrl: dto.oidcCallbackUrl || this.getDefaultCallbackUrl(dto.provider),
-      oidcScope: dto.oidcScope || 'openid profile email',
-      metadataUrl: dto.metadataUrl,
-      metadataXml: dto.metadataXml,
-      autoProvisioning: dto.autoProvisioning ?? true,
-      defaultRole: dto.defaultRole,
-      attributeMapping: dto.attributeMapping || {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    // Create SSO configuration in database using Prisma model
+    const ssoConfig = await (this.prisma as any).sSOConfiguration.create({
+      data: {
+        brandId: dto.brandId,
+        provider: dto.provider,
+        name: dto.name,
+        enabled: dto.enabled ?? true,
+        samlEntryPoint: dto.samlEntryPoint,
+        samlIssuer: dto.samlIssuer,
+        samlCert: dto.samlCert,
+        samlCallbackUrl: dto.samlCallbackUrl || this.getDefaultCallbackUrl(dto.provider),
+        samlDecryptionPvk: encryptedDecryptionPvk,
+        oidcIssuer: dto.oidcIssuer,
+        oidcClientId: dto.oidcClientId,
+        oidcClientSecret: encryptedClientSecret,
+        oidcCallbackUrl: dto.oidcCallbackUrl || this.getDefaultCallbackUrl(dto.provider),
+        oidcScope: dto.oidcScope || 'openid profile email',
+        metadataUrl: dto.metadataUrl,
+        metadataXml: dto.metadataXml,
+        autoProvisioning: dto.autoProvisioning ?? true,
+        defaultRole: dto.defaultRole,
+        attributeMapping: dto.attributeMapping || {},
+      },
+    });
 
     this.logger.log(`Created SSO configuration for brand ${dto.brandId}: ${dto.name}`);
 
-    return ssoConfig as SSOConfiguration;
+    return this.mapToSSOConfiguration(ssoConfig);
   }
 
   /**
    * Get SSO configuration for a brand
    */
   async getSSOConfiguration(brandId: string, provider?: 'saml' | 'oidc'): Promise<SSOConfiguration | null> {
-    // In a real implementation, query from database
-    // For now, return null (to be implemented with Prisma model)
-    return null;
+    try {
+      const where: any = { brandId };
+      if (provider) {
+        where.provider = provider;
+      }
+
+      const config = await (this.prisma as any).sSOConfiguration.findFirst({
+        where,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!config) {
+        return null;
+      }
+
+      return this.mapToSSOConfiguration(config);
+    } catch (error) {
+      this.logger.error('Failed to get SSO configuration:', error);
+      return null;
+    }
   }
 
   /**
@@ -149,16 +163,59 @@ export class SSOEnterpriseService {
     id: string,
     updates: Partial<CreateSSODto>,
   ): Promise<SSOConfiguration> {
-    // In a real implementation, update in database
-    throw new Error('Not implemented - requires Prisma model');
+    try {
+      const updateData: any = {};
+
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.enabled !== undefined) updateData.enabled = updates.enabled;
+      if (updates.samlEntryPoint !== undefined) updateData.samlEntryPoint = updates.samlEntryPoint;
+      if (updates.samlIssuer !== undefined) updateData.samlIssuer = updates.samlIssuer;
+      if (updates.samlCert !== undefined) updateData.samlCert = updates.samlCert;
+      if (updates.samlCallbackUrl !== undefined) updateData.samlCallbackUrl = updates.samlCallbackUrl;
+      if (updates.oidcIssuer !== undefined) updateData.oidcIssuer = updates.oidcIssuer;
+      if (updates.oidcClientId !== undefined) updateData.oidcClientId = updates.oidcClientId;
+      if (updates.oidcCallbackUrl !== undefined) updateData.oidcCallbackUrl = updates.oidcCallbackUrl;
+      if (updates.oidcScope !== undefined) updateData.oidcScope = updates.oidcScope;
+      if (updates.metadataUrl !== undefined) updateData.metadataUrl = updates.metadataUrl;
+      if (updates.metadataXml !== undefined) updateData.metadataXml = updates.metadataXml;
+      if (updates.autoProvisioning !== undefined) updateData.autoProvisioning = updates.autoProvisioning;
+      if (updates.defaultRole !== undefined) updateData.defaultRole = updates.defaultRole;
+      if (updates.attributeMapping !== undefined) updateData.attributeMapping = updates.attributeMapping;
+
+      // Encrypt sensitive fields if provided
+      if (updates.oidcClientSecret) {
+        updateData.oidcClientSecret = this.encrypt(updates.oidcClientSecret);
+      }
+      if (updates.samlDecryptionPvk) {
+        updateData.samlDecryptionPvk = this.encrypt(updates.samlDecryptionPvk);
+      }
+
+      const updated = await (this.prisma as any).sSOConfiguration.update({
+        where: { id },
+        data: updateData,
+      });
+
+      return this.mapToSSOConfiguration(updated);
+    } catch (error) {
+      this.logger.error('Failed to update SSO configuration:', error);
+      throw error;
+    }
   }
 
   /**
    * Delete SSO configuration
    */
   async deleteSSOConfiguration(id: string): Promise<void> {
-    // In a real implementation, delete from database
-    throw new Error('Not implemented - requires Prisma model');
+    try {
+      await (this.prisma as any).sSOConfiguration.delete({
+        where: { id },
+      });
+
+      this.logger.log(`Deleted SSO configuration: ${id}`);
+    } catch (error) {
+      this.logger.error('Failed to delete SSO configuration:', error);
+      throw error;
+    }
   }
 
   /**
@@ -224,5 +281,35 @@ export class SSOEnterpriseService {
     decrypted += decipher.final('utf8');
 
     return decrypted;
+  }
+
+  /**
+   * Map Prisma model to SSOConfiguration interface
+   */
+  private mapToSSOConfiguration(prismaModel: any): SSOConfiguration {
+    return {
+      id: prismaModel.id,
+      brandId: prismaModel.brandId,
+      provider: prismaModel.provider as 'saml' | 'oidc',
+      enabled: prismaModel.enabled,
+      name: prismaModel.name,
+      samlEntryPoint: prismaModel.samlEntryPoint,
+      samlIssuer: prismaModel.samlIssuer,
+      samlCert: prismaModel.samlCert,
+      samlCallbackUrl: prismaModel.samlCallbackUrl,
+      samlDecryptionPvk: prismaModel.samlDecryptionPvk,
+      oidcIssuer: prismaModel.oidcIssuer,
+      oidcClientId: prismaModel.oidcClientId,
+      oidcClientSecret: prismaModel.oidcClientSecret,
+      oidcCallbackUrl: prismaModel.oidcCallbackUrl,
+      oidcScope: prismaModel.oidcScope,
+      metadataUrl: prismaModel.metadataUrl,
+      metadataXml: prismaModel.metadataXml,
+      autoProvisioning: prismaModel.autoProvisioning,
+      defaultRole: prismaModel.defaultRole,
+      attributeMapping: (prismaModel.attributeMapping as Record<string, string>) || {},
+      createdAt: prismaModel.createdAt,
+      updatedAt: prismaModel.updatedAt,
+    };
   }
 }

@@ -6,11 +6,13 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminBreadcrumbs } from './admin-breadcrumbs';
 import { Search, Bell, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { AdminUser } from '@/lib/admin/permissions';
+import { CommandPalette } from '../command-palette';
+import { NotificationsPanel } from '../notifications-panel';
 
 interface AdminHeaderProps {
   user: AdminUser;
@@ -18,6 +20,19 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ user }: AdminHeaderProps) {
   const router = useRouter();
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -46,10 +61,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         {/* Search */}
         <button
           className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-          onClick={() => {
-            // TODO: Open command palette
-            console.log('Open command palette');
-          }}
+          onClick={() => setCommandPaletteOpen(true)}
         >
           <Search className="w-4 h-4" />
           <span className="hidden md:inline">Search...</span>
@@ -59,16 +71,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         </button>
 
         {/* Notifications */}
-        <button
-          className="relative p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-          onClick={() => {
-            // TODO: Open notifications
-            console.log('Open notifications');
-          }}
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-        </button>
+        <NotificationsPanel userId={user.id} />
 
         {/* User Menu */}
         <div className="flex items-center gap-3 pl-4 border-l border-zinc-800">
@@ -90,6 +93,12 @@ export function AdminHeader({ user }: AdminHeaderProps) {
           </button>
         </div>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+      />
     </header>
   );
 }

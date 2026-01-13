@@ -35,9 +35,8 @@ export const metadata: Metadata = generateSEOMetadata({
     'Shopify',
     'WooCommerce',
   ],
-  url: '/',
-  type: 'website',
-  image: '/og-homepage.png',
+  ogType: 'website',
+  ogImage: '/og-homepage.png',
 });
 
 export default function HomePage() {

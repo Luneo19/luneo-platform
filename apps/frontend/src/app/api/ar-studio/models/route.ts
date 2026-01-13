@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
     });
 
     return {
-      model: result.data?.model || result.data,
-      message: result.message || 'Modèle AR uploadé avec succès',
+      model: (result.data as any)?.model || result.data,
+      message: (result.data as any)?.message || 'Modèle AR uploadé avec succès',
     };
   }, '/api/ar-studio/models', 'POST');
 }
@@ -60,7 +60,7 @@ export async function DELETE(request: NextRequest) {
 
     const result = await forwardDelete(`/ar-studio/models/${modelId}`, request);
     return {
-      message: result.message || 'Modèle AR supprimé avec succès',
+      message: (result.data as any)?.message || 'Modèle AR supprimé avec succès',
     };
   }, '/api/ar-studio/models', 'DELETE');
 }

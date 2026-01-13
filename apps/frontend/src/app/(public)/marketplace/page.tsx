@@ -539,7 +539,7 @@ function TemplateCard({
       <Card className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-all overflow-hidden">
         <div className="flex">
           <div className="w-48 h-32 relative flex-shrink-0">
-            <OptimizedImage alt="" className="w-full h-full object-cover" />
+            <OptimizedImage src={template.previewImage} alt={template.name} className="w-full h-full object-cover" />
             {template.price === 0 && (
               <Badge className="absolute top-2 left-2 bg-green-500/90">Gratuit</Badge>
             )}
@@ -581,7 +581,7 @@ function TemplateCard({
     `}>
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden">
-        <OptimizedImage alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+        <OptimizedImage src={template.previewImage} alt={template.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
         
         {/* Overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

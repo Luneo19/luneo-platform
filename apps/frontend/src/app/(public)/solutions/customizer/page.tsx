@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
@@ -532,7 +532,8 @@ function DemoCanvas() {
                 }}
                 drag
                 dragMomentum={false}
-                onDragEnd={(_, info) => {
+                // @ts-ignore - framer-motion drag handler
+                onDragEnd={(event: any, info: any) => {
                   setElements(prev => prev.map(el => 
                     el.id === element.id 
                       ? { ...el, x: el.x + info.offset.x, y: el.y + info.offset.y }

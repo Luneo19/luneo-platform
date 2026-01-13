@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus } from 'lucide-react';
 import { AutomationsList } from '@/components/admin/marketing/automations-list';
 import { useAutomations } from '@/hooks/admin/use-automations';
+import { cn } from '@/lib/utils';
 
 export default function AutomationsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');

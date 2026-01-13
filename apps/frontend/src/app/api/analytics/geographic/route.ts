@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       timeRange,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/geographic', 'GET');
 }
 

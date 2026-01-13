@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       lastName,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/marketplace/seller/connect', 'POST');
 }
 
@@ -37,6 +37,6 @@ export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/marketplace/seller/connect', request);
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/marketplace/seller/connect', 'GET');
 }

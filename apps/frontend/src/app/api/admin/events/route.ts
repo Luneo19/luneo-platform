@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      events: events.map((e) => ({
+      events: events.map((e: any) => ({
         id: e.id,
         type: e.type,
         data: e.data || {},

@@ -12,7 +12,7 @@ import { updateSubscriptionSchema } from '@/lib/validation/zod-schemas';
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/billing/subscription', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/billing/subscription', 'GET');
 }
 
@@ -41,6 +41,6 @@ export async function PUT(request: NextRequest) {
     // Pour l'instant, on forwarde vers le backend
     // Le backend devra implémenter la logique de mise à jour
     const result = await forwardPut('/billing/subscription', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/billing/subscription', 'PUT');
 }

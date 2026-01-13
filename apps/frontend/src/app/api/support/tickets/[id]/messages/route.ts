@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, { params }: TicketMessagesRouteC
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/support/tickets/${id}`, request);
-    return result.data.messages || [];
+    return (result.data as any)?.messages || [];
   }, '/api/support/tickets/[id]/messages', 'GET');
 }
 
@@ -40,6 +40,6 @@ export async function POST(request: NextRequest, { params }: TicketMessagesRoute
     }
 
     const result = await forwardPost(`/support/tickets/${id}/messages`, request, { content });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/support/tickets/[id]/messages', 'POST');
 }

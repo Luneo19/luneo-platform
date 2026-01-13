@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     // Récupérer les détails de la brand (qui contient les settings)
     const brandResult = await forwardGet(`/brands/${user.brandId}`, request);
-    const brand = brandResult.data as { settings?: Record<string, unknown> } | null;
+    const brand = brandResult.data as { settings?: Record<string, unknown>; logo?: string; name?: string; website?: string } | null;
 
     // Extraire les settings de la brand ou retourner des valeurs par défaut
     const settings = brand?.settings || {};
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       brandSettings: {
         primary_color: (settings as any)?.primary_color || '#000000',
         secondary_color: (settings as any)?.secondary_color || '#ffffff',
-        logo_url: (settings as any)?.logo_url || brand?.logo || null,
+        logo_url: (settings as any)?.logo_url || (brand as any)?.logo || null,
         favicon_url: (settings as any)?.favicon_url || null,
         brand_name: brand?.name || null,
         brand_domain: brand?.website || null,
@@ -137,13 +137,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await forwardPatch(`/brands/${user.brandId}`, request, updateData);
-    const updatedBrand = result.data as { settings?: Record<string, unknown> } | null;
+    const updatedBrand = result.data as { settings?: Record<string, unknown>; logo?: string; name?: string; website?: string } | null;
 
     return {
       brandSettings: {
         primary_color: (updatedBrand?.settings as any)?.primary_color || primary_color || '#000000',
         secondary_color: (updatedBrand?.settings as any)?.secondary_color || secondary_color || '#ffffff',
-        logo_url: (updatedBrand?.settings as any)?.logo_url || updatedBrand?.logo || logo_url || null,
+        logo_url: (updatedBrand?.settings as any)?.logo_url || (updatedBrand as any)?.logo || logo_url || null,
         favicon_url: (updatedBrand?.settings as any)?.favicon_url || favicon_url || null,
         brand_name: updatedBrand?.name || brand_name || null,
         brand_domain: updatedBrand?.website || brand_domain || null,

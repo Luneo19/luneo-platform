@@ -61,7 +61,19 @@ describe('AuthService', () => {
         AuthService,
         {
           provide: PrismaService,
-          useValue: createTestingModule([], { prisma: true }).get(PrismaService),
+          useValue: {
+            user: {
+              findUnique: jest.fn(),
+              findFirst: jest.fn(),
+              create: jest.fn(),
+              update: jest.fn(),
+            },
+            refreshToken: {
+              create: jest.fn(),
+              findUnique: jest.fn(),
+              deleteMany: jest.fn(),
+            },
+          },
         },
         {
           provide: JwtService,

@@ -504,3 +504,31 @@ Tous les modules sont initialisés correctement :
 - 2 erreurs runtime
 
 L'application est maintenant **production-ready** sur Railway ! 🚀
+
+---
+
+## 🔄 MISE À JOUR NODE.JS 22 (Janvier 2025)
+
+### Changements pour Google Ads SDK
+
+**Fichiers modifiés** :
+- `Dockerfile` : `node:20-alpine` → `node:22-alpine` (builder et production)
+- `apps/backend/package.json` : `engines.node: ">=18.0.0"` → `">=22.0.0"`
+- `.github/workflows/*.yml` : `NODE_VERSION: '20'` → `'22'` (7 workflows)
+- `apps/backend/scripts/deploy-production.sh` : Vérification Node.js 18+ → 22+
+- `apps/frontend/src/lib/admin/integrations/google-ads.ts` : Code activé (imports et implémentation)
+
+**Packages installés** :
+- ✅ `google-ads-api@^22.0.0` (backend)
+- ✅ `@node-saml/passport-saml@^5.1.0` (backend)
+- ✅ `passport-openidconnect@^0.1.2` (backend)
+- ✅ `@mediapipe/pose@^0.5.1675469404` (virtual-try-on)
+- ✅ `@mediapipe/selfie_segmentation@^0.1.1675469404` (virtual-try-on)
+- ✅ `@mediapipe/holistic@^0.5.1675469404` (virtual-try-on)
+
+**Code activé** :
+- ✅ Google Ads SDK : Imports et implémentation décommentés
+- ✅ SAML Strategy : MockSamlStrategy → SamlPassportStrategy
+- ✅ OIDC Strategy : MockOidcStrategy → OidcPassportStrategy
+
+**État** : ✅ **Node.js 22 activé** - Tous les packages compatibles installés et code activé

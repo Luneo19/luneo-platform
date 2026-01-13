@@ -16,7 +16,7 @@ export async function GET(
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/notifications/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/notifications/[id]', 'GET');
 }
 
@@ -32,6 +32,6 @@ export async function DELETE(
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardDelete(`/notifications/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/notifications/[id]', 'DELETE');
 }

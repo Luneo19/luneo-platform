@@ -24,7 +24,7 @@ export async function GET(
 ) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet(`/ar-studio/collaboration/projects/${params.id}/members`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects/[id]/members', 'GET');
 }
 
@@ -47,7 +47,7 @@ export async function POST(
     }
 
     const result = await forwardPost(`/ar-studio/collaboration/projects/${params.id}/members`, request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects/[id]/members', 'POST');
 }
 
@@ -69,7 +69,7 @@ export async function DELETE(
     }
 
     const result = await forwardDelete(`/ar-studio/collaboration/projects/${params.id}/members`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects/[id]/members', 'DELETE');
 }
 

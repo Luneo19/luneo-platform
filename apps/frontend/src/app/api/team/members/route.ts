@@ -19,6 +19,6 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/team/members${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team/members', 'GET');
 }

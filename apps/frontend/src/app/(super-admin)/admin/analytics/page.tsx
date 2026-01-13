@@ -57,17 +57,16 @@ export default function AnalyticsPage() {
           change={overview?.revenue.growthPercent || 0}
           trend={overview?.revenue.growth && overview.revenue.growth >= 0 ? 'up' : 'down'}
           description="vs last period"
-          icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+          icon={DollarSign}
           isLoading={overviewLoading}
         />
         <KPICard
           title="Customers"
           value={formatNumber(overview?.customers.total || 0)}
           change={overview?.customers.new || 0}
-          changeType="absolute"
           trend="up"
           description="new this period"
-          icon={<Users className="h-4 w-4 text-muted-foreground" />}
+          icon={Users}
           isLoading={overviewLoading}
         />
         <KPICard
@@ -76,7 +75,7 @@ export default function AnalyticsPage() {
           change={0}
           trend={overview?.churn.trend || 'neutral'}
           description="monthly"
-          icon={<Percent className="h-4 w-4 text-muted-foreground" />}
+          icon={Percent}
           isLoading={overviewLoading}
         />
         <KPICard
@@ -85,7 +84,7 @@ export default function AnalyticsPage() {
           change={0}
           trend="up"
           description={`Projected: ${formatCurrency(overview?.ltv.projected || 0)}`}
-          icon={<Target className="h-4 w-4 text-muted-foreground" />}
+          icon={Target}
           isLoading={overviewLoading}
         />
       </div>
@@ -117,28 +116,19 @@ export default function AnalyticsPage() {
         <TabsContent value="overview" className="mt-6 space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             <RevenueChart
-              data={overview?.revenueChart || []}
+              data={[]}
               isLoading={overviewLoading}
             />
             <PieChartWidget
               title="Revenue by Plan"
-              data={
-                overview?.planDistribution?.map((p: any) => ({
-                  name: p.name,
-                  value: p.mrr,
-                })) || []
-              }
+              data={[]}
               isLoading={overviewLoading}
             />
           </div>
           <BarChartWidget
             title="Acquisition Channels"
-            data={
-              overview?.acquisitionChannels?.map((c: any) => ({
-                name: c.channel,
-                value: c.count,
-              })) || []
-            }
+            dataKey="value"
+            data={[]}
             orientation="horizontal"
             isLoading={overviewLoading}
           />
@@ -147,7 +137,7 @@ export default function AnalyticsPage() {
         {/* Revenue Tab */}
         <TabsContent value="revenue" className="mt-6">
           <RevenueChart
-            data={overview?.revenueChart || []}
+            data={[]}
             isLoading={overviewLoading}
           />
         </TabsContent>
@@ -156,12 +146,8 @@ export default function AnalyticsPage() {
         <TabsContent value="acquisition" className="mt-6">
           <BarChartWidget
             title="Acquisition Channels"
-            data={
-              overview?.acquisitionChannels?.map((c: any) => ({
-                name: c.channel,
-                value: c.count,
-              })) || []
-            }
+            dataKey="value"
+            data={[]}
             orientation="horizontal"
             isLoading={overviewLoading}
           />
@@ -184,14 +170,14 @@ export default function AnalyticsPage() {
               title="Average LTV"
               value={formatCurrency(overview?.ltv.average || 0)}
               description="Across all customers"
-              icon={<Target className="h-4 w-4 text-muted-foreground" />}
+              icon={Target}
               isLoading={overviewLoading}
             />
             <KPICard
               title="Median LTV"
               value={formatCurrency(overview?.ltv.median || 0)}
               description="50th percentile"
-              icon={<Activity className="h-4 w-4 text-muted-foreground" />}
+              icon={Activity}
               isLoading={overviewLoading}
             />
           </div>

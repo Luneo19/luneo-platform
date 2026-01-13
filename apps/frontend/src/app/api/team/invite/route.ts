@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/team/invite', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team/invite', 'POST');
 }
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 export async function GET(_request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/team/invite', _request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team/invite', 'GET');
 }
 
@@ -59,6 +59,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     const result = await forwardDelete(`/team/invite/${inviteId}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team/invite', 'DELETE');
 }

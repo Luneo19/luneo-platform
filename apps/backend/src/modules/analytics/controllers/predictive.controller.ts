@@ -3,18 +3,22 @@
  * @module PredictiveController
  */
 
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
 import { PredictiveService } from '../services/predictive.service';
+import { MLPredictionService } from '../services/ml-prediction.service';
 
 @ApiTags('Analytics - Predictive')
 @ApiBearerAuth()
 @Controller('analytics/predictive')
 @UseGuards(JwtAuthGuard)
 export class PredictiveController {
-  constructor(private readonly predictiveService: PredictiveService) {}
+  constructor(
+    private readonly predictiveService: PredictiveService,
+    private readonly mlPredictionService: MLPredictionService,
+  ) {}
 
   @Get('trends')
   @ApiOperation({ summary: 'Prédictions de tendances' })
@@ -76,6 +80,64 @@ export class PredictiveController {
     return {
       success: true,
       data: { events },
+    };
+  }
+
+  @Post('ml/predict')
+  @ApiOperation({ summary: 'Prédiction ML (churn, LTV, conversion, revenue)' })
+  async predictML(
+    @CurrentBrand() brand: { id: string } | null,
+    @Body() body: {
+      type: 'churn' | 'ltv' | 'conversion' | 'revenue';
+      userId?: string;
+      features?: Record<string, any>;
+    },
+  ) {
+    if (!brand) {
+      throw new Error('Brand not found');
+    }
+
+    let result;
+    switch (body.type) {
+      case 'churn':
+        result = await this.mlPredictionService.predictChurn({
+          type: 'churn',
+          brandId: brand.id,
+          userId: body.userId,
+          features: body.features,
+        });
+        break;
+      case 'ltv':
+        result = await this.mlPredictionService.predictLTV({
+          type: 'ltv',
+          brandId: brand.id,
+          userId: body.userId,
+          features: body.features,
+        });
+        break;
+      case 'conversion':
+        result = await this.mlPredictionService.predictConversion({
+          type: 'conversion',
+          brandId: brand.id,
+          userId: body.userId,
+          features: body.features,
+        });
+        break;
+      case 'revenue':
+        result = await this.mlPredictionService.predictRevenue({
+          type: 'revenue',
+          brandId: brand.id,
+          userId: body.userId,
+          features: body.features,
+        });
+        break;
+      default:
+        throw new Error(`Unknown prediction type: ${body.type}`);
+    }
+
+    return {
+      success: true,
+      data: result,
     };
   }
 }

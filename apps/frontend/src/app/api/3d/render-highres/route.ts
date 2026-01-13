@@ -12,6 +12,6 @@ import { renderHighresSchema } from '@/lib/validation/zod-schemas';
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.validateWithZod(renderHighresSchema, request, async (validatedData) => {
     const result = await forwardPost('/render/3d/highres', request, validatedData);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   });
 }

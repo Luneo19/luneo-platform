@@ -44,19 +44,19 @@ export default function AdsOverviewPage() {
         <KPICard
           title="Total Spend"
           value={formatCurrency(totalSpend)}
-          icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+          icon={DollarSign}
         />
         <KPICard
           title="Avg ROAS"
           value={`${avgROAS.toFixed(1)}x`}
           trend="up"
-          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          icon={TrendingUp}
         />
         <KPICard
           title="Connected Platforms"
           value={platforms.filter((p) => p.connected).length}
           description={`of ${platforms.length}`}
-          icon={<Link2 className="h-4 w-4 text-muted-foreground" />}
+          icon={Link2}
         />
         <KPICard
           title="Active Campaigns"
@@ -149,6 +149,7 @@ export default function AdsOverviewPage() {
                   name: p.name,
                   value: p.spend,
                 }))}
+              dataKey="value"
               orientation="horizontal"
             />
           </CardContent>

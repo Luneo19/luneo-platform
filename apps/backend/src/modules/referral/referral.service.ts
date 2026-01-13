@@ -33,21 +33,41 @@ export class ReferralService {
       throw new BadRequestException('User not found');
     }
 
-    // Pour l'instant, retourner des stats basiques
-    // TODO: Implémenter la logique de referral complète avec un modèle Referral dans Prisma
-    // Compter les utilisateurs qui ont été invités par cet utilisateur
-    // (basé sur une relation future ou un champ referralCode dans metadata)
-    
-    // Vérifier si l'utilisateur a des referrals dans metadata (solution temporaire)
-    // À remplacer par un vrai modèle Referral
+    // Générer ou récupérer le code de referral
     const referralCode = `REF-${userId.substring(0, 8).toUpperCase()}`;
-    
-    // Compter les utilisateurs qui ont utilisé ce code (solution temporaire via metadata)
-    // À remplacer par une vraie relation Referral
-    const totalReferrals = 0; // À implémenter avec le modèle Referral
-    const activeReferrals = 0;
-    const totalEarnings = 0;
-    const pendingEarnings = 0;
+
+    // Compter les referrals actifs
+    const referrals = await this.prisma.referral.findMany({
+      where: {
+        referrerId: userId,
+      },
+      include: {
+        commissions: true,
+      },
+    });
+
+    const totalReferrals = referrals.length;
+    const activeReferrals = referrals.filter((r) => r.status === 'ACTIVE').length;
+
+    // Calculer les gains totaux et en attente
+    const allCommissions = referrals.flatMap((r) => r.commissions);
+    const totalEarnings = allCommissions
+      .filter((c) => c.status === 'PAID')
+      .reduce((sum, c) => sum + c.amountCents, 0) / 100; // Convertir en euros
+    const pendingEarnings = allCommissions
+      .filter((c) => c.status === 'PENDING' || c.status === 'APPROVED')
+      .reduce((sum, c) => sum + c.amountCents, 0) / 100; // Convertir en euros
+
+    // Récupérer les referrals récents
+    const recentReferrals = referrals
+      .slice(0, 10)
+      .map((r) => ({
+        id: r.id,
+        referredUserId: r.referredUserId,
+        status: r.status,
+        createdAt: r.createdAt,
+        completedAt: r.completedAt,
+      }));
 
     return {
       totalReferrals,
@@ -56,7 +76,7 @@ export class ReferralService {
       pendingEarnings,
       referralCode,
       referralLink: `${this.configService.get('app.frontendUrl') || 'https://www.luneo.app'}/signup?ref=${userId.substring(0, 8)}`,
-      recentReferrals: [],
+      recentReferrals,
     };
   }
 
@@ -66,15 +86,13 @@ export class ReferralService {
   async join(email: string): Promise<{ success: boolean; message: string }> {
     this.logger.log(`Referral program join request: ${email.replace(/(.{2}).*@/, '$1***@')}`);
 
-    // Enregistrer dans la base de données si une table existe
-    // Pour l'instant, on utilise juste l'email service
+    // Enregistrer dans la base de données
     try {
-      // TODO: Créer table referral_applications si nécessaire
-      // await this.prisma.referralApplication.upsert({
-      //   where: { email },
-      //   update: { status: 'pending', appliedAt: new Date() },
-      //   create: { email, status: 'pending', appliedAt: new Date() },
-      // });
+      await this.prisma.referralApplication.upsert({
+        where: { email },
+        update: { status: 'pending', appliedAt: new Date() },
+        create: { email, status: 'pending', appliedAt: new Date() },
+      });
     } catch (error) {
       this.logger.warn('Failed to save referral application', { error });
     }
@@ -163,11 +181,19 @@ export class ReferralService {
    * - Validation IBAN et intégration avec un service de paiement (Stripe, etc.)
    */
   async withdraw(userId: string): Promise<{ withdrawalId: string; amount: number; status: string; message: string }> {
-    // Vérifier le montant disponible
-    // TODO: Implémenter avec le modèle Commission dans Prisma
-    // Pour l'instant, vérifier dans une table commissions si elle existe
-    const totalPending = 0; // À implémenter avec le modèle Commission
-    
+    // Vérifier le montant disponible depuis les commissions
+    const commissions = await this.prisma.commission.findMany({
+      where: {
+        userId,
+        status: {
+          in: ['PENDING', 'APPROVED'],
+        },
+      },
+    });
+
+    const totalPendingCents = commissions.reduce((sum, c) => sum + c.amountCents, 0);
+    const totalPending = totalPendingCents / 100; // Convertir en euros
+
     if (totalPending < 50) {
       throw new BadRequestException('Montant minimum de retrait non atteint (50€)');
     }
@@ -178,8 +204,13 @@ export class ReferralService {
       select: {
         id: true,
         email: true,
-        // TODO: Ajouter champ iban dans User ou dans un profil séparé
-        // Pour l'instant, on peut stocker IBAN dans metadata ou créer un modèle UserProfile
+        userProfile: {
+          select: {
+            iban: true,
+            bic: true,
+            bankName: true,
+          },
+        },
       },
     });
 
@@ -187,40 +218,32 @@ export class ReferralService {
       throw new BadRequestException('User not found');
     }
 
-    // TODO: Vérifier IBAN depuis profil ou settings
-    // Option 1: Ajouter champ iban dans User (migration Prisma nécessaire)
-    // Option 2: Créer modèle UserProfile avec relation 1:1 vers User
-    // Option 3: Stocker IBAN dans User.metadata (JSON) - solution temporaire
-    // const profile = await this.prisma.user.findUnique({ where: { id: userId }, include: { profile: true } });
-    // if (!profile?.iban) {
-    //   throw new BadRequestException('Veuillez configurer vos informations bancaires dans les paramètres');
-    // }
+    // Vérifier IBAN depuis profil
+    if (!user.userProfile?.iban) {
+      throw new BadRequestException('Veuillez configurer vos informations bancaires dans les paramètres');
+    }
 
     // Créer la demande de retrait
-    const withdrawalId = `WD-${Date.now().toString(36).toUpperCase()}`;
+    const withdrawal = await this.prisma.withdrawal.create({
+      data: {
+        userId,
+        amountCents: totalPendingCents,
+        iban: user.userProfile.iban,
+        status: 'PENDING',
+      },
+    });
 
-    // TODO: Créer withdrawal dans Prisma
-    // Nécessite création du modèle Withdrawal dans schema.prisma :
-    // model Withdrawal {
-    //   id String @id @default(cuid())
-    //   userId String
-    //   user User @relation(fields: [userId], references: [id])
-    //   amount Int // Montant en centimes
-    //   status WithdrawalStatus @default(PENDING)
-    //   iban String
-    //   processedAt DateTime?
-    //   createdAt DateTime @default(now())
-    //   updatedAt DateTime @updatedAt
-    // }
-    // await this.prisma.withdrawal.create({
-    //   data: {
-    //     id: withdrawalId,
-    //     userId,
-    //     amount: totalPending,
-    //     status: 'pending',
-    //     iban: profile.iban,
-    //   },
-    // });
+    // Marquer les commissions comme en cours de traitement
+    await this.prisma.commission.updateMany({
+      where: {
+        id: {
+          in: commissions.map((c) => c.id),
+        },
+      },
+      data: {
+        status: 'APPROVED', // Les commissions sont approuvées pour le retrait
+      },
+    });
 
     // Notifier l'équipe
     const sendGridKey = this.configService.get<string>('SENDGRID_API_KEY');
@@ -235,16 +258,17 @@ export class ReferralService {
           body: JSON.stringify({
             personalizations: [{
               to: [{ email: 'finance@luneo.app' }],
-              subject: `[Retrait] ${withdrawalId} - ${totalPending.toFixed(2)}€`,
+              subject: `[Retrait] ${withdrawal.id} - ${totalPending.toFixed(2)}€`,
             }],
             from: { email: 'noreply@luneo.app', name: 'Luneo System' },
             content: [{
               type: 'text/html',
               value: `
                 <h2>Nouvelle demande de retrait</h2>
-                <p><strong>ID:</strong> ${withdrawalId}</p>
+                <p><strong>ID:</strong> ${withdrawal.id}</p>
                 <p><strong>Utilisateur:</strong> ${user.email}</p>
                 <p><strong>Montant:</strong> ${totalPending.toFixed(2)}€</p>
+                <p><strong>IBAN:</strong> ${user.userProfile?.iban?.substring(0, 4)}****${user.userProfile?.iban?.substring(user.userProfile.iban.length - 4)}</p>
               `,
             }],
           }),
@@ -255,15 +279,15 @@ export class ReferralService {
     }
 
     this.logger.log('Withdrawal requested', {
-      withdrawalId,
+      withdrawalId: withdrawal.id,
       userId,
       amount: totalPending,
     });
 
     return {
-      withdrawalId,
+      withdrawalId: withdrawal.id,
       amount: totalPending,
-      status: 'pending',
+      status: withdrawal.status.toLowerCase(),
       message: 'Demande de retrait enregistrée. Paiement sous 3-5 jours ouvrés.',
     };
   }

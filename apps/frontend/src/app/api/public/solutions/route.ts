@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
             .limit(3);
 
           if (testimonials?.length) {
-            data.testimonials = testimonials.map((t) => ({
+            data.testimonials = testimonials.map((t: any) => ({
               quote: t.content,
               author: t.author_name,
               company: t.author_company,

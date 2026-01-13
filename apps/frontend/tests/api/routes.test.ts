@@ -316,8 +316,9 @@ describe('API Routes - Status Codes', () => {
       const modulePath = `@/app/api/${routePath.join('/')}/route`;
       
       try {
-        const module = await import(modulePath);
-        const handler = module[method];
+        // eslint-disable-next-line @next/next/no-assign-module-variable
+        const routeModule = await import(modulePath);
+        const handler = routeModule[method];
         
         if (handler) {
           const request = createMockRequest(method);

@@ -39,12 +39,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Enrichir avec dominantColor et palette
-    const colors = result.data.colors || [];
-    const dominantColor = colors[0]?.hex;
-    const palette = colors.map((c: any) => c.hex);
+    const colorsData = (result.data as any)?.colors || [];
+    const dominantColor = colorsData[0]?.hex;
+    const palette = colorsData.map((c: any) => c.hex);
 
     return ApiResponseBuilder.success({
-      ...result.data,
+      ...(result.data as any),
       dominantColor,
       palette,
       provider: 'sharp',

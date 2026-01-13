@@ -10,7 +10,7 @@ import { forwardGet, forwardPatch } from '@/lib/backend-forward';
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/users/me', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/profile', 'GET');
 }
 
@@ -24,6 +24,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     const result = await forwardPatch('/users/me', request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/profile', 'PUT');
 }

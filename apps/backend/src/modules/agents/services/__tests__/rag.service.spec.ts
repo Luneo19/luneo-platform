@@ -97,7 +97,7 @@ describe('RAGService', () => {
 
     it('should search articles if not cached', async () => {
       cache.get.mockResolvedValue(null);
-      prisma.knowledgeBaseArticle.findMany.mockResolvedValue([
+      (prisma.knowledgeBaseArticle.findMany as jest.Mock).mockResolvedValue([
         {
           id: '1',
           title: 'Test Article',
@@ -125,7 +125,7 @@ describe('RAGService', () => {
 
   describe('enhancePrompt', () => {
     it('should enhance prompt with RAG documents', async () => {
-      prisma.knowledgeBaseArticle.findMany.mockResolvedValue([
+      (prisma.knowledgeBaseArticle.findMany as jest.Mock).mockResolvedValue([
         {
           id: '1',
           title: 'Test Article',

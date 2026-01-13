@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost(`/ar-studio/models/${modelId}/qr-code`, request, {});
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/qr-code', 'POST');
 }
 

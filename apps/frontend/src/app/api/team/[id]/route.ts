@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: TeamMemberRouteConte
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/team/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team/[id]', 'GET');
 }
 
@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: TeamMemberRouteConte
     const { id } = await params;
     const body = await request.json();
     const result = await forwardPut(`/team/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team/[id]', 'PUT');
 }
 
@@ -42,6 +42,6 @@ export async function DELETE(request: NextRequest, { params }: TeamMemberRouteCo
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardDelete(`/team/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team/[id]', 'DELETE');
 }

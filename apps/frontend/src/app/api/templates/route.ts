@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       ...(search && { search }),
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/templates', 'GET');
 }
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/ai-studio/templates', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/templates', 'POST');
 }
 
@@ -71,6 +71,6 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const result = await forwardPut(`/ai-studio/templates/${templateId}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/templates', 'PUT');
 }

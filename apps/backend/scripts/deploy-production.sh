@@ -47,8 +47,8 @@ echo -e "\n${YELLOW}📋 Step 1: Pre-flight checks${NC}"
 
 # Check Node.js version
 NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 18 ]; then
-  echo -e "${RED}❌ Node.js 18+ required. Current: $(node --version)${NC}"
+if [ "$NODE_VERSION" -lt 22 ]; then
+  echo -e "${RED}❌ Node.js 22+ required. Current: $(node --version)${NC}"
   exit 1
 fi
 echo -e "${GREEN}✅ Node.js version: $(node --version)${NC}"

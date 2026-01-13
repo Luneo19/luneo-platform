@@ -42,6 +42,6 @@ export async function POST(request: NextRequest) {
       optimize: input.optimize,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar/convert-usdz', 'POST');
 }

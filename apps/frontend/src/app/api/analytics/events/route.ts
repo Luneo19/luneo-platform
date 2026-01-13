@@ -20,6 +20,6 @@ export async function GET(request: NextRequest) {
       ...(eventType && { eventType }),
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/events', 'GET');
 }

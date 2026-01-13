@@ -34,6 +34,6 @@ export async function POST(request: NextRequest) {
       email,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/referral/join', 'POST');
 }

@@ -117,26 +117,26 @@ export default function MetaAdsPage() {
         <KPICard
           title="Total Spend"
           value={formatCurrency(mockInsights.spend)}
-          icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+          icon={DollarSign}
           isLoading={isLoading}
         />
         <KPICard
           title="Impressions"
           value={formatNumber(mockInsights.impressions)}
-          icon={<Target className="h-4 w-4 text-muted-foreground" />}
+          icon={Target}
           isLoading={isLoading}
         />
         <KPICard
           title="Clicks"
           value={formatNumber(mockInsights.clicks)}
-          icon={<MousePointerClick className="h-4 w-4 text-muted-foreground" />}
+          icon={MousePointerClick}
           isLoading={isLoading}
         />
         <KPICard
           title="ROAS"
           value={`${mockInsights.roas.toFixed(1)}x`}
           trend="up"
-          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          icon={TrendingUp}
           isLoading={isLoading}
         />
       </div>

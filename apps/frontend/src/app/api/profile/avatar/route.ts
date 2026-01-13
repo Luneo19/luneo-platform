@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     uploadFormData.append('avatar', file);
 
     const result = await forwardPost('/users/me/avatar', request, uploadFormData);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/profile/avatar', 'POST');
 }
 
@@ -54,6 +54,6 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardDelete('/users/me/avatar', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/profile/avatar', 'DELETE');
 }

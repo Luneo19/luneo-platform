@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/designs${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/designs', 'GET');
 }
 
@@ -49,6 +49,6 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/designs', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/designs', 'POST');
 }

@@ -10,7 +10,7 @@ import { forwardGet, forwardDelete } from '@/lib/backend-forward';
 export async function GET(_request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/users/me/sessions', _request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/settings/sessions', 'GET');
 }
 
@@ -27,12 +27,12 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteAll) {
       const result = await forwardDelete('/users/me/sessions?all=true', request);
-      return result.data;
+      return ApiResponseBuilder.success(result.data);
     }
 
     if (sessionId) {
       const result = await forwardDelete(`/users/me/sessions/${sessionId}`, request);
-      return result.data;
+      return ApiResponseBuilder.success(result.data);
     }
 
     throw {

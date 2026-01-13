@@ -35,6 +35,6 @@ export async function POST(request: NextRequest) {
       packSize,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/credits/buy', 'POST');
 }

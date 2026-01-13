@@ -15,6 +15,6 @@ export async function PUT(request: NextRequest) {
       current_password,
       new_password,
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   });
 }

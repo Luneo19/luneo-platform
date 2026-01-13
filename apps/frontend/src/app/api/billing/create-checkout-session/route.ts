@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder, validateRequest } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { CreateCheckoutSessionSchema } from '@/lib/validations/billing-schemas';
+import { checkRateLimit, getClientIdentifier, getApiRateLimit } from '@/lib/rate-limit';
 import Stripe from 'stripe';
 
 export const runtime = 'nodejs';

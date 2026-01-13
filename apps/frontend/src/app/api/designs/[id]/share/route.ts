@@ -153,7 +153,7 @@ export async function GET(request: Request, { params }: DesignShareRouteContext)
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
-    const sharesWithUrl = (shares || []).map((share) => ({
+    const sharesWithUrl = (shares || []).map((share: any) => ({
       ...share,
       shareUrl: `${appUrl}/share/${share.token}`,
       isExpired: share.expires_at ? new Date(share.expires_at) < new Date() : false,
@@ -171,5 +171,5 @@ async function hashPassword(password: string): Promise<string> {
   const data = encoder.encode(password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map((b: any) => b.toString(16).padStart(2, '0')).join('');
 }

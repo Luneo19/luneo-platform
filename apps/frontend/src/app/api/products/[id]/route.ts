@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: ProductRouteContext)
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/products/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/products/[id]', 'GET');
 }
 
@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: ProductRouteContext)
     const body = await request.json();
 
     const result = await forwardPatch(`/products/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/products/[id]', 'PUT');
 }
 
@@ -43,6 +43,6 @@ export async function DELETE(request: NextRequest, { params }: ProductRouteConte
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardDelete(`/products/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/products/[id]', 'DELETE');
 }

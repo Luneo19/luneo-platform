@@ -316,6 +316,7 @@ import { Slider } from '@/components/ui/slider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { trpc } from '@/lib/trpc/client';
 import { cn } from '@/lib/utils';
@@ -598,20 +599,60 @@ function IntegrationsDashboardPageContent() {
     setShowConnectModal(true);
   }, []);
 
-  const handleDisconnect = useCallback((integration: Integration) => {
-    // TODO: Implement disconnect
-    toast({ title: 'Succès', description: `${integration.name} déconnecté` });
-  }, [toast]);
+  const handleDisconnect = useCallback(async (integration: Integration) => {
+    try {
+      await endpoints.integrations.disable(integration.id);
+      toast({ title: 'Succès', description: `${integration.name} déconnecté` });
+      // Refresh integrations list
+      if (integrationsQuery.refetch) {
+        await integrationsQuery.refetch();
+      }
+    } catch (error: any) {
+      logger.error('Failed to disconnect integration', { error, integrationId: integration.id });
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors de la déconnexion',
+        variant: 'destructive',
+      });
+    }
+  }, [toast, integrationsQuery]);
 
   const handleSettings = useCallback((integration: Integration) => {
     setSelectedIntegration(integration);
     setShowSettingsModal(true);
   }, []);
 
-  const handleTestConnection = useCallback((integration: Integration) => {
-    // TODO: Implement test connection
-    toast({ title: 'Test', description: `Test de connexion pour ${integration.name}...` });
-  }, [toast]);
+  const handleTestConnection = useCallback(async (integration: Integration) => {
+    try {
+      toast({ title: 'Test en cours', description: `Test de connexion pour ${integration.name}...` });
+      
+      // Get integration config from query data if available, otherwise use empty object
+      const integrationData = integrationsQuery.data?.find((i: any) => i.id === integration.id);
+      const config = integrationData?.config || {};
+      
+      const result = await endpoints.integrations.test(integration.id, config) as { success: boolean; message?: string };
+      
+      if (result.success) {
+        toast({
+          title: 'Succès',
+          description: result.message || `Connexion ${integration.name} réussie`,
+        });
+      } else {
+        toast({
+          title: 'Échec',
+          description: result.message || `Échec du test de connexion pour ${integration.name}`,
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      logger.error('Failed to test integration', { error, integrationId: integration.id });
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors du test de connexion',
+        variant: 'destructive',
+      });
+    }
+  }, [toast, integrations]);
 
   // Loading state
   if (integrationsQuery.isLoading || analyticsQuery.isLoading) {

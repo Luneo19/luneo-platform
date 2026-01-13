@@ -53,4 +53,24 @@ export class AdminController {
   async addBlacklistedPrompt(@Body() body: { term: string }) {
     return this.adminService.addBlacklistedPrompt(body.term);
   }
+
+  @Post('customers/bulk-action')
+  @ApiOperation({ summary: 'Effectuer une action en masse sur des customers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Action en masse effectuée',
+  })
+  async bulkActionCustomers(
+    @Body() body: {
+      customerIds: string[];
+      action: 'email' | 'export' | 'tag' | 'segment' | 'delete';
+      options?: Record<string, any>;
+    },
+  ) {
+    return this.adminService.bulkActionCustomers(
+      body.customerIds,
+      body.action,
+      body.options,
+    );
+  }
 }

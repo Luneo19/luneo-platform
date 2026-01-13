@@ -34,7 +34,7 @@ export async function GET(_request: NextRequest) {
     }
 
     // Transform to tenant format
-    const tenants = (brands || []).map((brand) => ({
+    const tenants = (brands || []).map((brand: any) => ({
       id: brand.id,
       name: brand.name || 'Unnamed Tenant',
       plan: brand.plan || 'starter',

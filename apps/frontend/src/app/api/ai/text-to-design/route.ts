@@ -64,13 +64,13 @@ export async function POST(request: NextRequest) {
 
     return {
       design: {
-        preview_url: result.data.url,
-        original_url: result.data.url,
+        preview_url: (result.data as any)?.url,
+        original_url: (result.data as any)?.url,
         prompt: enhancedPrompt,
-        revised_prompt: result.data.revisedPrompt,
+        revised_prompt: (result.data as any)?.revisedPrompt,
       },
-      imageUrl: result.data.url,
-      revisedPrompt: result.data.revisedPrompt,
+      imageUrl: (result.data as any)?.url,
+      revisedPrompt: (result.data as any)?.revisedPrompt,
     };
   }, '/api/ai/text-to-design', 'POST');
 }

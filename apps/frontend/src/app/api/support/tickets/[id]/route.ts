@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: TicketRouteContext) 
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/support/tickets/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/support/tickets/[id]', 'GET');
 }
 
@@ -29,6 +29,6 @@ export async function PUT(request: NextRequest, { params }: TicketRouteContext) 
     const { id } = await params;
     const body = await request.json();
     const result = await forwardPut(`/support/tickets/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/support/tickets/[id]', 'PUT');
 }

@@ -15,7 +15,7 @@ import { forwardGet, forwardPost } from '@/lib/backend-forward';
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/editor/projects', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/editor/projects', 'GET');
 }
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const body = await request.json();
     const result = await forwardPost('/editor/projects', request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/editor/projects', 'POST');
 }
 

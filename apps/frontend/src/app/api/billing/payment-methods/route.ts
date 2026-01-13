@@ -12,7 +12,7 @@ import { z } from 'zod';
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/billing/payment-methods', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/billing/payment-methods', 'GET');
 }
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       setAsDefault,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/billing/payment-methods', 'POST');
 }
 
@@ -66,10 +66,8 @@ export async function DELETE(request: NextRequest) {
       };
     }
 
-    const result = await forwardDelete('/billing/payment-methods', request, {
-      id: paymentMethodId,
-    });
+    const result = await forwardDelete(`/billing/payment-methods/${paymentMethodId}`, request);
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/billing/payment-methods', 'DELETE');
 }

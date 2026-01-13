@@ -29,7 +29,7 @@ export async function GET(
 ) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet(`/ar-studio/collaboration/projects/${params.id}/comments`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects/[id]/comments', 'GET');
 }
 
@@ -52,7 +52,7 @@ export async function POST(
     }
 
     const result = await forwardPost(`/ar-studio/collaboration/projects/${params.id}/comments`, request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects/[id]/comments', 'POST');
 }
 

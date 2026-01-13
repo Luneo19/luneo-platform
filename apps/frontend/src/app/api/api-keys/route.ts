@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       limit,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/api-keys', 'GET');
 }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/api-keys', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/api-keys', 'POST');
 }
 
@@ -67,6 +67,6 @@ export async function DELETE(request: NextRequest) {
 
     const { forwardDelete } = await import('@/lib/backend-forward');
     const result = await forwardDelete(`/api-keys/${keyId}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/api-keys', 'DELETE');
 }

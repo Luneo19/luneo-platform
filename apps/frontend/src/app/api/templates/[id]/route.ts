@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: TemplateRouteContext
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/ai-studio/templates/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/templates/[id]', 'GET');
 }
 
@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: TemplateRouteConte
     const { id } = await params;
     const body = await request.json();
     const result = await forwardPut(`/ai-studio/templates/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/templates/[id]', 'PATCH');
 }
 
@@ -42,6 +42,6 @@ export async function DELETE(request: NextRequest, { params }: TemplateRouteCont
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardDelete(`/ai-studio/templates/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/templates/[id]', 'DELETE');
 }

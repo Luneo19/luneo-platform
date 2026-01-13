@@ -28,6 +28,6 @@ export async function POST(request: NextRequest) {
       enhanceDetails: input.enhanceDetails,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ai/upscale', 'POST');
 }

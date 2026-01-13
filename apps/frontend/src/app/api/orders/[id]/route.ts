@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: OrderRouteContext) {
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/orders/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/orders/[id]', 'GET');
 }
 
@@ -33,12 +33,12 @@ export async function PUT(request: NextRequest, { params }: OrderRouteContext) {
     // Si c'est une annulation, utiliser la route cancel
     if (body.status === 'cancelled' || body.status === 'CANCELLED') {
       const result = await forwardPost(`/orders/${id}/cancel`, request, body);
-      return result.data;
+      return ApiResponseBuilder.success(result.data);
     }
 
     // Pour d'autres mises à jour, utiliser PUT
     const result = await forwardPut(`/orders/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/orders/[id]', 'PUT');
 }
 
@@ -57,6 +57,6 @@ export async function DELETE(request: NextRequest, { params }: OrderRouteContext
       ...body,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/orders/[id]', 'DELETE');
 }

@@ -22,7 +22,7 @@ const CreateProjectSchema = z.object({
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/ar-studio/collaboration/projects', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects', 'GET');
 }
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/ar-studio/collaboration/projects', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects', 'POST');
 }
 

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         .select('*')
         .eq('id', user.id)
         .single()
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error && error.code !== 'PGRST116') {
             logger.dbError('fetch profile for GDPR export', error, { userId: user.id });
           }
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         .from('designs')
         .select('id, prompt, created_at, updated_at, status, size')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
             logger.dbError('fetch designs for GDPR export', error, { userId: user.id });
           }
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         .from('orders')
         .select('id, order_number, status, total_amount, created_at, updated_at')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
             logger.dbError('fetch orders for GDPR export', error, { userId: user.id });
           }
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
         .from('products')
         .select('id, name, created_at, updated_at')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
             logger.dbError('fetch products for GDPR export', error, { userId: user.id });
           }
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
         .from('design_collections')
         .select('id, name, description, created_at, updated_at')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
             logger.dbError('fetch collections for GDPR export', error, { userId: user.id });
           }
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         .from('integrations')
         .select('id, platform, platform_name, store_url, status, connected_at')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
             logger.dbError('fetch integrations for GDPR export', error, { userId: user.id });
           }
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         .from('api_keys')
         .select('id, name, is_active, created_at, last_used_at')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
             logger.dbError('fetch api keys for GDPR export', error, { userId: user.id });
           }
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
         .from('notifications')
         .select('id, title, message, type, read, created_at')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
             logger.dbError('fetch notifications for GDPR export', error, { userId: user.id });
           }
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
         .from('team_members')
         .select('id, role, status, joined_at')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
             logger.dbError('fetch team memberships for GDPR export', error, { userId: user.id });
           }

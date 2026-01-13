@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       .select('id')
       .eq('seller_id', seller.id);
 
-    const productIds = sellerProducts?.map((p) => p.id) || [];
+    const productIds = sellerProducts?.map((p: any) => p.id) || [];
 
     if (productIds.length === 0) {
       return {

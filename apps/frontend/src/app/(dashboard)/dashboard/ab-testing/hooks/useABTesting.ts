@@ -107,13 +107,26 @@ export function useABTesting(
     };
   }, [experiments]);
 
+  const updateMutation = (trpc.abTesting as any)?.update?.useMutation?.();
+
   const toggleExperiment = async (id: string, status: ExperimentStatus) => {
     try {
-      // TODO: Implement via API or tRPC
+      if (!updateMutation) {
+        throw new Error('Update mutation not available');
+      }
+
       logger.info('Toggle experiment', { id, status });
+      
+      await updateMutation.mutateAsync({
+        id,
+        status,
+      });
+
+      // Update local state optimistically
       setExperiments((prev) =>
         prev.map((e) => (e.id === id ? { ...e, status } : e))
       );
+      
       toast({ title: 'Succès', description: 'Statut mis à jour' });
       return { success: true };
     } catch (error: any) {

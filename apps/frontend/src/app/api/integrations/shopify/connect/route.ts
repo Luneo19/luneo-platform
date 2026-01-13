@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { forwardGet } from '@/lib/backend-forward';
+import { forwardGet, forwardPost } from '@/lib/backend-forward';
 
 /**
  * GET /api/integrations/shopify/connect
@@ -37,6 +37,6 @@ export async function GET(request: NextRequest) {
       shop,
       brandId: null, // Sera récupéré depuis le token JWT dans le backend
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/integrations/shopify/connect', 'GET');
 }

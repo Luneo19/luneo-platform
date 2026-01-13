@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -87,7 +87,7 @@ function TeamPageContent() {
   });
 
   // Transform data
-  const members: TeamMember[] = (teamQuery.data?.members || []).map((m) => ({
+  const members: TeamMember[] = (teamQuery.data?.members || []).map((m: any) => ({
     id: m.id,
     name: m.name || m.email,
     email: m.email,
@@ -98,7 +98,7 @@ function TeamPageContent() {
     lastActive: m.lastActive ? formatRelativeTime(m.lastActive.toISOString()) : 'Jamais',
   }));
 
-  const pendingInvites: PendingInvite[] = (teamQuery.data?.pendingInvites || []).map((i) => ({
+  const pendingInvites: PendingInvite[] = (teamQuery.data?.pendingInvites || []).map((i: any) => ({
     id: i.id,
     email: i.email,
     role: i.role.toLowerCase() as any,
@@ -134,7 +134,7 @@ function TeamPageContent() {
 
     inviteMutation.mutate({ 
       email: inviteEmail, 
-      role: inviteRole === 'admin' ? 'ADMIN' : inviteRole === 'viewer' ? 'VIEWER' : 'MEMBER' 
+      role: inviteRole === 'ADMIN' ? 'ADMIN' : inviteRole === 'VIEWER' ? 'VIEWER' : inviteRole === 'OWNER' ? 'OWNER' : 'MEMBER' 
     });
   }, [inviteEmail, inviteRole, inviteMutation, toast]);
 

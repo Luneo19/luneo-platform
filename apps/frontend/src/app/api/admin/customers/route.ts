@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Enrichir avec les métriques
-    const enrichedCustomers = customers.map((customer) => {
+    const enrichedCustomers = customers.map((customer: any) => {
       const subscription = customer.user.subscriptions?.[0];
       return {
         id: customer.id,

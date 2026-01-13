@@ -287,7 +287,7 @@ function OnboardingPageContent() {
 
                 <div className="grid grid-cols-2 gap-4">
                   {USE_CASES.map((useCase) => (
-                    <motion.div
+                    <motion
                       key={useCase.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -301,7 +301,7 @@ function OnboardingPageContent() {
                       <useCase.icon className={`w-8 h-8 mb-3 ${data.useCase === useCase.id ? 'text-blue-400' : 'text-slate-400'}`} />
                       <h3 className="font-semibold mb-1">{useCase.name}</h3>
                       <p className="text-sm text-slate-400">{useCase.description}</p>
-                    </motion.div>
+                    </motion>
                   ))}
                 </div>
 
@@ -309,7 +309,7 @@ function OnboardingPageContent() {
                   <Label className="mb-3 block">Votre industrie</Label>
                   <div className="grid grid-cols-3 gap-3">
                     {INDUSTRIES.map((industry) => (
-                      <motion.div
+                      <motion
                         key={industry.id}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -322,7 +322,7 @@ function OnboardingPageContent() {
                       >
                         <industry.icon className={`w-6 h-6 mx-auto mb-2 ${data.industry === industry.id ? 'text-blue-400' : 'text-slate-400'}`} />
                         <span className="text-sm">{industry.name}</span>
-                      </motion.div>
+                      </motion>
                     ))}
                   </div>
                 </div>
@@ -345,7 +345,7 @@ function OnboardingPageContent() {
 
                 <div className="grid grid-cols-2 gap-4">
                   {GOALS.map((goal) => (
-                    <motion.div
+                    <motion
                       key={goal.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -363,7 +363,7 @@ function OnboardingPageContent() {
                           <Check className="w-5 h-5 text-green-400 ml-auto" />
                         )}
                       </div>
-                    </motion.div>
+                    </motion>
                   ))}
                 </div>
               </motion>
@@ -385,7 +385,7 @@ function OnboardingPageContent() {
 
                 <div className="grid grid-cols-3 gap-4">
                   {INTEGRATIONS.map((integration) => (
-                    <motion.div
+                    <motion
                       key={integration.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -401,7 +401,7 @@ function OnboardingPageContent() {
                       {data.integrations.includes(integration.id) && (
                         <Check className="w-4 h-4 text-purple-400 mx-auto mt-2" />
                       )}
-                    </motion.div>
+                    </motion>
                   ))}
                 </div>
               </motion>

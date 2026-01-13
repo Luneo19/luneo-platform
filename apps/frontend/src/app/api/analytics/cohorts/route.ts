@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       ...(startDate && { startDate }),
       ...(endDate && { endDate }),
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/cohorts', 'GET');
 }
 

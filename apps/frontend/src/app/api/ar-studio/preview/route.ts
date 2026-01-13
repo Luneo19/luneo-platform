@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await forwardGet(`/ar-studio/models/${modelId}/preview`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/preview', 'GET');
 }
 

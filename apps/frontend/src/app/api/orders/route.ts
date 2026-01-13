@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       ...(status && { status }),
       ...(search && { search }),
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/orders', 'GET');
 }
 
@@ -118,6 +118,6 @@ export async function POST(request: NextRequest) {
       discountCode: discount_code,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/orders', 'POST');
 }

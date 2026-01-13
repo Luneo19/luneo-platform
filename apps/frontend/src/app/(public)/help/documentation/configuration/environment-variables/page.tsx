@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function EnvironmentVariablesPageContent() {
-  const [copied, setCopied] = React.useState('');
+  const [copied, setCopied] = React.useState(false);
   const copyCode = useCallback(() => {
     navigator.clipboard.writeText(envExample);
     setCopied(true);

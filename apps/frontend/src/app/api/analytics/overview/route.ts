@@ -23,6 +23,6 @@ export async function GET(request: NextRequest) {
       ...(endDate && { endDate }),
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/overview', 'GET');
 }

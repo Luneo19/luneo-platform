@@ -144,20 +144,20 @@ export async function GET(
 
     return NextResponse.json({
       customer: enrichedCustomer,
-      activities: customer.activities.map((a) => ({
+      activities: customer.activities.map((a: any) => ({
         id: a.id,
         type: a.type,
         action: a.action,
         metadata: a.metadata || {},
         createdAt: a.createdAt,
       })),
-      billingHistory: billingHistory.map((b) => ({
+      billingHistory: billingHistory.map((b: any) => ({
         id: b.id,
         amount: b.totalAmount,
         status: b.status,
         createdAt: b.createdAt,
       })),
-      emailHistory: emailHistory.map((e) => ({
+      emailHistory: emailHistory.map((e: any) => ({
         id: e.id,
         subject: e.subject,
         status: e.status,

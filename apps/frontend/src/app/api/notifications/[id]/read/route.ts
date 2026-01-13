@@ -16,7 +16,7 @@ export async function POST(
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardPost(`/notifications/${id}/read`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/notifications/[id]/read', 'POST');
 }
 

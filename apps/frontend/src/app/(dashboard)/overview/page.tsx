@@ -100,13 +100,14 @@ const ProgressRing = ({
         fill="transparent"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
-        initial={{ strokeDashoffset: circumference }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1, ease: "easeOut" }}
         r={radius}
         cx={size / 2}
         cy={size / 2}
-        style={{ strokeDasharray: circumference }}
+        style={{ 
+          strokeDasharray: circumference,
+          strokeDashoffset: offset,
+          transition: 'stroke-dashoffset 1s ease-out'
+        }}
       />
     </svg>
   );

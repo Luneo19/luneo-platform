@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, { params }: CollectionRouteConte
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/collections/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/collections/[id]', 'GET');
 }
 
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest, { params }: CollectionRouteConte
     }
 
     const result = await forwardPut(`/collections/${id}`, request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/collections/[id]', 'PUT');
 }
 
@@ -55,6 +55,6 @@ export async function DELETE(request: NextRequest, { params }: CollectionRouteCo
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardDelete(`/collections/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/collections/[id]', 'DELETE');
 }

@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Format recent activity
-    const formattedActivity = recentActivity.map((event) => ({
+    const formattedActivity = recentActivity.map((event: any) => ({
       id: event.id,
       type: event.type,
       message: getEventMessage(event.type),
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
     }));
 
     // Format recent customers
-    const formattedCustomers = recentCustomers.map((customer) => ({
+    const formattedCustomers = recentCustomers.map((customer: any) => ({
       id: customer.id,
       name: customer.user?.name || 'Unknown',
       email: customer.user?.email || '',
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
 
     // Format revenue chart
     const formattedRevenueChart = revenueChart.length > 0
-      ? revenueChart.map((d) => ({
+      ? revenueChart.map((d: any) => ({
           date: d.date.toISOString().split('T')[0],
           mrr: d.mrr,
           revenue: d.revenue,

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       limit,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/products', 'GET');
 }
 
@@ -43,6 +43,6 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/products', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/products', 'POST');
 }

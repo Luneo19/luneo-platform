@@ -145,7 +145,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
   React.useEffect(() => {
     if (params instanceof Promise) {
       params.then(setResolvedParams).catch((error) => {
-        logger.error('Failed to resolve params', { error, slug });
+        logger.error('Failed to resolve params', { error });
       });
     } else {
       setResolvedParams(params);
@@ -214,10 +214,11 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
             {/* Image Gallery */}
             <Card className="bg-slate-900 border-slate-800 overflow-hidden">
               <div className="relative aspect-[16/10]">
-                <motion.img
+                <motion
                   key={currentImageIndex}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  as="img"
                   src={template.previewImages[currentImageIndex] || template.previewImage}
                   alt={template.name}
                   className="w-full h-full object-cover"
@@ -268,7 +269,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                         ${currentImageIndex === index ? 'border-blue-500' : 'border-transparent hover:border-slate-600'}
                       `}
                     >
-                      <OptimizedImage alt="" className="w-full h-full object-cover" />
+                      <OptimizedImage src={template.previewImages[index] || template.previewImage} alt={template.name} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

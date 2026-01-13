@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useCredits } from '@/hooks/useCredits';
 import { AIStudioHeader } from './components/AIStudioHeader';
 import { AIStats } from './components/AIStats';
 import { AIGenerationsGrid } from './components/AIGenerationsGrid';
@@ -91,8 +92,9 @@ export function AIStudioPageClient() {
     }
   };
 
-  // TODO: Get credits from user profile
-  const credits = undefined;
+  // Get credits from user profile
+  const { credits: creditsData } = useCredits();
+  const credits = creditsData?.balance || 0;
 
   if (isLoading) {
     return (

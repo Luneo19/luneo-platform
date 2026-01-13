@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: ApiKeyRouteContext) 
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/api-keys/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/api-keys/[id]', 'GET');
 }
 
@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: ApiKeyRouteContext) 
     const body = await request.json();
 
     const result = await forwardPut(`/api-keys/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/api-keys/[id]', 'PUT');
 }
 
@@ -43,6 +43,6 @@ export async function DELETE(request: NextRequest, { params }: ApiKeyRouteContex
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardDelete(`/api-keys/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/api-keys/[id]', 'DELETE');
 }

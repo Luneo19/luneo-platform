@@ -31,6 +31,6 @@ export async function POST(request: NextRequest) {
 
     // Forward vers le backend
     const result = await forwardPost('/bracelet/render', request, validated);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/bracelet/render', 'POST');
 }

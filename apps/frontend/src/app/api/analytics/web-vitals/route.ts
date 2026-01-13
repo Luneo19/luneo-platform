@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/analytics/web-vitals', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/web-vitals', 'POST');
 }
 
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/analytics/web-vitals${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/web-vitals', 'GET');
 }
 

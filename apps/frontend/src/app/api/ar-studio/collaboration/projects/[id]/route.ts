@@ -25,7 +25,7 @@ export async function GET(
 ) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet(`/ar-studio/collaboration/projects/${params.id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects/[id]', 'GET');
 }
 
@@ -48,7 +48,7 @@ export async function PUT(
     }
 
     const result = await forwardPut(`/ar-studio/collaboration/projects/${params.id}`, request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/collaboration/projects/[id]', 'PUT');
 }
 

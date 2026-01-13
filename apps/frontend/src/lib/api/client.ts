@@ -379,6 +379,20 @@ export const endpoints = {
     retry: (logId: string) => api.post(`/api/v1/webhooks/${logId}/retry`),
   },
 
+  // Admin
+  admin: {
+    metrics: () => api.get('/api/v1/admin/metrics'),
+    aiCosts: (period?: string) => api.get('/api/v1/admin/ai/costs', { params: { period } }),
+    addBlacklistedPrompt: (term: string) => api.post('/api/v1/admin/ai/blacklist', { term }),
+    customers: {
+      bulkAction: (data: {
+        customerIds: string[];
+        action: 'email' | 'export' | 'tag' | 'segment' | 'delete';
+        options?: Record<string, any>;
+      }) => api.post('/api/v1/admin/customers/bulk-action', data),
+    },
+  },
+
   // Agents
   agents: {
     luna: {

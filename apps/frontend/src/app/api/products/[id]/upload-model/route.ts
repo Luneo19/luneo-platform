@@ -33,7 +33,7 @@ export async function POST(
 
     // Forward vers le backend qui gère validation, upload et mise à jour
     const result = await forwardPost(`/products/${productId}/upload-model`, request, validated);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/products/[id]/upload-model', 'POST');
 }
 

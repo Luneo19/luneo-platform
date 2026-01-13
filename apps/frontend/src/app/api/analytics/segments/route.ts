@@ -23,7 +23,7 @@ const CreateSegmentSchema = z.object({
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/analytics-advanced/segments', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/segments', 'GET');
 }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/analytics-advanced/segments', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/segments', 'POST');
 }
 

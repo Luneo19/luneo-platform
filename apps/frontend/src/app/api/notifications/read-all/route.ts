@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardPost('/notifications/read-all', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/notifications/read-all', 'POST');
 }
 

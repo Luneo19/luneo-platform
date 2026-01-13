@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function NextJSConfigPageContent() {
-  const [copied, setCopied] = React.useState('');
+  const [copied, setCopied] = React.useState<string>('');
   const copyCode = useCallback((code: string, id: string) => {
     navigator.clipboard.writeText(code);
     setCopied(id);

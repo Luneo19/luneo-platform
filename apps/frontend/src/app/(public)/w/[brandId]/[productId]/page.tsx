@@ -175,7 +175,7 @@ function WidgetPageContent() {
     );
   }
 
-  const selectedZone = zones.find((z) => z.id === selectedZoneId) || zones[0];
+  const selectedZone = zones.find((z: any) => z.id === selectedZoneId) || zones[0];
   const baseModelUrl = product.model3dUrl || product.baseAssetUrl || '';
 
   return (
@@ -206,7 +206,7 @@ function WidgetPageContent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {zones.map((zone) => (
+                  {zones.map((zone: any) => (
                     <Button
                       key={zone.id}
                       variant={selectedZoneId === zone.id ? 'default' : 'outline'}

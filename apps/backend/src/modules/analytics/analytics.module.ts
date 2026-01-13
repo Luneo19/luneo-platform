@@ -35,6 +35,7 @@ import { PredictiveService } from './services/predictive.service';
 import { ReportsService } from './services/reports.service';
 import { MetricsService } from './services/metrics.service';
 import { WebVitalsService } from './services/web-vitals.service';
+import { MLPredictionService } from './services/ml-prediction.service';
 
 // Infrastructure
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -93,6 +94,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     ReportsService,
     MetricsService,
     WebVitalsService,
+    MLPredictionService,
   ],
   exports: [
     AnalyticsService,
@@ -106,6 +108,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     ReportsService,
     MetricsService,
     WebVitalsService,
+    MLPredictionService,
   ],
 })
 export class AnalyticsModule {}

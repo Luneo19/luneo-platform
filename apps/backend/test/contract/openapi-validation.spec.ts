@@ -41,7 +41,7 @@ describe('OpenAPI Contract Validation', () => {
   describe('OpenAPI Schema Validation', () => {
     it('should have valid OpenAPI schema', async () => {
       if (!openApiSpec) {
-        test.skip();
+        test.skip('OpenAPI spec not available');
         return;
       }
 
@@ -57,7 +57,7 @@ describe('OpenAPI Contract Validation', () => {
 
     it('should have all required paths defined', async () => {
       if (!openApiSpec) {
-        test.skip();
+        test.skip('OpenAPI spec not available');
         return;
       }
 

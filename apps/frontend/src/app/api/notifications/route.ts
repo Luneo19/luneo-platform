@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/notifications${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/notifications', 'GET');
 }
 
@@ -37,6 +37,6 @@ export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const body = await request.json();
     const result = await forwardPost('/notifications', request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/notifications', 'POST');
 }

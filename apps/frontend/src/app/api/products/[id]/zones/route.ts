@@ -43,7 +43,7 @@ export async function GET(
     const productId = params.id;
 
     const result = await forwardGet(`/product-engine/products/${productId}/zones`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/products/[id]/zones', 'GET');
 }
 
@@ -60,6 +60,6 @@ export async function PUT(
 
     // Forward vers le backend - le backend gère la mise à jour de toutes les zones
     const result = await forwardPut(`/product-engine/products/${productId}/zones`, request, validatedZones);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/products/[id]/zones', 'PUT');
 }

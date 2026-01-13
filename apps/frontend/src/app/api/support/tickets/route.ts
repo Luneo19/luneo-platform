@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/support/tickets${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/support/tickets', 'GET');
 }
 
@@ -52,6 +52,6 @@ export async function POST(request: NextRequest) {
       category,
       priority,
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/support/tickets', 'POST');
 }

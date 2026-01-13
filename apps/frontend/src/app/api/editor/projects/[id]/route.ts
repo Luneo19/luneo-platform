@@ -18,7 +18,7 @@ export async function GET(
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/editor/projects/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/editor/projects/[id]', 'GET');
 }
 
@@ -35,7 +35,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     const result = await forwardPut(`/editor/projects/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/editor/projects/[id]', 'PUT');
 }
 

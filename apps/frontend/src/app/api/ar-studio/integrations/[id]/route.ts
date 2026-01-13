@@ -28,7 +28,7 @@ export async function GET(
 ) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet(`/ar-studio/integrations/${params.id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/integrations/[id]', 'GET');
 }
 
@@ -51,7 +51,7 @@ export async function PUT(
     }
 
     const result = await forwardPut(`/ar-studio/integrations/${params.id}`, request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/integrations/[id]', 'PUT');
 }
 

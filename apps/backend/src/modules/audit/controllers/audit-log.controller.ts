@@ -1,42 +1,41 @@
 /**
  * Audit Log Controller
- * API endpoints for viewing audit logs
+ * Provides API endpoints for audit log management
  */
 
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Post, Query, Param, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
-import { RolesGuard, Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
 import { AuditLogService, AuditAction } from '../services/audit-log.service';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { Roles } from '@/common/guards/roles.guard';
+import { UserRole } from '@prisma/client';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
 
 @ApiTags('Audit Logs')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('audit-logs')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
+  /**
+   * Get audit logs with filters
+   */
   @Get()
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN)
   @ApiOperation({ summary: 'Get audit logs with filters' })
+  @ApiResponse({ status: 200, description: 'Audit logs retrieved successfully' })
   @ApiQuery({ name: 'userId', required: false })
   @ApiQuery({ name: 'brandId', required: false })
   @ApiQuery({ name: 'action', required: false, enum: AuditAction })
   @ApiQuery({ name: 'resourceType', required: false })
   @ApiQuery({ name: 'resourceId', required: false })
-  @ApiQuery({ name: 'startDate', required: false, type: Date })
-  @ApiQuery({ name: 'endDate', required: false, type: Date })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'offset', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Audit logs retrieved successfully' })
   async getAuditLogs(
     @Query('userId') userId?: string,
     @Query('brandId') brandId?: string,
@@ -45,16 +44,10 @@ export class AuditLogController {
     @Query('resourceId') resourceId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
-    @Request() req?: any,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
   ) {
-    // Ensure users can only access their own brand's logs (unless platform admin)
-    if (req.user.role !== UserRole.PLATFORM_ADMIN) {
-      brandId = req.user.brandId;
-    }
-
-    return this.auditLogService.getAuditLogs({
+    const filters = {
       userId,
       brandId,
       action,
@@ -62,48 +55,67 @@ export class AuditLogController {
       resourceId,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      limit: limit ? parseInt(limit.toString(), 10) : 100,
-      offset: offset ? parseInt(offset.toString(), 10) : 0,
-    });
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+    };
+
+    const logs = await this.auditLogService.getAuditLogs(filters);
+    return { logs, total: logs.length };
   }
 
+  /**
+   * Get audit log by ID
+   */
   @Get(':id')
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN)
   @ApiOperation({ summary: 'Get audit log by ID' })
   @ApiResponse({ status: 200, description: 'Audit log retrieved successfully' })
-  async getAuditLog(@Param('id') id: string) {
-    return this.auditLogService.getAuditLogById(id);
+  @ApiResponse({ status: 404, description: 'Audit log not found' })
+  async getAuditLogById(@Param('id') id: string) {
+    const log = await this.auditLogService.getAuditLogById(id);
+    if (!log) {
+      return { error: 'Audit log not found' };
+    }
+    return log;
   }
 
-  @Get('export/csv')
+  /**
+   * Export audit logs
+   */
+  @Get('export/:format')
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN)
-  @ApiOperation({ summary: 'Export audit logs as CSV' })
+  @ApiOperation({ summary: 'Export audit logs to CSV or JSON' })
   @ApiResponse({ status: 200, description: 'Audit logs exported successfully' })
+  @ApiQuery({ name: 'userId', required: false })
+  @ApiQuery({ name: 'brandId', required: false })
+  @ApiQuery({ name: 'action', required: false, enum: AuditAction })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
   async exportAuditLogs(
+    @Param('format') format: 'csv' | 'json',
+    @Res() res: Response,
     @Query('userId') userId?: string,
     @Query('brandId') brandId?: string,
     @Query('action') action?: AuditAction,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Request() req?: any,
   ) {
-    // Ensure users can only export their own brand's logs (unless platform admin)
-    if (req.user.role !== UserRole.PLATFORM_ADMIN) {
-      brandId = req.user.brandId;
-    }
-
-    const csvBuffer = await this.auditLogService.exportAuditLogs({
+    const filters = {
       userId,
       brandId,
       action,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-    });
-
-    return {
-      success: true,
-      data: csvBuffer.toString('base64'),
-      format: 'csv',
     };
+
+    const buffer = await this.auditLogService.exportAuditLogs(filters, format);
+
+    const contentType = format === 'csv' ? 'text/csv' : 'application/json';
+    const extension = format === 'csv' ? 'csv' : 'json';
+    const filename = `audit-logs-${new Date().toISOString()}.${extension}`;
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 }

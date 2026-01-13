@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     // Grouper par cohort (mois)
     const cohortsMap = new Map<string, any>();
 
-    cohortData.forEach((data) => {
+    cohortData.forEach((data: any) => {
       const cohortKey = format(new Date(data.cohortDate), 'yyyy-MM');
       if (!cohortsMap.has(cohortKey)) {
         cohortsMap.set(cohortKey, {

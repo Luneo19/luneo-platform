@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     });
 
     return ApiResponseBuilder.success({
-      outputUrl: result.data.url,
+      outputUrl: (result.data as any)?.url,
       maskUrl: null,
       mode,
       provider: 'replicate',

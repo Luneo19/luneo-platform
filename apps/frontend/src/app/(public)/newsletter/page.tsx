@@ -122,7 +122,8 @@ function NewsletterPageContent() {
               </Link>
             </motion>
           ) : (
-            <motion.form
+            <motion
+              as="form"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -169,7 +170,7 @@ function NewsletterPageContent() {
               <p className="text-sm text-gray-500 text-center">
                 Pas de spam. Désabonnement en 1 clic. Nous respectons votre vie privée.
               </p>
-            </motion.form>
+            </motion>
           )}
 
           {/* Footer links */}

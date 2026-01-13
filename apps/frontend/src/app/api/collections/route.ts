@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/collections${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/collections', 'GET');
 }
 
@@ -48,6 +48,6 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/collections', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/collections', 'POST');
 }

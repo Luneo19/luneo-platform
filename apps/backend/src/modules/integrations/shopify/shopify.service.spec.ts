@@ -171,21 +171,21 @@ describe('ShopifyService', () => {
         },
       ]);
 
-      prismaService.ecommerceIntegration.findFirst.mockResolvedValue({
+      (prismaService.ecommerceIntegration.findFirst as jest.Mock).mockResolvedValue({
         id: 'integration-123',
         brandId,
         platform: 'shopify',
         shopDomain,
       } as any);
 
-      prismaService.productMapping.findFirst.mockResolvedValue(null);
-      prismaService.product.create.mockResolvedValue({
+      (prismaService.productMapping.findFirst as jest.Mock).mockResolvedValue(null);
+      (prismaService.product.create as jest.Mock).mockResolvedValue({
         id: 'product-123',
         brandId,
         name: 'Test Product',
       } as any);
 
-      prismaService.productMapping.create.mockResolvedValue({
+      (prismaService.productMapping.create as jest.Mock).mockResolvedValue({
         id: 'mapping-123',
       } as any);
 

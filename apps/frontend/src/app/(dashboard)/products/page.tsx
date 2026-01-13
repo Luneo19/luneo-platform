@@ -45,7 +45,7 @@ function ProductsPageContent() {
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) return products;
-    return products.filter((p) => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+    return products.filter((p: any) => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [products, searchTerm]);
 
   const handleRetry = useCallback(() => {
@@ -125,7 +125,7 @@ function ProductsPageContent() {
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
+          {filteredProducts.map((product: any) => (
             <Card key={product.id} className="overflow-hidden bg-gray-800/50 border-gray-700 hover:border-blue-500/50 transition-all group">
               <div className="aspect-square bg-gray-900 relative">
                 {product.image_url ? (

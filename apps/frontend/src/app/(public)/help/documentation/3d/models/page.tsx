@@ -9,7 +9,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
 
 function ThreeDModelsPageContent() {
-  const [copied, setCopied] = React.useState('');
+  const [copied, setCopied] = React.useState<string>('');
 
   const copyCode = useCallback((code: string, id: string) => {
     navigator.clipboard.writeText(code);

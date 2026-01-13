@@ -120,9 +120,52 @@ export function CustomersTable({
     setSelectedCustomers(newSelected);
   };
 
-  const handleBulkAction = (action: string) => {
-    console.log(`Bulk action: ${action}`, Array.from(selectedCustomers));
-    // TODO: Implémenter les bulk actions
+  const handleBulkAction = async (action: string) => {
+    if (selectedCustomers.size === 0) return;
+
+    const customerIds = Array.from(selectedCustomers);
+    
+    try {
+      const { endpoints } = await import('@/lib/api/client');
+      const response = await endpoints.admin.customers.bulkAction({
+        customerIds,
+        action: action as 'email' | 'export' | 'tag' | 'segment' | 'delete',
+      });
+
+      if (action === 'export') {
+        // Download CSV
+        const csv = convertToCSV(response.data.data);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `customers-export-${new Date().toISOString()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+
+      // Clear selection after action
+      setSelectedCustomers(new Set());
+    } catch (error) {
+      console.error(`Bulk action ${action} failed:`, error);
+    }
+  };
+
+  const convertToCSV = (data: any[]) => {
+    if (!data || data.length === 0) return '';
+    
+    const headers = Object.keys(data[0]);
+    const rows = data.map(row => headers.map(header => {
+      const value = row[header];
+      return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
+    }));
+    
+    return [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
   };
 
   if (isLoading) {

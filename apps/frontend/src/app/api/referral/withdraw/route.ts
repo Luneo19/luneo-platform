@@ -13,6 +13,6 @@ export async function POST(request: NextRequest) {
     const { forwardPost } = await import('@/lib/backend-forward');
     const result = await forwardPost('/referral/withdraw', request, {});
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/referral/withdraw', 'POST');
 }

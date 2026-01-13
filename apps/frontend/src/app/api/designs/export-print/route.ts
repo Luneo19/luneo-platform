@@ -43,9 +43,10 @@ export async function POST(request: NextRequest) {
       dimensions,
     });
 
+    const resultData = result.data as any;
     return {
-      fileUrl: result.data?.fileUrl,
-      fileSize: result.data?.fileSize,
+      fileUrl: resultData?.fileUrl,
+      fileSize: resultData?.fileSize,
       format,
       quality,
       dimensions,

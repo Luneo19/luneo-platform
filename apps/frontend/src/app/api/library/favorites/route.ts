@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/library/favorites${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/library/favorites', 'GET');
 }
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/library/favorites', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/library/favorites', 'POST');
 }
 
@@ -70,6 +70,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     const result = await forwardDelete(`/library/favorites/${favoriteId}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/library/favorites', 'DELETE');
 }

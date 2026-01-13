@@ -18,6 +18,7 @@ interface CustomFixtures {
 // Export de test avec les fixtures personnalisées
 export const test = base.extend<CustomFixtures>({
   // Page avec cookies acceptés
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   cleanPage: async ({ page }, use) => {
     await page.goto('/');
     
@@ -28,11 +29,14 @@ export const test = base.extend<CustomFixtures>({
       await page.waitForTimeout(500);
     }
     
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page);
   },
   
   // Attendre que le réseau soit idle après une action
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   waitForNetworkIdle: async ({ page }, use) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(async (action: () => Promise<void>) => {
       await Promise.all([
         page.waitForLoadState('networkidle'),
@@ -42,7 +46,9 @@ export const test = base.extend<CustomFixtures>({
   },
   
   // Screenshot avec nom formaté
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   takeNamedScreenshot: async ({ page }, use) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(async (name: string) => {
       const sanitizedName = name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');

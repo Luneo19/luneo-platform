@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       design_id,
       image_url,
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   });
 }
 
@@ -40,6 +40,6 @@ export async function GET(request: NextRequest) {
     const result = await forwardGet('/ar-studio/convert-2d-to-3d', request, {
       task_id: taskId,
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar/convert-2d-to-3d', 'GET');
 }

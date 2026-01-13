@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       ...(category && { category }),
       ...(search && { search }),
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ai-studio/templates', 'GET');
 }
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/ai-studio/templates', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ai-studio/templates', 'POST');
 }
 

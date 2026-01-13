@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { forwardGet } from '@/lib/backend-forward';
+import { forwardGet, forwardPut, forwardDelete } from '@/lib/backend-forward';
 
 type DesignRouteContext = {
   params: Promise<{ id: string }>;
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: DesignRouteContext) 
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardGet(`/designs/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/designs/[id]', 'GET');
 }
 
@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: DesignRouteContext) 
     const { id } = await params;
     const body = await request.json();
     const result = await forwardPut(`/designs/${id}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/designs/[id]', 'PUT');
 }
 
@@ -42,7 +42,7 @@ export async function DELETE(request: NextRequest, { params }: DesignRouteContex
   return ApiResponseBuilder.handle(async () => {
     const { id } = await params;
     const result = await forwardDelete(`/designs/${id}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/designs/[id]', 'DELETE');
 }
 

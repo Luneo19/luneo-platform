@@ -4,7 +4,7 @@
 # ============================================
 # STAGE 1: Builder - Compile l'application
 # ============================================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Installer les dépendances système nécessaires pour compiler canvas et autres packages natifs
 # py3-setuptools est nécessaire pour distutils (requis par node-gyp)
@@ -78,7 +78,7 @@ RUN echo "Checking for Prisma Client..." && \
 # ============================================
 # STAGE 2: Production - Image finale légère
 # ============================================
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 # Installer les dépendances système nécessaires pour Alpine
 # Inclure les dépendances pour canvas (nécessaires même en production)

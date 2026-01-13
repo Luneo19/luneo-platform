@@ -24,7 +24,7 @@ export async function POST(
     const result = await forwardPost(`/ar-studio/integrations/${params.id}/sync`, request, {
       type,
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/integrations/[id]/sync', 'POST');
 }
 

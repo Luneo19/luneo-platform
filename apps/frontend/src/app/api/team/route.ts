@@ -11,7 +11,7 @@ import { inviteTeamMemberSchema } from '@/lib/validation/zod-schemas';
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/team', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team', 'GET');
 }
 
@@ -36,6 +36,6 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/team/invite', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/team', 'POST');
 }

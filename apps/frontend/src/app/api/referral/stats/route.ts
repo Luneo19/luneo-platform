@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/referral/stats', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/referral/stats', 'GET');
 }
 

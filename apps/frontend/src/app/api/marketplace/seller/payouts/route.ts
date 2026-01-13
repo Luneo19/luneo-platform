@@ -68,8 +68,8 @@ export async function GET(request: NextRequest) {
         hasPrev: page > 1,
       },
       summary: {
-        totalPaid: mockPayouts.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0),
-        totalPending: mockPayouts.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
+        totalPaid: mockPayouts.filter((p: any) => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0),
+        totalPending: mockPayouts.filter((p: any) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
         nextPayoutDate: mockPayouts.find((p) => p.status === 'pending')?.arrivalDate,
       },
     };

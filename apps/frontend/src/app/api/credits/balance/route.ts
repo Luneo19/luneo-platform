@@ -10,7 +10,7 @@ import { forwardGet } from '@/lib/backend-forward';
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/credits/balance', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/credits/balance', 'GET');
 }
 

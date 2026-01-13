@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/cliparts${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/cliparts', 'GET');
 }
 
@@ -46,12 +46,12 @@ export async function POST(request: NextRequest) {
         status: 400,
         message: 'Paramètres invalides',
         code: 'VALIDATION_ERROR',
-        details: validation.error.issues,
+        details: validation.errors,
       };
     }
 
     const result = await forwardPost('/cliparts', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/cliparts', 'POST');
 }
 
@@ -75,6 +75,6 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const result = await forwardPut(`/cliparts/${clipartId}`, request, body);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/cliparts', 'PUT');
 }

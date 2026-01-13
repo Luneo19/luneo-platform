@@ -98,14 +98,14 @@ export async function DELETE(request: NextRequest) {
       const result = await forwardDelete(`/ecommerce/integrations/${integrationId}`, request);
       return {
         message: `Intégration ${service} déconnectée avec succès`,
-        ...result.data,
+        ...((result.data as Record<string, any>) || {}),
       };
     } else if (service === 'slack' || service === 'zapier' || service === 'webhook') {
       // Intégrations générales
       const result = await forwardDelete(`/integrations/${service}`, request);
       return {
         message: `Intégration ${service} déconnectée avec succès`,
-        ...result.data,
+        ...((result.data as Record<string, any>) || {}),
       };
     } else {
       throw {

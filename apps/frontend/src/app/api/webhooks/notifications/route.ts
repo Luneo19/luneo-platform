@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     // Envoyer vers tous les webhooks
     const results = await WebhookService.sendToMultipleWebhooks(webhookConfigs, payload);
 
-    const successCount = results.filter((r) => r.result.success).length;
+    const successCount = results.filter((r: any) => r.result.success).length;
     const failedCount = results.length - successCount;
 
     logger.info('Webhooks notifications sent', {
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       sent: successCount,
       failed: failedCount,
       total: results.length,
-      results: results.map((r) => ({
+      results: results.map((r: any) => ({
         url: r.config.url,
         success: r.result.success,
         error: r.result.error,

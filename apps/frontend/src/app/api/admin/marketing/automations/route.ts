@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Enrichir avec stats (même logique que dans la route GET existante)
     const enrichedAutomations = await Promise.all(
-      automations.map(async (automation) => {
+      automations.map(async (automation: any) => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -35,16 +35,16 @@ export async function GET(request: NextRequest) {
         });
 
         const sent = logs.length;
-        const opened = logs.filter((l) => l.openedAt).length;
-        const clicked = logs.filter((l) => l.clickedAt).length;
-        const converted = logs.filter((l) => l.converted).length;
+        const opened = logs.filter((l: any) => l.openedAt).length;
+        const clicked = logs.filter((l: any) => l.clickedAt).length;
+        const converted = logs.filter((l: any) => l.converted).length;
 
         return {
           id: automation.id,
           name: automation.name,
           trigger: automation.trigger,
           status: automation.status,
-          steps: automation.steps.map((s) => ({
+          steps: automation.steps.map((s: any) => ({
             id: s.id,
             type: s.type,
             delay: s.delayHours,

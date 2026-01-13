@@ -107,8 +107,8 @@ describe('ContextManagerService', () => {
       const compressed = {
         summary: 'Previous conversation summary',
         recentMessages: [
-          { role: 'user', content: 'Recent message 1' },
-          { role: 'assistant', content: 'Recent response 1' },
+          { role: 'user' as const, content: 'Recent message 1' },
+          { role: 'assistant' as const, content: 'Recent response 1' },
         ],
         totalTokensSaved: 500,
       };

@@ -134,6 +134,7 @@ describe('Admin Workflow Integration', () => {
       const brand = await prisma.brand.create({
         data: {
           name: 'Test Brand',
+          slug: 'test-brand',
           website: 'https://test.com',
         },
       });
@@ -141,6 +142,7 @@ describe('Admin Workflow Integration', () => {
       const product = await prisma.product.create({
         data: {
           name: 'Test Product',
+          slug: 'test-product',
           price: 29.99,
           brandId: brand.id,
         },
@@ -167,14 +169,18 @@ describe('Admin Workflow Integration', () => {
             brandId: brand.id,
             productId: product.id,
             renderUrl: `https://example.com/design${i}.png`,
+            options: {},
           },
         });
 
         await prisma.order.create({
           data: {
+            orderNumber: `ORD-${Date.now()}-${i}`,
+            customerEmail: user.email,
             designId: design.id,
             userId: user.id,
             brandId: brand.id,
+            subtotalCents: 2999,
             totalCents: 2999,
             status: 'PAID',
           },

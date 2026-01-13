@@ -42,6 +42,6 @@ export async function POST(request: NextRequest) {
       compression_level: input.compression_level,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar/export', 'POST');
 }

@@ -20,6 +20,6 @@ export async function GET(request: NextRequest) {
       category,
       search,
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/support/knowledge-base/articles', 'GET');
 }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
       // Transformer les notifications du backend en format frontend
       // Le backend retourne { notifications: [...], pagination: {...} }
-      const backendNotifications = result.data?.notifications || result.notifications || [];
+      const backendNotifications = ((result.data as any)?.notifications || (result as any)?.notifications || []) as any[];
       
       const notifications = backendNotifications.map((notif: any) => ({
         id: notif.id || notif.notificationId,

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       offset,
     });
 
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/credits/transactions', 'GET');
 }
 

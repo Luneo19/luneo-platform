@@ -38,7 +38,7 @@ export async function POST(request: NextRequest, { params }: CollectionItemsRout
       designId: validation.data.design_id,
       notes: validation.data.notes,
     });
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/collections/[id]/items', 'POST');
 }
 
@@ -62,6 +62,6 @@ export async function DELETE(request: NextRequest, { params }: CollectionItemsRo
     }
 
     const result = await forwardDelete(`/collections/${collectionId}/items?designId=${designId}`, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/collections/[id]/items', 'DELETE');
 }

@@ -27,7 +27,7 @@ const CreateIntegrationSchema = z.object({
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const result = await forwardGet('/ar-studio/integrations', request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/integrations', 'GET');
 }
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await forwardPost('/ar-studio/integrations', request, validation.data);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/ar-studio/integrations', 'POST');
 }
 

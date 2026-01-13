@@ -24,6 +24,6 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const url = `/ai-studio/templates${queryString ? `?${queryString}` : ''}`;
     const result = await forwardGet(url, request);
-    return result.data;
+    return ApiResponseBuilder.success(result.data);
   }, '/api/library/templates', 'GET');
 }
