@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { ApiResponseBuilder, getPaginationParams } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
-import { syncShopifySchema, idSchema, z } from '@/lib/validation/zod-schemas';
+import { syncShopifySchema, idSchema } from '@/lib/validation/zod-schemas';
+import { z } from 'zod';
 import { decrypt } from '@/lib/encryption';
 
 /**

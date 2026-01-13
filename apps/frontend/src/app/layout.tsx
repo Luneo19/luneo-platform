@@ -128,7 +128,7 @@ export default async function RootLayout({
     region: string;
     flag: string;
   }> = [];
-  let featureFlags = { flags: {}, updatedAt: null };
+  let featureFlags: { flags: Record<string, boolean>; updatedAt: string | null } = { flags: {}, updatedAt: null };
 
   try {
     const i18nConfig = await loadI18nConfig();
