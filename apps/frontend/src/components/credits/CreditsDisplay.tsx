@@ -6,7 +6,6 @@ import { AlertCircle, Loader2, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { logger } from '@/lib/logger';
-import { logger } from '@/lib/logger';
 
 interface CreditsDisplayProps {
   userId: string;
@@ -176,16 +175,6 @@ export function CreditsDisplay({
       )}
     </div>
   );
-}
-
-
-
-
-interface CreditsDisplayProps {
-  userId: string;
-  inline?: boolean;
-  showBuyButton?: boolean;
-  className?: string;
 }
 
 
