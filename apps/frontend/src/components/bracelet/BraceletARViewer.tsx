@@ -33,7 +33,7 @@ interface BraceletARViewerProps {
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      'model-viewer': {
+      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
         src: string;
         'ios-src'?: string;
         alt: string;
@@ -92,7 +92,7 @@ function BraceletARViewerContent({ customization, modelUrl, usdzUrl }: BraceletA
   return (
     <div className="w-full h-full flex items-center justify-center bg-slate-950 rounded-lg overflow-hidden">
       <model-viewer
-        ref={modelViewerRef}
+        ref={modelViewerRef as any}
         src={modelUrl}
         ios-src={usdzUrl}
         alt="Bracelet personnalisé"
