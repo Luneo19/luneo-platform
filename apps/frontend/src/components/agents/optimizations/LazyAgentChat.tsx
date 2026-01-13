@@ -11,7 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 // Lazy load composants lourds
 const LunaChat = lazy(() => import('../luna/LunaChat').then(m => ({ default: m.LunaChat })));
 const AriaWidget = lazy(() => import('../aria/AriaWidget').then(m => ({ default: m.AriaWidget })));
-const NovaChat = lazy(() => import('../nova/NovaChat').then(m => ({ default: m.NovaChat })));
+// NovaChat component not yet implemented
+// const NovaChat = lazy(() => import('../nova/NovaChat').then(m => ({ default: m.NovaChat })));
 
 interface LazyAgentChatProps {
   agent: 'luna' | 'aria' | 'nova';
@@ -27,15 +28,21 @@ export function LazyAgentChat({ agent, ...props }: LazyAgentChatProps) {
     </div>
   );
 
-  const AgentComponent = {
-    luna: LunaChat,
-    aria: AriaWidget,
-    nova: NovaChat,
-  }[agent];
+  if (agent === 'luna') {
+    return (
+      <Suspense fallback={<LoadingSkeleton />}>
+        <LunaChat {...(props as any)} />
+      </Suspense>
+    );
+  }
 
-  return (
-    <Suspense fallback={<LoadingSkeleton />}>
-      <AgentComponent {...props} />
-    </Suspense>
-  );
+  if (agent === 'aria' || agent === 'nova') {
+    return (
+      <Suspense fallback={<LoadingSkeleton />}>
+        <AriaWidget {...(props as any)} />
+      </Suspense>
+    );
+  }
+
+  return null;
 }
