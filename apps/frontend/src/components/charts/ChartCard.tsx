@@ -36,7 +36,13 @@ function ChartCard({ title, description, data, type = 'line', height = 300 }: Ch
       <CardContent>
         <div style={{ height: `${height}px` }}>
           {data.labels.length > 0 ? (
-            <LineChart data={data} />
+            <LineChart 
+              data={data.labels.map((label, index) => ({
+                x: label,
+                y: data.datasets[0]?.data[index] || 0,
+              }))}
+              height={height}
+            />
           ) : (
             <div className="h-full flex items-center justify-center">
               <p className="text-gray-400">Aucune donnée disponible</p>

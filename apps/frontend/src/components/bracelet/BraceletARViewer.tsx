@@ -91,21 +91,21 @@ function BraceletARViewerContent({ customization, modelUrl, usdzUrl }: BraceletA
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-slate-950 rounded-lg overflow-hidden">
-      <model-viewer
-        ref={modelViewerRef as any}
-        src={modelUrl}
-        ios-src={usdzUrl}
-        alt="Bracelet personnalisé"
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls
-        style={{
+      {React.createElement('model-viewer', {
+        ref: modelViewerRef,
+        src: modelUrl,
+        'ios-src': usdzUrl,
+        alt: 'Bracelet personnalisé',
+        ar: true,
+        'ar-modes': 'webxr scene-viewer quick-look',
+        'camera-controls': true,
+        style: {
           width: '100%',
           height: '100%',
           backgroundColor: '#0f172a',
-        }}
-        className="rounded-lg"
-      />
+        },
+        className: 'rounded-lg',
+      } as any)}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-900/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-slate-700">
         <p className="text-xs text-slate-300 text-center">
           Appuyez sur le bouton AR pour visualiser en réalité augmentée
