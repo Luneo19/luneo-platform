@@ -1,7 +1,17 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { WidgetConfig } from '@luneo/widget-editor';
+// WidgetConfig type definition
+interface WidgetConfig {
+  container: HTMLElement;
+  apiKey: string;
+  productId: string;
+  locale: string;
+  theme: 'light' | 'dark';
+  onSave?: (designData: any) => void;
+  onError?: (error: { message: string }) => void;
+  onReady?: () => void;
+}
 
 export default function WidgetEditorPage() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -17,7 +27,7 @@ export default function WidgetEditorPage() {
     script.onload = () => {
       if (window.LuneoWidget && containerRef.current) {
         const config: WidgetConfig = {
-          container: containerRef.current,
+          container: containerRef.current as HTMLElement,
           apiKey: process.env.NEXT_PUBLIC_API_KEY || '',
           productId: 'demo-product',
           locale: 'fr',
