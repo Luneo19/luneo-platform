@@ -48,7 +48,9 @@ const BraceletMesh = memo(({
   dynamicTexture: string | null;
   customization: BraceletCustomization;
 }) => {
-  const { scene, error: loadError } = useGLTF(modelPath, true);
+  const gltf = useGLTF(modelPath, true);
+  const scene = gltf.scene;
+  const loadError = null; // useGLTF doesn't return error property
   const meshRef = useRef<THREE.Group>(null);
   const textureRef = useRef<THREE.Texture | null>(null);
 
