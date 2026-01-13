@@ -211,7 +211,7 @@ const generateTexture = (customization: BraceletCustomization): string => {
     ctx.fillStyle = '#222222';
     ctx.textBaseline = 'middle';
     ctx.font = `bold ${customization.fontSize}px ${customization.font}, sans-serif`;
-    ctx.textRenderingOptimization = 'optimizeQuality';
+        // textRenderingOptimization is not a valid CanvasRenderingContext2D property
 
     // Calculate text alignment
     let textX = width / 2;
