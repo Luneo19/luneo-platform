@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { forwardGet, forwardPost } from '@/lib/backend-forward';
+import { forwardGet, forwardPost, forwardPut } from '@/lib/backend-forward';
 
 type OrderRouteContext = {
   params: Promise<{ id: string }>;

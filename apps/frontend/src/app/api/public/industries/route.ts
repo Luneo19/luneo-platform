@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
             .limit(3);
 
           if (caseStudies?.length) {
-            data.caseStudies = caseStudies.map((cs) => ({
+            data.caseStudies = caseStudies.map((cs: any) => ({
               company: cs.client_name,
               logo: cs.client_logo,
               challenge: cs.excerpt || '',
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
           .order('display_order', { ascending: true });
 
         if (!error && industries?.length) {
-          data = industries.map((industry) => ({
+          data = industries.map((industry: any) => ({
             id: industry.id,
             name: industry.name,
             slug: industry.slug,

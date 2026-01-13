@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { forwardPatch } from '@/lib/backend-forward';
+import { forwardPut } from '@/lib/backend-forward';
 import { changePasswordSettingsSchema } from '@/lib/validation/zod-schemas';
 
 /**

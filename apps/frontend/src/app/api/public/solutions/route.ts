@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
           .order('display_order', { ascending: true });
 
         if (!error && solutions?.length) {
-          data = solutions.map((solution) => ({
+          data = solutions.map((solution: any) => ({
             id: solution.id,
             name: solution.name,
             tagline: solution.tagline || '',

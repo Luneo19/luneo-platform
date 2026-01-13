@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
     const result = await forwardGet('/support/knowledge-base/articles', request, {
       page,
       limit,
-      category,
-      search,
+      ...(category ? { category } : {}),
+      ...(search ? { search } : {}),
     });
     return ApiResponseBuilder.success(result.data);
   }, '/api/support/knowledge-base/articles', 'GET');

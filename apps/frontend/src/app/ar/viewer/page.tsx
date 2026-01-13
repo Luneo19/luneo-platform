@@ -166,7 +166,7 @@ function ARViewerContent() {
     });
 
     // Setup hit testing for placement
-    const hitTestSource = await session.requestReferenceSpace('viewer').then((space) =>
+    const hitTestSource = await session.requestReferenceSpace('viewer').then((space: XRReferenceSpace) =>
       session.requestHitTestSource({ space })
     );
 

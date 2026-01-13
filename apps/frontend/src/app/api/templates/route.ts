@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         status: 400,
         message: 'Paramètres invalides',
         code: 'VALIDATION_ERROR',
-        details: validation.error.issues,
+        details: validation.errors,
       };
     }
 

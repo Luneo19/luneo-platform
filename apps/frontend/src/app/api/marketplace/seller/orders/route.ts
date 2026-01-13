@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
           .from('order_items')
           .select('order_id')
           .in('product_id', productIds)
-          .then((res) => res.data?.map((item) => item.order_id) || []),
+          .then((res: any) => res.data?.map((item: any) => item.order_id) || []),
       )
       .eq(status ? 'status' : 'id', status || 'id', status ? status : undefined)
       .order('created_at', { ascending: false })

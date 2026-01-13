@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
         const { data: integrations, error } = await query;
 
         if (!error && integrations?.length) {
-          data = integrations.map((integration) => ({
+          data = integrations.map((integration: any) => ({
             id: integration.id,
             name: integration.name,
             slug: integration.slug,
