@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+
 // WidgetConfig type definition
 interface WidgetConfig {
   container: HTMLElement;
@@ -11,6 +12,16 @@ interface WidgetConfig {
   onSave?: (designData: any) => void;
   onError?: (error: { message: string }) => void;
   onReady?: () => void;
+}
+
+// Declare LuneoWidget on window
+declare global {
+  interface Window {
+    LuneoWidget?: {
+      init: (config: WidgetConfig) => void;
+      destroy: () => void;
+    };
+  }
 }
 
 export default function WidgetEditorPage() {
