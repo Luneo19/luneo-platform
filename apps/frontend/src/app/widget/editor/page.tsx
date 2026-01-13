@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { WidgetConfig } from '@luneo/widget-editor/types/designer.types';
+import type { WidgetConfig } from '@luneo/widget-editor';
 
 export default function WidgetEditorPage() {
   const containerRef = useRef<HTMLDivElement>(null);
