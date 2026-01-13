@@ -130,11 +130,11 @@ export function CustomersTable({
       const response = await endpoints.admin.customers.bulkAction({
         customerIds,
         action: action as 'email' | 'export' | 'tag' | 'segment' | 'delete',
-      });
+      }) as any;
 
       if (action === 'export') {
         // Download CSV
-        const csv = convertToCSV(response.data.data);
+        const csv = convertToCSV(response?.data?.data || []);
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');

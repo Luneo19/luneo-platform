@@ -14,6 +14,15 @@ interface WidgetConfig {
   onReady?: () => void;
 }
 
+declare global {
+  interface Window {
+    LuneoWidget?: {
+      init: (config: WidgetConfig) => void;
+      destroy: () => void;
+    };
+  }
+}
+
 // Declare LuneoWidget on window
 declare global {
   interface Window {
