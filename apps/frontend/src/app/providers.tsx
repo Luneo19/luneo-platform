@@ -71,7 +71,18 @@ export function Providers({
             enableSystem
             disableTransitionOnChange
           >
-            <I18nProvider locale={locale} messages={messages}>
+            <I18nProvider 
+              locale={locale} 
+              messages={messages}
+              currency={currency}
+              timezone={timezone}
+              availableLocales={availableLocales.map(loc => ({
+                locale: loc.locale,
+                label: loc.label,
+                region: loc.region,
+                flag: loc.flag,
+              }))}
+            >
               <AuthProvider>
                 <FeatureFlagProvider
                   flags={featureFlags}
