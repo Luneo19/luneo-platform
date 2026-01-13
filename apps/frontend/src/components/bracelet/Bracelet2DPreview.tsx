@@ -119,7 +119,7 @@ export const Bracelet2DPreview = forwardRef<HTMLCanvasElement, Bracelet2DPreview
         ctx.fillStyle = '#222222';
         ctx.textBaseline = 'middle';
         ctx.font = `bold ${customization.fontSize}px ${customization.font}, sans-serif`;
-        ctx.textRenderingOptimization = 'optimizeQuality';
+        // textRenderingOptimization is not a valid CanvasRenderingContext2D property
 
         // Calculate text alignment
         let textX = width / 2;
@@ -206,7 +206,7 @@ export const Bracelet2DPreview = forwardRef<HTMLCanvasElement, Bracelet2DPreview
         <canvas
           ref={canvasRef}
           className="max-w-full max-h-full"
-          style={{ imageRendering: 'high-quality' }}
+          style={{ imageRendering: 'crisp-edges' }}
         />
       </div>
     );
