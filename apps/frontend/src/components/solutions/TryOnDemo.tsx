@@ -272,29 +272,6 @@ function TryOnDemo({
     }
   }, [drawHandOverlay]);
 
-        if (wristPoints.length > 0) {
-          // Use utility function for watch overlay
-          if (selectedCategory === 'watch') {
-            drawWatchOverlay(ctx, wristPoints, {
-              color: '#3B82F6',
-              lineWidth: 3,
-              fill: true,
-              fillOpacity: 0.4,
-            });
-          } else {
-            // Jewelry overlay (similar to watch)
-            drawWatchOverlay(ctx, wristPoints, {
-              color: '#A855F7',
-              lineWidth: 3,
-              fill: true,
-              fillOpacity: 0.4,
-            });
-          }
-        }
-      }
-    }
-  }, [selectedCategory]);
-
   // Calculate FPS
   const calculateFPS = useCallback(() => {
     const now = performance.now();
