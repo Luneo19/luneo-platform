@@ -80,7 +80,7 @@ export class TwoFactorAuthService {
       // Save secret to database (not enabled yet)
       // Note: In production, use totp_secrets table from Supabase
       // For now, store in User model if it has twoFactorSecret field
-      const backupCodes = this.generateBackupCodes();
+      const backupCodes = this.generateBackupCodes(10);
 
       logger.info('TOTP secret generated', { userId });
 
@@ -102,7 +102,7 @@ export class TwoFactorAuthService {
       logger.info('Setting up 2FA', { userId });
 
       const { secret, qrCode } = await this.generateSecret(userId);
-      const backupCodes = this.generateBackupCodes();
+      const backupCodes = this.generateBackupCodes(10);
 
       // Save to database (in production, use totp_secrets table)
       // For now, we'll use cache or a placeholder
