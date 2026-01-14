@@ -239,7 +239,7 @@ export class AdvancedAnalyticsService {
           // Count users who had activity in this week
           const activeUserIds = await db.auditLog.findMany({
             where: {
-              userId: { in: cohortUsers.map((u) => u.id) },
+              userId: { in: cohortUsers.map((u: { id: string; createdAt: Date }) => u.id) },
               timestamp: {
                 gte: new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000),
                 lte: weekEnd,
