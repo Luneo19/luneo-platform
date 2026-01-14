@@ -21,7 +21,11 @@ export async function loadHeavyLibrary(libraryName: string) {
     case 'react-three-drei':
       return await import('@react-three/drei');
     case 'chartjs':
-      return await import('chart.js');
+      try {
+        return await import('chart.js');
+      } catch {
+        return null;
+      }
     case 'react-chartjs-2':
       return await import('react-chartjs-2');
     default:
