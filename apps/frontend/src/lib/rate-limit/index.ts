@@ -50,7 +50,7 @@ export const rateLimitConfigs = {
 function createRateLimiter(limit: number, window: string) {
   return new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(limit, window),
+    limiter: Ratelimit.slidingWindow(limit, window as any),
     analytics: true,
     prefix: '@luneo/rate-limit',
   });
