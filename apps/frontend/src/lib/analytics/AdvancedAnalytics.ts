@@ -361,7 +361,7 @@ export class AdvancedAnalyticsService {
         distinct: ['productId'],
       });
 
-      const userProductIds = userCustomizations.map((c) => c.productId);
+      const userProductIds = userCustomizations.map((c: { productId: string }) => c.productId);
 
       // 2. Find similar users (users who customized similar products)
       const similarUsers = await db.customization.findMany({
