@@ -22,12 +22,18 @@ export async function loadHeavyLibrary(libraryName: string) {
       return await import('@react-three/drei');
     case 'chartjs':
       try {
+        // @ts-expect-error - chart.js is optional
         return await import('chart.js');
       } catch {
         return null;
       }
     case 'react-chartjs-2':
-      return await import('react-chartjs-2');
+      try {
+        // @ts-expect-error - react-chartjs-2 is optional
+        return await import('react-chartjs-2');
+      } catch {
+        return null;
+      }
     default:
       throw new Error(`Unknown library: ${libraryName}`);
   }
