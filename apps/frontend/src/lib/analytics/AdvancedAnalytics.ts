@@ -315,7 +315,7 @@ export class AdvancedAnalyticsService {
 
       if (users.length > 0) {
         const now = new Date();
-        const totalAge = users.reduce((sum: number, user: { id: string; createdAt: Date }) => {
+        const totalAge = users.reduce((sum: number, user) => {
           return sum + (now.getTime() - user.createdAt.getTime());
         }, 0);
         characteristics.avgAccountAge = Math.round(totalAge / users.length / (1000 * 60 * 60 * 24)); // days
