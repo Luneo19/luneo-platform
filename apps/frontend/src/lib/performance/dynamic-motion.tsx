@@ -13,7 +13,6 @@ export const LazyMotion = dynamic(
 ) as any;
 
 export const LazyAnimatePresence = dynamic(
-  // @ts-expect-error - framer-motion AnimatePresence type compatibility
   () => import('framer-motion').then(mod => ({ default: mod.AnimatePresence })),
   { ssr: false }
 ) as any;
