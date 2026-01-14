@@ -380,7 +380,12 @@ function CustomizerDemo({
     if (!element) return;
 
     // Use utility function for duplication
-    const newElement = duplicateCanvasElement(element);
+    const elementWithDefaults = {
+      ...element,
+      width: element.width ?? 100,
+      height: element.height ?? 100,
+    };
+    const newElement = duplicateCanvasElement(elementWithDefaults);
     setElements((prev) => [...prev, newElement]);
     setSelectedElementId(newElement.id);
   }, [elements]);
