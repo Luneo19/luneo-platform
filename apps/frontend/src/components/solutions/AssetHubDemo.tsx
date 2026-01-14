@@ -185,7 +185,13 @@ function AssetHubDemo({
         });
       }, 6000);
     }, 2000);
-  }, [assets, onAssetProcessed, optimizationLevel]);
+  }, [maxFileSize, supportedFormats, optimizationLevel, onAssetProcessed]);
+
+  // Handle click to trigger file input
+  const handleClick = useCallback(() => {
+    handleFileUpload();
+  }, [handleFileUpload]);
+
 
   // Remove asset
   const removeAsset = useCallback((id: string) => {
