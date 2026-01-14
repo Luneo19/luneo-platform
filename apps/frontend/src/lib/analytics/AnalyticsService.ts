@@ -174,18 +174,19 @@ class AnalyticsService {
     if (typeof window === 'undefined') return;
 
     const eventName = `${event.category}_${event.action}`;
+    const { category, ...metadataWithoutCategory } = event.metadata || {};
     const properties = {
-      category: event.category,
       action: event.action,
       label: event.label,
       value: event.value,
-      ...event.metadata,
+      ...metadataWithoutCategory,
       sessionId: event.sessionId,
       userId: event.userId,
       anonymousId: event.anonymousId,
       page: event.pageInfo?.path,
       referrer: event.referrer,
       ...event.utm,
+      category: event.category, // Put category last to ensure it's not overwritten
     };
 
     // Send to Google Analytics
@@ -369,7 +370,7 @@ class AnalyticsService {
             email: user.email,
             plan: user.plan,
             name: user.name,
-            ...user.metadata,
+            ...(user.metadata || {}),
           });
         }
       });
