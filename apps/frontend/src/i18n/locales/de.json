@@ -45,15 +45,21 @@
   },
   "nav": {
     "home": "Startseite",
-    "pricing": "Preise",
     "features": "Funktionen",
+    "pricing": "Preise",
+    "marketplace": "Marktplatz",
+    "solutions": "Lösungen",
+    "resources": "Ressourcen",
+    "blog": "Blog",
+    "docs": "Dokumentation",
+    "support": "Support",
     "contact": "Kontakt",
     "login": "Anmelden",
     "register": "Registrieren",
+    "logout": "Abmelden",
     "dashboard": "Dashboard",
-    "marketplace": "Marktplatz",
     "settings": "Einstellungen",
-    "logout": "Abmelden"
+    "profile": "Profil"
   },
   "auth": {
     "login": {
