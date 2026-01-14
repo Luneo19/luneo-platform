@@ -185,13 +185,142 @@ function AssetHubDemo({
         });
       }, 6000);
     }, 2000);
-  }, [maxFileSize, supportedFormats, optimizationLevel, onAssetProcessed]);
+  }, [supportedFormats, maxFileSize, optimizationLevel, onAssetProcessed]);
 
   // Handle click to trigger file input
   const handleClick = useCallback(() => {
-    handleFileUpload();
-  }, [handleFileUpload]);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = supportedFormats.map(f => `.${f.toLowerCase()}`).join(',');
+    input.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files && target.files[0]) {
+        const changeEvent = {
+          target,
+        } as React.ChangeEvent<HTMLInputElement>;
+        handleFileUpload(changeEvent);
+      }
+    };
+    input.click();
+  }, [supportedFormats, handleFileUpload]);
+    let file: File | null = null;
 
+    if (event && 'dataTransfer' in event && event.dataTransfer?.files) {
+      file = event.dataTransfer.files[0];
+    } else if (event && 'target' in event && event.target instanceof HTMLInputElement && event.target.files) {
+      file = event.target.files[0];
+    }
+
+    if (!file) {
+      // Create file input if no file provided
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = supportedFormats.map(f => `.${f.toLowerCase()}`).join(',');
+      input.onchange = (e) => {
+        const target = e.target as HTMLInputElement;
+        if (target.files && target.files[0]) {
+          handleFileUpload({ target } as any);
+        }
+      };
+      input.click();
+      return;
+    }
+
+    // Validate file
+    if (file.size > maxFileSize * 1024 * 1024) {
+      alert(`Fichier trop volumineux. Maximum: ${maxFileSize}MB`);
+      return;
+    }
+
+    const fileExtension = file.name.split('.').pop()?.toUpperCase();
+    if (!fileExtension || !supportedFormats.includes(fileExtension)) {
+      alert(`Format non supporté. Formats acceptés: ${supportedFormats.join(', ')}`);
+      return;
+    }
+
+    const newAsset: Asset = {
+      id: `asset-${Date.now()}`,
+      name: file.name,
+      format: fileExtension,
+      size: file.size / (1024 * 1024), // MB
+      status: 'uploading',
+      progress: 0,
+    };
+
+    setAssets((prev) => [...prev, newAsset]);
+    setIsOptimizing(true);
+
+    // Simulate upload progress
+    const uploadInterval = setInterval(() => {
+      setAssets((prev) =>
+        prev.map((asset) => {
+          if (asset.id === newAsset.id && asset.progress < 100) {
+            return { ...asset, progress: Math.min(asset.progress + 10, 100) };
+          }
+          return asset;
+        })
+      );
+    }, 200);
+
+    // After upload, start processing
+    setTimeout(() => {
+      clearInterval(uploadInterval);
+      setAssets((prev) =>
+        prev.map((asset) => {
+          if (asset.id === newAsset.id) {
+            return { ...asset, status: 'processing', progress: 0 };
+          }
+          return asset;
+        })
+      );
+
+      // Simulate processing
+      const processInterval = setInterval(() => {
+        setAssets((prev) =>
+          prev.map((asset) => {
+            if (asset.id === newAsset.id && asset.progress < 100) {
+              return { ...asset, progress: Math.min(asset.progress + 5, 100) };
+            }
+            return asset;
+          })
+        );
+      }, 300);
+
+      // Complete processing
+      setTimeout(() => {
+        clearInterval(processInterval);
+        setAssets((prev) => {
+          const updatedAssets = prev.map((asset) => {
+            if (asset.id === newAsset.id) {
+              const optimizedAsset = {
+                ...asset,
+                status: 'optimized' as const,
+                progress: 100,
+                optimizedSize: asset.size * (1 - optimizationLevel / 100),
+                lods: [50000, 25000, 10000, 2500],
+              };
+
+              if (onAssetProcessed) {
+                onAssetProcessed(optimizedAsset);
+              }
+
+              return optimizedAsset;
+            }
+            return asset;
+          });
+
+          const stillProcessing = updatedAssets.some(
+            (asset) => asset.status === 'processing' || asset.status === 'uploading'
+          );
+          if (!stillProcessing) {
+            setIsOptimizing(false);
+          }
+
+          return updatedAssets;
+        });
+      }, 6000);
+    }, 2000);
+  }, [assets, onAssetProcessed, optimizationLevel]);
 
   // Remove asset
   const removeAsset = useCallback((id: string) => {
