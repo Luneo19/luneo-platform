@@ -129,7 +129,7 @@ export class FeatureFlagsService {
       if (response.ok) {
         const flag = await response.json();
         this.flags.set(key, flag);
-        await cacheService.set(`feature-flag:${key}`, flag, 5 * 60);
+        cacheService.set(`feature-flag:${key}`, flag, { ttl: 5 * 60 * 1000 });
         return flag;
       }
     } catch (error) {
