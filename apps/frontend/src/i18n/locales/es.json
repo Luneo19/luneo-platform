@@ -143,6 +143,63 @@
     "integrations": "Integraciones",
     "privacy": "Privacidad"
   },
+  "marketplace": {
+    "title": "Mercado de Plantillas",
+    "subtitle": "Descubre diseños profesionales creados por nuestra comunidad",
+    "searchPlaceholder": "Buscar plantillas...",
+    "categories": {
+      "all": "Todas las categorías",
+      "apparel": "Ropa",
+      "accessories": "Accesorios",
+      "home": "Hogar y Vida",
+      "print": "Impresión",
+      "packaging": "Embalaje",
+      "digital": "Digital",
+      "marketing": "Marketing",
+      "social": "Redes Sociales"
+    },
+    "sortBy": {
+      "popular": "Más Populares",
+      "newest": "Más Recientes",
+      "priceAsc": "Precio: Bajo a Alto",
+      "priceDesc": "Precio: Alto a Bajo",
+      "rating": "Mejor Valorados"
+    },
+    "filters": {
+      "title": "Filtros",
+      "priceRange": "Rango de Precios",
+      "freeOnly": "Solo plantillas gratuitas",
+      "tags": "Etiquetas Populares"
+    },
+    "template": {
+      "downloads": "Descargas",
+      "views": "Visualizaciones",
+      "likes": "Me gusta",
+      "rating": "Valoración",
+      "reviews": "Reseñas",
+      "buyNow": "Comprar Ahora",
+      "addToCart": "Añadir al Carrito",
+      "preview": "Vista Previa",
+      "byCreator": "Por",
+      "verifiedCreator": "Creador Verificado"
+    },
+    "noResults": "No se encontraron plantillas",
+    "noResultsDesc": "Intenta ajustar tus filtros o consulta de búsqueda"
+  },
+  "contact": {
+    "title": "Ponerse en contacto",
+    "subtitle": "Nos encantaría saber de ti",
+    "form": {
+      "name": "Tu nombre",
+      "email": "Correo electrónico",
+      "company": "Empresa",
+      "subject": "Asunto",
+      "message": "Mensaje",
+      "submit": "Enviar mensaje"
+    },
+    "success": "¡Mensaje enviado con éxito!",
+    "error": "Error al enviar el mensaje. Por favor, inténtalo de nuevo."
+  },
   "errors": {
     "required": "Este campo es obligatorio",
     "invalidEmail": "Correo electrónico inválido",

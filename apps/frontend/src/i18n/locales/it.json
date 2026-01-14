@@ -143,6 +143,63 @@
     "integrations": "Integrazioni",
     "privacy": "Privacy"
   },
+  "marketplace": {
+    "title": "Marketplace Template",
+    "subtitle": "Scopri design professionali creati dalla nostra community",
+    "searchPlaceholder": "Cerca template...",
+    "categories": {
+      "all": "Tutte le categorie",
+      "apparel": "Abbigliamento",
+      "accessories": "Accessori",
+      "home": "Casa e Vivere",
+      "print": "Stampa",
+      "packaging": "Imballaggio",
+      "digital": "Digitale",
+      "marketing": "Marketing",
+      "social": "Social Media"
+    },
+    "sortBy": {
+      "popular": "Più Popolari",
+      "newest": "Più Recenti",
+      "priceAsc": "Prezzo: Basso ad Alto",
+      "priceDesc": "Prezzo: Alto a Basso",
+      "rating": "Più Votati"
+    },
+    "filters": {
+      "title": "Filtri",
+      "priceRange": "Fascia di Prezzo",
+      "freeOnly": "Solo template gratuiti",
+      "tags": "Tag Popolari"
+    },
+    "template": {
+      "downloads": "Download",
+      "views": "Visualizzazioni",
+      "likes": "Mi Piace",
+      "rating": "Valutazione",
+      "reviews": "Recensioni",
+      "buyNow": "Acquista Ora",
+      "addToCart": "Aggiungi al Carrello",
+      "preview": "Anteprima",
+      "byCreator": "Di",
+      "verifiedCreator": "Creatore Verificato"
+    },
+    "noResults": "Nessun template trovato",
+    "noResultsDesc": "Prova ad aggiustare i tuoi filtri o la query di ricerca"
+  },
+  "contact": {
+    "title": "Mettiti in contatto",
+    "subtitle": "Ci piacerebbe sentirti",
+    "form": {
+      "name": "Il tuo nome",
+      "email": "Indirizzo email",
+      "company": "Azienda",
+      "subject": "Oggetto",
+      "message": "Messaggio",
+      "submit": "Invia messaggio"
+    },
+    "success": "Messaggio inviato con successo!",
+    "error": "Invio del messaggio fallito. Riprova."
+  },
   "errors": {
     "required": "Questo campo è obbligatorio",
     "invalidEmail": "Email non valida",

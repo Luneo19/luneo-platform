@@ -242,4 +242,3 @@ export default function EyewearTryOnWithErrorBoundary(props: EyewearTryOnProps) 
     </ErrorBoundary>
   );
 }
-export default memo(EyewearTryOn);

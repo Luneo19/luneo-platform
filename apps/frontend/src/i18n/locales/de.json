@@ -143,6 +143,63 @@
     "integrations": "Integrationen",
     "privacy": "Datenschutz"
   },
+  "marketplace": {
+    "title": "Template-Marktplatz",
+    "subtitle": "Entdecken Sie professionelle Designs unserer Community",
+    "searchPlaceholder": "Templates suchen...",
+    "categories": {
+      "all": "Alle Kategorien",
+      "apparel": "Bekleidung",
+      "accessories": "Accessoires",
+      "home": "Wohnen",
+      "print": "Druck",
+      "packaging": "Verpackung",
+      "digital": "Digital",
+      "marketing": "Marketing",
+      "social": "Social Media"
+    },
+    "sortBy": {
+      "popular": "Beliebteste",
+      "newest": "Neueste",
+      "priceAsc": "Preis: Niedrig bis Hoch",
+      "priceDesc": "Preis: Hoch bis Niedrig",
+      "rating": "Höchste Bewertung"
+    },
+    "filters": {
+      "title": "Filter",
+      "priceRange": "Preisspanne",
+      "freeOnly": "Nur kostenlose Templates",
+      "tags": "Beliebte Tags"
+    },
+    "template": {
+      "downloads": "Downloads",
+      "views": "Aufrufe",
+      "likes": "Likes",
+      "rating": "Bewertung",
+      "reviews": "Bewertungen",
+      "buyNow": "Jetzt kaufen",
+      "addToCart": "In den Warenkorb",
+      "preview": "Vorschau",
+      "byCreator": "Von",
+      "verifiedCreator": "Verifizierter Ersteller"
+    },
+    "noResults": "Keine Templates gefunden",
+    "noResultsDesc": "Versuchen Sie, Ihre Filter oder Suchanfrage anzupassen"
+  },
+  "contact": {
+    "title": "Kontakt aufnehmen",
+    "subtitle": "Wir freuen uns von Ihnen zu hören",
+    "form": {
+      "name": "Ihr Name",
+      "email": "E-Mail-Adresse",
+      "company": "Unternehmen",
+      "subject": "Betreff",
+      "message": "Nachricht",
+      "submit": "Nachricht senden"
+    },
+    "success": "Nachricht erfolgreich gesendet!",
+    "error": "Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+  },
   "errors": {
     "required": "Dieses Feld ist erforderlich",
     "invalidEmail": "Ungültige E-Mail-Adresse",
