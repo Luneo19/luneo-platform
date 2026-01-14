@@ -3,6 +3,6 @@
 import itJson from './it.json';
 import enJson from './en.json';
 
-const messages = itJson as typeof enJson;
+const messages = itJson as any;
 
 export default messages;

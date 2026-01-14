@@ -3,6 +3,6 @@
 import deJson from './de.json';
 import enJson from './en.json';
 
-const messages = deJson as unknown as typeof enJson;
+const messages = deJson as any;
 
 export default messages;
