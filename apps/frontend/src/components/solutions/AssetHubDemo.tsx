@@ -223,7 +223,7 @@ function AssetHubDemo({
       <Card className="bg-gray-900/50 border-blue-500/20 overflow-hidden">
         <div className="p-8">
           <div
-            onClick={handleFileUpload}
+            onClick={handleClick}
             className="border-2 border-dashed border-blue-500/30 rounded-lg p-12 text-center cursor-pointer hover:border-blue-500/60 hover:bg-blue-500/5 transition-all"
           >
             <Upload className="w-16 h-16 text-blue-400 mx-auto mb-4" />
