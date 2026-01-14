@@ -143,7 +143,19 @@ export class AdminService {
       ]);
 
       // Convert to User type
-      const userList: User[] = users.map((user) => ({
+      const userList: User[] = users.map((user: {
+        id: string;
+        email: string;
+        name: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        role: string;
+        brandId: string | null;
+        isActive: boolean;
+        emailVerified: Date | null;
+        lastLoginAt: Date | null;
+        createdAt: Date;
+      }) => ({
         id: user.id,
         email: user.email,
         name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
