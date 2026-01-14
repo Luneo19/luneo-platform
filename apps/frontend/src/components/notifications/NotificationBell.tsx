@@ -226,8 +226,8 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
-            const newNotification = payload.new as Notification;
+          (payload: { new: Notification }) => {
+            const newNotification = payload.new;
             setNotifications(prev => [newNotification, ...prev]);
             if (!newNotification.is_read) {
               setUnreadCount(prev => prev + 1);
@@ -250,8 +250,8 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
-            const updatedNotification = payload.new as Notification;
+          (payload: { new: Notification }) => {
+            const updatedNotification = payload.new;
             setNotifications(prev =>
               prev.map(n =>
                 n.id === updatedNotification.id ? updatedNotification : n
