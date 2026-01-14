@@ -71,7 +71,7 @@ const typeColors = {
   system: 'text-gray-500',
 };
 
-function NotificationBell({ className, variant = 'ghost', size = 'md' }: NotificationBellProps) {
+function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -212,7 +212,7 @@ function NotificationBell({ className, variant = 'ghost', size = 'md' }: Notific
     fetchNotifications();
 
     // Get user ID for filter
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: { id: string } | null } }) => {
       if (!user) return;
 
       // Subscribe to new notifications
@@ -493,7 +493,7 @@ function NotificationBell({ className, variant = 'ghost', size = 'md' }: Notific
   );
 }
 
-const NotificationBellMemo = memo(NotificationBell);
+const NotificationBellMemo = memo(NotificationBellComponent);
 
 export function NotificationBellWrapper(props: NotificationBellProps) {
   return (
