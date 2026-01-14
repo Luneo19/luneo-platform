@@ -265,7 +265,7 @@ export function useAR(options: UseAROptions = {}) {
 
     // Loading
     isCreatingSession: createSessionMutation.isPending,
-    isTracking: trackInteractionMutation.isLoading,
+    isTracking: trackInteractionMutation.isPending,
   };
 }
 
