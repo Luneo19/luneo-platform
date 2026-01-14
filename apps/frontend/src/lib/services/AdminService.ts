@@ -263,7 +263,7 @@ export class AdminService {
       });
 
       // Invalidate cache
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('User created', { userId: user.id, email: user.email });
 
@@ -323,7 +323,7 @@ export class AdminService {
       });
 
       // Invalidate cache
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('User updated', { userId: user.id });
 
@@ -412,7 +412,7 @@ export class AdminService {
         db.brand.count({ where }),
       ]);
 
-      const brandList: Brand[] = brands.map((brand) => ({
+      const brandList: Brand[] = brands.map((brand: { id: string; name: string; slug: string; status: string; plan: string }) => ({
         id: brand.id,
         name: brand.name,
         slug: brand.slug,
@@ -500,7 +500,7 @@ export class AdminService {
         data: { brandId: brand.id },
       });
 
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('Brand created', { brandId: brand.id });
 
@@ -545,7 +545,7 @@ export class AdminService {
         },
       });
 
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('Brand updated', { brandId: brand.id });
 

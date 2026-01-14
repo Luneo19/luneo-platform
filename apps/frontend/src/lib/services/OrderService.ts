@@ -136,7 +136,7 @@ export class OrderService {
       };
 
       // Invalidate cache
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('Order created', { orderId: order.id });
 
@@ -340,7 +340,7 @@ export class OrderService {
 
       // Invalidate cache
       cacheService.delete(`order:${orderId}`);
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('Order updated', { orderId });
 

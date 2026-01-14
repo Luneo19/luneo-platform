@@ -278,7 +278,7 @@ export class BillingService {
 
       // Invalidate cache
       cacheService.delete(`subscription:${brandId}`);
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('Subscription updated', { brandId, plan: request.plan });
 
@@ -357,7 +357,7 @@ export class BillingService {
 
       // Invalidate cache
       cacheService.delete(`subscription:${brandId}`);
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('Subscription cancelled', { brandId, cancelAtPeriodEnd });
 
@@ -408,7 +408,7 @@ export class BillingService {
 
       // Invalidate cache
       cacheService.delete(`subscription:${brandId}`);
-      cacheService.invalidateCache();
+      cacheService.clear();
 
       logger.info('Subscription reactivated', { brandId });
 
