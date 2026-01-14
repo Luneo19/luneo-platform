@@ -24,8 +24,13 @@ export class OidcStrategy extends PassportStrategy(OidcPassportStrategy, 'oidc')
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
   ) {
+    const issuer = configService.get<string>('OIDC_ISSUER') || configService.get<string>('oidc.issuer');
+    if (!issuer) {
+      throw new Error('OIDC_ISSUER is required for OIDC strategy. Please configure it or disable OIDC.');
+    }
+    
     super({
-      issuer: configService.get<string>('OIDC_ISSUER') || configService.get<string>('oidc.issuer'),
+      issuer,
       authorizationURL: configService.get<string>('OIDC_AUTHORIZATION_URL') || configService.get<string>('oidc.authorizationURL'),
       tokenURL: configService.get<string>('OIDC_TOKEN_URL') || configService.get<string>('oidc.tokenURL'),
       userInfoURL: configService.get<string>('OIDC_USERINFO_URL') || configService.get<string>('oidc.userInfoURL'),
