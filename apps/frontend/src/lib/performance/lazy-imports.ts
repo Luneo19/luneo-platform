@@ -43,7 +43,6 @@ export const LazyChart = dynamic(
  * Lazy load heavy analytics components
  */
 export const LazyAnalyticsDashboard = dynamic(
-  // @ts-expect-error - AnalyticsDashboard component is optional
   () => import('@/components/dashboard/AnalyticsDashboard').catch(() => ({ default: () => null })),
   {
     loading: LoadingAnalytics,
@@ -55,7 +54,6 @@ export const LazyAnalyticsDashboard = dynamic(
  * Lazy load AR/VR components
  */
 export const LazyARViewer = dynamic(
-  // @ts-expect-error - ARViewer component is optional
   () => import('@/components/ar/ARViewer').catch(() => ({ default: () => null })),
   {
     loading: LoadingAR,
@@ -67,7 +65,6 @@ export const LazyARViewer = dynamic(
  * Lazy load heavy editor components
  */
 export const LazyDesignEditor = dynamic(
-  // @ts-expect-error - DesignEditor component is optional
   () => import('@/components/editor/DesignEditor').catch(() => ({ default: () => null })),
   {
     loading: LoadingEditor,
@@ -79,7 +76,6 @@ export const LazyDesignEditor = dynamic(
  * Lazy load heavy form components
  */
 export const LazyAdvancedForm = dynamic(
-  // @ts-expect-error - AdvancedForm component is optional
   () => import('@/components/forms/AdvancedForm').catch(() => ({ default: () => null })),
   {
     loading: LoadingForm,
