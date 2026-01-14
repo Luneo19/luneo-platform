@@ -419,7 +419,7 @@ export class AdvancedAnalyticsService {
           select: { id: true },
         });
 
-        popularProducts.forEach((product) => {
+        popularProducts.forEach((product: { id: string }) => {
           sortedRecommendations.push({
             id: product.id,
             score: 50, // Default score for popular items
