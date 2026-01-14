@@ -80,10 +80,14 @@ try {
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('passport-openidconnect');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  OidcStrategy = require('./strategies/oidc.strategy').OidcStrategy;
+  // Only load OIDC strategy if issuer is configured (required by OIDC library)
+  const oidcIssuer = process.env.OIDC_ISSUER;
+  if (oidcIssuer) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    OidcStrategy = require('./strategies/oidc.strategy').OidcStrategy;
+  }
 } catch {
-  // OIDC not available
+  // OIDC not available or not configured
 }
 
 @Module({

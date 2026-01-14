@@ -617,7 +617,7 @@ function TryOnDemo({
   }, []);
 
   return (
-    <ARErrorBoundary level="component" componentName="TryOnDemo">
+    <ARErrorBoundary componentName="TryOnDemo">
     <div className="relative">
       <Card className="bg-gray-900/50 border-cyan-500/20 overflow-hidden">
         {/* Camera/Video Display */}
