@@ -233,7 +233,7 @@ export class TwoFactorAuthService {
       // });
 
       // Mark as enabled in cache
-      cacheService.set(`2fa:enabled:${userId}`, true, 86400 * 365); // 1 year
+      cacheService.set(`2fa:enabled:${userId}`, true, { ttl: 86400 * 365 * 1000 }); // 1 year
 
       logger.info('2FA enabled', { userId });
     } catch (error: any) {
@@ -306,7 +306,7 @@ export class TwoFactorAuthService {
         cacheService.set(`2fa:setup:${userId}`, {
           ...setup,
           backupCodes,
-        }, 3600);
+        }, { ttl: 3600 * 1000 });
       }
 
       logger.info('Backup codes generated', { userId });
