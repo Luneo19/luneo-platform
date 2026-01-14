@@ -9,7 +9,16 @@
  * qui peut être remplacée par l'implémentation réelle une fois le SDK installé.
  */
 
-import { GoogleAdsApi, Customer } from 'google-ads-api';
+// Conditional import - google-ads-api is optional
+let GoogleAdsApi: any;
+let Customer: any;
+try {
+  const googleAdsApi = require('google-ads-api');
+  GoogleAdsApi = googleAdsApi.GoogleAdsApi;
+  Customer = googleAdsApi.Customer;
+} catch {
+  // google-ads-api not installed
+}
 
 export interface GoogleCampaign {
   id: string;
