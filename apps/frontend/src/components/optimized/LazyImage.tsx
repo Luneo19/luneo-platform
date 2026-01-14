@@ -118,14 +118,10 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
 
       {/* Loading placeholder */}
       {!isLoaded && !shouldShowBlur && placeholder && (
-        <motion
-          as="img"
+        <img
           src={placeholder}
           alt={`${alt} placeholder`}
           className="absolute inset-0 h-full w-full object-cover"
-          initial={{ opacity: 1 }}
-          animate={{ opacity: isLoaded ? 0 : 1 }}
-          transition={{ duration: 0.2 }}
         />
       )}
 
@@ -140,8 +136,7 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
 
       {/* Main image */}
       {isInView && (
-        <motion
-          as="img"
+        <img
           src={optimizedSrc}
           alt={alt}
           width={width}
