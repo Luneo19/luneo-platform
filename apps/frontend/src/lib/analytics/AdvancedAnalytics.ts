@@ -361,7 +361,7 @@ export class AdvancedAnalyticsService {
         distinct: ['productId'],
       });
 
-      const userProductIds = userCustomizations.map((c: { productId: string }) => c.productId);
+      const userProductIds = userCustomizations.map((c: { productId: string | null }) => c.productId).filter((id): id is string => id !== null);
 
       // 2. Find similar users (users who customized similar products)
       const similarUsers = await db.customization.findMany({
@@ -373,7 +373,7 @@ export class AdvancedAnalyticsService {
         distinct: ['userId'],
       });
 
-      const similarUserIds = [...new Set(similarUsers.map((s) => s.userId))];
+      const similarUserIds = [...new Set(similarUsers.map((s: { userId: string }) => s.userId))];
 
       // 3. Get products that similar users liked but current user hasn't seen
       const recommendedProducts = await db.customization.findMany({
