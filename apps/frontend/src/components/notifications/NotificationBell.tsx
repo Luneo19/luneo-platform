@@ -305,13 +305,14 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <motion.div
+          <motion
+            as="div"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white"
           >
             {unreadCount > 9 ? '9+' : unreadCount}
-          </motion.div>
+          </motion>
         )}
       </Button>
 
