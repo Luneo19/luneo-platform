@@ -317,8 +317,6 @@
 - Ajouter les intégrations Ads + Webhooks
 - **Estimation**: 40-50 heures de développement
 
----
-
-## 📝 NOTES- Les fonctionnalités marquées comme "Optionnel" peuvent être ajoutées plus tard
+---## 📝 NOTES- Les fonctionnalités marquées comme "Optionnel" peuvent être ajoutées plus tard
 - Les estimations sont approximatives et peuvent varier selon la complexité
 - Certaines fonctionnalités peuvent nécessiter des dépendances externes (SDK Meta, Google, TikTok)

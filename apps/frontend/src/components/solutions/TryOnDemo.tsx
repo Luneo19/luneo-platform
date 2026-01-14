@@ -73,6 +73,48 @@ function TryOnDemo({
     { id: 'jewelry', name: 'Bijoux', icon: Gem, color: 'purple' },
   ];
 
+  // Draw face overlay (utilise utilitaire overlay-renderer)
+  const drawFaceOverlay = useCallback((results: any) => {
+    if (!canvasRef.current || !videoRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size to match video exactly
+    const videoWidth = videoRef.current.videoWidth || 640;
+    const videoHeight = videoRef.current.videoHeight || 480;
+    
+    if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
+    }
+
+    // Clear canvas using utility
+    clearCanvas(ctx, canvas.width, canvas.height);
+
+    // Draw face mesh for glasses using utility
+    if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && selectedCategory === 'glasses') {
+      const landmarks = results.multiFaceLandmarks[0];
+      
+      if (landmarks.length >= 468) {
+        // Convert landmarks to overlay points format
+        const overlayPoints = landmarks.map((landmark: any) => ({
+          x: landmark.x * canvas.width,
+          y: landmark.y * canvas.height,
+        }));
+
+        // Draw glasses overlay using utility
+        drawGlassesOverlay(ctx, overlayPoints, {
+          color: '#06b6d4',
+          lineWidth: 6,
+          fill: true,
+          fillOpacity: 0.25,
+        });
+      }
+    }
+  }, [selectedCategory]);
+
   // Initialize MediaPipe Face Mesh
   const initializeFaceMesh = useCallback(() => {
     if (faceMeshRef.current) return;
@@ -105,7 +147,32 @@ function TryOnDemo({
             }));
             setFacePoints(points);
             setIsTracking(true);
-            drawFaceOverlay(results);
+            // Call drawFaceOverlay directly - it's defined above
+            if (canvasRef.current && videoRef.current) {
+              const canvas = canvasRef.current;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                const videoWidth = videoRef.current.videoWidth || 640;
+                const videoHeight = videoRef.current.videoHeight || 480;
+                if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
+                  canvas.width = videoWidth;
+                  canvas.height = videoHeight;
+                }
+                clearCanvas(ctx, canvas.width, canvas.height);
+                if (selectedCategory === 'glasses' && landmarks.length >= 468) {
+                  const overlayPoints = landmarks.map((landmark: any) => ({
+                    x: landmark.x * canvas.width,
+                    y: landmark.y * canvas.height,
+                  }));
+                  drawGlassesOverlay(ctx, overlayPoints, {
+                    color: '#06b6d4',
+                    lineWidth: 6,
+                    fill: true,
+                    fillOpacity: 0.25,
+                  });
+                }
+              }
+            }
           } else {
             setFacePoints([]);
             setIsTracking(false);
@@ -121,7 +188,7 @@ function TryOnDemo({
       logger.error('FaceMesh initialization error', { error: err });
       setError('Erreur lors de l\'initialisation du tracking facial. Veuillez rafraîchir la page.');
     }
-  }, [drawFaceOverlay]);
+  }, [selectedCategory]);
 
   // Initialize MediaPipe Hands
   const initializeHands = useCallback(() => {
@@ -170,50 +237,6 @@ function TryOnDemo({
       setError('Erreur lors de l\'initialisation du tracking main. Veuillez rafraîchir la page.');
     }
   }, [drawHandOverlay]);
-
-  // Draw face overlay (utilise utilitaire overlay-renderer)
-  const drawFaceOverlay = useCallback((results: any) => {
-    if (!canvasRef.current || !videoRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size to match video exactly
-    const videoWidth = videoRef.current.videoWidth || 640;
-    const videoHeight = videoRef.current.videoHeight || 480;
-    
-    if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
-      canvas.width = videoWidth;
-      canvas.height = videoHeight;
-    }
-
-    // Clear canvas using utility
-    clearCanvas(ctx, canvas.width, canvas.height);
-
-    // Draw face mesh for glasses using utility
-    if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && selectedCategory === 'glasses') {
-      const landmarks = results.multiFaceLandmarks[0];
-      
-      if (landmarks.length >= 468) {
-        // Convert landmarks to OverlayPoint format
-        const facePoints = landmarks.map((landmark: any) => ({
-          x: landmark.x * canvas.width,
-          y: landmark.y * canvas.height,
-          z: landmark.z * 100,
-          confidence: 0.9,
-        }));
-
-        // Use utility function for glasses overlay
-        drawGlassesOverlay(ctx, facePoints, {
-          color: '#06b6d4',
-          lineWidth: 6,
-          fill: true,
-          fillOpacity: 0.25,
-        });
-      }
-    }
-  }, [selectedCategory]);
 
   // Draw hand overlay (utilise utilitaire overlay-renderer)
   const drawHandOverlay = useCallback((results: any) => {

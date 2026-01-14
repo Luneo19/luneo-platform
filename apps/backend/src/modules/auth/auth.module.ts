@@ -68,7 +68,7 @@ try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@node-saml/passport-saml');
   // Only load SAML strategy if callbackUrl is configured (required by SAML library)
-  const samlCallbackUrl = process.env.SAML_CALLBACK_URL || process.env.saml?.callbackUrl;
+  const samlCallbackUrl = process.env.SAML_CALLBACK_URL;
   if (samlCallbackUrl) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     SamlStrategy = require('./strategies/saml.strategy').SamlStrategy;
