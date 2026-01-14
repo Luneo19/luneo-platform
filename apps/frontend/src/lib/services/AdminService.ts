@@ -412,7 +412,7 @@ export class AdminService {
         db.brand.count({ where }),
       ]);
 
-      const brandList: Brand[] = brands.map((brand: { id: string; name: string; slug: string; status: string; plan: string }) => ({
+      const brandList: Brand[] = brands.map((brand: { id: string; name: string; slug: string; status: string; plan: string; stripeCustomerId?: string | null; createdAt: Date }) => ({
         id: brand.id,
         name: brand.name,
         slug: brand.slug,
