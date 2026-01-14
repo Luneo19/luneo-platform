@@ -193,10 +193,6 @@ class AnalyticsService {
       const ga = await loadGoogleAnalytics();
       if (ga) {
         ga.trackEvent(eventName, {
-          category: event.category,
-          action: event.action,
-          label: event.label,
-          value: event.value,
           ...properties,
         });
       }
