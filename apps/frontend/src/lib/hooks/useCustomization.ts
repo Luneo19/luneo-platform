@@ -213,7 +213,7 @@ export function useCustomization(options: UseCustomizationOptions) {
     reset,
 
     // Utils
-    isLoading: generateMutation.isLoading,
+    isLoading: generateMutation.isPending,
   };
 }
 
