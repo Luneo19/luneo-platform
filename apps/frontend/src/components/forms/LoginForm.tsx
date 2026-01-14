@@ -70,23 +70,23 @@ function LoginFormContent() {
           </div>
         </motion>
 
-        <motion.h1
+        <motion as="h1"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-2xl font-bold text-center text-gray-900 mb-2"
         >
           Connexion
-        </motion.h1>
+        </motion>
         
-        <motion.p
+        <motion as="p"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-center text-gray-600 mb-8"
         >
           Connectez-vous à votre compte Luneo
-        </motion.p>
+        </motion>
 
         {error && (
           <motion

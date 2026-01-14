@@ -107,7 +107,7 @@ export function trackConversion(
 declare global {
   interface Window {
     gtag: (
-      command: string,
+      command: 'event' | 'set' | 'config' | 'js',
       targetId: string | Date,
       config?: Record<string, any>
     ) => void;

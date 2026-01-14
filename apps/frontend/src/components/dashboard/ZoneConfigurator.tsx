@@ -167,8 +167,8 @@ function ZoneConfiguratorContent({ productId, modelUrl, onSave }: ZoneConfigurat
         } else {
           // Zone existante mise à jour
           return updateZone.mutateAsync({
-            id: zone.id,
             ...zone,
+            id: zone.id,
           });
         }
       });
