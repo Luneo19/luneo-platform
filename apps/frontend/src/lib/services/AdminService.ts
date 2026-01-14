@@ -637,7 +637,7 @@ export class AdminService {
       };
 
       // Cache for 5 minutes
-      cacheService.set(cacheKey, stats, 300);
+      cacheService.set(cacheKey, stats, { ttl: 300 * 1000 });
 
       return stats;
     } catch (error: any) {
