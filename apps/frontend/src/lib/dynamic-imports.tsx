@@ -109,7 +109,7 @@ export const LazyClipartBrowser = createLazyComponent(
 );
 
 export const LazyTemplateGallery = createLazyComponent(
-  () => import('@/components/TemplateGallery').then(mod => ({ default: mod.TemplateGallery })),
+  () => import('@/components/TemplateGallery'),
   { ssr: false }
 );
 
