@@ -159,7 +159,7 @@ export class TwoFactorAuthService {
           window: 2, // Allow 2 time periods (60 seconds)
         });
 
-        return isValid;
+        return isValid ?? false;
       } else if (method === 'backup') {
         // Verify backup code
         const isValid = setup.backupCodes.includes(code);
