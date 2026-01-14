@@ -1,7 +1,8 @@
 // Spanish translations
 // Import JSON and convert to TypeScript format
 import esJson from './es.json';
+import enJson from './en.json';
 
-const messages = esJson as typeof import('./en').default;
+const messages = esJson as typeof enJson;
 
 export default messages;
