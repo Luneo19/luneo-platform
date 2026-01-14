@@ -115,6 +115,40 @@ function TryOnDemo({
     }
   }, [selectedCategory]);
 
+  // Draw hand overlay (utilise utilitaire overlay-renderer)
+  const drawHandOverlay = useCallback((results: any) => {
+    if (!canvasRef.current || !videoRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Draw watch/jewelry overlay for hands using utility
+    if (results.multiHandLandmarks && (selectedCategory === 'watch' || selectedCategory === 'jewelry')) {
+      const landmarks = results.multiHandLandmarks[0];
+      
+      if (landmarks.length >= 21) {
+        // Convert landmarks to overlay points format
+        const wristPoints = [
+          {
+            x: landmarks[0].x * canvas.width,
+            y: landmarks[0].y * canvas.height,
+            z: landmarks[0].z * 100,
+          },
+        ];
+
+        if (selectedCategory === 'watch') {
+          drawWatchOverlay(ctx, wristPoints, {
+            color: '#3B82F6',
+            lineWidth: 4,
+            fill: true,
+            fillOpacity: 0.2,
+          });
+        }
+      }
+    }
+  }, [selectedCategory]);
+
   // Initialize MediaPipe Face Mesh
   const initializeFaceMesh = useCallback(() => {
     if (faceMeshRef.current) return;
@@ -237,35 +271,6 @@ function TryOnDemo({
       setError('Erreur lors de l\'initialisation du tracking main. Veuillez rafraîchir la page.');
     }
   }, [drawHandOverlay]);
-
-  // Draw hand overlay (utilise utilitaire overlay-renderer)
-  const drawHandOverlay = useCallback((results: any) => {
-    if (!canvasRef.current || !videoRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Draw watch/jewelry overlay for hands using utility
-    if (results.multiHandLandmarks && (selectedCategory === 'watch' || selectedCategory === 'jewelry')) {
-      const landmarks = results.multiHandLandmarks[0];
-      
-      if (landmarks.length >= 21) {
-        // Convert landmarks to OverlayPoint format
-        const wristPoints = [
-          {
-            x: landmarks[0].x * canvas.width,
-            y: landmarks[0].y * canvas.height,
-            z: landmarks[0].z * 100,
-            confidence: 0.8,
-          },
-          landmarks[1] ? {
-            x: landmarks[1].x * canvas.width,
-            y: landmarks[1].y * canvas.height,
-            z: landmarks[1].z * 100,
-            confidence: 0.8,
-          } : undefined,
-        ].filter(Boolean) as Array<{ x: number; y: number; z: number; confidence: number }>;
 
         if (wristPoints.length > 0) {
           // Use utility function for watch overlay
