@@ -31,7 +31,7 @@ export const LazyZoneConfigurator = dynamic(
  * Lazy load chart components (if using heavy chart libraries)
  */
 export const LazyChart = dynamic(
-  // @ts-expect-error - Chart component is optional
+  // @ts-expect-error - Chart component may not exist
   () => import('@/components/charts/Chart').catch(() => ({ default: () => null })),
   {
     loading: LoadingChart,
@@ -65,6 +65,7 @@ export const LazyARViewer = dynamic(
  * Lazy load heavy editor components
  */
 export const LazyDesignEditor = dynamic(
+  // @ts-expect-error - DesignEditor component may not exist
   () => import('@/components/editor/DesignEditor').catch(() => ({ default: () => null })),
   {
     loading: LoadingEditor,
@@ -76,6 +77,7 @@ export const LazyDesignEditor = dynamic(
  * Lazy load heavy form components
  */
 export const LazyAdvancedForm = dynamic(
+  // @ts-expect-error - AdvancedForm component may not exist
   () => import('@/components/forms/AdvancedForm').catch(() => ({ default: () => null })),
   {
     loading: LoadingForm,
