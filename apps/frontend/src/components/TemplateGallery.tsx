@@ -134,23 +134,6 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
     }
   }, [page, sortBy, selectedCategory, toast]);
 
-  const filterTemplates = useCallback(() => {
-    let filtered = [...templates];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          t.name.toLowerCase().includes(query) ||
-          t.description?.toLowerCase().includes(query) ||
-          t.tags?.some((tag) => tag.toLowerCase().includes(query))
-      );
-    }
-
-    setFilteredTemplates(filtered);
-  }, [searchQuery, templates]);
-
   const handleUseTemplate = (template: Template) => {
     onTemplateSelect?.(template);
     toast({

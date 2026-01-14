@@ -23,10 +23,15 @@ export class SamlStrategy extends PassportStrategy(SamlPassportStrategy, 'saml')
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
   ) {
+    const callbackUrl = configService.get<string>('SAML_CALLBACK_URL') || configService.get<string>('saml.callbackUrl');
+    if (!callbackUrl) {
+      throw new Error('SAML_CALLBACK_URL is required for SAML strategy. Please configure it or disable SAML.');
+    }
+    
     super({
       entryPoint: configService.get<string>('SAML_ENTRY_POINT') || configService.get<string>('saml.entryPoint'),
       issuer: configService.get<string>('SAML_ISSUER') || configService.get<string>('saml.issuer'),
-      callbackUrl: configService.get<string>('SAML_CALLBACK_URL') || configService.get<string>('saml.callbackUrl'),
+      callbackUrl,
       cert: configService.get<string>('SAML_CERT') || configService.get<string>('saml.cert'),
       // Optional: decrypt encrypted assertions
       decryptionPvk: configService.get<string>('SAML_DECRYPTION_PVK') || configService.get<string>('saml.decryptionPvk'),

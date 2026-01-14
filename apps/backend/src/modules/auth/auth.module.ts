@@ -63,14 +63,18 @@ if (isOAuthConfigured('github')) {
   }
 }
 
-// SAML and OIDC strategies are optional - only load if packages are installed
+// SAML and OIDC strategies are optional - only load if packages are installed AND configured
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@node-saml/passport-saml');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  SamlStrategy = require('./strategies/saml.strategy').SamlStrategy;
+  // Only load SAML strategy if callbackUrl is configured (required by SAML library)
+  const samlCallbackUrl = process.env.SAML_CALLBACK_URL || process.env.saml?.callbackUrl;
+  if (samlCallbackUrl) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    SamlStrategy = require('./strategies/saml.strategy').SamlStrategy;
+  }
 } catch {
-  // SAML not available
+  // SAML not available or not configured
 }
 
 try {
