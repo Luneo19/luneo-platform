@@ -621,7 +621,7 @@ export class AdminService {
         db.order.findMany({ select: { totalCents: true } }),
       ]);
 
-      const totalRevenue = allOrders.reduce((sum, order) => {
+      const totalRevenue = allOrders.reduce((sum: number, order: { total: number }) => {
         return sum + Number(order.totalCents || 0) / 100;
       }, 0);
 
