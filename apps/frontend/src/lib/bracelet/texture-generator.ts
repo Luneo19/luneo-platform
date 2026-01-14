@@ -83,7 +83,7 @@ export function generateBraceletTexture(options: TextureOptions): string {
     ctx.fillStyle = '#222222';
     ctx.textBaseline = 'middle';
     ctx.font = `bold ${fontSize}px ${font}, sans-serif`;
-    ctx.textRenderingOptimization = 'optimizeQuality';
+    // textRenderingOptimization is not a standard Canvas API property
 
     // Calculate text position based on alignment
     let textX = width / 2;
