@@ -20,12 +20,13 @@ export const LazyAnimatePresence = dynamic(
 // Helper to create lazy motion components
 export const createLazyMotion = (component: string) => {
   return dynamic(
+    // @ts-expect-error - framer-motion motion components type compatibility
     () => import('framer-motion').then(mod => {
       const MotionComponent = mod.motion[component as keyof typeof mod.motion];
       return { default: MotionComponent };
     }),
     { ssr: false }
-  );
+  ) as any;
 };
 
 // Pre-configured lazy motion components
