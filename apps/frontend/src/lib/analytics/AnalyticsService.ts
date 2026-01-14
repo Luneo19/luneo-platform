@@ -370,7 +370,6 @@ class AnalyticsService {
             email: user.email,
             plan: user.plan,
             name: user.name,
-            ...(user.metadata || {}),
           });
         }
       });
