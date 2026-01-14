@@ -7,14 +7,14 @@ import dynamic from 'next/dynamic';
 
 // Framer Motion components (heavy: ~50KB)
 export const LazyMotion = dynamic(
-  () => import('framer-motion').then(mod => mod.motion),
+  () => import('framer-motion').then(mod => ({ default: mod.motion })),
   { ssr: false }
-);
+) as any;
 
 export const LazyAnimatePresence = dynamic(
-  () => import('framer-motion').then(mod => mod.AnimatePresence),
+  () => import('framer-motion').then(mod => ({ default: mod.AnimatePresence })),
   { ssr: false }
-);
+) as any;
 
 // Helper to create lazy motion components
 export const createLazyMotion = (component: string) => {
