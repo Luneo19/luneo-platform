@@ -32,22 +32,7 @@ import { logger } from '@/lib/logger';
 import { Stage, Layer, Text, Rect, Circle as KonvaCircle, Star as KonvaStar, Group, Transformer } from 'react-konva';
 import Konva from 'konva';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { exportKonvaStage, duplicateCanvasElement, calculateBounds, disposeKonvaStage, downloadBlob } from '@/lib/utils/canvas-operations';
-
-interface CanvasElement {
-  id: string;
-  type: 'text' | 'image' | 'shape';
-  x: number;
-  y: number;
-  width?: number;
-  height?: number;
-  content?: string;
-  color?: string;
-  fontSize?: number;
-  rotation?: number;
-  shapeType?: string;
-  imageUrl?: string;
-}
+import { exportKonvaStage, duplicateCanvasElement, calculateBounds, disposeKonvaStage, downloadBlob, type CanvasElement } from '@/lib/utils/canvas-operations';
 
 interface CustomizerDemoProps {
   width?: number;
@@ -380,10 +365,11 @@ function CustomizerDemo({
     if (!element) return;
 
     // Use utility function for duplication
-    const elementWithDefaults = {
+    const elementWithDefaults: CanvasElement = {
       ...element,
       width: element.width ?? 100,
       height: element.height ?? 100,
+      rotation: element.rotation ?? 0,
     };
     const newElement = duplicateCanvasElement(elementWithDefaults);
     setElements((prev) => [...prev, newElement]);
