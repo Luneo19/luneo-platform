@@ -20,7 +20,6 @@ const LoadingForm = () => React.createElement('div', { className: 'flex items-ce
  * Lazy load heavy 3D components
  */
 export const LazyZoneConfigurator = dynamic(
-  // @ts-expect-error - ZoneConfigurator component is optional
   () => import('@/components/dashboard/ZoneConfigurator').catch(() => ({ default: () => null })),
   {
     loading: Loading3D,
