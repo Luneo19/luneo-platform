@@ -10,6 +10,7 @@
 import { cacheService } from '@/lib/cache/CacheService';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+// @ts-expect-error - bcryptjs types may not be available
 import bcrypt from 'bcryptjs';
 import * as qrcode from 'qrcode';
 import * as speakeasy from 'speakeasy';
