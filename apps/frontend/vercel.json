@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter luneo-frontend build",
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "buildCommand": "pnpm prisma generate && pnpm run build",
   "outputDirectory": ".next",
   "devCommand": "pnpm run dev",
   "regions": ["cdg1"],
