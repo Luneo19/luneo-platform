@@ -44,8 +44,8 @@ export interface GoogleInsights {
 }
 
 export class GoogleAdsClient {
-  private client: GoogleAdsApi | null = null;
-  private customer: Customer | null = null;
+  private client: any = null;
+  private customer: any = null;
   private accessToken: string;
   private customerId: string;
   private developerToken: string;
@@ -69,19 +69,21 @@ export class GoogleAdsClient {
     this.refreshToken = refreshToken;
 
     // Initialize Google Ads API client
-    try {
-      this.client = new GoogleAdsApi({
-        client_id: clientId,
-        client_secret: clientSecret,
-        developer_token: developerToken,
-      });
+    if (GoogleAdsApi) {
+      try {
+        this.client = new GoogleAdsApi({
+          client_id: clientId,
+          client_secret: clientSecret,
+          developer_token: developerToken,
+        });
 
-      this.customer = this.client.Customer({
-        customer_id: customerId,
-        refresh_token: refreshToken,
-      });
-    } catch (error) {
-      console.error('Failed to initialize Google Ads client:', error);
+        this.customer = this.client.Customer({
+          customer_id: customerId,
+          refresh_token: refreshToken,
+        });
+      } catch (error) {
+        console.error('Failed to initialize Google Ads client:', error);
+      }
     }
   }
 
