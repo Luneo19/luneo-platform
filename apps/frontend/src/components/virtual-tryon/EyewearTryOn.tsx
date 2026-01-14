@@ -235,10 +235,12 @@ function EyewearTryOn({ productId, eyewearModelUrl, onCapture }: EyewearTryOnPro
 // Optimisation avec React.memo pour éviter les re-renders inutiles
 const EyewearTryOnMemo = memo(EyewearTryOn);
 
-export default function EyewearTryOnWithErrorBoundary(props: EyewearTryOnProps) {
+function EyewearTryOnWithErrorBoundary(props: EyewearTryOnProps) {
   return (
     <ErrorBoundary componentName="EyewearTryOn">
       <EyewearTryOnMemo {...props} />
     </ErrorBoundary>
   );
 }
+
+export default EyewearTryOnWithErrorBoundary;
