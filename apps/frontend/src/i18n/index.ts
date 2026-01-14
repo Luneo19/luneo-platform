@@ -36,9 +36,9 @@ type TranslationDict = typeof en;
 const translations: Record<string, TranslationDict> = {
   en,
   fr,
-  de: de as any,
-  es: es as any,
-  it: it as any,
+  de: de as unknown as TranslationDict,
+  es: es as unknown as TranslationDict,
+  it: it as unknown as TranslationDict,
 };
 
 /**
