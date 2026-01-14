@@ -77,7 +77,7 @@ export function generateMetadata(config: SEOConfig): Metadata {
       ),
     },
     openGraph: {
-      type: ogType,
+      type: ogType === 'product' ? 'website' : ogType,
       locale,
       url: canonical,
       siteName: defaultConfig.siteName,
