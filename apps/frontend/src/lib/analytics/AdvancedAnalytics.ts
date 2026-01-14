@@ -391,6 +391,7 @@ export class AdvancedAnalyticsService {
       // 4. Calculate scores based on popularity and similarity
       const productScores = new Map<string, number>();
       recommendedProducts.forEach((rec: { productId: string | null; userId: string }) => {
+        if (!rec.productId) return;
         const currentScore = productScores.get(rec.productId) || 0;
         productScores.set(rec.productId, currentScore + 1);
       });
