@@ -170,7 +170,7 @@ export class TwoFactorAuthService {
           cacheService.set(`2fa:setup:${userId}`, {
             ...setup,
             backupCodes: updatedCodes,
-          }, 3600);
+          }, { ttl: 3600 * 1000 });
         }
 
         return isValid;
