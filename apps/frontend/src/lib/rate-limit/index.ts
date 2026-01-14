@@ -125,7 +125,7 @@ export async function checkRateLimit(
   return {
     success: result.success,
     remaining: result.remaining,
-    reset: result.reset,
+    reset: new Date(result.reset),
   };
 }
 
