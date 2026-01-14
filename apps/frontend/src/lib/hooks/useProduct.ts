@@ -118,7 +118,7 @@ export function useProduct(options: UseProductOptions = {}) {
   const product = useMemo(() => productQuery.data, [productQuery.data]);
   const analytics = useMemo(() => analyticsQuery.data, [analyticsQuery.data]);
   const isLoading = useMemo(() => productQuery.isLoading, [productQuery.isLoading]);
-  const isUpdating = useMemo(() => updateMutation.isLoading, [updateMutation.isLoading]);
+  const isUpdating = useMemo(() => updateMutation.isPending, [updateMutation.isPending]);
   const isDeleting = useMemo(() => deleteMutation.isLoading, [deleteMutation.isLoading]);
   const isUploading = useMemo(() => uploadModelMutation.isLoading, [uploadModelMutation.isLoading]);
 
