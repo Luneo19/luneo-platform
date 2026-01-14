@@ -11,8 +11,7 @@
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
 import { PrismaClient } from '@prisma/client';
-
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 // ========================================
 // TYPES
@@ -215,7 +214,7 @@ export class AdvancedAnalyticsService {
 
       // Group users by week of signup
       const cohortsByWeek = new Map<string, typeof users>();
-      users.forEach((user) => {
+      users.forEach((user: { id: string; createdAt: Date }) => {
         const weekStart = new Date(user.createdAt);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week
         const weekKey = weekStart.toISOString().split('T')[0];
