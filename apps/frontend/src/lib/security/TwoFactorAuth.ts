@@ -110,7 +110,7 @@ export class TwoFactorAuthService {
         secret,
         backupCodes,
         enabled: false,
-      }, 3600); // 1 hour to complete setup
+      }, { ttl: 3600 * 1000 }); // 1 hour to complete setup
 
       const setup: TwoFactorSetup = {
         secret,
