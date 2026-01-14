@@ -109,5 +109,5 @@ export function setUserId(userId: string): void {
     return;
   }
 
-  window.gtag('set', 'user_id', userId);
+  window.gtag('config', 'GA_MEASUREMENT_ID', { user_id: userId });
 }
