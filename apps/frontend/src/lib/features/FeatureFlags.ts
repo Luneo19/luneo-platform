@@ -85,7 +85,7 @@ export class FeatureFlagsService {
             this.flags.set(flag.key, flag);
           });
           // Cache for 5 minutes
-          await cacheService.set('feature-flags:all', flags, 5 * 60);
+          cacheService.set('feature-flags:all', flags, { ttl: 5 * 60 * 1000 });
           logger.info('Feature flags loaded from API', { count: this.flags.size });
           return;
         }
