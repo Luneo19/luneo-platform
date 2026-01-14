@@ -96,7 +96,7 @@ export function createLazyComponent<T = any>(
   }
 ) {
   return dynamic(importFn, {
-    loading: options?.loading || (() => React.createElement('div', null, 'Chargement...')),
+    loading: options?.loading ? (() => React.createElement(options.loading as React.ComponentType)) : (() => React.createElement('div', null, 'Chargement...')),
     ssr: options?.ssr ?? true,
   });
 }
