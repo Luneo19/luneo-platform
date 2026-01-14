@@ -80,7 +80,7 @@ export class TwoFactorAuthService {
       // Save secret to database (not enabled yet)
       // Note: In production, use totp_secrets table from Supabase
       // For now, store in User model if it has twoFactorSecret field
-      const backupCodes = this.generateBackupCodes(10);
+      const backupCodes = this.generateBackupCodesInternal(10);
 
       logger.info('TOTP secret generated', { userId });
 
@@ -102,7 +102,7 @@ export class TwoFactorAuthService {
       logger.info('Setting up 2FA', { userId });
 
       const { secret, qrCode } = await this.generateSecret(userId);
-      const backupCodes = this.generateBackupCodes(10);
+      const backupCodes = this.generateBackupCodesInternal(10);
 
       // Save to database (in production, use totp_secrets table)
       // For now, we'll use cache or a placeholder
@@ -292,7 +292,7 @@ export class TwoFactorAuthService {
       logger.info('Generating backup codes', { userId });
 
       // Generate new codes
-      const backupCodes = this.generateBackupCodes(10);
+      const backupCodes = this.generateBackupCodesInternal(10);
 
       // Update in database (in production, use totp_secrets table)
       // await db.totpSecret.update({
@@ -325,7 +325,7 @@ export class TwoFactorAuthService {
   /**
    * Génère des codes de backup
    */
-  private generateBackupCodes(count: number = 10): string[] {
+  private generateBackupCodesInternal(count: number = 10): string[] {
     const codes: string[] = [];
     for (let i = 0; i < count; i++) {
       codes.push(Math.random().toString(36).substring(2, 10).toUpperCase());
