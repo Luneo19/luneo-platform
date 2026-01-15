@@ -209,11 +209,11 @@ export class AnalyticsService {
       });
 
       // Aggregate stats per product
-      const productStatsPromises = products.map(async (product) => {
+      const productStatsPromises = products.map(async (product: { id: string; name: string; customizations: Array<{ createdAt: Date | null; updatedAt: Date | null; status: string; config: unknown; zone: { name: string } | null }>; orders: Array<{ totalCents: number | null }> }) => {
         const customizations = product.customizations || [];
         const orders = product.orders || [];
 
-        const totalRevenue = orders.reduce((sum, order) => {
+        const totalRevenue = orders.reduce((sum: number, order: { totalCents: number | null }) => {
           return sum + Number(order.totalCents || 0) / 100;
         }, 0);
 
@@ -297,7 +297,7 @@ export class AnalyticsService {
       const completedCustomizations = customizations.filter((c) => c.status === 'COMPLETED');
       let averageTime = 0;
       if (completedCustomizations.length > 0) {
-        const totalTime = completedCustomizations.reduce((sum, c) => {
+        const totalTime = completedCustomizations.reduce((sum: number, c: { createdAt: Date | null; updatedAt: Date | null }) => {
           if (c.createdAt && c.updatedAt) {
             return sum + (c.updatedAt.getTime() - c.createdAt.getTime());
           }
@@ -366,7 +366,7 @@ export class AnalyticsService {
 
       // Aggregate stats
       const total = orders.length;
-      const totalRevenue = orders.reduce((sum, order) => {
+      const totalRevenue = orders.reduce((sum: number, order: { totalCents: number | null }) => {
         return sum + Number(order.totalCents || 0) / 100;
       }, 0);
       const averageOrderValue = total > 0 ? totalRevenue / total : 0;
@@ -400,7 +400,7 @@ export class AnalyticsService {
         const dayOrders = orders.filter(
           (o) => o.createdAt >= dayStart && o.createdAt <= dayEnd
         );
-        const dayRevenue = dayOrders.reduce((sum, o) => {
+        const dayRevenue = dayOrders.reduce((sum: number, o: { totalCents: number | null }) => {
           return sum + Number(o.totalCents || 0) / 100;
         }, 0);
 
@@ -473,7 +473,7 @@ export class AnalyticsService {
         const dayOrders = orders.filter(
           (o) => o.createdAt >= dayStart && o.createdAt <= dayEnd
         );
-        const dayRevenue = dayOrders.reduce((sum, o) => {
+        const dayRevenue = dayOrders.reduce((sum: number, o: { totalCents: number | null }) => {
           return sum + Number(o.totalCents || 0) / 100;
         }, 0);
 
