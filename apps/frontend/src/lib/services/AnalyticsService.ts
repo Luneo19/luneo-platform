@@ -290,11 +290,11 @@ export class AnalyticsService {
 
       // Aggregate stats
       const total = customizations.length;
-      const completed = customizations.filter((c) => c.status === 'COMPLETED').length;
-      const failed = customizations.filter((c) => c.status === 'FAILED').length;
+      const completed = customizations.filter((c: any) => c.status === 'COMPLETED').length;
+      const failed = customizations.filter((c: any) => c.status === 'FAILED').length;
 
       // Calculate average time (if we have timestamps)
-      const completedCustomizations = customizations.filter((c) => c.status === 'COMPLETED');
+      const completedCustomizations = customizations.filter((c: any) => c.status === 'COMPLETED');
       let averageTime = 0;
       if (completedCustomizations.length > 0) {
         const totalTime = completedCustomizations.reduce((sum: number, c: { createdAt: Date | null; updatedAt: Date | null }) => {
@@ -308,14 +308,14 @@ export class AnalyticsService {
 
       // Group by effect
       const byEffect: Record<string, number> = {};
-      customizations.forEach((c) => {
+      customizations.forEach((c: any) => {
         const effect = (c.config as any)?.effect || 'NORMAL';
         byEffect[effect] = (byEffect[effect] || 0) + 1;
       });
 
       // Group by zone
       const byZone: Record<string, number> = {};
-      customizations.forEach((c) => {
+      customizations.forEach((c: any) => {
         const zoneName = c.zone?.name || 'unknown';
         byZone[zoneName] = (byZone[zoneName] || 0) + 1;
       });
@@ -456,7 +456,7 @@ export class AnalyticsService {
       });
 
       // Calculate total revenue
-      const total = orders.reduce((sum, order) => {
+      const total = orders.reduce((sum: number, order: { totalCents: number | null }) => {
         return sum + Number(order.totalCents || 0) / 100;
       }, 0);
 
