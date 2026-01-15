@@ -79,12 +79,12 @@ export class ARAnalyticsService {
     };
 
     // Store in cache (in production, use ARSession table)
-    cacheService.set(`ar:session:${sessionId}`, session, 86400); // 24 hours
+    cacheService.set(`ar:session:${sessionId}`, session, { ttl: 86400 * 1000 }); // 24 hours
 
     // Track in product analytics
     const productSessions = cacheService.get<string[]>(`ar:product:${data.productId}:sessions`) || [];
     productSessions.push(sessionId);
-    cacheService.set(`ar:product:${data.productId}:sessions`, productSessions, 86400);
+    cacheService.set(`ar:product:${data.productId}:sessions`, productSessions, { ttl: 86400 * 1000 });
 
     logger.info('AR session created', { sessionId, productId: data.productId });
 
@@ -110,7 +110,7 @@ export class ARAnalyticsService {
     // Store in cache
     const sessionInteractions = cacheService.get<ARInteraction[]>(`ar:session:${data.sessionId}:interactions`) || [];
     sessionInteractions.push(interaction);
-    cacheService.set(`ar:session:${data.sessionId}:interactions`, sessionInteractions, 86400);
+    cacheService.set(`ar:session:${data.sessionId}:interactions`, sessionInteractions, { ttl: 86400 * 1000 });
 
     // Update session if ended
     if (data.type === 'session_end') {
@@ -118,7 +118,7 @@ export class ARAnalyticsService {
       if (session) {
         session.endedAt = new Date();
         session.duration = session.endedAt.getTime() - session.startedAt.getTime();
-        cacheService.set(`ar:session:${data.sessionId}`, session, 86400);
+        cacheService.set(`ar:session:${data.sessionId}`, session, { ttl: 86400 * 1000 });
       }
     }
 

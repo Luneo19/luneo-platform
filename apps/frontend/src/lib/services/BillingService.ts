@@ -162,7 +162,7 @@ export class BillingService {
 
       // Cache for 5 minutes
       if (useCache) {
-        cacheService.set(`subscription:${brandId}`, subscription, 300);
+        cacheService.set(`subscription:${brandId}`, subscription, { ttl: 300 * 1000 });
       }
 
       return subscription;

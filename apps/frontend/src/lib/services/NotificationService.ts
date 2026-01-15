@@ -234,7 +234,7 @@ export class NotificationService {
 
       // Cache for 1 minute (optional performance optimization)
       if (useCache) {
-        cacheService.set(cacheKey, result, 60);
+        cacheService.set(cacheKey, result, { ttl: 60 * 1000 });
       }
 
       return result;

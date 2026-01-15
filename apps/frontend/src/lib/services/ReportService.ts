@@ -76,7 +76,7 @@ export class ReportService {
         createdAt: new Date(),
       };
 
-      cacheService.set(`report:${reportId}`, reportJob, 3600); // Cache for 1 hour
+      cacheService.set(`report:${reportId}`, reportJob, { ttl: 3600 * 1000 }); // Cache for 1 hour
 
       // Start async processing
       this.processReport(reportId, brandId, options).catch((error) => {
@@ -112,7 +112,7 @@ export class ReportService {
       const reportJob = cacheService.get<ReportJob>(`report:${reportId}`);
       if (reportJob) {
         reportJob.status = 'processing';
-        cacheService.set(`report:${reportId}`, reportJob, 3600);
+        cacheService.set(`report:${reportId}`, reportJob, { ttl: 3600 * 1000 });
       }
 
       // Fetch data based on type
@@ -162,7 +162,7 @@ export class ReportService {
         downloadUrl: fileUrl,
         completedAt: new Date(),
       };
-      cacheService.set(`report:${reportId}`, updatedReport, 3600);
+      cacheService.set(`report:${reportId}`, updatedReport, { ttl: 3600 * 1000 });
 
       logger.info('Report generated', { reportId, downloadUrl: fileUrl });
     } catch (error: any) {
@@ -174,7 +174,7 @@ export class ReportService {
         status: 'failed',
         error: error.message,
       };
-      cacheService.set(`report:${reportId}`, failedReport, 3600);
+      cacheService.set(`report:${reportId}`, failedReport, { ttl: 3600 * 1000 });
     }
   }
 
