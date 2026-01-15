@@ -116,7 +116,7 @@ describe('AIService', () => {
 
       expect(result.success).toBe(true);
       expect(result.balance).toBe(90);
-      expect(cacheService.set).toHaveBeenCalledWith('credits:user-123', '90', { ttl: 60 });
+      expect(cacheService.set).toHaveBeenCalledWith('credits:user-123', '90', { ttl: 60 * 1000 });
       expect(track).toHaveBeenCalledWith('credits_deducted', {
         userId: 'user-123',
         amount: 10,
@@ -139,7 +139,7 @@ describe('AIService', () => {
 
       expect(result.success).toBe(true);
       expect(result.balance).toBe(90);
-      expect(cacheService.set).toHaveBeenCalledWith('credits:user-123', '100', { ttl: 60 });
+      expect(cacheService.set).toHaveBeenCalledWith('credits:user-123', '100', { ttl: 60 * 1000 });
     });
 
     it('should reject if insufficient credits', async () => {

@@ -206,7 +206,7 @@ export class OrderService {
 
       // Cache for 5 minutes
       if (useCache) {
-        cacheService.set(`order:${orderId}`, order, { ttl: 300 });
+        cacheService.set(`order:${orderId}`, order, { ttl: 300 * 1000 });
       }
 
       logger.info('Order fetched', { orderId });

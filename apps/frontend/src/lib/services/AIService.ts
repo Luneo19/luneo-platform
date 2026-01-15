@@ -78,7 +78,7 @@ export async function checkAndDeductCredits(
       balance = String(profile?.ai_credits ?? profile?.metadata?.aiCredits ?? 0);
 
       // Cache pour 60 secondes
-      await cacheService.set(cacheKey, balance, { ttl: 60 });
+      await cacheService.set(cacheKey, balance, { ttl: 60 * 1000 });
     }
 
     const currentBalance = parseInt(balance || '0', 10);
@@ -107,7 +107,7 @@ export async function checkAndDeductCredits(
 
     // Mettre à jour cache
     const newBalance = currentBalance - required;
-    await cacheService.set(cacheKey, String(newBalance), { ttl: 60 });
+    await cacheService.set(cacheKey, String(newBalance), { ttl: 60 * 1000 });
 
     // Logger transaction
     logger.info('Credits deducted', {

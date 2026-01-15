@@ -373,15 +373,15 @@ export class AnalyticsService {
 
       // Group by status
       const byStatus: Record<string, number> = {};
-      orders.forEach((order) => {
+      orders.forEach((order: any) => {
         const status = order.status;
         byStatus[status] = (byStatus[status] || 0) + 1;
       });
 
       // Group by product
       const byProduct: Record<string, number> = {};
-      orders.forEach((order) => {
-        order.items.forEach((item) => {
+      orders.forEach((order: any) => {
+        order.items.forEach((item: any) => {
           const productId = item.productId;
           byProduct[productId] = (byProduct[productId] || 0) + 1;
         });
@@ -398,7 +398,7 @@ export class AnalyticsService {
         const dayEnd = new Date(date.setHours(23, 59, 59, 999));
 
         const dayOrders = orders.filter(
-          (o) => o.createdAt >= dayStart && o.createdAt <= dayEnd
+          (o: any) => o.createdAt >= dayStart && o.createdAt <= dayEnd
         );
         const dayRevenue = dayOrders.reduce((sum: number, o: { totalCents: number | null }) => {
           return sum + Number(o.totalCents || 0) / 100;
@@ -471,7 +471,7 @@ export class AnalyticsService {
         const dayEnd = new Date(date.setHours(23, 59, 59, 999));
 
         const dayOrders = orders.filter(
-          (o) => o.createdAt >= dayStart && o.createdAt <= dayEnd
+          (o: any) => o.createdAt >= dayStart && o.createdAt <= dayEnd
         );
         const dayRevenue = dayOrders.reduce((sum: number, o: { totalCents: number | null }) => {
           return sum + Number(o.totalCents || 0) / 100;
@@ -486,8 +486,8 @@ export class AnalyticsService {
 
       // Group by product
       const productRevenue: Record<string, { productId: string; productName: string; revenue: number; orders: number }> = {};
-      orders.forEach((order) => {
-        order.items.forEach((item) => {
+      orders.forEach((order: any) => {
+        order.items.forEach((item: any) => {
           const productId = item.productId;
           const productName = item.productName || 'Unknown';
           if (!productRevenue[productId]) {

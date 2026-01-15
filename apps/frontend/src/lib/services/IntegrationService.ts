@@ -117,7 +117,7 @@ export class IntegrationService {
       }));
 
       // Cache for 5 minutes
-      cacheService.set(cacheKey, integrations, { ttl: 300 });
+      cacheService.set(cacheKey, integrations, { ttl: 300 * 1000 });
 
       return integrations;
     } catch (error: any) {
