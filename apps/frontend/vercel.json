@@ -6,7 +6,7 @@
   "outputDirectory": ".next",
   "devCommand": "pnpm run dev",
   "regions": ["cdg1"],
-  "ignoreCommand": "git log -1 --pretty=format:'%an' | grep -q 'dependabot' && exit 0 || exit 1",
+  "ignoreCommand": "git log -1 --pretty=format:'%s' | grep -q '\\[deploy vercel\\]' && exit 1 || exit 0",
   "headers": [
     {
       "source": "/(.*)",

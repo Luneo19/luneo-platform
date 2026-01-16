@@ -3,7 +3,7 @@
   "outputDirectory": "apps/frontend/.next",
   "framework": "nextjs",
   "installCommand": "pnpm install --filter luneo-frontend... --no-frozen-lockfile --ignore-scripts",
-  "ignoreCommand": "git log -1 --pretty=format:'%an' | grep -q 'dependabot' && exit 0 || exit 1",
+  "ignoreCommand": "git log -1 --pretty=format:'%s' | grep -q '\\[deploy vercel\\]' && exit 1 || exit 0",
   "headers": [
     {
       "source": "/images/(.*)",
