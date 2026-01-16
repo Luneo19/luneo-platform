@@ -272,19 +272,13 @@ function ARStatusOverlay({
 
   if (status === 'error' || status === 'no-camera') {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-        <div className="text-center text-white max-w-xs px-4">
-          <CameraOff className="h-12 w-12 mx-auto mb-4 text-red-400" />
-          <p className="font-semibold text-lg mb-2">
-            {status === 'no-camera' ? 'Caméra non disponible' : 'Erreur de caméra'}
+      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+        <div className="text-center text-white max-w-xs">
+          <CameraOff className="h-8 w-8 mx-auto mb-2 text-red-400" />
+          <p className="font-medium">
+            {status === 'no-camera' ? 'Caméra non disponible' : 'Erreur'}
           </p>
-          <p className="text-sm text-white/80 mb-4">{errorMessage}</p>
-          {/* Guidance améliorée - Conforme au plan PHASE 3 */}
-          <div className="text-xs text-white/60 space-y-1">
-            <p>• Vérifiez que votre caméra est connectée</p>
-            <p>• Autorisez l'accès à la caméra dans les paramètres</p>
-            <p>• Rafraîchissez la page si le problème persiste</p>
-          </div>
+          <p className="text-sm text-white/70 mt-1">{errorMessage}</p>
         </div>
       </div>
     );
