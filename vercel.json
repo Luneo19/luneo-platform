@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter luneo-frontend... run build",
+  "buildCommand": "cd apps/frontend && (pnpm prisma generate || echo 'Prisma skipped') && pnpm run build",
   "outputDirectory": "apps/frontend/.next",
   "framework": "nextjs",
   "installCommand": "pnpm install --filter luneo-frontend... --no-frozen-lockfile --ignore-scripts",
