@@ -1,8 +1,8 @@
 {
-  "buildCommand": "cd apps/frontend && pnpm install --no-frozen-lockfile && pnpm run build",
+  "buildCommand": "pnpm --filter luneo-frontend... run build",
   "outputDirectory": "apps/frontend/.next",
   "framework": "nextjs",
-  "installCommand": "pnpm install --no-frozen-lockfile",
+  "installCommand": "pnpm install --filter luneo-frontend... --no-frozen-lockfile --ignore-scripts",
   "headers": [
     {
       "source": "/images/(.*)",

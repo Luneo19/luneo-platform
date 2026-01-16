@@ -1,6 +1,6 @@
-node_modules
-.next
-.env.local
-.env.production.local
-*.log
-.DS_Store
+# Ignorer les dépendances backend lors du build frontend
+apps/backend
+node_modules/canvas
+node_modules/@prisma/client
+node_modules/@nestjs
+packages/*/node_modules/canvas
