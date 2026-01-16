@@ -8,21 +8,29 @@ Vercel déploie automatiquement à chaque push, y compris les PRs de Dependabot 
 
 ## Solution : Configurer Vercel pour Ignorer les Builds Dependabot
 
-### Option 1 : Via Dashboard Vercel (Recommandé)
+### Option 1 : Via Dashboard Vercel (Recommandé - 2 minutes)
 
-1. Aller sur : https://vercel.com/luneos-projects/frontend/settings/git
-2. Trouver la section **"Ignored Build Step"**
-3. Cocher **"Override Build Command"** (si disponible)
-4. Dans le champ **"Ignored Build Step"**, ajouter :
+**Étapes rapides :**
+
+1. **Ouvrir le Dashboard Vercel** : https://vercel.com/luneos-projects/frontend/settings/git
+
+2. **Trouver la section "Ignored Build Step"** (en bas de la page)
+
+3. **Ajouter cette commande exacte** :
 
 ```bash
 git log -1 --pretty=format:'%an' | grep -q 'dependabot' && exit 1 || exit 0
 ```
 
+4. **Cliquer sur "Save"**
+
+**C'est tout !** ✅
+
 Cette commande :
-- ✅ Ignore les commits de Dependabot
+- ✅ Ignore les commits de Dependabot (auteur = "dependabot[bot]")
 - ✅ Continue les builds pour tous les autres commits
 - ✅ Évite les builds inutiles qui échouent
+- ✅ Fonctionne immédiatement après sauvegarde
 
 ### Option 2 : Via Script (Plus Avancé)
 
