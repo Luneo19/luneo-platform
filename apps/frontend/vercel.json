@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile --ignore-scripts 2>&1 | grep -v 'fsevents' || true; pnpm install --filter luneo-frontend... --no-frozen-lockfile --ignore-scripts",
+  "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile --ignore-scripts || (echo 'First install failed, retrying...' && pnpm install --no-frozen-lockfile --ignore-scripts --force) || true",
   "buildCommand": "cd apps/frontend && pnpm prisma generate && pnpm run build",
   "outputDirectory": ".next",
   "devCommand": "pnpm run dev",
