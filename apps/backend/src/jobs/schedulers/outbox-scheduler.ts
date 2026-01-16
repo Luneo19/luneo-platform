@@ -37,10 +37,19 @@ export class OutboxScheduler {
       this.logger.debug('Outbox publisher job queued');
     } catch (error: any) {
       // Ne pas logger en erreur si c'est une erreur de connexion Redis (mode dégradé)
-      if (error?.message?.includes('MaxRetriesPerRequest') || 
-          error?.message?.includes('ECONNREFUSED') ||
-          error?.message?.includes('Connection')) {
-        this.logger.debug('Outbox queue unavailable (Redis connection issue), skipping...');
+      const errorMessage = error?.message || error?.toString() || '';
+      const isRedisError = 
+        errorMessage.includes('MaxRetriesPerRequest') || 
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('Connection') ||
+        errorMessage.includes('max requests limit exceeded') ||
+        errorMessage.includes('ERR max requests limit exceeded') ||
+        (error?.name === 'ReplyError' && errorMessage.includes('max requests'));
+      
+      if (isRedisError) {
+        // Mode silencieux pour éviter le spam de logs
+        // this.logger.debug('Outbox queue unavailable (Redis connection/limit issue), skipping...');
+        return;
       } else {
         this.logger.error('Failed to queue outbox publisher job:', error);
       }

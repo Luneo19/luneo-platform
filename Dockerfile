@@ -34,10 +34,11 @@ COPY apps/backend/package.json ./apps/backend/
 COPY packages ./packages/
 
 # Installer les dépendances (inclure devDependencies pour le build)
+# Utiliser --no-frozen-lockfile pour permettre la mise à jour du lockfile si nécessaire
 # Ajouter retries pour gérer les erreurs réseau temporaires
-RUN pnpm install --frozen-lockfile --include-workspace-root --fetch-timeout=60000 || \
-    (echo "Retry 1..." && sleep 5 && pnpm install --frozen-lockfile --include-workspace-root --fetch-timeout=60000) || \
-    (echo "Retry 2..." && sleep 10 && pnpm install --frozen-lockfile --include-workspace-root --fetch-timeout=60000)
+RUN pnpm install --no-frozen-lockfile --include-workspace-root --fetch-timeout=60000 || \
+    (echo "Retry 1..." && sleep 5 && pnpm install --no-frozen-lockfile --include-workspace-root --fetch-timeout=60000) || \
+    (echo "Retry 2..." && sleep 10 && pnpm install --no-frozen-lockfile --include-workspace-root --fetch-timeout=60000)
 
 # Copier le code source backend
 COPY apps/backend ./apps/backend/
