@@ -32,7 +32,7 @@ export function getStripe(): Stripe {
 
   try {
     stripeInstance = new Stripe(secretKey, {
-      apiVersion: '2024-12-18.acacia',
+      apiVersion: '2025-09-30.clover' as Stripe.LatestApiVersion,
       typescript: true,
     });
 

@@ -3615,3 +3615,306 @@ model SSOConfiguration {
   @@index([provider])
   @@index([enabled])
 }
+
+// ========================================
+// MARKETPLACE & COMMUNITY (PHASE 7)
+// ========================================
+
+model MarketplaceTemplate {
+  id        String   @id @default(cuid())
+  creatorId String
+  name      String
+  slug      String   @unique
+  description String?
+  category  String?
+  tags      String[]
+
+  // Template content
+  promptTemplate String
+  negativePrompt String?
+  variables      Json?
+  exampleOutputs String[]
+
+  // AI settings
+  aiProvider String  @default("openai")
+  model      String  @default("dall-e-3")
+  quality    String  @default("standard")
+  style      String  @default("natural")
+
+  // Pricing
+  priceCents         Int     @default(0)
+  isFree             Boolean @default(false)
+  revenueSharePercent Int     @default(70)
+
+  // Stats
+  downloads        Int     @default(0)
+  likes            Int     @default(0)
+  reviews          Int     @default(0)
+  averageRating    Float   @default(0)
+  totalRevenueCents Int    @default(0)
+
+  // Status
+  status      String    @default("draft")
+  publishedAt DateTime?
+  featured    Boolean   @default(false)
+
+  // Metadata
+  thumbnailUrl  String?
+  previewImages String[]
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([category])
+  @@index([featured])
+  @@index([publishedAt])
+}
+
+model CreatorProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  username  String   @unique
+  displayName String
+  bio       String?
+  avatar    String?
+  coverImage String?
+  website   String?
+
+  // Social links
+  socialLinks Json?
+
+  // Stats
+  templatesCount    Int     @default(0)
+  totalSales        Int     @default(0)
+  totalEarningsCents Int     @default(0)
+  followersCount    Int     @default(0)
+  followingCount    Int     @default(0)
+  averageRating     Float   @default(0)
+
+  // Stripe Connect
+  stripeConnectId String?
+  payoutEnabled   Boolean  @default(false)
+
+  // Verification
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+
+  // Status
+  status String @default("active")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([username])
+  @@index([verified])
+  @@index([status])
+}
+
+model TemplatePurchase {
+  id        String   @id @default(cuid())
+  templateId String
+  buyerId   String
+  creatorId String
+
+  // Pricing
+  priceCents         Int
+  platformFeeCents   Int
+  creatorRevenueCents Int
+
+  // Payment
+  stripePaymentIntentId String?
+  paymentStatus         String   @default("pending")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([templateId])
+  @@index([buyerId])
+  @@index([creatorId])
+  @@index([paymentStatus])
+}
+
+model CreatorPayout {
+  id        String   @id @default(cuid())
+  creatorId String
+
+  // Amounts
+  totalRevenueCents Int
+  platformFeeCents  Int
+  netAmountCents    Int
+
+  // Stripe
+  stripeTransferId String?
+  stripePayoutId   String?
+
+  // Status
+  status        String    @default("pending")
+  failureReason String?
+
+  // Period
+  periodStart DateTime
+  periodEnd   DateTime
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  processedAt DateTime?
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([periodStart])
+  @@index([periodEnd])
+}
+
+model TemplateLike {
+  id        String   @id @default(cuid())
+  templateId String
+  userId    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([templateId, userId])
+  @@index([templateId])
+  @@index([userId])
+}
+
+model CreatorFollow {
+  id         String   @id @default(cuid())
+  followerId String
+  followingId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model TemplateReview {
+  id        String   @id @default(cuid())
+  templateId String
+  userId    String
+  purchaseId String?
+
+  rating  Int
+  comment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([templateId, userId])
+  @@index([templateId])
+  @@index([userId])
+  @@index([rating])
+}
+
+model TemplateFavorite {
+  id        String   @id @default(cuid())
+  templateId String
+  userId    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([templateId, userId])
+  @@index([templateId])
+  @@index([userId])
+}
+
+model TemplateCollection {
+  id          String   @id @default(cuid())
+  creatorId   String
+  name        String
+  slug        String   @unique
+  description String?
+  thumbnailUrl String?
+  isPublic    Boolean  @default(true)
+
+  templatesCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId])
+}
+
+model TemplateCollectionItem {
+  id         String   @id @default(cuid())
+  collectionId String
+  templateId   String
+  order        Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([collectionId, templateId])
+  @@index([collectionId])
+  @@index([templateId])
+}
+
+// ========================================
+// ENTERPRISE (PHASE 8)
+// ========================================
+
+model CustomTheme {
+  id             String   @id @default(cuid())
+  brandId        String
+  name           String
+  primaryColor   String
+  secondaryColor String
+  accentColor    String
+  backgroundColor String
+  textColor      String
+  fontFamily     String   @default("Inter")
+  borderRadius   String   @default("8px")
+  logoUrl        String?
+  faviconUrl     String?
+  customCss      String?  @db.Text
+  isActive       Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([isActive])
+}
+
+model CustomDomain {
+  id            String    @id @default(cuid())
+  brandId       String
+  domain        String    @unique
+  isActive      Boolean   @default(false)
+  sslCertificate String?   @db.Text
+  sslExpiresAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([isActive])
+}
+
+model SLATicket {
+  id                   String    @id @default(cuid())
+  ticketId             String
+  brandId              String
+  planId               String
+  priority             String // 'low', 'medium', 'high', 'critical'
+  createdAt            DateTime  @default(now())
+  firstResponseAt      DateTime?
+  resolvedAt           DateTime?
+  slaResponseDeadline  DateTime
+  slaResolutionDeadline DateTime
+  slaStatus            String    @default("on_time") // 'on_time', 'at_risk', 'breached'
+  escalationLevel      Int       @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([ticketId])
+  @@index([brandId])
+  @@index([planId])
+  @@index([slaStatus])
+  @@index([slaResponseDeadline])
+  @@index([slaResolutionDeadline])
+}

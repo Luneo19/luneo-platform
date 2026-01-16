@@ -11,9 +11,7 @@ import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../server';
 import { TRPCError } from '@trpc/server';
 import { logger } from '@/lib/logger';
-import { PrismaClient } from '@prisma/client';
-
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 // ========================================
 // SCHEMAS ZOD
@@ -315,7 +313,7 @@ export const customizationRouter = router({
           });
         }
 
-        const zone = product.zones.find((z) => z.id === input.zoneId);
+        const zone = product.zones.find((z: any) => z.id === input.zoneId);
         if (!zone) {
           throw new TRPCError({
             code: 'NOT_FOUND',

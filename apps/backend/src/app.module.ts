@@ -39,9 +39,11 @@ import { EmailModule } from './modules/email/email.module';
 import { HealthModule } from './modules/health/health.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
+import { EnterpriseModule } from './modules/enterprise/enterprise.module'; // ✅ PHASE 8
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PlansModule } from './modules/plans/plans.module';
+import { PricingModule } from './modules/pricing/pricing.module';
 import { ProductEngineModule } from './modules/product-engine/product-engine.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PublicApiModule } from './modules/public-api/public-api.module';
@@ -212,8 +214,9 @@ import { AuditModule } from './modules/audit/audit.module';
     IntegrationsModule,
     PublicApiModule,
     BillingModule,
-    PlansModule,
-    ProductEngineModule,
+        PlansModule,
+        PricingModule, // ✅ PHASE 6 - Pricing & Rentabilité IA
+        ProductEngineModule,
     RenderModule,
     EcommerceModule,
     UsageBillingModule,

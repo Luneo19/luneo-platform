@@ -129,7 +129,7 @@ export function getAvailableShippingOptions(
  * Obtient le nombre de jours estimés de livraison
  */
 function getEstimatedDays(country: string, carrier: string): number {
-  const baseDays: Record<string, number> = {
+  const baseDays: Record<string, { standard: number; express: number; priority: number }> = {
     FR: { standard: 3, express: 1, priority: 1 },
     BE: { standard: 4, express: 2, priority: 1 },
     DE: { standard: 5, express: 2, priority: 1 },

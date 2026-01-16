@@ -3,24 +3,46 @@
 import Link from 'next/link';
 import { Twitter, Linkedin, Github, MessageCircle } from 'lucide-react';
 
-const footerLinks = {
+// ============================================================================
+// TYPES STRICTS POUR FOOTER
+// ============================================================================
+
+/**
+ * Lien de footer avec typage strict
+ */
+interface FooterLink {
+  label: string;
+  href: string;
+}
+
+/**
+ * Sections de footer consolidées selon PROJET 4
+ */
+const footerLinks: Record<string, FooterLink[]> = {
   product: [
-    { label: 'Fonctionnalités', href: '#features' },
-    { label: 'Intégrations', href: '/integrations' },
-    { label: 'Tarifs', href: '#pricing' },
+    { label: 'Fonctionnalités', href: '/features' },
+    { label: 'Démos', href: '/demo' },
+    { label: 'Intégrations', href: '/integrations-overview' },
+    { label: 'Tarifs', href: '/pricing' },
     { label: 'Changelog', href: '/changelog' },
+  ],
+  solutions: [
+    { label: 'E-commerce', href: '/solutions/ecommerce' },
+    { label: 'Marketing', href: '/solutions/marketing' },
+    { label: 'Branding', href: '/solutions/branding' },
+    { label: 'Social Media', href: '/solutions/social' },
+  ],
+  resources: [
+    { label: 'Documentation', href: '/help/documentation' },
+    { label: 'Centre d\'aide', href: '/help' },
+    { label: 'Communauté', href: '/community' },
+    { label: 'Contact', href: '/contact' },
   ],
   company: [
     { label: 'À propos', href: '/about' },
     { label: 'Blog', href: '/blog' },
     { label: 'Carrières', href: '/careers' },
     { label: 'Presse', href: '/press' },
-  ],
-  resources: [
-    { label: 'Documentation', href: '/docs' },
-    { label: 'Centre d\'aide', href: '/help' },
-    { label: 'Communauté', href: '/community' },
-    { label: 'Contact', href: '/contact' },
   ],
   legal: [
     { label: 'Confidentialité', href: '/legal/privacy' },
@@ -98,10 +120,12 @@ export function FooterNew() {
                 <h4 className="text-sm font-semibold text-white mb-5 uppercase tracking-wider">
                   {category === 'product'
                     ? 'Produit'
-                    : category === 'company'
-                    ? 'Entreprise'
+                    : category === 'solutions'
+                    ? 'Solutions'
                     : category === 'resources'
                     ? 'Ressources'
+                    : category === 'company'
+                    ? 'Entreprise'
                     : 'Légal'}
                 </h4>
                 <ul className="space-y-3">

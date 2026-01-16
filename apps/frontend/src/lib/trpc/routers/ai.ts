@@ -4,11 +4,9 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
-import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
-
-// db importé depuis @/lib/db
+import { db as prismaDb } from '@/lib/db';
 
 const GenerateImageSchema = z.object({
   prompt: z.string().min(1).max(1000),
@@ -71,13 +69,13 @@ export const aiRouter = router({
         // Créer un design si productId fourni
         let designId: string | undefined;
         if (input.productId) {
-          const product = await db.product.findUnique({
+          const product = await prismaDb.product.findUnique({
             where: { id: input.productId },
             select: { brandId: true },
           });
 
           if (product && product.brandId === user.brandId) {
-            const design = await db.design.create({
+            const design = await prismaDb.design.create({
               data: {
                 name: `AI Generated: ${input.prompt.substring(0, 50)}`,
                 userId: user.id,
@@ -149,7 +147,7 @@ export const aiRouter = router({
         }
 
         const [designs, total] = await Promise.all([
-          db.design.findMany({
+          prismaDb.design.findMany({
             where,
             skip,
             take: input.limit,
@@ -163,11 +161,11 @@ export const aiRouter = router({
               metadata: true,
             },
           }),
-          db.design.count({ where }),
+          prismaDb.design.count({ where }),
         ]);
 
         return {
-          designs: designs.map((d) => ({
+          designs: designs.map((d: any) => ({
             id: d.id,
             name: d.name,
             url: d.previewUrl || d.renderUrl || `https://picsum.photos/seed/${d.id}/800/600`,

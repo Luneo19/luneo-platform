@@ -147,6 +147,13 @@ export class CacheService {
   }
 
   /**
+   * Alias historique pour compatibilité rétro
+   */
+  invalidateCache(): void {
+    this.clear();
+  }
+
+  /**
    * Supprime les entrées correspondant à un pattern
    */
   deletePattern(pattern: string | RegExp): number {

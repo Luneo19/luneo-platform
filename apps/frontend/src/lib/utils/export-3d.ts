@@ -52,8 +52,8 @@ export async function exportToGLB(
             reject(error);
           }
         },
-        (error: Error) => {
-          logger.error('Error exporting to GLB', error);
+        (error: ErrorEvent) => {
+          logger.error('Error exporting to GLB', { error });
           reject(error);
         }
       );
@@ -100,8 +100,8 @@ export async function exportToGLTF(
             reject(error);
           }
         },
-        (error: Error) => {
-          logger.error('Error exporting to GLTF', error);
+        (error: ErrorEvent) => {
+          logger.error('Error exporting to GLTF', { error });
           reject(error);
         }
       );
@@ -163,7 +163,7 @@ export async function exportToPNG(
         );
       };
       img.onerror = (error) => {
-        logger.error('Error loading image for PNG export', error as Error);
+        logger.error('Error loading image for PNG export', { error });
         reject(error);
       };
       img.src = dataURL;

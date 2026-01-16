@@ -67,7 +67,7 @@ export const analyticsAdvancedRouter = router({
 
       return {
         success: true,
-        funnels: funnels.map(funnel => ({
+        funnels: funnels.map((funnel: any) => ({
           id: funnel.id,
           name: funnel.name,
           description: funnel.description,
@@ -282,7 +282,7 @@ export const analyticsAdvancedRouter = router({
         });
 
         // Formater les cohortes
-        const formattedCohorts = cohorts.map(cohort => ({
+        const formattedCohorts = cohorts.map((cohort: any) => ({
           cohort: new Date(cohort.cohortDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
           users: cohort.userCount,
           retention30: cohort.period === 30 ? cohort.retention : null,
@@ -346,7 +346,7 @@ export const analyticsAdvancedRouter = router({
 
         return {
           success: true,
-          segments: segments.map(segment => ({
+          segments: segments.map((segment: any) => ({
             id: segment.id,
             name: segment.name,
             description: segment.description,
@@ -395,7 +395,8 @@ export const analyticsAdvancedRouter = router({
         });
 
         // Formater les prédictions en scénarios
-        const formattedPredictions = predictions.map((pred, index) => {
+        const formattedPredictions = predictions.map(
+          (pred: { value: number; metadata?: unknown; confidence: number }, index: number) => {
           const scenarios = ['conservative', 'optimistic', 'very_optimistic'];
           const probabilities = [35, 45, 20];
           return {

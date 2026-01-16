@@ -4,12 +4,11 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
-import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { db as prismaDb } from '@/lib/db';
 import { TRPCError } from '@trpc/server';
 import bcrypt from 'bcryptjs';
 
-// db importé depuis @/lib/db
 
 const UpdateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -33,7 +32,7 @@ export const profileRouter = router({
     const { user } = ctx;
 
     try {
-      const userData = await db.user.findUnique({
+      const userData = await prismaDb.user.findUnique({
         where: { id: user.id },
         select: {
           id: true,
@@ -91,7 +90,7 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        const currentUser = await db.user.findUnique({
+        const currentUser = await prismaDb.user.findUnique({
           where: { id: user.id },
           select: { metadata: true },
         });
@@ -111,7 +110,7 @@ export const profileRouter = router({
           };
         }
 
-        const updated = await db.user.update({
+        const updated = await prismaDb.user.update({
           where: { id: user.id },
           data: updateData,
           select: {
@@ -341,7 +340,7 @@ export const profileRouter = router({
 
       try {
         // Récupérer l'utilisateur avec le mot de passe hashé
-        const userData = await db.user.findUnique({
+        const userData = await prismaDb.user.findUnique({
           where: { id: user.id },
           select: { passwordHash: true },
         });
@@ -366,7 +365,7 @@ export const profileRouter = router({
         const newPasswordHash = await bcrypt.hash(input.newPassword, 10);
 
         // Mettre à jour
-        await db.user.update({
+        await prismaDb.user.update({
           where: { id: user.id },
           data: { passwordHash: newPasswordHash },
         });
@@ -392,7 +391,7 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        const updated = await db.user.update({
+        const updated = await prismaDb.user.update({
           where: { id: user.id },
           data: { imageUrl: input.imageUrl },
           select: { imageUrl: true },
@@ -418,7 +417,7 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        const userData = await db.user.findUnique({
+        const userData = await prismaDb.user.findUnique({
           where: { id: user.id },
           select: { passwordHash: true },
         });
@@ -440,7 +439,7 @@ export const profileRouter = router({
 
         const newPasswordHash = await bcrypt.hash(input.newPassword, 10);
 
-        await db.user.update({
+        await prismaDb.user.update({
           where: { id: user.id },
           data: { passwordHash: newPasswordHash },
         });

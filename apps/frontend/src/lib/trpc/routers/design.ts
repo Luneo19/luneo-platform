@@ -4,11 +4,10 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
-import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
 
-// db importé depuis @/lib/db
+import { db as prismaDb } from '@/lib/db';
 
 export const designRouter = router({
   listVersions: protectedProcedure
@@ -17,7 +16,7 @@ export const designRouter = router({
       const { user } = ctx;
 
       // Vérifier que le design appartient à l'utilisateur
-      const design = await db.design.findUnique({
+      const design = await prismaDb.design.findUnique({
         where: { id: input.designId },
         select: { userId: true },
       });
@@ -38,7 +37,7 @@ export const designRouter = router({
 
       try {
         // Récupérer les versions depuis les designs liés (via parentId ou versioning)
-        const versions = await db.design.findMany({
+        const versions = await prismaDb.design.findMany({
           where: {
             OR: [
               { id: input.designId },
@@ -58,16 +57,18 @@ export const designRouter = router({
           },
         });
 
+        const formattedVersions = versions.map((version: any, index: number) => ({
+          id: version.id,
+          version: index + 1,
+          name: version.name || `Version ${index + 1}`,
+          thumbnail: version.previewUrl || version.renderUrl || '/placeholder-design.jpg',
+          createdAt: version.createdAt.toISOString(),
+          updatedAt: version.updatedAt.toISOString(),
+          metadata: version.metadata as any,
+        }));
+
         return {
-          versions: versions.map((v, index) => ({
-            id: v.id,
-            version: index + 1,
-            name: v.name || `Version ${index + 1}`,
-            thumbnail: v.previewUrl || v.renderUrl || '/placeholder-design.jpg',
-            createdAt: v.createdAt.toISOString(),
-            updatedAt: v.updatedAt.toISOString(),
-            metadata: v.metadata as any,
-          })),
+          versions: formattedVersions,
         };
       } catch (error: any) {
         logger.error('Error listing design versions', { error, input, userId: user.id });
@@ -89,7 +90,7 @@ export const designRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { user } = ctx;
 
-      const design = await db.design.findUnique({
+      const design = await prismaDb.design.findUnique({
         where: { id: input.designId },
         select: { userId: true, productId: true, brandId: true },
       });
@@ -109,7 +110,7 @@ export const designRouter = router({
       }
 
       try {
-        const version = await db.design.create({
+        const version = await prismaDb.design.create({
           data: {
             name: input.name || `Version ${new Date().toISOString()}`,
             userId: user.id,

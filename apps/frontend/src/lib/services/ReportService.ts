@@ -107,9 +107,11 @@ export class ReportService {
       includeCharts?: boolean;
     }
   ): Promise<void> {
+    let reportJob: ReportJob | null = null;
+
     try {
       // Update status to processing
-      const reportJob = cacheService.get<ReportJob>(`report:${reportId}`);
+      reportJob = cacheService.get<ReportJob>(`report:${reportId}`);
       if (reportJob) {
         reportJob.status = 'processing';
         cacheService.set(`report:${reportId}`, reportJob, { ttl: 3600 * 1000 });
@@ -244,7 +246,7 @@ export class ReportService {
       const buffer = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content;
       
       // Create File object for FormData
-      const blob = new Blob([buffer], { type: contentType });
+      const blob = new Blob([new Uint8Array(buffer)], { type: contentType });
       const file = new File([blob], `report-${reportId}${extension}`, { type: contentType });
 
       // Upload via API route

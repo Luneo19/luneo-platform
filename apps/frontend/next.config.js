@@ -7,6 +7,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false, // Keep TypeScript errors visible
   },
+  output: 'standalone',
   // CDN Configuration - Inspired by Vercel and Shopify
   images: {
     // Use CDN for images (Cloudinary, Vercel Image Optimization, etc.)

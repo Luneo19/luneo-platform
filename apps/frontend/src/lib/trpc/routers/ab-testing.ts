@@ -4,7 +4,6 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
-import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
 import { db } from '@/lib/db';
@@ -77,12 +76,12 @@ export const abTestingRouter = router({
 
         // Transformer en format attendu
         return {
-          experiments: experiments.map((exp) => {
+          experiments: experiments.map((exp: any) => {
             const variants = (exp.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
             
             // Calculer les stats par variant
             const variantsWithStats = variants.map((variant) => {
-              const variantAssignments = exp.assignments.filter((a) => a.variantId === variant.id);
+              const variantAssignments = exp.assignments.filter((a: { variantId: string }) => a.variantId === variant.id);
               return {
                 id: variant.id,
                 name: variant.name,

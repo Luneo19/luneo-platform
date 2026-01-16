@@ -104,8 +104,10 @@ export class PredictiveService {
           orderBy: { createdAt: 'asc' },
         });
 
+        // ✅ PHASE 2 - Prédictions: Fallback si données faibles
         if (historicalData.length < 7) {
-          return []; // Pas assez de données
+          this.logger.warn(`Insufficient data for trend predictions (${historicalData.length} points, need at least 7). Returning fallback predictions.`);
+          return await this.getFallbackPredictions(brandId, horizon);
         }
 
         // Calculer les tendances pour chaque métrique
@@ -324,19 +326,40 @@ Génère un JSON array avec le format:
   // ==========================================================================
 
   /**
-   * Calcule la tendance d'une métrique
+   * Calcule la tendance d'une métrique avec régression linéaire simple
+   * Conforme au plan PHASE 2 - Prédictions: Conserver modèles simples (régression) + fallback si données faibles
    */
   private calculateTrend(
     data: Array<{ date: Date; value: number }>,
     horizon: '7d' | '30d' | '90d',
   ): Omit<TrendPrediction, 'metric'> {
+    // ✅ Fallback si données insuffisantes
     if (data.length < 2) {
+      const lastValue = data[0]?.value || 0;
       return {
-        currentValue: data[0]?.value || 0,
-        predictedValue: data[0]?.value || 0,
+        currentValue: lastValue,
+        predictedValue: lastValue,
         changePercent: 0,
-        confidence: 0,
+        confidence: 0.1, // Très faible confiance
         trend: 'stable',
+        horizon,
+      };
+    }
+
+    // ✅ Si données faibles (2-6 points), utiliser moyenne mobile simple
+    if (data.length < 7) {
+      const lastValue = data[data.length - 1].value;
+      const avgValue = data.reduce((sum, d) => sum + d.value, 0) / data.length;
+      const predictedValue = avgValue; // Utiliser la moyenne comme prédiction simple
+
+      return {
+        currentValue: Math.round(lastValue * 100) / 100,
+        predictedValue: Math.round(predictedValue * 100) / 100,
+        changePercent: lastValue > 0
+          ? Math.round(((predictedValue - lastValue) / lastValue) * 100 * 10) / 10
+          : 0,
+        confidence: 0.3, // Faible confiance pour données limitées
+        trend: predictedValue > lastValue * 1.05 ? 'up' : predictedValue < lastValue * 0.95 ? 'down' : 'stable',
         horizon,
       };
     }
@@ -475,5 +498,72 @@ Génère un JSON array avec le format:
     }
 
     return recommendations;
+  }
+
+  /**
+   * Prédictions de fallback si données insuffisantes
+   * Conforme au plan PHASE 2 - Prédictions: Fallback si données faibles
+   */
+  private async getFallbackPredictions(
+    brandId: string,
+    horizon: '7d' | '30d' | '90d',
+  ): Promise<TrendPrediction[]> {
+    this.logger.log(`Using fallback predictions for brand ${brandId} (insufficient data)`);
+
+    // ✅ Récupérer au moins les dernières données disponibles
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    return await Promise.all([
+      this.prisma.design.count({
+        where: {
+          brandId,
+          createdAt: { gte: thirtyDaysAgo },
+        },
+      }),
+      this.prisma.order.aggregate({
+        where: {
+          brandId,
+          createdAt: { gte: thirtyDaysAgo },
+          paymentStatus: 'SUCCEEDED',
+        },
+        _sum: { totalCents: true },
+      }),
+    ]).then(([designCount, revenueSum]) => {
+      const revenue = revenueSum._sum.totalCents ? Number(revenueSum._sum.totalCents) / 100 : 0;
+
+      const predictions: TrendPrediction[] = [];
+
+      // ✅ Prédiction designs (stable si données limitées)
+      if (designCount > 0) {
+        predictions.push({
+          metric: 'generations',
+          currentValue: designCount,
+          predictedValue: designCount, // Stable par défaut
+          changePercent: 0,
+          confidence: 0.2, // Très faible confiance
+          trend: 'stable',
+          horizon,
+        });
+      }
+
+      // ✅ Prédiction revenue (stable si données limitées)
+      if (revenue > 0) {
+        predictions.push({
+          metric: 'revenue',
+          currentValue: revenue,
+          predictedValue: revenue, // Stable par défaut
+          changePercent: 0,
+          confidence: 0.2, // Très faible confiance
+          trend: 'stable',
+          horizon,
+        });
+      }
+
+      return predictions;
+    }).catch((error) => {
+      this.logger.error(`Failed to generate fallback predictions: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return []; // Retourner tableau vide en dernier recours
+    });
   }
 }

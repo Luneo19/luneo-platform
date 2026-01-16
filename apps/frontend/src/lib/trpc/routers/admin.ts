@@ -8,7 +8,6 @@
 
 import { z } from 'zod';
 import { router, adminProcedure } from '../server';
-import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { adminService } from '@/lib/services/AdminService';
 

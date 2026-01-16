@@ -195,6 +195,28 @@ npm run test:e2e:ui       # Interface UI
 npm run test:e2e:smoke    # Tests smoke
 ```
 
+### Vérification locale avant déploiement Vercel
+
+```bash
+cd apps/frontend
+
+# 1) Vérifier que le build passe en local
+pnpm build
+
+# 2) Vérifier que toutes les dépendances utilisées côté serveur (API / lib)
+#    sont bien déclarées dans package.json :
+#    - bcryptjs
+#    - speakeasy
+#    - qrcode
+
+# 3) Ne jamais lancer un déploiement Vercel depuis la racine du monorepo.
+#    Utiliser UNIQUEMENT :
+#       vercel --prod --yes --cwd apps/frontend
+#
+#    Cela garantit que le projet ciblé est bien "frontend" sur Vercel
+#    et évite de consommer le quota API sur le projet "luneo-frontend".
+```
+
 ---
 
 ## 🗄️ Base de Données

@@ -279,7 +279,7 @@ export const arRouter = router({
 
         // Pour l'instant, retourner des données mockées
         // En production, cela devrait interroger une table ARModel ou similaire
-        const models = [];
+        const models: Array<{ id: string; name: string; url: string }> = [];
 
         return {
           models,
@@ -366,7 +366,7 @@ export const arRouter = router({
 
         // Pour l'instant, retourner des données mockées
         // En production, cela devrait interroger une table ARSession ou similaire
-        const sessions = [];
+        const sessions: Array<Record<string, any>> = [];
 
         return {
           sessions,

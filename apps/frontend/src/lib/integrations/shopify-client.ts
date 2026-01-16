@@ -18,6 +18,13 @@ export interface ShopifyProduct {
   id: number;
   title: string;
   handle: string;
+  description?: string | null;
+  body_html?: string | null;
+  status?: 'active' | 'draft' | 'archived' | string;
+  published_at?: string | null;
+  images?: Array<{
+    src: string;
+  }>;
   variants: Array<{
     id: number;
     price: string;

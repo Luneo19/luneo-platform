@@ -22,5 +22,6 @@ export { HowItWorksNew } from './how-it-works-new';
 export { TestimonialsNew } from './testimonials-new';
 export { PricingSectionNew } from './pricing-section-new';
 export { CTASectionNew } from './cta-section-new';
+export { DemoModulesSection } from './demo-modules-section';
 export { FooterNew } from './footer-new';
 export { CursorGlow } from './cursor-glow';

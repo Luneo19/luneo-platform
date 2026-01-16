@@ -68,20 +68,22 @@ export const libraryRouter = router({
           db.template.count({ where }),
         ]);
 
+        const formattedTemplates = templates.map((template: any) => ({
+          id: template.id,
+          name: template.name,
+          category: template.category || 'other',
+          thumbnail: template.thumbnailUrl || template.previewUrl || '/placeholder-template.jpg',
+          isPremium: template.isPremium || false,
+          isFavorite: false,
+          downloads: template.usesCount || 0,
+          views: template.viewsCount || 0,
+          rating: 0,
+          createdAt: template.createdAt.toISOString(),
+          tags: Array.isArray(template.tags) ? template.tags : [],
+        }));
+
         return {
-          templates: templates.map((t) => ({
-            id: t.id,
-            name: t.name,
-            category: t.category || 'other',
-            thumbnail: t.thumbnailUrl || t.previewUrl || '/placeholder-template.jpg',
-            isPremium: t.isPremium || false,
-            isFavorite: false,
-            downloads: t.usesCount || 0,
-            views: t.viewsCount || 0,
-            rating: 0,
-            createdAt: t.createdAt.toISOString(),
-            tags: Array.isArray(t.tags) ? t.tags : [],
-          })),
+          templates: formattedTemplates,
           pagination: {
             page: input.page,
             limit: input.limit,

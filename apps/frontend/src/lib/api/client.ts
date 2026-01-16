@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import type { LunaResponse, LunaAction, AriaResponse, AriaSuggestion, AgentConversation } from '@/types/agents';
+import type { LunaResponse, LunaAction, AriaResponse, AriaSuggestion, AgentConversation, NovaResponse } from '@/types/agents';
 import type { Design, DesignSummary, LoginCredentials, RegisterData, User } from '@/lib/types';
 import { logger } from '@/lib/logger';
 
@@ -422,8 +422,8 @@ export const endpoints = {
         api.post<{ success: boolean; data: Array<{ idea: string; product: string; personalization: string; reason: string }> }>('/api/v1/agents/aria/gift-ideas', data),
     },
     nova: {
-      chat: (data: { message: string }) =>
-        api.post<{ success: boolean; data: { message: string; intent: string; resolved: boolean; ticketId?: string; articles?: Array<{ id: string; title: string; url: string }>; escalated: boolean } }>('/api/v1/agents/nova/chat', data),
+      chat: (data: { message: string; brandId?: string; userId?: string; context?: unknown }) =>
+        api.post<{ success: boolean; data: NovaResponse }>('/api/v1/agents/nova/chat', data),
       faq: (query: string, limit?: number) =>
         api.get<{ success: boolean; data: Array<{ id: string; title: string; slug: string; content: string }> }>(`/api/v1/agents/nova/faq?query=${encodeURIComponent(query)}&limit=${limit || 5}`),
       ticket: (data: { subject: string; description: string; priority: 'low' | 'medium' | 'high' | 'urgent'; category?: 'TECHNICAL' | 'BILLING' | 'FEATURE' | 'OTHER' }) =>

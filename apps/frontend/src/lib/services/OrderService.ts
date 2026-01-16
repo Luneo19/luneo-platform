@@ -11,7 +11,8 @@
 import { trpcVanilla } from '@/lib/trpc/vanilla-client';
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
-import type { Order, OrderStatus, OrderItem } from '@/lib/types/order';
+import { OrderStatus } from '@/lib/types/order';
+import type { Order, OrderItem } from '@/lib/types/order';
 
 // ========================================
 // TYPES
@@ -40,7 +41,7 @@ export interface CreateOrderRequest {
 }
 
 export interface UpdateOrderRequest {
-  status?: OrderStatus;
+  status?: string;
   trackingNumber?: string;
   shippingProvider?: string;
   notes?: string;
@@ -222,7 +223,7 @@ export class OrderService {
    * Liste les commandes
    */
   async list(options?: {
-    status?: OrderStatus;
+    status?: string;
     startDate?: Date;
     endDate?: Date;
     limit?: number;
@@ -230,8 +231,9 @@ export class OrderService {
   }): Promise<{ orders: Order[]; total: number; hasMore: boolean }> {
     try {
       // Appel tRPC pour lister les commandes
+      const status = options?.status as any;
       const result = await trpcVanilla.order.list.query({
-        status: options?.status,
+        status,
         startDate: options?.startDate,
         endDate: options?.endDate,
         limit: options?.limit || 20,
@@ -297,14 +299,15 @@ export class OrderService {
       logger.info('Updating order', { orderId, status: request.status });
 
       // Appel tRPC pour mettre à jour la commande
-      const orderData = await trpcVanilla.order.update.mutate({
+      const updatePayload = {
         id: orderId,
         status: request.status,
         trackingNumber: request.trackingNumber,
         shippingProvider: request.shippingProvider,
         notes: request.notes,
         metadata: request.metadata,
-      });
+      } as any;
+      const orderData = await trpcVanilla.order.update.mutate(updatePayload);
 
       // Convertir la réponse Prisma en type Order
       const order: Order = {
@@ -359,7 +362,7 @@ export class OrderService {
       logger.info('Cancelling order', { orderId, reason });
 
       return await this.update(orderId, {
-        status: 'CANCELLED',
+        status: OrderStatus.CANCELLED,
         notes: reason ? `Annulée: ${reason}` : 'Commande annulée',
       });
     } catch (error: any) {

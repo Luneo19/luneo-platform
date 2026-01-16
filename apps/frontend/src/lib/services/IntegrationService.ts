@@ -9,7 +9,6 @@
 
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
-import { PrismaClient } from '@prisma/client';
 import { verifyShopifyToken, getShopifyProducts } from '@/lib/integrations/shopify-client';
 import { verifyWooCommerceCredentials, getWooCommerceProducts } from '@/lib/integrations/woocommerce-client';
 
@@ -104,7 +103,17 @@ export class IntegrationService {
         orderBy: { createdAt: 'desc' },
       });
 
-      const integrations: Integration[] = dbIntegrations.map((integration) => ({
+      const integrations: Integration[] = dbIntegrations.map((integration: {
+        id: string;
+        brandId: string;
+        platform: string;
+        shopDomain: string;
+        status: string;
+        lastSyncAt: Date | null;
+        config: unknown;
+        createdAt: Date;
+        updatedAt: Date;
+      }) => ({
         id: integration.id,
         brandId: integration.brandId,
         platform: integration.platform as any,
@@ -360,7 +369,10 @@ export class IntegrationService {
                     data: {
                       brandId: integration.brandId,
                       name: shopifyProduct.title,
-                      description: shopifyProduct.body_html || '',
+                      description:
+                        (shopifyProduct as any).description ??
+                        (shopifyProduct as any).body_html ??
+                        '',
                       sku: shopifyProduct.variants[0]?.sku || shopifyProduct.handle,
                       price: parseFloat(shopifyProduct.variants[0]?.price || '0'),
                       currency: 'EUR',
@@ -653,7 +665,7 @@ export class IntegrationService {
                     data: {
                       brandId: integration.brandId,
                       name: wooProduct.name,
-                      description: wooProduct.description || '',
+                      description: (wooProduct as any).description || '',
                       sku: wooProduct.sku || wooProduct.slug,
                       price: parseFloat(wooProduct.price || '0'),
                       currency: 'EUR',

@@ -1,109 +1,165 @@
-# 📋 Checklist de Déploiement - Luneo Platform V2
+# ✅ Checklist de Déploiement Production
 
-## ✅ Pré-déploiement
+## 🌐 FRONTEND (Vercel)
 
-### Backend (Railway)
-- [ ] Variables d'environnement configurées dans Railway
-  - [ ] `DATABASE_URL`
-  - [ ] `REDIS_URL`
-  - [ ] `OPENAI_API_KEY`
-  - [ ] `ANTHROPIC_API_KEY`
-  - [ ] `MISTRAL_API_KEY`
-  - [ ] `SHOPIFY_CLIENT_ID`
-  - [ ] `SHOPIFY_CLIENT_SECRET`
-  - [ ] `JWT_SECRET`
-  - [ ] `FRONTEND_URL`
-- [ ] Migrations Prisma appliquées
-- [ ] Tests unitaires passent (`npm test`)
-- [ ] Build réussit (`npm run build`)
-- [ ] Health check endpoint fonctionne (`/health`)
+### Configuration initiale
+- [ ] Vercel CLI installé : `npm install -g vercel`
+- [ ] Connecté à Vercel : `vercel login`
+- [ ] Projet créé/lié : `vercel link` (dans `apps/frontend`)
+- [ ] Root Directory configuré : `apps/frontend` (via Dashboard)
 
-### Frontend (Vercel)
-- [ ] Variables d'environnement configurées dans Vercel
-  - [ ] `NEXT_PUBLIC_API_URL`
-  - [ ] `NEXT_PUBLIC_SUPABASE_URL`
-  - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - [ ] `STRIPE_PUBLISHABLE_KEY`
-- [ ] Build réussit (`npm run build`)
-- [ ] Tests unitaires passent (`npm test`)
-- [ ] Tests E2E passent (`npm run test:e2e`)
+### Variables d'environnement Vercel
+- [ ] `NEXT_PUBLIC_API_URL` = URL du backend Railway
+- [ ] `NEXT_PUBLIC_APP_URL` = URL de production frontend
+- [ ] `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` = Clé publique Stripe
+- [ ] `NODE_ENV` = `production`
+- [ ] Autres variables nécessaires (Supabase, Sentry, etc.)
 
-## 🚀 Déploiement
-
-### Backend
-1. [ ] Push sur `main` déclenche le CI/CD
-2. [ ] Vérifier que le build passe dans GitHub Actions
-3. [ ] Vérifier le déploiement sur Railway
-4. [ ] Tester l'endpoint `/health`
-5. [ ] Tester les endpoints `/agents/luna/chat`
-6. [ ] Tester les endpoints `/integrations/shopify/auth`
-
-### Frontend
-1. [ ] Push sur `main` déclenche le CI/CD
-2. [ ] Vérifier que le build passe dans GitHub Actions
-3. [ ] Vérifier le déploiement sur Vercel
-4. [ ] Tester la page d'accueil
-5. [ ] Tester le widget Luna Chat
-6. [ ] Tester le widget Aria
-7. [ ] Tester le viewer AR
-
-## 🧪 Tests Post-Déploiement
-
-### Agents IA
-- [ ] Luna Chat fonctionne dans le dashboard
-- [ ] Aria Widget s'ouvre et propose des suggestions
-- [ ] Les conversations sont sauvegardées
-- [ ] Les actions Luna sont exécutables
-
-### Intégrations E-commerce
-- [ ] OAuth Shopify fonctionne
-- [ ] Synchronisation des produits fonctionne
-- [ ] Webhooks Shopify sont reçus
-- [ ] Commandes avec personnalisation sont traitées
-
-### AR
-- [ ] ARViewer s'initialise correctement
-- [ ] Face tracking fonctionne (si disponible)
-- [ ] Hand tracking fonctionne (si disponible)
-- [ ] Capture d'image fonctionne
-
-### Analytics Prédictives
-- [ ] Endpoints `/analytics/predictive/trends` fonctionnent
-- [ ] Recommandations IA sont générées
-- [ ] Détection d'anomalies fonctionne
-- [ ] Événements saisonniers sont listés
-
-## 📊 Monitoring
-
-- [ ] Sentry configuré et fonctionne
-- [ ] Logs sont accessibles (Railway/Vercel)
-- [ ] Métriques de performance surveillées
-- [ ] Alertes configurées pour les erreurs critiques
-
-## 🔒 Sécurité
-
-- [ ] HTTPS activé
-- [ ] CORS configuré correctement
-- [ ] Rate limiting actif
-- [ ] Secrets non exposés dans les logs
-- [ ] Headers de sécurité configurés
-
-## 📝 Documentation
-
-- [ ] API docs à jour (Swagger)
-- [ ] README mis à jour
-- [ ] Changelog mis à jour
-- [ ] Guide de déploiement à jour
-
-## 🎉 Post-Déploiement
-
-- [ ] Notification Slack envoyée
-- [ ] Équipe informée du déploiement
-- [ ] Monitoring actif pendant 24h
-- [ ] Rollback plan prêt si nécessaire
+### Déploiement
+- [ ] Build local réussi : `cd apps/frontend && npm run build`
+- [ ] Déploiement : `vercel --prod`
+- [ ] URL accessible et fonctionnelle
+- [ ] Health check OK
 
 ---
 
-**Date de déploiement:** _______________
-**Version:** _______________
-**Déployé par:** _______________
+## 🚂 BACKEND (Railway)
+
+### Configuration initiale
+- [ ] Railway CLI installé : `npm install -g @railway/cli`
+- [ ] Connecté à Railway : `railway login`
+- [ ] Projet créé/lié : `railway link` (dans `apps/backend`)
+- [ ] Root Directory configuré : `apps/backend` (via Dashboard)
+
+### Services Railway
+- [ ] PostgreSQL ajouté
+- [ ] Redis ajouté (optionnel mais recommandé)
+
+### Variables d'environnement Railway
+
+#### OBLIGATOIRES
+- [ ] `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+- [ ] `NODE_ENV` = `production`
+- [ ] `PORT` = `3001`
+- [ ] `JWT_SECRET` = (généré avec `openssl rand -base64 32`)
+- [ ] `JWT_REFRESH_SECRET` = (généré avec `openssl rand -base64 32`)
+- [ ] `JWT_EXPIRES_IN` = `15m`
+- [ ] `JWT_REFRESH_EXPIRES_IN` = `7d`
+- [ ] `API_PREFIX` = `/api`
+- [ ] `FRONTEND_URL` = URL frontend Vercel
+- [ ] `CORS_ORIGIN` = URLs autorisées (frontend)
+
+#### IMPORTANTES
+- [ ] `REDIS_URL` = `${{Redis.REDIS_URL}}` (si Redis ajouté)
+- [ ] `STRIPE_SECRET_KEY` = Clé secrète Stripe
+- [ ] `STRIPE_WEBHOOK_SECRET` = Secret webhook Stripe
+- [ ] `SENDGRID_API_KEY` = Clé API SendGrid
+- [ ] `SENDGRID_DOMAIN` = Domaine SendGrid
+- [ ] `SENDGRID_FROM_EMAIL` = Email expéditeur
+- [ ] `OPENAI_API_KEY` = Clé API OpenAI
+- [ ] `CLOUDINARY_CLOUD_NAME` = (si utilisé)
+- [ ] `CLOUDINARY_API_KEY` = (si utilisé)
+- [ ] `CLOUDINARY_API_SECRET` = (si utilisé)
+
+### Migrations
+- [ ] Migrations Prisma exécutées : `railway run "pnpm prisma migrate deploy"`
+
+### Déploiement
+- [ ] Déploiement : `railway up`
+- [ ] Health check OK : `https://votre-backend.railway.app/api/health`
+- [ ] Logs sans erreurs critiques
+
+---
+
+## 🔗 CONFIGURATION CROSS-PLATFORM
+
+### Lien Frontend ↔ Backend
+- [ ] Frontend pointe vers Backend : `NEXT_PUBLIC_API_URL`
+- [ ] Backend autorise Frontend : `CORS_ORIGIN`
+
+### Webhooks
+- [ ] Webhook Stripe configuré dans Stripe Dashboard
+- [ ] URL webhook : `https://votre-backend.railway.app/api/webhooks/stripe`
+- [ ] Secret webhook configuré dans Railway : `STRIPE_WEBHOOK_SECRET`
+
+### Domaines
+- [ ] Domaine frontend configuré (Vercel)
+- [ ] Domaine backend configuré (Railway, optionnel)
+- [ ] DNS configuré correctement
+
+---
+
+## 🧪 TESTS POST-DÉPLOIEMENT
+
+### Frontend
+- [ ] Page d'accueil accessible
+- [ ] Authentification fonctionnelle (login/register)
+- [ ] Dashboard accessible après login
+- [ ] Pas d'erreurs console (F12)
+
+### Backend
+- [ ] Health check : `/api/health`
+- [ ] Authentification : `POST /api/v1/auth/login`
+- [ ] API accessible depuis frontend
+- [ ] Logs sans erreurs
+
+### Intégrations
+- [ ] Stripe checkout fonctionnel
+- [ ] Emails envoyés (SendGrid)
+- [ ] Base de données accessible
+- [ ] Redis accessible (si utilisé)
+
+---
+
+## 📋 COMMANDES UTILES
+
+### Vercel
+```bash
+# Logs
+vercel logs
+
+# Variables d'environnement
+vercel env ls
+
+# Redéployer
+cd apps/frontend && vercel --prod
+```
+
+### Railway
+```bash
+# Logs
+railway logs
+
+# Variables d'environnement
+railway variables
+
+# Redéployer
+cd apps/backend && railway up
+
+# Migrations
+railway run "pnpm prisma migrate deploy"
+```
+
+---
+
+## 🚀 DÉPLOIEMENT RAPIDE
+
+### Tout déployer
+```bash
+./scripts/deploy-production.sh
+```
+
+### Frontend uniquement
+```bash
+./scripts/deploy-vercel-frontend.sh
+```
+
+### Backend uniquement
+```bash
+./scripts/deploy-railway-backend.sh
+```
+
+---
+
+**Status** : ✅ Prêt pour déploiement  
+**Dernière mise à jour** : Décembre 2024

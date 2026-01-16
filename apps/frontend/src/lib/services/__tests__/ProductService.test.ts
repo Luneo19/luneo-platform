@@ -5,11 +5,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProductService } from '../ProductService';
-import { trpc } from '@/lib/trpc/client';
+import { trpcVanilla } from '@/lib/trpc/vanilla-client';
 
 // Mocks
-vi.mock('@/lib/trpc/client', () => ({
-  trpc: {
+vi.mock('@/lib/trpc/vanilla-client', () => ({
+  trpcVanilla: {
     product: {
       create: {
         mutate: vi.fn(),
@@ -71,7 +71,7 @@ describe('ProductService', () => {
         updatedAt: new Date(),
       };
 
-      (trpc.product.create.mutate as vi.Mock).mockResolvedValue(mockProduct);
+      (trpcVanilla.product.create.mutate as vi.Mock).mockResolvedValue(mockProduct);
 
       const request = {
         name: 'Test Product',
@@ -83,11 +83,11 @@ describe('ProductService', () => {
 
       expect(result).toBeDefined();
       expect(result.id).toBe('product-123');
-      expect(trpc.product.create.mutate).toHaveBeenCalledWith(request);
+      expect(trpcVanilla.product.create.mutate).toHaveBeenCalledWith(request);
     });
 
     it('should handle errors when creating product', async () => {
-      (trpc.product.create.mutate as vi.Mock).mockRejectedValue(new Error('Failed'));
+      (trpcVanilla.product.create.mutate as vi.Mock).mockRejectedValue(new Error('Failed'));
 
       await expect(
         productService.create({
@@ -111,7 +111,7 @@ describe('ProductService', () => {
         updatedAt: new Date(),
       };
 
-      (trpc.product.update.mutate as vi.Mock).mockResolvedValue(mockProduct);
+      (trpcVanilla.product.update.mutate as vi.Mock).mockResolvedValue(mockProduct);
 
       const request = {
         id: 'product-123',
@@ -123,7 +123,7 @@ describe('ProductService', () => {
 
       expect(result).toBeDefined();
       expect(result.name).toBe('Updated Product');
-      expect(trpc.product.update.mutate).toHaveBeenCalledWith(request);
+      expect(trpcVanilla.product.update.mutate).toHaveBeenCalledWith(request);
     });
 
     it('should invalidate cache after update', async () => {
@@ -132,7 +132,7 @@ describe('ProductService', () => {
         name: 'Updated Product',
       };
 
-      (trpc.product.update.mutate as vi.Mock).mockResolvedValue(mockProduct);
+      (trpcVanilla.product.update.mutate as vi.Mock).mockResolvedValue(mockProduct);
 
       await productService.update({
         id: 'product-123',
@@ -150,16 +150,16 @@ describe('ProductService', () => {
 
   describe('delete', () => {
     it('should delete a product', async () => {
-      (trpc.product.delete.mutate as vi.Mock).mockResolvedValue({ success: true });
+      (trpcVanilla.product.delete.mutate as vi.Mock).mockResolvedValue({ success: true });
 
       const result = await productService.delete('product-123');
 
       expect(result).toEqual({ success: true });
-      expect(trpc.product.delete.mutate).toHaveBeenCalledWith({ id: 'product-123' });
+      expect(trpcVanilla.product.delete.mutate).toHaveBeenCalledWith({ id: 'product-123' });
     });
 
     it('should handle errors when deleting product', async () => {
-      (trpc.product.delete.mutate as vi.Mock).mockRejectedValue(new Error('Failed'));
+      (trpcVanilla.product.delete.mutate as vi.Mock).mockRejectedValue(new Error('Failed'));
 
       await expect(productService.delete('product-123')).rejects.toThrow();
     });
@@ -183,7 +183,7 @@ describe('ProductService', () => {
       const result = await productService.getById('product-123', true);
 
       expect(result).toEqual(mockProduct);
-      expect(trpc.product.getById.query).not.toHaveBeenCalled();
+      expect(trpcVanilla.product.getById.query).not.toHaveBeenCalled();
     });
 
     it('should fetch product from API if cache miss', async () => {
@@ -195,13 +195,13 @@ describe('ProductService', () => {
 
       // Clear cache first
       (productService as any).cache.clear();
-      (trpc.product.getById.query as vi.Mock).mockResolvedValue(mockProduct);
+      (trpcVanilla.product.getById.query as vi.Mock).mockResolvedValue(mockProduct);
 
       const result = await productService.getById('product-123', true);
 
       expect(result).toBeDefined();
       expect(result.id).toBe('product-123');
-      expect(trpc.product.getById.query).toHaveBeenCalledWith({ id: 'product-123' });
+      expect(trpcVanilla.product.getById.query).toHaveBeenCalledWith({ id: 'product-123' });
     });
 
     it('should not use cache if useCache is false', async () => {
@@ -210,12 +210,12 @@ describe('ProductService', () => {
         name: 'Test Product',
       };
 
-      (trpc.product.getById.query as vi.Mock).mockResolvedValue(mockProduct);
+      (trpcVanilla.product.getById.query as vi.Mock).mockResolvedValue(mockProduct);
 
       const result = await productService.getById('product-123', false);
 
       expect(result).toBeDefined();
-      expect(trpc.product.getById.query).toHaveBeenCalled();
+      expect(trpcVanilla.product.getById.query).toHaveBeenCalled();
     });
   });
 
@@ -237,12 +237,12 @@ describe('ProductService', () => {
         hasMore: false,
       };
 
-      (trpc.product.list.query as vi.Mock).mockResolvedValue(mockResult);
+      (trpcVanilla.product.list.query as vi.Mock).mockResolvedValue(mockResult);
 
       const result = await productService.list();
 
       expect(result).toBeDefined();
-      expect(trpc.product.list.query).toHaveBeenCalled();
+      expect(trpcVanilla.product.list.query).toHaveBeenCalled();
     });
 
     it('should list products with filters', async () => {
@@ -252,7 +252,7 @@ describe('ProductService', () => {
         hasMore: false,
       };
 
-      (trpc.product.list.query as vi.Mock).mockResolvedValue(mockResult);
+      (trpcVanilla.product.list.query as vi.Mock).mockResolvedValue(mockResult);
 
       const request = {
         limit: 10,
@@ -261,7 +261,7 @@ describe('ProductService', () => {
 
       await productService.list(request);
 
-      expect(trpc.product.list.query).toHaveBeenCalledWith(request);
+      expect(trpcVanilla.product.list.query).toHaveBeenCalledWith(request);
     });
   });
 
@@ -277,7 +277,7 @@ describe('ProductService', () => {
         modelUrl: 'https://example.com/model.glb',
       };
 
-      (trpc.product.uploadModel.mutate as vi.Mock).mockResolvedValue(mockProduct);
+      (trpcVanilla.product.uploadModel.mutate as vi.Mock).mockResolvedValue(mockProduct);
 
       const request = {
         productId: 'product-123',
@@ -288,11 +288,11 @@ describe('ProductService', () => {
 
       expect(result).toBeDefined();
       expect(result.modelUrl).toBe('https://example.com/model.glb');
-      expect(trpc.product.uploadModel.mutate).toHaveBeenCalledWith(request);
+      expect(trpcVanilla.product.uploadModel.mutate).toHaveBeenCalledWith(request);
     });
 
     it('should handle errors when uploading model', async () => {
-      (trpc.product.uploadModel.mutate as vi.Mock).mockRejectedValue(new Error('Failed'));
+      (trpcVanilla.product.uploadModel.mutate as vi.Mock).mockRejectedValue(new Error('Failed'));
 
       await expect(
         productService.uploadModel({
@@ -316,7 +316,7 @@ describe('ProductService', () => {
         revenue: 1000,
       };
 
-      (trpc.product.getAnalytics.query as vi.Mock).mockResolvedValue(mockAnalytics);
+      (trpcVanilla.product.getAnalytics.query as vi.Mock).mockResolvedValue(mockAnalytics);
 
       const request = {
         productId: 'product-123',
@@ -328,7 +328,7 @@ describe('ProductService', () => {
 
       expect(result).toBeDefined();
       expect(result.views).toBe(100);
-      expect(trpc.product.getAnalytics.query).toHaveBeenCalledWith(request);
+      expect(trpcVanilla.product.getAnalytics.query).toHaveBeenCalledWith(request);
     });
   });
 

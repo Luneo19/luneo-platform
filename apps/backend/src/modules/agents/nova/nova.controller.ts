@@ -131,13 +131,13 @@ export class NovaController {
     }
 
     // Mapper les catégories du schema Zod vers celles du service
-    const categoryMap: Record<string, 'TECHNICAL' | 'BILLING' | 'FEATURE' | 'OTHER'> = {
+    const categoryMap: Record<string, 'TECHNICAL' | 'BILLING' | 'ACCOUNT' | 'FEATURE_REQUEST' | 'BUG' | 'INTEGRATION' | 'OTHER'> = {
       'TECHNICAL': 'TECHNICAL',
       'BILLING': 'BILLING',
-      'ACCOUNT': 'OTHER',
-      'FEATURE_REQUEST': 'FEATURE',
-      'BUG': 'TECHNICAL',
-      'INTEGRATION': 'TECHNICAL',
+      'ACCOUNT': 'ACCOUNT',
+      'FEATURE_REQUEST': 'FEATURE_REQUEST',
+      'BUG': 'BUG',
+      'INTEGRATION': 'INTEGRATION',
       'OTHER': 'OTHER',
     };
 

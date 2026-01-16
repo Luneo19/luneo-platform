@@ -18,6 +18,10 @@ import { OrderRoutingService } from './services/order-routing.service';
 import { StripeConnectService } from './services/stripe-connect.service';
 import { SLAEnforcementService } from './services/sla-enforcement.service';
 import { QCSystemService } from './services/qc-system.service';
+import { CreatorProfileService } from './services/creator-profile.service'; // ✅ PHASE 7
+import { MarketplaceTemplateService } from './services/marketplace-template.service'; // ✅ PHASE 7
+import { RevenueSharingService } from './services/revenue-sharing.service'; // ✅ PHASE 7
+import { EngagementService } from './services/engagement.service'; // ✅ PHASE 7
 import { CreateArtisanDto } from './dto/create-artisan.dto';
 import { SubmitKYCDocumentsDto } from './dto/submit-kyc.dto';
 import { VerifyArtisanDto } from './dto/verify-artisan.dto';
@@ -37,6 +41,10 @@ export class MarketplaceController {
     private readonly stripeConnect: StripeConnectService,
     private readonly slaEnforcement: SLAEnforcementService,
     private readonly qcSystem: QCSystemService,
+    private readonly creatorProfile: CreatorProfileService, // ✅ PHASE 7
+    private readonly marketplaceTemplate: MarketplaceTemplateService, // ✅ PHASE 7
+    private readonly revenueSharing: RevenueSharingService, // ✅ PHASE 7
+    private readonly engagement: EngagementService, // ✅ PHASE 7
   ) {}
 
   // ========================================
@@ -162,6 +170,164 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'SLA appliqué' })
   async applySLAToPayout(@Param('payoutId') payoutId: string) {
     return this.slaEnforcement.applySLAToPayout(payoutId);
+  }
+
+  // ========================================
+  // CREATOR PROFILES (PHASE 7)
+  // ========================================
+
+  @Post('creators')
+  @ApiOperation({ summary: 'Crée un profil créateur' })
+  @ApiResponse({ status: 201, description: 'Profil créateur créé' })
+  async createCreatorProfile(@Body() body: any) {
+    return this.creatorProfile.createProfile(body);
+  }
+
+  @Get('creators/:userId')
+  @ApiOperation({ summary: 'Obtient un profil créateur par userId' })
+  @ApiResponse({ status: 200, description: 'Profil créateur récupéré' })
+  async getCreatorProfile(@Param('userId') userId: string) {
+    return this.creatorProfile.getProfileByUserId(userId);
+  }
+
+  @Get('creators/username/:username')
+  @ApiOperation({ summary: 'Obtient un profil créateur par username' })
+  @ApiResponse({ status: 200, description: 'Profil créateur récupéré' })
+  async getCreatorProfileByUsername(@Param('username') username: string) {
+    return this.creatorProfile.getProfileByUsername(username);
+  }
+
+  @Put('creators/:userId')
+  @ApiOperation({ summary: 'Met à jour un profil créateur' })
+  @ApiResponse({ status: 200, description: 'Profil créateur mis à jour' })
+  async updateCreatorProfile(@Param('userId') userId: string, @Body() body: any) {
+    return this.creatorProfile.updateProfile(userId, body);
+  }
+
+  @Post('creators/:userId/verify')
+  @Roles('PLATFORM_ADMIN')
+  @ApiOperation({ summary: 'Vérifie un créateur (admin)' })
+  @ApiResponse({ status: 200, description: 'Créateur vérifié' })
+  async verifyCreator(@Param('userId') userId: string, @Body() body: { verified: boolean }) {
+    return this.creatorProfile.verifyCreator(userId, body.verified);
+  }
+
+  // ========================================
+  // MARKETPLACE TEMPLATES (PHASE 7)
+  // ========================================
+
+  @Post('templates')
+  @ApiOperation({ summary: 'Crée un template marketplace' })
+  @ApiResponse({ status: 201, description: 'Template créé' })
+  async createTemplate(@Body() body: any) {
+    return this.marketplaceTemplate.createTemplate(body);
+  }
+
+  @Get('templates')
+  @ApiOperation({ summary: 'Recherche des templates marketplace' })
+  @ApiResponse({ status: 200, description: 'Templates récupérés' })
+  async searchTemplates(@Query() query: any) {
+    return this.marketplaceTemplate.searchTemplates(query);
+  }
+
+  @Get('templates/:slug')
+  @ApiOperation({ summary: 'Obtient un template par slug' })
+  @ApiResponse({ status: 200, description: 'Template récupéré' })
+  async getTemplate(@Param('slug') slug: string) {
+    return this.marketplaceTemplate.getTemplateBySlug(slug);
+  }
+
+  @Post('templates/:templateId/publish')
+  @ApiOperation({ summary: 'Publie un template' })
+  @ApiResponse({ status: 200, description: 'Template publié' })
+  async publishTemplate(@Param('templateId') templateId: string) {
+    return this.marketplaceTemplate.publishTemplate(templateId);
+  }
+
+  // ========================================
+  // REVENUE SHARING (PHASE 7)
+  // ========================================
+
+  @Post('templates/:templateId/purchase')
+  @ApiOperation({ summary: 'Achète un template' })
+  @ApiResponse({ status: 201, description: 'Achat traité' })
+  async purchaseTemplate(@Param('templateId') templateId: string, @Body() body: any) {
+    return this.revenueSharing.purchaseTemplate({
+      templateId,
+      buyerId: body.buyerId,
+      priceCents: body.priceCents,
+      stripePaymentIntentId: body.stripePaymentIntentId,
+    });
+  }
+
+  @Post('purchases/:purchaseId/confirm')
+  @ApiOperation({ summary: 'Confirme un achat (webhook Stripe)' })
+  @ApiResponse({ status: 200, description: 'Achat confirmé' })
+  async confirmPurchase(
+    @Param('purchaseId') purchaseId: string,
+    @Body() body: { stripePaymentIntentId: string },
+  ) {
+    await this.revenueSharing.confirmPurchase(purchaseId, body.stripePaymentIntentId);
+    return { success: true };
+  }
+
+  @Post('creators/:creatorId/payouts')
+  @ApiOperation({ summary: 'Crée un payout pour un créateur' })
+  @ApiResponse({ status: 201, description: 'Payout créé' })
+  async createCreatorPayout(@Param('creatorId') creatorId: string, @Body() body: any) {
+    return this.revenueSharing.createPayout({
+      creatorId,
+      periodStart: new Date(body.periodStart),
+      periodEnd: new Date(body.periodEnd),
+    });
+  }
+
+  @Post('creator-payouts/:payoutId/process')
+  @ApiOperation({ summary: 'Traite un payout créateur via Stripe Connect' })
+  @ApiResponse({ status: 200, description: 'Payout traité' })
+  async processCreatorPayout(
+    @Param('payoutId') payoutId: string,
+    @Body() body: { stripeConnectAccountId: string },
+  ) {
+    return this.revenueSharing.processPayout(payoutId, body.stripeConnectAccountId);
+  }
+
+  // ========================================
+  // ENGAGEMENT (PHASE 7)
+  // ========================================
+
+  @Post('templates/:templateId/like')
+  @ApiOperation({ summary: 'Like/unlike un template' })
+  @ApiResponse({ status: 200, description: 'Like toggled' })
+  async toggleLike(@Param('templateId') templateId: string, @Request() req: ExpressRequest & { user: any }) {
+    return this.engagement.toggleLike(templateId, req.user.id);
+  }
+
+  @Post('creators/:creatorId/follow')
+  @ApiOperation({ summary: 'Follow/unfollow un créateur' })
+  @ApiResponse({ status: 200, description: 'Follow toggled' })
+  async toggleFollow(@Param('creatorId') creatorId: string, @Request() req: ExpressRequest & { user: any }) {
+    return this.engagement.toggleFollow(req.user.id, creatorId);
+  }
+
+  @Post('templates/:templateId/reviews')
+  @ApiOperation({ summary: 'Crée ou met à jour une review' })
+  @ApiResponse({ status: 201, description: 'Review créée/mise à jour' })
+  async createOrUpdateReview(@Param('templateId') templateId: string, @Body() body: any, @Request() req: ExpressRequest & { user: any }) {
+    return this.engagement.createOrUpdateReview({
+      templateId,
+      userId: req.user.id,
+      rating: body.rating,
+      comment: body.comment,
+      purchaseId: body.purchaseId,
+    });
+  }
+
+  @Post('templates/:templateId/favorite')
+  @ApiOperation({ summary: 'Ajoute/retire un template des favoris' })
+  @ApiResponse({ status: 200, description: 'Favorite toggled' })
+  async toggleFavorite(@Param('templateId') templateId: string, @Request() req: ExpressRequest & { user: any }) {
+    return this.engagement.toggleFavorite(templateId, req.user.id);
   }
 
   // ========================================

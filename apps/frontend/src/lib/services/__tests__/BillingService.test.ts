@@ -15,7 +15,7 @@ vi.mock('@/lib/cache/CacheService', () => ({
     get: vi.fn(),
     set: vi.fn(),
     delete: vi.fn(),
-    invalidateCache: vi.fn(),
+    clear: vi.fn(),
   },
 }));
 

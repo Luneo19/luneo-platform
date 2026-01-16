@@ -184,22 +184,4 @@ export interface ARConfiguration {
 }
 
 // ========================================
-// EXPORT
-// ========================================
-
-export type {
-  ARDeviceInfo,
-  ARPlacement,
-  ARSession,
-  CreateARSessionRequest,
-  CreateARSessionResponse,
-  ARInteractionRequest,
-  ARSupportCheckResponse,
-  ARAnalytics,
-  ARAnalyticsRequest,
-  ARViewerState,
-  ARButtonState,
-  ARLandmarks,
-  ARConfiguration,
-};
 

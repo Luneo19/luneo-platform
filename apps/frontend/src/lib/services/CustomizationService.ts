@@ -7,7 +7,7 @@
  * - Retry logic
  */
 
-import { trpc } from '@/lib/trpc/client';
+import { getTRPCClient } from '@/lib/trpc/client';
 import { logger } from '@/lib/logger';
 import { validatePrompt, sanitizePrompt, generateCacheKey } from '@/lib/utils/customization';
 import type { CustomizationOptions } from '@/lib/utils/customization';
@@ -15,6 +15,7 @@ import type {
   GenerateCustomizationRequest,
   GenerateCustomizationResponse,
   CustomizationStatusResponse,
+  CustomizationStatus,
 } from '@/lib/types/customization';
 
 // ========================================
@@ -46,6 +47,7 @@ export class CustomizationService {
     options?: CustomizationOptions
   ): Promise<GenerateCustomizationResponse> {
     try {
+      const client = getTRPCClient();
       // Validation
       const validation = validatePrompt(request.prompt);
       if (!validation.isValid) {
@@ -64,18 +66,23 @@ export class CustomizationService {
       }
 
       // Generate
-      const result = await trpc.customization.generateFromPrompt.mutate({
+      const result = await client.customization.generateFromPrompt.mutate({
         ...request,
         prompt: sanitizedPrompt,
         ...options,
       });
 
+      const normalizedResult: GenerateCustomizationResponse = {
+        ...result,
+        status: result.status as CustomizationStatus,
+      };
+
       // Cache result
-      this.cache.set(cacheKey, result);
+      this.cache.set(cacheKey, normalizedResult);
 
-      logger.info('Customization generated', { customizationId: result.id });
+      logger.info('Customization generated', { customizationId: normalizedResult.id });
 
-      return result;
+      return normalizedResult;
     } catch (error: any) {
       logger.error('Error generating customization', { error, request });
       throw error;
@@ -91,7 +98,8 @@ export class CustomizationService {
    */
   async checkStatus(customizationId: string): Promise<CustomizationStatusResponse> {
     try {
-      const status = await trpc.customization.checkStatus.query({ id: customizationId });
+      const client = getTRPCClient();
+      const status = await client.customization.checkStatus.query({ id: customizationId });
       return status;
     } catch (error: any) {
       logger.error('Error checking customization status', { error, customizationId });
@@ -159,7 +167,8 @@ export class CustomizationService {
    */
   async getById(customizationId: string) {
     try {
-      return await trpc.customization.getById.query({ id: customizationId });
+      const client = getTRPCClient();
+      return await client.customization.getById.query({ id: customizationId });
     } catch (error: any) {
       logger.error('Error fetching customization', { error, customizationId });
       throw error;
@@ -171,12 +180,19 @@ export class CustomizationService {
    */
   async list(options?: {
     productId?: string;
-    status?: string;
+    status?: 'PENDING' | 'GENERATING' | 'COMPLETED' | 'FAILED';
     limit?: number;
     offset?: number;
   }) {
     try {
-      return await trpc.customization.listMine.query(options);
+      const client = getTRPCClient();
+      const queryOptions = options as {
+        productId?: string;
+        status?: CustomizationStatus;
+        limit?: number;
+        offset?: number;
+      };
+      return await client.customization.listMine.query(queryOptions);
     } catch (error: any) {
       logger.error('Error listing customizations', { error, options });
       throw error;
@@ -188,7 +204,8 @@ export class CustomizationService {
    */
   async update(customizationId: string, data: { name?: string; description?: string; options?: any }) {
     try {
-      return await trpc.customization.update.mutate({
+      const client = getTRPCClient();
+      return await client.customization.update.mutate({
         id: customizationId,
         ...data,
       });
@@ -203,7 +220,8 @@ export class CustomizationService {
    */
   async delete(customizationId: string) {
     try {
-      return await trpc.customization.delete.mutate({ id: customizationId });
+      const client = getTRPCClient();
+      return await client.customization.delete.mutate({ id: customizationId });
     } catch (error: any) {
       logger.error('Error deleting customization', { error, customizationId });
       throw error;

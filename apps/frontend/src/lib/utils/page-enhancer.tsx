@@ -47,7 +47,7 @@ export function withPageEnhancements<P extends object>(
 ) {
   const {
     errorBoundary = true,
-    lazy = false,
+    lazy: lazyLoad = false,
     componentName,
     errorLevel = 'page',
   } = options;
@@ -55,9 +55,11 @@ export function withPageEnhancements<P extends object>(
   const displayName = componentName || Component.displayName || Component.name || 'Page';
 
   function EnhancedPage(props: P) {
-    const WrappedComponent = lazy ? lazy(() => Promise.resolve({ default: Component })) : Component;
+    const WrappedComponent = (lazyLoad
+      ? lazy(() => Promise.resolve({ default: Component }))
+      : Component) as ComponentType<P>;
 
-    if (lazy) {
+    if (lazyLoad) {
       return (
         <ErrorBoundary level={errorLevel} componentName={displayName}>
           <Suspense fallback={<PageLoader />}>
@@ -128,7 +130,7 @@ export function createLazyComponent<P extends object>(
   importFn: () => Promise<{ default: ComponentType<P> }>,
   componentName?: string
 ) {
-  const LazyComponent = lazy(importFn);
+  const LazyComponent = lazy(importFn) as unknown as ComponentType<P>;
 
   const EnhancedComponent = memo((props: P) => (
     <ErrorBoundary level="component" componentName={componentName}>

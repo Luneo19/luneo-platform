@@ -61,7 +61,7 @@ export const productRouter = router({
   /**
    * Liste tous les produits de l'utilisateur/brand
    */
-  list: protectedProcedure
+  listAll: protectedProcedure
     .input(
       z.object({
         page: z.number().int().positive().default(1),
@@ -127,7 +127,7 @@ export const productRouter = router({
         ]);
 
         return {
-          products: products.map((p) => ({
+          products: products.map((p: any) => ({
             id: p.id,
             name: p.name,
             description: p.description,

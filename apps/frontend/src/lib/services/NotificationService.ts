@@ -10,10 +10,8 @@
 
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
-import { PrismaClient } from '@prisma/client';
 import { sendEmail } from '@/lib/send-email';
-
-// db importé depuis @/lib/db
+import { db as prismaDb } from '@/lib/db';
 
 // ========================================
 // TYPES
@@ -97,13 +95,13 @@ export class NotificationService {
       });
 
       // Get user email for email notifications
-      const user = await db.user.findUnique({
+      const user = await prismaDb.user.findUnique({
         where: { id: request.userId },
         select: { email: true },
       });
 
       // Save to database using Prisma
-      const dbNotification = await db.notification.create({
+      const dbNotification = await prismaDb.notification.create({
         data: {
           userId: request.userId,
           type: request.type,
@@ -147,6 +145,7 @@ export class NotificationService {
       // Invalidate cache
       cacheService.delete(`notifications:${request.userId}`);
 
+      const notificationId = notification.id;
       logger.info('Notification created', { notificationId, userId: request.userId });
 
       return notification;
@@ -163,6 +162,7 @@ export class NotificationService {
     userId: string,
     options?: {
       unreadOnly?: boolean;
+      type?: Notification['type'];
       limit?: number;
       offset?: number;
     },
@@ -192,19 +192,22 @@ export class NotificationService {
       if (options?.unreadOnly) {
         where.read = false;
       }
-      if (options?.type) {
-        where.type = options.type;
+      const optionsWithType = options as (typeof options & {
+        type?: Notification['type'];
+      });
+      if (optionsWithType?.type) {
+        where.type = optionsWithType.type;
       }
 
       const [dbNotifications, total, unreadCount] = await Promise.all([
-        db.notification.findMany({
+        prismaDb.notification.findMany({
           where,
           orderBy: { createdAt: 'desc' },
           take: options?.limit || 20,
           skip: options?.offset || 0,
         }),
-        db.notification.count({ where }),
-        db.notification.count({
+        prismaDb.notification.count({ where }),
+        prismaDb.notification.count({
           where: {
             userId,
             read: false,
@@ -212,7 +215,19 @@ export class NotificationService {
         }),
       ]);
 
-      const notifications: Notification[] = dbNotifications.map(n => ({
+      const notifications: Notification[] = dbNotifications.map((n: {
+        id: string;
+        userId: string;
+        type: string;
+        title: string;
+        message: string;
+        data: unknown;
+        read: boolean;
+        readAt: Date | null;
+        createdAt: Date;
+        actionUrl?: string | null;
+        actionLabel?: string | null;
+      }) => ({
         id: n.id,
         userId: n.userId,
         type: n.type as Notification['type'],
@@ -252,7 +267,7 @@ export class NotificationService {
       logger.info('Marking notification as read', { notificationId, userId });
 
       // Update in database using Prisma
-      const dbNotification = await db.notification.update({
+      const dbNotification = await prismaDb.notification.update({
         where: {
           id: notificationId,
           userId, // Ensure ownership
@@ -294,7 +309,7 @@ export class NotificationService {
       logger.info('Marking all notifications as read', { userId });
 
       // Update in database using Prisma
-      await db.notification.updateMany({
+      await prismaDb.notification.updateMany({
         where: {
           userId,
           read: false,
@@ -320,7 +335,7 @@ export class NotificationService {
       logger.info('Deleting notification', { notificationId, userId });
 
       // Delete from database using Prisma
-      await db.notification.delete({
+      await prismaDb.notification.delete({
         where: {
           id: notificationId,
           userId, // Ensure ownership
@@ -347,7 +362,7 @@ export class NotificationService {
     try {
       if (!request.userEmail) {
         // Get user email
-        const user = await db.user.findUnique({
+        const user = await prismaDb.user.findUnique({
           where: { id: request.userId },
           select: { email: true },
         });
@@ -372,16 +387,24 @@ export class NotificationService {
       // Generate email HTML
       const emailHtml = this.generateEmailTemplate(request);
 
+      const userEmail = request.userEmail;
+      if (!userEmail) {
+        logger.warn('Cannot send email notification: user email missing', {
+          userId: request.userId,
+        });
+        return;
+      }
+
       // Send email via Resend
       await sendEmail({
-        to: request.userEmail,
+        to: userEmail,
         subject: request.title,
         html: emailHtml,
       });
 
       logger.info('Email notification sent', {
         userId: request.userId,
-        email: request.userEmail,
+        email: userEmail,
         type: request.type,
       });
     } catch (error: any) {
@@ -494,7 +517,7 @@ export class NotificationService {
 
       // Query from database (when PushSubscription model is created in Prisma)
       // For now, use a workaround with User.metadata or a separate table
-      const user = await db.user.findUnique({
+      const user = await prismaDb.user.findUnique({
         where: { id: userId },
         select: { metadata: true },
       });
@@ -504,7 +527,7 @@ export class NotificationService {
         const subscriptions = metadata.pushSubscriptions || [];
         
         // Cache for 5 minutes
-        cacheService.set(`push:subscriptions:${userId}`, subscriptions, 5 * 60);
+        cacheService.set(`push:subscriptions:${userId}`, subscriptions, { ttl: 5 * 60 * 1000 });
         
         return subscriptions;
       }
@@ -547,7 +570,7 @@ export class NotificationService {
   async getPreferences(userId: string): Promise<NotificationPreferences> {
     try {
       // Fetch from database (User model should have notificationPreferences field)
-      const user = await db.user.findUnique({
+      const user = await prismaDb.user.findUnique({
         where: { id: userId },
         select: { notificationPreferences: true },
       });
@@ -628,7 +651,7 @@ export class NotificationService {
       };
 
       // Update in database
-      await db.user.update({
+      await prismaDb.user.update({
         where: { id: userId },
         data: {
           notificationPreferences: updated as any,

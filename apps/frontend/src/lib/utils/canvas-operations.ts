@@ -43,8 +43,11 @@ export async function exportKonvaStage(
         dataURL = stage.toDataURL({ pixelRatio: 2, quality, mimeType: 'image/jpeg' });
         break;
       case 'svg':
-        dataURL = stage.toSVG();
-        // Convertir SVG en blob
+        dataURL = (stage as any).toSVG?.();
+        if (!dataURL) {
+          const fallback = stage.toDataURL({ pixelRatio: 2, quality });
+          return new Blob([fallback], { type: 'image/png' });
+        }
         return new Blob([dataURL], { type: 'image/svg+xml' });
       default:
         throw new Error(`Unsupported format: ${format}`);
@@ -76,7 +79,7 @@ export async function exportKonvaStage(
         );
       };
       img.onerror = (error) => {
-        logger.error('Error loading image for export', error as Error);
+        logger.error('Error loading image for export', { error });
         reject(error);
       };
       img.src = dataURL;

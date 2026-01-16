@@ -8,6 +8,7 @@ import {
     Headers,
     HttpCode,
     HttpStatus,
+    NotFoundException,
     Param,
     Post,
     Put,
@@ -32,6 +33,7 @@ import type {
 import { OrderSyncService } from './services/order-sync.service';
 import { ProductSyncService } from './services/product-sync.service';
 import { WebhookHandlerService } from './services/webhook-handler.service';
+import { SyncEngineService } from './services/sync-engine.service';
 
 @ApiTags('E-commerce Integrations')
 @Controller('ecommerce')
@@ -44,6 +46,7 @@ export class EcommerceController {
     private readonly productSyncService: ProductSyncService,
     private readonly orderSyncService: OrderSyncService,
     private readonly webhookHandlerService: WebhookHandlerService,
+    private readonly syncEngine: SyncEngineService, // ✅ PHASE 4 - Sync Engine centralisé
   ) {}
 
   // ========================================
@@ -534,5 +537,108 @@ export class EcommerceController {
     await this.prisma.ecommerceIntegration.delete({
       where: { id: integrationId },
     });
+  }
+
+  // ========================================
+  // SYNC ENGINE (PHASE 4 - Centraliser jobs BullMQ)
+  // ========================================
+
+  @Post('sync/queue')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Ajoute un job de sync dans la queue BullMQ' })
+  @ApiResponse({ status: 201, description: 'Job ajouté à la queue' })
+  async queueSyncJob(
+    @Body() body: {
+      integrationId: string;
+      type: 'product' | 'order' | 'inventory' | 'full';
+      direction?: 'import' | 'export' | 'bidirectional';
+      productIds?: string[];
+      orderIds?: string[];
+      priority?: number;
+      delay?: number;
+    },
+  ): Promise<{ jobId: string; status: string }> {
+    const jobId = await this.syncEngine.queueSyncJob({
+      integrationId: body.integrationId,
+      type: body.type,
+      direction: body.direction,
+      productIds: body.productIds,
+      orderIds: body.orderIds,
+      priority: body.priority,
+      delay: body.delay,
+    });
+
+    return { jobId, status: 'queued' };
+  }
+
+  @Post('sync/schedule')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Programme un job de sync récurrent' })
+  @ApiResponse({ status: 201, description: 'Job récurrent programmé' })
+  async scheduleRecurringSync(
+    @Body() body: {
+      integrationId: string;
+      type: 'product' | 'order' | 'inventory' | 'full';
+      interval: 'hourly' | 'daily' | 'weekly';
+      direction?: 'import' | 'export' | 'bidirectional';
+    },
+  ): Promise<{ jobId: string; status: string }> {
+    const jobId = await this.syncEngine.scheduleRecurringSync(
+      body.integrationId,
+      body.type,
+      body.interval,
+      {
+        direction: body.direction,
+      },
+    );
+
+    return { jobId, status: 'scheduled' };
+  }
+
+  @Get('sync/jobs/:jobId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtient le statut d\'un job de sync' })
+  @ApiResponse({ status: 200, description: 'Statut du job' })
+  async getJobStatus(@Param('jobId') jobId: string): Promise<any> {
+    const status = await this.syncEngine.getJobStatus(jobId);
+    if (!status) {
+      throw new NotFoundException(`Job ${jobId} not found`);
+    }
+    return status;
+  }
+
+  @Get('sync/integrations/:integrationId/jobs')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtient les jobs d\'une intégration' })
+  @ApiResponse({ status: 200, description: 'Liste des jobs' })
+  async getIntegrationJobs(
+    @Param('integrationId') integrationId: string,
+    @Query('limit') limit?: number,
+  ): Promise<any[]> {
+    return this.syncEngine.getIntegrationJobs(integrationId, limit || 50);
+  }
+
+  @Post('sync/jobs/:jobId/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Annule un job de sync' })
+  @ApiResponse({ status: 200, description: 'Job annulé' })
+  async cancelJob(@Param('jobId') jobId: string): Promise<{ status: string }> {
+    await this.syncEngine.cancelJob(jobId);
+    return { status: 'cancelled' };
+  }
+
+  @Post('sync/jobs/:jobId/retry')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Réessaie un job échoué' })
+  @ApiResponse({ status: 201, description: 'Job réessayé' })
+  async retryJob(@Param('jobId') jobId: string): Promise<{ jobId: string; status: string }> {
+    const newJobId = await this.syncEngine.retryJob(jobId);
+    return { jobId: newJobId, status: 'retried' };
   }
 }

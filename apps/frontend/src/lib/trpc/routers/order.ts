@@ -10,7 +10,7 @@
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { OrderStatus, ShippingStatus } from '@prisma/client';
+import { OrderStatus, ShippingStatus } from '@/lib/types/order';
 import { z } from 'zod';
 import { protectedProcedure, router } from '../server';
 
@@ -85,10 +85,15 @@ export const orderRouter = router({
 
       // Calculate shipping based on address
       const { calculateShipping } = await import('@/lib/utils/shipping-calculator');
+      const items = input.items as Array<{ weight?: number }>;
+      const totalWeight = items.reduce(
+        (sum: number, item) => sum + (item.weight ?? 0.1),
+        0
+      ); // Default 100g per item
       const shippingCost = calculateShipping(
         input.shippingAddress,
         {
-          weight: input.items.reduce((sum, item) => sum + (item.weight || 0.1), 0), // Default 100g per item
+          weight: totalWeight,
           carrier: (input.metadata as any)?.shippingMethod || 'standard',
         }
       );
@@ -393,7 +398,7 @@ export const orderRouter = router({
       }
 
       // Prepare items for batch generation
-      const items = orderWithItems.items.map((item) => ({
+      const items = orderWithItems.items.map((item: any) => ({
         id: item.id,
         format: input.formats?.[0] || 'pdf',
         quality: input.quality || 'standard',

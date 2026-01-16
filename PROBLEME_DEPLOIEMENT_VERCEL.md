@@ -2,54 +2,69 @@
 
 **Date** : 5 janvier 2026, 01:25
 
-## 🔍 Erreur Actuelle
+## ✅ Situation corrigée (janvier 2026)
 
-```
-Error: Command "pnpm install --no-frozen-lockfile" exited with 1
-```
+L’erreur initiale `pnpm install --no-frozen-lockfile exited with 1` venait de deux sources principales :
 
-## 📊 État
+1. **Mauvais projet Vercel ciblé**  
+   - Le déploiement était lancé à la racine du monorepo, ce qui utilisait le projet `luneo-frontend` au lieu du projet officiel `frontend`.  
+   - Résultat : consommation du quota de déploiements gratuits sur le mauvais projet, et configuration monorepo non adaptée.
 
-- ✅ **Corrections appliquées** : `bcryptjs` ajouté
-- ✅ **Code pushé** : Commit `a58545d`
-- ❌ **Déploiement échoue** : Installation des dépendances échoue
+2. **Dépendances manquantes côté frontend**  
+   - Le build échouait ensuite sur des erreurs TypeScript/Next.js du type :  
+     - `Cannot find module 'qrcode' or its corresponding type declarations.`  
+   - Ces libs (`qrcode`, mais aussi déjà rencontré auparavant `bcryptjs`, `speakeasy`) étaient utilisées dans `apps/frontend` sans être déclarées dans `apps/frontend/package.json`.
 
-## 🔍 Causes Possibles
+## ✅ Corrections appliquées
 
-### 1. Root Directory Configuration
-- **Root Directory** : `apps/frontend` (configuré dans Vercel Dashboard)
-- **Problème potentiel** : Vercel essaie peut-être d'installer depuis la racine du monorepo
+1. **Ciblage correct du projet Vercel**
+   - Le dossier `apps/frontend` est désormais **lié explicitement** au projet `frontend` :
+     ```bash
+     vercel link --cwd apps/frontend --project frontend --yes
+     ```
+   - Les déploiements manuels doivent se faire **uniquement** avec :
+     ```bash
+     vercel --prod --yes --cwd apps/frontend
+     ```
+   - Règle d’or : **ne jamais** lancer `vercel --prod` à la racine du repo, sinon Vercel peut cibler `luneo-frontend` et consommer le crédit API gratuit.
 
-### 2. pnpm-lock.yaml
-- **Problème potentiel** : Le `pnpm-lock.yaml` à la racine du monorepo peut causer des conflits
-- **Solution** : Vérifier que Vercel utilise le bon lockfile
+2. **Dépendances frontend corrigées**
+   - Ajout dans `apps/frontend/package.json` :
+     ```json
+     "dependencies": {
+       // ...
+       "qrcode": "^1.5.3"
+     },
+     "devDependencies": {
+       // ...
+       "@types/qrcode": "^1.5.5"
+     }
+     ```
+   - Rappel : toutes les libs utilisées dans `src/lib`, les API routes ou les services server-side du frontend doivent être dans `dependencies` (et leurs types éventuels dans `devDependencies`).
 
-### 3. Build Command
-- **Problème potentiel** : Le build command peut ne pas être correct pour un monorepo
+## 🧱 Nouveau process à respecter
 
-## 🎯 Solutions à Essayer
+1. **Avant tout déploiement Vercel frontend**
+   ```bash
+   cd apps/frontend
 
-### Option 1 : Vérifier Configuration Vercel
+   # Vérifier le build local
+   pnpm build
 
-Dans Vercel Dashboard → Settings → General :
-- **Root Directory** : `apps/frontend` ✅
-- **Build Command** : `pnpm run build` (ou laisser Vercel détecter)
-- **Install Command** : `pnpm install --no-frozen-lockfile` (ou laisser Vercel détecter)
+   # Si une erreur "Cannot find module" apparaît :
+   #   -> ajouter la lib dans apps/frontend/package.json (dependencies + types éventuels)
+   ```
 
-### Option 2 : Vérifier pnpm-lock.yaml
+2. **Pour déployer en production sans brûler le quota**
+   ```bash
+   # Toujours depuis la racine du monorepo,
+   # mais en ciblant le bon cwd :
+   vercel --prod --yes --cwd apps/frontend
+   ```
 
-Le `pnpm-lock.yaml` doit être à la racine du monorepo pour que pnpm fonctionne correctement dans un monorepo.
-
-### Option 3 : Attendre Déploiement Automatique
-
-Si GitHub est connecté, le déploiement automatique devrait se déclencher et peut-être mieux gérer le monorepo.
-
-## 📋 Actions Recommandées
-
-1. ⏳ Vérifier dans Vercel Dashboard les logs de build détaillés
-2. ⏳ Vérifier que le Root Directory est bien `apps/frontend`
-3. ⏳ Vérifier que le Build Command est correct
-4. ⏳ Si nécessaire, ajuster la configuration
+3. **À ne plus jamais faire**
+   - ❌ `vercel --prod --yes` lancé à la racine du repo  
+   - ❌ Ajouter des libs utilisées côté serveur seulement dans le root `package.json` sans les déclarer dans `apps/frontend/package.json`.
 
 
 

@@ -21,6 +21,95 @@ import {
   AnalyticsAdvancedFilters,
 } from '../interfaces/analytics-advanced.interface';
 
+// ============================================================================
+// TYPES STRICTS POUR ANALYTICS AVANCÉES
+// ============================================================================
+
+/**
+ * Étape de funnel depuis Prisma (JSON)
+ */
+interface FunnelStepFromPrisma {
+  id?: string;
+  name?: string;
+  eventType?: string;
+  order?: number;
+  description?: string;
+}
+
+/**
+ * Critères de segment depuis Prisma (JSON)
+ */
+interface SegmentCriteria {
+  [key: string]: unknown;
+}
+
+/**
+ * Prédiction de rétention
+ */
+interface RetentionPrediction {
+  cohort: string;
+  current: number;
+  predicted30: number;
+  predicted90: number;
+  confidence: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+/**
+ * Prédiction par segment
+ */
+interface SegmentPrediction {
+  segment: string;
+  current: string;
+  predicted7d: string;
+  predicted30d: string;
+  growth7d: string;
+  growth30d: string;
+  confidence: number;
+  factors: string[];
+}
+
+/**
+ * Benchmark de métrique
+ */
+interface MetricBenchmark {
+  metric: string;
+  yourValue: number;
+  industryAvg: number;
+  industryTop: number;
+  percentile: number;
+  status: 'above' | 'below';
+}
+
+/**
+ * Pattern de saisonnalité
+ */
+interface SeasonalityPattern {
+  pattern: string;
+  period: string;
+  impact: string;
+  confidence: number;
+}
+
+/**
+ * Prévision de saisonnalité
+ */
+interface SeasonalityForecast {
+  period: string;
+  forecast: string;
+  trend: string;
+  reason: string;
+  confidence: number;
+}
+
+/**
+ * Analyse de saisonnalité complète
+ */
+interface SeasonalityAnalysis {
+  patterns: SeasonalityPattern[];
+  forecasts: SeasonalityForecast[];
+}
+
 @Injectable()
 export class AnalyticsAdvancedService {
   private readonly logger = new Logger(AnalyticsAdvancedService.name);
@@ -35,16 +124,22 @@ export class AnalyticsAdvancedService {
   // ========================================
 
   /**
-   * Récupère tous les funnels d'une marque
+   * Récupère tous les funnels d'une marque avec typage strict et validation
    */
   async getFunnels(brandId: string): Promise<Funnel[]> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getFunnels');
+      throw new Error('Brand ID is required');
+    }
+
     try {
       this.logger.log(`Getting funnels for brand: ${brandId}`);
 
-      // Récupérer les funnels depuis Prisma
+      // ✅ Récupérer les funnels depuis Prisma
       const funnels = await this.prisma.analyticsFunnel.findMany({
         where: {
-          brandId,
+          brandId: brandId.trim(),
           isActive: true,
         },
         orderBy: {
@@ -52,50 +147,121 @@ export class AnalyticsAdvancedService {
         },
       });
 
-      // Transformer les données Prisma en format Funnel
-      return funnels.map((funnel) => {
-        const steps = Array.isArray(funnel.steps) ? funnel.steps : [];
-        return {
-          id: funnel.id,
-          name: funnel.name,
-          description: funnel.description || undefined,
-          steps: steps.map((step: unknown, index: number) => {
-            const stepObj = step as Record<string, unknown>;
-            return {
-              id: (stepObj.id as string) || `step-${index + 1}`,
-              name: (stepObj.name as string) || 'Step',
-              eventType: (stepObj.eventType as string) || '',
-              order: (stepObj.order as number) || index + 1,
-              description: (stepObj.description as string) || undefined,
-            };
-          }),
-          isActive: funnel.isActive,
-          brandId: funnel.brandId,
-          createdAt: funnel.createdAt,
-          updatedAt: funnel.updatedAt,
-        };
-      });
+      // ✅ Transformer les données Prisma en format Funnel avec validation
+      return funnels.map((funnel) => this.normalizeFunnel(funnel));
     } catch (error) {
-      this.logger.error(`Failed to get funnels: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get funnels: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 
   /**
-   * Récupère les données d'un funnel spécifique
+   * Normalise un funnel depuis Prisma avec gardes
+   */
+  private normalizeFunnel(funnel: {
+    id: string;
+    name: string;
+    description: string | null;
+    steps: Prisma.JsonValue;
+    isActive: boolean;
+    brandId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Funnel {
+    const steps = Array.isArray(funnel.steps) ? funnel.steps : [];
+
+    return {
+      id: funnel.id ?? '',
+      name: funnel.name ?? 'Unnamed Funnel',
+      description: funnel.description && typeof funnel.description === 'string' && funnel.description.trim().length > 0
+        ? funnel.description.trim()
+        : undefined,
+      steps: steps.map((step: unknown, index: number) => this.normalizeFunnelStep(step, index)),
+      isActive: Boolean(funnel.isActive),
+      brandId: funnel.brandId ?? '',
+      createdAt: funnel.createdAt,
+      updatedAt: funnel.updatedAt,
+    };
+  }
+
+  /**
+   * Normalise une étape de funnel avec gardes
+   */
+  private normalizeFunnelStep(step: unknown, index: number): Funnel['steps'][0] {
+    if (!step || typeof step !== 'object') {
+      return {
+        id: `step-${index + 1}`,
+        name: 'Step',
+        eventType: '',
+        order: index + 1,
+      };
+    }
+
+    const stepObj = step as Partial<FunnelStepFromPrisma>;
+
+    return {
+      id: typeof stepObj.id === 'string' && stepObj.id.trim().length > 0
+        ? stepObj.id.trim()
+        : `step-${index + 1}`,
+      name: typeof stepObj.name === 'string' && stepObj.name.trim().length > 0
+        ? stepObj.name.trim()
+        : 'Step',
+      eventType: typeof stepObj.eventType === 'string' && stepObj.eventType.trim().length > 0
+        ? stepObj.eventType.trim()
+        : '',
+      order: typeof stepObj.order === 'number' && stepObj.order > 0
+        ? stepObj.order
+        : index + 1,
+      description: typeof stepObj.description === 'string' && stepObj.description.trim().length > 0
+        ? stepObj.description.trim()
+        : undefined,
+    };
+  }
+
+  /**
+   * Récupère les données d'un funnel spécifique avec validation robuste
    */
   async getFunnelData(funnelId: string, brandId: string, filters?: AnalyticsAdvancedFilters): Promise<FunnelData> {
+    // ✅ Validation des entrées
+    if (!funnelId || typeof funnelId !== 'string' || funnelId.trim().length === 0) {
+      this.logger.warn('Invalid funnelId provided to getFunnelData');
+      throw new Error('Funnel ID is required');
+    }
+
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getFunnelData');
+      throw new Error('Brand ID is required');
+    }
+
     try {
       this.logger.log(`Getting funnel data for funnel: ${funnelId}, brand: ${brandId}`);
 
-      // Calculer les dates
-      const endDate = filters?.endDate || new Date();
-      const startDate = filters?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      // ✅ Calculer les dates avec validation
+      const endDate = filters?.endDate && filters.endDate instanceof Date && !Number.isNaN(filters.endDate.getTime())
+        ? filters.endDate
+        : new Date();
+      const startDate = filters?.startDate && filters.startDate instanceof Date && !Number.isNaN(filters.startDate.getTime())
+        ? filters.startDate
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-      // Utiliser le service de calculs
-      return await this.calculationsService.calculateFunnelData(funnelId, brandId, startDate, endDate);
+      // ✅ Validation que startDate < endDate
+      if (startDate.getTime() >= endDate.getTime()) {
+        this.logger.warn('Invalid date range: start >= end, using defaults');
+        const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const defaultEnd = new Date();
+        return await this.calculationsService.calculateFunnelData(funnelId.trim(), brandId.trim(), defaultStart, defaultEnd);
+      }
+
+      // ✅ Utiliser le service de calculs
+      return await this.calculationsService.calculateFunnelData(funnelId.trim(), brandId.trim(), startDate, endDate);
     } catch (error) {
-      this.logger.error(`Failed to get funnel data: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get funnel data: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -164,46 +330,53 @@ export class AnalyticsAdvancedService {
   }
 
   /**
-   * Crée un nouveau funnel
+   * Crée un nouveau funnel avec validation robuste
    */
   async createFunnel(brandId: string, data: Omit<Funnel, 'id' | 'brandId' | 'createdAt' | 'updatedAt'>): Promise<Funnel> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to createFunnel');
+      throw new Error('Brand ID is required');
+    }
+
+    if (!data || typeof data !== 'object') {
+      this.logger.warn('Invalid data provided to createFunnel');
+      throw new Error('Funnel data is required');
+    }
+
+    if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
+      this.logger.warn('Invalid funnel name provided');
+      throw new Error('Funnel name is required');
+    }
+
+    if (!Array.isArray(data.steps) || data.steps.length === 0) {
+      this.logger.warn('Invalid funnel steps provided');
+      throw new Error('At least one funnel step is required');
+    }
+
     try {
       this.logger.log(`Creating funnel for brand: ${brandId}`);
 
-      // Créer le funnel dans Prisma
+      // ✅ Créer le funnel dans Prisma avec validation
       const funnel = await this.prisma.analyticsFunnel.create({
         data: {
-          name: data.name,
-          description: data.description,
+          name: data.name.trim(),
+          description: data.description && typeof data.description === 'string' && data.description.trim().length > 0
+            ? data.description.trim()
+            : null,
           steps: data.steps as unknown as Prisma.InputJsonValue,
-          isActive: data.isActive,
-          brandId,
+          isActive: Boolean(data.isActive),
+          brandId: brandId.trim(),
         },
       });
 
-      // Transformer en format Funnel
-      const steps = Array.isArray(funnel.steps) ? funnel.steps : [];
-      return {
-        id: funnel.id,
-        name: funnel.name,
-        description: funnel.description || undefined,
-        steps: steps.map((step: unknown, index: number) => {
-          const stepObj = step as Record<string, unknown>;
-          return {
-            id: (stepObj.id as string) || `step-${index + 1}`,
-            name: (stepObj.name as string) || 'Step',
-            eventType: (stepObj.eventType as string) || '',
-            order: (stepObj.order as number) || index + 1,
-            description: (stepObj.description as string) || undefined,
-          };
-        }),
-        isActive: funnel.isActive,
-        brandId: funnel.brandId,
-        createdAt: funnel.createdAt,
-        updatedAt: funnel.updatedAt,
-      };
+      // ✅ Transformer en format Funnel avec normalisation
+      return this.normalizeFunnel(funnel);
     } catch (error) {
-      this.logger.error(`Failed to create funnel: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create funnel: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -272,16 +445,14 @@ export class AnalyticsAdvancedService {
   }
 
   /**
-   * Calcule les prédictions de rétention pour une cohorte
+   * Calcule les prédictions de rétention pour une cohorte avec typage strict
    */
-  async getRetentionPredictions(brandId: string): Promise<Array<{
-    cohort: string;
-    current: number;
-    predicted30: number;
-    predicted90: number;
-    confidence: number;
-    trend: 'up' | 'down' | 'stable';
-  }>> {
+  async getRetentionPredictions(brandId: string): Promise<RetentionPrediction[]> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getRetentionPredictions');
+      throw new Error('Brand ID is required');
+    }
     try {
       this.logger.log(`Getting retention predictions for brand: ${brandId}`);
 
@@ -315,16 +486,22 @@ export class AnalyticsAdvancedService {
   // ========================================
 
   /**
-   * Récupère tous les segments d'une marque
+   * Récupère tous les segments d'une marque avec typage strict et validation
    */
   async getSegments(brandId: string): Promise<Segment[]> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getSegments');
+      throw new Error('Brand ID is required');
+    }
+
     try {
       this.logger.log(`Getting segments for brand: ${brandId}`);
 
-      // Récupérer les segments depuis Prisma
+      // ✅ Récupérer les segments depuis Prisma
       const segments = await this.prisma.analyticsSegment.findMany({
         where: {
-          brandId,
+          brandId: brandId.trim(),
           isActive: true,
         },
         orderBy: {
@@ -332,66 +509,120 @@ export class AnalyticsAdvancedService {
         },
       });
 
-      // Transformer les données Prisma en format Segment
-      return segments.map((segment) => ({
-        id: segment.id,
-        name: segment.name,
-        description: segment.description || undefined,
-        criteria: (segment.criteria as Record<string, unknown>) || {},
-        userCount: segment.userCount,
-        isActive: segment.isActive,
-        brandId: segment.brandId,
-        createdAt: segment.createdAt,
-        updatedAt: segment.updatedAt,
-      }));
+      // ✅ Transformer les données Prisma en format Segment avec normalisation
+      return segments.map((segment) => this.normalizeSegment(segment));
     } catch (error) {
-      this.logger.error(`Failed to get segments: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get segments: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 
   /**
-   * Crée un nouveau segment
+   * Normalise un segment depuis Prisma avec gardes
+   */
+  private normalizeSegment(segment: {
+    id: string;
+    name: string;
+    description: string | null;
+    criteria: Prisma.JsonValue;
+    userCount: number;
+    isActive: boolean;
+    brandId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Segment {
+    return {
+      id: segment.id ?? '',
+      name: segment.name ?? 'Unnamed Segment',
+      description: segment.description && typeof segment.description === 'string' && segment.description.trim().length > 0
+        ? segment.description.trim()
+        : undefined,
+      criteria: this.normalizeSegmentCriteria(segment.criteria),
+      userCount: typeof segment.userCount === 'number' && segment.userCount >= 0
+        ? segment.userCount
+        : 0,
+      isActive: Boolean(segment.isActive),
+      brandId: segment.brandId ?? '',
+      createdAt: segment.createdAt,
+      updatedAt: segment.updatedAt,
+    };
+  }
+
+  /**
+   * Normalise les critères de segment avec gardes
+   */
+  private normalizeSegmentCriteria(criteria: Prisma.JsonValue): SegmentCriteria {
+    if (!criteria || typeof criteria !== 'object' || Array.isArray(criteria)) {
+      return {};
+    }
+
+    return criteria as SegmentCriteria;
+  }
+
+  /**
+   * Crée un nouveau segment avec validation robuste
    */
   async createSegment(brandId: string, data: Omit<Segment, 'id' | 'brandId' | 'userCount' | 'createdAt' | 'updatedAt'>): Promise<Segment> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to createSegment');
+      throw new Error('Brand ID is required');
+    }
+
+    if (!data || typeof data !== 'object') {
+      this.logger.warn('Invalid data provided to createSegment');
+      throw new Error('Segment data is required');
+    }
+
+    if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
+      this.logger.warn('Invalid segment name provided');
+      throw new Error('Segment name is required');
+    }
+
     try {
       this.logger.log(`Creating segment for brand: ${brandId}`);
 
-      // Créer le segment dans Prisma
+      // ✅ Créer le segment dans Prisma avec validation
       const segment = await this.prisma.analyticsSegment.create({
         data: {
-          name: data.name,
-          description: data.description,
-          criteria: data.criteria as Prisma.InputJsonValue,
-          isActive: data.isActive,
-          brandId,
+          name: data.name.trim(),
+          description: data.description && typeof data.description === 'string' && data.description.trim().length > 0
+            ? data.description.trim()
+            : null,
+          criteria: (data.criteria && typeof data.criteria === 'object' && !Array.isArray(data.criteria))
+            ? (data.criteria as Prisma.InputJsonValue)
+            : {},
+          isActive: Boolean(data.isActive),
+          brandId: brandId.trim(),
           userCount: 0, // Sera calculé après création
         },
       });
 
-      // Calculer userCount en fonction des critères
+      // ✅ Calculer userCount en fonction des critères
       // Pour l'instant, compter tous les utilisateurs de la marque
       // TODO: Filtrer selon les critères du segment (à implémenter avec logique de filtrage avancée)
       const userCount = await this.prisma.user.count({
         where: {
-          brandId,
+          brandId: brandId.trim(),
           isActive: true,
         },
       });
 
-      return {
-        id: segment.id,
-        name: segment.name,
-        description: segment.description || undefined,
-        criteria: (segment.criteria as Record<string, unknown>) || {},
-        userCount: segment.userCount,
-        isActive: segment.isActive,
-        brandId: segment.brandId,
-        createdAt: segment.createdAt,
-        updatedAt: segment.updatedAt,
-      };
+      // ✅ Mettre à jour le userCount
+      const updatedSegment = await this.prisma.analyticsSegment.update({
+        where: { id: segment.id },
+        data: { userCount },
+      });
+
+      return this.normalizeSegment(updatedSegment);
     } catch (error) {
-      this.logger.error(`Failed to create segment: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create segment: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -438,18 +669,14 @@ export class AnalyticsAdvancedService {
   }
 
   /**
-   * Récupère les prédictions par segment
+   * Récupère les prédictions par segment avec typage strict
    */
-  async getSegmentPredictions(brandId: string): Promise<Array<{
-    segment: string;
-    current: string;
-    predicted7d: string;
-    predicted30d: string;
-    growth7d: string;
-    growth30d: string;
-    confidence: number;
-    factors: string[];
-  }>> {
+  async getSegmentPredictions(brandId: string): Promise<SegmentPrediction[]> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getSegmentPredictions');
+      throw new Error('Brand ID is required');
+    }
     try {
       this.logger.log(`Getting segment predictions for brand: ${brandId}`);
 
@@ -614,16 +841,14 @@ export class AnalyticsAdvancedService {
   // ========================================
 
   /**
-   * Récupère les benchmarks de l'industrie
+   * Récupère les benchmarks de l'industrie avec typage strict
    */
-  async getBenchmarks(brandId: string): Promise<Array<{
-    metric: string;
-    yourValue: number;
-    industryAvg: number;
-    industryTop: number;
-    percentile: number;
-    status: 'above' | 'below';
-  }>> {
+  async getBenchmarks(brandId: string): Promise<MetricBenchmark[]> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getBenchmarks');
+      throw new Error('Brand ID is required');
+    }
     try {
       this.logger.log(`Getting benchmarks for brand: ${brandId}`);
 
@@ -653,23 +878,14 @@ export class AnalyticsAdvancedService {
   }
 
   /**
-   * Récupère les analyses de saisonnalité
+   * Récupère les analyses de saisonnalité avec typage strict
    */
-  async getSeasonality(brandId: string): Promise<{
-    patterns: Array<{
-      pattern: string;
-      period: string;
-      impact: string;
-      confidence: number;
-    }>;
-    forecasts: Array<{
-      period: string;
-      forecast: string;
-      trend: string;
-      reason: string;
-      confidence: number;
-    }>;
-  }> {
+  async getSeasonality(brandId: string): Promise<SeasonalityAnalysis> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getSeasonality');
+      throw new Error('Brand ID is required');
+    }
     try {
       this.logger.log(`Getting seasonality for brand: ${brandId}`);
 

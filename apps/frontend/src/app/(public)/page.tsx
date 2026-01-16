@@ -3,6 +3,7 @@ import {
   HeroSectionNew,
   FeaturesSectionNew,
   HowItWorksNew,
+  DemoModulesSection,
   TestimonialsNew,
   PricingSectionNew,
   CTASectionNew,
@@ -56,6 +57,7 @@ export default function HomePage() {
       <main className="min-h-screen">
         <HeroSectionNew />
         <FeaturesSectionNew />
+        <DemoModulesSection />
         <HowItWorksNew />
         <TestimonialsNew />
         <PricingSectionNew />

@@ -7,7 +7,7 @@
  * - Support detection
  */
 
-import { trpc } from '@/lib/trpc/client';
+import { getTRPCClient } from '@/lib/trpc/client';
 import { logger } from '@/lib/logger';
 import { detectWebXRSupport, detectDeviceInfo } from '@/lib/utils/ar';
 import type { ARDeviceInfo } from '@/lib/utils/ar';
@@ -47,7 +47,8 @@ export class ARService {
       const isSupported = await detectWebXRSupport();
 
       // Also check server-side
-      const serverCheck = await trpc.ar.checkSupport.query({ userAgent });
+      const client = getTRPCClient();
+      const serverCheck = await client.ar.checkSupport.query({ userAgent });
 
       return {
         ...serverCheck,
@@ -78,7 +79,8 @@ export class ARService {
     try {
       const deviceInfo = detectDeviceInfo();
 
-      const session = await trpc.ar.createSession.mutate({
+      const client = getTRPCClient();
+      const session = await client.ar.createSession.mutate({
         ...request,
         deviceInfo: deviceInfo.isARSupported ? deviceInfo : undefined,
       });
@@ -133,7 +135,8 @@ export class ARService {
    */
   async trackInteraction(request: ARInteractionRequest) {
     try {
-      await trpc.ar.trackInteraction.mutate(request);
+      const client = getTRPCClient();
+      await client.ar.trackInteraction.mutate(request);
 
       // Update session
       const session = this.activeSessions.get(request.sessionId);
@@ -159,7 +162,8 @@ export class ARService {
    */
   async getAnalytics(request: ARAnalyticsRequest) {
     try {
-      return await trpc.ar.getAnalytics.query(request);
+      const client = getTRPCClient();
+      return await client.ar.getAnalytics.query(request);
     } catch (error: any) {
       logger.error('Error fetching AR analytics', { error, request });
       throw error;

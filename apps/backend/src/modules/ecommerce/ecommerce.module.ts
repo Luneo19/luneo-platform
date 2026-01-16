@@ -10,6 +10,8 @@ import { ProductSyncService } from './services/product-sync.service';
 import { OrderSyncService } from './services/order-sync.service';
 import { WebhookHandlerService } from './services/webhook-handler.service';
 import { WooCommerceWebhookService } from './services/woocommerce-webhook.service';
+import { SyncEngineService } from './services/sync-engine.service';
+import { SyncWorker } from './workers/sync.worker';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 
@@ -34,6 +36,8 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
     OrderSyncService,
     WebhookHandlerService,
     WooCommerceWebhookService,
+    SyncEngineService, // ✅ PHASE 4 - Service centralisé pour jobs BullMQ
+    SyncWorker, // ✅ PHASE 4 - Worker pour traiter les jobs
   ],
   exports: [
     ShopifyConnector,
@@ -42,6 +46,7 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
     ProductSyncService,
     OrderSyncService,
     WooCommerceWebhookService,
+    SyncEngineService, // ✅ Exporter pour utilisation dans autres modules
   ],
 })
 export class EcommerceModule {}

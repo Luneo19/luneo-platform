@@ -131,7 +131,7 @@ export const collaborationRouter = router({
 
         return {
           success: true,
-          resources: resources.map(resource => ({
+          resources: resources.map((resource: any) => ({
             id: resource.id,
             resourceType: resource.resourceType,
             resourceId: resource.resourceId,
@@ -271,8 +271,8 @@ export const collaborationRouter = router({
         return {
           success: true,
           comments: comments
-            .filter(c => !c.parentId) // Seulement les commentaires racine
-            .map(comment => ({
+            .filter((c: any) => !c.parentId) // Seulement les commentaires racine
+            .map((comment: any) => ({
               id: comment.id,
               resourceType: comment.resourceType,
               resourceId: comment.resourceId,
@@ -288,7 +288,7 @@ export const collaborationRouter = router({
               sharedResourceId: comment.sharedResourceId,
               createdAt: comment.createdAt,
               updatedAt: comment.updatedAt,
-              replies: comment.replies.map(reply => ({
+              replies: (comment.replies as any[]).map((reply: any) => ({
                 id: reply.id,
                 resourceType: reply.resourceType,
                 resourceId: reply.resourceId,

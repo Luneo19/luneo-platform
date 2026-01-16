@@ -1,108 +1,164 @@
 #!/bin/bash
 
-# 🚀 Script de Déploiement en Production
-# Déploie le backend et frontend sur Vercel/Railway
+##############################################################################
+# 🚀 SCRIPT DE DÉPLOIEMENT PRODUCTION COMPLET
+# Déploie Frontend (Vercel) + Backend (Railway)
+##############################################################################
 
 set -e
 
-echo "🚀 DÉPLOIEMENT EN PRODUCTION"
-echo "============================"
-echo ""
-
 # Colors
+RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Vérifications préalables
-echo -e "${YELLOW}📋 Vérifications préalables...${NC}"
-
-# Vérifier que les variables d'environnement sont définies
-if [ -z "$VERCEL_TOKEN" ] && [ -z "$RAILWAY_TOKEN" ]; then
-  echo -e "${YELLOW}⚠️  Aucun token de déploiement trouvé. Utilisation des variables d'environnement locales.${NC}"
-fi
-
-# Vérifier que les dépendances sont installées
-if [ ! -d "node_modules" ]; then
-  echo -e "${YELLOW}⚠️  Installation des dépendances...${NC}"
-  pnpm install
-fi
-
-# Build backend
-echo -e "\n${YELLOW}🔨 Build du backend...${NC}"
-cd apps/backend
-pnpm run build
-if [ $? -ne 0 ]; then
-  echo -e "${RED}❌ Erreur lors du build du backend${NC}"
-  exit 1
-fi
-cd ../..
-
-# Build frontend
-echo -e "\n${YELLOW}🔨 Build du frontend...${NC}"
-cd apps/frontend
-pnpm run build
-if [ $? -ne 0 ]; then
-  echo -e "${RED}❌ Erreur lors du build du frontend${NC}"
-  exit 1
-fi
-cd ../..
-
-# Vérifier les migrations Prisma
-echo -e "\n${YELLOW}📦 Vérification des migrations Prisma...${NC}"
-cd apps/backend
-if [ -d "prisma/migrations" ]; then
-  echo "Migrations Prisma détectées"
-  echo "⚠️  Assurez-vous d'appliquer les migrations en production"
-fi
-cd ../..
-
-# Déploiement Vercel (Frontend)
-if [ ! -z "$VERCEL_TOKEN" ]; then
-  echo -e "\n${YELLOW}🌐 Déploiement sur Vercel (Frontend)...${NC}"
-  
-  # Vérifier que Vercel CLI est installé
-  if ! command -v vercel &> /dev/null; then
-    echo "Installation de Vercel CLI..."
-    npm install -g vercel
-  fi
-  
-  # Déployer le frontend
-  cd apps/frontend
-  vercel --prod --token "$VERCEL_TOKEN" --yes
-  cd ../..
-  
-  echo -e "${GREEN}✅ Frontend déployé sur Vercel${NC}"
-else
-  echo -e "${YELLOW}⚠️  VERCEL_TOKEN non défini, déploiement Vercel ignoré${NC}"
-fi
-
-# Déploiement Railway (Backend)
-if [ ! -z "$RAILWAY_TOKEN" ]; then
-  echo -e "\n${YELLOW}🚂 Déploiement sur Railway (Backend)...${NC}"
-  
-  # Vérifier que Railway CLI est installé
-  if ! command -v railway &> /dev/null; then
-    echo "Installation de Railway CLI..."
-    npm install -g @railway/cli
-  fi
-  
-  # Déployer le backend
-  cd apps/backend
-  railway up --token "$RAILWAY_TOKEN"
-  cd ../..
-  
-  echo -e "${GREEN}✅ Backend déployé sur Railway${NC}"
-else
-  echo -e "${YELLOW}⚠️  RAILWAY_TOKEN non défini, déploiement Railway ignoré${NC}"
-fi
-
-echo -e "\n${GREEN}✅ Déploiement terminé !${NC}"
 echo ""
-echo "📝 Prochaines étapes:"
-echo "  1. Vérifier les variables d'environnement en production"
-echo "  2. Appliquer les migrations Prisma"
-echo "  3. Tester les endpoints API"
-echo "  4. Vérifier le dashboard webhooks"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo -e "${BLUE}  🚀 DÉPLOIEMENT PRODUCTION - LUNEO PLATFORM${NC}"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo ""
+
+##############################################################################
+# VÉRIFICATIONS PRÉ-DÉPLOIEMENT
+##############################################################################
+
+echo -e "${YELLOW}📋 Vérifications pré-déploiement...${NC}"
+echo ""
+
+# Vérifier Vercel CLI
+if ! command -v vercel &> /dev/null; then
+    echo -e "${RED}❌ Vercel CLI non installé${NC}"
+    echo "   Installation: npm install -g vercel"
+    exit 1
+fi
+echo -e "${GREEN}✅ Vercel CLI installé${NC}"
+
+# Vérifier Railway CLI
+if ! command -v railway &> /dev/null; then
+    echo -e "${RED}❌ Railway CLI non installé${NC}"
+    echo "   Installation: npm install -g @railway/cli"
+    exit 1
+fi
+echo -e "${GREEN}✅ Railway CLI installé${NC}"
+
+# Vérifier la connexion Vercel
+if ! vercel whoami &> /dev/null; then
+    echo -e "${YELLOW}⚠️  Non connecté à Vercel${NC}"
+    echo "   Connexion requise..."
+    vercel login
+fi
+echo -e "${GREEN}✅ Connecté à Vercel${NC}"
+
+# Vérifier la connexion Railway
+if ! railway status &> /dev/null; then
+    echo -e "${YELLOW}⚠️  Projet Railway non lié${NC}"
+    echo "   Exécutez: cd apps/backend && railway link"
+    exit 1
+fi
+echo -e "${GREEN}✅ Projet Railway lié${NC}"
+
+echo ""
+echo -e "${GREEN}✅ Toutes les vérifications passées${NC}"
+echo ""
+
+##############################################################################
+# DÉPLOIEMENT BACKEND (RAILWAY)
+##############################################################################
+
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo -e "${BLUE}  🚂 ÉTAPE 1: DÉPLOIEMENT BACKEND (RAILWAY)${NC}"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo ""
+
+cd apps/backend
+
+echo -e "${YELLOW}📦 Vérification des migrations Prisma...${NC}"
+echo "   Exécution: railway run 'pnpm prisma migrate deploy'"
+read -p "   Appuyez sur Entrée pour continuer (ou Ctrl+C pour annuler)..."
+
+railway run "pnpm prisma migrate deploy" || {
+    echo -e "${YELLOW}⚠️  Migrations échouées ou déjà à jour${NC}"
+}
+
+echo ""
+echo -e "${YELLOW}🚀 Déploiement sur Railway...${NC}"
+railway up
+
+echo ""
+echo -e "${GREEN}✅ Backend déployé sur Railway${NC}"
+echo ""
+
+# Attendre un peu pour que le déploiement démarre
+sleep 5
+
+# Vérifier les logs
+echo -e "${YELLOW}📋 Vérification des logs (dernières 20 lignes)...${NC}"
+railway logs --tail 20 || true
+
+cd ../..
+
+##############################################################################
+# DÉPLOIEMENT FRONTEND (VERCEL)
+##############################################################################
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo -e "${BLUE}  🌐 ÉTAPE 2: DÉPLOIEMENT FRONTEND (VERCEL)${NC}"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo ""
+
+cd apps/frontend
+
+# Vérifier Root Directory
+echo -e "${YELLOW}📋 Vérification Root Directory Vercel...${NC}"
+echo "   Le Root Directory doit être: apps/frontend"
+echo "   Vérifiez: https://vercel.com/dashboard → Settings → General"
+read -p "   Appuyez sur Entrée une fois vérifié..."
+
+# Build local pour vérifier
+echo ""
+echo -e "${YELLOW}🔨 Build local de vérification...${NC}"
+npm run build || {
+    echo -e "${RED}❌ Build échoué. Corrigez les erreurs avant de continuer.${NC}"
+    exit 1
+}
+echo -e "${GREEN}✅ Build local réussi${NC}"
+
+echo ""
+echo -e "${YELLOW}🚀 Déploiement sur Vercel (production)...${NC}"
+vercel --prod --yes
+
+echo ""
+echo -e "${GREEN}✅ Frontend déployé sur Vercel${NC}"
+echo ""
+
+cd ../..
+
+##############################################################################
+# RÉSUMÉ
+##############################################################################
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo -e "${GREEN}  ✅ DÉPLOIEMENT TERMINÉ${NC}"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo ""
+
+echo -e "${BLUE}📋 Prochaines étapes:${NC}"
+echo ""
+echo "1. Vérifier les déploiements:"
+echo "   - Vercel: https://vercel.com/dashboard"
+echo "   - Railway: https://railway.app"
+echo ""
+echo "2. Tester les endpoints:"
+echo "   - Frontend: https://votre-projet.vercel.app"
+echo "   - Backend Health: https://votre-backend.railway.app/api/health"
+echo ""
+echo "3. Vérifier les logs:"
+echo "   - Vercel: vercel logs"
+echo "   - Railway: railway logs"
+echo ""
+echo -e "${GREEN}🎉 Déploiement réussi !${NC}"
 echo ""

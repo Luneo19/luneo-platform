@@ -2,9 +2,9 @@ import { logger } from '@/lib/logger';
 
 // Use NEXT_PUBLIC_API_URL from environment variables
 // Fallback to localhost for development only
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? null // Should be configured in Vercel
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? '' // Should be configured in Vercel
     : 'http://localhost:3001/api');
 
 export class ApiService {

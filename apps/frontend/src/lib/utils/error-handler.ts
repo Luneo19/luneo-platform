@@ -31,6 +31,7 @@ export interface AppError {
   message: string;
   code?: string;
   statusCode?: number;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
   originalError?: unknown;
   metadata?: Record<string, any>;
   retryable?: boolean;
@@ -376,15 +377,4 @@ export function createErrorMessage(error: AppError): {
 }
 
 // ========================================
-// EXPORT
-// ========================================
-
-export {
-  classifyError,
-  getUserFriendlyMessage,
-  handleError,
-  retryWithBackoff,
-  isRecoverableError,
-  createErrorMessage,
-};
 

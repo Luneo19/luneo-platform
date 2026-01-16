@@ -10,7 +10,6 @@
 
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
-import { PrismaClient } from '@prisma/client';
 import { db } from '@/lib/db';
 
 // ========================================

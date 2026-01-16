@@ -18,20 +18,46 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
 // ============================================================================
-// TYPES
+// TYPES STRICTS
 // ============================================================================
 
+/**
+ * Métadonnées de document avec typage strict
+ */
+export interface DocumentMetadata {
+  category?: string;
+  tags?: string[];
+  slug?: string;
+  source?: string;
+  [key: string]: unknown; // Pour extensibilité
+}
+
+/**
+ * Document RAG avec typage strict
+ */
 export interface Document {
   id: string;
   content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: DocumentMetadata;
   score?: number;
 }
 
+/**
+ * Résultat RAG avec typage strict
+ */
 export interface RAGResult {
   documents: Document[];
   query: string;
   enhancedPrompt: string;
+}
+
+/**
+ * Options de recherche RAG
+ */
+export interface RAGSearchOptions {
+  limit?: number;
+  threshold?: number;
+  documentTypes?: string[];
 }
 
 // ============================================================================
@@ -71,13 +97,28 @@ export class RAGService {
     const limit = options.limit || 5;
     const threshold = options.threshold || 0.7;
 
-    // Vérifier cache
-    const cacheKey = `rag:search:${this.hashQuery(query)}:${brandId}:${limit}`;
-    const cached = await this.cache.get<Document[]>(cacheKey, 'rag', async () => {
-      // Will be filled below
-      return [] as Document[];
-    }, { ttl: 3600 });
-    if (cached && cached.length > 0) {
+    // ✅ Validation des entrées
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      this.logger.warn('Invalid query provided to search');
+      return [];
+    }
+
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to search');
+      return [];
+    }
+
+    const validatedLimit = typeof options.limit === 'number' && options.limit > 0 && options.limit <= 50
+      ? options.limit
+      : 5;
+    const validatedThreshold = typeof options.threshold === 'number' && options.threshold >= 0 && options.threshold <= 1
+      ? options.threshold
+      : 0.7;
+
+    // ✅ Vérifier cache
+    const cacheKey = `rag:search:${this.hashQuery(query.trim())}:${brandId.trim()}:${validatedLimit}`;
+    const cached = await this.cache.getSimple<Document[]>(cacheKey);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
       return cached;
     }
 
@@ -85,15 +126,15 @@ export class RAGService {
       let documents: Document[];
 
       if (this.useVectorStore) {
-        // Utiliser vector store (pgvector)
-        documents = await this.searchVectorStore(query, brandId, limit, threshold);
+        // ✅ Utiliser vector store (pgvector)
+        documents = await this.searchVectorStore(query.trim(), brandId.trim(), validatedLimit, validatedThreshold);
       } else {
-        // Fallback: recherche textuelle simple
-        documents = await this.searchTextual(query, brandId, limit);
+        // ✅ Fallback: recherche textuelle simple
+        documents = await this.searchTextual(query.trim(), brandId.trim(), validatedLimit);
       }
 
-      // Mettre en cache (TTL: 1 heure)
-      await this.cache.set(cacheKey, 'rag', documents, { ttl: 3600 });
+      // ✅ Mettre en cache (TTL: 1 heure)
+      await this.cache.setSimple(cacheKey, documents, 3600);
 
       return documents;
     } catch (error) {
@@ -167,13 +208,14 @@ export class RAGService {
       orderBy: { updatedAt: 'desc' },
     });
 
+    // ✅ Normalisation avec gardes
     return articles.map((article) => ({
-      id: article.id,
-      content: `${article.title}\n\n${article.content}`,
+      id: article.id ?? '',
+      content: `${article.title ?? ''}\n\n${article.content ?? ''}`.trim(),
       metadata: {
-        category: article.category,
-        tags: article.tags,
-        slug: article.slug,
+        category: typeof article.category === 'string' ? article.category : undefined,
+        tags: Array.isArray(article.tags) ? article.tags.filter((tag): tag is string => typeof tag === 'string') : undefined,
+        slug: typeof article.slug === 'string' ? article.slug : undefined,
       },
       score: 0.8, // Score par défaut pour recherche textuelle
     }));
@@ -210,15 +252,30 @@ export class RAGService {
   /**
    * Enrichit un prompt avec des documents RAG
    */
+  /**
+   * Enrichit un prompt avec des documents RAG avec typage strict et validation
+   */
   async enhancePrompt(
     originalPrompt: string,
     query: string,
     brandId: string,
-    options: {
-      limit?: number;
-      documentTypes?: string[];
-    } = {},
+    options: RAGSearchOptions = {},
   ): Promise<RAGResult> {
+    // ✅ Validation des entrées
+    if (!originalPrompt || typeof originalPrompt !== 'string' || originalPrompt.trim().length === 0) {
+      this.logger.warn('Invalid originalPrompt provided to enhancePrompt');
+      throw new Error('Original prompt is required');
+    }
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      this.logger.warn('Invalid query provided to enhancePrompt');
+      throw new Error('Query is required');
+    }
+
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to enhancePrompt');
+      throw new Error('Brand ID is required');
+    }
     // Rechercher documents pertinents
     const documents = await this.search(query, brandId, options);
 

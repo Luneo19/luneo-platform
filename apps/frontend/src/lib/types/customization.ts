@@ -252,24 +252,4 @@ export interface CustomizationEvent {
 }
 
 // ========================================
-// EXPORT
-// ========================================
-
-export type {
-  Zone,
-  Customization,
-  CreateZoneRequest,
-  UpdateZoneRequest,
-  GenerateCustomizationRequest,
-  GenerateCustomizationResponse,
-  CustomizationStatusResponse,
-  ZoneConfiguratorState,
-  PromptInputState,
-  Preview3DState,
-  CustomizationOptions,
-  CustomizationValidation,
-  CustomizationCost,
-  CustomizationCache,
-  CustomizationEvent,
-};
 

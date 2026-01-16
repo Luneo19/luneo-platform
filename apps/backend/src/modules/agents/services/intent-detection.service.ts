@@ -50,12 +50,9 @@ export class IntentDetectionService {
     // Générer clé de cache
     const cacheKey = `intent:${agentType}:${this.hashMessage(message)}:${possibleIntents.join(',')}`;
 
-    // Vérifier le cache
-    const cached = await this.cache.get<IntentDetectionResult>(cacheKey, 'intent', async () => {
-      // Will be filled below
-      return null as any;
-    }, { ttl: 3600 });
-    if (cached) {
+    // ✅ Vérifier le cache avec typage strict
+    const cached = await this.cache.getSimple<IntentDetectionResult>(cacheKey);
+    if (cached && typeof cached === 'object' && 'intent' in cached && 'confidence' in cached) {
       this.metrics.recordCacheHit(agentType, 'intent');
       return cached;
     }
@@ -95,8 +92,8 @@ export class IntentDetectionService {
       // Parser la réponse JSON
       const result = this.parseIntentResponse(response.content, possibleIntents);
 
-      // Mettre en cache (TTL: 1 heure)
-      await this.cache.set(cacheKey, 'intent', result, { ttl: 3600 });
+      // ✅ Mettre en cache (TTL: 1 heure)
+      await this.cache.setSimple(cacheKey, result, 3600);
 
       return result;
     } catch (error) {

@@ -7,7 +7,7 @@
  * - Cache management
  */
 
-import { trpc } from '@/lib/trpc/client';
+import { trpcVanilla } from '@/lib/trpc/vanilla-client';
 import { logger } from '@/lib/logger';
 import type {
   CreateProductRequest,
@@ -43,7 +43,8 @@ export class ProductService {
    */
   async create(request: CreateProductRequest) {
     try {
-      const product = await trpc.product.create.mutate(request);
+      const client = trpcVanilla as any;
+      const product = await client.product.create.mutate(request);
       logger.info('Product created', { productId: product.id });
       return product;
     } catch (error: any) {
@@ -57,7 +58,8 @@ export class ProductService {
    */
   async update(request: UpdateProductRequest) {
     try {
-      const product = await trpc.product.update.mutate(request);
+      const client = trpcVanilla as any;
+      const product = await client.product.update.mutate(request);
       this.cache.delete(request.id); // Invalidate cache
       logger.info('Product updated', { productId: request.id });
       return product;
@@ -72,7 +74,8 @@ export class ProductService {
    */
   async delete(productId: string) {
     try {
-      await trpc.product.delete.mutate({ id: productId });
+      const client = trpcVanilla as any;
+      await client.product.delete.mutate({ id: productId });
       this.cache.delete(productId); // Invalidate cache
       logger.info('Product deleted', { productId });
       return { success: true };
@@ -97,7 +100,8 @@ export class ProductService {
       }
 
       // Fetch
-      const product = await trpc.product.getById.query({ id: productId });
+      const client = trpcVanilla as any;
+      const product = await client.product.getById.query({ id: productId });
 
       // Cache
       if (useCache) {
@@ -116,7 +120,8 @@ export class ProductService {
    */
   async list(request?: ProductListRequest) {
     try {
-      return await trpc.product.list.query(request);
+      const client = trpcVanilla as any;
+      return await client.product.list.query(request);
     } catch (error: any) {
       logger.error('Error listing products', { error, request });
       throw error;
@@ -132,7 +137,8 @@ export class ProductService {
    */
   async uploadModel(request: UploadModelRequest) {
     try {
-      const product = await trpc.product.uploadModel.mutate(request);
+      const client = trpcVanilla as any;
+      const product = await client.product.uploadModel.mutate(request);
       this.cache.delete(request.productId); // Invalidate cache
       logger.info('Model uploaded', { productId: request.productId });
       return product;
@@ -151,7 +157,8 @@ export class ProductService {
    */
   async getAnalytics(request: ProductAnalyticsRequest) {
     try {
-      return await trpc.product.getAnalytics.query(request);
+      const client = trpcVanilla as any;
+      return await client.product.getAnalytics.query(request);
     } catch (error: any) {
       logger.error('Error fetching product analytics', { error, request });
       throw error;

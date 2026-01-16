@@ -73,7 +73,7 @@ export const analyticsRouter = router({
 
         // Get user's brand
         const user = await db.user.findUnique({
-          where: { id: ctx.userId },
+          where: { id: ctx.user.id },
           select: { brandId: true },
         });
 
@@ -121,8 +121,16 @@ export const analyticsRouter = router({
         ]);
 
         // Calculate metrics
-        const revenue = currentOrders.reduce((sum, o) => sum + (o.totalCents || 0), 0) / 100;
-        const previousRevenue = previousOrders.reduce((sum, o) => sum + (o.totalCents || 0), 0) / 100;
+        const revenue =
+          currentOrders.reduce(
+            (sum: number, o: { totalCents?: number | null }) => sum + (o.totalCents || 0),
+            0
+          ) / 100;
+        const previousRevenue =
+          previousOrders.reduce(
+            (sum: number, o: { totalCents?: number | null }) => sum + (o.totalCents || 0),
+            0
+          ) / 100;
         const revenueChange = previousRevenue > 0 ? ((revenue - previousRevenue) / previousRevenue) * 100 : 0;
 
         const orders = currentOrders.length;
@@ -131,18 +139,22 @@ export const analyticsRouter = router({
 
         // Get unique users
         const currentUserIds = new Set(
-          currentOrders.map((o) => o.userId).filter((id): id is string => !!id)
+          currentOrders
+            .map((o: { userId?: string | null }) => o.userId)
+            .filter((id: string | null | undefined): id is string => !!id)
         );
         const previousUserIds = new Set(
-          previousOrders.map((o) => o.userId).filter((id): id is string => !!id)
+          previousOrders
+            .map((o: { userId?: string | null }) => o.userId)
+            .filter((id: string | null | undefined): id is string => !!id)
         );
         const users = currentUserIds.size;
         const previousUsers = previousUserIds.size;
         const usersChange = previousUsers > 0 ? ((users - previousUsers) / previousUsers) * 100 : 0;
 
         // Calculate conversions (paid orders)
-        const conversions = currentOrders.filter((o) => o.status === 'PAID').length;
-        const previousConversions = previousOrders.filter((o) => o.status === 'PAID').length;
+        const conversions = currentOrders.filter((o: { status?: string }) => o.status === 'PAID').length;
+        const previousConversions = previousOrders.filter((o: { status?: string }) => o.status === 'PAID').length;
         const conversionsChange =
           previousConversions > 0 ? ((conversions - previousConversions) / previousConversions) * 100 : 0;
 
@@ -173,7 +185,7 @@ export const analyticsRouter = router({
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        currentOrders.forEach((order) => {
+        currentOrders.forEach((order: { createdAt: Date; totalCents?: number | null }) => {
           const dateKey = order.createdAt.toISOString().split('T')[0];
           const current = dailyData.get(dateKey) || 0;
           dailyData.set(dateKey, current + (order.totalCents || 0) / 100);

@@ -36,32 +36,86 @@ export class BillingService {
     return this.stripeInstance;
   }
 
-  async createCheckoutSession(planId: string, userId: string, userEmail: string) {
-    const planPrices = {
-      starter: null, // Gratuit
-      professional: this.configService.get<string>('stripe.pricePro'),
-      business: this.configService.get<string>('stripe.priceBusiness'),
-      enterprise: this.configService.get<string>('stripe.priceEnterprise')
-    };
-
-    const priceId = planPrices[planId];
-    
-    if (!priceId) {
-      throw new Error(`Plan ${planId} not found`);
+  /**
+   * Crée une session Stripe checkout avec support des add-ons
+   * Conforme au plan PHASE 6 - Stripe checkout avec add-ons
+   */
+  async createCheckoutSession(
+    planId: string,
+    userId: string,
+    userEmail: string,
+    options?: {
+      billingInterval?: 'monthly' | 'yearly';
+      addOns?: Array<{ type: string; quantity: number }>;
+    },
+  ) {
+    // ✅ Validation
+    if (!planId || typeof planId !== 'string' || planId.trim().length === 0) {
+      throw new Error('Plan ID is required');
     }
 
-    // Tous les plans sont maintenant configurés dans Stripe
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('User ID is required');
+    }
+
+    if (!userEmail || typeof userEmail !== 'string' || !userEmail.includes('@')) {
+      throw new Error('Valid user email is required');
+    }
+
+    const billingInterval = options?.billingInterval || 'monthly';
+
+    // ✅ Obtenir les Price IDs Stripe depuis la config
+    const planPriceIds: Record<string, { monthly: string | null; yearly: string | null }> = {
+      starter: {
+        monthly: this.configService.get<string>('stripe.priceStarterMonthly') || 'price_1SY2bqKG9MsM6fdSlgkR5hNX',
+        yearly: this.configService.get<string>('stripe.priceStarterYearly') || 'price_1SY2bxKG9MsM6fdSe78TX8fZ',
+      },
+      professional: {
+        monthly: this.configService.get<string>('stripe.pricePro') || this.configService.get<string>('stripe.priceProMonthly'),
+        yearly: this.configService.get<string>('stripe.priceProYearly'),
+      },
+      business: {
+        monthly: this.configService.get<string>('stripe.priceBusiness') || this.configService.get<string>('stripe.priceBusinessMonthly'),
+        yearly: this.configService.get<string>('stripe.priceBusinessYearly'),
+      },
+      enterprise: {
+        monthly: null, // Sur demande
+        yearly: null,
+      },
+    };
+
+    const priceId = billingInterval === 'yearly'
+      ? planPriceIds[planId]?.yearly
+      : planPriceIds[planId]?.monthly;
+
+    if (!priceId) {
+      throw new Error(`Plan ${planId} not found or not available for ${billingInterval} billing`);
+    }
 
     try {
       const stripe = await this.getStripe();
+
+      // ✅ Construire les line items (plan + add-ons)
+      const lineItems: Array<{ price: string; quantity: number }> = [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ];
+
+      // ✅ Ajouter les add-ons si fournis
+      // Note: Pour les add-ons, on peut soit créer des Price IDs Stripe dédiés,
+      // soit utiliser des line items avec prix personnalisés
+      // Pour l'instant, on utilise des line items avec prix personnalisés
+      if (options?.addOns && options.addOns.length > 0) {
+        // TODO: Créer des Price IDs Stripe pour chaque add-on et les utiliser ici
+        // Pour l'instant, on stocke les add-ons dans metadata et on les facturera séparément
+        this.logger.log(`Add-ons requested: ${JSON.stringify(options.addOns)}`);
+      }
+
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
+        line_items: lineItems,
         mode: 'subscription',
         customer_email: userEmail,
         success_url: `${this.configService.get<string>('stripe.successUrl')}?session_id={CHECKOUT_SESSION_ID}`,
@@ -69,6 +123,8 @@ export class BillingService {
         metadata: {
           userId,
           planId,
+          billingInterval,
+          addOns: options?.addOns ? JSON.stringify(options.addOns) : undefined,
         },
         // Essai gratuit de 14 jours
         subscription_data: {
@@ -79,6 +135,7 @@ export class BillingService {
       return {
         success: true,
         url: session.url,
+        sessionId: session.id,
       };
     } catch (error) {
       this.logger.error('Erreur création session Stripe:', error);

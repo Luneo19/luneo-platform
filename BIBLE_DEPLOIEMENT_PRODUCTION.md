@@ -780,8 +780,15 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 }
 ```
 
-**Vercel Dashboard** :
-- Root Directory : `.` (racine du monorepo)
+**Vercel Dashboard / Projets multiples** :
+- Root Directory global : `.` (racine du monorepo) pour le projet `luneo-frontend` (ancien projet de test)
+- Projet de production officiel pour le frontend : **`frontend`**
+  - Root Directory : `apps/frontend`
+  - Commande CLI à utiliser impérativement pour éviter de consommer le quota sur le mauvais projet :
+    - `vercel --prod --yes --cwd apps/frontend`
+  - Toujours lier localement le dossier `apps/frontend` au projet Vercel `frontend` avec :
+    - `vercel link --cwd apps/frontend --project frontend --yes`
+  - Ne jamais déployer le monorepo complet à la racine avec `vercel --prod` sans `--cwd apps/frontend`, sinon Vercel utilisera le projet `luneo-frontend` et consommera inutilement le quota API gratuit du compte.
 
 #### 5. Gestion d'Erreurs dans Layout
 ```typescript

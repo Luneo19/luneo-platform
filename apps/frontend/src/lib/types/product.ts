@@ -202,22 +202,4 @@ export interface ProductExport {
 }
 
 // ========================================
-// EXPORT
-// ========================================
-
-export type {
-  Product,
-  ProductWithRelations,
-  CreateProductRequest,
-  UpdateProductRequest,
-  UploadModelRequest,
-  ProductListRequest,
-  ProductListResponse,
-  ProductAnalytics,
-  ProductAnalyticsRequest,
-  ProductFormState,
-  ProductListState,
-  ProductMetadata,
-  ProductExport,
-};
 

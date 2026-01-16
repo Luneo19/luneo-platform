@@ -147,6 +147,18 @@ export interface ProductionFile {
   createdAt: Date;
 }
 
+export interface ProductionFileRequest {
+  orderId: string;
+  itemId: string;
+  format: 'pdf' | 'png' | 'jpg' | 'stl' | 'obj' | 'glb';
+  quality?: 'standard' | 'high' | 'print-ready';
+  options?: {
+    cmyk?: boolean;
+    resolution?: number;
+    colorProfile?: string;
+  };
+}
+
 export interface ProductionJob {
   id: string;
   orderId: string;
@@ -175,20 +187,4 @@ export interface PODOrder {
 }
 
 // ========================================
-// EXPORT
-// ========================================
-
-export type {
-  Order,
-  OrderItem,
-  ShippingAddress,
-  BillingAddress,
-  CreateOrderRequest,
-  UpdateOrderRequest,
-  OrderListRequest,
-  OrderListResponse,
-  ProductionFile,
-  ProductionJob,
-  PODOrder,
-};
 

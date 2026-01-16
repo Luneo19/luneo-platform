@@ -8,9 +8,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { PrismaClient } from '@prisma/client';
-
-// db importé depuis @/lib/db
+import { db } from '@/lib/db';
 
 export interface PODVariantMapping {
   provider: 'printful' | 'printify' | 'gelato';
@@ -140,13 +138,21 @@ export class PODMappingService {
         return typeof itemVariantId === 'string' ? parseInt(itemVariantId, 10) : itemVariantId;
       }
 
-      if (providerConfig.variantId) {
-        return typeof providerConfig.variantId === 'string' 
-          ? parseInt(providerConfig.variantId, 10) 
+      if (
+        provider !== 'gelato' &&
+        'variantId' in providerConfig &&
+        providerConfig.variantId
+      ) {
+        return typeof providerConfig.variantId === 'string'
+          ? parseInt(providerConfig.variantId, 10)
           : providerConfig.variantId;
       }
 
-      if (providerConfig.defaultVariantId) {
+      if (
+        provider !== 'gelato' &&
+        'defaultVariantId' in providerConfig &&
+        providerConfig.defaultVariantId
+      ) {
         return typeof providerConfig.defaultVariantId === 'string'
           ? parseInt(providerConfig.defaultVariantId, 10)
           : providerConfig.defaultVariantId;

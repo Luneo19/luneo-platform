@@ -2,13 +2,29 @@
  * Test utilities for React Testing Library
  */
 
-import { ReactElement } from 'react';
+import { ReactElement, useState } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { TRPCProvider } from '@/app/providers';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { trpc, getTRPCClient } from '@/lib/trpc/client';
 
 // Custom render function with providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
-  return <TRPCProvider>{children}</TRPCProvider>;
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      })
+  );
+  const [trpcClient] = useState(() => getTRPCClient());
+
+  return (
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </trpc.Provider>
+  );
 };
 
 const customRender = (

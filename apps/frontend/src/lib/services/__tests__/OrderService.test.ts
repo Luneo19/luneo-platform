@@ -40,7 +40,7 @@ vi.mock('@/lib/cache/CacheService', () => ({
     get: vi.fn(),
     set: vi.fn(),
     delete: vi.fn(),
-    invalidateCache: vi.fn(),
+    clear: vi.fn(),
   },
 }));
 
@@ -135,7 +135,7 @@ describe('OrderService', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe('order-123');
       expect(trpcVanilla.order.create.mutate).toHaveBeenCalled();
-      expect(cacheService.invalidateCache).toHaveBeenCalled();
+      expect(cacheService.clear).toHaveBeenCalled();
     });
 
     it('should handle errors when creating order', async () => {

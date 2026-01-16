@@ -16,11 +16,16 @@ export class BillingController {
 
   @Public()
   @Post('create-checkout-session')
-  @ApiOperation({ summary: 'Créer une session de paiement Stripe' })
+  @ApiOperation({ summary: 'Créer une session de paiement Stripe avec support des add-ons' })
   @ApiResponse({ status: 200, description: 'Session créée avec succès' })
   async createCheckoutSession(
-    @Body() body: { planId: string; email?: string }
-  ): Promise<{ success: boolean; url?: string; error?: string }> {
+    @Body() body: {
+      planId: string;
+      email?: string;
+      billingInterval?: 'monthly' | 'yearly';
+      addOns?: Array<{ type: string; quantity: number }>;
+    },
+  ): Promise<{ success: boolean; url?: string; sessionId?: string; error?: string }> {
     try {
       // Pour les utilisateurs non connectés, on utilise l'email fourni
       const userId = 'anonymous';
@@ -29,7 +34,11 @@ export class BillingController {
       const result = await this.billingService.createCheckoutSession(
         body.planId,
         userId,
-        userEmail
+        userEmail,
+        {
+          billingInterval: body.billingInterval || 'monthly',
+          addOns: body.addOns,
+        },
       );
 
       return result;

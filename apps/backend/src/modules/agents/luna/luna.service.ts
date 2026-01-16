@@ -27,6 +27,15 @@ import { ConversationService } from '../services/conversation.service';
 import { AgentMemoryService } from '../services/agent-memory.service';
 import { ProductsService } from '@/modules/products/products.service';
 import { ReportsService } from '@/modules/analytics/services/reports.service';
+import { PredictiveService } from '@/modules/analytics/services/predictive.service';
+import { AnalyticsService } from '@/modules/analytics/services/analytics.service';
+import { AnalyticsAdvancedService } from '@/modules/analytics/services/analytics-advanced.service';
+import { MetricsService } from '@/modules/analytics/services/metrics.service';
+import type {
+  AnalyticsChart,
+  AnalyticsMetrics,
+} from '@/modules/analytics/interfaces/analytics.interface';
+import type { FunnelData } from '@/modules/analytics/interfaces/analytics-advanced.interface';
 import { IntentDetectionService } from '../services/intent-detection.service';
 import { ContextManagerService } from '../services/context-manager.service';
 import { RAGService } from '../services/rag.service';
@@ -78,9 +87,131 @@ export interface LunaResponse {
   intent: LunaIntentType;
   confidence: number;
   actions: LunaAction[];
-  data?: Record<string, unknown>;
+  data?: LunaIntentData; // ✅ Typage strict au lieu de Record<string, unknown>
   suggestions: string[];
 }
+
+// ============================================================================
+// TYPES STRICTS POUR LES DONNÉES D'INTENTION
+// ============================================================================
+
+/**
+ * Métriques en temps réel
+ */
+interface RealTimeMetrics {
+  designsToday: number;
+  ordersToday: number;
+  conversionRate: number;
+}
+
+/**
+ * Top produit avec statistiques
+ */
+interface TopProduct {
+  productId: string;
+  name: string;
+  designs: number;
+}
+
+/**
+ * Données de funnel enrichies
+ */
+interface EnrichedFunnelData {
+  id: string;
+  totalConversion: number;
+  dropoffPoint?: string;
+  steps: FunnelData['steps'];
+}
+
+/**
+ * Données analytics complètes pour Luna
+ */
+interface AnalyticsData {
+  period: {
+    start: string;
+    end: string;
+    key: 'last_7_days' | 'last_30_days' | 'last_90_days' | 'last_year';
+  };
+  kpis: {
+    totalDesigns: number;
+    totalRenders: number;
+    activeUsers: number;
+    revenue: number;
+    conversionRate: number;
+    avgSessionDuration: string;
+    arSessions: number;
+    arTryOn: number;
+    arConversions: number;
+    arConversionRate: number;
+    conversionChange: number;
+  };
+  realTime: RealTimeMetrics;
+  charts: {
+    designsOverTime: AnalyticsChart[];
+    revenueOverTime: AnalyticsChart[];
+    viewsOverTime?: AnalyticsChart[];
+  };
+  topProducts: TopProduct[];
+  funnel: EnrichedFunnelData | null;
+}
+
+/**
+ * Données de recommandations produits avec métriques enrichies
+ */
+interface ProductRecommendationsData {
+  recommendations: Array<{
+    productId: string;
+    category: string;
+    suggestion: string;
+    reason: string;
+    metrics?: {
+      designs: number;
+      orders: number;
+      conversionRate: number;
+      revenue: number;
+    };
+  }>;
+  note?: string;
+}
+
+/**
+ * Données de tendances prédictives
+ */
+interface TrendsData {
+  trends: unknown;
+  seasonalEvents: unknown;
+  anomalies: unknown;
+  recommendations: unknown;
+}
+
+/**
+ * Données de configuration de produits
+ */
+interface ConfigurationTemplatesData {
+  templates: Array<{
+    id: string;
+    name: string;
+    fields: string[];
+    zones: Array<{
+      id: string;
+      name: string;
+      type: string;
+      maxLength: number | null;
+      allowedFonts: string[] | null;
+      allowedColors: string[] | null;
+    }>;
+  }>;
+}
+
+/**
+ * Union type strict pour toutes les données d'intention
+ */
+type LunaIntentData =
+  | AnalyticsData
+  | ProductRecommendationsData
+  | TrendsData
+  | ConfigurationTemplatesData
+  | Record<string, never>; // Pour les cas par défaut (empty object)
 
 /**
  * Actions que Luna peut proposer
@@ -144,8 +275,12 @@ export class LunaService {
     private readonly memoryService: AgentMemoryService,
     private readonly productsService: ProductsService,
     private readonly reportsService: ReportsService,
+    private readonly analyticsService: AnalyticsService,
+    private readonly analyticsAdvancedService: AnalyticsAdvancedService,
+    private readonly metricsService: MetricsService,
     private readonly moduleRef: ModuleRef,
     private readonly ragService: RAGService,
+    private readonly predictiveService: PredictiveService,
   ) {}
 
   /**
@@ -192,8 +327,9 @@ export class LunaService {
         }
       }
 
-      // 4. Récupérer les données récentes selon l'intention
+      // 4. Récupérer les données récentes selon l'intention et structurer en pack BI
       const recentData = await this.getRelevantData(validated.brandId, intent, validated.context);
+      const biPack = this.structureBIPack(recentData, intent, validated.brandId);
 
       // 5. Récupérer l'historique de conversation (avec compression si nécessaire)
       const allHistory = await this.conversationService.getHistory(conversation.id, 50); // Récupérer plus pour compression
@@ -212,7 +348,7 @@ export class LunaService {
         optimizedHistory = [
           { role: 'system', content: LUNA_SYSTEM_PROMPT
             .replace('{brandContext}', JSON.stringify(brandContext, null, 2))
-            .replace('{recentData}', JSON.stringify(recentData, null, 2))
+            .replace('{recentData}', JSON.stringify(biPack, null, 2))
             .replace('{conversationHistory}', this.formatHistory(recentHistory))
           },
           { role: 'user', content: validated.message },
@@ -258,7 +394,7 @@ export class LunaService {
       const { message, actions, suggestions } = this.parseResponse(
         llmResponse.content,
         intent,
-        recentData,
+        biPack.detailed,
       );
 
       // 9. Sauvegarder dans l'historique
@@ -276,7 +412,7 @@ export class LunaService {
       // 10. Mettre à jour la mémoire de l'agent
       await this.memoryService.updateContext(conversation.id, {
         lastIntent: intent,
-        lastDataAccessed: Object.keys(recentData),
+        lastDataAccessed: Object.keys(biPack.detailed),
       });
 
       return {
@@ -285,7 +421,7 @@ export class LunaService {
         intent,
         confidence: 0.95, // TODO: Calculer dynamiquement
         actions,
-        data: recentData,
+        data: biPack.detailed, // ✅ Retourner les données détaillées (compatibilité)
         suggestions,
       };
     } catch (error) {
@@ -397,160 +533,557 @@ export class LunaService {
   }
 
   /**
-   * Récupère les données pertinentes selon l'intention
+   * Récupère les données pertinentes selon l'intention avec typage strict
    */
   private async getRelevantData(
     brandId: string,
     intent: LunaIntentType,
     context?: LunaUserMessage['context'],
-  ): Promise<Record<string, unknown>> {
-    switch (intent) {
-      case LunaIntentType.ANALYZE_SALES:
-        return this.getAnalyticsData(brandId, context?.dateRange);
+  ): Promise<LunaIntentData> {
+    try {
+      switch (intent) {
+        case LunaIntentType.ANALYZE_SALES:
+          return await this.getAnalyticsData(brandId, context?.dateRange);
 
-      case LunaIntentType.RECOMMEND_PRODUCTS:
-        return this.getProductRecommendations(brandId);
+        case LunaIntentType.RECOMMEND_PRODUCTS:
+          return await this.getProductRecommendations(brandId);
 
-      case LunaIntentType.PREDICT_TRENDS:
-        return this.getTrendsData(brandId);
+        case LunaIntentType.PREDICT_TRENDS:
+          return await this.getTrendsData(brandId);
 
-      case LunaIntentType.CONFIGURE_PRODUCT:
-        return this.getConfigurationTemplates(brandId);
+        case LunaIntentType.CONFIGURE_PRODUCT:
+          return await this.getConfigurationTemplates(brandId);
 
-      default:
-        return {};
+        default:
+          // ✅ Retourner un objet vide typé plutôt que {}
+          return {} as Record<string, never>;
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to get relevant data for intent ${intent}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      // ✅ Retourner un objet vide typé en cas d'erreur
+      return {} as Record<string, never>;
     }
   }
 
   /**
-   * Récupère les données analytics
+   * Récupère les données analytics avec typage strict et validation robuste
    */
   private async getAnalyticsData(
     brandId: string,
     dateRange?: { start?: string; end?: string },
-  ): Promise<Record<string, unknown>> {
-    const startDate = dateRange?.start
-      ? new Date(dateRange.start)
-      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 jours
-    const endDate = dateRange?.end ? new Date(dateRange.end) : new Date();
+  ): Promise<AnalyticsData> {
+    const { startDate, endDate, periodKey } = this.resolveDateRange(dateRange);
 
-    // Top produits personnalisés
-    const topProducts = await this.prisma.design.groupBy({
-      by: ['productId'],
-      where: {
-        brandId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      _count: {
-        id: true,
-      },
-      orderBy: {
-        _count: {
-          id: 'desc',
-        },
-      },
-      take: 5,
-    });
+    // ✅ Appels parallèles pour performance optimale
+    const [dashboard, realTimeMetrics, topProducts, funnels] = await Promise.all([
+      this.analyticsService.getDashboard(periodKey, brandId),
+      this.metricsService.getRealTimeMetrics(brandId),
+      this.analyticsService.getTopProductsByDesigns(brandId, startDate, endDate, 5),
+      this.analyticsAdvancedService.getFunnels(brandId),
+    ]);
 
-    // Total designs
-    const totalDesigns = await this.prisma.design.count({
-      where: {
-        brandId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-    });
+    // ✅ Garde pour éviter les crashes si dashboard est null/undefined
+    if (!dashboard || !dashboard.metrics) {
+      this.logger.warn(`Dashboard data incomplete for brand ${brandId}`);
+      throw new Error('Dashboard data unavailable');
+    }
 
-    // Designs par jour
-    const designsByDay = await this.prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
-      SELECT
-        DATE(created_at) as date,
-        COUNT(*) as count
-      FROM "Design"
-      WHERE brand_id = ${brandId}
-        AND created_at >= ${startDate}
-        AND created_at <= ${endDate}
-      GROUP BY DATE(created_at)
-      ORDER BY date DESC
-      LIMIT 30
-    `;
+    // ✅ Logique explicite pour la sélection du funnel
+    const selectedFunnel = this.selectFunnel(funnels);
+    const funnelData = selectedFunnel
+      ? await this.analyticsAdvancedService.getFunnelData(selectedFunnel.id, brandId, {
+          brandId,
+          startDate,
+          endDate,
+        })
+      : null;
+
+    // ✅ Construction des KPIs avec gardes et valeurs par défaut
+    const kpis = this.buildKpis(dashboard, realTimeMetrics);
+    
+    // ✅ Construction du funnel enrichi
+    const enrichedFunnel = this.buildEnrichedFunnel(funnelData);
 
     return {
       period: {
         start: startDate.toISOString(),
         end: endDate.toISOString(),
+        key: periodKey,
       },
-      totalDesigns,
-      topProducts,
-      designsByDay: designsByDay.map(d => ({
-        date: d.date,
-        count: Number(d.count),
-      })),
+      kpis,
+      realTime: this.buildRealTimeMetrics(realTimeMetrics),
+      charts: {
+        designsOverTime: dashboard.charts?.designsOverTime ?? [],
+        revenueOverTime: dashboard.charts?.revenueOverTime ?? [],
+        viewsOverTime: dashboard.charts?.viewsOverTime,
+      },
+      topProducts: this.normalizeTopProducts(topProducts),
+      funnel: enrichedFunnel,
     };
   }
 
   /**
-   * Récupère les recommandations produits
+   * Sélectionne le funnel le plus approprié selon une logique explicite
+   * Priorité: 1) Funnel actif par défaut, 2) Premier funnel actif, 3) Premier funnel disponible
    */
-  private async getProductRecommendations(brandId: string): Promise<Record<string, unknown>> {
-    // Logique de recommandation basée sur les tendances du marché
-    // TODO: Implémenter ML-based recommendations
+  private selectFunnel(funnels: Array<{ id: string; isActive: boolean; isDefault?: boolean }>): { id: string; isActive: boolean } | null {
+    if (!funnels || funnels.length === 0) {
+      return null;
+    }
+
+    // 1. Chercher le funnel marqué comme défaut ET actif
+    const defaultActive = funnels.find((f) => f.isDefault === true && f.isActive === true);
+    if (defaultActive) {
+      this.logger.debug(`Selected default active funnel: ${defaultActive.id}`);
+      return defaultActive;
+    }
+
+    // 2. Chercher le premier funnel actif
+    const firstActive = funnels.find((f) => f.isActive === true);
+    if (firstActive) {
+      this.logger.debug(`Selected first active funnel: ${firstActive.id}`);
+      return firstActive;
+    }
+
+    // 3. Fallback: premier funnel disponible
+    const firstAvailable = funnels[0];
+    if (firstAvailable) {
+      this.logger.debug(`Selected first available funnel: ${firstAvailable.id} (may be inactive)`);
+      return firstAvailable;
+    }
+
+    return null;
+  }
+
+  /**
+   * Construit les KPIs avec gardes et valeurs par défaut
+   */
+  private buildKpis(
+    dashboard: { metrics?: AnalyticsMetrics; charts?: { conversionChange?: number } },
+    realTimeMetrics: unknown,
+  ): AnalyticsData['kpis'] {
+    const metrics = dashboard?.metrics;
+    
+    // ✅ Garde pour éviter les crashes
+    if (!metrics) {
+      this.logger.warn('Metrics unavailable, using default values');
+      return {
+        totalDesigns: 0,
+        totalRenders: 0,
+        activeUsers: 0,
+        revenue: 0,
+        conversionRate: 0,
+        avgSessionDuration: '0s',
+        arSessions: 0,
+        arTryOn: 0,
+        arConversions: 0,
+        arConversionRate: 0,
+        conversionChange: 0,
+      };
+    }
+
+    // ✅ Extension pour métriques AR (si présentes dans AnalyticsMetrics)
+    const extendedMetrics = metrics as AnalyticsMetrics & {
+      arSessions?: number;
+      arTryOn?: number;
+      arConversions?: number;
+      arConversionRate?: number;
+    };
+
     return {
-      recommendations: [
-        {
-          category: 'Bijoux',
-          suggestion: 'Bracelet gravé avec prénom',
-          reason: 'Les bijoux personnalisés avec prénoms ont +45% de conversion',
-        },
-        {
-          category: 'Vêtements',
-          suggestion: 'T-shirt avec illustration IA',
-          reason: 'Tendance montante dans votre secteur',
-        },
-      ],
+      totalDesigns: metrics.totalDesigns ?? 0,
+      totalRenders: metrics.totalRenders ?? 0,
+      activeUsers: metrics.activeUsers ?? 0,
+      revenue: metrics.revenue ?? 0,
+      conversionRate: metrics.conversionRate ?? 0,
+      avgSessionDuration: metrics.avgSessionDuration ?? '0s',
+      arSessions: extendedMetrics.arSessions ?? 0,
+      arTryOn: extendedMetrics.arTryOn ?? 0,
+      arConversions: extendedMetrics.arConversions ?? 0,
+      arConversionRate: extendedMetrics.arConversionRate ?? 0,
+      conversionChange: dashboard.charts?.conversionChange ?? 0,
     };
   }
 
   /**
-   * Récupère les données de tendances
+   * Construit les métriques en temps réel avec validation
    */
-  private async getTrendsData(brandId: string): Promise<Record<string, unknown>> {
-    // TODO: Implémenter l'analyse de tendances avec ML
+  private buildRealTimeMetrics(realTimeMetrics: unknown): RealTimeMetrics {
+    if (!realTimeMetrics || typeof realTimeMetrics !== 'object') {
+      this.logger.warn('Real-time metrics unavailable, using defaults');
+      return {
+        designsToday: 0,
+        ordersToday: 0,
+        conversionRate: 0,
+      };
+    }
+
+    const metrics = realTimeMetrics as Partial<RealTimeMetrics>;
     return {
-      upcomingEvents: [
-        { event: "Saint-Valentin", daysUntil: 45, expectedIncrease: "+340%" },
-        { event: "Fête des Mères", daysUntil: 120, expectedIncrease: "+280%" },
-      ],
-      risingTrends: [
-        { trend: "Coordonnées GPS", growth: "+67%" },
-        { trend: "QR codes", growth: "+45%" },
-      ],
+      designsToday: metrics.designsToday ?? 0,
+      ordersToday: metrics.ordersToday ?? 0,
+      conversionRate: metrics.conversionRate ?? 0,
     };
   }
 
   /**
-   * Récupère les templates de configuration
+   * Normalise les top produits avec validation
    */
-  private async getConfigurationTemplates(brandId: string): Promise<Record<string, unknown>> {
+  private normalizeTopProducts(
+    products: Array<{ productId: string; name: string; designs: number }>,
+  ): TopProduct[] {
+    if (!Array.isArray(products)) {
+      return [];
+    }
+
+    return products.map((product) => ({
+      productId: product.productId ?? '',
+      name: product.name ?? 'Produit inconnu',
+      designs: typeof product.designs === 'number' ? product.designs : 0,
+    }));
+  }
+
+  /**
+   * Construit le funnel enrichi à partir des données brutes
+   */
+  private buildEnrichedFunnel(funnelData: FunnelData | null): EnrichedFunnelData | null {
+    if (!funnelData) {
+      return null;
+    }
+
     return {
-      templates: [
-        {
-          id: 'bracelet-grave',
-          name: 'Bracelet gravé',
-          fields: ['texte', 'police', 'couleur'],
-        },
-        {
-          id: 'tshirt-custom',
-          name: 'T-shirt personnalisé',
-          fields: ['image', 'texte', 'position'],
-        },
-      ],
+      id: funnelData.funnelId ?? '',
+      totalConversion: funnelData.totalConversion ?? 0,
+      dropoffPoint: funnelData.dropoffPoint,
+      steps: funnelData.steps ?? [],
     };
+  }
+
+  /**
+   * Résout et valide la plage de dates avec gardes robustes
+   */
+  private resolveDateRange(dateRange?: { start?: string; end?: string }): {
+    startDate: Date;
+    endDate: Date;
+    periodKey: 'last_7_days' | 'last_30_days' | 'last_90_days' | 'last_year';
+  } {
+    const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const defaultEnd = new Date();
+
+    // ✅ Validation stricte des dates avec gardes
+    const startDate = this.parseAndValidateDate(dateRange?.start, defaultStart);
+    const endDate = this.parseAndValidateDate(dateRange?.end, defaultEnd);
+
+    // ✅ Vérifier que startDate < endDate
+    if (startDate.getTime() >= endDate.getTime()) {
+      this.logger.warn('Invalid date range: start >= end, using defaults');
+      return {
+        startDate: defaultStart,
+        endDate: defaultEnd,
+        periodKey: this.getPeriodKey(defaultStart, defaultEnd),
+      };
+    }
+
+    return {
+      startDate,
+      endDate,
+      periodKey: this.getPeriodKey(startDate, endDate),
+    };
+  }
+
+  /**
+   * Parse et valide une date ISO string avec gardes
+   */
+  private parseAndValidateDate(dateString: string | undefined, fallback: Date): Date {
+    if (!dateString || typeof dateString !== 'string') {
+      return fallback;
+    }
+
+    // ✅ Validation ISO 8601 avec Date.parse (plus robuste que new Date)
+    const timestamp = Date.parse(dateString);
+    if (Number.isNaN(timestamp)) {
+      this.logger.warn(`Invalid date string: ${dateString}, using fallback`);
+      return fallback;
+    }
+
+    const parsedDate = new Date(timestamp);
+    
+    // ✅ Vérifier que la date est valide (évite les dates invalides comme "Invalid Date")
+    if (Number.isNaN(parsedDate.getTime())) {
+      this.logger.warn(`Parsed date is invalid: ${dateString}, using fallback`);
+      return fallback;
+    }
+
+    return parsedDate;
+  }
+
+  private getPeriodKey(
+    startDate: Date,
+    endDate: Date,
+  ): 'last_7_days' | 'last_30_days' | 'last_90_days' | 'last_year' {
+    const diffDays = Math.max(
+      1,
+      Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)),
+    );
+
+    if (diffDays <= 7) {
+      return 'last_7_days';
+    }
+    if (diffDays <= 30) {
+      return 'last_30_days';
+    }
+    if (diffDays <= 90) {
+      return 'last_90_days';
+    }
+    return 'last_year';
+  }
+
+  /**
+   * Récupère les recommandations produits avec logique basée sur topProducts + conversion + revenue
+   * Conforme au plan PHASE 1 - A) Luna - Recommandations produits réelles
+   */
+  private async getProductRecommendations(brandId: string): Promise<ProductRecommendationsData> {
+    // ✅ Validation des entrées
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getProductRecommendations');
+      return {
+        recommendations: [],
+        note: 'Brand ID invalide.',
+      };
+    }
+
+    const endDate = new Date();
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    try {
+      // ✅ Récupérer topProducts + conversion + revenue en parallèle
+      const [topProducts, dashboard] = await Promise.all([
+        this.analyticsService.getTopProductsByDesigns(
+          brandId.trim(),
+          startDate,
+          endDate,
+          10, // Récupérer plus pour calculer conversion/revenue
+        ),
+        this.analyticsService.getDashboard('last_30_days', brandId.trim()),
+      ]);
+
+      if (!topProducts || topProducts.length === 0) {
+        return {
+          recommendations: [],
+          note: 'Aucune personnalisation détectée sur les 30 derniers jours.',
+        };
+      }
+
+      // ✅ Calculer conversion et revenue par produit
+      const productStats = await Promise.all(
+        topProducts.map(async (product) => {
+          if (!product.productId) {
+            return null;
+          }
+
+          // Récupérer designs et orders pour ce produit
+          const [designsCount, ordersData] = await Promise.all([
+            this.prisma.design.count({
+              where: {
+                brandId: brandId.trim(),
+                productId: product.productId,
+                createdAt: { gte: startDate, lte: endDate },
+              },
+            }),
+            this.prisma.order.findMany({
+              where: {
+                brandId: brandId.trim(),
+                items: {
+                  some: {
+                    productId: product.productId,
+                  },
+                },
+                createdAt: { gte: startDate, lte: endDate },
+                paymentStatus: 'SUCCEEDED',
+              },
+              select: {
+                totalCents: true,
+              },
+            }),
+          ]);
+
+          // Calculer conversion rate
+          const conversionRate = designsCount > 0
+            ? (ordersData.length / designsCount) * 100
+            : 0;
+
+          // Calculer revenue
+          const revenue = ordersData.reduce(
+            (sum, order) => sum + (typeof order.totalCents === 'number' ? order.totalCents : 0),
+            0,
+          ) / 100; // Convertir cents en euros
+
+          return {
+            productId: product.productId,
+            name: product.name ?? 'Produit inconnu',
+            designs: designsCount,
+            orders: ordersData.length,
+            conversionRate: Math.round(conversionRate * 100) / 100,
+            revenue: Math.round(revenue * 100) / 100,
+          };
+        }),
+      );
+
+      // ✅ Filtrer les nulls et trier par score (conversion * revenue)
+      const validStats = productStats.filter(
+        (stat): stat is NonNullable<typeof stat> => stat !== null,
+      );
+
+      // ✅ Calculer un score de recommandation (conversion * revenue * designs)
+      const scoredProducts = validStats.map((stat) => ({
+        ...stat,
+        score: stat.conversionRate * stat.revenue * stat.designs,
+      }));
+
+      // ✅ Trier par score décroissant et prendre les top 3
+      const topScored = scoredProducts
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+
+      if (topScored.length === 0) {
+        return {
+          recommendations: [],
+          note: 'Aucun produit avec conversion/revenue détecté.',
+        };
+      }
+
+      // ✅ Générer recommandations basées sur conversion + revenue
+      return {
+        recommendations: topScored.map((product) => {
+          let suggestion = '';
+          let reason = '';
+
+          if (product.conversionRate > 10 && product.revenue > 100) {
+            suggestion = `⭐ Produit star : ${product.name} - Augmenter le stock et la visibilité`;
+            reason = `${product.conversionRate}% conversion, €${product.revenue} revenus, ${product.designs} designs`;
+          } else if (product.conversionRate > 5) {
+            suggestion = `📈 Produit performant : ${product.name} - Optimiser le prix ou la description`;
+            reason = `${product.conversionRate}% conversion, €${product.revenue} revenus`;
+          } else if (product.designs > 50 && product.conversionRate < 3) {
+            suggestion = `🔧 Produit à optimiser : ${product.name} - Améliorer le parcours de conversion`;
+            reason = `${product.designs} designs mais seulement ${product.conversionRate}% conversion`;
+          } else {
+            suggestion = `💡 Produit prometteur : ${product.name} - Tester de nouvelles campagnes`;
+            reason = `${product.designs} designs, ${product.conversionRate}% conversion`;
+          }
+
+          return {
+            productId: product.productId,
+            category: product.name,
+            suggestion,
+            reason,
+            metrics: {
+              designs: product.designs,
+              orders: product.orders,
+              conversionRate: product.conversionRate,
+              revenue: product.revenue,
+            },
+          };
+        }),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get product recommendations: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      return {
+        recommendations: [],
+        note: 'Erreur lors du calcul des recommandations.',
+      };
+    }
+  }
+
+  /**
+   * Récupère les données de tendances avec typage strict
+   */
+  private async getTrendsData(brandId: string): Promise<TrendsData> {
+    const [trendPredictions, seasonalEvents, anomalies, recommendations] = await Promise.all([
+      this.predictiveService.getTrendPredictions(brandId, '30d'),
+      this.predictiveService.getUpcomingSeasonalEvents(brandId),
+      this.predictiveService.detectAnomalies(brandId),
+      this.predictiveService.getRecommendations(brandId),
+    ]);
+
+    return {
+      trends: trendPredictions ?? null,
+      seasonalEvents: seasonalEvents ?? null,
+      anomalies: anomalies ?? null,
+      recommendations: recommendations ?? null,
+    };
+  }
+
+  /**
+   * Récupère les templates de configuration avec typage strict
+   */
+  private async getConfigurationTemplates(brandId: string): Promise<ConfigurationTemplatesData> {
+    const fieldLabels: Record<string, string> = {
+      TEXT: 'texte',
+      IMAGE: 'image',
+      COLOR: 'couleur',
+      PATTERN: 'motif',
+      FONT: 'police',
+      SIZE: 'taille',
+      POSITION: 'position',
+    };
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        brandId,
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        customizationZones: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            maxLength: true,
+            allowedFonts: true,
+            allowedColors: true,
+          },
+        },
+      },
+    });
+
+    // ✅ Garde pour éviter les crashes si products est null/undefined
+    if (!products || products.length === 0) {
+      return { templates: [] };
+    }
+
+    const templates = products.map((product) => {
+      const fields = (product.customizationZones ?? []).map((zone) => {
+        return fieldLabels[zone.type] || zone.type.toLowerCase();
+      });
+      const uniqueFields = Array.from(new Set(fields));
+
+      return {
+        id: product.id ?? '',
+        name: product.name ?? 'Produit sans nom',
+        fields: uniqueFields,
+        zones: (product.customizationZones ?? []).map((zone) => ({
+          id: zone.id ?? '',
+          name: zone.name ?? '',
+          type: zone.type ?? '',
+          maxLength: zone.maxLength ?? null,
+          allowedFonts: zone.allowedFonts ?? null,
+          allowedColors: zone.allowedColors ?? null,
+        })),
+      };
+    });
+
+    return { templates };
   }
 
   /**
@@ -571,7 +1104,7 @@ export class LunaService {
   private parseResponse(
     content: string,
     intent: LunaIntentType,
-    data: Record<string, unknown>,
+    data: LunaIntentData,
   ): {
     message: string;
     actions: LunaAction[];
@@ -620,12 +1153,15 @@ export class LunaService {
     if (actions.length === 0) {
       switch (intent) {
         case LunaIntentType.ANALYZE_SALES:
+          {
+            const period = this.isAnalyticsData(data) ? data.period : undefined;
           actions.push({
             type: 'generate_report',
             label: '📊 Générer un rapport complet',
-            payload: { type: 'sales', dateRange: data.period },
+              payload: { type: 'sales', dateRange: period },
             requiresConfirmation: false,
           });
+          }
           if (suggestions.length === 0) {
             suggestions.push(
               'Voir le détail par produit',
@@ -661,6 +1197,121 @@ export class LunaService {
       actions,
       suggestions,
     };
+  }
+
+  /**
+   * Type guard pour vérifier si les données sont de type AnalyticsData
+   * Validation stricte avec vérification de toutes les propriétés requises
+   */
+  private isAnalyticsData(data: LunaIntentData): data is AnalyticsData {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+
+    // ✅ Vérification stricte des propriétés requises
+    const hasPeriod = 'period' in data && typeof (data as Partial<AnalyticsData>).period === 'object';
+    const hasKpis = 'kpis' in data && typeof (data as Partial<AnalyticsData>).kpis === 'object';
+    const hasRealTime = 'realTime' in data;
+    const hasCharts = 'charts' in data;
+    const hasTopProducts = 'topProducts' in data;
+    const hasFunnel = 'funnel' in data;
+
+    return Boolean(hasPeriod && hasKpis && hasRealTime && hasCharts && hasTopProducts && hasFunnel);
+  }
+
+  /**
+   * Structure recentData en pack BI selon le plan PHASE 1 - A) Luna
+   * Unifie les données analytics en un format structuré pour BI
+   */
+  private structureBIPack(
+    data: LunaIntentData,
+    intent: LunaIntentType,
+    brandId: string,
+  ): {
+    intent: LunaIntentType;
+    timestamp: string;
+    summary: {
+      type: string;
+      keyMetrics: Record<string, unknown>;
+      insights: string[];
+    };
+    detailed: LunaIntentData;
+  } {
+    const insights: string[] = [];
+
+    // ✅ Générer insights selon le type de données
+    if (this.isAnalyticsData(data)) {
+      insights.push(`📊 ${data.kpis.totalDesigns} designs créés`);
+      insights.push(`💰 €${data.kpis.revenue} de revenus`);
+      insights.push(`📈 ${data.kpis.conversionRate}% de conversion`);
+      if (data.kpis.conversionChange > 0) {
+        insights.push(`✅ Conversion en hausse de ${data.kpis.conversionChange}%`);
+      } else if (data.kpis.conversionChange < 0) {
+        insights.push(`⚠️ Conversion en baisse de ${Math.abs(data.kpis.conversionChange)}%`);
+      }
+      if (data.topProducts && data.topProducts.length > 0) {
+        insights.push(`🏆 Top produit: ${data.topProducts[0].name}`);
+      }
+    } else if ('recommendations' in data && Array.isArray(data.recommendations)) {
+      insights.push(`💡 ${data.recommendations.length} recommandations produits`);
+      if (data.recommendations.length > 0 && data.recommendations[0].metrics) {
+        const topRec = data.recommendations[0];
+        insights.push(
+          `⭐ ${topRec.category}: ${topRec.metrics.conversionRate}% conversion, €${topRec.metrics.revenue} revenus`,
+        );
+      }
+    } else if ('trends' in data && data.trends && Array.isArray(data.trends)) {
+      insights.push(`📈 ${data.trends.length} tendances détectées`);
+      if (data.anomalies && Array.isArray(data.anomalies) && data.anomalies.length > 0) {
+        insights.push(`⚠️ ${data.anomalies.length} anomalies détectées`);
+      }
+      if (data.seasonalEvents && Array.isArray(data.seasonalEvents) && data.seasonalEvents.length > 0) {
+        insights.push(`📅 ${data.seasonalEvents.length} événements saisonniers à venir`);
+      }
+    }
+
+    return {
+      intent,
+      timestamp: new Date().toISOString(),
+      summary: {
+        type: intent,
+        keyMetrics: this.extractKeyMetrics(data, intent),
+        insights,
+      },
+      detailed: data,
+    };
+  }
+
+  /**
+   * Extrait les métriques clés selon le type de données
+   */
+  private extractKeyMetrics(data: LunaIntentData, intent: LunaIntentType): Record<string, unknown> {
+    if (this.isAnalyticsData(data)) {
+      return {
+        totalDesigns: data.kpis.totalDesigns,
+        revenue: data.kpis.revenue,
+        conversionRate: data.kpis.conversionRate,
+        activeUsers: data.kpis.activeUsers,
+        topProductsCount: data.topProducts.length,
+      };
+    }
+
+    if ('recommendations' in data && Array.isArray(data.recommendations)) {
+      return {
+        recommendationsCount: data.recommendations.length,
+        topProductId: data.recommendations[0]?.productId,
+      };
+    }
+
+    if ('trends' in data) {
+      return {
+        trendsCount: Array.isArray(data.trends) ? data.trends.length : 0,
+        anomaliesCount: Array.isArray(data.anomalies) ? data.anomalies.length : 0,
+        seasonalEventsCount: Array.isArray(data.seasonalEvents) ? data.seasonalEvents.length : 0,
+      };
+    }
+
+    return {};
   }
 
   /**

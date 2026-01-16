@@ -55,22 +55,115 @@ const AriaMessageSchema = z.object({
 
 export type AriaMessage = z.infer<typeof AriaMessageSchema>;
 
+/**
+ * Réponse complète d'Aria avec typage strict
+ */
 export interface AriaResponse {
   message: string;
   intent: AriaIntentType;
   suggestions: AriaSuggestion[];
-  preview?: {
-    text: string;
-    font: string;
-    color: string;
-  };
+  preview?: PersonalizationPreview;
 }
 
+// ============================================================================
+// TYPES STRICTS POUR LES DONNÉES
+// ============================================================================
+
+/**
+ * Suggestion Aria avec typage strict
+ */
 export interface AriaSuggestion {
   type: 'text' | 'style' | 'action';
   value: string;
   label: string;
-  metadata?: Record<string, unknown>;
+  metadata?: AriaSuggestionMetadata;
+}
+
+/**
+ * Métadonnées pour les suggestions (typage strict)
+ */
+interface AriaSuggestionMetadata {
+  style?: 'classique' | 'moderne' | 'poétique' | 'original';
+  occasion?: string;
+  language?: string;
+  confidence?: number;
+}
+
+/**
+ * Contexte produit enrichi
+ */
+interface ProductContext {
+  id: string;
+  name: string;
+  brandId: string;
+  type: string;
+  maxChars: number;
+  availableFonts: string[];
+}
+
+/**
+ * Réponse d'amélioration de texte
+ */
+export interface TextImprovementResult {
+  original: string;
+  improved: string;
+  variations: string[];
+}
+
+/**
+ * Style recommandé
+ */
+export interface RecommendedStyle {
+  font: string;
+  color: string;
+  reason: string;
+}
+
+/**
+ * Résultat de traduction
+ */
+export interface TranslationResult {
+  original: string;
+  translated: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+}
+
+/**
+ * Erreur orthographique détectée
+ */
+interface SpellCheckError {
+  word: string;
+  suggestion: string;
+  position: number;
+}
+
+/**
+ * Résultat de vérification orthographique
+ */
+export interface SpellCheckResult {
+  original: string;
+  corrected: string;
+  errors: SpellCheckError[];
+}
+
+/**
+ * Idée de cadeau personnalisé
+ */
+export interface GiftIdea {
+  idea: string;
+  product: string;
+  personalization: string;
+  reason: string;
+}
+
+/**
+ * Aperçu de personnalisation
+ */
+interface PersonalizationPreview {
+  text: string;
+  font: string;
+  color: string;
 }
 
 // ============================================================================
@@ -207,30 +300,32 @@ Max caractères: ${productContext.maxChars || 50}`;
           enableFallback: true,
         });
 
-        try {
-          const parsed = JSON.parse(response.content);
-          return parsed.map((item: { text: string; style: string }) => ({
-            type: 'text' as const,
-            value: item.text,
-            label: item.style,
-          }));
-        } catch {
-          return [];
-        }
+        // ✅ Parsing avec validation et gardes
+        return this.parseQuickSuggestResponse(response.content);
       },
       3600 // Cache 1 heure
     );
   }
 
   /**
-   * Améliore un texte existant
+   * Améliore un texte existant avec typage strict et validation robuste
    */
   async improveText(
     text: string,
     style: 'elegant' | 'fun' | 'romantic' | 'formal',
     language: string = 'fr',
     brandId?: string,
-  ): Promise<{ original: string; improved: string; variations: string[] }> {
+  ): Promise<TextImprovementResult> {
+    // ✅ Validation des entrées
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      this.logger.warn('Empty text provided to improveText');
+      return {
+        original: text || '',
+        improved: text || '',
+        variations: [],
+      };
+    }
+
     const prompt = `Améliore ce texte en style ${style} (${language}):
 "${text}"
 
@@ -240,25 +335,24 @@ Réponds en JSON:
   "variations": ["variation 1", "variation 2", "variation 3"]
 }`;
 
-    const response = await this.llmRouter.chat({
-      provider: LLMProvider.OPENAI,
-      model: LLM_MODELS.openai.GPT35_TURBO,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      maxTokens: 512,
-      brandId: brandId,
-      agentType: 'aria',
-      enableFallback: true,
-    });
-
     try {
-      const parsed = JSON.parse(response.content);
-      return {
-        original: text,
-        improved: parsed.improved,
-        variations: parsed.variations,
-      };
-    } catch {
+      const response = await this.llmRouter.chat({
+        provider: LLMProvider.OPENAI,
+        model: LLM_MODELS.openai.GPT35_TURBO,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        maxTokens: 512,
+        brandId: brandId,
+        agentType: 'aria',
+        enableFallback: true,
+      });
+
+      // ✅ Parsing avec validation et gardes
+      return this.parseTextImprovementResponse(response.content, text);
+    } catch (error) {
+      this.logger.error(
+        `Failed to improve text: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       return {
         original: text,
         improved: text,
@@ -268,14 +362,57 @@ Réponds en JSON:
   }
 
   /**
-   * Recommande un style (police + couleur) pour un texte
+   * Parse et valide la réponse d'amélioration de texte
+   */
+  private parseTextImprovementResponse(
+    content: string,
+    originalText: string,
+  ): TextImprovementResult {
+    try {
+      const parsed = JSON.parse(content) as Partial<{
+        improved: string;
+        variations: string[];
+      }>;
+
+      // ✅ Gardes pour éviter les crashes
+      const improved = typeof parsed.improved === 'string' && parsed.improved.trim().length > 0
+        ? parsed.improved
+        : originalText;
+
+      const variations = Array.isArray(parsed.variations)
+        ? parsed.variations.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+        : [];
+
+      return {
+        original: originalText,
+        improved,
+        variations,
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to parse text improvement response: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return {
+        original: originalText,
+        improved: originalText,
+        variations: [],
+      };
+    }
+  }
+
+  /**
+   * Recommande un style (police + couleur) pour un texte avec typage strict
    */
   async recommendStyle(
     text: string,
     occasion: string,
     productType: string = 'bijou',
     brandId?: string,
-  ): Promise<Array<{ font: string; color: string; reason: string }>> {
+  ): Promise<RecommendedStyle[]> {
+    // ✅ Validation des entrées
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      this.logger.warn('Empty text provided to recommendStyle');
+      return this.getDefaultStyles();
+    }
+
     const prompt = `Recommande 3 styles (police + couleur) pour ce texte: "${text}"
 Occasion: ${occasion}
 Type de produit: ${productType}
@@ -287,38 +424,119 @@ Réponds en JSON:
   ]
 }`;
 
-    const response = await this.llmRouter.chat({
-      provider: LLMProvider.OPENAI,
-      model: LLM_MODELS.openai.GPT35_TURBO,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      maxTokens: 512,
-      brandId: brandId,
-      agentType: 'aria',
-      enableFallback: true,
-    });
-
     try {
-      const parsed = JSON.parse(response.content);
-      return parsed.styles || [];
-    } catch {
-      return [
-        { font: 'Playfair Display', color: '#333333', reason: 'Classique et élégant' },
-        { font: 'Montserrat', color: '#000000', reason: 'Moderne et épuré' },
-        { font: 'Dancing Script', color: '#8B4513', reason: 'Romantique et chaleureux' },
-      ];
+      const response = await this.llmRouter.chat({
+        provider: LLMProvider.OPENAI,
+        model: LLM_MODELS.openai.GPT35_TURBO,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        maxTokens: 512,
+        brandId: brandId,
+        agentType: 'aria',
+        enableFallback: true,
+      });
+
+      // ✅ Parsing avec validation
+      return this.parseStyleRecommendations(response.content);
+    } catch (error) {
+      this.logger.error(
+        `Failed to recommend style: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      return this.getDefaultStyles();
     }
   }
 
   /**
-   * Traduit un texte dans une langue cible
+   * Parse et valide les recommandations de style
+   */
+  private parseStyleRecommendations(content: string): RecommendedStyle[] {
+    try {
+      const parsed = JSON.parse(content) as Partial<{
+        styles: Array<Partial<RecommendedStyle>>;
+      }>;
+
+      if (!Array.isArray(parsed.styles)) {
+        return this.getDefaultStyles();
+      }
+
+      // ✅ Validation et normalisation de chaque style
+      const validStyles = parsed.styles
+        .map((style) => this.normalizeStyle(style))
+        .filter((style): style is RecommendedStyle => style !== null);
+
+      return validStyles.length > 0 ? validStyles : this.getDefaultStyles();
+    } catch (error) {
+      this.logger.warn(`Failed to parse style recommendations: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return this.getDefaultStyles();
+    }
+  }
+
+  /**
+   * Normalise un style avec gardes
+   */
+  private normalizeStyle(style: Partial<RecommendedStyle>): RecommendedStyle | null {
+    if (!style || typeof style !== 'object') {
+      return null;
+    }
+
+    const font = typeof style.font === 'string' && style.font.trim().length > 0
+      ? style.font.trim()
+      : null;
+    const color = typeof style.color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(style.color.trim())
+      ? style.color.trim()
+      : null;
+    const reason = typeof style.reason === 'string' && style.reason.trim().length > 0
+      ? style.reason.trim()
+      : null;
+
+    if (!font || !color || !reason) {
+      return null;
+    }
+
+    return { font, color, reason };
+  }
+
+  /**
+   * Styles par défaut en cas d'erreur
+   */
+  private getDefaultStyles(): RecommendedStyle[] {
+    return [
+      { font: 'Playfair Display', color: '#333333', reason: 'Classique et élégant' },
+      { font: 'Montserrat', color: '#000000', reason: 'Moderne et épuré' },
+      { font: 'Dancing Script', color: '#8B4513', reason: 'Romantique et chaleureux' },
+    ];
+  }
+
+  /**
+   * Traduit un texte dans une langue cible avec typage strict
    */
   async translate(
     text: string,
     targetLanguage: string,
     sourceLanguage: string = 'fr',
     brandId?: string,
-  ): Promise<{ original: string; translated: string; sourceLanguage: string; targetLanguage: string }> {
+  ): Promise<TranslationResult> {
+    // ✅ Validation des entrées
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      this.logger.warn('Empty text provided to translate');
+      return {
+        original: text || '',
+        translated: text || '',
+        sourceLanguage: sourceLanguage || 'fr',
+        targetLanguage: targetLanguage || 'fr',
+      };
+    }
+
+    if (!targetLanguage || typeof targetLanguage !== 'string') {
+      this.logger.warn('Invalid targetLanguage provided');
+      return {
+        original: text,
+        translated: text,
+        sourceLanguage: sourceLanguage || 'fr',
+        targetLanguage: 'fr',
+      };
+    }
+
     const prompt = `Traduis ce texte du ${sourceLanguage} vers le ${targetLanguage}:
 "${text}"
 
@@ -329,23 +547,24 @@ Réponds en JSON:
   "targetLanguage": "${targetLanguage}"
 }`;
 
-    const response = await this.llmRouter.chat({
-      provider: LLMProvider.OPENAI,
-      model: LLM_MODELS.openai.GPT35_TURBO,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-      maxTokens: 256,
-    });
-
     try {
-      const parsed = JSON.parse(response.content);
-      return {
-        original: text,
-        translated: parsed.translated || text,
-        sourceLanguage: parsed.sourceLanguage || sourceLanguage,
-        targetLanguage: parsed.targetLanguage || targetLanguage,
-      };
-    } catch {
+      const response = await this.llmRouter.chat({
+        provider: LLMProvider.OPENAI,
+        model: LLM_MODELS.openai.GPT35_TURBO,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        maxTokens: 256,
+        brandId: brandId,
+        agentType: 'aria',
+        enableFallback: true,
+      });
+
+      // ✅ Parsing avec validation
+      return this.parseTranslationResponse(response.content, text, sourceLanguage, targetLanguage);
+    } catch (error) {
+      this.logger.error(
+        `Failed to translate text: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       return {
         original: text,
         translated: text,
@@ -356,17 +575,62 @@ Réponds en JSON:
   }
 
   /**
-   * Vérifie l'orthographe et la grammaire
+   * Parse et valide la réponse de traduction
+   */
+  private parseTranslationResponse(
+    content: string,
+    originalText: string,
+    sourceLanguage: string,
+    targetLanguage: string,
+  ): TranslationResult {
+    try {
+      const parsed = JSON.parse(content) as Partial<{
+        translated: string;
+        sourceLanguage: string;
+        targetLanguage: string;
+      }>;
+
+      return {
+        original: originalText,
+        translated: typeof parsed.translated === 'string' && parsed.translated.trim().length > 0
+          ? parsed.translated.trim()
+          : originalText,
+        sourceLanguage: typeof parsed.sourceLanguage === 'string' && parsed.sourceLanguage.trim().length > 0
+          ? parsed.sourceLanguage.trim()
+          : sourceLanguage,
+        targetLanguage: typeof parsed.targetLanguage === 'string' && parsed.targetLanguage.trim().length > 0
+          ? parsed.targetLanguage.trim()
+          : targetLanguage,
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to parse translation response: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return {
+        original: originalText,
+        translated: originalText,
+        sourceLanguage,
+        targetLanguage,
+      };
+    }
+  }
+
+  /**
+   * Vérifie l'orthographe et la grammaire avec typage strict
    */
   async spellCheck(
     text: string,
     language: string = 'fr',
     brandId?: string,
-  ): Promise<{
-    original: string;
-    corrected: string;
-    errors: Array<{ word: string; suggestion: string; position: number }>;
-  }> {
+  ): Promise<SpellCheckResult> {
+    // ✅ Validation des entrées
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      this.logger.warn('Empty text provided to spellCheck');
+      return {
+        original: text || '',
+        corrected: text || '',
+        errors: [],
+      };
+    }
+
     const prompt = `Corrige l'orthographe et la grammaire de ce texte en ${language}:
 "${text}"
 
@@ -378,22 +642,24 @@ Réponds en JSON:
   ]
 }`;
 
-    const response = await this.llmRouter.chat({
-      provider: LLMProvider.OPENAI,
-      model: LLM_MODELS.openai.GPT35_TURBO,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-      maxTokens: 512,
-    });
-
     try {
-      const parsed = JSON.parse(response.content);
-      return {
-        original: text,
-        corrected: parsed.corrected || text,
-        errors: parsed.errors || [],
-      };
-    } catch {
+      const response = await this.llmRouter.chat({
+        provider: LLMProvider.OPENAI,
+        model: LLM_MODELS.openai.GPT35_TURBO,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+        maxTokens: 512,
+        brandId: brandId,
+        agentType: 'aria',
+        enableFallback: true,
+      });
+
+      // ✅ Parsing avec validation
+      return this.parseSpellCheckResponse(response.content, text);
+    } catch (error) {
+      this.logger.error(
+        `Failed to spell check text: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       return {
         original: text,
         corrected: text,
@@ -403,7 +669,67 @@ Réponds en JSON:
   }
 
   /**
-   * Génère des idées de cadeaux personnalisés
+   * Parse et valide la réponse de vérification orthographique
+   */
+  private parseSpellCheckResponse(content: string, originalText: string): SpellCheckResult {
+    try {
+      const parsed = JSON.parse(content) as Partial<{
+        corrected: string;
+        errors: Array<Partial<SpellCheckError>>;
+      }>;
+
+      const corrected = typeof parsed.corrected === 'string' && parsed.corrected.trim().length > 0
+        ? parsed.corrected.trim()
+        : originalText;
+
+      const errors = Array.isArray(parsed.errors)
+        ? parsed.errors
+            .map((error) => this.normalizeSpellCheckError(error))
+            .filter((error): error is SpellCheckError => error !== null)
+        : [];
+
+      return {
+        original: originalText,
+        corrected,
+        errors,
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to parse spell check response: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return {
+        original: originalText,
+        corrected: originalText,
+        errors: [],
+      };
+    }
+  }
+
+  /**
+   * Normalise une erreur orthographique avec gardes
+   */
+  private normalizeSpellCheckError(error: Partial<SpellCheckError>): SpellCheckError | null {
+    if (!error || typeof error !== 'object') {
+      return null;
+    }
+
+    const word = typeof error.word === 'string' && error.word.trim().length > 0
+      ? error.word.trim()
+      : null;
+    const suggestion = typeof error.suggestion === 'string' && error.suggestion.trim().length > 0
+      ? error.suggestion.trim()
+      : null;
+    const position = typeof error.position === 'number' && error.position >= 0
+      ? error.position
+      : null;
+
+    if (!word || !suggestion || position === null) {
+      return null;
+    }
+
+    return { word, suggestion, position };
+  }
+
+  /**
+   * Génère des idées de cadeaux personnalisés avec typage strict
    */
   async giftIdeas(
     occasion: string,
@@ -411,7 +737,18 @@ Réponds en JSON:
     budget?: string,
     preferences?: string,
     brandId?: string,
-  ): Promise<Array<{ idea: string; product: string; personalization: string; reason: string }>> {
+  ): Promise<GiftIdea[]> {
+    // ✅ Validation des entrées
+    if (!occasion || typeof occasion !== 'string' || occasion.trim().length === 0) {
+      this.logger.warn('Empty occasion provided to giftIdeas');
+      return this.getDefaultGiftIdea();
+    }
+
+    if (!recipient || typeof recipient !== 'string' || recipient.trim().length === 0) {
+      this.logger.warn('Empty recipient provided to giftIdeas');
+      return this.getDefaultGiftIdea();
+    }
+
     const prompt = `Génère 5 idées de cadeaux personnalisés pour:
 Occasion: ${occasion}
 Destinataire: ${recipient}
@@ -430,27 +767,93 @@ Réponds en JSON:
   ]
 }`;
 
-    const response = await this.llmRouter.chat({
-      provider: LLMProvider.OPENAI,
-      model: LLM_MODELS.openai.GPT35_TURBO,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.9,
-      maxTokens: 1024,
-    });
-
     try {
-      const parsed = JSON.parse(response.content);
-      return parsed.ideas || [];
-    } catch {
-      return [
-        {
-          idea: 'Bracelet gravé avec prénom',
-          product: 'Bracelet',
-          personalization: 'Gravure du prénom du destinataire',
-          reason: 'Personnel et intemporel',
-        },
-      ];
+      const response = await this.llmRouter.chat({
+        provider: LLMProvider.OPENAI,
+        model: LLM_MODELS.openai.GPT35_TURBO,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.9,
+        maxTokens: 1024,
+        brandId: brandId,
+        agentType: 'aria',
+        enableFallback: true,
+      });
+
+      // ✅ Parsing avec validation
+      return this.parseGiftIdeasResponse(response.content);
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate gift ideas: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      return this.getDefaultGiftIdea();
     }
+  }
+
+  /**
+   * Parse et valide les idées de cadeaux
+   */
+  private parseGiftIdeasResponse(content: string): GiftIdea[] {
+    try {
+      const parsed = JSON.parse(content) as Partial<{
+        ideas: Array<Partial<GiftIdea>>;
+      }>;
+
+      if (!Array.isArray(parsed.ideas)) {
+        return this.getDefaultGiftIdea();
+      }
+
+      // ✅ Validation et normalisation de chaque idée
+      const validIdeas = parsed.ideas
+        .map((idea) => this.normalizeGiftIdea(idea))
+        .filter((idea): idea is GiftIdea => idea !== null);
+
+      return validIdeas.length > 0 ? validIdeas : this.getDefaultGiftIdea();
+    } catch (error) {
+      this.logger.warn(`Failed to parse gift ideas response: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return this.getDefaultGiftIdea();
+    }
+  }
+
+  /**
+   * Normalise une idée de cadeau avec gardes
+   */
+  private normalizeGiftIdea(idea: Partial<GiftIdea>): GiftIdea | null {
+    if (!idea || typeof idea !== 'object') {
+      return null;
+    }
+
+    const ideaText = typeof idea.idea === 'string' && idea.idea.trim().length > 0
+      ? idea.idea.trim()
+      : null;
+    const product = typeof idea.product === 'string' && idea.product.trim().length > 0
+      ? idea.product.trim()
+      : null;
+    const personalization = typeof idea.personalization === 'string' && idea.personalization.trim().length > 0
+      ? idea.personalization.trim()
+      : null;
+    const reason = typeof idea.reason === 'string' && idea.reason.trim().length > 0
+      ? idea.reason.trim()
+      : null;
+
+    if (!ideaText || !product || !personalization || !reason) {
+      return null;
+    }
+
+    return { idea: ideaText, product, personalization, reason };
+  }
+
+  /**
+   * Idée de cadeau par défaut en cas d'erreur
+   */
+  private getDefaultGiftIdea(): GiftIdea[] {
+    return [
+      {
+        idea: 'Bracelet gravé avec prénom',
+        product: 'Bracelet',
+        personalization: 'Gravure du prénom du destinataire',
+        reason: 'Personnel et intemporel',
+      },
+    ];
   }
 
   // ==========================================================================
@@ -507,29 +910,109 @@ Propose 3 combinaisons police + couleur adaptées.`;
     }
   }
 
-  private async getProductContext(productId: string): Promise<Record<string, unknown>> {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: {
-        id: true,
-        name: true,
-        brandId: true,
-      },
-    });
-
-    if (!product) {
-      return { name: 'Produit', maxChars: 50 };
+  /**
+   * Récupère le contexte produit avec typage strict et gardes
+   */
+  private async getProductContext(productId: string): Promise<ProductContext> {
+    // ✅ Validation de l'ID
+    if (!productId || typeof productId !== 'string' || productId.trim().length === 0) {
+      this.logger.warn('Invalid productId provided to getProductContext');
+      return this.getDefaultProductContext();
     }
 
+    try {
+      const product = await this.prisma.product.findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          name: true,
+          brandId: true,
+        },
+      });
+
+      // ✅ Garde pour éviter les crashes
+      if (!product) {
+        this.logger.warn(`Product not found: ${productId}`);
+        return this.getDefaultProductContext();
+      }
+
+      return {
+        id: product.id ?? productId,
+        name: product.name ?? 'Produit',
+        brandId: product.brandId ?? '',
+        type: 'bijou',
+        maxChars: 50,
+        availableFonts: [],
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get product context: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      return this.getDefaultProductContext();
+    }
+  }
+
+  /**
+   * Contexte produit par défaut en cas d'erreur
+   */
+  private getDefaultProductContext(): ProductContext {
     return {
-      name: product.name,
-      brandId: product.brandId,
+      id: '',
+      name: 'Produit',
+      brandId: '',
       type: 'bijou',
       maxChars: 50,
       availableFonts: [],
     };
   }
 
+  /**
+   * Parse la réponse de suggestions rapides avec validation
+   */
+  private parseQuickSuggestResponse(content: string): AriaSuggestion[] {
+    try {
+      type QuickSuggestItem = Partial<{ text: string; style: string }>;
+      type QuickSuggestResponse = QuickSuggestItem | Array<QuickSuggestItem>;
+      const parsed = JSON.parse(content) as QuickSuggestResponse;
+
+      // ✅ Gérer les deux formats possibles (objet unique ou array)
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+
+      return items
+        .map((item, index) => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+
+          const text = typeof item.text === 'string' && item.text.trim().length > 0
+            ? item.text.trim()
+            : null;
+          const style = typeof item.style === 'string' && item.style.trim().length > 0
+            ? item.style.trim()
+            : ['Classique', 'Moderne', 'Poétique', 'Original', 'Élégant', 'Romantique'][index] || 'Suggestion';
+
+          if (!text) {
+            return null;
+          }
+
+          const suggestion: AriaSuggestion = {
+            type: 'text',
+            value: text,
+            label: style,
+          };
+          return suggestion;
+        })
+        .filter((suggestion): suggestion is AriaSuggestion => suggestion !== null)
+        .slice(0, 6); // Limiter à 6 suggestions max
+    } catch (error) {
+      this.logger.warn(`Failed to parse quick suggest response: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return [];
+    }
+  }
+
+  /**
+   * Parse la réponse principale avec typage strict
+   */
   private parseResponse(
     content: string,
     intent: AriaIntentType,
@@ -537,29 +1020,69 @@ Propose 3 combinaisons police + couleur adaptées.`;
   ): {
     message: string;
     suggestions: AriaSuggestion[];
-    preview?: { text: string; font: string; color: string };
+    preview?: PersonalizationPreview;
   } {
+    // ✅ Validation du contenu
+    if (!content || typeof content !== 'string') {
+      this.logger.warn('Empty content in parseResponse');
+      return {
+        message: '',
+        suggestions: [],
+      };
+    }
+
+    const suggestions = this.extractSuggestionsFromContent(content);
+    const preview = this.buildPreviewFromContext(context);
+
+    return {
+      message: content.trim(),
+      suggestions,
+      preview,
+    };
+  }
+
+  /**
+   * Extrait les suggestions du contenu avec validation
+   */
+  private extractSuggestionsFromContent(content: string): AriaSuggestion[] {
     const suggestions: AriaSuggestion[] = [];
 
+    // ✅ Extraction avec regex (méthode de fallback si JSON parsing échoue)
     const suggestionMatches = content.match(/"([^"]+)"/g);
-    if (suggestionMatches) {
+    if (suggestionMatches && suggestionMatches.length > 0) {
       suggestionMatches.slice(0, 4).forEach((match, index) => {
-        suggestions.push({
-          type: 'text',
-          value: match.replace(/"/g, ''),
-          label: ['Classique', 'Moderne', 'Poétique', 'Original'][index] || 'Suggestion',
-        });
+        const value = match.replace(/"/g, '').trim();
+        if (value.length > 0) {
+          suggestions.push({
+            type: 'text',
+            value,
+            label: ['Classique', 'Moderne', 'Poétique', 'Original'][index] || 'Suggestion',
+          });
+        }
       });
     }
 
+    return suggestions;
+  }
+
+  /**
+   * Construit l'aperçu depuis le contexte avec gardes
+   */
+  private buildPreviewFromContext(
+    context?: AriaMessage['context'],
+  ): PersonalizationPreview | undefined {
+    if (!context || !context.currentText || typeof context.currentText !== 'string') {
+      return undefined;
+    }
+
     return {
-      message: content,
-      suggestions,
-      preview: context?.currentText ? {
-        text: context.currentText,
-        font: context.currentStyle?.font || 'Playfair Display',
-        color: context.currentStyle?.color || '#333333',
-      } : undefined,
+      text: context.currentText.trim(),
+      font: context.currentStyle?.font && typeof context.currentStyle.font === 'string'
+        ? context.currentStyle.font.trim()
+        : 'Playfair Display',
+      color: context.currentStyle?.color && typeof context.currentStyle.color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(context.currentStyle.color.trim())
+        ? context.currentStyle.color.trim()
+        : '#333333',
     };
   }
 }

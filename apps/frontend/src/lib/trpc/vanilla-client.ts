@@ -4,7 +4,7 @@
  * (en dehors des composants React)
  */
 
-import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from './routers/_app';
 import { logger } from '@/lib/logger';
 
@@ -46,7 +46,7 @@ function getAuthToken(): string | null {
 // ========================================
 
 export function createVanillaTRPCClient() {
-  return createTRPCClient<AppRouter>({
+  return createTRPCProxyClient<AppRouter>({
     links: [
       httpBatchLink({
         url: '/api/trpc',

@@ -16,8 +16,13 @@ export interface WooCommerceProduct {
   id: number;
   name: string;
   slug: string;
+  description?: string;
   price: string;
   sku?: string;
+  status?: string;
+  images?: Array<{
+    src: string;
+  }>;
 }
 
 /**

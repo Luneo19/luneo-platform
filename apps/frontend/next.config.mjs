@@ -22,6 +22,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  output: 'standalone',
   // Fix monorepo detection
   // Note: outputFileTracingRoot can cause routing issues on Vercel
   // Commented out to let Vercel handle file tracing automatically

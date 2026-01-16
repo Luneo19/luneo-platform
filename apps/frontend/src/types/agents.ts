@@ -109,7 +109,7 @@ export enum NovaIntentType {
  * Réponse de Nova
  */
 export interface NovaResponse {
-  conversationId: string;
+  conversationId?: string;
   message: string;
   intent: NovaIntentType;
   resolved: boolean;

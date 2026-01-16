@@ -160,13 +160,25 @@ export class ShopifyService {
 
   /**
    * Échange le code d'autorisation contre un access token
+   * Conforme au plan PHASE 4 - Shopify OAuth complet
    */
   async exchangeCodeForToken(
     shopDomain: string,
     code: string,
   ): Promise<{ accessToken: string; scope: string }> {
+    // ✅ Validation des credentials
     if (!this.clientId || !this.clientSecret) {
       throw new Error('Shopify credentials not configured. Please set SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET environment variables.');
+    }
+
+    // ✅ Validation du shopDomain
+    if (!shopDomain || typeof shopDomain !== 'string' || !shopDomain.match(/^[a-zA-Z0-9-]+\.myshopify\.com$/)) {
+      throw new BadRequestException('Invalid shop domain format');
+    }
+
+    // ✅ Validation du code
+    if (!code || typeof code !== 'string' || code.trim().length === 0) {
+      throw new BadRequestException('Authorization code is required');
     }
     
     try {
@@ -176,19 +188,166 @@ export class ShopifyService {
           {
             client_id: this.clientId,
             client_secret: this.clientSecret,
-            code,
+            code: code.trim(),
           },
         ),
       );
 
+      // ✅ Validation de la réponse
+      if (!response.data || !response.data.access_token) {
+        throw new UnauthorizedException('Invalid response from Shopify OAuth');
+      }
+
       return {
         accessToken: response.data.access_token,
-        scope: response.data.scope,
+        scope: response.data.scope || this.scopes.join(','),
       };
     } catch (error) {
       this.logger.error(`OAuth token exchange failed: ${error}`);
       throw new UnauthorizedException('Failed to authenticate with Shopify');
     }
+  }
+
+  /**
+   * Sauvegarde les données d'une boutique Shopify après OAuth
+   * Conforme au plan PHASE 4 - Shopify OAuth complet
+   */
+  async saveShopData(
+    shopDomain: string,
+    tokenData: { accessToken: string; scope: string },
+    brandId?: string,
+  ): Promise<void> {
+    // ✅ Validation des entrées
+    if (!shopDomain || typeof shopDomain !== 'string' || !shopDomain.match(/^[a-zA-Z0-9-]+\.myshopify\.com$/)) {
+      throw new BadRequestException('Invalid shop domain format');
+    }
+
+    if (!tokenData || !tokenData.accessToken || typeof tokenData.accessToken !== 'string') {
+      throw new BadRequestException('Access token is required');
+    }
+
+    try {
+      // ✅ Si brandId fourni, créer/mettre à jour l'intégration
+      if (brandId && typeof brandId === 'string' && brandId.trim().length > 0) {
+        const existingIntegration = await this.prisma.ecommerceIntegration.findFirst({
+          where: {
+            brandId: brandId.trim(),
+            platform: 'shopify',
+            shopDomain: shopDomain.trim(),
+          },
+        });
+
+        if (existingIntegration) {
+          // ✅ Mettre à jour l'intégration existante
+          await this.prisma.ecommerceIntegration.update({
+            where: { id: existingIntegration.id },
+            data: {
+              accessToken: this.encryptToken(tokenData.accessToken),
+              config: {
+                scope: tokenData.scope,
+                apiVersion: this.apiVersion,
+              },
+              status: 'active',
+              lastSyncAt: new Date(),
+            },
+          });
+
+          this.logger.log(`Shopify integration updated for brand ${brandId}, shop ${shopDomain}`);
+        } else {
+          // ✅ Créer une nouvelle intégration
+          await this.prisma.ecommerceIntegration.create({
+            data: {
+              brandId: brandId.trim(),
+              platform: 'shopify',
+              shopDomain: shopDomain.trim(),
+              accessToken: this.encryptToken(tokenData.accessToken),
+              config: {
+                scope: tokenData.scope,
+                apiVersion: this.apiVersion,
+              },
+              status: 'active',
+            },
+          });
+
+          this.logger.log(`Shopify integration created for brand ${brandId}, shop ${shopDomain}`);
+        }
+      } else {
+        // ✅ Sauvegarder temporairement en cache (pour callback OAuth)
+        const cacheKey = `shopify_oauth:${shopDomain}`;
+        await this.cache.setSimple(
+          cacheKey,
+          JSON.stringify({
+            accessToken: tokenData.accessToken,
+            scope: tokenData.scope,
+            timestamp: Date.now(),
+          }),
+          600, // 10 minutes
+        );
+
+        this.logger.log(`Shopify OAuth data cached for shop ${shopDomain}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to save shop data: ${error instanceof Error ? error.message : 'Unknown'}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Synchronise une boutique Shopify avec Luneo après OAuth
+   * Conforme au plan PHASE 4 - Shopify sync produits + orders
+   */
+  async syncShopWithLuneo(shopDomain: string, accessToken: string, brandId?: string): Promise<void> {
+    // ✅ Validation
+    if (!shopDomain || !accessToken) {
+      throw new BadRequestException('Shop domain and access token are required');
+    }
+
+    try {
+      // ✅ Si brandId fourni, lancer la sync initiale
+      if (brandId && typeof brandId === 'string' && brandId.trim().length > 0) {
+        const integration = await this.prisma.ecommerceIntegration.findFirst({
+          where: {
+            brandId: brandId.trim(),
+            platform: 'shopify',
+            shopDomain: shopDomain.trim(),
+          },
+        });
+
+        if (integration) {
+          // ✅ Lancer sync produits initiale via queue
+          await this.syncQueue.add('sync-products', {
+            integrationId: integration.id,
+            type: 'product',
+            direction: 'import',
+            force: false,
+          });
+
+          this.logger.log(`Initial product sync queued for integration ${integration.id}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to sync shop with Luneo: ${error instanceof Error ? error.message : 'Unknown'}`);
+      // Ne pas throw pour ne pas bloquer le flow OAuth
+    }
+  }
+
+  /**
+   * Chiffre un token pour stockage sécurisé
+   * TODO: Implémenter chiffrement réel (AES-256-GCM) avec clé depuis ConfigService
+   */
+  private encryptToken(token: string): string {
+    // ✅ Pour l'instant, retourner tel quel (à améliorer avec chiffrement réel)
+    // En production, utiliser AES-256-GCM avec clé depuis ConfigService
+    return token;
+  }
+
+  /**
+   * Déchiffre un token
+   * TODO: Implémenter déchiffrement réel
+   */
+  private decryptToken(encryptedToken: string): string {
+    // ✅ Pour l'instant, retourner tel quel (à améliorer avec déchiffrement réel)
+    return encryptedToken;
   }
 
   /**

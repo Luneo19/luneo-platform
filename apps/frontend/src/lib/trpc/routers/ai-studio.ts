@@ -203,7 +203,7 @@ export const aiStudioRouter = router({
 
         return {
           success: true,
-          generations: generations.map(gen => ({
+          generations: generations.map((gen: any) => ({
             id: gen.id,
             type: gen.type,
             prompt: gen.prompt,
@@ -335,7 +335,7 @@ export const aiStudioRouter = router({
 
         return {
           success: true,
-          collections: collections.map(collection => ({
+          collections: collections.map((collection: any) => ({
             id: collection.id,
             name: collection.name,
             description: collection.description,
@@ -398,9 +398,15 @@ export const aiStudioRouter = router({
 
         const successRate = totalGenerations > 0 ? (completedGenerations / totalGenerations) * 100 : 0;
         const avgTime = generations.length > 0
-          ? generations.reduce((sum, g) => sum + (g.duration || 0), 0) / generations.length
+          ? generations.reduce(
+              (sum: number, g: { duration: number | null }) => sum + (g.duration || 0),
+              0
+            ) / generations.length
           : 0;
-        const totalCost = generations.reduce((sum, g) => sum + g.costCents, 0);
+        const totalCost = generations.reduce(
+          (sum: number, g: { costCents: number }) => sum + g.costCents,
+          0
+        );
         const avgCost = generations.length > 0 ? totalCost / generations.length / 100 : 0;
 
         // Calculer les tendances (comparaison avec période précédente)

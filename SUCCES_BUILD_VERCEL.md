@@ -16,6 +16,8 @@ Le build Vercel a réussi avec le statut "Completing".
 6. ✅ **billing/success/page.tsx** - Exports retirés (commit `c828255`)
 7. ✅ **billing/success/layout.tsx** - Layout dynamique créé (commit `5943705`)
 8. ✅ **layout.tsx (racine)** - `export const dynamic = 'force-dynamic'` (commit `4af1e88`)
+9. ✅ **Dépendances frontend critiques ajoutées** – `qrcode` + `@types/qrcode` dans `apps/frontend/package.json` pour corriger l’erreur `Cannot find module 'qrcode'`
+10. ✅ **Ciblage projet Vercel** – `apps/frontend` lié explicitement au projet `frontend` et déploiements faits uniquement avec `vercel --prod --yes --cwd apps/frontend` pour éviter de consommer le quota sur `luneo-frontend`
 
 ## 🎯 Solution Clé
 

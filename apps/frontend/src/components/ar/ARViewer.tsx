@@ -272,13 +272,19 @@ function ARStatusOverlay({
 
   if (status === 'error' || status === 'no-camera') {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-        <div className="text-center text-white max-w-xs">
-          <CameraOff className="h-8 w-8 mx-auto mb-2 text-red-400" />
-          <p className="font-medium">
-            {status === 'no-camera' ? 'Caméra non disponible' : 'Erreur'}
+      <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="text-center text-white max-w-xs px-4">
+          <CameraOff className="h-12 w-12 mx-auto mb-4 text-red-400" />
+          <p className="font-semibold text-lg mb-2">
+            {status === 'no-camera' ? 'Caméra non disponible' : 'Erreur de caméra'}
           </p>
-          <p className="text-sm text-white/70 mt-1">{errorMessage}</p>
+          <p className="text-sm text-white/80 mb-4">{errorMessage}</p>
+          {/* Guidance améliorée - Conforme au plan PHASE 3 */}
+          <div className="text-xs text-white/60 space-y-1">
+            <p>• Vérifiez que votre caméra est connectée</p>
+            <p>• Autorisez l'accès à la caméra dans les paramètres</p>
+            <p>• Rafraîchissez la page si le problème persiste</p>
+          </div>
         </div>
       </div>
     );
@@ -306,10 +312,20 @@ function ARStatusOverlay({
           </div>
         )}
 
-        {/* Guide visuel */}
+        {/* Guide visuel amélioré - Conforme au plan PHASE 3 - ARViewer UX claire */}
         {!isTracking && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-48 h-48 border-2 border-dashed border-white/50 rounded-full" />
+            <div className="text-center text-white">
+              <div className="w-48 h-48 border-2 border-dashed border-white/50 rounded-full flex items-center justify-center mb-4">
+                <div className="w-32 h-32 border-2 border-white/30 rounded-full" />
+              </div>
+              <p className="text-sm font-medium mb-1">{trackingMessages[trackerType]}</p>
+              <p className="text-xs text-white/60">
+                {trackerType === 'face' && 'Assurez-vous que votre visage est bien éclairé'}
+                {trackerType === 'hand' && 'Tenez votre main devant la caméra'}
+                {trackerType === 'body' && 'Reculez pour que votre corps soit visible'}
+              </p>
+            </div>
           </div>
         )}
       </>

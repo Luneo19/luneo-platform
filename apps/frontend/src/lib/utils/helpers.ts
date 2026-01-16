@@ -81,9 +81,14 @@ export function chunk<T>(array: T[], size: number): T[][] {
  * Flatten un tableau multidimensionnel
  */
 export function flatten<T>(array: (T | T[])[]): T[] {
-  return array.reduce((acc, item) => {
-    return acc.concat(Array.isArray(item) ? flatten(item) : item);
-  }, [] as T[]);
+  return array.reduce<T[]>((acc, item) => {
+    if (Array.isArray(item)) {
+      acc.push(...flatten(item));
+      return acc;
+    }
+    acc.push(item);
+    return acc;
+  }, []);
 }
 
 // ========================================
@@ -94,23 +99,27 @@ export function flatten<T>(array: (T | T[])[]): T[] {
  * Deep merge deux objets
  */
 export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
-  const output = { ...target };
+  const output: Record<string, any> = { ...target };
   
   if (isObject(target) && isObject(source)) {
     Object.keys(source).forEach((key) => {
-      if (isObject(source[key])) {
-        if (!(key in target)) {
-          Object.assign(output, { [key]: source[key] });
+      const sourceValue = (source as Record<string, any>)[key];
+      const targetValue = (target as Record<string, any>)[key];
+
+      if (isObject(sourceValue)) {
+        if (!targetValue) {
+          output[key] = sourceValue;
         } else {
-          output[key] = deepMerge(target[key], source[key]);
+          output[key] = deepMerge(targetValue, sourceValue);
         }
-      } else {
-        Object.assign(output, { [key]: source[key] });
+        return;
       }
+
+      output[key] = sourceValue;
     });
   }
   
-  return output;
+  return output as T;
 }
 
 /**

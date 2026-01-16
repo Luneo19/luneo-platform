@@ -16,6 +16,8 @@ export class AnalyticsCalculationsService {
 
   /**
    * Calcule les données d'un funnel depuis les événements analytics
+   * Conforme au plan PHASE 2 - Analytics & BI - Activer funnels réels
+   * Amélioré pour suivre les utilisateurs uniques plutôt que juste compter les événements
    */
   async calculateFunnelData(
     funnelId: string,
@@ -23,20 +25,42 @@ export class AnalyticsCalculationsService {
     startDate: Date,
     endDate: Date,
   ): Promise<FunnelData> {
-    try {
-      this.logger.log(`Calculating funnel data for funnel ${funnelId}`);
+    // ✅ Validation des entrées
+    if (!funnelId || typeof funnelId !== 'string' || funnelId.trim().length === 0) {
+      throw new Error('Funnel ID is required');
+    }
 
-      // Récupérer le funnel
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      throw new Error('Brand ID is required');
+    }
+
+    if (!(startDate instanceof Date) || !(endDate instanceof Date) || Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new Error('Valid start and end dates are required');
+    }
+
+    if (startDate.getTime() >= endDate.getTime()) {
+      throw new Error('Start date must be before end date');
+    }
+
+    try {
+      this.logger.log(`Calculating funnel data for funnel ${funnelId}, brand ${brandId}, period: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+
+      // ✅ Récupérer le funnel avec validation
       const funnel = await this.prisma.analyticsFunnel.findUnique({
-        where: { id: funnelId, brandId },
+        where: { id: funnelId.trim(), brandId: brandId.trim() },
       });
 
       if (!funnel) {
-        throw new Error(`Funnel ${funnelId} not found`);
+        throw new Error(`Funnel ${funnelId} not found for brand ${brandId}`);
       }
 
-      const steps = Array.isArray(funnel.steps) ? funnel.steps : [];
+      // ✅ Normaliser les steps avec gardes
+      const steps = Array.isArray(funnel.steps) && funnel.steps.length > 0
+        ? funnel.steps
+        : [];
+
       if (steps.length === 0) {
+        this.logger.warn(`Funnel ${funnelId} has no steps defined`);
         return {
           funnelId,
           steps: [],
@@ -44,70 +68,113 @@ export class AnalyticsCalculationsService {
         };
       }
 
-      // Pour chaque étape, compter les événements
+      // ✅ Pour chaque étape, compter les utilisateurs uniques (pas juste les événements)
       const funnelSteps = await Promise.all(
-        steps.map(async (step: any, index: number) => {
-          const stepEventType = typeof step?.eventType === 'string' ? step.eventType : (step?.eventType as any)?.toString?.() || '';
-          const eventCount = await this.prisma.analyticsEvent.count({
+        steps.map(async (step: unknown, index: number) => {
+          // ✅ Validation et normalisation de l'étape
+          if (!step || typeof step !== 'object') {
+            throw new Error(`Invalid step at index ${index}`);
+          }
+
+          const stepObj = step as { id?: string; name?: string; eventType?: string; order?: number };
+          const stepEventType = typeof stepObj.eventType === 'string' && stepObj.eventType.trim().length > 0
+            ? stepObj.eventType.trim()
+            : '';
+
+          if (!stepEventType) {
+            throw new Error(`Step at index ${index} has no eventType`);
+          }
+
+          // ✅ Compter les utilisateurs uniques pour cette étape (amélioration PHASE 2)
+          const uniqueUsers = await this.prisma.analyticsEvent.findMany({
             where: {
-              brandId,
+              brandId: brandId.trim(),
               eventType: stepEventType,
               timestamp: { gte: startDate, lte: endDate },
             },
+            select: { userId: true },
+            distinct: ['userId'],
           });
 
-          // Calculer la conversion par rapport à l'étape précédente
-          let previousCount = eventCount;
+          const userCount = uniqueUsers.filter((e) => e.userId && typeof e.userId === 'string').length;
+
+          // ✅ Calculer la conversion par rapport à l'étape précédente
+          let previousUserCount = userCount;
           if (index > 0) {
-            const previousStep = steps[index - 1] as any;
-            const previousStepEventType = typeof previousStep?.eventType === 'string' 
-              ? previousStep.eventType 
-              : (previousStep?.eventType as any)?.toString?.() || '';
-            previousCount = await this.prisma.analyticsEvent.count({
-              where: {
-                brandId,
-                eventType: previousStepEventType,
-                timestamp: { gte: startDate, lte: endDate },
-              },
-            });
+            const previousStep = steps[index - 1] as unknown;
+            if (!previousStep || typeof previousStep !== 'object') {
+              throw new Error(`Invalid previous step at index ${index - 1}`);
+            }
+
+            const previousStepObj = previousStep as { eventType?: string };
+            const previousStepEventType = typeof previousStepObj.eventType === 'string' && previousStepObj.eventType.trim().length > 0
+              ? previousStepObj.eventType.trim()
+              : '';
+
+            if (previousStepEventType) {
+              const previousUniqueUsers = await this.prisma.analyticsEvent.findMany({
+                where: {
+                  brandId: brandId.trim(),
+                  eventType: previousStepEventType,
+                  timestamp: { gte: startDate, lte: endDate },
+                },
+                select: { userId: true },
+                distinct: ['userId'],
+              });
+
+              previousUserCount = previousUniqueUsers.filter((e) => e.userId && typeof e.userId === 'string').length;
+            }
           }
 
-          const conversion = previousCount > 0 ? (eventCount / previousCount) * 100 : 100;
-          const dropoff = previousCount > 0 ? ((previousCount - eventCount) / previousCount) * 100 : 0;
+          // ✅ Calculer conversion et dropoff avec gardes
+          const conversion = previousUserCount > 0
+            ? Math.round((userCount / previousUserCount) * 100 * 100) / 100
+            : userCount > 0 ? 100 : 0;
+
+          const dropoff = previousUserCount > 0
+            ? Math.round(((previousUserCount - userCount) / previousUserCount) * 100 * 100) / 100
+            : 0;
 
           return {
-            stepId: step.id,
-            stepName: step.name,
-            users: eventCount,
-            conversion: Math.round(conversion * 100) / 100,
-            dropoff: Math.round(dropoff * 100) / 100,
+            stepId: typeof stepObj.id === 'string' ? stepObj.id : `step-${index}`,
+            stepName: typeof stepObj.name === 'string' ? stepObj.name : `Step ${index + 1}`,
+            users: userCount,
+            conversion,
+            dropoff,
             details: {
-              eventType: step.eventType,
-              previousStepUsers: previousCount,
+              eventType: stepEventType,
+              previousStepUsers: previousUserCount,
             },
           };
         }),
       );
 
-      // Calculer la conversion totale
-      const firstStepUsers = funnelSteps[0]?.users || 1;
+      // ✅ Calculer la conversion totale avec gardes
+      const firstStepUsers = funnelSteps[0]?.users || 0;
       const lastStepUsers = funnelSteps[funnelSteps.length - 1]?.users || 0;
-      const totalConversion = (lastStepUsers / firstStepUsers) * 100;
+      const totalConversion = firstStepUsers > 0
+        ? Math.round((lastStepUsers / firstStepUsers) * 100 * 100) / 100
+        : 0;
 
-      // Trouver le point de dropoff le plus important
-      const dropoffPoint = funnelSteps.reduce(
-        (max, step) => (step.dropoff > max.dropoff ? step : max),
-        { dropoff: 0, stepName: '' },
-      );
+      // ✅ Trouver le point de dropoff le plus important
+      const dropoffPoint = funnelSteps.length > 0
+        ? funnelSteps.reduce(
+            (max, step) => (step.dropoff > max.dropoff ? step : max),
+            { dropoff: 0, stepName: '' },
+          ).stepName
+        : undefined;
 
       return {
         funnelId,
         steps: funnelSteps,
-        totalConversion: Math.round(totalConversion * 100) / 100,
-        dropoffPoint: dropoffPoint.stepName,
+        totalConversion,
+        dropoffPoint,
       };
     } catch (error) {
-      this.logger.error(`Failed to calculate funnel data: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to calculate funnel data: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }

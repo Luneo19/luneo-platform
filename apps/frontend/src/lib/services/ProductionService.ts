@@ -10,10 +10,8 @@
 
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
-import { PrismaClient } from '@prisma/client';
-import type { ProductionFileRequest, ProductionJob } from '@/lib/types/order';
-
-// db importé depuis @/lib/db
+import type { ProductionJob } from '@/lib/types/order';
+import { db as prismaDb } from '@/lib/db';
 
 // AI Engine URL
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.NEXT_PUBLIC_AI_ENGINE_URL || 'http://localhost:8000';
@@ -21,6 +19,18 @@ const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.NEXT_PUBLIC_AI_EN
 // ========================================
 // TYPES
 // ========================================
+
+export interface ProductionFileRequest {
+  orderId: string;
+  itemId: string;
+  format: 'pdf' | 'png' | 'jpg' | 'stl' | 'obj' | 'glb';
+  quality?: 'standard' | 'high' | 'print-ready';
+  options?: {
+    cmyk?: boolean;
+    resolution?: number;
+    colorProfile?: string;
+  };
+}
 
 export interface ProductionOptions {
   format: 'pdf' | 'png' | 'jpg' | 'stl' | 'obj' | 'glb';
@@ -83,7 +93,7 @@ export class ProductionService {
       });
 
       // Get order item to find design/customization
-      const order = await db.order.findUnique({
+      const order = await prismaDb.order.findUnique({
         where: { id: orderId },
         include: {
           items: true,
@@ -94,7 +104,12 @@ export class ProductionService {
         throw new Error('Order not found');
       }
 
-      const orderItem = order.items.find((item) => item.id === itemId);
+      const items = order.items as Array<{
+        id: string;
+        designId?: string | null;
+        customizationId?: string | null;
+      }>;
+      const orderItem = items.find((item) => item.id === itemId);
       if (!orderItem) {
         throw new Error('Order item not found');
       }
@@ -105,7 +120,7 @@ export class ProductionService {
         throw new Error('Order item has no design');
       }
 
-      const design = await db.design.findUnique({
+      const design = await prismaDb.design.findUnique({
         where: { id: designId },
         select: {
           highResUrl: true,
@@ -155,7 +170,7 @@ export class ProductionService {
       cacheService.set(`production:job:${jobId}`, {
         status: 'PROCESSING',
         progress: 0,
-      }, 3600);
+      }, { ttl: 3600 * 1000 });
 
       let fileUrl: string;
       let fileSize: number = 0;
@@ -243,7 +258,7 @@ export class ProductionService {
             },
           },
         ],
-      }, 3600);
+      }, { ttl: 3600 * 1000 });
 
       logger.info('Production job completed', { jobId, fileUrl, fileSize });
     } catch (error: any) {
@@ -254,7 +269,7 @@ export class ProductionService {
         status: 'FAILED',
         progress: 0,
         error: error.message,
-      }, 3600);
+      }, { ttl: 3600 * 1000 });
 
       throw error;
     }

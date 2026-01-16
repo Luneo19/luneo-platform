@@ -12,8 +12,8 @@ import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
 import { getStripe, isStripeConfigured } from '@/lib/stripe/client';
 import { trpcVanilla } from '@/lib/trpc/vanilla-client';
-import { PrismaClient } from '@prisma/client';
 import { db } from '@/lib/db';
+import type Stripe from 'stripe';
 
 // ========================================
 // TYPES
@@ -147,17 +147,22 @@ export class BillingService {
 
       const stripe = getStripe();
       const stripeSubscription = await stripe.subscriptions.retrieve(brand.stripeSubscriptionId);
+      const stripeSubscriptionData: any =
+        (stripeSubscription as any).data ?? stripeSubscription;
+
+      const { start: currentPeriodStart, end: currentPeriodEnd } =
+        this.getSubscriptionPeriod(stripeSubscriptionData);
 
       // Convert Stripe subscription to our Subscription type
       const subscription: Subscription = {
-        id: stripeSubscription.id,
-        status: stripeSubscription.status as any,
-        plan: this.mapStripePlanToOurPlan(stripeSubscription.items.data[0]?.price.id),
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
-        stripeSubscriptionId: stripeSubscription.id,
-        stripeCustomerId: stripeSubscription.customer as string,
+        id: stripeSubscriptionData.id,
+        status: stripeSubscriptionData.status as any,
+        plan: this.mapStripePlanToOurPlan(stripeSubscriptionData.items.data[0]?.price.id),
+        currentPeriodStart,
+        currentPeriodEnd,
+        cancelAtPeriodEnd: stripeSubscriptionData.cancel_at_period_end,
+        stripeSubscriptionId: stripeSubscriptionData.id,
+        stripeCustomerId: stripeSubscriptionData.customer as string,
       };
 
       // Cache for 5 minutes
@@ -170,6 +175,25 @@ export class BillingService {
       logger.error('Error fetching subscription', { error, brandId });
       throw error;
     }
+  }
+
+  /**
+   * Map Stripe price ID to our plan type
+   */
+  private getSubscriptionPeriod(
+    stripeSubscription: Stripe.Subscription
+  ): { start: Date; end: Date } {
+    const firstItem = stripeSubscription.items?.data?.[0];
+    const startSeconds =
+      firstItem?.current_period_start ?? stripeSubscription.billing_cycle_anchor;
+    const endSeconds =
+      firstItem?.current_period_end ??
+      (startSeconds ? startSeconds + 30 * 24 * 60 * 60 : Math.floor(Date.now() / 1000));
+
+    return {
+      start: new Date(startSeconds * 1000),
+      end: new Date(endSeconds * 1000),
+    };
   }
 
   /**
@@ -253,27 +277,32 @@ export class BillingService {
           cancel_at_period_end: request.cancelAtPeriodEnd || false,
         }
       );
+      const updatedSubscriptionData: any =
+        (updatedSubscription as any).data ?? updatedSubscription;
 
       // Update database
       await db.brand.update({
         where: { id: brandId },
         data: {
           plan: request.plan,
-          stripeSubscriptionId: updatedSubscription.id,
+          stripeSubscriptionId: updatedSubscriptionData.id,
           updatedAt: new Date(),
         },
       });
 
       // Convert to our Subscription type
+      const { start: currentPeriodStart, end: currentPeriodEnd } =
+        this.getSubscriptionPeriod(updatedSubscriptionData);
+
       const subscription: Subscription = {
-        id: updatedSubscription.id,
-        status: updatedSubscription.status as any,
+        id: updatedSubscriptionData.id,
+        status: updatedSubscriptionData.status as any,
         plan: request.plan,
-        currentPeriodStart: new Date(updatedSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
-        stripeSubscriptionId: updatedSubscription.id,
-        stripeCustomerId: updatedSubscription.customer as string,
+        currentPeriodStart,
+        currentPeriodEnd,
+        cancelAtPeriodEnd: updatedSubscriptionData.cancel_at_period_end,
+        stripeSubscriptionId: updatedSubscriptionData.id,
+        stripeCustomerId: updatedSubscriptionData.customer as string,
       };
 
       // Invalidate cache
@@ -330,6 +359,8 @@ export class BillingService {
             cancel_at_period_end: true,
           })
         : await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+      const cancelledSubscriptionData =
+        (cancelledSubscription as any).data ?? cancelledSubscription;
 
       // Update database if immediate cancellation
       if (!cancelAtPeriodEnd) {
@@ -343,16 +374,19 @@ export class BillingService {
         });
       }
 
+      const { start: currentPeriodStart, end: currentPeriodEnd } =
+        this.getSubscriptionPeriod(cancelledSubscriptionData);
+
       // Convert to our Subscription type
       const result: Subscription = {
-        id: cancelledSubscription.id,
-        status: cancelledSubscription.status as any,
+        id: cancelledSubscriptionData.id,
+        status: cancelledSubscriptionData.status as any,
         plan: subscription.plan,
-        currentPeriodStart: new Date(cancelledSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(cancelledSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: cancelledSubscription.cancel_at_period_end,
-        stripeSubscriptionId: cancelledSubscription.id,
-        stripeCustomerId: cancelledSubscription.customer as string,
+        currentPeriodStart,
+        currentPeriodEnd,
+        cancelAtPeriodEnd: cancelledSubscriptionData.cancel_at_period_end,
+        stripeSubscriptionId: cancelledSubscriptionData.id,
+        stripeCustomerId: cancelledSubscriptionData.customer as string,
       };
 
       // Invalidate cache
@@ -393,17 +427,22 @@ export class BillingService {
           cancel_at_period_end: false,
         }
       );
+      const reactivatedSubscriptionData =
+        (reactivatedSubscription as any).data ?? reactivatedSubscription;
+
+      const { start: reactivatedStart, end: reactivatedEnd } =
+        this.getSubscriptionPeriod(reactivatedSubscriptionData);
 
       // Convert to our Subscription type
       const result: Subscription = {
-        id: reactivatedSubscription.id,
-        status: reactivatedSubscription.status as any,
+        id: reactivatedSubscriptionData.id,
+        status: reactivatedSubscriptionData.status as any,
         plan: subscription.plan,
-        currentPeriodStart: new Date(reactivatedSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(reactivatedSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: reactivatedSubscription.cancel_at_period_end,
-        stripeSubscriptionId: reactivatedSubscription.id,
-        stripeCustomerId: reactivatedSubscription.customer as string,
+        currentPeriodStart: reactivatedStart,
+        currentPeriodEnd: reactivatedEnd,
+        cancelAtPeriodEnd: reactivatedSubscriptionData.cancel_at_period_end,
+        stripeSubscriptionId: reactivatedSubscriptionData.id,
+        stripeCustomerId: reactivatedSubscriptionData.customer as string,
       };
 
       // Invalidate cache
@@ -481,13 +520,18 @@ export class BillingService {
           : undefined,
         pdfUrl: inv.invoice_pdf || undefined,
         hostedInvoiceUrl: inv.hosted_invoice_url || undefined,
-        lineItems: inv.lines.data.map((line) => ({
+        lineItems: inv.lines.data.map((line) => {
+          const quantity = line.quantity || 1;
+          const unitPrice = quantity ? line.amount / 100 / quantity : 0;
+
+          return {
           id: line.id,
           description: line.description || '',
           amount: line.amount / 100,
-          quantity: line.quantity || 1,
-          unitPrice: line.price?.unit_amount ? line.price.unit_amount / 100 : 0,
-        })),
+            quantity,
+            unitPrice,
+          };
+        }),
         createdAt: new Date(inv.created * 1000),
       }));
 
@@ -527,13 +571,18 @@ export class BillingService {
           : undefined,
         pdfUrl: stripeInvoice.invoice_pdf || undefined,
         hostedInvoiceUrl: stripeInvoice.hosted_invoice_url || undefined,
-        lineItems: stripeInvoice.lines.data.map((line) => ({
-          id: line.id,
-          description: line.description || '',
-          amount: line.amount / 100,
-          quantity: line.quantity || 1,
-          unitPrice: line.price?.unit_amount ? line.price.unit_amount / 100 : 0,
-        })),
+        lineItems: stripeInvoice.lines.data.map((line) => {
+          const quantity = line.quantity || 1;
+          const unitPrice = quantity ? line.amount / 100 / quantity : 0;
+
+          return {
+            id: line.id,
+            description: line.description || '',
+            amount: line.amount / 100,
+            quantity,
+            unitPrice,
+          };
+        }),
         createdAt: new Date(stripeInvoice.created * 1000),
       };
 
@@ -597,7 +646,10 @@ export class BillingService {
 
       // Aggregate metrics
       const aggregated = metrics.reduce(
-        (acc, metric) => {
+        (
+          acc: { customizations: number; renders: number; apiCalls: number; storageBytes: number },
+          metric: { data: unknown }
+        ) => {
           const data = metric.data as any;
           return {
             customizations: acc.customizations + (data.customizations || 0),
@@ -770,16 +822,18 @@ export class BillingService {
       // Get customer to find default payment method
       const customer = await stripe.customers.retrieve(brand.stripeCustomerId);
       const defaultPaymentMethodId =
-        typeof customer !== 'deleted' ? customer.invoice_settings?.default_payment_method : null;
+        'deleted' in customer && customer.deleted
+          ? null
+          : customer.invoice_settings?.default_payment_method;
 
       // Convert Stripe payment methods to our PaymentMethod type
       const paymentMethods: PaymentMethod[] = stripePaymentMethods.data.map((pm) => ({
         id: pm.id,
         type: pm.type as 'card' | 'bank_account',
-        last4: pm.card?.last4 || pm.us_bank_account?.last4,
-        brand: pm.card?.brand,
-        expiryMonth: pm.card?.exp_month,
-        expiryYear: pm.card?.exp_year,
+        last4: (pm.card?.last4 ?? pm.us_bank_account?.last4) || undefined,
+        brand: pm.card?.brand ?? undefined,
+        expiryMonth: pm.card?.exp_month ?? undefined,
+        expiryYear: pm.card?.exp_year ?? undefined,
         isDefault: pm.id === defaultPaymentMethodId,
       }));
 
@@ -825,10 +879,12 @@ export class BillingService {
       const paymentMethod: PaymentMethod = {
         id: attachedPaymentMethod.id,
         type: attachedPaymentMethod.type as 'card' | 'bank_account',
-        last4: attachedPaymentMethod.card?.last4 || attachedPaymentMethod.us_bank_account?.last4,
-        brand: attachedPaymentMethod.card?.brand,
-        expiryMonth: attachedPaymentMethod.card?.exp_month,
-        expiryYear: attachedPaymentMethod.card?.exp_year,
+        last4:
+          (attachedPaymentMethod.card?.last4 ?? attachedPaymentMethod.us_bank_account?.last4) ||
+          undefined,
+        brand: attachedPaymentMethod.card?.brand ?? undefined,
+        expiryMonth: attachedPaymentMethod.card?.exp_month ?? undefined,
+        expiryYear: attachedPaymentMethod.card?.exp_year ?? undefined,
         isDefault: false, // New payment method is not default by default
       };
 
@@ -940,7 +996,7 @@ export class BillingService {
 
       return {
         id: refund.id,
-        status: refund.status,
+        status: String(refund.status ?? 'unknown'),
         amount: refund.amount / 100, // Convert from cents
       };
     } catch (error: any) {
