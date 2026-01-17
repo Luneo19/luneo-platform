@@ -50,7 +50,7 @@ export function useSubscription(
         const subscription = await endpoints.billing.subscription();
         
         // Si l'endpoint retourne directement les données
-        if (subscription && 'plan' in subscription) {
+        if (subscription && typeof subscription === 'object' && 'plan' in subscription) {
           return subscription as SubscriptionInfo;
         }
         

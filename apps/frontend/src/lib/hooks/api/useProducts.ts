@@ -110,7 +110,8 @@ export function useCreateProduct(
   return useMutation<Product, Error, any>({
     mutationFn: async (data) => {
       try {
-        return await endpoints.products.create(data);
+        const result = await endpoints.products.create(data);
+        return result as Product;
       } catch (error) {
         logger.error('Failed to create product', { error, data });
         throw error;
@@ -135,7 +136,8 @@ export function useUpdateProduct(
   return useMutation<Product, Error, { id: string; data: any }>({
     mutationFn: async ({ id, data }) => {
       try {
-        return await endpoints.products.update(id, data);
+        const result = await endpoints.products.update(id, data);
+        return result as Product;
       } catch (error) {
         logger.error('Failed to update product', { error, id, data });
         throw error;
