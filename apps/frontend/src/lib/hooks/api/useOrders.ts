@@ -138,9 +138,10 @@ export function useUpdateOrder(
   const queryClient = useQueryClient();
 
   return useMutation<Order, Error, { id: string; data: any }>({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data }): Promise<Order> => {
       try {
-        return await endpoints.orders.update(id, data);
+        const result = await endpoints.orders.update(id, data) as unknown;
+        return result as Order;
       } catch (error) {
         logger.error('Failed to update order', { error, id, data });
         throw error;

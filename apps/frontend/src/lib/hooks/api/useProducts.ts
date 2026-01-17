@@ -82,11 +82,12 @@ export function useProduct(
 ) {
   return useQuery<Product>({
     queryKey: ['products', 'detail', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Product> => {
       if (!id) throw new Error('Product ID is required');
       
       try {
-        return await endpoints.products.get(id);
+        const result = await endpoints.products.get(id) as unknown;
+        return result as Product;
       } catch (error) {
         logger.error('Failed to fetch product', { error, id });
         throw error;
