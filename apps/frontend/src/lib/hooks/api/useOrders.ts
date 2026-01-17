@@ -109,9 +109,10 @@ export function useCreateOrder(
   const queryClient = useQueryClient();
 
   return useMutation<Order, Error, any>({
-    mutationFn: async (data) => {
+    mutationFn: async (data): Promise<Order> => {
       try {
-        return await endpoints.orders.create(data);
+        const result = await endpoints.orders.create(data) as unknown;
+        return result as Order;
       } catch (error) {
         logger.error('Failed to create order', { error, data });
         throw error;

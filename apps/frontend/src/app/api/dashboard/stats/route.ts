@@ -28,7 +28,11 @@ export async function GET(request: NextRequest) {
         period: backendPeriod,
       }, { requireAuth: true }); // ✅ Auth requise via cookies httpOnly
       
-      const backendData = analyticsResult.data || {};
+      const backendData = (analyticsResult.data || {}) as {
+        metrics?: { totalDesigns?: number; totalRenders?: number; conversionRate?: number; revenue?: number; [key: string]: any };
+        charts?: { [key: string]: any };
+        [key: string]: any;
+      };
       const metrics = backendData.metrics || {};
       const charts = backendData.charts || {};
       
@@ -43,7 +47,7 @@ export async function GET(request: NextRequest) {
           page: 1,
         }, { requireAuth: true });
         
-        if (designsResult.success && designsResult.data?.data) {
+        if (designsResult.success && designsResult.data && typeof designsResult.data === 'object' && 'data' in designsResult.data && Array.isArray(designsResult.data.data)) {
           recentDesigns = designsResult.data.data.map((design: any) => ({
             id: design.id,
             prompt: design.name || design.prompt || 'Design sans titre',
@@ -64,7 +68,7 @@ export async function GET(request: NextRequest) {
           page: 1,
         }, { requireAuth: true });
         
-        if (ordersResult.success && ordersResult.data?.data) {
+        if (ordersResult.success && ordersResult.data && typeof ordersResult.data === 'object' && 'data' in ordersResult.data && Array.isArray(ordersResult.data.data)) {
           recentOrders = ordersResult.data.data.map((order: any) => ({
             id: order.id,
             status: order.status,

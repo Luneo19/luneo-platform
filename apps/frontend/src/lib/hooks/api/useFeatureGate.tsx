@@ -75,8 +75,16 @@ export function useQuotaGate(metric: 'designs' | 'renders2D' | 'renders3D' | 'st
   };
 
   const limitKey = metricMap[metric];
-  const limit = subscription?.limits[limitKey];
-  const currentUsage = subscription?.currentUsage?.[metric === 'designs' ? 'designs' : metric === 'teamMembers' ? 'teamMembers' : metric === 'storage' ? 'storageGB' : 0] || 0;
+  const limit = subscription?.limits?.[limitKey];
+  const usage = (subscription?.currentUsage || {}) as {
+    designs?: number;
+    renders2D?: number;
+    renders3D?: number;
+    storageGB?: number;
+    apiCalls?: number;
+    teamMembers?: number;
+  };
+  const currentUsage = (metric === 'designs' ? usage.designs : metric === 'teamMembers' ? usage.teamMembers : metric === 'storage' ? usage.storageGB : metric === 'renders2D' ? usage.renders2D : metric === 'renders3D' ? usage.renders3D : metric === 'apiCalls' ? usage.apiCalls : 0) || 0;
 
   // -1 = illimité
   const hasUnlimited = limit === -1;

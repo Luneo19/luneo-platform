@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Zap, Crown, Building2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { useUpgradePrompt, type PlanTier } from '@/lib/hooks/api/useFeatureGate';
+import { useUpgradePrompt } from '@/lib/hooks/api/useFeatureGate';
+import type { PlanTier } from '@/lib/hooks/api/useSubscription';
 import { cn } from '@/lib/utils';
 
 interface UpgradePromptProps {
