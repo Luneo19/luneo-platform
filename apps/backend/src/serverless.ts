@@ -89,7 +89,7 @@ async function createApp(): Promise<express.Application> {
   logger.log(`CORS: Configuré avec ${allowedOrigins.length} origines: ${allowedOrigins.join(', ')}`);
   
   // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
-  server.use((req, res, next) => {
+  server.use((req, res, next): void => {
     const origin = req.headers.origin;
     
     // Déterminer l'origine autorisée
@@ -115,7 +115,8 @@ async function createApp(): Promise<express.Application> {
     
     // Gérer les requêtes OPTIONS (preflight) - répondre AVANT NestJS
     if (req.method === 'OPTIONS') {
-      return res.status(204).end();
+      res.status(204).end();
+      return;
     }
     
     next();

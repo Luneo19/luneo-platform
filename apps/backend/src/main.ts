@@ -98,38 +98,39 @@ async function bootstrap() {
     
     logger.log(`CORS: Configuré avec ${allowedOrigins.length} origines: ${allowedOrigins.join(', ')}`);
     
-    // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
-    server.use((req, res, next) => {
-      const origin = req.headers.origin;
-      
-      // Déterminer l'origine autorisée
-      let allowedOrigin: string | null = null;
-      if (allowedOrigins.includes('*')) {
-        allowedOrigin = '*';
-      } else if (origin && allowedOrigins.includes(origin)) {
-        allowedOrigin = origin;
-      } else if (origin && allowedOrigins.some(allowed => origin === allowed)) {
-        allowedOrigin = origin;
-      }
-      
-      // Ne définir le header QUE si une origine est autorisée
-      if (allowedOrigin) {
-        // Supprimer tout header CORS existant pour éviter les doublons
-        res.removeHeader('Access-Control-Allow-Origin');
-        res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
-        res.setHeader('Access-Control-Max-Age', '86400');
-      }
-      
-      // Gérer les requêtes OPTIONS (preflight) - répondre AVANT NestJS
-      if (req.method === 'OPTIONS') {
-        return res.status(204).end();
-      }
-      
-      next();
-    });
+  // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
+  server.use((req, res, next): void => {
+    const origin = req.headers.origin;
+    
+    // Déterminer l'origine autorisée
+    let allowedOrigin: string | null = null;
+    if (allowedOrigins.includes('*')) {
+      allowedOrigin = '*';
+    } else if (origin && allowedOrigins.includes(origin)) {
+      allowedOrigin = origin;
+    } else if (origin && allowedOrigins.some(allowed => origin === allowed)) {
+      allowedOrigin = origin;
+    }
+    
+    // Ne définir le header QUE si une origine est autorisée
+    if (allowedOrigin) {
+      // Supprimer tout header CORS existant pour éviter les doublons
+      res.removeHeader('Access-Control-Allow-Origin');
+      res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+    
+    // Gérer les requêtes OPTIONS (preflight) - répondre AVANT NestJS
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+    
+    next();
+  });
     
     // Security middleware - production ready configuration
     app.use(helmet({
