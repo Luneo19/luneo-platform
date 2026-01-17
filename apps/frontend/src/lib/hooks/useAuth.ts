@@ -18,6 +18,7 @@ export function useCurrentUser() {
 
 /**
  * Hook for login mutation
+ * ✅ Uses httpOnly cookies - no localStorage needed
  */
 export function useLogin() {
   const router = useRouter();
@@ -26,16 +27,18 @@ export function useLogin() {
   return useMutation<AuthSessionResponse, Error, LoginCredentials>({
     mutationFn: (credentials: LoginCredentials) => endpoints.auth.login(credentials),
     onSuccess: (data) => {
-      // Store access token
-      if (data.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-      }
+      // ✅ Tokens are in httpOnly cookies (set by backend)
+      // Cookies are automatically sent with each request via withCredentials: true
+      // No need to store in localStorage - backend handles auth via cookies
       
-      // Store user data
+      // Store user data in React Query cache only
       if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
         queryClient.setQueryData(['auth', 'me'], data.user);
       }
+
+      // Cleanup any old localStorage tokens (migration from old system)
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
 
       // Redirect to overview
       router.push('/overview');
@@ -51,6 +54,7 @@ export function useLogin() {
 
 /**
  * Hook for register mutation
+ * ✅ Uses httpOnly cookies - no localStorage needed
  */
 export function useRegister() {
   const router = useRouter();
@@ -59,16 +63,18 @@ export function useRegister() {
   return useMutation<AuthSessionResponse, Error, RegisterData>({
     mutationFn: (data: RegisterData) => endpoints.auth.register(data),
     onSuccess: (data) => {
-      // Store access token
-      if (data.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-      }
+      // ✅ Tokens are in httpOnly cookies (set by backend)
+      // Cookies are automatically sent with each request via withCredentials: true
+      // No need to store in localStorage - backend handles auth via cookies
       
-      // Store user data
+      // Store user data in React Query cache only
       if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
         queryClient.setQueryData(['auth', 'me'], data.user);
       }
+
+      // Cleanup any old localStorage tokens (migration from old system)
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
 
       // Redirect to overview
       router.push('/overview');

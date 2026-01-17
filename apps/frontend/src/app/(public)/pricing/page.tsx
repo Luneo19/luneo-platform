@@ -44,6 +44,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { usePricingPlans } from '@/lib/hooks/useMarketingData';
+import { useAuth } from '@/hooks/useAuth';
+import { logger } from '@/lib/logger';
+import { Loader2 } from 'lucide-react';
 
 // ============================================
 // TYPES
@@ -78,9 +81,9 @@ type Plan = {
   id: PlanTier;
   name: string;
   description: string;
-  priceMonthly: number;
-  priceYearly: number;
-  priceYearlyMonthly: number;
+  priceMonthly: number | null;
+  priceYearly: number | null;
+  priceYearlyMonthly: number | null;
   currency: string;
   popular?: boolean;
   badge?: string;
@@ -201,9 +204,9 @@ const PLANS: Plan[] = [
     id: 'enterprise',
     name: 'Enterprise',
     description: 'Solution sur-mesure pour les grandes organisations',
-    priceMonthly: 0,
-    priceYearly: 0,
-    priceYearlyMonthly: 0,
+    priceMonthly: null, // Sur demande
+    priceYearly: null, // Sur demande
+    priceYearlyMonthly: null, // Sur demande
     currency: 'EUR',
     cta: 'Contacter les ventes',
     ctaHref: '/contact?type=enterprise',
@@ -475,11 +478,49 @@ const FAQS = [
 // COMPONENTS
 // ============================================
 
-function PlanCard({ plan, isYearly }: { plan: Plan; isYearly: boolean }) {
+function PlanCard({ plan, isYearly, onCheckout }: { plan: Plan; isYearly: boolean; onCheckout: (planId: string) => Promise<void> }) {
+  const [isLoading, setIsLoading] = useState(false);
   const price = isYearly ? plan.priceYearlyMonthly : plan.priceMonthly;
-  const displayPrice = price === 0 ? 'Gratuit' : `${price}€`;
-  const period = price === 0 ? '' : '/mois';
-  const yearlyNote = isYearly && price > 0 ? `Facturé ${plan.priceYearly}€/an` : null;
+  const displayPrice = price === null || price === undefined 
+    ? 'Sur demande' 
+    : price === 0 
+    ? 'Gratuit' 
+    : `${price}€`;
+  const period = (price === null || price === undefined || price === 0) ? '' : '/mois';
+  const yearlyNote = isYearly && price && price > 0 ? `Facturé ${plan.priceYearly}€/an` : null;
+
+  const handleClick = async () => {
+    // Si plan gratuit (Starter) ou Enterprise, rediriger vers register/contact
+    if (plan.id === 'starter') {
+      window.location.href = plan.ctaHref || '/register';
+      return;
+    }
+    
+    if (plan.id === 'enterprise') {
+      window.location.href = plan.ctaHref || '/contact?type=enterprise';
+      return;
+    }
+
+    // Pour les plans payants, créer la session Stripe Checkout
+    setIsLoading(true);
+    try {
+      await onCheckout(plan.id);
+    } catch (error: any) {
+      logger.error('Erreur lors de la création de la session checkout', error);
+      const errorMessage = error?.message || error?.error || 'Une erreur est survenue. Veuillez réessayer.';
+      
+      // Afficher un message d'erreur plus informatif
+      if (errorMessage.includes('rate limit') || errorMessage.includes('max requests')) {
+        alert('Trop de requêtes. Veuillez patienter quelques instants avant de réessayer.');
+      } else if (errorMessage.includes('Configuration') || errorMessage.includes('Stripe')) {
+        alert('Erreur de configuration. Veuillez contacter le support.');
+      } else {
+        alert(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <motion
@@ -512,25 +553,32 @@ function PlanCard({ plan, isYearly }: { plan: Plan; isYearly: boolean }) {
         {yearlyNote && (
           <p className="mt-1 text-sm text-gray-500">{yearlyNote}</p>
         )}
-        {isYearly && price > 0 && (
+        {isYearly && price !== null && price !== undefined && price > 0 && (
           <p className="mt-1 text-sm text-green-600 font-medium">
             Économisez 20% avec l'abonnement annuel
           </p>
         )}
       </div>
 
-      <Link href={plan.ctaHref || '/register'}>
-        <Button
-          className={`w-full ${
-            plan.popular
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-gray-900 hover:bg-gray-800 text-white'
-          }`}
-          size="lg"
-        >
-          {plan.cta}
-        </Button>
-      </Link>
+      <Button
+        onClick={handleClick}
+        disabled={isLoading}
+        className={`w-full ${
+          plan.popular
+            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+            : 'bg-gray-900 hover:bg-gray-800 text-white'
+        }`}
+        size="lg"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Chargement...
+          </>
+        ) : (
+          plan.cta
+        )}
+      </Button>
 
       <ul className="mt-8 space-y-4">
         {plan.features.map((feature, index) => (
@@ -544,89 +592,134 @@ function PlanCard({ plan, isYearly }: { plan: Plan; isYearly: boolean }) {
   );
 }
 
-function FeatureTable({ features, category }: { features: Feature[]; category?: FeatureCategory }) {
-  const filteredFeatures = category
-    ? features.filter((f) => f.category === category)
-    : features;
+function FeatureTable({ features }: { features: Feature[] }) {
+  const [selectedCategory, setSelectedCategory] = useState<FeatureCategory | 'all'>('all');
+  
+  const categories: Array<{ id: FeatureCategory | 'all'; name: string }> = [
+    { id: 'all', name: 'Toutes' },
+    { id: 'platform', name: 'Plateforme' },
+    { id: 'customization', name: 'Personnalisation' },
+    { id: 'ai', name: 'IA' },
+    { id: '3d', name: '3D' },
+    { id: 'ar', name: 'AR' },
+    { id: 'export', name: 'Export' },
+    { id: 'integrations', name: 'Intégrations' },
+    { id: 'collaboration', name: 'Collaboration' },
+    { id: 'security', name: 'Sécurité' },
+    { id: 'support', name: 'Support' },
+  ];
+
+  const filteredFeatures = selectedCategory === 'all'
+    ? features
+    : features.filter((f) => f.category === selectedCategory);
 
   return (
     <div className="overflow-x-auto">
+      {/* Filtres par catégorie */}
+      <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.id)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                selectedCategory === category.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {category.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-gray-200">
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+          <tr className="border-b border-gray-200 bg-gray-50">
+            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
               Fonctionnalité
             </th>
-            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Starter</th>
-            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">
+            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">Starter</th>
+            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
               Professional
             </th>
-            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Business</th>
-            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">
+            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">Business</th>
+            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
               Enterprise
             </th>
           </tr>
         </thead>
         <tbody>
-          {filteredFeatures.map((feature) => (
-            <tr key={feature.id} className="border-b border-gray-100 hover:bg-gray-50">
-              <td className="px-4 py-4">
-                <div className="flex items-center">
-                  <span className="text-sm font-medium text-gray-900">{feature.name}</span>
-                  {feature.description && (
-                    <Info className="ml-2 h-4 w-4 text-gray-400" />
-                  )}
-                </div>
-                {feature.description && (
-                  <p className="mt-1 text-xs text-gray-500">{feature.description}</p>
-                )}
-              </td>
-              <td className="px-4 py-4 text-center">
-                {typeof feature.starter === 'boolean' ? (
-                  feature.starter ? (
-                    <Check className="mx-auto h-5 w-5 text-green-500" />
-                  ) : (
-                    <X className="mx-auto h-5 w-5 text-gray-300" />
-                  )
-                ) : (
-                  <span className="text-sm text-gray-700">{feature.starter}</span>
-                )}
-              </td>
-              <td className="px-4 py-4 text-center">
-                {typeof feature.professional === 'boolean' ? (
-                  feature.professional ? (
-                    <Check className="mx-auto h-5 w-5 text-green-500" />
-                  ) : (
-                    <X className="mx-auto h-5 w-5 text-gray-300" />
-                  )
-                ) : (
-                  <span className="text-sm text-gray-700">{feature.professional}</span>
-                )}
-              </td>
-              <td className="px-4 py-4 text-center">
-                {typeof feature.business === 'boolean' ? (
-                  feature.business ? (
-                    <Check className="mx-auto h-5 w-5 text-green-500" />
-                  ) : (
-                    <X className="mx-auto h-5 w-5 text-gray-300" />
-                  )
-                ) : (
-                  <span className="text-sm text-gray-700">{feature.business}</span>
-                )}
-              </td>
-              <td className="px-4 py-4 text-center">
-                {typeof feature.enterprise === 'boolean' ? (
-                  feature.enterprise ? (
-                    <Check className="mx-auto h-5 w-5 text-green-500" />
-                  ) : (
-                    <X className="mx-auto h-5 w-5 text-gray-300" />
-                  )
-                ) : (
-                  <span className="text-sm text-gray-700">{feature.enterprise}</span>
-                )}
+          {filteredFeatures.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                Aucune fonctionnalité dans cette catégorie
               </td>
             </tr>
-          ))}
+          ) : (
+            filteredFeatures.map((feature) => (
+              <tr key={feature.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4">
+                  <div className="flex items-center">
+                    <span className="text-sm font-medium text-gray-900">{feature.name}</span>
+                    {feature.description && (
+                      <div className="group relative ml-2">
+                        <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10">
+                          {feature.description}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {typeof feature.starter === 'boolean' ? (
+                    feature.starter ? (
+                      <Check className="mx-auto h-5 w-5 text-green-500" />
+                    ) : (
+                      <X className="mx-auto h-5 w-5 text-gray-300" />
+                    )
+                  ) : (
+                    <span className="text-sm text-gray-700 font-medium">{feature.starter}</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {typeof feature.professional === 'boolean' ? (
+                    feature.professional ? (
+                      <Check className="mx-auto h-5 w-5 text-green-500" />
+                    ) : (
+                      <X className="mx-auto h-5 w-5 text-gray-300" />
+                    )
+                  ) : (
+                    <span className="text-sm text-gray-700 font-medium">{feature.professional}</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {typeof feature.business === 'boolean' ? (
+                    feature.business ? (
+                      <Check className="mx-auto h-5 w-5 text-green-500" />
+                    ) : (
+                      <X className="mx-auto h-5 w-5 text-gray-300" />
+                    )
+                  ) : (
+                    <span className="text-sm text-gray-700 font-medium">{feature.business}</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {typeof feature.enterprise === 'boolean' ? (
+                    feature.enterprise ? (
+                      <Check className="mx-auto h-5 w-5 text-green-500" />
+                    ) : (
+                      <X className="mx-auto h-5 w-5 text-gray-300" />
+                    )
+                  ) : (
+                    <span className="text-sm text-gray-700 font-medium">{feature.enterprise}</span>
+                  )}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
@@ -670,6 +763,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 function PricingPageContent() {
   const [isYearly, setIsYearly] = useState(true);
   const [openFAQIndex, setOpenFAQIndex] = useState<number | null>(null);
+  const { user } = useAuth();
 
   const { plans: apiPlans, loading, stripeEnabled } = usePricingPlans({
     interval: isYearly ? 'yearly' : 'monthly',
@@ -684,11 +778,14 @@ function PricingPageContent() {
     return PLANS.map((staticPlan) => {
       const apiPlan = apiPlans.find((p: any) => p.id === staticPlan.id);
       if (apiPlan) {
-        return {
-          ...staticPlan,
-          priceMonthly: apiPlan.price?.monthly ?? staticPlan.priceMonthly,
-          priceYearly: apiPlan.price?.yearly ?? staticPlan.priceYearly,
-        };
+      return {
+        ...staticPlan,
+        priceMonthly: apiPlan.price?.monthly ?? staticPlan.priceMonthly ?? null,
+        priceYearly: apiPlan.price?.yearly ?? staticPlan.priceYearly ?? null,
+        priceYearlyMonthly: apiPlan.price?.yearly 
+          ? Math.round((apiPlan.price.yearly / 12) * 100) / 100 
+          : staticPlan.priceYearlyMonthly ?? null,
+      };
       }
       return staticPlan;
     });
@@ -697,6 +794,43 @@ function PricingPageContent() {
   const toggleFAQ = useCallback((index: number) => {
     setOpenFAQIndex((prev) => (prev === index ? null : index));
   }, []);
+
+  // Fonction pour créer la session Stripe Checkout
+  const handleCheckout = useCallback(async (planId: string) => {
+    try {
+      // Créer la session checkout (fonctionne pour utilisateurs connectés ou non)
+      // Stripe collectera l'email si l'utilisateur n'est pas connecté
+      const response = await fetch('/api/billing/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          planId,
+          email: user?.email, // Email optionnel, Stripe le demandera si manquant
+          billing: isYearly ? 'yearly' : 'monthly',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la création de la session');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success || !result.data?.url) {
+        throw new Error(result.message || 'Réponse invalide du serveur');
+      }
+
+      // Rediriger vers Stripe Checkout
+      window.location.href = result.data.url;
+    } catch (error) {
+      logger.error('Erreur checkout Stripe', error);
+      throw error;
+    }
+  }, [user, isYearly]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -749,7 +883,7 @@ function PricingPageContent() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
             {mergedPlans.map((plan) => (
-              <PlanCard key={plan.id} plan={plan} isYearly={isYearly} />
+              <PlanCard key={plan.id} plan={plan} isYearly={isYearly} onCheckout={handleCheckout} />
             ))}
           </div>
         </div>

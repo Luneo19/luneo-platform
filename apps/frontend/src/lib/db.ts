@@ -19,7 +19,6 @@ let dbInstance: any;
 function getPrismaClient() {
   if (!PrismaClient) {
     try {
-      // @ts-expect-error - Prisma Client may not be generated at build time, but will be available at runtime
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       const prismaModule = require('@prisma/client');
       PrismaClient = prismaModule.PrismaClient;

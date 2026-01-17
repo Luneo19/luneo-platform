@@ -93,26 +93,42 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Try to refresh the access token
+        // ✅ Refresh token is in httpOnly cookie (sent automatically with withCredentials: true)
+        // Backend reads refreshToken from cookie OR body - we send empty body, cookie is sent automatically
         const refreshResponse = await axios.post(
           `${API_BASE_URL}/api/v1/auth/refresh`,
-          {},
-          { withCredentials: true }
+          {}, // Empty body - refreshToken is in httpOnly cookie
+          { 
+            withCredentials: true, // ✅ Required to send httpOnly cookies
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
         );
 
-        // New tokens are in httpOnly cookies (set by backend)
-        // No need to store in localStorage
+        // ✅ New tokens are in httpOnly cookies (set by backend automatically)
+        // No need to store in localStorage - cookies are automatically sent with next requests
         // Cookies are automatically sent with retry request via withCredentials: true
         
-        // Retry original request - cookies will be sent automatically
+        // Cleanup any old localStorage tokens (migration from old system)
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+        }
+        
+        // Retry original request - cookies will be sent automatically via withCredentials: true
         return apiClient(originalRequest);
       } catch (refreshError) {
         // Refresh failed - redirect to login
-        // Cookies are cleared by backend on logout
+        // Cookies will be cleared by backend on logout
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken'); // Cleanup fallback
+          // Cleanup localStorage (migration from old system)
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          
+          // Redirect to login - backend will handle cookie cleanup
+          window.location.href = '/login?session=expired';
         }
         return Promise.reject(refreshError);
       }

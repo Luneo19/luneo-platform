@@ -10,6 +10,18 @@ export const CreateCheckoutSessionSchema = z.object({
   }),
   email: z.string().email('Email invalide').optional(),
   billing: z.enum(['monthly', 'yearly']).default('monthly'),
+  addOns: z.array(
+    z.object({
+      type: z.enum([
+        'extra-designs',
+        'extra-storage',
+        'extra-team-members',
+        'extra-api-calls',
+        'extra-renders-3d',
+      ]),
+      quantity: z.number().int().positive().default(1),
+    })
+  ).optional(),
 });
 
 export const UpdateSubscriptionSchema = z.object({

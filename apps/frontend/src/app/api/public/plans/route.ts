@@ -29,10 +29,7 @@ const DEFAULT_PLANS = [
       teamMembers: 3,
     },
     popular: false,
-    stripePriceId: {
-      monthly: 'price_1SY2bqKG9MsM6fdSlgkR5hNX',
-      yearly: 'price_1SY2bxKG9MsM6fdSe78TX8fZ',
-    },
+    stripePriceId: null, // Starter est gratuit
   },
   {
     id: 'professional',
@@ -64,8 +61,8 @@ const DEFAULT_PLANS = [
     },
     popular: true,
     stripePriceId: {
-      monthly: 'price_1SY2cEKG9MsM6fdSTKND31Ti',
-      yearly: 'price_1SY2cEKG9MsM6fdSDKL1gPye',
+      monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || 'price_1SqLIkKG9MsM6fdSt59Vg3F1',
+      yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY || 'price_1SqLIlKG9MsM6fdSDh9Xya8V',
     },
   },
   {
@@ -96,8 +93,8 @@ const DEFAULT_PLANS = [
     },
     popular: false,
     stripePriceId: {
-      monthly: 'price_1SY2cTKG9MsM6fdSwoQu1S5I',
-      yearly: 'price_1SY2cUKG9MsM6fdShCcJvXO7',
+      monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || 'price_1SqLImKG9MsM6fdS9rmCQyIE',
+      yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY || 'price_1SqLImKG9MsM6fdSO6ihDDpO',
     },
   },
   {

@@ -23,20 +23,42 @@ const requestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const body = await request.json();
-    const validation = requestSchema.safeParse(body);
+    try {
+      const body = await request.json();
+      const validation = requestSchema.safeParse(body);
 
-    if (!validation.success) {
-      throw {
-        status: 400,
-        message: 'Validation failed',
-        code: 'VALIDATION_ERROR',
-        details: validation.error.issues,
-      };
+      if (!validation.success) {
+        throw {
+          status: 400,
+          message: 'Validation failed',
+          code: 'VALIDATION_ERROR',
+          details: validation.error.issues,
+        };
+      }
+
+      // Pour l'instant, on accepte et on log (backend pas encore implémenté)
+      logger.info('Web vitals received', {
+        metric: validation.data.name,
+        value: validation.data.value,
+        rating: validation.data.rating,
+      });
+
+      // Retourner succès sans forwarder (backend pas encore prêt)
+      return ApiResponseBuilder.success({ 
+        received: true,
+        timestamp: new Date().toISOString(),
+      }, 'Web vitals received', 201);
+    } catch (error: any) {
+      // Si erreur de parsing JSON, retourner succès quand même (ne pas bloquer)
+      if (error.status === 400 && error.code === 'VALIDATION_ERROR') {
+        throw error;
+      }
+      logger.warn('Web vitals error (non-blocking)', error);
+      return ApiResponseBuilder.success({ 
+        received: true,
+        timestamp: new Date().toISOString(),
+      }, 'Web vitals received', 201);
     }
-
-    const result = await forwardPost('/analytics/web-vitals', request, validation.data);
-    return ApiResponseBuilder.success(result.data);
   }, '/api/analytics/web-vitals', 'POST');
 }
 

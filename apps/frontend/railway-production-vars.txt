@@ -1,0 +1,32 @@
+# ==========================================
+# Variables d'environnement RAILWAY (Production)
+# ==========================================
+# Commandes pour ajouter dans Railway :
+#
+# railway variables set STRIPE_SECRET_KEY="sk_live_..." --service backend
+# ...
+
+# --- Stripe Configuration (Backend) ---
+# railway variables set STRIPE_SECRET_KEY="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" --service backend
+# railway variables set STRIPE_WEBHOOK_SECRET="whsec_rgKvTaCDRSLV6Iv6yrF8fNBh9c2II3uu" --service backend
+# railway variables set STRIPE_PRODUCT_PROFESSIONAL="prod_TnxDl4p9a6eSNI" --service backend
+# railway variables set STRIPE_PRICE_PROFESSIONAL_MONTHLY="price_1SqLIkKG9MsM6fdSt59Vg3F1" --service backend
+# railway variables set STRIPE_PRICE_PROFESSIONAL_YEARLY="price_1SqLIlKG9MsM6fdSDh9Xya8V" --service backend
+# railway variables set STRIPE_PRODUCT_BUSINESS="prod_TnxDPQxSdrgqXZ" --service backend
+# railway variables set STRIPE_PRICE_BUSINESS_MONTHLY="price_1SqLImKG9MsM6fdS9rmCQyIE" --service backend
+# railway variables set STRIPE_PRICE_BUSINESS_YEARLY="price_1SqLImKG9MsM6fdSO6ihDDpO" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_DESIGNS_PRODUCT_ID="prod_TnxDw9ptrsLGmv" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_DESIGNS_MONTHLY="price_1SqLInKG9MsM6fdSwzWbxxIC" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_DESIGNS_YEARLY="price_1SqLInKG9MsM6fdSzTnYtCYU" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_STORAGE_PRODUCT_ID="prod_TnxDwoZUIpmyWS" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_STORAGE_MONTHLY="price_1SqLIoKG9MsM6fdS6jlwiSOH" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_STORAGE_YEARLY="price_1SqLIoKG9MsM6fdSj1m67Kje" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_TEAM_MEMBERS_PRODUCT_ID="prod_TnxDmSWBs4qQAa" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_TEAM_MEMBERS_MONTHLY="price_1SqLIpKG9MsM6fdSx383a4oO" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_TEAM_MEMBERS_YEARLY="price_1SqLIpKG9MsM6fdSOuEfX04V" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_API_CALLS_PRODUCT_ID="prod_TnxDLgYLS6utW5" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_API_CALLS_MONTHLY="price_1SqLIqKG9MsM6fdSqkPAOLfL" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_API_CALLS_YEARLY="price_1SqLIqKG9MsM6fdS9NX7mAA9" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_RENDERS_3D_PRODUCT_ID="prod_TnxDyUIRrIkvjh" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_RENDERS_3D_MONTHLY="price_1SqLIrKG9MsM6fdSOmW1WjM9" --service backend
+# railway variables set STRIPE_ADDON_EXTRA_RENDERS_3D_YEARLY="price_1SqLIrKG9MsM6fdSt9h1vXh5" --service backend
