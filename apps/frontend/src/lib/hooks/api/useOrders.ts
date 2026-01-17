@@ -83,11 +83,12 @@ export function useOrder(
 ) {
   return useQuery<Order>({
     queryKey: ['orders', 'detail', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Order> => {
       if (!id) throw new Error('Order ID is required');
       
       try {
-        return await endpoints.orders.get(id);
+        const result = await endpoints.orders.get(id) as unknown;
+        return result as Order;
       } catch (error) {
         logger.error('Failed to fetch order', { error, id });
         throw error;
