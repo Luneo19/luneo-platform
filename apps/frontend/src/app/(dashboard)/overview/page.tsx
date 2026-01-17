@@ -564,7 +564,7 @@ export default function DashboardPage() {
                       transition={{ delay: index * 0.05 }}
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-colors cursor-pointer"
                     >
-                      {activity.image ? (
+                      {'image' in activity && activity.image ? (
                         <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
                           <Image
                             src={activity.image}
