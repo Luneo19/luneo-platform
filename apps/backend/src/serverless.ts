@@ -80,13 +80,49 @@ async function createApp(): Promise<express.Application> {
   // Cookie parser
   app.use(cookieParser());
 
-  // CORS
-  app.enableCors({
-    origin: configService.get('app.corsOrigin') || '*',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+  // CORS - Gérer manuellement AVANT tous les autres middlewares pour éviter les conflits
+  const corsOrigin = configService.get('app.corsOrigin') || '*';
+  const allowedOrigins = corsOrigin.includes(',') 
+    ? corsOrigin.split(',').map((o: string) => o.trim()).filter(Boolean)
+    : corsOrigin === '*' ? ['*'] : [corsOrigin];
+  
+  logger.log(`CORS: Configuré avec ${allowedOrigins.length} origines: ${allowedOrigins.join(', ')}`);
+  
+  // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
+  server.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    // Déterminer l'origine autorisée
+    let allowedOrigin: string | null = null;
+    if (allowedOrigins.includes('*')) {
+      allowedOrigin = '*';
+    } else if (origin && allowedOrigins.includes(origin)) {
+      allowedOrigin = origin;
+    } else if (origin && allowedOrigins.some((allowed: string) => origin === allowed)) {
+      allowedOrigin = origin;
+    }
+    
+    // Ne définir le header QUE si une origine est autorisée
+    if (allowedOrigin) {
+      // Supprimer tout header CORS existant pour éviter les doublons
+      res.removeHeader('Access-Control-Allow-Origin');
+      res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+    
+    // Gérer les requêtes OPTIONS (preflight) - répondre AVANT NestJS
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
+    
+    next();
   });
+  
+  // IMPORTANT: Ne PAS appeler app.enableCors() car CORS est géré manuellement avec Express
+  // Cela évite les conflits et les doublons de headers
 
   // Global validation pipe
   app.useGlobalPipes(
