@@ -323,6 +323,10 @@ export class BillingService {
     }
   }
 
+  /**
+   * ✅ Get subscription information for user
+   * Returns SubscriptionInfo with plan, limits, and usage
+   */
   async getSubscription(userId: string) {
     try {
       // Récupérer le brand de l'utilisateur
@@ -332,29 +336,78 @@ export class BillingService {
       });
 
       if (!user?.brandId || !user.brand) {
+        // Pas de brand = plan gratuit par défaut
         return {
-          subscription: {
-            tier: 'free',
-            status: 'inactive',
-            period: null,
-            stripe: {
-              customerId: null,
-              subscriptionId: null,
-              currentPeriodEnd: null,
-              cancelAtPeriodEnd: false,
-            },
+          plan: 'starter' as const,
+          status: 'active' as const,
+          limits: {
+            designsPerMonth: 50,
+            teamMembers: 3,
+            storageGB: 5,
+            apiAccess: false,
+            advancedAnalytics: false,
+            prioritySupport: false,
+            customExport: false,
+            whiteLabel: false,
+          },
+          currentUsage: {
+            designs: 0,
+            renders2D: 0,
+            renders3D: 0,
+            storageGB: 0,
+            apiCalls: 0,
+            teamMembers: 1,
           },
         };
       }
 
       const brand = user.brand;
-      let stripeSubscription: Stripe.Subscription | null = null;
+      
+      // Déterminer le plan depuis brand.plan ou subscriptionPlan
+      const planFromDb = brand.plan?.toLowerCase() || brand.subscriptionPlan?.toLowerCase() || 'starter';
+      
+      // Mapper SubscriptionPlan enum vers PlanTier
+      const planMap: Record<string, 'starter' | 'professional' | 'business' | 'enterprise'> = {
+        'free': 'starter',
+        'starter': 'starter',
+        'professional': 'professional',
+        'business': 'business',
+        'enterprise': 'enterprise',
+      };
+      
+      const plan: 'starter' | 'professional' | 'business' | 'enterprise' = 
+        planMap[planFromDb] || 'starter';
+
+      // Déterminer le statut depuis subscriptionStatus ou Stripe
+      let status: 'active' | 'trialing' | 'past_due' | 'canceled' = 'active';
+      
+      if (brand.subscriptionStatus) {
+        const statusMap: Record<string, 'active' | 'trialing' | 'past_due' | 'canceled'> = {
+          'ACTIVE': 'active',
+          'TRIALING': 'trialing',
+          'PAST_DUE': 'past_due',
+          'CANCELED': 'canceled',
+        };
+        status = statusMap[brand.subscriptionStatus] || 'active';
+      }
 
       // Récupérer les détails depuis Stripe si subscription ID existe
+      let stripeSubscription: Stripe.Subscription | null = null;
       if (brand.stripeSubscriptionId) {
         try {
           const stripe = await this.getStripe();
           stripeSubscription = await stripe.subscriptions.retrieve(brand.stripeSubscriptionId);
+          
+          // Utiliser le statut Stripe si disponible
+          if (stripeSubscription.status === 'active') {
+            status = 'active';
+          } else if (stripeSubscription.status === 'trialing') {
+            status = 'trialing';
+          } else if (stripeSubscription.status === 'past_due') {
+            status = 'past_due';
+          } else if (stripeSubscription.status === 'canceled' || stripeSubscription.status === 'unpaid') {
+            status = 'canceled';
+          }
         } catch (stripeError) {
           this.logger.warn('Failed to retrieve Stripe subscription', {
             subscriptionId: brand.stripeSubscriptionId,
@@ -364,22 +417,99 @@ export class BillingService {
         }
       }
 
-      return {
-        subscription: {
-          tier: brand.plan || 'free',
-          status: stripeSubscription?.status === 'active' ? 'active' : stripeSubscription?.status === 'canceled' ? 'cancelled' : 'inactive',
-          period: stripeSubscription?.current_period_end
-            ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
-            : null,
-          stripe: {
-            customerId: brand.stripeCustomerId ? `***${brand.stripeCustomerId.slice(-4)}` : null,
-            subscriptionId: brand.stripeSubscriptionId ? `***${brand.stripeSubscriptionId.slice(-4)}` : null,
-            currentPeriodEnd: stripeSubscription?.current_period_end
-              ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
-              : null,
-            cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
-          },
+      // ✅ Définir les limites selon le plan (utiliser PlansService ou définir ici)
+      const planLimitsMap: Record<string, {
+        designsPerMonth: number | -1;
+        teamMembers: number | -1;
+        storageGB: number | -1;
+        apiAccess: boolean;
+        advancedAnalytics: boolean;
+        prioritySupport: boolean;
+        customExport: boolean;
+        whiteLabel: boolean;
+      }> = {
+        starter: {
+          designsPerMonth: 50,
+          teamMembers: 3,
+          storageGB: 5,
+          apiAccess: false,
+          advancedAnalytics: false,
+          prioritySupport: false,
+          customExport: false,
+          whiteLabel: false,
         },
+        professional: {
+          designsPerMonth: 200,
+          teamMembers: 10,
+          storageGB: 25,
+          apiAccess: true,
+          advancedAnalytics: false,
+          prioritySupport: true,
+          customExport: false,
+          whiteLabel: true,
+        },
+        business: {
+          designsPerMonth: 1000,
+          teamMembers: 50,
+          storageGB: 100,
+          apiAccess: true,
+          advancedAnalytics: true,
+          prioritySupport: true,
+          customExport: true,
+          whiteLabel: true,
+        },
+        enterprise: {
+          designsPerMonth: -1, // Illimité
+          teamMembers: -1,
+          storageGB: -1,
+          apiAccess: true,
+          advancedAnalytics: true,
+          prioritySupport: true,
+          customExport: true,
+          whiteLabel: true,
+        },
+      };
+
+      const limits = planLimitsMap[plan] || planLimitsMap.starter;
+
+      // ✅ Calculer l'usage actuel (simplifié - peut être amélioré avec UsageMeteringService)
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const [designsCount, teamMembersCount] = await Promise.all([
+        this.prisma.design.count({
+          where: {
+            brandId: brand.id,
+            createdAt: { gte: startOfMonth },
+          },
+        }),
+        this.prisma.user.count({
+          where: {
+            brandId: brand.id,
+          },
+        }),
+      ]);
+
+      // TODO: Récupérer l'usage réel depuis UsageMeteringService
+      const currentUsage = {
+        designs: designsCount,
+        renders2D: brand.monthlyGenerations || 0, // Approximation
+        renders3D: 0, // TODO: Calculer depuis usage_tracking
+        storageGB: 0, // TODO: Calculer depuis storage
+        apiCalls: 0, // TODO: Calculer depuis usage_tracking
+        teamMembers: teamMembersCount,
+      };
+
+      return {
+        plan,
+        status,
+        limits,
+        currentUsage,
+        expiresAt: brand.planExpiresAt?.toISOString() || 
+                   (stripeSubscription?.current_period_end 
+                     ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
+                     : undefined),
+        stripeSubscriptionId: brand.stripeSubscriptionId || undefined,
       };
     } catch (error) {
       this.logger.error('Error getting subscription', error, { userId });

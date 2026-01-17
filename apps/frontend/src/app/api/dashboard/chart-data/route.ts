@@ -23,9 +23,10 @@ export async function GET(request: NextRequest) {
     let backendData: any = null;
     
     try {
-      const result = await forwardGet('/analytics/dashboard', request, {
+      // ✅ Forward vers backend avec authentification (cookies httpOnly transmis automatiquement)
+      const result = await forwardGet('/v1/analytics/dashboard', request, {
         period: backendPeriod,
-      }, { requireAuth: false }); // Permettre sans auth pour le moment
+      }, { requireAuth: true }); // ✅ Auth requise via cookies httpOnly
       
       backendData = result.data;
     } catch (error: any) {

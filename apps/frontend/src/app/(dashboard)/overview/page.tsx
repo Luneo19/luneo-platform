@@ -43,8 +43,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useDashboardData } from '@/lib/hooks/useDashboardData';
-import { useChartData } from '@/lib/hooks/useChartData';
+// ✅ Use React Query hooks instead of old hooks
+import { useDashboardStats, useDashboardChartData } from '@/lib/hooks/api/useDashboard';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { DemoModeBanner } from '@/components/demo/DemoModeBanner';
 import { DemoModeToggle } from '@/components/demo/DemoModeToggle';
@@ -139,11 +139,88 @@ export default function DashboardPage() {
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const router = useRouter();
 
-  // Get real data from API
-  const { stats, recentActivity, topDesigns, loading, error, refresh } = useDashboardData(selectedPeriod);
-  const { chartData, loading: chartLoading } = useChartData(selectedPeriod);
+  // ✅ Use React Query hooks for dashboard data
+  const { data: dashboardStats, isLoading: statsLoading, error: statsError, refetch: refreshStats } = useDashboardStats(selectedPeriod);
+  const { data: chartData, isLoading: chartLoading } = useDashboardChartData(selectedPeriod);
   const { notifications, loading: notificationsLoading } = useNotifications(10);
   const { isDemoMode } = useDemoMode();
+
+  // Transform React Query data to match existing component expectations
+  const stats = useMemo(() => {
+    if (!dashboardStats?.overview) return [];
+    return [
+      {
+        title: 'Designs créés',
+        value: dashboardStats.overview.designs.toLocaleString('fr-FR'),
+        change: `+${dashboardStats.period.designs}`,
+        changeType: 'positive' as const,
+        icon: 'Palette',
+      },
+      {
+        title: 'Vues totales',
+        value: '0', // TODO: Récupérer depuis usage_tracking
+        change: '+0%',
+        changeType: 'positive' as const,
+        icon: 'Eye',
+      },
+      {
+        title: 'Téléchargements',
+        value: '0', // TODO: Récupérer depuis usage_tracking
+        change: '+0%',
+        changeType: 'positive' as const,
+        icon: 'Download',
+      },
+      {
+        title: 'Revenus',
+        value: `€${dashboardStats.period.revenue.toFixed(2)}`,
+        change: `+${dashboardStats.period.orders} commandes`,
+        changeType: dashboardStats.period.revenue > 0 ? 'positive' as const : 'negative' as const,
+        icon: 'DollarSign',
+      },
+    ];
+  }, [dashboardStats]);
+
+  const recentActivity = useMemo(() => {
+    if (!dashboardStats?.recent) return [];
+    return [
+      ...(dashboardStats.recent.designs?.slice(0, 3) || []).map((design) => ({
+        id: design.id,
+        type: 'design',
+        title: design.prompt || 'Design créé',
+        description: `Design ${design.status || 'créé'}`,
+        time: design.created_at,
+        status: design.status,
+        image: design.preview_url,
+      })),
+      ...(dashboardStats.recent.orders?.slice(0, 2) || []).map((order) => ({
+        id: order.id,
+        type: 'order',
+        title: `Commande ${order.status}`,
+        description: `Montant: €${order.total_amount.toFixed(2)}`,
+        time: order.created_at,
+        status: order.status,
+      })),
+    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5);
+  }, [dashboardStats]);
+
+  const topDesigns = useMemo(() => {
+    if (!dashboardStats?.recent?.designs) return [];
+    return dashboardStats.recent.designs.slice(0, 5).map((design) => ({
+      id: design.id,
+      title: design.prompt || 'Design sans titre',
+      image: design.preview_url || '/placeholder-design.jpg',
+      views: 0, // TODO: Récupérer depuis usage_tracking
+      likes: 0, // TODO: Récupérer depuis usage_tracking
+      created_at: design.created_at,
+    }));
+  }, [dashboardStats]);
+
+  const loading = statsLoading || chartLoading;
+  const error = statsError?.message || null;
+  
+  const refresh = useCallback(() => {
+    refreshStats();
+  }, [refreshStats]);
 
   // Fallback data si erreur mais on veut quand même afficher quelque chose
   const displayStats = stats.length > 0 ? stats : [

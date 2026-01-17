@@ -6,13 +6,22 @@ import { logger } from '@/lib/logger';
 
 /**
  * Hook to get current user
+ * ✅ Uses React Query with httpOnly cookies
  */
 export function useCurrentUser() {
   return useQuery<User>({
     queryKey: ['auth', 'me'],
-    queryFn: () => endpoints.auth.me(),
-    retry: false,
+    queryFn: async () => {
+      try {
+        return await endpoints.auth.me();
+      } catch (error) {
+        logger.error('Failed to fetch current user', { error });
+        throw error;
+      }
+    },
+    retry: false, // Ne pas retry sur 401 pour éviter les boucles
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true, // Refetch quand la fenêtre redevient active
   });
 }
 

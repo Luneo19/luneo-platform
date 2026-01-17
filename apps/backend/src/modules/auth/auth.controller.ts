@@ -9,6 +9,7 @@ import {
   Get,
   Res,
   Response,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Response as ExpressResponse } from 'express';
 import {
@@ -314,11 +315,12 @@ export class AuthController {
     @Request() req: any,
     @Res({ passthrough: false }) res: ExpressResponse,
   ) {
-    // Try to get refresh token from cookie first, then from body
+    // ✅ Try to get refresh token from cookie first, then from body
+    // This allows httpOnly cookies (preferred) or body (fallback)
     const refreshToken = req.cookies?.refreshToken || refreshTokenDto.refreshToken;
     
     if (!refreshToken) {
-      throw new Error('Refresh token not provided');
+      throw new UnauthorizedException('Refresh token not provided in cookie or body');
     }
     
     const result = await this.authService.refreshToken({ refreshToken });

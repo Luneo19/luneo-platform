@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { forwardGet } from '@/lib/backend-forward';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/dashboard/stats
@@ -21,18 +22,110 @@ export async function GET(request: NextRequest) {
       : 'last_30_days';
 
     try {
-      const result = await forwardGet('/analytics/dashboard', request, {
+      // ✅ Forward vers backend avec authentification (cookies httpOnly transmis automatiquement)
+      // Endpoint: /api/v1/analytics/dashboard (le /v1 est ajouté par getBackendUrl)
+      const analyticsResult = await forwardGet('/v1/analytics/dashboard', request, {
         period: backendPeriod,
-      }, { requireAuth: false }); // Permettre sans auth pour le moment
+      }, { requireAuth: true }); // ✅ Auth requise via cookies httpOnly
       
-      return result.data || {};
-    } catch (error: any) {
-      // Si erreur backend, retourner un objet vide avec structure minimale
+      const backendData = analyticsResult.data || {};
+      const metrics = backendData.metrics || {};
+      const charts = backendData.charts || {};
+      
+      // ✅ Récupérer designs et orders récents en parallèle pour compléter les données
+      let recentDesigns: any[] = [];
+      let recentOrders: any[] = [];
+      
+      try {
+        // Récupérer les 5 derniers designs
+        const designsResult = await forwardGet('/v1/designs', request, {
+          limit: 5,
+          page: 1,
+        }, { requireAuth: true });
+        
+        if (designsResult.success && designsResult.data?.data) {
+          recentDesigns = designsResult.data.data.map((design: any) => ({
+            id: design.id,
+            prompt: design.name || design.prompt || 'Design sans titre',
+            preview_url: design.imageUrl || design.previewUrl,
+            created_at: design.createdAt,
+            status: design.status,
+          }));
+        }
+      } catch (designError) {
+        logger.debug('Failed to fetch recent designs', { error: designError });
+        // Continuer sans designs récents
+      }
+      
+      try {
+        // Récupérer les 5 dernières commandes
+        const ordersResult = await forwardGet('/v1/orders', request, {
+          limit: 5,
+          page: 1,
+        }, { requireAuth: true });
+        
+        if (ordersResult.success && ordersResult.data?.data) {
+          recentOrders = ordersResult.data.data.map((order: any) => ({
+            id: order.id,
+            status: order.status,
+            total_amount: (order.totalCents || 0) / 100, // Convertir cents en euros
+            created_at: order.createdAt,
+          }));
+        }
+      } catch (orderError) {
+        logger.debug('Failed to fetch recent orders', { error: orderError });
+        // Continuer sans orders récents
+      }
+      
+      // Calculer orders depuis conversionRate et totalRenders si non disponible directement
+      // conversionRate = (orders / renders) * 100, donc orders = (conversionRate * renders) / 100
+      const estimatedOrders = metrics.conversionRate && metrics.totalRenders
+        ? Math.round((metrics.conversionRate * metrics.totalRenders) / 100)
+        : 0;
+      
+      // ✅ Transformer en format attendu par useDashboardData
       return {
-        totalDesigns: 0,
-        totalRenders: 0,
-        revenue: 0,
-        conversionRate: 0,
+        overview: {
+          designs: metrics.totalDesigns || 0,
+          orders: estimatedOrders,
+          products: 0, // TODO: Récupérer depuis backend si disponible
+          collections: 0, // TODO: Récupérer depuis backend si disponible
+        },
+        period: {
+          designs: metrics.totalDesigns || 0,
+          orders: estimatedOrders,
+          revenue: metrics.revenue || 0,
+          period: backendPeriod,
+        },
+        recent: {
+          designs: recentDesigns,
+          orders: recentOrders,
+        },
+      };
+    } catch (error: any) {
+      // Si erreur backend (401, 403, etc.), retourner structure vide mais cohérente
+      logger.warn('Backend dashboard request failed', {
+        error: error?.message || error,
+        period: backendPeriod,
+      });
+      
+      return {
+        overview: {
+          designs: 0,
+          orders: 0,
+          products: 0,
+          collections: 0,
+        },
+        period: {
+          designs: 0,
+          orders: 0,
+          revenue: 0,
+          period: backendPeriod,
+        },
+        recent: {
+          designs: [],
+          orders: [],
+        },
       };
     }
   }, '/api/dashboard/stats', 'GET');

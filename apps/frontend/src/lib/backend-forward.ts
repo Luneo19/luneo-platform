@@ -135,7 +135,14 @@ export async function forwardToBackend<T = unknown>(
       ...options.headers,
     };
     
-    // Ajouter le token seulement s'il existe
+    // ✅ Cookies httpOnly : transmettre les cookies de la requête Next.js au backend
+    // Le backend lit les tokens depuis les cookies httpOnly automatiquement
+    const cookieHeader = request.headers.get('cookie');
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+    }
+    
+    // Ajouter le token seulement s'il existe (fallback pour backward compatibility)
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

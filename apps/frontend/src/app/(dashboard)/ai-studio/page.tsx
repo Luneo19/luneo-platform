@@ -46,6 +46,8 @@ import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import OptimizedImage from '@/components/optimized/OptimizedImage';
 import Image from 'next/image';
+// ✅ Feature gating
+import { PlanGate, UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
 
 // AI Tools configuration
 const AI_TOOLS = [
@@ -300,6 +302,19 @@ function AIStudioPageContent() {
   const selectedToolConfig = AI_TOOLS.find((t) => t.id === selectedTool);
 
   return (
+    <PlanGate 
+      minimumPlan="professional"
+      fallback={
+        <div className="min-h-screen bg-slate-950 text-white p-6 flex items-center justify-center">
+          <UpgradePrompt 
+            requiredPlan="professional" 
+            feature="AI Studio"
+            description="L'AI Studio avec tous les outils de génération IA nécessite le plan Professional ou supérieur."
+            variant="default"
+          />
+        </div>
+      }
+    >
     <div className="min-h-screen bg-slate-950 text-white p-6">
       {/* Header */}
       <motion
@@ -714,6 +729,7 @@ function AIStudioPageContent() {
         </div>
       </div>
     </div>
+    </PlanGate>
   );
 }
 
