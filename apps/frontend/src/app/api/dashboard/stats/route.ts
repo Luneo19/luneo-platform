@@ -47,14 +47,17 @@ export async function GET(request: NextRequest) {
           page: 1,
         }, { requireAuth: true });
         
-        if (designsResult.success && designsResult.data && typeof designsResult.data === 'object' && 'data' in designsResult.data && Array.isArray(designsResult.data.data)) {
-          recentDesigns = designsResult.data.data.map((design: any) => ({
+        if (designsResult.success && designsResult.data) {
+          const designsData = designsResult.data as { data?: any[] };
+          if (designsData.data && Array.isArray(designsData.data)) {
+            recentDesigns = designsData.data.map((design: any) => ({
             id: design.id,
             prompt: design.name || design.prompt || 'Design sans titre',
             preview_url: design.imageUrl || design.previewUrl,
             created_at: design.createdAt,
             status: design.status,
-          }));
+            }));
+          }
         }
       } catch (designError) {
         logger.debug('Failed to fetch recent designs', { error: designError });
@@ -68,13 +71,16 @@ export async function GET(request: NextRequest) {
           page: 1,
         }, { requireAuth: true });
         
-        if (ordersResult.success && ordersResult.data && typeof ordersResult.data === 'object' && 'data' in ordersResult.data && Array.isArray(ordersResult.data.data)) {
-          recentOrders = ordersResult.data.data.map((order: any) => ({
+        if (ordersResult.success && ordersResult.data) {
+          const ordersData = ordersResult.data as { data?: any[] };
+          if (ordersData.data && Array.isArray(ordersData.data)) {
+            recentOrders = ordersData.data.map((order: any) => ({
             id: order.id,
             status: order.status,
             total_amount: (order.totalCents || 0) / 100, // Convertir cents en euros
             created_at: order.createdAt,
-          }));
+            }));
+          }
         }
       } catch (orderError) {
         logger.debug('Failed to fetch recent orders', { error: orderError });
