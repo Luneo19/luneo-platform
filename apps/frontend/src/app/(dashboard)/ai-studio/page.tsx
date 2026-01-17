@@ -47,7 +47,8 @@ import { createClient } from '@/lib/supabase/client';
 import OptimizedImage from '@/components/optimized/OptimizedImage';
 import Image from 'next/image';
 // ✅ Feature gating
-import { PlanGate, UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
+import { UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
 
 // AI Tools configuration
 const AI_TOOLS = [

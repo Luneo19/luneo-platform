@@ -463,9 +463,9 @@ export default function DashboardPage() {
                 
                 {/* Mini chart */}
                 <MiniBarChart 
-                  data={stat.title === 'Designs créés' ? chartData.designs :
-                        stat.title === 'Vues totales' ? chartData.views :
-                        stat.title === 'Revenus' ? chartData.revenue :
+                  data={stat.title === 'Designs créés' ? (chartData?.designs || []) :
+                        stat.title === 'Vues totales' ? (chartData?.views || []) :
+                        stat.title === 'Revenus' ? (chartData?.revenue || []) :
                         [15, 22, 18, 25, 20, 28, 24]} 
                   color={colors.chart}
                 />

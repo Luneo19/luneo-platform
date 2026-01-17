@@ -108,9 +108,9 @@ export function useCreateProduct(
   const queryClient = useQueryClient();
 
   return useMutation<Product, Error, any>({
-    mutationFn: async (data) => {
+    mutationFn: async (data): Promise<Product> => {
       try {
-        const result = await endpoints.products.create(data);
+        const result = await endpoints.products.create(data) as unknown;
         return result as Product;
       } catch (error) {
         logger.error('Failed to create product', { error, data });
@@ -134,9 +134,9 @@ export function useUpdateProduct(
   const queryClient = useQueryClient();
 
   return useMutation<Product, Error, { id: string; data: any }>({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data }): Promise<Product> => {
       try {
-        const result = await endpoints.products.update(id, data);
+        const result = await endpoints.products.update(id, data) as unknown;
         return result as Product;
       } catch (error) {
         logger.error('Failed to update product', { error, id, data });
