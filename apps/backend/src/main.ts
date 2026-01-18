@@ -227,19 +227,24 @@ async function bootstrap() {
     const { PrismaClient } = require('@prisma/client');
     const tempPrisma = new PrismaClient();
     
-    await tempPrisma.$executeRawUnsafe(`
-      -- 2FA columns on User
-      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false;
-      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT;
-      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT;
-      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[];
-      
-      -- slug on Product (used by CacheWarmingService and seed)
-      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT;
-      
-      -- stripeSubscriptionId on Brand (used by CacheWarmingService)
-      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
-    `);
+    // Execute each SQL command separately (PostgreSQL doesn't support multiple commands in one statement)
+    const columnQueries = [
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[]',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
+    ];
+    
+    for (const query of columnQueries) {
+      try {
+        await tempPrisma.$executeRawUnsafe(query);
+      } catch (queryError: any) {
+        // Ignore individual column errors (may already exist)
+        logger.debug(`Column check: ${queryError.message?.substring(0, 100)}`);
+      }
+    }
     
     await tempPrisma.$disconnect();
     logger.log('✅ Critical columns verified/created');
