@@ -49,6 +49,7 @@ async function bootstrap() {
   }
 
   // Run database migrations before starting the application
+  let migrationsSuccess = false;
   try {
     logger.log('🔄 Running database migrations...');
     const { execSync } = require('child_process');
@@ -92,6 +93,7 @@ async function bootstrap() {
       });
       logger.log(output);
       logger.log('✅ Database migrations completed successfully');
+      migrationsSuccess = true;
     } catch (migrationError: any) {
       // Capture the full error output
       const errorOutput = migrationError.stderr?.toString() || migrationError.stdout?.toString() || migrationError.message || '';
@@ -145,6 +147,7 @@ async function bootstrap() {
               });
               logger.log(retryOutput);
               logger.log('✅ Database migrations completed successfully after auto-resolution');
+              migrationsSuccess = true;
               break; // Success, exit loop
             } catch (retryError: any) {
               const retryErrorOutput = retryError.stderr?.toString() || retryError.stdout?.toString() || retryError.message || '';
@@ -215,6 +218,36 @@ async function bootstrap() {
     if (process.env.NODE_ENV === 'production') {
       logger.error('⚠️ Continuing despite migration failure (may cause runtime errors)');
     }
+  }
+
+  // Run database seed after successful migrations
+  if (migrationsSuccess) {
+    try {
+      logger.log('🌱 Running database seed...');
+      const { execSync } = require('child_process');
+      const path = require('path');
+      const backendDir = path.join(__dirname, '../..');
+      
+      // Use tsx to run the seed script (TypeScript execution)
+      const seedCmd = 'npx tsx prisma/seed.ts';
+      
+      logger.log(`Executing: ${seedCmd} in ${backendDir}`);
+      const seedOutput = execSync(seedCmd, {
+        stdio: 'pipe',
+        env: { ...process.env, PATH: process.env.PATH },
+        cwd: backendDir,
+        encoding: 'utf8'
+      });
+      logger.log(seedOutput);
+      logger.log('✅ Database seed completed successfully');
+    } catch (seedError: any) {
+      const seedErrorOutput = seedError.stderr?.toString() || seedError.stdout?.toString() || seedError.message || '';
+      // Seed errors are non-critical - log but continue
+      logger.warn(`⚠️ Database seed failed (non-critical): ${seedErrorOutput.substring(0, 500)}`);
+      logger.warn('⚠️ Seed may have already been executed or data may already exist');
+    }
+  } else {
+    logger.warn('⚠️ Skipping database seed because migrations were not successful');
   }
 
   try {
