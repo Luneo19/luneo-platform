@@ -50,25 +50,41 @@ async function bootstrap() {
 
   // Run database migrations before starting the application
   try {
-    logger.log('Running database migrations...');
+    logger.log('🔄 Running database migrations...');
     const { execSync } = require('child_process');
     const path = require('path');
+    const fs = require('fs');
     // Utiliser le répertoire du backend pour Prisma
     const backendDir = path.join(__dirname, '../..');
     
-    // Note: User.name has been removed from schema.prisma as it's not used
-    // and doesn't exist in the database. Prisma Client will be regenerated during build.
+    // Chercher le binaire Prisma dans node_modules
+    const prismaBin = path.join(__dirname, '../../node_modules/.bin/prisma');
+    const prismaBinAlt = path.join(backendDir, 'node_modules/.bin/prisma');
     
-    // Then run Prisma migrations
-    execSync('pnpm prisma migrate deploy', { 
+    let prismaCmd = 'npx prisma migrate deploy';
+    
+    // Essayer d'utiliser le binaire Prisma directement si trouvé
+    if (fs.existsSync(prismaBin)) {
+      prismaCmd = `${prismaBin} migrate deploy`;
+    } else if (fs.existsSync(prismaBinAlt)) {
+      prismaCmd = `${prismaBinAlt} migrate deploy`;
+    }
+    
+    logger.log(`Executing: ${prismaCmd} in ${backendDir}`);
+    execSync(prismaCmd, { 
       stdio: 'inherit',
       env: { ...process.env, PATH: process.env.PATH },
       cwd: backendDir
     });
-    logger.log('Database migrations completed');
+    logger.log('✅ Database migrations completed successfully');
   } catch (error: any) {
-    logger.warn(`Database migration failed: ${error.message}. Continuing anyway...`);
-    // Continue even if migrations fail (might be already up to date or DATABASE_URL not configured)
+    logger.error(`❌ Database migration failed: ${error.message}`);
+    logger.error(`Migration error stack: ${error.stack}`);
+    // Continue anyway - but log the error for debugging
+    // In production, we want to see migration failures clearly
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('⚠️ Continuing despite migration failure (may cause runtime errors)');
+    }
   }
 
   try {
