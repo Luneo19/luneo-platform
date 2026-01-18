@@ -154,13 +154,15 @@ async function bootstrap() {
               throw migrationError;
             }
           } catch (resolveError: any) {
-          logger.error(`❌ Failed to auto-resolve migration: ${resolveError.message}`);
-          logger.error('⚠️ Manual intervention may be required to resolve failed migrations');
-          throw migrationError; // Throw original error
+            logger.error(`❌ Failed to auto-resolve migration: ${resolveError.message}`);
+            logger.error('⚠️ Manual intervention may be required to resolve failed migrations');
+            throw migrationError; // Throw original error
+          }
         }
       } else {
         throw migrationError; // Re-throw if it's not a P3009 error
       }
+    }
   } catch (error: any) {
     logger.error(`❌ Database migration failed: ${error.message}`);
     logger.error(`Migration error stack: ${error.stack}`);
