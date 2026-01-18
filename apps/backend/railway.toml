@@ -8,7 +8,7 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 # IMPORTANT: Railway Root Directory peut être '.' (racine) ou 'apps/backend'
 # La commande détecte automatiquement le contexte
-startCommand = "bash -c 'if [ -f dist/src/main.js ]; then cd .; elif [ -f apps/backend/dist/src/main.js ]; then cd apps/backend; elif [ -f /app/apps/backend/dist/src/main.js ]; then cd /app/apps/backend; else cd /app; fi && $(npm config get prefix)/bin/pnpm prisma migrate deploy || true && npx tsx prisma/seed.ts || true && node dist/src/main.js'"
+startCommand = "bash -c 'if [ -f dist/src/main.js ]; then cd .; elif [ -f apps/backend/dist/src/main.js ]; then cd apps/backend; elif [ -f /app/apps/backend/dist/src/main.js ]; then cd /app/apps/backend; else cd /app; fi && echo \"🔄 Exécution migrations Prisma...\" && $(npm config get prefix)/bin/pnpm prisma migrate deploy && echo \"✅ Migrations appliquées\" && echo \"🌱 Exécution seed...\" && npx tsx prisma/seed.ts || echo \"⚠️ Seed ignoré (peut déjà exister)\" && echo \"🚀 Démarrage application...\" && node dist/src/main.js'"
 
 [env]
 NODE_ENV = "production"
