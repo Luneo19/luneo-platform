@@ -125,23 +125,12 @@ async function bootstrap() {
             });
             
             logger.log(`✅ Resolved failed migration: ${failedMigration}`);
-            
-            // Retry migrate deploy
-            logger.log('🔄 Retrying migrations after resolving failed migration...');
-            execSync(prismaCmd, { 
-              stdio: 'pipe',
-              env: { ...process.env, PATH: process.env.PATH },
-              cwd: backendDir,
-              encoding: 'utf8'
-            });
-            
-            logger.log('✅ Database migrations completed successfully after auto-resolution');
           } else {
             logger.warn('⚠️ Could not extract migration name from error');
             throw migrationError;
           }
           
-          // After resolving, retry migrate deploy - might have more failed migrations
+          // After resolving first migration, retry migrate deploy - might have more failed migrations
           logger.log('🔄 Retrying migrations after resolving failed migration...');
           let retryAttempts = 0;
           const maxRetries = 5; // Prevent infinite loops
@@ -160,16 +149,24 @@ async function bootstrap() {
             } catch (retryError: any) {
               const retryErrorOutput = retryError.stderr?.toString() || retryError.stdout?.toString() || retryError.message || '';
               
-              // Check if there's another failed migration
-              const anotherMatch = retryErrorOutput.match(/Migration name: ([^\n]+)|The `([^`]+)` migration/g);
-              if (anotherMatch) {
+              // Check if there's another failed migration (P3009, P3018, or other migration errors)
+              if (retryErrorOutput.includes('P3009') || retryErrorOutput.includes('P3018') || 
+                  retryErrorOutput.includes('failed migrations') || retryErrorOutput.includes('failed to apply')) {
+                
                 // Extract migration name(s) - could be "Migration name: xxx" or "The `xxx` migration"
                 let nextFailedMigration = '';
-                for (const match of anotherMatch) {
-                  const nameMatch = match.match(/Migration name: ([^\n]+)|The `([^`]+)` migration/);
-                  if (nameMatch) {
-                    nextFailedMigration = nameMatch[1] || nameMatch[2] || '';
-                    if (nextFailedMigration) break;
+                
+                // Try "Migration name: xxx" format first (P3018)
+                const nameMatch1 = retryErrorOutput.match(/Migration name: ([^\n]+)/);
+                if (nameMatch1 && nameMatch1[1]) {
+                  nextFailedMigration = nameMatch1[1].trim();
+                }
+                
+                // Try "The `xxx` migration" format (P3009)
+                if (!nextFailedMigration) {
+                  const nameMatch2 = retryErrorOutput.match(/The `([^`]+)` migration/);
+                  if (nameMatch2 && nameMatch2[1]) {
+                    nextFailedMigration = nameMatch2[1];
                   }
                 }
                 
