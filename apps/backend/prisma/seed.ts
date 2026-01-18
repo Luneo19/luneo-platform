@@ -6,6 +6,27 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
+  // Ensure critical columns exist (in case migrations were marked as applied but not executed)
+  try {
+    await prisma.$executeRawUnsafe(`
+      -- 2FA columns on User
+      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false;
+      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT;
+      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT;
+      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[];
+      
+      -- slug on Product (used by seed)
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT;
+      
+      -- stripeSubscriptionId on Brand (may be needed)
+      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
+    `);
+    console.log('✅ Critical columns verified/created');
+  } catch (error: any) {
+    // Non-critical - columns may already exist or migration already applied
+    console.log('ℹ️ Column verification (non-critical):', error.message?.substring(0, 100));
+  }
+
   // Create platform admin user
   const adminPassword = await bcrypt.hash('admin123', 12);
   const adminUser = await prisma.user.upsert({
@@ -81,6 +102,7 @@ async function main() {
     create: {
       id: 'sample-product-1',
       name: 'T-Shirt Personnalisé',
+      slug: 't-shirt-personnalise',
       description: 'T-shirt en coton bio personnalisable',
       sku: 'TSH-001',
       price: 29.99,
