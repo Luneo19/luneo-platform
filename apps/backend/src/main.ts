@@ -229,12 +229,17 @@ async function bootstrap() {
     
     // Execute each SQL command separately (PostgreSQL doesn't support multiple commands in one statement)
     const columnQueries = [
+      // User 2FA columns
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false',
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT',
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT',
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[]',
+      // Product columns (used by CacheWarmingService)
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT',
+      // Brand columns (used by CacheWarmingService)
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB',
     ];
     
     for (const query of columnQueries) {
