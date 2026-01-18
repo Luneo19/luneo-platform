@@ -220,6 +220,35 @@ async function bootstrap() {
     }
   }
 
+  // Ensure critical columns exist before seed/NestJS startup (in case migrations were marked as applied but not executed)
+  if (migrationsSuccess) {
+    try {
+      logger.log('🔧 Verifying critical database columns...');
+      const { PrismaClient } = require('@prisma/client');
+      const tempPrisma = new PrismaClient();
+      
+      await tempPrisma.$executeRawUnsafe(`
+        -- 2FA columns on User
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[];
+        
+        -- slug on Product (used by CacheWarmingService and seed)
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT;
+        
+        -- stripeSubscriptionId on Brand (used by CacheWarmingService)
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
+      `);
+      
+      await tempPrisma.$disconnect();
+      logger.log('✅ Critical columns verified/created');
+    } catch (columnError: any) {
+      // Non-critical - columns may already exist
+      logger.warn(`⚠️ Column verification (non-critical): ${columnError.message?.substring(0, 200)}`);
+    }
+  }
+
   // Run database seed after successful migrations
   if (migrationsSuccess) {
     try {
