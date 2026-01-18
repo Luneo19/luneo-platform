@@ -118,42 +118,42 @@ async function bootstrap() {
             // Extract migration name from error message
             // Error format: "The `migration_name` migration started at ... failed"
             const migrationMatch = fullErrorOutput.match(/The `([^`]+)` migration/);
-          
-          if (migrationMatch && migrationMatch[1]) {
-            const failedMigration = migrationMatch[1];
-            logger.log(`Resolving failed migration: ${failedMigration}`);
             
-            // Build resolve command using the same prisma binary
-            const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
-            const resolveCmd = `${resolveCmdBase} ${failedMigration}`;
-            
-            logger.log(`Executing: ${resolveCmd}`);
-            execSync(resolveCmd, { 
-              stdio: 'inherit',
-              env: { ...process.env, PATH: process.env.PATH },
-              cwd: backendDir
-            });
-            
-            logger.log(`✅ Resolved failed migration: ${failedMigration}`);
-            
-            // Retry migrate deploy
-            logger.log('🔄 Retrying migrations after resolving failed migration...');
-            execSync(prismaCmd, { 
-              stdio: 'inherit',
-              env: { ...process.env, PATH: process.env.PATH },
-              cwd: backendDir
-            });
-            
-            logger.log('✅ Database migrations completed successfully after auto-resolution');
-          } else {
-            logger.warn('⚠️ Could not extract migration name from error, attempting generic resolution...');
-            // Try to resolve all failed migrations
-            const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
-            logger.log(`Executing: ${resolveCmdBase} (may need manual intervention)`);
-            // Don't auto-resolve if we can't identify the specific migration
-            throw migrationError;
-          }
-        } catch (resolveError: any) {
+            if (migrationMatch && migrationMatch[1]) {
+              const failedMigration = migrationMatch[1];
+              logger.log(`Resolving failed migration: ${failedMigration}`);
+              
+              // Build resolve command using the same prisma binary
+              const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
+              const resolveCmd = `${resolveCmdBase} ${failedMigration}`;
+              
+              logger.log(`Executing: ${resolveCmd}`);
+              execSync(resolveCmd, { 
+                stdio: 'inherit',
+                env: { ...process.env, PATH: process.env.PATH },
+                cwd: backendDir
+              });
+              
+              logger.log(`✅ Resolved failed migration: ${failedMigration}`);
+              
+              // Retry migrate deploy
+              logger.log('🔄 Retrying migrations after resolving failed migration...');
+              execSync(prismaCmd, { 
+                stdio: 'inherit',
+                env: { ...process.env, PATH: process.env.PATH },
+                cwd: backendDir
+              });
+              
+              logger.log('✅ Database migrations completed successfully after auto-resolution');
+            } else {
+              logger.warn('⚠️ Could not extract migration name from error, attempting generic resolution...');
+              // Try to resolve all failed migrations
+              const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
+              logger.log(`Executing: ${resolveCmdBase} (may need manual intervention)`);
+              // Don't auto-resolve if we can't identify the specific migration
+              throw migrationError;
+            }
+          } catch (resolveError: any) {
           logger.error(`❌ Failed to auto-resolve migration: ${resolveError.message}`);
           logger.error('⚠️ Manual intervention may be required to resolve failed migrations');
           throw migrationError; // Throw original error
