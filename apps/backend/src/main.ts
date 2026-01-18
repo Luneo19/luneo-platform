@@ -57,17 +57,28 @@ async function bootstrap() {
     // Utiliser le répertoire du backend pour Prisma
     const backendDir = path.join(__dirname, '../..');
     
-    // Chercher le binaire Prisma dans node_modules
+    // Chercher le binaire Prisma dans node_modules (utiliser la version installée, pas la dernière via npx)
+    // npx installe Prisma 7.x qui est incompatible avec notre schéma Prisma 5.22.0
     const prismaBin = path.join(__dirname, '../../node_modules/.bin/prisma');
     const prismaBinAlt = path.join(backendDir, 'node_modules/.bin/prisma');
+    const prismaBinRoot = '/app/node_modules/.bin/prisma';
     
-    let prismaCmd = 'npx prisma migrate deploy';
+    let prismaCmd = null;
     
-    // Essayer d'utiliser le binaire Prisma directement si trouvé
-    if (fs.existsSync(prismaBin)) {
+    // Essayer d'utiliser le binaire Prisma directement (version installée, pas via npx)
+    if (fs.existsSync(prismaBinRoot)) {
+      prismaCmd = `${prismaBinRoot} migrate deploy`;
+      logger.log(`Using Prisma binary from: ${prismaBinRoot}`);
+    } else if (fs.existsSync(prismaBin)) {
       prismaCmd = `${prismaBin} migrate deploy`;
+      logger.log(`Using Prisma binary from: ${prismaBin}`);
     } else if (fs.existsSync(prismaBinAlt)) {
       prismaCmd = `${prismaBinAlt} migrate deploy`;
+      logger.log(`Using Prisma binary from: ${prismaBinAlt}`);
+    } else {
+      // Fallback: utiliser npx avec version spécifique pour éviter d'installer Prisma 7.x
+      prismaCmd = 'npx --yes prisma@5.22.0 migrate deploy';
+      logger.warn(`Prisma binary not found, using npx with version 5.22.0 (may install package)`);
     }
     
     logger.log(`Executing: ${prismaCmd} in ${backendDir}`);
