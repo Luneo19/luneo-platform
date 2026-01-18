@@ -234,6 +234,10 @@ async function bootstrap() {
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT',
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT',
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[]',
+      // User AI credits columns (used by AuthService)
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits" INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_purchased" INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_used" INTEGER NOT NULL DEFAULT 0',
       // Product columns (used by CacheWarmingService)
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT',
