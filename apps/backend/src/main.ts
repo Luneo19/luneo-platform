@@ -161,7 +161,6 @@ async function bootstrap() {
       } else {
         throw migrationError; // Re-throw if it's not a P3009 error
       }
-    }
   } catch (error: any) {
     logger.error(`❌ Database migration failed: ${error.message}`);
     logger.error(`Migration error stack: ${error.stack}`);
