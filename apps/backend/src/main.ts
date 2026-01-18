@@ -83,6 +83,7 @@ async function bootstrap() {
     
     logger.log(`Executing: ${prismaCmd} in ${backendDir}`);
     try {
+      // First attempt: try with inherit to see output
       execSync(prismaCmd, { 
         stdio: 'inherit',
         env: { ...process.env, PATH: process.env.PATH },
@@ -91,16 +92,32 @@ async function bootstrap() {
       logger.log('✅ Database migrations completed successfully');
     } catch (migrationError: any) {
       // Check if the error is P3009 (failed migrations blocking new ones)
-      const errorOutput = migrationError.stderr?.toString() || migrationError.stdout?.toString() || migrationError.message || '';
+      // execSync with 'inherit' doesn't capture output, so we need to check error.message
+      // and run again with 'pipe' to get the actual error message
+      const errorMessage = migrationError.message || '';
       
-      if (errorOutput.includes('P3009') || errorOutput.includes('failed migrations in the target database')) {
-        logger.warn('⚠️ P3009: Failed migrations detected in database');
-        logger.warn('Attempting to automatically resolve failed migrations...');
-        
+      if (errorMessage.includes('P3009') || errorMessage.includes('failed migrations in the target database')) {
+        // Re-run with pipe to capture the full error message
+        let fullErrorOutput = '';
         try {
-          // Extract migration name from error message
-          // Error format: "The `migration_name` migration started at ... failed"
-          const migrationMatch = errorOutput.match(/The `([^`]+)` migration/);
+          execSync(prismaCmd, { 
+            stdio: 'pipe',
+            env: { ...process.env, PATH: process.env.PATH },
+            cwd: backendDir,
+            encoding: 'utf8'
+          });
+        } catch (retryError: any) {
+          fullErrorOutput = retryError.stderr?.toString() || retryError.stdout?.toString() || retryError.message || '';
+        }
+        
+        if (fullErrorOutput.includes('P3009') || fullErrorOutput.includes('failed migrations in the target database')) {
+          logger.warn('⚠️ P3009: Failed migrations detected in database');
+          logger.warn('Attempting to automatically resolve failed migrations...');
+          
+          try {
+            // Extract migration name from error message
+            // Error format: "The `migration_name` migration started at ... failed"
+            const migrationMatch = fullErrorOutput.match(/The `([^`]+)` migration/);
           
           if (migrationMatch && migrationMatch[1]) {
             const failedMigration = migrationMatch[1];
