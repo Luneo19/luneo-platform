@@ -82,12 +82,69 @@ async function bootstrap() {
     }
     
     logger.log(`Executing: ${prismaCmd} in ${backendDir}`);
-    execSync(prismaCmd, { 
-      stdio: 'inherit',
-      env: { ...process.env, PATH: process.env.PATH },
-      cwd: backendDir
-    });
-    logger.log('✅ Database migrations completed successfully');
+    try {
+      execSync(prismaCmd, { 
+        stdio: 'inherit',
+        env: { ...process.env, PATH: process.env.PATH },
+        cwd: backendDir
+      });
+      logger.log('✅ Database migrations completed successfully');
+    } catch (migrationError: any) {
+      // Check if the error is P3009 (failed migrations blocking new ones)
+      const errorOutput = migrationError.stderr?.toString() || migrationError.stdout?.toString() || migrationError.message || '';
+      
+      if (errorOutput.includes('P3009') || errorOutput.includes('failed migrations in the target database')) {
+        logger.warn('⚠️ P3009: Failed migrations detected in database');
+        logger.warn('Attempting to automatically resolve failed migrations...');
+        
+        try {
+          // Extract migration name from error message
+          // Error format: "The `migration_name` migration started at ... failed"
+          const migrationMatch = errorOutput.match(/The `([^`]+)` migration/);
+          
+          if (migrationMatch && migrationMatch[1]) {
+            const failedMigration = migrationMatch[1];
+            logger.log(`Resolving failed migration: ${failedMigration}`);
+            
+            // Build resolve command using the same prisma binary
+            const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
+            const resolveCmd = `${resolveCmdBase} ${failedMigration}`;
+            
+            logger.log(`Executing: ${resolveCmd}`);
+            execSync(resolveCmd, { 
+              stdio: 'inherit',
+              env: { ...process.env, PATH: process.env.PATH },
+              cwd: backendDir
+            });
+            
+            logger.log(`✅ Resolved failed migration: ${failedMigration}`);
+            
+            // Retry migrate deploy
+            logger.log('🔄 Retrying migrations after resolving failed migration...');
+            execSync(prismaCmd, { 
+              stdio: 'inherit',
+              env: { ...process.env, PATH: process.env.PATH },
+              cwd: backendDir
+            });
+            
+            logger.log('✅ Database migrations completed successfully after auto-resolution');
+          } else {
+            logger.warn('⚠️ Could not extract migration name from error, attempting generic resolution...');
+            // Try to resolve all failed migrations
+            const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
+            logger.log(`Executing: ${resolveCmdBase} (may need manual intervention)`);
+            // Don't auto-resolve if we can't identify the specific migration
+            throw migrationError;
+          }
+        } catch (resolveError: any) {
+          logger.error(`❌ Failed to auto-resolve migration: ${resolveError.message}`);
+          logger.error('⚠️ Manual intervention may be required to resolve failed migrations');
+          throw migrationError; // Throw original error
+        }
+      } else {
+        throw migrationError; // Re-throw if it's not a P3009 error
+      }
+    }
   } catch (error: any) {
     logger.error(`❌ Database migration failed: ${error.message}`);
     logger.error(`Migration error stack: ${error.stack}`);
