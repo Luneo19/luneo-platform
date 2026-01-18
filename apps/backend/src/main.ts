@@ -242,12 +242,16 @@ async function bootstrap() {
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImage" TEXT',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImageUrl" TEXT',
       // Brand columns (used by CacheWarmingService)
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB',
       // Create SubscriptionPlan enum if it doesn't exist, then add subscriptionPlan column
       'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
+      // Create SubscriptionStatus enum if it doesn't exist, then add subscriptionStatus column
+      'DO $$ BEGIN CREATE TYPE "SubscriptionStatus" AS ENUM (\'ACTIVE\', \'PAST_DUE\', \'CANCELED\', \'TRIALING\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
     ];
     
     for (const query of columnQueries) {
