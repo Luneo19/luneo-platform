@@ -137,11 +137,68 @@ async function bootstrap() {
             
             logger.log('✅ Database migrations completed successfully after auto-resolution');
           } else {
-            logger.warn('⚠️ Could not extract migration name from error, attempting generic resolution...');
-            // Try to resolve all failed migrations
-            const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
-            logger.log(`Executing: ${resolveCmdBase} (may need manual intervention)`);
-            // Don't auto-resolve if we can't identify the specific migration
+            logger.warn('⚠️ Could not extract migration name from error');
+            throw migrationError;
+          }
+          
+          // After resolving, retry migrate deploy - might have more failed migrations
+          logger.log('🔄 Retrying migrations after resolving failed migration...');
+          let retryAttempts = 0;
+          const maxRetries = 5; // Prevent infinite loops
+          
+          while (retryAttempts < maxRetries) {
+            try {
+              const retryOutput = execSync(prismaCmd, { 
+                stdio: 'pipe',
+                env: { ...process.env, PATH: process.env.PATH },
+                cwd: backendDir,
+                encoding: 'utf8'
+              });
+              logger.log(retryOutput);
+              logger.log('✅ Database migrations completed successfully after auto-resolution');
+              break; // Success, exit loop
+            } catch (retryError: any) {
+              const retryErrorOutput = retryError.stderr?.toString() || retryError.stdout?.toString() || retryError.message || '';
+              
+              // Check if there's another failed migration
+              const anotherMatch = retryErrorOutput.match(/Migration name: ([^\n]+)|The `([^`]+)` migration/g);
+              if (anotherMatch) {
+                // Extract migration name(s) - could be "Migration name: xxx" or "The `xxx` migration"
+                let nextFailedMigration = '';
+                for (const match of anotherMatch) {
+                  const nameMatch = match.match(/Migration name: ([^\n]+)|The `([^`]+)` migration/);
+                  if (nameMatch) {
+                    nextFailedMigration = nameMatch[1] || nameMatch[2] || '';
+                    if (nextFailedMigration) break;
+                  }
+                }
+                
+                if (nextFailedMigration) {
+                  retryAttempts++;
+                  logger.warn(`⚠️ Another failed migration detected: ${nextFailedMigration} (attempt ${retryAttempts}/${maxRetries})`);
+                  logger.log(`Resolving failed migration: ${nextFailedMigration}`);
+                  
+                  const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
+                  const resolveCmd = `${resolveCmdBase} ${nextFailedMigration}`;
+                  
+                  execSync(resolveCmd, { 
+                    stdio: 'inherit',
+                    env: { ...process.env, PATH: process.env.PATH },
+                    cwd: backendDir
+                  });
+                  
+                  logger.log(`✅ Resolved failed migration: ${nextFailedMigration}`);
+                  continue; // Retry loop
+                }
+              }
+              
+              // No more failed migrations detected, but still error - might be different error
+              throw retryError;
+            }
+          }
+          
+          if (retryAttempts >= maxRetries) {
+            logger.error(`❌ Reached maximum retry attempts (${maxRetries}). Manual intervention may be required.`);
             throw migrationError;
           }
         } catch (resolveError: any) {
