@@ -404,7 +404,9 @@ async function bootstrap() {
     const server = express();
     
     // Trust proxy for Railway/behind reverse proxy (required for express-rate-limit)
-    server.set('trust proxy', true);
+    // Use 1 instead of true to trust only the first proxy (Railway's load balancer)
+    // This prevents the ERR_ERL_PERMISSIVE_TRUST_PROXY warning
+    server.set('trust proxy', 1);
     
     // Parse JSON and URL-encoded bodies FIRST (before NestJS)
     server.use(express.json());
