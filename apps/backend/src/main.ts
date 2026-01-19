@@ -238,6 +238,7 @@ async function bootstrap() {
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits" INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_purchased" INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_used" INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "last_credit_purchase" TIMESTAMP(3)',
       // Product columns (used by CacheWarmingService)
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT',
