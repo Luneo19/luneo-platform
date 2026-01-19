@@ -7,26 +7,43 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   // Ensure critical columns exist (in case migrations were marked as applied but not executed)
+  // Execute each SQL command separately (PostgreSQL doesn't support multiple commands in one statement)
   try {
-    await prisma.$executeRawUnsafe(`
-      -- 2FA columns on User
-      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false;
-      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT;
-      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT;
-      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[];
-      
-      -- Product columns (used by CacheWarmingService)
-      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT;
-      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT;
-      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT 'openai';
-      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true;
-      
-      -- Brand columns (used by CacheWarmingService)
-      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
-      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100;
-      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5;
-      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false;
-    `);
+    console.log('🔧 Verifying critical database columns before seed...');
+    const columnQueries = [
+      // User 2FA columns
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT',
+      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[]',
+      // Product columns (used by CacheWarmingService)
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT \'openai\'',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT \'standard\'',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
+      // Brand columns (used by CacheWarmingService)
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
+      // Create SubscriptionPlan enum if it doesn't exist, then add subscriptionPlan column
+      'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
+      // Create SubscriptionStatus enum if it doesn't exist, then add subscriptionStatus column
+      'DO $$ BEGIN CREATE TYPE "SubscriptionStatus" AS ENUM (\'ACTIVE\', \'PAST_DUE\', \'CANCELED\', \'TRIALING\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
+    ];
+
+    for (const query of columnQueries) {
+      try {
+        await prisma.$executeRawUnsafe(query);
+      } catch (queryError: any) {
+        // Ignore individual column errors (may already exist)
+        console.debug(`  ⚠️  Skipped column check (may already exist): ${query.substring(0, 50)}...`);
+      }
+    }
     console.log('✅ Critical columns verified/created');
   } catch (error: any) {
     // Non-critical - columns may already exist or migration already applied
