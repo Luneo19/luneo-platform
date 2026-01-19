@@ -454,34 +454,58 @@ async function bootstrap() {
     logger.warn('⚠️ Some columns may be missing - CacheWarmingService may fail');
   }
 
-  // Run database seed after successful migrations AND column creation
-  if (migrationsSuccess) {
+  // ALWAYS run database seed (at least admin creation), even if migrations failed
+  // The admin user is critical for the application to function
+  try {
+    logger.log('🌱 Running database seed (admin creation is critical)...');
+    const { execSync } = require('child_process');
+    const path = require('path');
+    const backendDir = path.join(__dirname, '../..');
+    
+    // Use tsx to run the seed script (TypeScript execution)
+    const seedCmd = 'npx tsx prisma/seed.ts';
+    
+    logger.log(`Executing: ${seedCmd} in ${backendDir}`);
+    const seedOutput = execSync(seedCmd, {
+      stdio: 'pipe',
+      env: { ...process.env, PATH: process.env.PATH },
+      cwd: backendDir,
+      encoding: 'utf8'
+    });
+    logger.log(seedOutput);
+    logger.log('✅ Database seed completed successfully');
+  } catch (seedError: any) {
+    const seedErrorOutput = seedError.stderr?.toString() || seedError.stdout?.toString() || seedError.message || '';
+    
+    // If seed script fails, try to create admin directly via Prisma
+    logger.warn(`⚠️ Database seed script failed: ${seedErrorOutput.substring(0, 500)}`);
+    logger.warn('⚠️ Attempting to create admin user directly...');
+    
     try {
-      logger.log('🌱 Running database seed...');
-      const { execSync } = require('child_process');
-      const path = require('path');
-      const backendDir = path.join(__dirname, '../..');
+      const { PrismaClient } = require('@prisma/client');
+      const bcrypt = require('bcryptjs');
+      const tempPrisma = new PrismaClient();
       
-      // Use tsx to run the seed script (TypeScript execution)
-      const seedCmd = 'npx tsx prisma/seed.ts';
-      
-      logger.log(`Executing: ${seedCmd} in ${backendDir}`);
-      const seedOutput = execSync(seedCmd, {
-        stdio: 'pipe',
-        env: { ...process.env, PATH: process.env.PATH },
-        cwd: backendDir,
-        encoding: 'utf8'
+      const adminPassword = await bcrypt.hash('admin123', 12);
+      const adminUser = await tempPrisma.user.upsert({
+        where: { email: 'admin@luneo.com' },
+        update: {},
+        create: {
+          email: 'admin@luneo.com',
+          password: adminPassword,
+          firstName: 'Admin',
+          lastName: 'Luneo',
+          role: 'PLATFORM_ADMIN',
+          emailVerified: true,
+        },
       });
-      logger.log(seedOutput);
-      logger.log('✅ Database seed completed successfully');
-    } catch (seedError: any) {
-      const seedErrorOutput = seedError.stderr?.toString() || seedError.stdout?.toString() || seedError.message || '';
-      // Seed errors are non-critical - log but continue
-      logger.warn(`⚠️ Database seed failed (non-critical): ${seedErrorOutput.substring(0, 500)}`);
-      logger.warn('⚠️ Seed may have already been executed or data may already exist');
+      
+      logger.log(`✅ Admin user created directly: ${adminUser.email}`);
+      await tempPrisma.$disconnect();
+    } catch (directAdminError: any) {
+      logger.error(`❌ Failed to create admin directly: ${directAdminError.message?.substring(0, 300)}`);
+      logger.warn('⚠️ Admin user may already exist or database connection failed');
     }
-  } else {
-    logger.warn('⚠️ Skipping database seed because migrations were not successful');
   }
 
   try {
