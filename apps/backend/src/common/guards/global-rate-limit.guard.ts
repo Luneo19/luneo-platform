@@ -14,9 +14,13 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
   constructor(
     options: any,
     storageService: any,
-    private reflector: Reflector,
+    reflector: Reflector,
   ) {
-    super(options, storageService);
+    super(options, storageService, reflector);
+  }
+
+  private get reflector(): Reflector {
+    return (this as any).reflector;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
