@@ -101,8 +101,59 @@ async function bootstrap() {
       // Log the error for debugging
       logger.warn(`Migration error output: ${errorOutput.substring(0, 500)}`);
       
+      // Check if the error is P3015 (missing migration file)
+      if (errorOutput.includes('P3015') || errorOutput.includes('Could not find the migration file')) {
+        logger.warn('⚠️ P3015: Migration file missing');
+        logger.warn('Attempting to automatically resolve by marking migration as applied...');
+        
+        try {
+          // Extract migration name from error message
+          // Error format: "Could not find the migration file at prisma/migrations/xxx/migration.sql"
+          const migrationMatch = errorOutput.match(/migrations\/([^\/]+)\/migration\.sql/);
+          
+          if (migrationMatch && migrationMatch[1]) {
+            const missingMigration = migrationMatch[1];
+            logger.log(`Resolving missing migration: ${missingMigration}`);
+            
+            // Mark migration as applied (it's missing, so we assume it was already applied or is not needed)
+            const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
+            const resolveCmd = `${resolveCmdBase} ${missingMigration}`;
+            
+            logger.log(`Executing: ${resolveCmd}`);
+            try {
+              execSync(resolveCmd, { 
+                stdio: 'pipe',
+                env: { ...process.env, PATH: process.env.PATH },
+                cwd: backendDir,
+                encoding: 'utf8'
+              });
+              logger.log(`✅ Resolved missing migration: ${missingMigration}`);
+              
+              // Retry migrate deploy
+              logger.log('🔄 Retrying migrations after resolving missing migration...');
+              const retryOutput = execSync(prismaCmd, { 
+                stdio: 'pipe',
+                env: { ...process.env, PATH: process.env.PATH },
+                cwd: backendDir,
+                encoding: 'utf8'
+              });
+              logger.log(retryOutput);
+              logger.log('✅ Database migrations completed successfully after resolving missing migration');
+              migrationsSuccess = true;
+            } catch (resolveError: any) {
+              logger.warn(`⚠️ Could not resolve migration ${missingMigration}, continuing anyway`);
+              // Continue - columns will be created manually
+            }
+          } else {
+            logger.warn('⚠️ Could not extract migration name from P3015 error');
+          }
+        } catch (resolveError: any) {
+          logger.warn(`⚠️ Failed to auto-resolve P3015: ${resolveError.message?.substring(0, 100)}`);
+        }
+        // Continue execution even if P3015 resolution fails - columns will be created manually
+      }
       // Check if the error is P3009 (failed migrations blocking new ones)
-      if (errorOutput.includes('P3009') || errorOutput.includes('failed migrations in the target database')) {
+      else if (errorOutput.includes('P3009') || errorOutput.includes('failed migrations in the target database')) {
         logger.warn('⚠️ P3009: Failed migrations detected in database');
         logger.warn('Attempting to automatically resolve failed migrations...');
         
