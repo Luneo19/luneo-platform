@@ -54,11 +54,33 @@ export class RateLimitGuard implements CanActivate {
     // Generate identifier (IP, user ID, API key, etc.)
     const identifier = this.getIdentifier(request);
 
-    // Check rate limit
-    const result = await this.rateLimitService.checkRateLimit(identifier, {
-      ...config,
-      keyPrefix: `rl:${this.getKeyPrefix(request)}`,
-    });
+    // Check rate limit with timeout global de 3 secondes
+    let result;
+    try {
+      result = await Promise.race([
+        this.rateLimitService.checkRateLimit(identifier, {
+          ...config,
+          keyPrefix: `rl:${this.getKeyPrefix(request)}`,
+        }),
+        new Promise<any>((resolve) => setTimeout(() => {
+          this.logger.warn(`Rate limit check timeout for ${identifier}, allowing request`);
+          resolve({
+            allowed: true,
+            remaining: config.limit,
+            limit: config.limit,
+            resetTime: Date.now() + config.window * 1000,
+          });
+        }, 3000)),
+      ]);
+    } catch (error) {
+      this.logger.warn(`Rate limit check error, allowing request`, error?.message || error);
+      result = {
+        allowed: true,
+        remaining: config.limit,
+        limit: config.limit,
+        resetTime: Date.now() + config.window * 1000,
+      };
+    }
 
     // Add rate limit headers
     this.addRateLimitHeaders(response, result);

@@ -94,16 +94,40 @@ export class SlidingWindowRateLimitService {
         };
       }
 
-      // Remove old entries outside the window
-      await redisClient.zremrangebyscore(key, 0, windowStart);
+      // Timeout global de 2 secondes pour toutes les opérations Redis
+      const redisTimeout = 2000;
+      
+      // Helper pour ajouter timeout à une promesse Redis
+      const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, defaultValue: T): Promise<T> => {
+        return Promise.race([
+          promise,
+          new Promise<T>((resolve) => setTimeout(() => resolve(defaultValue), timeoutMs)),
+        ]);
+      };
 
-      // Count current requests in the window
-      const count = await redisClient.zcard(key);
+      // Remove old entries outside the window (timeout 500ms)
+      await withTimeout(
+        redisClient.zremrangebyscore(key, 0, windowStart),
+        500,
+        undefined as any
+      ).catch(() => {}); // Ignore errors
+
+      // Count current requests in the window (timeout 500ms)
+      const count = await withTimeout(
+        redisClient.zcard(key),
+        500,
+        0
+      ).catch(() => 0);
 
       // Check if limit exceeded
       if (count >= limit) {
-        // Get the oldest timestamp to calculate reset time
-        const oldestTimestamps = await redisClient.zrange(key, 0, 0, 'WITHSCORES');
+        // Get the oldest timestamp to calculate reset time (timeout 500ms)
+        const oldestTimestamps = await withTimeout(
+          redisClient.zrange(key, 0, 0, 'WITHSCORES'),
+          500,
+          []
+        ).catch(() => []);
+        
         const oldestTimestamp = oldestTimestamps.length > 0 
           ? parseInt(oldestTimestamps[1]) 
           : now;
@@ -122,17 +146,30 @@ export class SlidingWindowRateLimitService {
         };
       }
 
-      // Add current request timestamp
-      await redisClient.zadd(key, now, `${now}-${Math.random()}`);
+      // Add current request timestamp (timeout 500ms)
+      await withTimeout(
+        redisClient.zadd(key, now, `${now}-${Math.random()}`),
+        500,
+        undefined as any
+      ).catch(() => {}); // Ignore errors
 
-      // Set expiration on the key (window + some buffer)
-      await redisClient.expire(key, window + 60);
+      // Set expiration on the key (timeout 500ms)
+      await withTimeout(
+        redisClient.expire(key, window + 60),
+        500,
+        undefined as any
+      ).catch(() => {}); // Ignore errors
 
       // Calculate remaining requests
       const remaining = Math.max(0, limit - count - 1);
 
-      // Calculate reset time (oldest entry + window)
-      const oldestTimestamps = await redisClient.zrange(key, 0, 0, 'WITHSCORES');
+      // Calculate reset time (oldest entry + window) - timeout 500ms
+      const oldestTimestamps = await withTimeout(
+        redisClient.zrange(key, 0, 0, 'WITHSCORES'),
+        500,
+        []
+      ).catch(() => []);
+      
       const oldestTimestamp = oldestTimestamps.length > 0 
         ? parseInt(oldestTimestamps[1]) 
         : now;
