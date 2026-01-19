@@ -249,6 +249,7 @@ async function bootstrap() {
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT \'openai\'',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT \'standard\'',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT \'png\'',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
       // Brand columns (used by CacheWarmingService)
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
@@ -258,6 +259,7 @@ async function bootstrap() {
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
       // Create SubscriptionPlan enum if it doesn't exist, then add subscriptionPlan column
       'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
@@ -278,13 +280,16 @@ async function bootstrap() {
     
     await tempPrisma.$disconnect();
     logger.log('✅ Critical columns verified/created');
+    
+    // Small delay to ensure columns are committed to database
+    await new Promise(resolve => setTimeout(resolve, 500));
   } catch (columnError: any) {
     // Non-critical - columns may already exist, but log for debugging
     logger.warn(`⚠️ Column verification (non-critical): ${columnError.message?.substring(0, 300)}`);
     logger.warn('⚠️ Some columns may be missing - CacheWarmingService may fail');
   }
 
-  // Run database seed after successful migrations
+  // Run database seed after successful migrations AND column creation
   if (migrationsSuccess) {
     try {
       logger.log('🌱 Running database seed...');
@@ -317,6 +322,9 @@ async function bootstrap() {
   try {
     logger.log('Creating Express server...');
     const server = express();
+    
+    // Trust proxy for Railway/behind reverse proxy (required for express-rate-limit)
+    server.set('trust proxy', true);
     
     // Parse JSON and URL-encoded bodies FIRST (before NestJS)
     server.use(express.json());

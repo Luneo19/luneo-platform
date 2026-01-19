@@ -21,6 +21,7 @@ async function main() {
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT \'openai\'',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT \'standard\'',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT \'png\'',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
       // Brand columns (used by CacheWarmingService)
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
@@ -28,6 +29,7 @@ async function main() {
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
       // Create SubscriptionPlan enum if it doesn't exist, then add subscriptionPlan column
       'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
