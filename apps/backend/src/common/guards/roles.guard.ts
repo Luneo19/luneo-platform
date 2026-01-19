@@ -1,7 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 export const ROLES_KEY = 'roles';
 export const Roles = (...roles: UserRole[]) => {
@@ -14,6 +13,9 @@ export const Roles = (...roles: UserRole[]) => {
     return descriptor;
   };
 };
+
+// Use the same key as public.decorator.ts to avoid import issues
+const IS_PUBLIC_KEY = 'isPublic';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
