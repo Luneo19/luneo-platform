@@ -18,11 +18,14 @@ async function main() {
       -- Product columns (used by CacheWarmingService)
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT;
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT 'openai';
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true;
       
       -- Brand columns (used by CacheWarmingService)
       ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
       ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100;
       ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5;
+      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false;
     `);
     console.log('✅ Critical columns verified/created');
   } catch (error: any) {
