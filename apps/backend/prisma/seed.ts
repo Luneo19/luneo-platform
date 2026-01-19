@@ -77,8 +77,10 @@ async function main() {
 
   console.log('✅ Admin user created:', adminUser.email);
 
-  // Create sample brand
-  const sampleBrand = await prisma.brand.upsert({
+  // Try to create sample data (non-critical - continue even if it fails)
+  try {
+    // Create sample brand
+    const sampleBrand = await prisma.brand.upsert({
     where: { slug: 'sample-brand' },
     update: {},
     create: {
@@ -222,7 +224,12 @@ async function main() {
     },
   });
 
-  console.log('✅ Sample order created:', sampleOrder.orderNumber);
+    console.log('✅ Sample order created:', sampleOrder.orderNumber);
+  } catch (sampleDataError: any) {
+    // Non-critical - sample data creation failed, but admin was created
+    console.log('⚠️ Sample data creation failed (non-critical):', sampleDataError.message?.substring(0, 200));
+    console.log('✅ Admin user was created successfully - seed partially completed');
+  }
 
   console.log('🎉 Database seed completed successfully!');
 }
