@@ -1,13 +1,12 @@
 /**
  * ★★★ AUTH HELPER - GET USER ★★★
  * Helper pour récupérer l'utilisateur depuis la session
- * - Support Supabase
- * - Support cookies/session
+ * ✅ Utilise JWT backend (cookies httpOnly) au lieu de Supabase
+ * - Support cookies JWT
  * - Support API routes
  */
 
 import { db } from '@/lib/db';
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export interface AuthUser {
@@ -18,57 +17,64 @@ export interface AuthUser {
 }
 
 /**
- * Récupère l'utilisateur depuis la session (Server Component)
+ * Récupère l'utilisateur depuis les cookies JWT (backend NestJS)
+ * Remplace l'ancienne implémentation Supabase qui était incompatible
  */
 export async function getServerUser(): Promise<AuthUser | null> {
   try {
     const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
+    const accessToken = cookieStore.get('accessToken')?.value;
+    
+    if (!accessToken) {
+      return null;
+    }
+
+    // Option 1 : Utiliser l'API route Next.js (recommandé)
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 
+      (process.env.NODE_ENV === 'production' 
+        ? 'https://luneo.app' 
+        : 'http://localhost:3000');
+    
+    try {
+      const response = await fetch(`${APP_URL}/api/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Cookie': `accessToken=${accessToken}; refreshToken=${cookieStore.get('refreshToken')?.value || ''}`,
         },
+        credentials: 'include',
+        cache: 'no-store', // Important : ne pas mettre en cache
+      });
+
+      if (!response.ok) {
+        return null;
       }
-    );
 
-    const {
-      data: { user: supabaseUser },
-      error,
-    } = await supabase.auth.getUser();
+      const data = await response.json();
+      
+      // Vérifier que les données sont valides
+      if (!data || !data.id) {
+        return null;
+      }
 
-    if (error || !supabaseUser) {
+      return {
+        id: data.id,
+        email: data.email,
+        role: data.role || undefined,
+        brandId: data.brandId || undefined,
+      };
+    } catch (fetchError) {
+      // Fallback : Décoder le JWT directement (moins sécurisé mais fonctionne)
+      console.warn('[getServerUser] API route failed, trying JWT decode fallback:', fetchError);
+      
+      // Option 2 : Décoder le JWT et récupérer depuis DB
+      // Note : Nécessite d'installer jsonwebtoken ou jose
+      // Pour l'instant, on retourne null si l'API route échoue
       return null;
     }
-
-    // Fetch user from database
-    const dbUser = await db.user.findUnique({
-      where: { id: supabaseUser.id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        brandId: true,
-      },
-    });
-
-    if (!dbUser) {
-      return null;
-    }
-
-    return {
-      id: dbUser.id,
-      email: dbUser.email,
-      role: dbUser.role || undefined,
-      brandId: dbUser.brandId || undefined,
-    };
   } catch (error) {
     // Logger is not available in server context, use console for critical errors
     if (process.env.NODE_ENV === 'development') {
-      console.error('Error getting server user', error);
+      console.error('[getServerUser] Error getting server user:', error);
     }
     return null;
   }

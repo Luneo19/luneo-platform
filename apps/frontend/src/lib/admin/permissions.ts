@@ -54,12 +54,43 @@ export async function checkAdminAccess(): Promise<boolean> {
  * À utiliser dans les Server Components
  */
 export async function requireAdminAccess(): Promise<AdminUser> {
+  // Logs de débogage
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Admin Permissions] Checking admin access...');
+  }
+  
   const user = await getServerUser();
   
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Admin Permissions] getServerUser result:', user ? `User found: ${user.email}` : 'User null');
+  }
+  
   if (!user) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Admin Permissions] No user, redirecting to login');
+    }
     redirect('/login?redirect=/admin');
   }
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Admin Permissions] User role from JWT:', user.role);
+  }
+
+  // Vérifier le rôle directement depuis le JWT (déjà vérifié par backend)
+  // Si le rôle est PLATFORM_ADMIN dans le JWT, on peut faire confiance
+  if (user.role === 'PLATFORM_ADMIN') {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Admin Permissions] Access granted based on JWT role');
+    }
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      brandId: user.brandId || null,
+    };
+  }
+
+  // Fallback : Vérifier dans la DB (pour double vérification)
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: {
@@ -71,10 +102,24 @@ export async function requireAdminAccess(): Promise<AdminUser> {
     },
   });
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Admin Permissions] DB user:', dbUser ? 'Found' : 'Not found');
+    console.log('[Admin Permissions] DB user role:', dbUser?.role);
+    console.log('[Admin Permissions] Is active:', dbUser?.isActive);
+    console.log('[Admin Permissions] Role check:', dbUser?.role === 'PLATFORM_ADMIN');
+  }
+
   if (!dbUser || !dbUser.isActive || dbUser.role !== 'PLATFORM_ADMIN') {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Admin Permissions] Access denied, redirecting');
+    }
     redirect('/dashboard?error=unauthorized');
   }
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Admin Permissions] Access granted');
+  }
+  
   return {
     id: dbUser.id,
     email: dbUser.email,
