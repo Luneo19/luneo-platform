@@ -31,16 +31,26 @@ export class BruteForceService {
         return true;
       }
 
-      // Gérer spécifiquement les erreurs de limite Upstash Redis
+      // Gérer spécifiquement les erreurs de limite Upstash Redis avec timeout
       let attempts: string | null = null;
       try {
-        attempts = await redis.get(identifier);
+        // Timeout de 2 secondes pour éviter de bloquer le login
+        attempts = await Promise.race([
+          redis.get(identifier),
+          new Promise<null>((_, reject) => 
+            setTimeout(() => reject(new Error('Redis timeout')), 2000)
+          ),
+        ]) as string | null;
       } catch (redisError: any) {
-        if (redisError?.message?.includes('max requests limit exceeded')) {
-          this.logger.warn('Redis limit exceeded in brute force check, allowing request');
+        if (redisError?.message?.includes('max requests limit exceeded') || 
+            redisError?.message?.includes('Redis timeout') ||
+            redisError?.message?.includes('timeout')) {
+          this.logger.warn('Redis limit exceeded or timeout in brute force check, allowing request');
           return true; // Fail open - allow request
         }
-        throw redisError; // Re-throw other errors
+        // Pour les autres erreurs, autoriser aussi (ne pas bloquer les utilisateurs)
+        this.logger.warn('Redis error in brute force check, allowing request', redisError?.message);
+        return true;
       }
 
       const attemptCount = attempts ? parseInt(attempts, 10) : 0;
@@ -49,12 +59,14 @@ export class BruteForceService {
       if (attemptCount >= 5) {
         let ttl = 0;
         try {
-          ttl = await redis.ttl(identifier);
+          // Timeout de 1 seconde pour TTL
+          ttl = await Promise.race([
+            redis.ttl(identifier),
+            new Promise<number>((resolve) => setTimeout(() => resolve(0), 1000)),
+          ]) as number;
         } catch (ttlError: any) {
           // Ignore TTL errors (non-critical)
-          if (!ttlError?.message?.includes('max requests limit exceeded')) {
-            this.logger.debug('Error getting TTL (non-critical)', ttlError);
-          }
+          this.logger.debug('Error getting TTL (non-critical)', ttlError?.message);
         }
         this.logger.warn('Brute force detected', {
           email,
