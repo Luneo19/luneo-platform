@@ -5,6 +5,11 @@
     "dist",
     "**/*.spec.ts",
     "test/**/*",
-    "**/__tests__/**/*"
+    "**/__tests__/**/*",
+    "src/modules/projects/**/*",
+    "src/modules/try-on/**/*",
+    "src/modules/configurator-3d/**/*",
+    "src/modules/visual-customizer/**/*",
+    "src/modules/asset-hub/**/*"
   ]
 }
