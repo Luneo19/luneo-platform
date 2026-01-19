@@ -20,7 +20,10 @@ export async function GET(request: NextRequest) {
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     
     // Construire les cookies pour la requête vers le backend
-    const cookieHeader = `accessToken=${accessToken}; refreshToken=${cookieStore.get('refreshToken')?.value || ''}`;
+    const refreshToken = cookieStore.get('refreshToken')?.value || '';
+    const cookieHeader = refreshToken 
+      ? `accessToken=${accessToken}; refreshToken=${refreshToken}`
+      : `accessToken=${accessToken}`;
     
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
       method: 'GET',
@@ -29,6 +32,8 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
+      // Important : Ne pas mettre en cache pour les routes d'authentification
+      cache: 'no-store',
     });
 
     if (!response.ok) {

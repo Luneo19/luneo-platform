@@ -30,16 +30,27 @@ export async function getServerUser(): Promise<AuthUser | null> {
     }
 
     // Option 1 : Utiliser l'API route Next.js (recommandé)
-    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 
-      (process.env.NODE_ENV === 'production' 
-        ? 'https://luneo.app' 
-        : 'http://localhost:3000');
+    // En production, utiliser l'URL absolue ou relative selon le contexte
+    const isServer = typeof window === 'undefined';
+    const APP_URL = isServer 
+      ? (process.env.NEXT_PUBLIC_APP_URL || 
+         (process.env.NODE_ENV === 'production' 
+           ? 'https://luneo.app' 
+           : 'http://localhost:3000'))
+      : ''; // En client, utiliser l'URL relative
+    
+    const apiUrl = isServer ? `${APP_URL}/api/auth/me` : '/api/auth/me';
     
     try {
-      const response = await fetch(`${APP_URL}/api/auth/me`, {
+      const refreshToken = cookieStore.get('refreshToken')?.value || '';
+      const cookieHeader = refreshToken
+        ? `accessToken=${accessToken}; refreshToken=${refreshToken}`
+        : `accessToken=${accessToken}`;
+      
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Cookie': `accessToken=${accessToken}; refreshToken=${cookieStore.get('refreshToken')?.value || ''}`,
+          'Cookie': cookieHeader,
         },
         credentials: 'include',
         cache: 'no-store', // Important : ne pas mettre en cache
