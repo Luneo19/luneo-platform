@@ -39,6 +39,7 @@ import type { FunnelData } from '@/modules/analytics/interfaces/analytics-advanc
 import { IntentDetectionService } from '../services/intent-detection.service';
 import { ContextManagerService } from '../services/context-manager.service';
 import { RAGService } from '../services/rag.service';
+import { AgentUsageGuardService } from '../services/agent-usage-guard.service';
 import { CurrentUser } from '@/common/types/user.types';
 
 // ============================================================================
@@ -281,6 +282,7 @@ export class LunaService {
     private readonly moduleRef: ModuleRef,
     private readonly ragService: RAGService,
     private readonly predictiveService: PredictiveService,
+    private readonly usageGuard: AgentUsageGuardService,
   ) {}
 
   /**
@@ -289,8 +291,28 @@ export class LunaService {
   async chat(input: LunaUserMessage): Promise<LunaResponse> {
     // ✅ RÈGLE: Validation Zod
     const validated = UserMessageSchema.parse(input);
+    const startTime = Date.now();
 
     try {
+      // 0. Vérifier usage (Usage Guardian) - AVANT tout traitement
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: validated.brandId },
+        select: { plan: true },
+      });
+
+      const usageCheck = await this.usageGuard.checkUsageBeforeCall(
+        validated.brandId,
+        validated.userId,
+        brand?.plan,
+        4096, // Estimation par défaut
+        'anthropic',
+        'claude-3-sonnet',
+      );
+
+      if (!usageCheck.allowed) {
+        throw new Error(usageCheck.reason || 'Usage limit exceeded');
+      }
+
       // 1. Récupérer ou créer la conversation
       const conversation = await this.conversationService.getOrCreate({
         id: validated.conversationId,
@@ -390,6 +412,19 @@ export class LunaService {
         enableFallback: true,
       });
 
+      const latencyMs = Date.now() - startTime;
+
+      // Calculer le coût
+      const costCalculation = this.usageGuard.getCostCalculator().calculateCost(
+        'anthropic',
+        'claude-3-sonnet',
+        {
+          inputTokens: llmResponse.usage?.promptTokens || 0,
+          outputTokens: llmResponse.usage?.completionTokens || 0,
+          totalTokens: llmResponse.usage?.totalTokens || 0,
+        },
+      );
+
       // 8. Parser la réponse et extraire les actions
       const { message, actions, suggestions } = this.parseResponse(
         llmResponse.content,
@@ -415,6 +450,25 @@ export class LunaService {
         lastDataAccessed: Object.keys(biPack.detailed),
       });
 
+      // 11. Mettre à jour l'usage (Usage Guardian + AI Monitor)
+      await this.usageGuard.updateUsageAfterCall(
+        validated.brandId,
+        validated.userId,
+        undefined, // agentId sera 'luna'
+        {
+          tokens: {
+            input: llmResponse.usage?.promptTokens || 0,
+            output: llmResponse.usage?.completionTokens || 0,
+          },
+          costCents: costCalculation.costCents,
+          latencyMs,
+          success: true,
+        },
+        'anthropic',
+        'claude-3-sonnet',
+        'chat',
+      );
+
       return {
         conversationId: conversation.id,
         message,
@@ -425,6 +479,25 @@ export class LunaService {
         suggestions,
       };
     } catch (error) {
+      const latencyMs = Date.now() - startTime;
+
+      // Tracker l'erreur (AI Monitor)
+      await this.usageGuard.updateUsageAfterCall(
+        validated.brandId,
+        validated.userId,
+        undefined,
+        {
+          tokens: { input: 0, output: 0 },
+          costCents: 0,
+          latencyMs,
+          success: false,
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        },
+        'anthropic',
+        'claude-3-sonnet',
+        'chat',
+      );
+
       this.logger.error(`Luna chat error: ${error instanceof Error ? error.message : 'Unknown'}`);
       throw error;
     }

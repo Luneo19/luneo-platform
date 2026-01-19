@@ -17,6 +17,8 @@ import { StorageModule } from '@/libs/storage/storage.module';
 import { ProductsModule } from '@/modules/products/products.module';
 import { AnalyticsModule } from '@/modules/analytics/analytics.module';
 import { AgentsModule } from '../agents.module';
+import { UsageGuardianModule } from '../usage-guardian/usage-guardian.module';
+import { AIMonitorModule } from '../ai-monitor/ai-monitor.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { AgentsModule } from '../agents.module';
     ProductsModule,
     AnalyticsModule, // Pour ReportsService
     forwardRef(() => AgentsModule), // Pour LLMRouterService, ConversationService, AgentMemoryService et tous leurs dépendances
+    UsageGuardianModule, // Usage Guardian
+    AIMonitorModule, // AI Monitor
     HttpModule,
   ],
   controllers: [LunaController],

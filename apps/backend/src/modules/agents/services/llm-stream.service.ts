@@ -51,9 +51,9 @@ export class LLMStreamService {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
-    this.openaiApiKey = this.configService.getOrThrow<string>('OPENAI_API_KEY');
-    this.anthropicApiKey = this.configService.getOrThrow<string>('ANTHROPIC_API_KEY');
-    this.mistralApiKey = this.configService.getOrThrow<string>('MISTRAL_API_KEY');
+    this.openaiApiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
+    this.anthropicApiKey = this.configService.get<string>('ANTHROPIC_API_KEY') || '';
+    this.mistralApiKey = this.configService.get<string>('MISTRAL_API_KEY') || '';
   }
 
   /**

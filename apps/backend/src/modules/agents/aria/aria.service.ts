@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { LLMRouterService, LLMProvider, LLM_MODELS, Message } from '../services/llm-router.service';
+import { AgentUsageGuardService } from '../services/agent-usage-guard.service';
 
 // ============================================================================
 // TYPES & SCHEMAS
@@ -211,6 +212,7 @@ export class AriaService {
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
     private readonly llmRouter: LLMRouterService,
+    private readonly usageGuard: AgentUsageGuardService,
   ) {}
 
   /**
@@ -218,6 +220,7 @@ export class AriaService {
    */
   async chat(input: AriaMessage): Promise<AriaResponse> {
     const validated = AriaMessageSchema.parse(input);
+    const startTime = Date.now();
 
     try {
       const intent = this.detectIntent(validated.message, validated.context);
@@ -227,6 +230,27 @@ export class AriaService {
       let brandId = validated.brandId;
       if (!brandId && productContext.brandId) {
         brandId = productContext.brandId as string;
+      }
+
+      // Vérifier usage (Usage Guardian)
+      if (brandId) {
+        const brand = await this.prisma.brand.findUnique({
+          where: { id: brandId },
+          select: { plan: true },
+        });
+
+        const usageCheck = await this.usageGuard.checkUsageBeforeCall(
+          brandId,
+          undefined,
+          brand?.plan,
+          1024, // Estimation tokens pour Aria
+          'openai',
+          'gpt-3.5-turbo',
+        );
+
+        if (!usageCheck.allowed) {
+          throw new Error(usageCheck.reason || 'Usage limit exceeded');
+        }
       }
 
       const systemPrompt = ARIA_SYSTEM_PROMPT
@@ -255,6 +279,40 @@ export class AriaService {
         validated.context,
       );
 
+      const latencyMs = Date.now() - startTime;
+
+      // Calculer le coût
+      const costCalculation = this.usageGuard.getCostCalculator().calculateCost(
+        'openai',
+        'gpt-3.5-turbo',
+        {
+          inputTokens: llmResponse.usage?.promptTokens || 0,
+          outputTokens: llmResponse.usage?.completionTokens || 0,
+          totalTokens: llmResponse.usage?.totalTokens || 0,
+        },
+      );
+
+      // Mettre à jour l'usage (Usage Guardian + AI Monitor)
+      if (brandId) {
+        await this.usageGuard.updateUsageAfterCall(
+          brandId,
+          undefined,
+          undefined, // agentId sera 'aria'
+          {
+            tokens: {
+              input: llmResponse.usage?.promptTokens || 0,
+              output: llmResponse.usage?.completionTokens || 0,
+            },
+            costCents: costCalculation.costCents,
+            latencyMs,
+            success: true,
+          },
+          'openai',
+          'gpt-3.5-turbo',
+          'chat',
+        );
+      }
+
       return {
         message,
         intent,
@@ -262,6 +320,30 @@ export class AriaService {
         preview,
       };
     } catch (error) {
+      const latencyMs = Date.now() - startTime;
+
+      // Tracker l'erreur
+      const productContext = await this.getProductContext(validated.productId).catch(() => null);
+      const brandId = validated.brandId || (productContext?.brandId as string | undefined);
+
+      if (brandId) {
+        await this.usageGuard.updateUsageAfterCall(
+          brandId,
+          undefined,
+          undefined,
+          {
+            tokens: { input: 0, output: 0 },
+            costCents: 0,
+            latencyMs,
+            success: false,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'openai',
+          'gpt-3.5-turbo',
+          'chat',
+        );
+      }
+
       this.logger.error(`Aria chat error: ${error}`);
       throw error;
     }

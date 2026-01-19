@@ -31,6 +31,7 @@ import { ContextManagerService } from './services/context-manager.service';
 import { PromptSecurityService } from './services/prompt-security.service';
 import { LLMStreamService } from './services/llm-stream.service';
 import { RAGService } from './services/rag.service';
+import { AgentUsageGuardService } from './services/agent-usage-guard.service';
 
 // Infrastructure
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -38,12 +39,18 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { AiModule } from '@/modules/ai/ai.module';
 import { MetricsModule } from '@/libs/metrics/metrics.module';
 
+// Usage Guardian & AI Monitor
+import { UsageGuardianModule } from './usage-guardian/usage-guardian.module';
+import { AIMonitorModule } from './ai-monitor/ai-monitor.module';
+
 @Module({
   imports: [
     PrismaModule,
     SmartCacheModule,
     AiModule, // Pour AiService.recordAICost()
     MetricsModule, // Pour PrometheusService
+    UsageGuardianModule, // Usage Guardian
+    AIMonitorModule, // AI Monitor
     HttpModule.register({
       timeout: 30000,
       maxRedirects: 3,
@@ -79,6 +86,7 @@ import { MetricsModule } from '@/libs/metrics/metrics.module';
     PromptSecurityService,
     LLMStreamService,
     RAGService,
+    AgentUsageGuardService,
   ],
   exports: [
     // ✅ RÈGLE: Exporter tous les services utilisés ailleurs
@@ -95,10 +103,14 @@ import { MetricsModule } from '@/libs/metrics/metrics.module';
     PromptSecurityService,
     LLMStreamService,
     RAGService,
+    AgentUsageGuardService,
     // Sub-modules exports
     LunaModule,
     AriaModule,
     NovaModule,
+    // Usage Guardian & AI Monitor exports
+    UsageGuardianModule,
+    AIMonitorModule,
   ],
 })
 export class AgentsModule {}

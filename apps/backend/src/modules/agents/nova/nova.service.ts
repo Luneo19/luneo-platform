@@ -21,6 +21,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { LLMRouterService, LLMProvider, LLM_MODELS, Message } from '../services/llm-router.service';
 import { IntentDetectionService } from '../services/intent-detection.service';
+import { AgentUsageGuardService } from '../services/agent-usage-guard.service';
 
 // ============================================================================
 // TYPES & SCHEMAS
@@ -145,6 +146,7 @@ export class NovaService {
     private readonly cache: SmartCacheService,
     private readonly llmRouter: LLMRouterService,
     private readonly moduleRef: ModuleRef,
+    private readonly usageGuard: AgentUsageGuardService,
   ) {}
 
   /**
@@ -159,8 +161,30 @@ export class NovaService {
    */
   async chatWithContext(input: NovaMessage): Promise<NovaResponse> {
     const validated = NovaMessageSchema.parse(input);
+    const startTime = Date.now();
 
     try {
+      // Vérifier usage (Usage Guardian)
+      if (validated.brandId) {
+        const brand = await this.prisma.brand.findUnique({
+          where: { id: validated.brandId },
+          select: { plan: true },
+        });
+
+        const usageCheck = await this.usageGuard.checkUsageBeforeCall(
+          validated.brandId,
+          validated.userId,
+          brand?.plan,
+          1024, // Estimation tokens pour Nova
+          'openai',
+          'gpt-3.5-turbo',
+        );
+
+        if (!usageCheck.allowed) {
+          throw new Error(usageCheck.reason || 'Usage limit exceeded');
+        }
+      }
+
       const intent = await this.detectIntent(validated.message, validated.brandId);
       const systemPrompt = this.buildSystemPrompt(validated.context);
 
@@ -190,6 +214,19 @@ export class NovaService {
       const parsedResponse = this.parseResponse(llmResponse.content);
       const responseMessage = parsedResponse.message;
 
+      const latencyMs = Date.now() - startTime;
+
+      // Calculer le coût
+      const costCalculation = this.usageGuard.getCostCalculator().calculateCost(
+        'openai',
+        'gpt-3.5-turbo',
+        {
+          inputTokens: llmResponse.usage?.promptTokens || 0,
+          outputTokens: llmResponse.usage?.completionTokens || 0,
+          totalTokens: llmResponse.usage?.totalTokens || 0,
+        },
+      );
+
       // ✅ Créer un ticket si nécessaire avec validation (utiliser ticketData du JSON si présent)
       let ticketDataFromJSON: CreateTicketData | undefined = undefined;
       if (
@@ -212,6 +249,27 @@ export class NovaService {
       // ✅ Normaliser les articles suggérés
       const suggestedArticles = this.normalizeSuggestedArticles(articles);
 
+      // Mettre à jour l'usage (Usage Guardian + AI Monitor)
+      if (validated.brandId) {
+        await this.usageGuard.updateUsageAfterCall(
+          validated.brandId,
+          validated.userId,
+          undefined, // agentId sera 'nova'
+          {
+            tokens: {
+              input: llmResponse.usage?.promptTokens || 0,
+              output: llmResponse.usage?.completionTokens || 0,
+            },
+            costCents: costCalculation.costCents,
+            latencyMs,
+            success: true,
+          },
+          'openai',
+          'gpt-3.5-turbo',
+          'chat',
+        );
+      }
+
       return {
         message: responseMessage,
         intent,
@@ -221,6 +279,27 @@ export class NovaService {
         escalated: shouldEscalate,
       };
     } catch (error) {
+      const latencyMs = Date.now() - startTime;
+
+      // Tracker l'erreur
+      if (validated.brandId) {
+        await this.usageGuard.updateUsageAfterCall(
+          validated.brandId,
+          validated.userId,
+          undefined,
+          {
+            tokens: { input: 0, output: 0 },
+            costCents: 0,
+            latencyMs,
+            success: false,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'openai',
+          'gpt-3.5-turbo',
+          'chat',
+        );
+      }
+
       this.logger.error(`Nova chat error: ${error}`);
       throw error;
     }

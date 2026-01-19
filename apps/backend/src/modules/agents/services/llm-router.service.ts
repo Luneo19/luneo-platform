@@ -102,9 +102,9 @@ export class LLMRouterService {
     private readonly metrics: AgentMetricsService,
     private readonly security: PromptSecurityService,
   ) {
-    this.openaiApiKey = this.configService.getOrThrow<string>('OPENAI_API_KEY');
-    this.anthropicApiKey = this.configService.getOrThrow<string>('ANTHROPIC_API_KEY');
-    this.mistralApiKey = this.configService.getOrThrow<string>('MISTRAL_API_KEY');
+    this.openaiApiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
+    this.anthropicApiKey = this.configService.get<string>('ANTHROPIC_API_KEY') || '';
+    this.mistralApiKey = this.configService.get<string>('MISTRAL_API_KEY') || '';
 
     // Initialiser les circuit breakers pour chaque provider
     // Les options par défaut sont déjà configurées (failureThreshold: 5, timeoutMs: 60000)

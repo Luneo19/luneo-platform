@@ -28,7 +28,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Setup2FADto } from './dto/setup-2fa.dto';
 import { Verify2FADto } from './dto/verify-2fa.dto';
 import { Login2FADto } from './dto/login-2fa.dto';
-import { Public } from '@/common/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { AuthCookiesHelper } from './auth-cookies.helper';
 import { AuthGuard } from '@nestjs/passport';

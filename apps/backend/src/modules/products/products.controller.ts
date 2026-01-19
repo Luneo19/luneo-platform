@@ -21,7 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import { ProductsService } from './products.service';
-import { Public } from '@/common/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/types/user.types';
 import { JsonValue } from '@/common/types/utility-types';
 import { CreateProductDto } from './dto/create-product.dto';

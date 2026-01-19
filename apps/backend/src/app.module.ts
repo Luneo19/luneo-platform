@@ -28,6 +28,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AgentsModule } from './modules/agents/agents.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { AnalyticsCleanModule } from './modules/analytics/analytics-clean.module';
 import { ArStudioModule } from './modules/ar/ar-studio.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -72,6 +73,11 @@ import { ReferralModule } from './modules/referral/referral.module';
 import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
 import { CustomizationModule } from './modules/customization/customization.module';
 import { BraceletModule } from './modules/bracelet/bracelet.module';
+import { ProjectsModule } from './modules/projects/projects.module';
+import { TryOnModule } from './modules/try-on/try-on.module';
+import { Configurator3DModule } from './modules/configurator-3d/configurator-3d.module';
+import { VisualCustomizerModule } from './modules/visual-customizer/visual-customizer.module';
+import { AssetHubModule } from './modules/asset-hub/asset-hub.module';
 
 // Common
 import { CommonModule } from './common/common.module';
@@ -217,13 +223,14 @@ import { AuditModule } from './modules/audit/audit.module';
         PlansModule,
         PricingModule, // ✅ PHASE 6 - Pricing & Rentabilité IA
         ProductEngineModule,
-    RenderModule,
+    // RenderModule, // Temporairement désactivé (canvas nécessite dépendances natives)
     EcommerceModule,
     UsageBillingModule,
     WidgetModule,
     GenerationModule,
     SecurityModule,
     AnalyticsModule,
+    AnalyticsCleanModule, // Clean minimal analytics
     ArStudioModule,
     MarketplaceModule,
     ObservabilityModule,
@@ -241,6 +248,11 @@ import { AuditModule } from './modules/audit/audit.module';
     CustomizationModule,
     BraceletModule,
     CollaborationModule,
+    ProjectsModule,
+    TryOnModule,
+    Configurator3DModule,
+    VisualCustomizerModule,
+    AssetHubModule,
 
     // Cache Module (Global)
     CacheModule,
@@ -253,7 +265,8 @@ import { AuditModule } from './modules/audit/audit.module';
     TimezoneModule,
 
     // Job processing (conditionnel pour serverless)
-    ...(process.env.VERCEL ? [] : [JobsModule]),
+    // JobsModule temporairement désactivé (RenderModule nécessite canvas)
+    // ...(process.env.VERCEL ? [] : [JobsModule]),
 
     // WebSocket for real-time collaboration (temporairement désactivé pour build)
     // WebSocketModule,
