@@ -98,17 +98,22 @@ export class BruteForceService {
       }
 
       try {
-        const attempts = await redis.incr(identifier);
+        // Timeout de 2 secondes pour éviter de bloquer
+        const attempts = await Promise.race([
+          redis.incr(identifier),
+          new Promise<number>((resolve) => setTimeout(() => resolve(0), 2000)),
+        ]) as number;
 
         // Si c'est la première tentative, définir expiration (15 minutes)
         if (attempts === 1) {
           try {
-            await redis.expire(identifier, 900); // 15 minutes
+            await Promise.race([
+              redis.expire(identifier, 900), // 15 minutes
+              new Promise<void>((resolve) => setTimeout(() => resolve(), 1000)),
+            ]);
           } catch (expireError: any) {
-            // Ignore expire errors if Redis limit exceeded
-            if (!expireError?.message?.includes('max requests limit exceeded')) {
-              throw expireError;
-            }
+            // Ignore expire errors (non-critical)
+            this.logger.debug('Error setting expire (non-critical)', expireError?.message);
           }
         }
 
@@ -118,11 +123,14 @@ export class BruteForceService {
           attempts,
         });
       } catch (redisError: any) {
-        if (redisError?.message?.includes('max requests limit exceeded')) {
-          this.logger.warn('Redis limit exceeded, skipping brute force tracking');
+        if (redisError?.message?.includes('max requests limit exceeded') ||
+            redisError?.message?.includes('timeout')) {
+          this.logger.warn('Redis limit exceeded or timeout, skipping brute force tracking');
           return; // Fail silently - don't block login
         }
-        throw redisError; // Re-throw other errors
+        // Pour les autres erreurs, ignorer aussi (ne pas bloquer)
+        this.logger.warn('Redis error in recordFailedAttempt, skipping', redisError?.message);
+        return;
       }
     } catch (error) {
       this.logger.error('Error recording failed attempt', error);
@@ -143,14 +151,21 @@ export class BruteForceService {
       }
 
       try {
-        await redis.del(identifier);
+        // Timeout de 1 seconde pour éviter de bloquer
+        await Promise.race([
+          redis.del(identifier),
+          new Promise<void>((resolve) => setTimeout(() => resolve(), 1000)),
+        ]);
         this.logger.debug('Brute force attempts reset', { email, ip });
       } catch (redisError: any) {
-        if (redisError?.message?.includes('max requests limit exceeded')) {
-          this.logger.warn('Redis limit exceeded, skipping brute force reset');
+        if (redisError?.message?.includes('max requests limit exceeded') ||
+            redisError?.message?.includes('timeout')) {
+          this.logger.warn('Redis limit exceeded or timeout, skipping brute force reset');
           return; // Fail silently - don't block login
         }
-        throw redisError; // Re-throw other errors
+        // Pour les autres erreurs, ignorer aussi
+        this.logger.warn('Redis error in resetAttempts, skipping', redisError?.message);
+        return;
       }
     } catch (error) {
       this.logger.error('Error resetting attempts', error);
@@ -170,8 +185,18 @@ export class BruteForceService {
         return 0;
       }
 
-      const ttl = await redis.ttl(identifier);
-      return Math.max(0, ttl);
+      // Timeout de 1 seconde pour éviter de bloquer
+      try {
+        const ttl = await Promise.race([
+          redis.ttl(identifier),
+          new Promise<number>((resolve) => setTimeout(() => resolve(0), 1000)),
+        ]) as number;
+        return Math.max(0, ttl);
+      } catch (ttlError: any) {
+        // En cas d'erreur ou timeout, retourner 0 (pas de blocage)
+        this.logger.debug('Error getting remaining time (non-critical)', ttlError?.message);
+        return 0;
+      }
     } catch (error) {
       this.logger.error('Error getting remaining time', error);
       return 0;
@@ -180,18 +205,40 @@ export class BruteForceService {
 
   /**
    * Vérifie et lance une exception si trop de tentatives
+   * Avec timeout global pour éviter de bloquer le login
    */
   async checkAndThrow(email: string, ip: string): Promise<void> {
-    const canAttempt = await this.canAttempt(email, ip);
+    try {
+      // Timeout global de 3 secondes pour toute la vérification brute-force
+      const canAttempt = await Promise.race([
+        this.canAttempt(email, ip),
+        new Promise<boolean>((resolve) => setTimeout(() => {
+          this.logger.warn('Brute force check timeout, allowing request');
+          resolve(true); // Fail open - allow request
+        }, 3000)),
+      ]);
 
-    if (!canAttempt) {
-      const remainingTime = await this.getRemainingTime(email, ip);
-      const minutes = Math.ceil(remainingTime / 60);
+      if (!canAttempt) {
+        const remainingTime = await Promise.race([
+          this.getRemainingTime(email, ip),
+          new Promise<number>((resolve) => setTimeout(() => resolve(0), 1000)),
+        ]);
 
-      throw new HttpException(
-        `Trop de tentatives de connexion. Veuillez réessayer dans ${minutes} minute${minutes > 1 ? 's' : ''}.`,
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+        const minutes = Math.ceil(remainingTime / 60);
+
+        throw new HttpException(
+          `Trop de tentatives de connexion. Veuillez réessayer dans ${minutes} minute${minutes > 1 ? 's' : ''}.`,
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    } catch (error) {
+      // Si c'est une HttpException (trop de tentatives), la relancer
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      // Pour toute autre erreur (timeout, Redis, etc.), autoriser (fail open)
+      this.logger.warn('Brute force check error, allowing request', error?.message || error);
+      return; // Allow login to continue
     }
   }
 }
