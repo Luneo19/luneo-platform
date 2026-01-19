@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, BrandStatus } from '@prisma/client';
+import { PrismaClient, UserRole, BrandStatus, DesignStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -171,7 +171,7 @@ async function main() {
         colors: ['pink', 'green'],
         resolution: '1024x1024',
       },
-      status: 'COMPLETED',
+      status: DesignStatus.COMPLETED,
       previewUrl: 'https://example.com/design-preview.jpg',
       highResUrl: 'https://example.com/design-highres.jpg',
       costCents: 50,
