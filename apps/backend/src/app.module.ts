@@ -73,11 +73,12 @@ import { ReferralModule } from './modules/referral/referral.module';
 import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
 import { CustomizationModule } from './modules/customization/customization.module';
 import { BraceletModule } from './modules/bracelet/bracelet.module';
-import { ProjectsModule } from './modules/projects/projects.module';
-import { TryOnModule } from './modules/try-on/try-on.module';
-import { Configurator3DModule } from './modules/configurator-3d/configurator-3d.module';
-import { VisualCustomizerModule } from './modules/visual-customizer/visual-customizer.module';
-import { AssetHubModule } from './modules/asset-hub/asset-hub.module';
+// Temporairement désactivés - modèles Prisma manquants dans le schéma
+// import { ProjectsModule } from './modules/projects/projects.module';
+// import { TryOnModule } from './modules/try-on/try-on.module';
+// import { Configurator3DModule } from './modules/configurator-3d/configurator-3d.module';
+// import { VisualCustomizerModule } from './modules/visual-customizer/visual-customizer.module';
+// import { AssetHubModule } from './modules/asset-hub/asset-hub.module';
 
 // Common
 import { CommonModule } from './common/common.module';
@@ -248,11 +249,11 @@ import { AuditModule } from './modules/audit/audit.module';
     CustomizationModule,
     BraceletModule,
     CollaborationModule,
-    ProjectsModule,
-    TryOnModule,
-    Configurator3DModule,
-    VisualCustomizerModule,
-    AssetHubModule,
+    // ProjectsModule, // Temporairement désactivé - modèles Prisma manquants
+    // TryOnModule, // Temporairement désactivé - modèles Prisma manquants
+    // Configurator3DModule, // Temporairement désactivé - modèles Prisma manquants
+    // VisualCustomizerModule, // Temporairement désactivé - modèles Prisma manquants
+    // AssetHubModule, // Temporairement désactivé - modèles Prisma manquants
 
     // Cache Module (Global)
     CacheModule,
