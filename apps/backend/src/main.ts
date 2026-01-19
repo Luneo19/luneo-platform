@@ -278,6 +278,15 @@ async function bootstrap() {
         
         -- WorkOrder columns
         ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT;
+        
+        -- Design columns
+        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "renderUrl" TEXT;
+        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasWidth" INTEGER;
+        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasHeight" INTEGER;
+        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasBackgroundColor" TEXT DEFAULT '#ffffff';
+        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "designData" JSONB;
+        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "optionsJson" JSONB;
       END $$;
     `;
     
@@ -289,6 +298,8 @@ async function bootstrap() {
       'DO $$ BEGIN CREATE TYPE "SubscriptionStatus" AS ENUM (\'ACTIVE\', \'PAST_DUE\', \'CANCELED\', \'TRIALING\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
       // Create ProductStatus enum if it doesn't exist
       'DO $$ BEGIN CREATE TYPE "ProductStatus" AS ENUM (\'DRAFT\', \'ACTIVE\', \'ARCHIVED\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
+      // Create DesignStatus enum if it doesn't exist
+      'DO $$ BEGIN CREATE TYPE "DesignStatus" AS ENUM (\'PENDING\', \'PROCESSING\', \'COMPLETED\', \'FAILED\', \'CANCELLED\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
     ];
     
     // Execute column creation in a single transaction
@@ -336,6 +347,13 @@ async function bootstrap() {
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
         'ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT',
+        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT',
+        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "renderUrl" TEXT',
+        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasWidth" INTEGER',
+        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasHeight" INTEGER',
+        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasBackgroundColor" TEXT DEFAULT \'#ffffff\'',
+        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "designData" JSONB',
+        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "optionsJson" JSONB',
       ];
       
       for (const query of columnQueries) {
@@ -361,6 +379,7 @@ async function bootstrap() {
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "status" "ProductStatus" NOT NULL DEFAULT \'DRAFT\'',
+      'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "status" "DesignStatus" NOT NULL DEFAULT \'PENDING\'',
     ];
     
     for (const query of enumColumnQueries) {
