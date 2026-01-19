@@ -19,13 +19,10 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
     super(options, storageService, reflector);
   }
 
-  private get reflector(): Reflector {
-    return (this as any).reflector;
-  }
-
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if rate limiting is skipped
-    const skipRateLimit = this.reflector.getAllAndOverride<boolean>(
+    const reflector = (this as any).reflector as Reflector;
+    const skipRateLimit = reflector.getAllAndOverride<boolean>(
       RATE_LIMIT_SKIP_METADATA,
       [context.getHandler(), context.getClass()],
     );
