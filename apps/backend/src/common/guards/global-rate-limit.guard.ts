@@ -1,6 +1,8 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerOptions } from '@nestjs/throttler';
 import { Request } from 'express';
+import { Reflector } from '@nestjs/core';
+import { RATE_LIMIT_SKIP_METADATA } from '@/libs/rate-limit/rate-limit.decorator';
 
 /**
  * Global Rate Limit Guard
@@ -9,6 +11,34 @@ import { Request } from 'express';
  */
 @Injectable()
 export class GlobalRateLimitGuard extends ThrottlerGuard {
+  constructor(
+    options: any,
+    storageService: any,
+    private reflector: Reflector,
+  ) {
+    super(options, storageService);
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Check if rate limiting is skipped
+    const skipRateLimit = this.reflector.getAllAndOverride<boolean>(
+      RATE_LIMIT_SKIP_METADATA,
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (skipRateLimit) {
+      return true;
+    }
+
+    // Also skip for login endpoint
+    const request = context.switchToHttp().getRequest<Request>();
+    if (request.path.includes('/auth/login')) {
+      return true;
+    }
+
+    return super.canActivate(context);
+  }
+
   protected async getTracker(req: Request): Promise<string> {
     // Use user ID if authenticated, otherwise use IP
     const userId = (req as any).user?.id;
