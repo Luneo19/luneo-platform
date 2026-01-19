@@ -22,6 +22,7 @@ async function main() {
       -- Brand columns (used by CacheWarmingService)
       ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
       ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100;
+      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5;
     `);
     console.log('✅ Critical columns verified/created');
   } catch (error: any) {
