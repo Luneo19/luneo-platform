@@ -261,6 +261,9 @@ async function bootstrap() {
         ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arTrackingType" TEXT NOT NULL DEFAULT 'surface';
         ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arScale" DOUBLE PRECISION NOT NULL DEFAULT 1.0;
         ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arOffset" JSONB;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "category" TEXT;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "tags" TEXT[] DEFAULT ARRAY[]::TEXT[];
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "publishedAt" TIMESTAMP(3);
         
         -- Brand columns
         ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
@@ -281,6 +284,8 @@ async function bootstrap() {
       'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
       // Create SubscriptionStatus enum if it doesn't exist
       'DO $$ BEGIN CREATE TYPE "SubscriptionStatus" AS ENUM (\'ACTIVE\', \'PAST_DUE\', \'CANCELED\', \'TRIALING\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
+      // Create ProductStatus enum if it doesn't exist
+      'DO $$ BEGIN CREATE TYPE "ProductStatus" AS ENUM (\'DRAFT\', \'ACTIVE\', \'ARCHIVED\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
     ];
     
     // Execute column creation in a single transaction
@@ -315,6 +320,9 @@ async function bootstrap() {
         'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arTrackingType" TEXT NOT NULL DEFAULT \'surface\'',
         'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arScale" DOUBLE PRECISION NOT NULL DEFAULT 1.0',
         'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arOffset" JSONB',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "category" TEXT',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "tags" TEXT[] DEFAULT ARRAY[]::TEXT[]',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "publishedAt" TIMESTAMP(3)',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "monthlyGenerations" INTEGER NOT NULL DEFAULT 0',
@@ -348,6 +356,7 @@ async function bootstrap() {
     const enumColumnQueries = [
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "status" "ProductStatus" NOT NULL DEFAULT \'DRAFT\'',
     ];
     
     for (const query of enumColumnQueries) {
