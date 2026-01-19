@@ -15,11 +15,13 @@ async function main() {
       ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT;
       ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[];
       
-      -- slug on Product (used by seed)
+      -- Product columns (used by CacheWarmingService)
       ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT;
+      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT;
       
-      -- stripeSubscriptionId on Brand (may be needed)
+      -- Brand columns (used by CacheWarmingService)
       ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
+      ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100;
     `);
     console.log('✅ Critical columns verified/created');
   } catch (error: any) {
