@@ -280,6 +280,7 @@ async function bootstrap() {
         ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT;
         
         -- Design columns
+        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "promptHash" TEXT;
         ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
         ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "renderUrl" TEXT;
         ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasWidth" INTEGER;
@@ -347,6 +348,7 @@ async function bootstrap() {
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
         'ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT',
+        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "promptHash" TEXT',
         'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT',
         'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "renderUrl" TEXT',
         'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasWidth" INTEGER',
