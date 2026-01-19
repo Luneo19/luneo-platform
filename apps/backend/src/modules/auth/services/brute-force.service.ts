@@ -31,12 +31,31 @@ export class BruteForceService {
         return true;
       }
 
-      const attempts = await redis.get(identifier);
+      // Gérer spécifiquement les erreurs de limite Upstash Redis
+      let attempts: string | null = null;
+      try {
+        attempts = await redis.get(identifier);
+      } catch (redisError: any) {
+        if (redisError?.message?.includes('max requests limit exceeded')) {
+          this.logger.warn('Redis limit exceeded in brute force check, allowing request');
+          return true; // Fail open - allow request
+        }
+        throw redisError; // Re-throw other errors
+      }
+
       const attemptCount = attempts ? parseInt(attempts, 10) : 0;
 
       // Limite : 5 tentatives avant blocage
       if (attemptCount >= 5) {
-        const ttl = await redis.ttl(identifier);
+        let ttl = 0;
+        try {
+          ttl = await redis.ttl(identifier);
+        } catch (ttlError: any) {
+          // Ignore TTL errors (non-critical)
+          if (!ttlError?.message?.includes('max requests limit exceeded')) {
+            this.logger.debug('Error getting TTL (non-critical)', ttlError);
+          }
+        }
         this.logger.warn('Brute force detected', {
           email,
           ip,
@@ -66,20 +85,36 @@ export class BruteForceService {
         return;
       }
 
-      const attempts = await redis.incr(identifier);
+      try {
+        const attempts = await redis.incr(identifier);
 
-      // Si c'est la première tentative, définir expiration (15 minutes)
-      if (attempts === 1) {
-        await redis.expire(identifier, 900); // 15 minutes
+        // Si c'est la première tentative, définir expiration (15 minutes)
+        if (attempts === 1) {
+          try {
+            await redis.expire(identifier, 900); // 15 minutes
+          } catch (expireError: any) {
+            // Ignore expire errors if Redis limit exceeded
+            if (!expireError?.message?.includes('max requests limit exceeded')) {
+              throw expireError;
+            }
+          }
+        }
+
+        this.logger.debug('Failed attempt recorded', {
+          email,
+          ip,
+          attempts,
+        });
+      } catch (redisError: any) {
+        if (redisError?.message?.includes('max requests limit exceeded')) {
+          this.logger.warn('Redis limit exceeded, skipping brute force tracking');
+          return; // Fail silently - don't block login
+        }
+        throw redisError; // Re-throw other errors
       }
-
-      this.logger.debug('Failed attempt recorded', {
-        email,
-        ip,
-        attempts,
-      });
     } catch (error) {
       this.logger.error('Error recording failed attempt', error);
+      // Don't throw - allow login to continue
     }
   }
 
@@ -95,10 +130,19 @@ export class BruteForceService {
         return;
       }
 
-      await redis.del(identifier);
-      this.logger.debug('Brute force attempts reset', { email, ip });
+      try {
+        await redis.del(identifier);
+        this.logger.debug('Brute force attempts reset', { email, ip });
+      } catch (redisError: any) {
+        if (redisError?.message?.includes('max requests limit exceeded')) {
+          this.logger.warn('Redis limit exceeded, skipping brute force reset');
+          return; // Fail silently - don't block login
+        }
+        throw redisError; // Re-throw other errors
+      }
     } catch (error) {
       this.logger.error('Error resetting attempts', error);
+      // Don't throw - allow login to continue
     }
   }
 
