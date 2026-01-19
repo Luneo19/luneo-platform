@@ -258,6 +258,9 @@ async function bootstrap() {
         ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputWidth" INTEGER NOT NULL DEFAULT 1024;
         ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputHeight" INTEGER NOT NULL DEFAULT 1024;
         ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arTrackingType" TEXT NOT NULL DEFAULT 'surface';
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arScale" DOUBLE PRECISION NOT NULL DEFAULT 1.0;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arOffset" JSONB;
         
         -- Brand columns
         ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
@@ -309,6 +312,9 @@ async function bootstrap() {
         'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputWidth" INTEGER NOT NULL DEFAULT 1024',
         'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputHeight" INTEGER NOT NULL DEFAULT 1024',
         'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arTrackingType" TEXT NOT NULL DEFAULT \'surface\'',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arScale" DOUBLE PRECISION NOT NULL DEFAULT 1.0',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arOffset" JSONB',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "monthlyGenerations" INTEGER NOT NULL DEFAULT 0',
