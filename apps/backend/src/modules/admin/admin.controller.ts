@@ -22,8 +22,6 @@ import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('admin')
 @Controller('admin')
-@ApiBearerAuth()
-@Roles(UserRole.PLATFORM_ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -42,6 +40,65 @@ export class AdminController {
     }
 
     return this.adminService.createAdminUser();
+  }
+
+  @Get('metrics')
+  @ApiBearerAuth()
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Obtenir les métriques de la plateforme' })
+  @ApiResponse({
+    status: 200,
+    description: 'Métriques de la plateforme',
+  })
+  async getMetrics() {
+    return this.adminService.getMetrics();
+  }
+
+  @Get('ai/costs')
+  @ApiBearerAuth()
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Obtenir les coûts IA' })
+  @ApiQuery({ name: 'period', required: false, description: 'Période (ex: 30d)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Coûts IA',
+  })
+  async getAICosts(@Query('period') period: string) {
+    return this.adminService.getAICosts(period);
+  }
+
+  @Post('ai/blacklist')
+  @ApiBearerAuth()
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Ajouter un terme à la liste noire IA' })
+  @ApiResponse({
+    status: 201,
+    description: 'Terme ajouté à la liste noire',
+  })
+  async addBlacklistedPrompt(@Body() body: { term: string }) {
+    return this.adminService.addBlacklistedPrompt(body.term);
+  }
+
+  @Post('customers/bulk-action')
+  @ApiBearerAuth()
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Effectuer une action en masse sur des customers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Action en masse effectuée',
+  })
+  async bulkActionCustomers(
+    @Body() body: {
+      customerIds: string[];
+      action: 'email' | 'export' | 'tag' | 'segment' | 'delete';
+      options?: Record<string, any>;
+    },
+  ) {
+    return this.adminService.bulkActionCustomers(
+      body.customerIds,
+      body.action,
+      body.options,
+    );
   }
 
   @Get('metrics')
