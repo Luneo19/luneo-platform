@@ -136,8 +136,9 @@ export class AuthService {
     const { email, password } = loginDto;
     const clientIp = ip || 'unknown';
 
-    // Vérifier protection brute force
-    await this.bruteForceService.checkAndThrow(email, clientIp);
+    // DÉSACTIVÉ TEMPORAIREMENT: Protection brute force désactivée pour éviter timeout Redis
+    // TODO: Réactiver une fois Redis stabilisé
+    // await this.bruteForceService.checkAndThrow(email, clientIp);
 
     // Find user
     const user = await this.prisma.user.findUnique({
@@ -148,16 +149,16 @@ export class AuthService {
     });
 
     if (!user || !user.password) {
-      // Enregistrer tentative échouée
-      await this.bruteForceService.recordFailedAttempt(email, clientIp);
+      // DÉSACTIVÉ: Enregistrer tentative échouée (désactivé pour éviter timeout)
+      // await this.bruteForceService.recordFailedAttempt(email, clientIp);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      // Enregistrer tentative échouée
-      await this.bruteForceService.recordFailedAttempt(email, clientIp);
+      // DÉSACTIVÉ: Enregistrer tentative échouée (désactivé pour éviter timeout)
+      // await this.bruteForceService.recordFailedAttempt(email, clientIp);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -171,8 +172,8 @@ export class AuthService {
         },
       );
 
-      // Réinitialiser tentatives brute force (première étape réussie)
-      await this.bruteForceService.resetAttempts(email, clientIp);
+      // DÉSACTIVÉ: Réinitialiser tentatives brute force (désactivé pour éviter timeout)
+      // await this.bruteForceService.resetAttempts(email, clientIp);
 
       return {
         requires2FA: true,
@@ -186,8 +187,8 @@ export class AuthService {
       };
     }
 
-    // Réinitialiser tentatives brute force (connexion réussie)
-    await this.bruteForceService.resetAttempts(email, clientIp);
+    // DÉSACTIVÉ: Réinitialiser tentatives brute force (désactivé pour éviter timeout)
+    // await this.bruteForceService.resetAttempts(email, clientIp);
 
     // Update last login
     await this.prisma.user.update({

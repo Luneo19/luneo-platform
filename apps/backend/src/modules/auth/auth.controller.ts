@@ -34,6 +34,7 @@ import { AuthCookiesHelper } from './auth-cookies.helper';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
+import { SkipRateLimit } from '@/libs/rate-limit/rate-limit.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -133,6 +134,7 @@ export class AuthController {
 
   @Post('login')
   @Public()
+  @SkipRateLimit() // DÉSACTIVÉ: Rate limiting désactivé pour éviter timeout Redis
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Connexion utilisateur',
@@ -178,7 +180,8 @@ export class AuthController {
       },
     },
   })
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute
+  // DÉSACTIVÉ: Rate limiting désactivé temporairement pour éviter timeout Redis
+  // @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute
   async login(
     @Body() loginDto: LoginDto,
     @Request() req: any,
