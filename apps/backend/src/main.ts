@@ -275,6 +275,9 @@ async function bootstrap() {
         ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false;
         ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);
         ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
+        
+        -- WorkOrder columns
+        ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT;
       END $$;
     `;
     
@@ -332,6 +335,7 @@ async function bootstrap() {
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
         'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
+        'ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT',
       ];
       
       for (const query of columnQueries) {
