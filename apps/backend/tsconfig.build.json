@@ -10,6 +10,8 @@
     "src/modules/try-on/**/*",
     "src/modules/configurator-3d/**/*",
     "src/modules/visual-customizer/**/*",
-    "src/modules/asset-hub/**/*"
+    "src/modules/asset-hub/**/*",
+    "src/modules/agents/ai-monitor/**/*",
+    "src/modules/agents/usage-guardian/**/*"
   ]
 }
