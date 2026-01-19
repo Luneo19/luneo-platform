@@ -30,16 +30,9 @@ export async function getServerUser(): Promise<AuthUser | null> {
     }
 
     // Option 1 : Utiliser l'API route Next.js (recommandé)
-    // En production, utiliser l'URL absolue ou relative selon le contexte
-    const isServer = typeof window === 'undefined';
-    const APP_URL = isServer 
-      ? (process.env.NEXT_PUBLIC_APP_URL || 
-         (process.env.NODE_ENV === 'production' 
-           ? 'https://luneo.app' 
-           : 'http://localhost:3000'))
-      : ''; // En client, utiliser l'URL relative
-    
-    const apiUrl = isServer ? `${APP_URL}/api/auth/me` : '/api/auth/me';
+    // En Server Component, utiliser l'URL relative (Next.js gère automatiquement)
+    // En production Vercel, l'URL relative fonctionne car on est sur le même domaine
+    const apiUrl = '/api/auth/me';
     
     try {
       const refreshToken = cookieStore.get('refreshToken')?.value || '';
