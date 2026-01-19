@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
+import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
 
 export const ROLES_KEY = 'roles';
 export const Roles = (...roles: UserRole[]) => {
@@ -20,7 +21,6 @@ export class RolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     // Check if endpoint is public (bypass role check)
-    const { IS_PUBLIC_KEY } = require('@/common/decorators/public.decorator');
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
