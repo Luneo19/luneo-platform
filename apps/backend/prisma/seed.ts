@@ -22,6 +22,8 @@ async function main() {
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT \'openai\'',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT \'standard\'',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT \'png\'',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputWidth" INTEGER NOT NULL DEFAULT 1024',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputHeight" INTEGER NOT NULL DEFAULT 1024',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
       // Brand columns (used by CacheWarmingService)
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',

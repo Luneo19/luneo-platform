@@ -227,54 +227,128 @@ async function bootstrap() {
     const { PrismaClient } = require('@prisma/client');
     const tempPrisma = new PrismaClient();
     
-    // Execute each SQL command separately (PostgreSQL doesn't support multiple commands in one statement)
-    const columnQueries = [
-      // User 2FA columns
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[]',
-      // User AI credits columns (used by AuthService)
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits" INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_purchased" INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_used" INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "last_credit_purchase" TIMESTAMP(3)',
-      // Product columns (used by CacheWarmingService)
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImage" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImageUrl" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "thumbnailUrl" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "promptTemplate" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT \'openai\'',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT \'standard\'',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT \'png\'',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
-      // Brand columns (used by CacheWarmingService)
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "monthlyGenerations" INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
-      // Create SubscriptionPlan enum if it doesn't exist, then add subscriptionPlan column
+    // Create all missing columns in a single transaction using DO block
+    // This is more efficient than executing each ALTER TABLE separately
+    const createColumnsQuery = `
+      DO $$
+      BEGIN
+        -- User 2FA columns
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[];
+        
+        -- User AI credits columns
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_purchased" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_used" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "last_credit_purchase" TIMESTAMP(3);
+        
+        -- Product columns
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImage" TEXT;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImageUrl" TEXT;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "thumbnailUrl" TEXT;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "promptTemplate" TEXT;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT 'openai';
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT 'standard';
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT 'png';
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputWidth" INTEGER NOT NULL DEFAULT 1024;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputHeight" INTEGER NOT NULL DEFAULT 1024;
+        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true;
+        
+        -- Brand columns
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB;
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "monthlyGenerations" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100;
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5;
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);
+        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
+      END $$;
+    `;
+    
+    // Create enums first (separate queries as they need special handling)
+    const enumQueries = [
+      // Create SubscriptionPlan enum if it doesn't exist
       'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
-      // Create SubscriptionStatus enum if it doesn't exist, then add subscriptionStatus column
+      // Create SubscriptionStatus enum if it doesn't exist
       'DO $$ BEGIN CREATE TYPE "SubscriptionStatus" AS ENUM (\'ACTIVE\', \'PAST_DUE\', \'CANCELED\', \'TRIALING\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
     ];
     
-    for (const query of columnQueries) {
+    // Execute column creation in a single transaction
+    try {
+      await tempPrisma.$executeRawUnsafe(createColumnsQuery);
+      logger.log('✅ All critical columns created in single transaction');
+    } catch (columnError: any) {
+      // Fallback: if DO block fails, try individual queries
+      logger.warn(`⚠️ Batch column creation failed, trying individual queries: ${columnError.message?.substring(0, 100)}`);
+      const columnQueries = [
+        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false',
+        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT',
+        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT',
+        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[]',
+        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits" INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_purchased" INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_used" INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "last_credit_purchase" TIMESTAMP(3)',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImage" TEXT',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImageUrl" TEXT',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "thumbnailUrl" TEXT',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "promptTemplate" TEXT',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT \'openai\'',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT \'standard\'',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT \'png\'',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputWidth" INTEGER NOT NULL DEFAULT 1024',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputHeight" INTEGER NOT NULL DEFAULT 1024',
+        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "monthlyGenerations" INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
+        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
+      ];
+      
+      for (const query of columnQueries) {
+        try {
+          await tempPrisma.$executeRawUnsafe(query);
+        } catch (queryError: any) {
+          logger.debug(`Column check: ${queryError.message?.substring(0, 100)}`);
+        }
+      }
+    }
+    
+    // Create enums and enum columns
+    for (const query of enumQueries) {
       try {
         await tempPrisma.$executeRawUnsafe(query);
       } catch (queryError: any) {
-        // Ignore individual column errors (may already exist)
-        logger.debug(`Column check: ${queryError.message?.substring(0, 100)}`);
+        logger.debug(`Enum check: ${queryError.message?.substring(0, 100)}`);
+      }
+    }
+    
+    // Add enum columns after enums are created
+    const enumColumnQueries = [
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
+    ];
+    
+    for (const query of enumColumnQueries) {
+      try {
+        await tempPrisma.$executeRawUnsafe(query);
+      } catch (queryError: any) {
+        logger.debug(`Enum column check: ${queryError.message?.substring(0, 100)}`);
       }
     }
     
