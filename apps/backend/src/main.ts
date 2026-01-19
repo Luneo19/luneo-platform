@@ -244,9 +244,11 @@ async function bootstrap() {
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImage" TEXT',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImageUrl" TEXT',
       'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "thumbnailUrl" TEXT',
+      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "promptTemplate" TEXT',
       // Brand columns (used by CacheWarmingService)
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB',
+      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "monthlyGenerations" INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
       // Create SubscriptionPlan enum if it doesn't exist, then add subscriptionPlan column
       'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
