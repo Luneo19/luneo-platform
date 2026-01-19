@@ -33,6 +33,36 @@ export class AdminService {
     };
   }
 
+  async createAdminUser() {
+    try {
+      const bcrypt = require('bcryptjs');
+      const adminPassword = await bcrypt.hash('admin123', 12);
+      
+      const adminUser = await this.prisma.user.upsert({
+        where: { email: 'admin@luneo.com' },
+        update: {},
+        create: {
+          email: 'admin@luneo.com',
+          password: adminPassword,
+          firstName: 'Admin',
+          lastName: 'Luneo',
+          role: 'PLATFORM_ADMIN',
+          emailVerified: true,
+        },
+      });
+
+      this.logger.log(`✅ Admin user created/verified: ${adminUser.email}`);
+      return {
+        success: true,
+        message: 'Admin user created successfully',
+        email: adminUser.email,
+      };
+    } catch (error: any) {
+      this.logger.error(`❌ Failed to create admin: ${error.message}`);
+      throw error;
+    }
+  }
+
   async getAICosts(period: string = '30d') {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);

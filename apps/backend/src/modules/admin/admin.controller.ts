@@ -4,6 +4,8 @@ import {
   Post,
   Body,
   Query,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -11,10 +13,12 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -22,6 +26,23 @@ import { UserRole } from '@prisma/client';
 @Roles(UserRole.PLATFORM_ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  @Post('create-admin')
+  @Public()
+  @ApiOperation({ summary: 'Créer l\'admin (endpoint de setup - sécurisé avec clé secrète)' })
+  @ApiHeader({ name: 'X-Setup-Key', description: 'Clé secrète pour créer l\'admin' })
+  @ApiResponse({ status: 201, description: 'Admin créé avec succès' })
+  @ApiResponse({ status: 401, description: 'Clé secrète invalide' })
+  async createAdmin(@Headers('x-setup-key') setupKey: string) {
+    // Vérifier la clé secrète (utiliser une variable d'environnement ou une clé fixe pour le setup)
+    const validKey = process.env.SETUP_SECRET_KEY || 'luneo-setup-2024-secret-key-change-in-production';
+    
+    if (!setupKey || setupKey !== validKey) {
+      throw new UnauthorizedException('Invalid setup key');
+    }
+
+    return this.adminService.createAdminUser();
+  }
 
   @Get('metrics')
   @ApiOperation({ summary: 'Obtenir les métriques de la plateforme' })
