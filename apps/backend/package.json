@@ -86,7 +86,7 @@
     "winston": "^3.11.0",
     "xss": "^1.0.14",
     "xml2js": "^0.6.2",
-    "zod": "^3.22.4"
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
