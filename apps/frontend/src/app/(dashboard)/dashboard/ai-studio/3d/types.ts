@@ -8,7 +8,8 @@ export interface GeneratedModel {
   id: string;
   name: string;
   prompt: string;
-  thumbnailUrl: string;
+  thumbnail: string;
+  thumbnailUrl?: string;
   modelUrl: string;
   category: string;
   complexity: string;
