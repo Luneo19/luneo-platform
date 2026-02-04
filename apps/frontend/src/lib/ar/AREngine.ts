@@ -18,6 +18,7 @@ import * as THREE from 'three';
 import { FaceTracker } from './trackers/FaceTracker';
 import { HandTracker } from './trackers/HandTracker';
 import { BodyTracker } from './trackers/BodyTracker';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -95,10 +96,12 @@ export class AREngine {
       // 3. Initialiser le tracker approprié
       await this.initTracker(this.config.trackerType);
 
-      console.log('[AREngine] Initialized successfully');
+      logger.info('[AREngine] Initialized successfully');
     } catch (error) {
-      console.error('[AREngine] Initialization failed:', error);
-      this.config.onError?.(error instanceof Error ? error : new Error('Unknown error'));
+      logger.error('[AREngine] Initialization failed:', error);
+      this.config.onError?.(
+        error instanceof Error ? error : new Error('Unknown error')
+      );
       throw error;
     }
   }
@@ -120,7 +123,7 @@ export class AREngine {
       this.config.videoElement.srcObject = stream;
       await this.config.videoElement.play();
 
-      console.log('[AREngine] Camera initialized');
+      logger.info('[AREngine] Camera initialized');
     } catch (error) {
       throw new Error(`Camera access denied: ${error}`);
     }
@@ -157,7 +160,7 @@ export class AREngine {
     directionalLight.position.set(0, 1, 1);
     this.scene.add(directionalLight);
 
-    console.log('[AREngine] Three.js initialized');
+    logger.info('[AREngine] Three.js initialized');
   }
 
   /**
@@ -187,7 +190,7 @@ export class AREngine {
         throw new Error(`Unknown tracker type: ${type}`);
     }
 
-    console.log(`[AREngine] ${type} tracker initialized`);
+    logger.info(`[AREngine] ${type} tracker initialized`);
   }
 
   /**
@@ -197,7 +200,7 @@ export class AREngine {
     if (this.isRunning) return;
     this.isRunning = true;
     this.renderLoop();
-    console.log('[AREngine] Started');
+    logger.info('[AREngine] Started');
   }
 
   /**
@@ -209,7 +212,7 @@ export class AREngine {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
-    console.log('[AREngine] Stopped');
+    logger.info('[AREngine] Stopped');
   }
 
   /**
@@ -220,7 +223,9 @@ export class AREngine {
 
     try {
       // 1. Détecter les landmarks
-      const trackingData = await this.activeTracker?.detect(this.config.videoElement);
+      const trackingData = await this.activeTracker?.detect(
+        this.config.videoElement
+      );
 
       if (trackingData) {
         // 2. Notifier l'application
@@ -235,7 +240,7 @@ export class AREngine {
         this.renderer.render(this.scene, this.camera);
       }
     } catch (error) {
-      console.error('[AREngine] Render error:', error);
+      logger.error('[AREngine] Render error:', error);
     }
 
     // Continuer la boucle
@@ -246,13 +251,14 @@ export class AREngine {
    * Charge un produit 3D
    */
   async loadProduct(product: ARProduct): Promise<void> {
-    const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+    const { GLTFLoader } =
+      await import('three/examples/jsm/loaders/GLTFLoader.js');
     const loader = new GLTFLoader();
 
     return new Promise((resolve, reject) => {
       loader.load(
         product.modelUrl,
-        (gltf) => {
+        gltf => {
           const model = gltf.scene;
           model.position.copy(product.position);
           model.rotation.copy(product.rotation);
@@ -262,12 +268,15 @@ export class AREngine {
           this.scene?.add(model);
           this.loadedProducts.set(product.id, model);
 
-          console.log(`[AREngine] Product loaded: ${product.id}`);
+          logger.info(`[AREngine] Product loaded: ${product.id}`);
           resolve();
         },
         undefined,
-        (error) => {
-          console.error(`[AREngine] Failed to load product: ${product.id}`, error);
+        error => {
+          logger.error(
+            `[AREngine] Failed to load product: ${product.id}`,
+            error
+          );
           reject(error);
         }
       );
@@ -282,23 +291,199 @@ export class AREngine {
     if (model) {
       this.scene?.remove(model);
       this.loadedProducts.delete(productId);
-      console.log(`[AREngine] Product removed: ${productId}`);
+      logger.info(`[AREngine] Product removed: ${productId}`);
     }
   }
 
   /**
-   * Met à jour les positions des produits selon le tracking
+   * Met à jour les positions et rotations des produits selon le tracking
    */
   private updateProductPositions(trackingData: TrackingData): void {
-    this.loadedProducts.forEach((model) => {
+    this.loadedProducts.forEach(model => {
       const attachmentPoint = model.userData.attachmentPoint;
-      const position = this.getAttachmentPosition(trackingData, attachmentPoint);
+      const position = this.getAttachmentPosition(
+        trackingData,
+        attachmentPoint
+      );
 
       if (position) {
         model.position.set(position.x, position.y, position.z);
-        // TODO: Mettre à jour la rotation selon l'orientation du visage/main
+        
+        // Calculer et appliquer la rotation selon l'orientation
+        const rotation = this.getAttachmentRotation(trackingData, attachmentPoint);
+        if (rotation) {
+          model.rotation.set(rotation.x, rotation.y, rotation.z);
+        }
+        
+        // Calculer et appliquer le scale selon la distance/taille
+        const scale = this.getAttachmentScale(trackingData, attachmentPoint);
+        if (scale > 0) {
+          model.scale.setScalar(scale);
+        }
       }
     });
+  }
+
+  /**
+   * Calcule la rotation pour un point d'attache
+   */
+  private getAttachmentRotation(
+    trackingData: TrackingData,
+    attachmentPoint: string
+  ): THREE.Euler | null {
+    const { landmarks, type } = trackingData;
+    
+    if (type === 'face') {
+      return this.getFaceRotation(landmarks, attachmentPoint);
+    } else if (type === 'hand') {
+      return this.getHandRotation(landmarks, attachmentPoint);
+    }
+    
+    return null;
+  }
+
+  /**
+   * Calcule la rotation du visage basée sur les landmarks
+   */
+  private getFaceRotation(landmarks: number[][], attachmentPoint: string): THREE.Euler | null {
+    if (landmarks.length < 468) return null;
+    
+    // Points clés pour calculer l'orientation du visage
+    const noseTip = landmarks[1];       // Bout du nez
+    const noseBridge = landmarks[6];    // Haut du nez
+    const leftEye = landmarks[33];      // Coin externe œil gauche
+    const rightEye = landmarks[263];    // Coin externe œil droit
+    const chin = landmarks[152];        // Menton
+    
+    if (!noseTip || !noseBridge || !leftEye || !rightEye || !chin) {
+      return null;
+    }
+    
+    // Calculer le yaw (rotation horizontale) basé sur la position relative des yeux
+    const eyeCenter = [(leftEye[0] + rightEye[0]) / 2, (leftEye[1] + rightEye[1]) / 2];
+    const yaw = Math.atan2(noseTip[0] - eyeCenter[0], 0.3) * 2;
+    
+    // Calculer le pitch (rotation verticale) basé sur l'axe nez-menton
+    const faceHeight = Math.sqrt(
+      Math.pow(chin[0] - noseBridge[0], 2) + Math.pow(chin[1] - noseBridge[1], 2)
+    );
+    const pitch = Math.atan2(noseTip[1] - noseBridge[1], faceHeight) - Math.PI / 2;
+    
+    // Calculer le roll (inclinaison) basé sur l'angle des yeux
+    const roll = Math.atan2(rightEye[1] - leftEye[1], rightEye[0] - leftEye[0]);
+    
+    // Ajustements selon le point d'attache
+    let rotationOffset = { x: 0, y: 0, z: 0 };
+    
+    if (attachmentPoint === 'left_ear' || attachmentPoint === 'right_ear') {
+      // Boucles d'oreilles : suivre l'inclinaison de la tête
+      rotationOffset = { x: 0, y: attachmentPoint === 'left_ear' ? 0.3 : -0.3, z: 0 };
+    } else if (attachmentPoint.includes('eye')) {
+      // Lunettes : alignées avec les yeux
+      rotationOffset = { x: 0, y: 0, z: 0 };
+    } else if (attachmentPoint === 'nose') {
+      // Piercings de nez : suivre l'orientation du nez
+      rotationOffset = { x: pitch * 0.5, y: 0, z: 0 };
+    }
+    
+    return new THREE.Euler(
+      pitch + rotationOffset.x,
+      yaw + rotationOffset.y,
+      roll + rotationOffset.z
+    );
+  }
+
+  /**
+   * Calcule la rotation de la main basée sur les landmarks
+   */
+  private getHandRotation(landmarks: number[][], attachmentPoint: string): THREE.Euler | null {
+    if (landmarks.length < 21) return null;
+    
+    // Points clés de la main
+    const wrist = landmarks[0];
+    const indexMcp = landmarks[5];
+    const middleMcp = landmarks[9];
+    const pinkyMcp = landmarks[17];
+    
+    if (!wrist || !indexMcp || !middleMcp || !pinkyMcp) {
+      return null;
+    }
+    
+    // Direction principale de la main (poignet vers doigts)
+    const handDirection = {
+      x: middleMcp[0] - wrist[0],
+      y: middleMcp[1] - wrist[1],
+      z: (middleMcp[2] || 0) - (wrist[2] || 0),
+    };
+    
+    // Rotation de la paume (index vers auriculaire)
+    const palmDirection = {
+      x: pinkyMcp[0] - indexMcp[0],
+      y: pinkyMcp[1] - indexMcp[1],
+    };
+    
+    // Calculer les angles
+    const pitch = Math.atan2(handDirection.y, Math.sqrt(handDirection.x ** 2 + handDirection.z ** 2));
+    const yaw = Math.atan2(handDirection.x, handDirection.z || 0.1);
+    const roll = Math.atan2(palmDirection.y, palmDirection.x);
+    
+    // Ajustements selon le point d'attache
+    if (attachmentPoint.includes('finger')) {
+      // Bagues : rotation alignée avec le doigt
+      const fingerMap: Record<string, { base: number; tip: number }> = {
+        index_finger: { base: 5, tip: 8 },
+        middle_finger: { base: 9, tip: 12 },
+        ring_finger: { base: 13, tip: 16 },
+        pinky_finger: { base: 17, tip: 20 },
+      };
+      
+      const finger = fingerMap[attachmentPoint];
+      if (finger && landmarks[finger.base] && landmarks[finger.tip]) {
+        const base = landmarks[finger.base];
+        const tip = landmarks[finger.tip];
+        const fingerAngle = Math.atan2(tip[1] - base[1], tip[0] - base[0]);
+        return new THREE.Euler(0, 0, fingerAngle + Math.PI / 2);
+      }
+    } else if (attachmentPoint === 'wrist') {
+      // Bracelet/montre : rotation alignée avec le poignet
+      return new THREE.Euler(pitch, yaw, roll);
+    }
+    
+    return new THREE.Euler(pitch * 0.5, yaw * 0.5, roll);
+  }
+
+  /**
+   * Calcule le scale pour un point d'attache (basé sur la distance/taille)
+   */
+  private getAttachmentScale(
+    trackingData: TrackingData,
+    attachmentPoint: string
+  ): number {
+    const { landmarks, type, boundingBox } = trackingData;
+    
+    if (!boundingBox) return 1;
+    
+    // Scale basé sur la taille de la zone détectée
+    const baseScale = type === 'face' 
+      ? boundingBox.width * 3  // Visage : utiliser largeur
+      : boundingBox.width * 2; // Main : utiliser largeur
+    
+    // Ajustements par type d'attache
+    const scaleFactors: Record<string, number> = {
+      left_ear: 0.15,
+      right_ear: 0.15,
+      nose: 0.08,
+      left_eye: 0.3,
+      right_eye: 0.3,
+      forehead: 0.25,
+      ring_finger: 0.12,
+      middle_finger: 0.12,
+      index_finger: 0.12,
+      wrist: 0.4,
+    };
+    
+    const factor = scaleFactors[attachmentPoint] || 0.2;
+    return Math.max(0.1, Math.min(2, baseScale * factor));
   }
 
   /**
@@ -312,22 +497,24 @@ export class AREngine {
 
     // Mapping des points d'attache vers les indices de landmarks
     const attachmentMap: Record<string, number> = {
-      // Face
-      'left_ear': 234,
-      'right_ear': 454,
-      'nose': 1,
-      'left_eye': 33,
-      'right_eye': 263,
-      'forehead': 10,
-      // Hand
-      'ring_finger': 16,
-      'middle_finger': 12,
-      'index_finger': 8,
-      'wrist': 0,
+      // Face (MediaPipe Face Mesh indices)
+      left_ear: 234,
+      right_ear: 454,
+      nose: 1,
+      left_eye: 33,
+      right_eye: 263,
+      forehead: 10,
+      chin: 152,
+      // Hand (MediaPipe Hands indices)
+      ring_finger: 14,   // Ring PIP (zone de la bague)
+      middle_finger: 10, // Middle PIP
+      index_finger: 6,   // Index PIP
+      pinky_finger: 18,  // Pinky PIP
+      wrist: 0,
       // Body
-      'left_shoulder': 11,
-      'right_shoulder': 12,
-      'neck': 0, // Calculé
+      left_shoulder: 11,
+      right_shoulder: 12,
+      neck: 0,
     };
 
     const landmarkIndex = attachmentMap[attachmentPoint];
@@ -337,11 +524,11 @@ export class AREngine {
 
     const [x, y, z] = landmarks[landmarkIndex];
 
-    // Convertir les coordonnées normalisées en coordonnées 3D
+    // Convertir les coordonnées normalisées (0-1) en coordonnées 3D
     return new THREE.Vector3(
-      (x - 0.5) * 10,  // Centré, échelle arbitraire
-      -(y - 0.5) * 10, // Inverser Y
-      -z * 2           // Profondeur
+      (x - 0.5) * 10,   // Centré, échelle arbitraire
+      -(y - 0.5) * 10,  // Inverser Y (écran vs 3D)
+      -(z || 0) * 2     // Profondeur (négatif pour aller vers la caméra)
     );
   }
 
@@ -390,7 +577,7 @@ export class AREngine {
     stream?.getTracks().forEach(track => track.stop());
 
     // Nettoyer Three.js
-    this.loadedProducts.forEach((model) => {
+    this.loadedProducts.forEach(model => {
       this.scene?.remove(model);
     });
     this.loadedProducts.clear();
@@ -402,6 +589,6 @@ export class AREngine {
     this.handTracker?.dispose();
     this.bodyTracker?.dispose();
 
-    console.log('[AREngine] Disposed');
+    logger.info('[AREngine] Disposed');
   }
 }

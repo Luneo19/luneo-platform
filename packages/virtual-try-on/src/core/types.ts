@@ -16,7 +16,7 @@ export interface VirtualTryOnConfig {
   category: ProductCategory;
   
   /** URL du modèle 3D (GLB/GLTF) */
-  model3dUrl: string;
+  model3dUrl?: string;
   
   /** Options de caméra */
   cameraOptions?: CameraOptions;
@@ -26,12 +26,25 @@ export interface VirtualTryOnConfig {
   
   /** Mode debug */
   debug?: boolean;
+  
+  /** Scale du modèle 3D */
+  modelScale?: number;
+  
+  /** Côté (pour boucles d'oreilles: 'left' ou 'right') */
+  side?: 'left' | 'right';
 }
 
 /**
  * Catégories de produits supportées
  */
-export type ProductCategory = 'glasses' | 'watch' | 'jewelry';
+export type ProductCategory = 
+  | 'glasses'      // Lunettes
+  | 'watches'      // Montres
+  | 'bracelets'    // Bracelets
+  | 'rings'        // Bagues
+  | 'earrings'     // Boucles d'oreilles
+  | 'necklaces'    // Colliers
+  | 'jewelry';     // Bijoux génériques
 
 /**
  * Options de caméra

@@ -20,7 +20,14 @@ import { db as prismaDb } from '@/lib/db';
 export interface Notification {
   id: string;
   userId: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'order' | 'customization' | 'system';
+  type:
+    | 'info'
+    | 'success'
+    | 'warning'
+    | 'error'
+    | 'order'
+    | 'customization'
+    | 'system';
   title: string;
   message: string;
   data?: Record<string, any>;
@@ -121,12 +128,18 @@ export class NotificationService {
         type: dbNotification.type as Notification['type'],
         title: dbNotification.title,
         message: dbNotification.message,
-        data: dbNotification.data as Record<string, any> | undefined,
+        ...(dbNotification.data
+          ? { data: dbNotification.data as Record<string, any> }
+          : {}),
         read: dbNotification.read,
-        readAt: dbNotification.readAt || undefined,
+        ...(dbNotification.readAt ? { readAt: dbNotification.readAt } : {}),
         createdAt: dbNotification.createdAt,
-        actionUrl: dbNotification.actionUrl || undefined,
-        actionLabel: dbNotification.actionLabel || undefined,
+        ...(dbNotification.actionUrl
+          ? { actionUrl: dbNotification.actionUrl }
+          : {}),
+        ...(dbNotification.actionLabel
+          ? { actionLabel: dbNotification.actionLabel }
+          : {}),
       };
 
       // Send email if requested
@@ -146,7 +159,10 @@ export class NotificationService {
       cacheService.delete(`notifications:${request.userId}`);
 
       const notificationId = notification.id;
-      logger.info('Notification created', { notificationId, userId: request.userId });
+      logger.info('Notification created', {
+        notificationId,
+        userId: request.userId,
+      });
 
       return notification;
     } catch (error: any) {
@@ -167,7 +183,11 @@ export class NotificationService {
       offset?: number;
     },
     useCache: boolean = true
-  ): Promise<{ notifications: Notification[]; total: number; unreadCount: number }> {
+  ): Promise<{
+    notifications: Notification[];
+    total: number;
+    unreadCount: number;
+  }> {
     try {
       const cacheKey = `notifications:${userId}:${options?.unreadOnly}:${options?.limit}:${options?.offset}`;
 
@@ -192,9 +212,9 @@ export class NotificationService {
       if (options?.unreadOnly) {
         where.read = false;
       }
-      const optionsWithType = options as (typeof options & {
+      const optionsWithType = options as typeof options & {
         type?: Notification['type'];
-      });
+      };
       if (optionsWithType?.type) {
         where.type = optionsWithType.type;
       }
@@ -215,31 +235,33 @@ export class NotificationService {
         }),
       ]);
 
-      const notifications: Notification[] = dbNotifications.map((n: {
-        id: string;
-        userId: string;
-        type: string;
-        title: string;
-        message: string;
-        data: unknown;
-        read: boolean;
-        readAt: Date | null;
-        createdAt: Date;
-        actionUrl?: string | null;
-        actionLabel?: string | null;
-      }) => ({
-        id: n.id,
-        userId: n.userId,
-        type: n.type as Notification['type'],
-        title: n.title,
-        message: n.message,
-        data: n.data as Record<string, any> | undefined,
-        read: n.read,
-        readAt: n.readAt || undefined,
-        createdAt: n.createdAt,
-        actionUrl: n.actionUrl || undefined,
-        actionLabel: n.actionLabel || undefined,
-      }));
+      const notifications: Notification[] = dbNotifications.map(
+        (n: {
+          id: string;
+          userId: string;
+          type: string;
+          title: string;
+          message: string;
+          data: unknown;
+          read: boolean;
+          readAt: Date | null;
+          createdAt: Date;
+          actionUrl?: string | null;
+          actionLabel?: string | null;
+        }) => ({
+          id: n.id,
+          userId: n.userId,
+          type: n.type as Notification['type'],
+          title: n.title,
+          message: n.message,
+          data: n.data as Record<string, any> | undefined,
+          read: n.read,
+          readAt: n.readAt || undefined,
+          createdAt: n.createdAt,
+          actionUrl: n.actionUrl || undefined,
+          actionLabel: n.actionLabel || undefined,
+        })
+      );
 
       const result = {
         notifications,
@@ -262,7 +284,10 @@ export class NotificationService {
   /**
    * Marque une notification comme lue
    */
-  async markAsRead(notificationId: string, userId: string): Promise<Notification> {
+  async markAsRead(
+    notificationId: string,
+    userId: string
+  ): Promise<Notification> {
     try {
       logger.info('Marking notification as read', { notificationId, userId });
 
@@ -284,19 +309,30 @@ export class NotificationService {
         type: dbNotification.type as Notification['type'],
         title: dbNotification.title,
         message: dbNotification.message,
-        data: dbNotification.data as Record<string, any> | undefined,
+        ...(dbNotification.data !== null
+          ? { data: dbNotification.data as Record<string, any> }
+          : {}),
         read: dbNotification.read,
-        readAt: dbNotification.readAt || undefined,
+        ...(dbNotification.readAt !== null
+          ? { readAt: dbNotification.readAt }
+          : {}),
         createdAt: dbNotification.createdAt,
-        actionUrl: dbNotification.actionUrl || undefined,
-        actionLabel: dbNotification.actionLabel || undefined,
+        ...(dbNotification.actionUrl
+          ? { actionUrl: dbNotification.actionUrl }
+          : {}),
+        ...(dbNotification.actionLabel
+          ? { actionLabel: dbNotification.actionLabel }
+          : {}),
       };
 
       logger.info('Notification marked as read', { notificationId, userId });
 
       return notification;
     } catch (error: any) {
-      logger.error('Error marking notification as read', { error, notificationId });
+      logger.error('Error marking notification as read', {
+        error,
+        notificationId,
+      });
       throw error;
     }
   }
@@ -322,7 +358,10 @@ export class NotificationService {
 
       logger.info('All notifications marked as read', { userId });
     } catch (error: any) {
-      logger.error('Error marking all notifications as read', { error, userId });
+      logger.error('Error marking all notifications as read', {
+        error,
+        userId,
+      });
       throw error;
     }
   }
@@ -330,7 +369,10 @@ export class NotificationService {
   /**
    * Supprime une notification
    */
-  async deleteNotification(notificationId: string, userId: string): Promise<void> {
+  async deleteNotification(
+    notificationId: string,
+    userId: string
+  ): Promise<void> {
     try {
       logger.info('Deleting notification', { notificationId, userId });
 
@@ -368,7 +410,9 @@ export class NotificationService {
         });
 
         if (!user?.email) {
-          logger.warn('Cannot send email notification: user has no email', { userId: request.userId });
+          logger.warn('Cannot send email notification: user has no email', {
+            userId: request.userId,
+          });
           return;
         }
 
@@ -381,7 +425,11 @@ export class NotificationService {
 
       // Check if email is enabled for this notification type
       if (notificationType === 'order' && !preferences.email.orders) return;
-      if (notificationType === 'customization' && !preferences.email.customizations) return;
+      if (
+        notificationType === 'customization' &&
+        !preferences.email.customizations
+      )
+        return;
       if (notificationType === 'system' && !preferences.email.system) return;
 
       // Generate email HTML
@@ -450,7 +498,9 @@ export class NotificationService {
   /**
    * Envoie une notification push
    */
-  async sendPushNotification(request: CreateNotificationRequest): Promise<void> {
+  async sendPushNotification(
+    request: CreateNotificationRequest
+  ): Promise<void> {
     try {
       // Check user preferences
       const preferences = await this.getPreferences(request.userId);
@@ -458,17 +508,25 @@ export class NotificationService {
 
       // Check if push is enabled for this notification type
       if (notificationType === 'order' && !preferences.push.orders) return;
-      if (notificationType === 'customization' && !preferences.push.customizations) return;
+      if (
+        notificationType === 'customization' &&
+        !preferences.push.customizations
+      )
+        return;
       if (notificationType === 'system' && !preferences.push.system) return;
 
       // Get user's push subscription from database
       // Note: Push subscriptions are stored in user.metadata.pushSubscriptions
       // In production, consider creating a dedicated PushSubscription model in Prisma
       // for better querying and management
-      const pushSubscriptions = await this.getUserPushSubscriptions(request.userId);
+      const pushSubscriptions = await this.getUserPushSubscriptions(
+        request.userId
+      );
 
       if (pushSubscriptions.length === 0) {
-        logger.info('No push subscriptions found for user', { userId: request.userId });
+        logger.info('No push subscriptions found for user', {
+          userId: request.userId,
+        });
         return;
       }
 
@@ -507,10 +565,14 @@ export class NotificationService {
   /**
    * Récupère les abonnements push d'un utilisateur
    */
-  private async getUserPushSubscriptions(userId: string): Promise<Array<{ id: string; endpoint: string; keys: any }>> {
+  private async getUserPushSubscriptions(
+    userId: string
+  ): Promise<Array<{ id: string; endpoint: string; keys: any }>> {
     try {
       // Check cache first
-      const cached = cacheService.get<Array<{ id: string; endpoint: string; keys: any }>>(`push:subscriptions:${userId}`);
+      const cached = cacheService.get<
+        Array<{ id: string; endpoint: string; keys: any }>
+      >(`push:subscriptions:${userId}`);
       if (cached) {
         return cached;
       }
@@ -525,10 +587,12 @@ export class NotificationService {
       if (user?.metadata) {
         const metadata = user.metadata as any;
         const subscriptions = metadata.pushSubscriptions || [];
-        
+
         // Cache for 5 minutes
-        cacheService.set(`push:subscriptions:${userId}`, subscriptions, { ttl: 5 * 60 * 1000 });
-        
+        cacheService.set(`push:subscriptions:${userId}`, subscriptions, {
+          ttl: 5 * 60 * 1000,
+        });
+
         return subscriptions;
       }
 
@@ -540,24 +604,188 @@ export class NotificationService {
   }
 
   /**
-   * Envoie une notification push à un abonnement spécifique
+   * Envoie une notification push à un abonnement spécifique via backend API
    */
   private async sendPushToSubscription(
-    subscription: { endpoint: string; keys: any },
-    payload: { title: string; body: string; data?: any }
+    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+    payload: { title: string; body: string; data?: any; icon?: string; badge?: string; url?: string }
   ): Promise<void> {
-    // Web Push API implementation
-    // This requires web-push library on the server
-    // For now, we'll use a placeholder that would work with service worker
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+      const response = await fetch(`${API_BASE}/notifications/push/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          subscription,
+          payload: {
+            title: payload.title,
+            body: payload.body,
+            icon: payload.icon || '/icons/notification-icon.png',
+            badge: payload.badge || '/icons/badge-icon.png',
+            data: {
+              ...payload.data,
+              url: payload.url || '/',
+            },
+          },
+        }),
+      });
 
-    // In production, use web-push library:
-    // import webpush from 'web-push';
-    // await webpush.sendNotification(subscription, JSON.stringify(payload));
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Failed to send push notification');
+      }
 
-    logger.info('Push notification would be sent', {
-      endpoint: subscription.endpoint.substring(0, 50) + '...',
-      title: payload.title,
+      logger.info('Push notification sent successfully', {
+        endpoint: subscription.endpoint.substring(0, 50) + '...',
+        title: payload.title,
+      });
+    } catch (error) {
+      logger.error('Failed to send push notification', {
+        error,
+        endpoint: subscription.endpoint.substring(0, 50) + '...',
+      });
+      // Don't throw - push failures shouldn't break the notification flow
+    }
+  }
+
+  /**
+   * S'abonner aux notifications push (côté client)
+   */
+  async subscribeToPush(userId: string): Promise<PushSubscription | null> {
+    try {
+      // Check if push is supported
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        logger.warn('Push notifications not supported in this browser');
+        return null;
+      }
+
+      // Request notification permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        logger.info('Push notification permission denied');
+        return null;
+      }
+
+      // Get service worker registration
+      const registration = await navigator.serviceWorker.ready;
+
+      // Get VAPID public key from backend
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+      const vapidResponse = await fetch(`${API_BASE}/notifications/push/vapid-key`, {
+        credentials: 'include',
+      });
+      
+      if (!vapidResponse.ok) {
+        throw new Error('Failed to get VAPID public key');
+      }
+      
+      const { publicKey } = await vapidResponse.json();
+
+      // Convert VAPID key to Uint8Array
+      const applicationServerKey = this.urlBase64ToUint8Array(publicKey);
+
+      // Subscribe to push
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+
+      // Save subscription to backend
+      await this.savePushSubscription(userId, subscription);
+
+      logger.info('Successfully subscribed to push notifications');
+      return subscription;
+    } catch (error) {
+      logger.error('Failed to subscribe to push notifications', { error });
+      return null;
+    }
+  }
+
+  /**
+   * Se désabonner des notifications push
+   */
+  async unsubscribeFromPush(userId: string): Promise<boolean> {
+    try {
+      if (!('serviceWorker' in navigator)) {
+        return false;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        await subscription.unsubscribe();
+        await this.removePushSubscription(userId, subscription.endpoint);
+        logger.info('Successfully unsubscribed from push notifications');
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      logger.error('Failed to unsubscribe from push notifications', { error });
+      return false;
+    }
+  }
+
+  /**
+   * Sauvegarde l'abonnement push sur le backend
+   */
+  private async savePushSubscription(userId: string, subscription: PushSubscription): Promise<void> {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+    const response = await fetch(`${API_BASE}/notifications/push/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        userId,
+        subscription: subscription.toJSON(),
+      }),
     });
+
+    if (!response.ok) {
+      throw new Error('Failed to save push subscription');
+    }
+  }
+
+  /**
+   * Supprime l'abonnement push du backend
+   */
+  private async removePushSubscription(userId: string, endpoint: string): Promise<void> {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+    await fetch(`${API_BASE}/notifications/push/unsubscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        userId,
+        endpoint,
+      }),
+    });
+  }
+
+  /**
+   * Convertit une clé VAPID base64 en Uint8Array
+   */
+  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   }
 
   // ========================================
@@ -607,7 +835,10 @@ export class NotificationService {
 
       return defaultPreferences;
     } catch (error: any) {
-      logger.error('Error fetching notification preferences', { error, userId });
+      logger.error('Error fetching notification preferences', {
+        error,
+        userId,
+      });
       // Return defaults on error
       return {
         email: {
@@ -662,7 +893,10 @@ export class NotificationService {
 
       return updated;
     } catch (error: any) {
-      logger.error('Error updating notification preferences', { error, userId });
+      logger.error('Error updating notification preferences', {
+        error,
+        userId,
+      });
       throw error;
     }
   }

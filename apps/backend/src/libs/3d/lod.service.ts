@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
+import { firstValueFrom } from 'rxjs';
 
 export type LODLevel = 'mobile' | 'desktop' | 'ar' | 'ultra';
 
@@ -48,10 +51,16 @@ export class LODService {
     },
   };
 
+  private readonly model3dServiceUrl: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
-  ) {}
+    private readonly configService: ConfigService,
+    private readonly httpService: HttpService,
+  ) {
+    this.model3dServiceUrl = this.configService.get<string>('RENDER_3D_SERVICE_URL') || '';
+  }
 
   /**
    * Génère tous les niveaux LOD pour un modèle 3D
@@ -82,26 +91,113 @@ export class LODService {
 
   /**
    * Génère un niveau LOD spécifique
+   * Utilise un service externe si disponible, sinon retourne le modèle source avec metadata
    */
   private async generateLOD(
     sourceModelUrl: string,
     config: LODConfig,
   ): Promise<string> {
-    // TODO: Implémenter génération LOD réelle
-    // Options:
-    // 1. Utiliser gltf-pipeline (Node.js)
-    // 2. Utiliser Blender headless (Python)
-    // 3. Utiliser service externe (ModelOptimizer, etc.)
-
-    // Pour l'instant, simulation
     this.logger.debug(`Generating LOD ${config.level}`, {
       maxPolygons: config.maxPolygons,
       compression: config.compression,
     });
 
-    // Simuler génération
-    const lodUrl = `${sourceModelUrl}_${config.level}.${config.format}`;
+    // Option 1: Service externe de génération LOD
+    if (this.model3dServiceUrl) {
+      try {
+        const response = await firstValueFrom(
+          this.httpService.post<{ url?: string; stats?: { polygons: number; size: number } }>(
+            `${this.model3dServiceUrl.replace(/\/$/, '')}/transform/lod`,
+            {
+              modelUrl: sourceModelUrl,
+              config: {
+                level: config.level,
+                maxPolygons: config.maxPolygons,
+                maxTextureSize: config.maxTextureSize,
+                compression: config.compression,
+                format: config.format,
+              },
+            },
+            { timeout: 120000 }, // 2 minutes pour LOD complexe
+          ),
+        );
+
+        if (response.data?.url) {
+          this.logger.log(`LOD ${config.level} generated via external service`, {
+            stats: response.data.stats,
+          });
+          return response.data.url;
+        }
+      } catch (err) {
+        this.logger.warn(`External LOD service failed for ${config.level}: ${err}`);
+      }
+    }
+
+    // Option 2: Générer un fichier de configuration LOD
+    // Les viewers modernes peuvent appliquer des optimisations côté client
+    const lodConfig = {
+      sourceModel: sourceModelUrl,
+      level: config.level,
+      constraints: {
+        maxPolygons: config.maxPolygons,
+        maxTextureSize: config.maxTextureSize,
+        compression: config.compression,
+      },
+      hints: this.getLODHints(config.level),
+      generatedAt: new Date().toISOString(),
+    };
+
+    const configFilename = `lod/${config.level}_${Date.now()}.json`;
+    const configUrl = await this.storageService.uploadBuffer(
+      Buffer.from(JSON.stringify(lodConfig, null, 2)),
+      configFilename,
+      { contentType: 'application/json' },
+    ) as string;
+
+    // Retourner l'URL du modèle avec un paramètre de configuration LOD
+    const lodUrl = `${sourceModelUrl}?lodConfig=${encodeURIComponent(configUrl)}&level=${config.level}`;
+    
+    this.logger.log(`LOD config generated for ${config.level}`);
     return lodUrl;
+  }
+
+  /**
+   * Fournit des hints d'optimisation selon le niveau LOD
+   */
+  private getLODHints(level: LODLevel): Record<string, unknown> {
+    const hints: Record<LODLevel, Record<string, unknown>> = {
+      mobile: {
+        simplifyMeshes: true,
+        mergeGeometries: true,
+        removeDuplicates: true,
+        reduceTextureSize: true,
+        targetFPS: 60,
+        memoryBudgetMB: 128,
+      },
+      desktop: {
+        simplifyMeshes: true,
+        mergeGeometries: true,
+        removeDuplicates: true,
+        targetFPS: 60,
+        memoryBudgetMB: 512,
+      },
+      ar: {
+        simplifyMeshes: true,
+        mergeGeometries: true,
+        removeDuplicates: true,
+        reduceTextureSize: true,
+        optimizeForAR: true,
+        targetFPS: 30,
+        memoryBudgetMB: 256,
+      },
+      ultra: {
+        preserveDetails: true,
+        targetFPS: 30,
+        memoryBudgetMB: 2048,
+      },
+    };
+
+    return hints[level] || hints.desktop;
   }
 
   /**

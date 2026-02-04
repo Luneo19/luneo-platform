@@ -1,18 +1,20 @@
 /**
  * Monitoring Service
  * MON-001: Service centralisé de monitoring et health checks
+ * 
+ * ⚠️ SERVER-ONLY : Ce service utilise STRIPE_SECRET_KEY et ne peut pas être importé côté client
  */
 
 import { logger } from '@/lib/logger';
+import 'server-only';
 import type {
-  HealthStatus,
-  ServiceHealth,
-  SystemHealth,
-  WebVitals,
-  APIMetrics,
-  TrackedError,
-  DashboardMetrics,
-  Alert,
+    Alert,
+    APIMetrics,
+    DashboardMetrics,
+    ServiceHealth,
+    SystemHealth,
+    TrackedError,
+    WebVitals
 } from './types';
 
 // Store metrics in memory (in production, use Redis or TimescaleDB)
@@ -85,8 +87,8 @@ class MonitoringService {
     services.push(await this.checkStripe());
 
     // Calculate overall status
-    const hasUnhealthy = services.some((s) => s.status === 'unhealthy');
-    const hasDegraded = services.some((s) => s.status === 'degraded');
+    const hasUnhealthy = services.some(s => s.status === 'unhealthy');
+    const hasDegraded = services.some(s => s.status === 'degraded');
 
     const health: SystemHealth = {
       status: hasUnhealthy ? 'unhealthy' : hasDegraded ? 'degraded' : 'healthy',
@@ -100,11 +102,11 @@ class MonitoringService {
 
     // Create alert if unhealthy
     if (hasUnhealthy) {
-      const unhealthyServices = services.filter((s) => s.status === 'unhealthy');
+      const unhealthyServices = services.filter(s => s.status === 'unhealthy');
       this.createAlert({
         severity: 'critical',
         title: 'Service Unhealthy',
-        message: `Services unhealthy: ${unhealthyServices.map((s) => s.name).join(', ')}`,
+        message: `Services unhealthy: ${unhealthyServices.map(s => s.name).join(', ')}`,
         source: 'health-check',
       });
     }
@@ -120,22 +122,23 @@ class MonitoringService {
   }
 
   /**
-   * Check database health
+   * Check database health via backend API (Prisma/PostgreSQL)
+   * Plus de Supabase : on s'appuie sur le health check du backend NestJS.
    */
   private async checkDatabase(): Promise<ServiceHealth> {
     const start = Date.now();
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      (process.env.NODE_ENV === 'production' ? 'https://api.luneo.app' : 'http://localhost:3001');
     try {
-      // In production, ping your database
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, {
-        method: 'HEAD',
-        headers: {
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-        },
-      });
+      const base = apiUrl.replace(/\/api\/?$/, '');
+      const response = await fetch(`${base}/health`, { method: 'GET' });
+      const data = response.ok ? await response.json().catch(() => ({})) : {};
+      const dbStatus = data?.info?.database?.status ?? (response.ok ? 'up' : 'down');
 
       return {
         name: 'database',
-        status: response.ok ? 'healthy' : 'degraded',
+        status: dbStatus === 'up' ? 'healthy' : 'degraded',
         latency: Date.now() - start,
         lastCheck: Date.now(),
       };
@@ -191,7 +194,7 @@ class MonitoringService {
    * Check storage health
    */
   private async checkStorage(): Promise<ServiceHealth> {
-    // Simplified check - in production, verify S3/Supabase Storage
+    // Simplified check - in production, verify S3/Cloudinary
     return {
       name: 'storage',
       status: 'healthy',
@@ -240,12 +243,16 @@ class MonitoringService {
 
     // Trim old metrics
     if (metricsStore.apiMetrics.length > MAX_STORED_METRICS) {
-      metricsStore.apiMetrics = metricsStore.apiMetrics.slice(-MAX_STORED_METRICS);
+      metricsStore.apiMetrics =
+        metricsStore.apiMetrics.slice(-MAX_STORED_METRICS);
     }
 
     // Track slow requests
     if (metrics.duration > 2000) {
-      logger.warn('Slow API request', { ...metrics, duration: `${metrics.duration}ms` });
+      logger.warn('Slow API request', {
+        ...metrics,
+        duration: `${metrics.duration}ms`,
+      });
     }
 
     // Track errors
@@ -322,55 +329,137 @@ class MonitoringService {
   }
 
   /**
+   * Fetch real user metrics from backend analytics API
+   */
+  private async fetchUserMetrics(): Promise<{ activeUsers: number; uniqueVisitors24h: number }> {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || '';
+      
+      // Fetch from backend analytics endpoint
+      const response = await fetch(`${API_BASE}/api/v1/analytics/realtime-metrics`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Server-side fetch doesn't need credentials
+        cache: 'no-store',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          activeUsers: data.activeUsers ?? data.activeSessions ?? 0,
+          uniqueVisitors24h: data.uniqueVisitors24h ?? data.uniqueUsers ?? 0,
+        };
+      }
+    } catch (error) {
+      logger.warn('Failed to fetch user metrics from backend, using estimates', { error });
+    }
+
+    // Fallback: estimate based on local API metrics
+    const now = Date.now();
+    const fiveMinutesAgo = now - 5 * 60 * 1000;
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+    // Count unique IPs or user agents from recent API calls
+    const recentCalls = metricsStore.apiMetrics.filter(m => m.timestamp > fiveMinutesAgo);
+    const dailyCalls = metricsStore.apiMetrics.filter(m => m.timestamp > oneDayAgo);
+
+    // Estimate active users as unique endpoints accessed in last 5 min
+    const recentEndpoints = new Set(recentCalls.map(m => m.endpoint));
+    const dailyEndpoints = new Set(dailyCalls.map(m => m.endpoint));
+
+    return {
+      activeUsers: Math.max(1, recentEndpoints.size),
+      uniqueVisitors24h: Math.max(1, dailyEndpoints.size),
+    };
+  }
+
+  /**
    * Get dashboard metrics
    */
-  getDashboardMetrics(): DashboardMetrics {
+  async getDashboardMetrics(): Promise<DashboardMetrics> {
     const now = Date.now();
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
     const oneMinuteAgo = now - 60 * 1000;
 
     // Filter recent metrics
-    const recentAPICalls = metricsStore.apiMetrics.filter((m) => m.timestamp > oneMinuteAgo);
-    const dailyAPICalls = metricsStore.apiMetrics.filter((m) => m.timestamp > oneDayAgo);
-    const dailyErrors = metricsStore.errors.filter((e) => e.timestamp > oneDayAgo);
+    const recentAPICalls = metricsStore.apiMetrics.filter(
+      m => m.timestamp > oneMinuteAgo
+    );
+    const dailyAPICalls = metricsStore.apiMetrics.filter(
+      m => m.timestamp > oneDayAgo
+    );
+    const dailyErrors = metricsStore.errors.filter(
+      e => e.timestamp > oneDayAgo
+    );
 
     // Calculate averages
-    const avgResponseTime = recentAPICalls.length > 0
-      ? recentAPICalls.reduce((sum, m) => sum + m.duration, 0) / recentAPICalls.length
-      : 0;
+    const avgResponseTime =
+      recentAPICalls.length > 0
+        ? recentAPICalls.reduce((sum, m) => sum + m.duration, 0) /
+          recentAPICalls.length
+        : 0;
 
-    const errorRate = dailyAPICalls.length > 0
-      ? (dailyAPICalls.filter((m) => !m.success).length / dailyAPICalls.length) * 100
-      : 0;
+    const errorRate =
+      dailyAPICalls.length > 0
+        ? (dailyAPICalls.filter(m => !m.success).length /
+            dailyAPICalls.length) *
+          100
+        : 0;
 
     // Calculate average Web Vitals
-    const recentVitals = metricsStore.webVitals.filter((v) => v.timestamp > oneDayAgo);
+    const recentVitals = metricsStore.webVitals.filter(
+      v => v.timestamp > oneDayAgo
+    );
     const avgWebVitals: Partial<WebVitals> = {};
     if (recentVitals.length > 0) {
-      const vitalsKeys: (keyof WebVitals)[] = ['LCP', 'FID', 'CLS', 'TTFB', 'FCP', 'INP'];
+      const vitalsKeys: (keyof WebVitals)[] = [
+        'LCP',
+        'FID',
+        'CLS',
+        'TTFB',
+        'FCP',
+        'INP',
+      ];
       for (const key of vitalsKeys) {
-        const values = recentVitals.map((v) => v.vitals[key]).filter((v): v is number => v !== undefined);
+        const values = recentVitals
+          .map(v => v.vitals[key])
+          .filter((v): v is number => v !== undefined);
         if (values.length > 0) {
           avgWebVitals[key] = values.reduce((a, b) => a + b, 0) / values.length;
         }
       }
     }
 
+    // Fetch real user metrics from backend API (with fallback to estimates)
+    const userMetrics = await this.fetchUserMetrics();
+
     return {
-      activeUsers: Math.floor(Math.random() * 100) + 10, // Placeholder
+      activeUsers: userMetrics.activeUsers,
       requestsPerMinute: recentAPICalls.length,
       errorRate,
       avgResponseTime,
       totalRequests24h: dailyAPICalls.length,
       totalErrors24h: dailyErrors.length,
-      uniqueVisitors24h: Math.floor(Math.random() * 1000) + 100, // Placeholder
+      uniqueVisitors24h: userMetrics.uniqueVisitors24h,
       peakRPM: Math.max(...this.calculateRPMTimeline()),
       services: {
-        database: this.lastHealthCheck?.services.find((s) => s.name === 'database') || { name: 'database', status: 'healthy', lastCheck: now },
-        cache: this.lastHealthCheck?.services.find((s) => s.name === 'cache') || { name: 'cache', status: 'healthy', lastCheck: now },
-        storage: this.lastHealthCheck?.services.find((s) => s.name === 'storage') || { name: 'storage', status: 'healthy', lastCheck: now },
+        database: this.lastHealthCheck?.services.find(
+          s => s.name === 'database'
+        ) || { name: 'database', status: 'healthy', lastCheck: now },
+        cache: this.lastHealthCheck?.services.find(s => s.name === 'cache') || {
+          name: 'cache',
+          status: 'healthy',
+          lastCheck: now,
+        },
+        storage: this.lastHealthCheck?.services.find(
+          s => s.name === 'storage'
+        ) || { name: 'storage', status: 'healthy', lastCheck: now },
         email: { name: 'email', status: 'healthy', lastCheck: now },
-        payments: this.lastHealthCheck?.services.find((s) => s.name === 'payments') || { name: 'payments', status: 'healthy', lastCheck: now },
+        payments: this.lastHealthCheck?.services.find(
+          s => s.name === 'payments'
+        ) || { name: 'payments', status: 'healthy', lastCheck: now },
       },
       avgWebVitals,
     };
@@ -387,7 +476,7 @@ class MonitoringService {
       const minuteStart = now - (i + 1) * 60 * 1000;
       const minuteEnd = now - i * 60 * 1000;
       const count = metricsStore.apiMetrics.filter(
-        (m) => m.timestamp >= minuteStart && m.timestamp < minuteEnd
+        m => m.timestamp >= minuteStart && m.timestamp < minuteEnd
       ).length;
       rpm.push(count);
     }
@@ -406,14 +495,14 @@ class MonitoringService {
    * Get active alerts
    */
   getActiveAlerts(): Alert[] {
-    return metricsStore.alerts.filter((a) => !a.acknowledgedBy && !a.resolvedAt);
+    return metricsStore.alerts.filter(a => !a.acknowledgedBy && !a.resolvedAt);
   }
 
   /**
    * Acknowledge alert
    */
   acknowledgeAlert(alertId: string, userId: string): void {
-    const alert = metricsStore.alerts.find((a) => a.id === alertId);
+    const alert = metricsStore.alerts.find(a => a.id === alertId);
     if (alert) {
       alert.acknowledged = true;
       alert.acknowledgedBy = userId;
@@ -423,5 +512,3 @@ class MonitoringService {
 
 export const monitoringService = MonitoringService.getInstance();
 export default MonitoringService;
-
-

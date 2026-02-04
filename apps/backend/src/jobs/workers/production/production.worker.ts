@@ -142,10 +142,13 @@ export class ProductionWorker {
       };
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       clearTimeout(timeout);
       this.logger.error(`Production bundle creation failed for order ${orderId}:`, error);
       
-      await this.updateOrderStatus(orderId, 'PRODUCTION_FAILED', error.message);
+      await this.updateOrderStatus(orderId, 'PRODUCTION_FAILED', errorMessage);
 
       // Publier événement d'erreur via Outbox
       await this.outboxService.publish('production.bundle.failed', {
@@ -153,7 +156,7 @@ export class ProductionWorker {
         brandId,
         designId,
         productId,
-        error: error.message,
+        error: errorMessage,
         failedAt: new Date(),
       });
 
@@ -579,17 +582,97 @@ export class ProductionWorker {
   }
 
   /**
-   * Vérifie la qualité d'un asset
+   * Vérifie la qualité d'un asset en analysant ses propriétés réelles
    */
-  private async checkAssetQuality(asset: any): Promise<any> {
-    // Simulation de vérification de qualité
-    const qualityScore = Math.random() * 0.4 + 0.6; // Score entre 0.6 et 1.0
+  private async checkAssetQuality(asset: {
+    id: string;
+    url?: string;
+    width?: number;
+    height?: number;
+    fileSize?: number;
+    format?: string;
+    dpi?: number;
+    colorSpace?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<{
+    assetId: string;
+    qualityScore: number;
+    issues: string[];
+    recommendations: string[];
+  }> {
+    const issues: string[] = [];
+    const recommendations: string[] = [];
+    let scoreDeductions = 0;
+
+    // Check resolution
+    const minResolution = 1024; // Minimum acceptable resolution
+    const optimalResolution = 2048; // Optimal resolution for print
+    const width = asset.width || (asset.metadata?.width as number) || 0;
+    const height = asset.height || (asset.metadata?.height as number) || 0;
+    const maxDimension = Math.max(width, height);
+
+    if (maxDimension < minResolution) {
+      issues.push(`Low resolution: ${width}x${height}px (minimum ${minResolution}px required)`);
+      scoreDeductions += 0.25;
+    } else if (maxDimension < optimalResolution) {
+      recommendations.push(`Consider higher resolution: ${width}x${height}px (optimal ${optimalResolution}px)`);
+      scoreDeductions += 0.05;
+    }
+
+    // Check DPI for print quality
+    const dpi = asset.dpi || (asset.metadata?.dpi as number) || 72;
+    if (dpi < 150) {
+      issues.push(`DPI too low for print: ${dpi} DPI (minimum 150 DPI required)`);
+      scoreDeductions += 0.15;
+    } else if (dpi < 300) {
+      recommendations.push(`Consider higher DPI for premium print: ${dpi} DPI (optimal 300 DPI)`);
+      scoreDeductions += 0.03;
+    }
+
+    // Check file size (too small might indicate compression issues)
+    const fileSize = asset.fileSize || (asset.metadata?.size as number) || 0;
+    const expectedMinSize = (width * height * 3) / 10; // Rough estimate for compressed image
+    if (fileSize > 0 && fileSize < expectedMinSize) {
+      issues.push('File may be over-compressed, quality loss possible');
+      scoreDeductions += 0.10;
+    }
+
+    // Check format
+    const formatValue = asset.format || (asset.metadata?.format as string) || '';
+    const format = String(formatValue).toLowerCase();
+    const printFormats = ['png', 'tiff', 'tif', 'psd', 'pdf'];
+    const webFormats = ['jpg', 'jpeg', 'webp'];
     
+    if (webFormats.includes(format)) {
+      recommendations.push(`Consider using ${printFormats.join('/')} format for better print quality`);
+      scoreDeductions += 0.02;
+    }
+
+    // Check color space
+    const colorSpaceValue = asset.colorSpace || (asset.metadata?.colorSpace as string) || '';
+    const colorSpace = String(colorSpaceValue).toLowerCase();
+    if (colorSpace && colorSpace !== 'cmyk' && colorSpace !== 'srgb') {
+      recommendations.push('Consider converting to CMYK for print or sRGB for web');
+      scoreDeductions += 0.02;
+    }
+
+    // Check aspect ratio (extreme ratios might cause issues)
+    if (width > 0 && height > 0) {
+      const aspectRatio = Math.max(width, height) / Math.min(width, height);
+      if (aspectRatio > 5) {
+        recommendations.push('Extreme aspect ratio may cause layout issues');
+        scoreDeductions += 0.03;
+      }
+    }
+
+    // Calculate final score (minimum 0.3, maximum 1.0)
+    const qualityScore = Math.max(0.3, Math.min(1.0, 1.0 - scoreDeductions));
+
     return {
       assetId: asset.id,
       qualityScore,
-      issues: qualityScore < 0.8 ? ['Low resolution', 'Poor contrast'] : [],
-      recommendations: qualityScore < 0.9 ? ['Improve contrast', 'Increase resolution'] : [],
+      issues,
+      recommendations,
     };
   }
 

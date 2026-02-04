@@ -12,15 +12,54 @@ export class ReferralService {
   ) {}
 
   /**
+   * Crée ou récupère le code de referral pour un utilisateur
+   * @param userId - ID de l'utilisateur
+   * @returns Code de referral unique
+   */
+  private async getOrCreateReferralCode(userId: string): Promise<string> {
+    // Vérifier si l'utilisateur a déjà un referral actif (en tant que referrer)
+    const existingReferral = await this.prisma.referral.findFirst({
+      where: {
+        referrerId: userId,
+      },
+      select: {
+        referralCode: true,
+      },
+    });
+
+    if (existingReferral) {
+      return existingReferral.referralCode;
+    }
+
+    // Générer un nouveau code de referral unique
+    const baseCode = `REF-${userId.substring(0, 8).toUpperCase()}`;
+    let referralCode = baseCode;
+    let attempts = 0;
+
+    // Vérifier l'unicité du code
+    while (attempts < 10) {
+      const existing = await this.prisma.referral.findFirst({
+        where: { referralCode },
+      });
+
+      if (!existing) {
+        break; // Code unique trouvé
+      }
+
+      // Générer un nouveau code avec un suffixe cryptographiquement sécurisé
+      const randomBytes = require('crypto').randomBytes(3);
+      const suffix = randomBytes.toString('hex').toUpperCase();
+      referralCode = `${baseCode}-${suffix}`;
+      attempts++;
+    }
+
+    return referralCode;
+  }
+
+  /**
    * Récupère les statistiques de referral pour un utilisateur
    * @param userId - ID de l'utilisateur
    * @returns Statistiques de referral (totalReferrals, activeReferrals, totalEarnings, etc.)
-   * 
-   * @remarks
-   * Pour l'instant, retourne des stats basiques. Une implémentation complète nécessiterait :
-   * - Modèle Referral dans Prisma pour tracker les referrals
-   * - Modèle Commission pour tracker les commissions gagnées
-   * - Logique de calcul des commissions basée sur les commandes des referrals
    */
   async getStats(userId: string) {
     // Récupérer l'utilisateur pour vérifier s'il existe
@@ -33,8 +72,28 @@ export class ReferralService {
       throw new BadRequestException('User not found');
     }
 
-    // Générer ou récupérer le code de referral
-    const referralCode = `REF-${userId.substring(0, 8).toUpperCase()}`;
+    // Récupérer ou créer le code de referral et le referral initial si nécessaire
+    const referralCode = await this.getOrCreateReferralCode(userId);
+    
+    // S'assurer qu'un referral existe pour cet utilisateur (en tant que referrer)
+    const existingReferral = await this.prisma.referral.findFirst({
+      where: {
+        referrerId: userId,
+        referralCode,
+      },
+    });
+
+    if (!existingReferral) {
+      // Créer le referral initial pour cet utilisateur (sans referredUser)
+      await this.prisma.referral.create({
+        data: {
+          referrerId: userId,
+          referralCode,
+          status: 'PENDING', // Pending jusqu'à ce qu'un utilisateur soit référé
+        },
+      });
+      this.logger.log(`Created initial referral for user ${userId} with code ${referralCode}`);
+    }
 
     // Compter les referrals actifs
     const referrals = await this.prisma.referral.findMany({
@@ -290,5 +349,282 @@ export class ReferralService {
       status: withdrawal.status.toLowerCase(),
       message: 'Demande de retrait enregistrée. Paiement sous 3-5 jours ouvrés.',
     };
+  }
+
+  /**
+   * Enregistre un nouveau referral lors de l'inscription d'un utilisateur
+   * @param referredUserId - ID du nouvel utilisateur référé
+   * @param referralCode - Code de referral utilisé lors de l'inscription
+   * @returns Referral créé ou null si code invalide
+   */
+  async recordReferral(
+    referredUserId: string,
+    referralCode: string,
+  ): Promise<{ id: string; referrerId: string } | null> {
+    try {
+      // Normaliser le code de referral
+      const normalizedCode = referralCode.toUpperCase().trim();
+
+      // Trouver le referral existant correspondant au code
+      let referral = await this.prisma.referral.findFirst({
+        where: { referralCode: normalizedCode },
+        select: {
+          id: true,
+          referrerId: true,
+          referredUserId: true,
+          status: true,
+        },
+      });
+
+      // Si le referral n'existe pas, essayer de l'extraire depuis le code
+      // Format attendu: REF-{userId} ou juste {userId}
+      if (!referral) {
+        // Essayer d'extraire l'ID utilisateur depuis le code
+        const codeMatch = normalizedCode.match(/REF[-_]?([A-Z0-9]{8,})/);
+        if (codeMatch) {
+          const potentialReferrerId = codeMatch[1].toLowerCase();
+          // Chercher un utilisateur avec cet ID
+          const potentialReferrer = await this.prisma.user.findUnique({
+            where: { id: potentialReferrerId },
+            select: { id: true },
+          });
+
+          if (potentialReferrer) {
+            // Créer un nouveau referral pour cet utilisateur
+            referral = await this.prisma.referral.create({
+              data: {
+                referrerId: potentialReferrer.id,
+                referralCode: normalizedCode,
+                status: 'PENDING',
+                createdAt: new Date(),
+                completedAt: new Date(),
+              },
+              select: {
+                id: true,
+                referrerId: true,
+                referredUserId: true,
+                status: true,
+              },
+            });
+          }
+        }
+
+        // Si toujours pas trouvé, chercher par code simplifié (sans préfixe REF-)
+        if (!referral) {
+          const simplifiedCode = normalizedCode.replace(/^REF[-_]?/, '');
+          if (simplifiedCode.length >= 8) {
+            const potentialReferrer = await this.prisma.user.findFirst({
+              where: {
+                id: {
+                  startsWith: simplifiedCode.toLowerCase(),
+                },
+              },
+              select: { id: true },
+            });
+
+            if (potentialReferrer) {
+              // Créer le code de referral et le referral
+              const generatedCode = `REF-${potentialReferrer.id.substring(0, 8).toUpperCase()}`;
+              referral = await this.prisma.referral.create({
+                data: {
+                  referrerId: potentialReferrer.id,
+                  referralCode: generatedCode,
+                  status: 'PENDING',
+                },
+                select: {
+                  id: true,
+                  referrerId: true,
+                  referredUserId: true,
+                  status: true,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      if (!referral) {
+        this.logger.warn(`Invalid referral code: ${referralCode}`);
+        return null;
+      }
+
+      // Vérifier que le referral n'a pas déjà été utilisé
+      if (referral.referredUserId || referral.status === 'COMPLETED') {
+        this.logger.warn(
+          `Referral code already used: ${referralCode}`,
+        );
+        return null;
+      }
+
+      // Vérifier que l'utilisateur ne se réfère pas lui-même
+      if (referral.referrerId === referredUserId) {
+        this.logger.warn(
+          `User cannot refer themselves: ${referredUserId}`,
+        );
+        return null;
+      }
+
+      // Mettre à jour le referral avec le nouvel utilisateur référé
+      const updatedReferral = await this.prisma.referral.update({
+        where: { id: referral.id },
+        data: {
+          referredUserId,
+          status: 'ACTIVE',
+          completedAt: new Date(),
+        },
+        select: {
+          id: true,
+          referrerId: true,
+        },
+      });
+
+      this.logger.log(
+        `Referral recorded: ${referral.referrerId} -> ${referredUserId} (code: ${referralCode})`,
+      );
+
+      return updatedReferral;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(
+        `Failed to record referral: ${error instanceof Error ? errorMessage : 'Unknown error'}`,
+        error instanceof Error ? errorStack : undefined,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Crée une commission automatiquement lorsqu'un utilisateur référé passe une commande
+   * @param orderId - ID de la commande
+   * @param referredUserId - ID de l'utilisateur référé qui a passé la commande
+   * @param orderAmountCents - Montant de la commande en centimes
+   * @param commissionPercentage - Pourcentage de commission (par défaut 10%)
+   * @returns Commission créée ou null si pas de referral actif
+   */
+  async createCommissionFromOrder(
+    orderId: string,
+    referredUserId: string,
+    orderAmountCents: number,
+    commissionPercentage: number = 10,
+  ): Promise<{ id: string; amountCents: number } | null> {
+    try {
+      // Trouver le referral actif pour cet utilisateur
+      const referral = await this.prisma.referral.findUnique({
+        where: {
+          referredUserId,
+          status: 'ACTIVE',
+        },
+        select: {
+          id: true,
+          referrerId: true,
+        },
+      });
+
+      if (!referral) {
+        // Pas de referral actif, pas de commission
+        return null;
+      }
+
+      // Vérifier qu'une commission n'existe pas déjà pour cette commande
+      const existingCommission = await this.prisma.commission.findFirst({
+        where: {
+          orderId,
+          referralId: referral.id,
+        },
+      });
+
+      if (existingCommission) {
+        this.logger.warn(
+          `Commission already exists for order ${orderId} and referral ${referral.id}`,
+        );
+        return existingCommission;
+      }
+
+      // Calculer le montant de la commission
+      const commissionAmountCents = Math.round(
+        (orderAmountCents * commissionPercentage) / 100,
+      );
+
+      // Créer la commission
+      const commission = await this.prisma.commission.create({
+        data: {
+          referralId: referral.id,
+          userId: referral.referrerId,
+          orderId,
+          amountCents: commissionAmountCents,
+          percentage: commissionPercentage,
+          status: 'PENDING',
+        },
+        select: {
+          id: true,
+          amountCents: true,
+        },
+      });
+
+      this.logger.log(
+        `Commission created: ${commission.id} (${commissionAmountCents / 100}€ from order ${orderId})`,
+      );
+
+      return commission;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(
+        `Failed to create commission from order: ${error instanceof Error ? errorMessage : 'Unknown error'}`,
+        error instanceof Error ? errorStack : undefined,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Approuve une commission (après validation manuelle ou automatique)
+   * @param commissionId - ID de la commission
+   * @returns Commission approuvée
+   */
+  async approveCommission(
+    commissionId: string,
+  ): Promise<{ id: string; status: string }> {
+    const commission = await this.prisma.commission.update({
+      where: { id: commissionId },
+      data: {
+        status: 'APPROVED',
+        approvedAt: new Date(),
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    this.logger.log(`Commission approved: ${commissionId}`);
+    return commission;
+  }
+
+  /**
+   * Marque une commission comme payée (après traitement du retrait)
+   * @param commissionId - ID de la commission
+   * @returns Commission marquée comme payée
+   */
+  async markCommissionAsPaid(
+    commissionId: string,
+  ): Promise<{ id: string; status: string }> {
+    const commission = await this.prisma.commission.update({
+      where: { id: commissionId },
+      data: {
+        status: 'PAID',
+        paidAt: new Date(),
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    this.logger.log(`Commission marked as paid: ${commissionId}`);
+    return commission;
   }
 }

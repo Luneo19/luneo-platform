@@ -1,12 +1,19 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
-import { DesignsController } from './designs.controller';
-import { DesignsService } from './designs.service';
+import { HttpModule } from '@nestjs/axios';
+import { DesignsController } from '@/modules/designs/designs.controller';
+import { DesignsService } from '@/modules/designs/designs.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
+import { StorageModule } from '@/libs/storage/storage.module';
 
 @Module({
   imports: [
     PrismaModule,
+    StorageModule,
+    HttpModule.register({
+      timeout: 60000,
+      maxRedirects: 3,
+    }),
     BullModule.registerQueue({
       name: 'ai-generation',
     }),

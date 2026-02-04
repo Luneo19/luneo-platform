@@ -1,10 +1,16 @@
 import { CurrentUser } from '@/common/types/user.types';
-import { Cacheable } from '@/libs/cache/cacheable.decorator';
+import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { StorageService } from '@/libs/storage/storage.service';
+import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DesignStatus, UserRole } from '@prisma/client';
 import { Queue } from 'bullmq';
+import * as crypto from 'crypto';
+import * as sharp from 'sharp';
+import * as PDFDocument from 'pdfkit';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class DesignsService {
@@ -13,8 +19,17 @@ export class DesignsService {
   constructor(
     private prisma: PrismaService,
     @InjectQueue('ai-generation') private aiQueue: Queue,
+    private readonly storageService: StorageService,
+    private readonly httpService: HttpService,
   ) {}
 
+  @CacheInvalidate({ 
+    type: 'design',
+    tags: (args) => {
+      const user = args[1];
+      return ['designs:list', user.brandId ? `brand:${user.brandId}` : null].filter(Boolean) as string[];
+    },
+  })
   async create(createDesignDto: { productId: string; prompt: string; options?: Record<string, unknown> }, currentUser: { id: string; role: UserRole; brandId?: string | null }) {
     const { productId, prompt, options } = createDesignDto;
 
@@ -91,6 +106,41 @@ export class DesignsService {
     return design;
   }
 
+  /** J2: Commandes issues d'un design */
+  async getOrdersByDesign(designId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        OR: [
+          { designId },
+          { items: { some: { designId } } },
+        ],
+      },
+      select: {
+        id: true,
+        status: true,
+        designId: true,
+        orderNumber: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { data: orders };
+  }
+
+  @Cacheable({ 
+    type: 'design', 
+    ttl: 300, // 5 minutes
+    keyGenerator: (args) => {
+      const user = args[0];
+      const options = args[1] || {};
+      const key = `designs:list:${user.id}:${user.brandId || 'all'}:${options.page || 1}:${options.limit || 50}:${options.status || 'all'}:${options.search || ''}`;
+      return key;
+    },
+    tags: (args) => {
+      const user = args[0];
+      return ['designs:list', user.brandId ? `brand:${user.brandId}` : null].filter(Boolean) as string[];
+    },
+  })
   async findAll(currentUser: { id: string; role: UserRole; brandId?: string | null }, options?: { page?: number; limit?: number; status?: string; search?: string }) {
     const page = options?.page || 1;
     const limit = Math.min(options?.limit || 50, 100);
@@ -174,6 +224,17 @@ export class DesignsService {
     keyGenerator: (args) => `design:${args[0]}`,
     tags: () => ['designs:list'],
   })
+  /**
+   * Vérifie qu'un design n'est pas bloqué (réclamation IP). Lance ForbiddenException si bloqué.
+   */
+  private assertDesignNotBlocked(design: { isBlocked?: boolean }): void {
+    if (design.isBlocked) {
+      throw new ForbiddenException(
+        'This design is blocked due to an IP claim and cannot be modified or used.',
+      );
+    }
+  }
+
   async findOne(id: string, currentUser: { id: string; role: UserRole; brandId?: string | null }) {
     const design = await this.prisma.design.findUnique({
       where: { id },
@@ -193,6 +254,10 @@ export class DesignsService {
         canvasWidth: true,
         canvasHeight: true,
         canvasBackgroundColor: true,
+        isBlocked: true,
+        blockedReason: true,
+        blockedAt: true,
+        blockedByClaimId: true,
         userId: true,
         brandId: true,
         productId: true,
@@ -239,6 +304,7 @@ export class DesignsService {
 
   async upgradeToHighRes(id: string, currentUser: CurrentUser) {
     const design = await this.findOne(id, currentUser);
+    this.assertDesignNotBlocked(design);
 
     if (design.status !== DesignStatus.COMPLETED) {
       throw new ForbiddenException('Design must be completed to upgrade to high-res');
@@ -255,6 +321,16 @@ export class DesignsService {
     return { message: 'High-res generation started' };
   }
 
+  @Cacheable({ 
+    type: 'design', 
+    ttl: 600, // 10 minutes
+    keyGenerator: (args) => {
+      const designId = args[0];
+      const options = args[2] || {};
+      return `design:versions:${designId}:${options.page || 1}:${options.limit || 50}:${options.autoOnly || false}`;
+    },
+    tags: (args) => [`design:${args[0]}`, 'designs:versions'],
+  })
   async getVersions(designId: string, currentUser: CurrentUser, options?: { page?: number; limit?: number; autoOnly?: boolean }) {
     const design = await this.findOne(designId, currentUser);
 
@@ -315,6 +391,10 @@ export class DesignsService {
     };
   }
 
+  @CacheInvalidate({ 
+    type: 'design',
+    tags: (args) => [`design:${args[0]}`, 'designs:versions'],
+  })
   async createVersion(designId: string, data: { name?: string; description?: string }, currentUser: CurrentUser) {
     // Vérifier les permissions et récupérer le design complet
     await this.findOne(designId, currentUser);
@@ -413,8 +493,16 @@ export class DesignsService {
     };
   }
 
-  async update(id: string, data: { name?: string; description?: string; status?: DesignStatus }, currentUser: CurrentUser) {
+  @CacheInvalidate({ 
+    type: 'design',
+    tags: (args) => {
+      const designId = args[0];
+      return [`design:${designId}`, 'designs:list'];
+    },
+  })
+  async update(id: string, data: { name?: string; description?: string; status?: DesignStatus; designData?: any }, currentUser: CurrentUser) {
     const design = await this.findOne(id, currentUser);
+    this.assertDesignNotBlocked(design);
 
     return this.prisma.design.update({
       where: { id },
@@ -422,6 +510,7 @@ export class DesignsService {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.status !== undefined && { status: data.status }),
+        ...(data.designData !== undefined && { designData: data.designData }),
       },
       select: {
         id: true,
@@ -439,8 +528,156 @@ export class DesignsService {
     });
   }
 
+  /**
+   * Autosave périodique d'un design
+   * Crée une version automatique du design toutes les X secondes (configurable)
+   * Limite le nombre de versions autosave (garde les 10 dernières)
+   */
+  async autosave(designId: string, currentUser: CurrentUser): Promise<{ success: boolean; versionId?: string; message: string }> {
+    // Vérifier les permissions
+    const design = await this.findOne(designId, currentUser);
+    this.assertDesignNotBlocked(design);
+
+    // Récupérer le design complet avec tous les champs nécessaires
+    const fullDesign = await this.prisma.design.findUnique({
+      where: { id: designId },
+      select: {
+        name: true,
+        description: true,
+        prompt: true,
+        options: true,
+        status: true,
+        previewUrl: true,
+        highResUrl: true,
+        imageUrl: true,
+        renderUrl: true,
+        metadata: true,
+        designData: true,
+        canvasWidth: true,
+        canvasHeight: true,
+        canvasBackgroundColor: true,
+      },
+    });
+
+    if (!fullDesign) {
+      throw new NotFoundException('Design not found');
+    }
+
+    // Vérifier si un autosave récent existe (dans les 30 dernières secondes)
+    const recentAutosave = await this.prisma.designVersion.findFirst({
+      where: {
+        designId,
+        isAutoSave: true,
+        createdAt: {
+          gte: new Date(Date.now() - 30 * 1000), // 30 secondes
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (recentAutosave) {
+      return {
+        success: false,
+        message: 'Autosave récent déjà effectué. Attendez 30 secondes.',
+      };
+    }
+
+    // Get current highest version number
+    const latestVersion = await this.prisma.designVersion.findFirst({
+      where: { designId },
+      orderBy: { versionNumber: 'desc' },
+      select: { versionNumber: true },
+    });
+
+    const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
+
+    // Create autosave version
+    const autosaveVersion = await this.prisma.designVersion.create({
+      data: {
+        designId,
+        versionNumber: nextVersionNumber,
+        prompt: fullDesign.prompt,
+        options: fullDesign.options as any,
+        previewUrl: fullDesign.previewUrl || null,
+        highResUrl: fullDesign.highResUrl || null,
+        imageUrl: fullDesign.imageUrl || null,
+        renderUrl: fullDesign.renderUrl || null,
+        metadata: fullDesign.metadata as any,
+        designData: fullDesign.designData as any || null,
+        isAutoSave: true,
+        snapshot: {
+          name: fullDesign.name,
+          description: fullDesign.description,
+          prompt: fullDesign.prompt,
+          options: fullDesign.options,
+          status: fullDesign.status,
+          previewUrl: fullDesign.previewUrl,
+          highResUrl: fullDesign.highResUrl,
+          imageUrl: fullDesign.imageUrl,
+          renderUrl: fullDesign.renderUrl,
+          metadata: fullDesign.metadata,
+          designData: fullDesign.designData,
+          canvasWidth: fullDesign.canvasWidth,
+          canvasHeight: fullDesign.canvasHeight,
+          canvasBackgroundColor: fullDesign.canvasBackgroundColor,
+        } as any,
+        createdBy: currentUser.id,
+      },
+      select: {
+        id: true,
+        versionNumber: true,
+        isAutoSave: true,
+        createdAt: true,
+      },
+    });
+
+    // Nettoyer les anciennes versions autosave (garder les 10 dernières)
+    const autosaveVersions = await this.prisma.designVersion.findMany({
+      where: {
+        designId,
+        isAutoSave: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+      skip: 10, // Garder les 10 premières, supprimer le reste
+    });
+
+    if (autosaveVersions.length > 0) {
+      await this.prisma.designVersion.deleteMany({
+        where: {
+          id: { in: autosaveVersions.map((v) => v.id) },
+        },
+      });
+    }
+
+    this.logger.log(`Autosave created for design ${designId}`, {
+      designId,
+      versionId: autosaveVersion.id,
+      versionNumber: autosaveVersion.versionNumber,
+    });
+
+    return {
+      success: true,
+      versionId: autosaveVersion.id,
+      message: 'Design autosaved successfully',
+    };
+  }
+
+  @CacheInvalidate({ 
+    type: 'design',
+    tags: (args) => {
+      const designId = args[0];
+      return [`design:${designId}`, 'designs:list'];
+    },
+  })
   async delete(id: string, currentUser: CurrentUser) {
     const design = await this.findOne(id, currentUser);
+    // Seul un admin peut supprimer un design bloqué (réclamation IP)
+    if (design.isBlocked && currentUser.role !== UserRole.PLATFORM_ADMIN) {
+      throw new ForbiddenException(
+        'This design is blocked due to an IP claim. Only platform admins can delete it.',
+      );
+    }
 
     await this.prisma.design.delete({
       where: { id },
@@ -481,47 +718,104 @@ export class DesignsService {
     }
 
     try {
-      // Pour PDF, on utilise Puppeteer ou une librairie PDF
-      // Pour PNG/JPG/SVG, on utilise Sharp
-      // Ici, on simule l'export - dans un vrai projet, on utiliserait Puppeteer pour PDF
-      // et Sharp pour PNG/JPG
-
       let fileUrl: string;
       let fileSize: number;
+      const timestamp = Date.now();
+
+      // Télécharger l'image source si disponible
+      let imageBuffer: Buffer | null = null;
+      if (imageUrl) {
+        try {
+          const response = await firstValueFrom(
+            this.httpService.get(imageUrl, { responseType: 'arraybuffer' }),
+          );
+          imageBuffer = Buffer.from(response.data);
+        } catch (dlErr) {
+          this.logger.warn(`Could not download source image: ${dlErr}`);
+        }
+      }
 
       if (format === 'pdf') {
-        // Pour PDF, on devrait utiliser Puppeteer ou pdfkit
-        // Pour l'instant, on simule
-        this.logger.warn('PDF export not fully implemented - using placeholder');
-        fileUrl = imageUrl ? imageUrl.replace(/\.(png|jpg|jpeg)$/i, '.pdf') : `https://storage.luneo.app/exports/${designId}_${Date.now()}.pdf`;
-        fileSize = 1024 * 500; // 500KB placeholder
+        // Générer un PDF avec PDFKit
+        const pdfBuffer = await this.generatePDF(design, imageBuffer, dimensions, quality);
+        fileSize = pdfBuffer.length;
+
+        // Upload vers storage
+        const filename = `exports/${designId}_${timestamp}.pdf`;
+        fileUrl = await this.storageService.uploadBuffer(
+          pdfBuffer,
+          filename,
+          { contentType: 'application/pdf' },
+        ) as string;
+
+        this.logger.log(`PDF export completed: ${fileUrl}`);
+
       } else if (format === 'png' || format === 'jpg') {
-        // Pour PNG/JPG, on peut utiliser Sharp pour re-rendre à la bonne résolution
-        // Ici, on retourne l'URL originale ou une version haute résolution
-        const extension = format === 'jpg' ? 'jpg' : 'png';
-        fileUrl = imageUrl || `https://storage.luneo.app/exports/${designId}_${Date.now()}.${extension}`;
-        fileSize = 1024 * (quality === 'ultra' ? 2000 : quality === 'high' ? 1500 : quality === 'medium' ? 1000 : 500);
+        // Traiter l'image avec Sharp
+        const qualityMap: Record<string, number> = { ultra: 100, high: 90, medium: 75, low: 60 };
+        const sharpQuality = qualityMap[quality] || 90;
+
+        let processedBuffer: Buffer;
+        if (imageBuffer) {
+          const sharpInstance = sharp(imageBuffer)
+            .resize(dimensions.width, dimensions.height, { fit: 'contain', background: '#ffffff' });
+
+          if (format === 'jpg') {
+            processedBuffer = await sharpInstance.jpeg({ quality: sharpQuality, mozjpeg: true }).toBuffer();
+          } else {
+            processedBuffer = await sharpInstance.png({ compressionLevel: quality === 'ultra' ? 6 : 9 }).toBuffer();
+          }
+        } else {
+          // Créer une image placeholder
+          processedBuffer = await sharp({
+            create: {
+              width: dimensions.width,
+              height: dimensions.height,
+              channels: 4,
+              background: { r: 245, g: 245, b: 245, alpha: 1 },
+            },
+          })
+            .png()
+            .toBuffer();
+        }
+
+        fileSize = processedBuffer.length;
+
+        const filename = `exports/${designId}_${timestamp}.${format}`;
+        fileUrl = await this.storageService.uploadBuffer(
+          processedBuffer,
+          filename,
+          { contentType: `image/${format === 'jpg' ? 'jpeg' : 'png'}` },
+        ) as string;
+
+        this.logger.log(`Image export completed: ${fileUrl}`);
+
       } else if (format === 'svg') {
-        // Pour SVG, on génère depuis designData ou on retourne un placeholder
-        fileUrl = `https://storage.luneo.app/exports/${designId}_${Date.now()}.svg`;
-        fileSize = 1024 * 100; // 100KB placeholder
+        // Générer un SVG depuis designData
+        const svgContent = this.generateSVG(design, options.designData, dimensions);
+        const svgBuffer = Buffer.from(svgContent, 'utf-8');
+        fileSize = svgBuffer.length;
+
+        const filename = `exports/${designId}_${timestamp}.svg`;
+        fileUrl = await this.storageService.uploadBuffer(
+          svgBuffer,
+          filename,
+          { contentType: 'image/svg+xml' },
+        ) as string;
+
+        this.logger.log(`SVG export completed: ${fileUrl}`);
+
       } else {
         throw new BadRequestException(`Unsupported export format: ${format}`);
       }
 
-      // En production, on devrait:
-      // 1. Télécharger l'image depuis imageUrl
-      // 2. Traiter avec Sharp (PNG/JPG) ou Puppeteer (PDF)
-      // 3. Uploader vers le storage
-      // 4. Retourner l'URL finale
-
-      // Log l'export (optionnel - peut être stocké dans une table ExportResult)
       this.logger.log(`Design exported for print`, {
         designId,
         format,
         quality,
         dimensions,
         fileUrl,
+        fileSize,
       });
 
       return {
@@ -529,8 +823,321 @@ export class DesignsService {
         fileSize,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error exporting design for print:`, error);
-      throw new Error(`Failed to export design: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to export design: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Génère un PDF avec PDFKit
+   */
+  private async generatePDF(
+    design: { id: string; name: string | null; description?: string | null },
+    imageBuffer: Buffer | null,
+    dimensions: { width: number; height: number },
+    quality: string,
+  ): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        // Créer un document PDF avec les dimensions appropriées
+        const doc = new PDFDocument({
+          size: [dimensions.width, dimensions.height],
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+          info: {
+            Title: design.name || 'Luneo Design Export',
+            Author: 'Luneo Platform',
+            Subject: design.description || 'Design Export',
+            Creator: 'Luneo Print Export',
+          },
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Ajouter l'image si disponible
+        if (imageBuffer) {
+          doc.image(imageBuffer, 0, 0, {
+            width: dimensions.width,
+            height: dimensions.height,
+            fit: [dimensions.width, dimensions.height],
+            align: 'center',
+            valign: 'center',
+          });
+        } else {
+          // Créer un placeholder avec le nom du design
+          doc.rect(0, 0, dimensions.width, dimensions.height).fill('#f5f5f5');
+          doc.fillColor('#333333')
+            .fontSize(24)
+            .text(design.name || 'Design', 0, dimensions.height / 2 - 12, {
+              width: dimensions.width,
+              align: 'center',
+            });
+        }
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * Génère un SVG depuis les données du design
+   */
+  private generateSVG(
+    design: { id: string; name: string | null },
+    designData: Record<string, unknown> | undefined,
+    dimensions: { width: number; height: number },
+  ): string {
+    // Si designData contient déjà du SVG, l'utiliser
+    if (designData?.svg && typeof designData.svg === 'string') {
+      return designData.svg;
+    }
+
+    // Sinon, créer un SVG de base
+    const elements: string[] = [];
+
+    // Parcourir les éléments du design si disponibles
+    if (designData?.elements && Array.isArray(designData.elements)) {
+      for (const element of designData.elements) {
+        const el = element as Record<string, unknown>;
+        if (el.type === 'rect') {
+          elements.push(
+            `<rect x="${el.x || 0}" y="${el.y || 0}" width="${el.width || 100}" height="${el.height || 100}" fill="${el.fill || '#cccccc'}" />`
+          );
+        } else if (el.type === 'circle') {
+          elements.push(
+            `<circle cx="${el.cx || 50}" cy="${el.cy || 50}" r="${el.r || 50}" fill="${el.fill || '#cccccc'}" />`
+          );
+        } else if (el.type === 'text') {
+          elements.push(
+            `<text x="${el.x || 0}" y="${el.y || 50}" font-size="${el.fontSize || 16}" fill="${el.fill || '#000000'}">${el.content || ''}</text>`
+          );
+        } else if (el.type === 'image' && el.href) {
+          elements.push(
+            `<image x="${el.x || 0}" y="${el.y || 0}" width="${el.width || 100}" height="${el.height || 100}" href="${el.href}" />`
+          );
+        } else if (el.type === 'path' && el.d) {
+          elements.push(
+            `<path d="${el.d}" fill="${el.fill || 'none'}" stroke="${el.stroke || '#000000'}" stroke-width="${el.strokeWidth || 1}" />`
+          );
+        }
+      }
+    }
+
+    // Si pas d'éléments, créer un placeholder
+    if (elements.length === 0) {
+      elements.push(`<rect width="100%" height="100%" fill="#f5f5f5" />`);
+      elements.push(`<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="24" fill="#333333">${design.name || 'Design'}</text>`);
+    }
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+     width="${dimensions.width}" height="${dimensions.height}" 
+     viewBox="0 0 ${dimensions.width} ${dimensions.height}">
+  <title>${design.name || 'Luneo Design'}</title>
+  ${elements.join('\n  ')}
+</svg>`;
+  }
+
+  /**
+   * Duplique un design existant
+   */
+  async duplicate(designId: string, currentUser: CurrentUser) {
+    const originalDesign = await this.findOne(designId, currentUser);
+    this.assertDesignNotBlocked(originalDesign);
+
+    // Récupérer le design complet avec tous les champs
+    const fullDesign = await this.prisma.design.findUnique({
+      where: { id: designId },
+      select: {
+        name: true,
+        description: true,
+        prompt: true,
+        options: true,
+        productId: true,
+        brandId: true,
+        previewUrl: true,
+        highResUrl: true,
+        imageUrl: true,
+        renderUrl: true,
+        metadata: true,
+        designData: true,
+        canvasWidth: true,
+        canvasHeight: true,
+        canvasBackgroundColor: true,
+        status: true,
+      },
+    });
+
+    if (!fullDesign) {
+      throw new NotFoundException('Design not found');
+    }
+
+    // Créer un nouveau design avec les mêmes données
+    const duplicatedDesign = await this.prisma.design.create({
+      data: {
+        name: `${fullDesign.name || 'Design'} (Copy)`,
+        description: fullDesign.description,
+        prompt: fullDesign.prompt,
+        options: fullDesign.options as any,
+        productId: fullDesign.productId,
+        brandId: fullDesign.brandId,
+        userId: currentUser.id,
+        previewUrl: fullDesign.previewUrl,
+        highResUrl: fullDesign.highResUrl,
+        imageUrl: fullDesign.imageUrl,
+        renderUrl: fullDesign.renderUrl,
+        metadata: fullDesign.metadata as any,
+        designData: fullDesign.designData as any,
+        canvasWidth: fullDesign.canvasWidth,
+        canvasHeight: fullDesign.canvasHeight,
+        canvasBackgroundColor: fullDesign.canvasBackgroundColor,
+        status: DesignStatus.PENDING, // Nouveau design, statut initial
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        previewUrl: true,
+        imageUrl: true,
+        userId: true,
+        brandId: true,
+        productId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    this.logger.log(`Design duplicated: ${designId} -> ${duplicatedDesign.id}`);
+
+    return duplicatedDesign;
+  }
+
+  /**
+   * Génère un token de partage pour un design
+   */
+  async share(designId: string, options: { expiresInDays?: number } = {}, currentUser: CurrentUser) {
+    const design = await this.findOne(designId, currentUser);
+    this.assertDesignNotBlocked(design);
+
+    // Générer un token unique
+    const shareToken = crypto.randomBytes(32).toString('hex');
+
+    // Calculer la date d'expiration (par défaut 30 jours)
+    const expiresInDays = options.expiresInDays || 30;
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+    // Mettre à jour le design avec le token de partage
+    // Note: Si le modèle Design n'a pas de champ shareToken, on peut utiliser metadata
+    const updatedDesign = await this.prisma.design.update({
+      where: { id: designId },
+      data: {
+        metadata: {
+          ...((design.metadata as any) || {}),
+          shareToken,
+          shareTokenExpiresAt: expiresAt.toISOString(),
+          sharedAt: new Date().toISOString(),
+        } as any,
+      },
+      select: {
+        id: true,
+        name: true,
+        metadata: true,
+      },
+    });
+
+    const appUrl = process.env.APP_URL || 'https://www.luneo.app';
+    const shareUrl = `${appUrl}/designs/shared/${shareToken}`;
+
+    this.logger.log(`Design shared: ${designId} with token ${shareToken}`);
+
+    return {
+      shareToken,
+      shareUrl,
+      expiresAt: expiresAt.toISOString(),
+      design: {
+        id: updatedDesign.id,
+        name: updatedDesign.name,
+      },
+    };
+  }
+
+  /**
+   * Récupère un design partagé via son token
+   */
+  async getShared(shareToken: string) {
+    // Rechercher tous les designs et filtrer par token dans metadata
+    // Note: Prisma ne supporte pas bien les requêtes JSON profondes, on récupère tous les designs
+    // et on filtre en mémoire (pour production, utiliser une colonne dédiée shareToken)
+    const allDesigns = await this.prisma.design.findMany({
+      where: {
+        metadata: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        previewUrl: true,
+        highResUrl: true,
+        imageUrl: true,
+        metadata: true,
+        createdAt: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            description: true,
+          },
+        },
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+          },
+        },
+      },
+    });
+
+    // Filtrer en mémoire pour trouver le design avec le bon token
+    const design = allDesigns.find((d) => {
+      const metadata = d.metadata as any;
+      return metadata?.shareToken === shareToken;
+    });
+
+    if (!design) {
+      throw new NotFoundException('Shared design not found');
+    }
+    const metadata = design.metadata as any;
+
+    // Vérifier l'expiration
+    if (metadata?.shareTokenExpiresAt) {
+      const expiresAt = new Date(metadata.shareTokenExpiresAt);
+      if (expiresAt < new Date()) {
+        throw new BadRequestException('Shared design link has expired');
+      }
+    }
+
+    return {
+      id: design.id,
+      name: design.name,
+      description: design.description,
+      previewUrl: design.previewUrl,
+      highResUrl: design.highResUrl,
+      imageUrl: design.imageUrl,
+      product: design.product,
+      brand: design.brand,
+      createdAt: design.createdAt,
+      isShared: true,
+    };
   }
 }

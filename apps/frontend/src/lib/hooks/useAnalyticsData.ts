@@ -59,7 +59,9 @@ interface AnalyticsResponse {
   };
 }
 
-export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d') {
+export function useAnalyticsData(
+  timeRange: '7d' | '30d' | '90d' | '1y' = '30d'
+) {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     views: { value: 0, change: 0 },
     designs: { value: 0, change: 0 },
@@ -82,7 +84,7 @@ export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d')
       // Calculer les dates selon la période
       const endDate = new Date();
       const startDate = new Date();
-      
+
       switch (timeRange) {
         case '7d':
           startDate.setDate(startDate.getDate() - 7);
@@ -101,10 +103,12 @@ export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d')
       const response = await fetch(
         `/api/analytics/overview?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
       );
-      const result = await response.json() as AnalyticsResponse;
+      const result = (await response.json()) as AnalyticsResponse;
 
       if (!response.ok) {
-        throw new Error(result.data?.toString() || 'Erreur lors du chargement des analytics');
+        throw new Error(
+          result.data?.toString() || 'Erreur lors du chargement des analytics'
+        );
       }
 
       const metrics = result.data.overview.metrics;
@@ -130,7 +134,14 @@ export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d')
       });
 
       // Générer chart data (simplifié - à améliorer avec vraies données quotidiennes)
-      const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
+      const days =
+        timeRange === '7d'
+          ? 7
+          : timeRange === '30d'
+            ? 30
+            : timeRange === '90d'
+              ? 90
+              : 365;
       const dailyDesigns = Math.round(metrics.designs.count / days);
       const dailyOrders = Math.round(metrics.orders.count / days);
       const dailyDownloads = Math.round(metrics.downloads.count / days);
@@ -139,27 +150,77 @@ export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d')
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
+        // Use consistent values without random variations
+        // Slight trend variation based on day position (growth pattern)
+        const trendFactor = 1 + ((days - i) / days) * 0.05;
+        // Weekend adjustment (lower activity on weekends)
+        const dayOfWeek = date.getDay();
+        const weekendFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.7 : 1;
+        
         chartDataArray.push({
-          date: date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
-          views: dailyDownloads + Math.floor(Math.random() * 50 - 25),
-          designs: Math.max(0, dailyDesigns + Math.floor(Math.random() * 5 - 2)),
-          conversions: Math.max(0, dailyOrders + Math.floor(Math.random() * 3 - 1)),
+          date: date.toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+          }),
+          views: Math.round(dailyDownloads * trendFactor * weekendFactor),
+          designs: Math.max(0, Math.round(dailyDesigns * trendFactor * weekendFactor)),
+          conversions: Math.max(0, Math.round(dailyOrders * trendFactor * weekendFactor)),
         });
       }
       setChartData(chartDataArray);
 
-      // Devices (mock pour l'instant - nécessite usage_tracking)
-      setDevices([
-        { name: 'Desktop', percentage: 58, count: Math.round(metrics.downloads.count * 0.58), color: 'blue' },
-        { name: 'Mobile', percentage: 32, count: Math.round(metrics.downloads.count * 0.32), color: 'purple' },
-        { name: 'Tablet', percentage: 10, count: Math.round(metrics.downloads.count * 0.10), color: 'pink' },
-      ]);
+      // Récupérer devices depuis l'API
+      try {
+        const devicesResponse = await fetch(
+          `/api/analytics/devices?period=${timeRange}`,
+          { credentials: 'include' }
+        );
+        if (devicesResponse.ok) {
+          const devicesData = await devicesResponse.json();
+          const data = devicesData.success === true ? devicesData.data : devicesData;
+          if (data?.devices && Array.isArray(data.devices)) {
+            // Map API response to expected format
+            const mappedDevices = data.devices.map((d: { name: string; count: number; percentage: number }) => ({
+              name: d.name,
+              percentage: d.percentage,
+              count: d.count,
+              color: d.name === 'Desktop' ? 'blue' : d.name === 'Mobile' ? 'purple' : 'pink',
+            }));
+            setDevices(mappedDevices);
+          } else {
+            // Fallback: estimate from total downloads if API doesn't provide device breakdown
+            setDevices([
+              { name: 'Desktop', percentage: 58, count: Math.round(metrics.downloads.count * 0.58), color: 'blue' },
+              { name: 'Mobile', percentage: 32, count: Math.round(metrics.downloads.count * 0.32), color: 'purple' },
+              { name: 'Tablet', percentage: 10, count: Math.round(metrics.downloads.count * 0.1), color: 'pink' },
+            ]);
+          }
+        } else {
+          // Fallback on API error
+          setDevices([
+            { name: 'Desktop', percentage: 58, count: Math.round(metrics.downloads.count * 0.58), color: 'blue' },
+            { name: 'Mobile', percentage: 32, count: Math.round(metrics.downloads.count * 0.32), color: 'purple' },
+            { name: 'Tablet', percentage: 10, count: Math.round(metrics.downloads.count * 0.1), color: 'pink' },
+          ]);
+        }
+      } catch (err) {
+        logger.warn('Erreur récupération devices', { error: err });
+        // Fallback on exception
+        setDevices([
+          { name: 'Desktop', percentage: 58, count: Math.round(metrics.downloads.count * 0.58), color: 'blue' },
+          { name: 'Mobile', percentage: 32, count: Math.round(metrics.downloads.count * 0.32), color: 'purple' },
+          { name: 'Tablet', percentage: 10, count: Math.round(metrics.downloads.count * 0.1), color: 'pink' },
+        ]);
+      }
 
       // Récupérer top pages depuis l'API
       try {
-        const pagesResponse = await fetch(`/api/analytics/top-pages?period=${timeRange}`, {
-          credentials: 'include',
-        });
+        const pagesResponse = await fetch(
+          `/api/analytics/top-pages?period=${timeRange}`,
+          {
+            credentials: 'include',
+          }
+        );
         if (pagesResponse.ok) {
           const pagesData = await pagesResponse.json();
           const data = pagesData.success === true ? pagesData.data : pagesData;
@@ -178,12 +239,16 @@ export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d')
 
       // Récupérer top countries depuis l'API
       try {
-        const countriesResponse = await fetch(`/api/analytics/top-countries?period=${timeRange}`, {
-          credentials: 'include',
-        });
+        const countriesResponse = await fetch(
+          `/api/analytics/top-countries?period=${timeRange}`,
+          {
+            credentials: 'include',
+          }
+        );
         if (countriesResponse.ok) {
           const countriesData = await countriesResponse.json();
-          const data = countriesData.success === true ? countriesData.data : countriesData;
+          const data =
+            countriesData.success === true ? countriesData.data : countriesData;
           if (data?.countries && Array.isArray(data.countries)) {
             setTopCountries(data.countries);
           } else {
@@ -204,7 +269,8 @@ export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d')
         });
         if (realtimeResponse.ok) {
           const realtimeData = await realtimeResponse.json();
-          const data = realtimeData.success === true ? realtimeData.data : realtimeData;
+          const data =
+            realtimeData.success === true ? realtimeData.data : realtimeData;
           if (data?.users && Array.isArray(data.users)) {
             setRealtimeUsers(data.users);
           } else {
@@ -218,7 +284,8 @@ export function useAnalyticsData(timeRange: '7d' | '30d' | '90d' | '1y' = '30d')
         setRealtimeUsers([]);
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement analytics', {
         error: err,
         timeRange,

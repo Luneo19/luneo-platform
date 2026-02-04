@@ -8,6 +8,8 @@ import {
   Query,
   Request,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,15 +21,90 @@ import {
 } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('notifications')
 @Controller('notifications')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  // ========================================
+  // PUSH NOTIFICATIONS
+  // ========================================
+
+  @Get('push/vapid-key')
+  @Public()
+  @ApiOperation({ summary: 'Get VAPID public key for push subscription' })
+  @ApiResponse({ status: 200, description: 'VAPID public key returned' })
+  getVapidPublicKey() {
+    return { publicKey: this.notificationsService.getVapidPublicKey() };
+  }
+
+  @Post('push/subscribe')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Subscribe to push notifications' })
+  @ApiResponse({ status: 200, description: 'Successfully subscribed' })
+  async subscribeToPush(
+    @Body() body: { userId: string; subscription: { endpoint: string; keys: { p256dh: string; auth: string } } },
+    @Request() req,
+  ) {
+    const userId = body.userId || req.user.id;
+    return this.notificationsService.subscribeToPush(userId, body.subscription);
+  }
+
+  @Post('push/unsubscribe')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unsubscribe from push notifications' })
+  @ApiResponse({ status: 200, description: 'Successfully unsubscribed' })
+  async unsubscribeFromPush(
+    @Body() body: { userId: string; endpoint: string },
+    @Request() req,
+  ) {
+    const userId = body.userId || req.user.id;
+    return this.notificationsService.unsubscribeFromPush(userId, body.endpoint);
+  }
+
+  @Post('push/send')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send a push notification' })
+  @ApiResponse({ status: 200, description: 'Push notification sent' })
+  async sendPushNotification(
+    @Body() body: {
+      subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
+      payload: { title: string; body: string; icon?: string; badge?: string; data?: Record<string, unknown> };
+    },
+  ) {
+    return this.notificationsService.sendPushNotification(body.subscription, body.payload);
+  }
+
+  @Post('push/send-to-user')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send push notification to all user subscriptions' })
+  @ApiResponse({ status: 200, description: 'Push notifications sent' })
+  async sendPushToUser(
+    @Body() body: {
+      userId: string;
+      payload: { title: string; body: string; icon?: string; badge?: string; data?: Record<string, unknown> };
+    },
+  ) {
+    return this.notificationsService.sendPushToUser(body.userId, body.payload);
+  }
+
+  // ========================================
+  // IN-APP NOTIFICATIONS
+  // ========================================
+
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Lister toutes les notifications de l\'utilisateur' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -47,6 +124,8 @@ export class NotificationsController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtenir une notification spécifique' })
   @ApiParam({ name: 'id', description: 'ID de la notification' })
   @ApiResponse({ status: 200, description: 'Détails de la notification' })
@@ -55,6 +134,8 @@ export class NotificationsController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Créer une nouvelle notification' })
   @ApiResponse({ status: 201, description: 'Notification créée' })
   async create(@Body() createNotificationDto: any, @Request() req) {
@@ -65,6 +146,8 @@ export class NotificationsController {
   }
 
   @Post(':id/read')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Marquer une notification comme lue' })
   @ApiParam({ name: 'id', description: 'ID de la notification' })
   @ApiResponse({ status: 200, description: 'Notification marquée comme lue' })
@@ -73,6 +156,8 @@ export class NotificationsController {
   }
 
   @Post('read-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Marquer toutes les notifications comme lues' })
   @ApiResponse({ status: 200, description: 'Toutes les notifications marquées comme lues' })
   async markAllAsRead(@Request() req) {
@@ -80,6 +165,8 @@ export class NotificationsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Supprimer une notification' })
   @ApiParam({ name: 'id', description: 'ID de la notification' })
   @ApiResponse({ status: 200, description: 'Notification supprimée' })

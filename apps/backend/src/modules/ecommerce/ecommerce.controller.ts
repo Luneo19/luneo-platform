@@ -18,10 +18,10 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { MagentoConnector } from './connectors/magento/magento.connector';
-import { ShopifyConnector } from './connectors/shopify/shopify.connector';
-import { WooCommerceConnector } from './connectors/woocommerce/woocommerce.connector';
-import { SyncOrdersDto, SyncProductsDto, UpdateIntegrationDto } from './dto/shopify-webhook.dto';
+import { MagentoConnector } from '@/modules/ecommerce/connectors/magento/magento.connector';
+import { ShopifyConnector } from '@/modules/ecommerce/connectors/shopify/shopify.connector';
+import { WooCommerceConnector } from '@/modules/ecommerce/connectors/woocommerce/woocommerce.connector';
+import { SyncOrdersDto, SyncProductsDto, UpdateIntegrationDto } from '@/modules/ecommerce/dto/shopify-webhook.dto';
 import type {
     EcommerceIntegration,
     ProductMapping,
@@ -29,11 +29,11 @@ import type {
     SyncOptions,
     SyncStats,
     WebhookHistory
-} from './interfaces/ecommerce.interface';
-import { OrderSyncService } from './services/order-sync.service';
-import { ProductSyncService } from './services/product-sync.service';
-import { WebhookHandlerService } from './services/webhook-handler.service';
-import { SyncEngineService } from './services/sync-engine.service';
+} from '@/modules/ecommerce/interfaces/ecommerce.interface';
+import { OrderSyncService } from '@/modules/ecommerce/services/order-sync.service';
+import { ProductSyncService } from '@/modules/ecommerce/services/product-sync.service';
+import { WebhookHandlerService } from '@/modules/ecommerce/services/webhook-handler.service';
+import { SyncEngineService } from '@/modules/ecommerce/services/sync-engine.service';
 
 @ApiTags('E-commerce Integrations')
 @Controller('ecommerce')
@@ -78,16 +78,44 @@ export class EcommerceController {
       // Échanger le code contre un token
       const accessToken = await this.shopifyConnector.exchangeCodeForToken(shop, code);
 
-      // Récupérer le brandId depuis le state/session (simplification ici)
-      const brandId = 'temp-brand-id'; // À récupérer depuis la session
+      // Récupérer le brandId depuis le state parameter
+      // Le state contient le brandId encodé lors de generateInstallUrl
+      let brandId: string;
+      try {
+        // State can be: brandId directly, JSON encoded, or base64 encoded
+        if (state.startsWith('{')) {
+          const stateData = JSON.parse(state);
+          brandId = stateData.brandId;
+        } else if (state.includes(':')) {
+          // Format: brandId:nonce
+          brandId = state.split(':')[0];
+        } else {
+          // Try base64 decode
+          try {
+            const decoded = Buffer.from(state, 'base64').toString('utf-8');
+            const stateData = JSON.parse(decoded);
+            brandId = stateData.brandId;
+          } catch {
+            // State is the brandId directly
+            brandId = state;
+          }
+        }
+      } catch {
+        brandId = state; // Fallback: state is the brandId directly
+      }
+
+      if (!brandId || brandId === 'undefined' || brandId === 'null') {
+        throw new Error('Invalid brand ID in OAuth state');
+      }
 
       // Sauvegarder l'intégration
       await this.shopifyConnector.saveIntegration(brandId, shop, accessToken);
 
-      // Rediriger vers le dashboard
-      res.redirect(`${process.env.FRONTEND_URL}/integrations?shopify=success`);
+      // Rediriger vers le dashboard avec succès
+      res.redirect(`${process.env.FRONTEND_URL}/integrations?shopify=success&shop=${encodeURIComponent(shop)}`);
     } catch (error) {
-      res.redirect(`${process.env.FRONTEND_URL}/integrations?shopify=error`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.redirect(`${process.env.FRONTEND_URL}/integrations?shopify=error&message=${encodeURIComponent(errorMessage)}`);
     }
   }
 
@@ -125,12 +153,25 @@ export class EcommerceController {
   @Post('shopify/:integrationId/sync/products')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Synchronise les produits Shopify' })
+  @ApiOperation({ summary: 'Synchronise les produits Shopify (import Shopify → Luneo)' })
   @ApiResponse({ status: 200, description: 'Synchronisation lancée' })
   async syncShopifyProducts(
     @Param('integrationId') integrationId: string,
   ): Promise<any> {
     return this.productSyncService.syncProducts({ integrationId });
+  }
+
+  @Put('shopify/:integrationId/products/:luneoProductId/sync')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Pousse la mise à jour d\'un produit Luneo vers Shopify (export)' })
+  @ApiResponse({ status: 200, description: 'Produit poussé vers Shopify' })
+  async pushShopifyProductUpdate(
+    @Param('integrationId') integrationId: string,
+    @Param('luneoProductId') luneoProductId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.productSyncService.syncProduct(integrationId, luneoProductId, 'export');
+    return { success: true, message: 'Product pushed to Shopify' };
   }
 
   // ========================================
@@ -264,6 +305,19 @@ export class EcommerceController {
   // ========================================
   // SYNC MANAGEMENT
   // ========================================
+
+  @Put('integrations/:integrationId/products/:luneoProductId/sync')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Pousse la mise à jour d\'un produit Luneo vers la plateforme (export)' })
+  @ApiResponse({ status: 200, description: 'Produit poussé vers la plateforme' })
+  async pushProductUpdate(
+    @Param('integrationId') integrationId: string,
+    @Param('luneoProductId') luneoProductId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.productSyncService.syncProduct(integrationId, luneoProductId, 'export');
+    return { success: true, message: 'Product pushed to platform' };
+  }
 
   @Post('integrations/:integrationId/sync/products')
   @UseGuards(JwtAuthGuard)

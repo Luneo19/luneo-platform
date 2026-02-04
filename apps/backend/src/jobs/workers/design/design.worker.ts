@@ -146,11 +146,14 @@ export class DesignWorker {
       };
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       clearTimeout(timeout);
       this.logger.error(`Design generation failed for ${designId}:`, error);
 
       // Mettre à jour le statut d'erreur
-      await this.updateDesignStatus(designId, 'FAILED', error.message);
+      await this.updateDesignStatus(designId, 'FAILED', errorMessage);
 
       // Publier événement d'erreur via Outbox
       await this.outboxService.publish('design.failed', {
@@ -158,7 +161,7 @@ export class DesignWorker {
         brandId,
         userId,
         productId,
-        error: error.message,
+        error: errorMessage,
         failedAt: new Date(),
       });
 
@@ -285,7 +288,10 @@ export class DesignWorker {
         categories: moderationResult.categories,
       };
     } catch (error) {
-      this.logger.warn(`Moderation API failed, allowing prompt: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.warn(`Moderation API failed, allowing prompt: ${errorMessage}`);
       return {
         isApproved: true,
         confidence: 0.5,
@@ -440,33 +446,123 @@ export class DesignWorker {
   }
 
   /**
-   * Appelle l'API IA
+   * Appelle l'API IA - utilise les vraies APIs en production
    */
   private async callAIAPI(model: string, params: any): Promise<any> {
-    // Simulation d'appel API
-    // En production, utiliser les vraies APIs (OpenAI, Stability AI, etc.)
-    
-    const mockResponse = {
-      images: [
-        {
-          url: `https://generated-image-${Date.now()}.png`,
-          width: 1024,
-          height: 1024,
-          format: 'png',
-        },
-      ],
-      usage: {
-        total_tokens: 150,
-        credits: 10,
-      },
-      seed: Math.floor(Math.random() * 1000000),
-      version: '1.0',
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const replicateApiKey = process.env.REPLICATE_API_TOKEN;
+
+    // DALL-E 3 via OpenAI
+    if (model === 'dall-e-3' && openaiApiKey && openaiApiKey !== 'sk-placeholder') {
+      try {
+        const response = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiApiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'dall-e-3',
+            prompt: params.prompt,
+            n: 1,
+            size: params.size || '1024x1024',
+            quality: params.quality || 'standard',
+            style: params.style || 'natural',
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            images: data.data.map((img: { url: string; revised_prompt?: string }) => ({
+              url: img.url,
+              width: parseInt(params.size?.split('x')[0]) || 1024,
+              height: parseInt(params.size?.split('x')[1]) || 1024,
+              format: 'png',
+              revisedPrompt: img.revised_prompt,
+            })),
+            usage: { total_tokens: 0, credits: params.quality === 'hd' ? 20 : 10 },
+            seed: 0,
+            version: 'dall-e-3',
+          };
+        }
+      } catch (error) {
+        this.logger.warn('DALL-E 3 API call failed, using fallback', { error });
+      }
+    }
+
+    // Stable Diffusion XL via Replicate
+    if (model === 'stable-diffusion-xl' && replicateApiKey && replicateApiKey !== 'r8_placeholder') {
+      try {
+        const response = await fetch('https://api.replicate.com/v1/predictions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token ${replicateApiKey}`,
+          },
+          body: JSON.stringify({
+            version: 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
+            input: {
+              prompt: params.prompt,
+              num_outputs: params.num_images || 1,
+              width: parseInt(params.size?.split('x')[0]) || 1024,
+              height: parseInt(params.size?.split('x')[1]) || 1024,
+              num_inference_steps: params.steps || 30,
+              guidance_scale: params.cfg_scale || 7.5,
+              seed: params.seed,
+            },
+          }),
+        });
+
+        if (response.ok) {
+          const prediction = await response.json();
+          
+          // Poll for completion
+          let result = prediction;
+          let attempts = 0;
+          while ((result.status === 'starting' || result.status === 'processing') && attempts < 60) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const statusRes = await fetch(result.urls.get, {
+              headers: { 'Authorization': `Token ${replicateApiKey}` },
+            });
+            result = await statusRes.json();
+            attempts++;
+          }
+
+          if (result.status === 'succeeded' && result.output) {
+            return {
+              images: result.output.map((url: string) => ({
+                url,
+                width: parseInt(params.size?.split('x')[0]) || 1024,
+                height: parseInt(params.size?.split('x')[1]) || 1024,
+                format: 'png',
+              })),
+              usage: { total_tokens: 0, credits: 5 },
+              seed: params.seed || 0,
+              version: 'sdxl-1.0',
+            };
+          }
+        }
+      } catch (error) {
+        this.logger.warn('Replicate SDXL API call failed, using fallback', { error });
+      }
+    }
+
+    // Fallback response when APIs are not configured
+    this.logger.warn('No AI API configured or available, returning placeholder');
+    const crypto = require('crypto');
+    return {
+      images: [{
+        url: '/images/placeholder-generated.png',
+        width: parseInt(params.size?.split('x')[0]) || 1024,
+        height: parseInt(params.size?.split('x')[1]) || 1024,
+        format: 'png',
+        isPlaceholder: true,
+      }],
+      usage: { total_tokens: 0, credits: 0 },
+      seed: parseInt(crypto.randomBytes(4).toString('hex'), 16),
+      version: 'placeholder',
     };
-
-    // Simuler un délai de génération
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    return mockResponse;
   }
 
   /**

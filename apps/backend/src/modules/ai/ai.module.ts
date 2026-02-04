@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
+import { HttpModule } from '@nestjs/axios';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { AIStudioService } from './services/ai-studio.service';
@@ -10,6 +11,7 @@ import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { BudgetModule } from '@/libs/budgets/budget.module';
 import { AIOrchestratorModule } from '@/libs/ai/ai-orchestrator.module';
 import { CreditsModule } from '@/libs/credits/credits.module';
+import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 
 @Module({
   imports: [
@@ -17,6 +19,11 @@ import { CreditsModule } from '@/libs/credits/credits.module';
     BudgetModule,
     CreditsModule,
     AIOrchestratorModule,
+    SmartCacheModule,
+    HttpModule.register({
+      timeout: 30000,
+      maxRedirects: 3,
+    }),
     BullModule.registerQueue({
       name: 'ai-generation',
     }),

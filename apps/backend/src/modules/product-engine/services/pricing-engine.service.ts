@@ -435,12 +435,8 @@ export class PricingEngine {
         },
       };
 
-      // Historique des prix (simulation)
-      const priceHistory = Array.from({ length: 12 }, (_, i) => ({
-        month: new Date(Date.now() - (11 - i) * 30 * 24 * 60 * 60 * 1000),
-        price: avgPrice * (1 + (Math.random() - 0.5) * 0.1),
-        sales: Math.floor(Math.random() * 50) + 20,
-      }));
+      // Historique des prix réel depuis les commandes
+      const priceHistory = await this.getPriceHistory(productId, avgPrice);
 
       const suggestions = {
         recommendedBasePrice: avgPrice,
@@ -554,6 +550,103 @@ export class PricingEngine {
     }
 
     return Math.min(margin, 0.60); // Marge max 60%
+  }
+
+  /**
+   * Récupère l'historique réel des prix depuis les commandes
+   */
+  private async getPriceHistory(
+    productId: string,
+    fallbackAvgPrice: number,
+  ): Promise<Array<{ month: Date; price: number; sales: number }>> {
+    try {
+      // Query orders for the last 12 months grouped by month
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+      const orders = await this.prisma.order.findMany({
+        where: {
+          createdAt: {
+            gte: twelveMonthsAgo,
+          },
+          items: {
+            some: {
+              productId,
+            },
+          },
+        },
+        select: {
+          createdAt: true,
+          items: {
+            where: {
+              productId,
+            },
+            select: {
+              priceCents: true,
+              quantity: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+
+      // Group by month
+      const monthlyData = new Map<string, { totalPrice: number; totalSales: number; count: number }>();
+
+      for (const order of orders) {
+        const monthKey = `${order.createdAt.getFullYear()}-${String(order.createdAt.getMonth() + 1).padStart(2, '0')}`;
+        const existing = monthlyData.get(monthKey) || { totalPrice: 0, totalSales: 0, count: 0 };
+
+        for (const item of order.items) {
+          existing.totalPrice += item.priceCents;
+          existing.totalSales += item.quantity;
+          existing.count += 1;
+        }
+
+        monthlyData.set(monthKey, existing);
+      }
+
+      // Convert to array and fill missing months
+      const result: Array<{ month: Date; price: number; sales: number }> = [];
+      
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        date.setDate(1);
+        date.setHours(0, 0, 0, 0);
+        
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const data = monthlyData.get(monthKey);
+
+        if (data && data.count > 0) {
+          result.push({
+            month: new Date(date),
+            price: (data.totalPrice / data.count) / 100, // Convert cents to euros
+            sales: data.totalSales,
+          });
+        } else {
+          // No data for this month - use fallback
+          result.push({
+            month: new Date(date),
+            price: fallbackAvgPrice,
+            sales: 0,
+          });
+        }
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.warn(`Failed to get price history for ${productId}, using fallback`);
+      
+      // Return empty history with fallback prices
+      return Array.from({ length: 12 }, (_, i) => ({
+        month: new Date(Date.now() - (11 - i) * 30 * 24 * 60 * 60 * 1000),
+        price: fallbackAvgPrice,
+        sales: 0,
+      }));
+    }
   }
 }
 

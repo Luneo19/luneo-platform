@@ -1,339 +1,654 @@
-/**
- * ★★★ PAGE - ANALYTICS & REPORTING ★★★
- * Page complète pour les analytics
- * - Dashboard stats
- * - Graphiques
- * - Rapports
- */
-
-'use client';
-
-import { useState, useMemo, useCallback } from 'react';
+/** * ★★★ ANALYTICS DASHBOARD PREMIUM ★★★ * Dashboard analytics ultra-premium avec React Query, design luxueux et UX optimisée * - React Query avec cache intelligent * - Design system premium * - KPIs ultra performants * - Graphiques élégants * - Gestion d'erreurs complète * - Skeleton loaders * - Toast notifications */ 'use client';
+import { useState, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { memo } from 'react';
-import { trpc } from '@/lib/trpc/client';
-import { logger } from '@/lib/logger';
-import { formatDate, formatPrice } from '@/lib/utils/formatters';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import { TrendingUp, Package, ShoppingCart, DollarSign, Users, Download } from 'lucide-react';
-
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Download,
+  Calendar,
+  BarChart3,
+  Target,
+  Award,
+  ArrowUpRight,
+  ArrowDownRight,
+  LineChart,
+} from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+import {
+  useAnalyticsMetrics,
+  useAnalyticsTimeSeries,
+  useAnalyticsTopEvents,
+  useExportAnalytics,
+  type TimeRange,
+  type TimeSeriesData,
+  type TopEvent,
+} from '@/hooks/use-analytics';
+import { KPISkeleton, ChartSkeleton } from '@/components/ui/skeleton';
+import { ErrorDisplay } from '@/components/ui/error-display';
 // ========================================
 // COMPONENT
 // ========================================
+function AnalyticsLuxuryPageContent() {
+  const [period, setPeriod] = useState<TimeRange>('30d');
 
-function AnalyticsPageContent() {
-  const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
+  // ✅ React Query hooks avec gestion d'erreurs automatique
+  const {
+    data: metrics,
+    isLoading: metricsLoading,
+    error: metricsError,
+    refetch: refetchMetrics,
+  } = useAnalyticsMetrics(period);
+  const {
+    data: timeSeries = [],
+    isLoading: timeSeriesLoading,
+    error: timeSeriesError,
+    refetch: refetchTimeSeries,
+  } = useAnalyticsTimeSeries(period);
+  const {
+    data: topEvents = [],
+    isLoading: topEventsLoading,
+    error: topEventsError,
+    refetch: refetchTopEvents,
+  } = useAnalyticsTopEvents(period);
+  const { mutate: exportAnalytics, isPending: isExporting } =
+    useExportAnalytics();
+  const isLoading = metricsLoading || timeSeriesLoading || topEventsLoading;
+  const hasError = metricsError || timeSeriesError || topEventsError;
 
-  // Calculate dates based on period
-  const periodDates = useMemo(() => {
-    const end = new Date();
-    const start = new Date();
+  // Calculate trends from time series data
+  const trends = useMemo(() => {
+    if (!metrics || !timeSeries || timeSeries.length < 2) return null;
+    
+    // Split data into two halves to compare
+    const midPoint = Math.floor(timeSeries.length / 2);
+    const firstHalf = timeSeries.slice(0, midPoint);
+    const secondHalf = timeSeries.slice(midPoint);
+    
+    // Calculate averages for each half
+    const calcAvg = (data: typeof timeSeries, key: keyof typeof timeSeries[0]) => {
+      if (data.length === 0) return 0;
+      const sum = data.reduce((acc, item) => acc + (Number(item[key]) || 0), 0);
+      return sum / data.length;
+    };
+    
+    // Calculate trend percentage
+    const calcTrend = (first: number, second: number) => {
+      if (first === 0) return { value: second > 0 ? 100 : 0, isPositive: second >= 0 };
+      const change = ((second - first) / first) * 100;
+      return {
+        value: Math.abs(Math.round(change * 10) / 10),
+        isPositive: change >= 0,
+      };
+    };
+    
+    // Calculate trends for each metric
+    const eventsFirst = calcAvg(firstHalf, 'events' as keyof typeof timeSeries[0]);
+    const eventsSecond = calcAvg(secondHalf, 'events' as keyof typeof timeSeries[0]);
+    
+    const usersFirst = calcAvg(firstHalf, 'users' as keyof typeof timeSeries[0]);
+    const usersSecond = calcAvg(secondHalf, 'users' as keyof typeof timeSeries[0]);
+    
+    const conversionsFirst = calcAvg(firstHalf, 'conversions' as keyof typeof timeSeries[0]);
+    const conversionsSecond = calcAvg(secondHalf, 'conversions' as keyof typeof timeSeries[0]);
+    
+    // Calculate conversion rate trend
+    const rateFirst = eventsFirst > 0 ? (conversionsFirst / eventsFirst) * 100 : 0;
+    const rateSecond = eventsSecond > 0 ? (conversionsSecond / eventsSecond) * 100 : 0;
+    
+    return {
+      events: calcTrend(eventsFirst, eventsSecond),
+      users: calcTrend(usersFirst, usersSecond),
+      conversions: calcTrend(conversionsFirst, conversionsSecond),
+      rate: calcTrend(rateFirst, rateSecond),
+    };
+  }, [metrics, timeSeries]);
 
-    switch (period) {
-      case 'week':
-        start.setDate(start.getDate() - 7);
-        break;
-      case 'month':
-        start.setMonth(start.getMonth() - 1);
-        break;
-      case 'year':
-        start.setFullYear(start.getFullYear() - 1);
-        break;
-    }
+  // Chart colors premium
+  const CHART_COLORS = {
+    primary: '#3751ff',
+    secondary: '#d4af37',
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    gradient: ['#3751ff', '#667eea', '#764ba2', '#d4af37', '#f59e0b'],
+  };
 
-    return { start, end };
-  }, [period]);
+  // Pie chart data for top events
+  const pieData = useMemo(() => {
+    if (!topEvents || topEvents.length === 0) return [];
+    return topEvents.slice(0, 5).map((event: TopEvent, index: number) => ({
+      name: event.eventType.replace('_', ' ').toUpperCase(),
+      value: event.count,
+      color: CHART_COLORS.gradient[index % CHART_COLORS.gradient.length],
+    }));
+  }, [topEvents]);
 
-  // Queries
-  const dashboardStatsQuery = trpc.analytics.getDashboard.useQuery({
-    timeRange: 'custom',
-    dateFrom: periodDates.start.toISOString(),
-    dateTo: periodDates.end.toISOString(),
-  });
-
-  // Note: getProductStats and generateReport are not yet implemented in the analytics router
-  // const productStatsQuery = trpc.analytics.getProductStats.useQuery({
-  //   periodStart: periodDates.start,
-  //   periodEnd: periodDates.end,
-  // });
-
-  // Mutations
-  // const generateReportMutation = trpc.analytics.generateReport.useMutation({
-  //   onSuccess: (result: any) => {
-  //     logger.info('Report generation started', { reportId: result.reportId });
-  //     alert(`Rapport en cours de génération. ID: ${result.reportId}`);
-  //   },
-  // });
-
-  // ========================================
-  // HANDLERS
-  // ========================================
-
-  // const handleGenerateReport = useCallback(
-  //   (type: 'products' | 'customizations' | 'orders' | 'revenue' | 'ar' | 'full') => {
-  //     generateReportMutation.mutate({
-  //       type,
-  //       periodStart: periodDates.start,
-  //       periodEnd: periodDates.end,
-  //       format: 'pdf',
-  //       includeCharts: true,
-  //     });
-  //   },
-  //   [generateReportMutation, periodDates]
-  // );
+  // Handle export
+  const handleExport = () => {
+    exportAnalytics(period);
+  };
 
   // ========================================
   // RENDER
   // ========================================
-
-  if (dashboardStatsQuery.isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-300">Chargement des analytics...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const stats = dashboardStatsQuery.data;
-  const products: any[] = []; // productStatsQuery.data || [];
-
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Analytics</h1>
-          <p className="text-gray-600">Statistiques et rapports</p>
-        </div>
-        <Select value={period} onValueChange={(value) => setPeriod(value as any)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">7 derniers jours</SelectItem>
-            <SelectItem value="month">30 derniers jours</SelectItem>
-            <SelectItem value="year">12 derniers mois</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-          <TabsTrigger value="products">Produits</TabsTrigger>
-          <TabsTrigger value="reports">Rapports</TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Revenus</CardTitle>
-                <DollarSign className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatPrice((stats?.revenue || 0) / 100, 'EUR')}
-                </div>
-                <p className="text-xs text-gray-500">Période sélectionnée</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Commandes</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats?.orders || 0}</div>
-                <p className="text-xs text-gray-500">
-                  {stats?.avgOrderValue
-                    ? `Moyenne: ${formatPrice(stats.avgOrderValue / 100, 'EUR')}`
-                    : 'Aucune commande'}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Personnalisations</CardTitle>
-                <Package className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  0
-                </div>
-                <p className="text-xs text-gray-500">
-                  0 complétées
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sessions AR</CardTitle>
-                <Users className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-gray-500">
-                  Aucune session
-                </p>
-              </CardContent>
-            </Card>
+    <div className="via-charcoal-800 min-h-screen bg-gradient-to-br from-obsidian-black via-obsidian-black to-neutral-50 dark:from-neutral-900 dark:to-neutral-900">
+      {' '}
+      <main
+        id="main-content"
+        className="container mx-auto max-w-7xl px-6 py-8"
+        tabIndex={-1}
+      >
+        {' '}
+        {/* Header Luxueux Premium */}{' '}
+        <div className="mb-10 animate-fade-in">
+          {' '}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+            {' '}
+            <div>
+              {' '}
+              <h1 className="mb-2 text-5xl font-bold tracking-tight text-gladia-white">
+                {' '}
+                Analytics{' '}
+              </h1>{' '}
+              <p className="text-gladia-gray-200 text-xl">
+                {' '}
+                Insights performants et métriques en temps réel{' '}
+              </p>{' '}
+            </div>{' '}
+            <div className="flex items-center gap-4">
+              {' '}
+              <Select
+                value={period}
+                onValueChange={value => setPeriod(value as TimeRange)}
+              >
+                {' '}
+                <SelectTrigger
+                  className="luxury-button border-gladia-border-transparent w-[200px]"
+                  aria-label="Sélectionner la période"
+                >
+                  {' '}
+                  <Calendar className="mr-2 h-4 w-4" aria-hidden="true" />{' '}
+                  <SelectValue />{' '}
+                </SelectTrigger>{' '}
+                <SelectContent>
+                  {' '}
+                  <SelectItem value="7d">7 derniers jours</SelectItem>{' '}
+                  <SelectItem value="30d">30 derniers jours</SelectItem>{' '}
+                  <SelectItem value="90d">90 derniers jours</SelectItem>{' '}
+                  <SelectItem value="1y">12 derniers mois</SelectItem>{' '}
+                </SelectContent>{' '}
+              </Select>{' '}
+              <Button
+                variant="outline"
+                className="luxury-button border-gladia-border-transparent font-semibold"
+                onClick={handleExport}
+                disabled={isExporting}
+                aria-label="Exporter les données analytics"
+              >
+                {' '}
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />{' '}
+                {isExporting ? 'Export...' : 'Exporter'}{' '}
+              </Button>{' '}
+            </div>{' '}
+          </div>{' '}
+        </div>{' '}
+        {/* Error Display */}{' '}
+        {hasError && (
+          <div className="mb-6">
+            {' '}
+            <ErrorDisplay
+              error={
+                metricsError ||
+                timeSeriesError ||
+                topEventsError ||
+                new Error('Erreur inconnue')
+              }
+              onRetry={() => {
+                refetchMetrics();
+                refetchTimeSeries();
+                refetchTopEvents();
+              }}
+              title="Erreur de chargement des analytics"
+              variant="default"
+            />{' '}
           </div>
-
-          {/* Usage Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Utilisation</CardTitle>
-              <CardDescription>Statistiques d'utilisation</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Personnalisations</span>
-                  <span className="text-sm text-gray-600">
-                    0
-                  </span>
-                </div>
-                <Progress
-                  value={0}
-                  className="h-2"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Products Tab */}
-        <TabsContent value="products">
-          <Card>
-            <CardHeader>
-              <CardTitle>Statistiques par produit</CardTitle>
-              <CardDescription>
-                Performance de vos produits
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {products.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-600">Aucune donnée disponible</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {products.map((product) => (
-                    <Card key={product.productId}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-semibold">{product.productName}</h4>
-                            <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
-                              <div>
-                                <span className="text-gray-500">Vues:</span>{' '}
-                                <span className="font-medium">{product.views}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Personnalisations:</span>{' '}
-                                <span className="font-medium">{product.customizations}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Commandes:</span>{' '}
-                                <span className="font-medium">{product.orders}</span>
-                              </div>
-                            </div>
-                            <div className="mt-2">
-                              <span className="text-gray-500">Revenus:</span>{' '}
-                              <span className="font-medium">
-                                {formatPrice(product.revenue / 100, 'EUR')}
-                              </span>
-                            </div>
-                            <div className="mt-2">
-                              <span className="text-gray-500">Taux de conversion:</span>{' '}
-                              <span className="font-medium">
-                                {(product.conversionRate * 100).toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Reports Tab */}
-        <TabsContent value="reports">
-          <Card>
-            <CardHeader>
-              <CardTitle>Rapports</CardTitle>
-              <CardDescription>Générez des rapports personnalisés</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Rapport Produits</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {/* handleGenerateReport('products') */}}
-                      disabled={false}
-                      className="w-full"
+        )}{' '}
+        {/* KPIs Luxueux Premium */}{' '}
+        {isLoading ? (
+          <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {' '}
+            {[1, 2, 3, 4].map(i => (
+              <KPISkeleton key={i} />
+            ))}{' '}
+          </div>
+        ) : metrics ? (
+          <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {' '}
+            {/* Total Events */}{' '}
+            <Card className="luxury-kpi border-gladia-border-transparent animate-fade-in-up hover:gladia-hover-glow">
+              {' '}
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                {' '}
+                <CardTitle className="text-gladia-gray-200 text-sm font-semibold uppercase tracking-wide">
+                  {' '}
+                  Événements{' '}
+                </CardTitle>{' '}
+                <div
+                  className="from-brand-500/10 to-brand-600/10 rounded-lg bg-gradient-to-br p-2"
+                  aria-hidden="true"
+                >
+                  {' '}
+                  <Activity className="text-brand-600 dark:text-brand-400 h-5 w-5" />{' '}
+                </div>{' '}
+              </CardHeader>{' '}
+              <CardContent>
+                {' '}
+                <div className="flex items-baseline justify-between">
+                  {' '}
+                  <div>
+                    {' '}
+                    <div
+                      className="mb-1 text-4xl font-bold text-gladia-white"
+                      aria-label={`${metrics.totalEvents.toLocaleString()} événements`}
                     >
-                      <Download className="h-4 w-4 mr-2" />
-                      Générer PDF
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Rapport Complet</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {/* handleGenerateReport('full') */}}
-                      disabled={false}
-                      className="w-full"
+                      {' '}
+                      {metrics.totalEvents.toLocaleString()}{' '}
+                    </div>{' '}
+                    <div className="mt-2 flex items-center gap-2">
+                      {' '}
+                      {trends?.events.isPositive ? (
+                        <TrendingUp
+                          className="text-success-500 h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <TrendingDown
+                          className="text-danger-500 h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      )}{' '}
+                      <span
+                        className={`text-sm font-semibold ${trends?.events.isPositive ? 'text-success-600' : 'text-danger-600'}`}
+                      >
+                        {' '}
+                        {trends?.events.value}%{' '}
+                      </span>{' '}
+                      <span className="text-xs text-gladia-gray-500">
+                        vs période précédente
+                      </span>{' '}
+                    </div>{' '}
+                  </div>{' '}
+                </div>{' '}
+              </CardContent>{' '}
+            </Card>{' '}
+            {/* Page Views */}{' '}
+            <Card
+              className="luxury-kpi border-gladia-border-transparent animate-fade-in-up hover:gladia-hover-glow"
+              style={{ animationDelay: '0.1s' }}
+            >
+              {' '}
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                {' '}
+                <CardTitle className="text-gladia-gray-200 text-sm font-semibold uppercase tracking-wide">
+                  {' '}
+                  Vues{' '}
+                </CardTitle>{' '}
+                <div
+                  className="from-success-500/10 to-success-600/10 rounded-lg bg-gradient-to-br p-2"
+                  aria-hidden="true"
+                >
+                  {' '}
+                  <BarChart3 className="text-success-600 dark:text-success-400 h-5 w-5" />{' '}
+                </div>{' '}
+              </CardHeader>{' '}
+              <CardContent>
+                {' '}
+                <div className="flex items-baseline justify-between">
+                  {' '}
+                  <div>
+                    {' '}
+                    <div
+                      className="mb-1 text-4xl font-bold text-gladia-white"
+                      aria-label={`${metrics.pageViews.toLocaleString()} vues`}
                     >
-                      <Download className="h-4 w-4 mr-2" />
-                      Générer PDF
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                      {' '}
+                      {metrics.pageViews.toLocaleString()}{' '}
+                    </div>{' '}
+                    <div className="mt-2 flex items-center gap-2">
+                      {' '}
+                      <span className="text-xs text-gladia-gray-500">
+                        Pages consultées
+                      </span>{' '}
+                    </div>{' '}
+                  </div>{' '}
+                </div>{' '}
+              </CardContent>{' '}
+            </Card>{' '}
+            {/* Conversions */}{' '}
+            <Card
+              className="luxury-kpi border-gladia-border-transparent animate-fade-in-up hover:gladia-hover-glow"
+              style={{ animationDelay: '0.2s' }}
+            >
+              {' '}
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                {' '}
+                <CardTitle className="text-gladia-gray-200 text-sm font-semibold uppercase tracking-wide">
+                  {' '}
+                  Conversions{' '}
+                </CardTitle>{' '}
+                <div
+                  className="from-warning-500/10 to-warning-600/10 rounded-lg bg-gradient-to-br p-2"
+                  aria-hidden="true"
+                >
+                  {' '}
+                  <Target className="text-warning-600 dark:text-warning-400 h-5 w-5" />{' '}
+                </div>{' '}
+              </CardHeader>{' '}
+              <CardContent>
+                {' '}
+                <div className="flex items-baseline justify-between">
+                  {' '}
+                  <div>
+                    {' '}
+                    <div
+                      className="mb-1 text-4xl font-bold text-gladia-white"
+                      aria-label={`${metrics.conversions.toLocaleString()} conversions`}
+                    >
+                      {' '}
+                      {metrics.conversions.toLocaleString()}{' '}
+                    </div>{' '}
+                    <div className="mt-2 flex items-center gap-2">
+                      {' '}
+                      {trends?.conversions.isPositive ? (
+                        <TrendingUp
+                          className="text-success-500 h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <TrendingDown
+                          className="text-danger-500 h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      )}{' '}
+                      <span
+                        className={`text-sm font-semibold ${trends?.conversions.isPositive ? 'text-success-600' : 'text-danger-600'}`}
+                      >
+                        {' '}
+                        {trends?.conversions.value}%{' '}
+                      </span>{' '}
+                    </div>{' '}
+                  </div>{' '}
+                </div>{' '}
+              </CardContent>{' '}
+            </Card>{' '}
+            {/* Conversion Rate */}{' '}
+            <Card
+              className="luxury-kpi border-gladia-border-transparent animate-fade-in-up hover:gladia-hover-glow"
+              style={{ animationDelay: '0.3s' }}
+            >
+              {' '}
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                {' '}
+                <CardTitle className="text-gladia-gray-200 text-sm font-semibold uppercase tracking-wide">
+                  {' '}
+                  Taux de Conversion{' '}
+                </CardTitle>{' '}
+                <div
+                  className="from-luxury-gold-500/20 to-luxury-gold-600/20 rounded-lg bg-gradient-to-br p-2"
+                  aria-hidden="true"
+                >
+                  {' '}
+                  <Award className="text-gladia-brand-600 h-5 w-5" />{' '}
+                </div>{' '}
+              </CardHeader>{' '}
+              <CardContent>
+                {' '}
+                <div className="flex items-baseline justify-between">
+                  {' '}
+                  <div>
+                    {' '}
+                    <div
+                      className="mb-1 text-4xl font-bold text-gladia-white"
+                      aria-label={`Taux de conversion ${metrics.conversionRate.toFixed(2)}%`}
+                    >
+                      {' '}
+                      {metrics.conversionRate.toFixed(2)}%{' '}
+                    </div>{' '}
+                    <div className="mt-2 flex items-center gap-2">
+                      {' '}
+                      {trends?.rate.isPositive ? (
+                        <ArrowUpRight
+                          className="text-success-500 h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <ArrowDownRight
+                          className="text-danger-500 h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      )}{' '}
+                      <span
+                        className={`text-sm font-semibold ${trends?.rate.isPositive ? 'text-success-600' : 'text-danger-600'}`}
+                      >
+                        {' '}
+                        {trends?.rate.value}%{' '}
+                      </span>{' '}
+                    </div>{' '}
+                  </div>{' '}
+                </div>{' '}
+              </CardContent>{' '}
+            </Card>{' '}
+          </div>
+        ) : null}{' '}
+        {/* Graphiques Premium */}{' '}
+        <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {' '}
+          {/* Time Series Chart */}{' '}
+          {timeSeriesLoading ? (
+            <ChartSkeleton />
+          ) : timeSeriesError ? (
+            <ErrorDisplay
+              error={timeSeriesError}
+              onRetry={refetchTimeSeries}
+              variant="compact"
+              title="Erreur de chargement du graphique"
+            />
+          ) : (
+            <Card className="gladia-card border-gladia-border-transparent hover:gladia-hover-glow">
+              {' '}
+              <CardHeader>
+                {' '}
+                <div className="flex items-center justify-between">
+                  {' '}
+                  <div>
+                    {' '}
+                    <CardTitle className="mb-2 text-2xl font-bold text-gladia-white">
+                      Évolution Temporelle
+                    </CardTitle>{' '}
+                    <CardDescription className="text-gladia-gray-200">
+                      {' '}
+                      Nombre d'événements par jour{' '}
+                    </CardDescription>{' '}
+                  </div>{' '}
+                  <LineChart
+                    className="text-brand-600 h-6 w-6"
+                    aria-hidden="true"
+                  />{' '}
+                </div>{' '}
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={timeSeries as TimeSeriesData[]}>
+                    <defs>
+                      <linearGradient
+                        id="colorEvents"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor={CHART_COLORS.primary}
+                          stopOpacity={0.8}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor={CHART_COLORS.primary}
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e5e7eb"
+                      opacity={0.3}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#6b7280"
+                      fontSize={12}
+                      tickFormatter={value =>
+                        new Date(value).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'short',
+                        })
+                      }
+                    />
+                    <YAxis stroke="#6b7280" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid rgba(0, 0, 0, 0.1)',
+                        borderRadius: '8px',
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                      labelFormatter={value =>
+                        new Date(value).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })
+                      }
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke={CHART_COLORS.primary}
+                      fillOpacity={1}
+                      fill="url(#colorEvents)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+          {/* Top Events Pie Chart */}
+          {topEventsLoading ? (
+            <ChartSkeleton />
+          ) : topEventsError ? (
+            <ErrorDisplay
+              error={topEventsError}
+              onRetry={refetchTopEvents}
+              variant="compact"
+              title="Erreur de chargement du graphique"
+            />
+          ) : (
+            <Card className="gladia-card border-gladia-border-transparent hover:gladia-hover-glow">
+              {' '}
+              <CardHeader>
+                {' '}
+                <div className="flex items-center justify-between">
+                  {' '}
+                  <div>
+                    {' '}
+                    <CardTitle className="mb-2 text-2xl font-bold text-gladia-white">
+                      Top Événements
+                    </CardTitle>{' '}
+                    <CardDescription className="text-gladia-gray-200">
+                      {' '}
+                      Répartition des événements{' '}
+                    </CardDescription>{' '}
+                  </div>{' '}
+                  <BarChart3
+                    className="text-brand-600 h-6 w-6"
+                    aria-hidden="true"
+                  />{' '}
+                </div>{' '}
+              </CardHeader>{' '}
+              <CardContent>
+                {' '}
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsPieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) =>
+                        `${name}: ${(percent * 100).toFixed(0)}%`
+                      }
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid rgba(0, 0, 0, 0.1)',
+                        borderRadius: '8px',
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                    />
+                    <Legend />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </CardContent>{' '}
+            </Card>
+          )}{' '}
+        </div>{' '}
+      </main>{' '}
     </div>
   );
 }
 
-// ========================================
-// EXPORT
-// ========================================
-
-const AnalyticsPage = memo(function AnalyticsPage() {
+export default function AnalyticsPage() {
   return (
     <ErrorBoundary>
-      <AnalyticsPageContent />
+      <AnalyticsLuxuryPageContent />
     </ErrorBoundary>
   );
-});
-
-export default AnalyticsPage;
+}

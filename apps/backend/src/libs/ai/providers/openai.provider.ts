@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { hashPrompt, sanitizePrompt } from '../ai-safety';
-import { AIGenerationOptions, AIGenerationResult, AIProvider, AIProviderConfig } from './ai-provider.interface';
+import { hashPrompt, sanitizePrompt } from '@/libs/ai/ai-safety';
+import { AIGenerationOptions, AIGenerationResult, AIProvider, AIProviderConfig } from '@/libs/ai/providers/ai-provider.interface';
 
 @Injectable()
 export class OpenAIProvider implements AIProvider {
@@ -13,22 +13,39 @@ export class OpenAIProvider implements AIProvider {
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('ai.openai.apiKey');
     
-    if (!apiKey) {
-      this.logger.warn('OpenAI API key not configured');
+    // Validate API key - must be present and look like a valid OpenAI key
+    const isValidApiKey = this.isValidOpenAIKey(apiKey);
+    
+    if (!isValidApiKey) {
+      this.logger.warn('OpenAI API key not configured or invalid - provider will be disabled');
     }
 
+    // Only initialize client if we have a valid key
     this.client = new OpenAI({
-      apiKey: apiKey || 'sk-placeholder',
+      apiKey: isValidApiKey ? apiKey : 'disabled',
     });
 
     this.config = {
       name: 'openai',
-      enabled: !!apiKey && apiKey !== 'sk-placeholder',
+      enabled: isValidApiKey,
       priority: 1, // Haute priorité
       costPerImageCents: 40, // ~0.40€ par image DALL-E 3 HD
       maxRetries: 3,
       timeout: 30000, // 30s
     };
+  }
+
+  /**
+   * Validates if the API key looks like a valid OpenAI key
+   */
+  private isValidOpenAIKey(apiKey: string | undefined): boolean {
+    if (!apiKey) return false;
+    // OpenAI keys start with 'sk-' and are at least 40 characters
+    // Reject obvious placeholders
+    if (apiKey.includes('placeholder') || apiKey.includes('xxxxx') || apiKey === 'disabled') {
+      return false;
+    }
+    return apiKey.startsWith('sk-') && apiKey.length >= 40;
   }
 
   getName(): string {
@@ -103,8 +120,11 @@ export class OpenAIProvider implements AIProvider {
         },
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(`OpenAI generation failed:`, error);
-      throw new Error(`OpenAI generation failed: ${error.message}`);
+      throw new Error(`OpenAI generation failed: ${errorMessage}`);
     }
   }
 
@@ -155,7 +175,10 @@ export class OpenAIProvider implements AIProvider {
         categories: flagged ? categories : undefined,
       };
     } catch (error) {
-      this.logger.warn(`OpenAI moderation failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.warn(`OpenAI moderation failed: ${errorMessage}`);
       // En cas d'erreur, on approuve par défaut (fail-open)
       return {
         isApproved: true,

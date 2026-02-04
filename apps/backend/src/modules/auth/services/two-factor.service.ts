@@ -69,12 +69,18 @@ export class TwoFactorService {
 
   /**
    * Génère un code de backup (codes de récupération)
+   * Utilise crypto pour une génération sécurisée
    */
   generateBackupCodes(count: number = 10): string[] {
+    const crypto = require('crypto');
     const codes: string[] = [];
     for (let i = 0; i < count; i++) {
-      // Générer un code aléatoire de 8 caractères
-      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      // Générer un code cryptographiquement sécurisé de 8 caractères
+      const randomBytes = crypto.randomBytes(6);
+      const code = randomBytes.toString('base64')
+        .replace(/[+/=]/g, '') // Remove non-alphanumeric characters
+        .substring(0, 8)
+        .toUpperCase();
       codes.push(code);
     }
     return codes;

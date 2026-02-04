@@ -1,18 +1,13 @@
 /**
  * ★★★ SERVICE - 2FA / MFA ★★★
- * Service professionnel pour l'authentification à deux facteurs
+ * Service client pour l'authentification à deux facteurs
+ * Utilise l'API backend pour toutes les opérations sensibles
  * - TOTP (Time-based One-Time Password)
- * - SMS codes
- * - Email codes
  * - Backup codes
  */
 
-import { cacheService } from '@/lib/cache/CacheService';
-import { db } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-import bcrypt from 'bcryptjs';
-import * as qrcode from 'qrcode';
-import * as speakeasy from 'speakeasy';
 
 // ========================================
 // TYPES
@@ -27,6 +22,11 @@ export interface TwoFactorSetup {
 export interface TwoFactorVerification {
   code: string;
   method: 'totp' | 'sms' | 'email';
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  hasBackupCodes: boolean;
 }
 
 // ========================================
@@ -46,290 +46,200 @@ export class TwoFactorAuthService {
   }
 
   // ========================================
-  // SETUP
+  // SETUP (via Backend API)
   // ========================================
 
   /**
-   * Génère un secret TOTP
+   * Initialise la 2FA pour l'utilisateur connecté
+   * Appelle l'API backend qui gère la génération et le stockage sécurisé
    */
-  async generateSecret(userId: string): Promise<{ secret: string; qrCode: string }> {
+  async setup(): Promise<TwoFactorSetup> {
     try {
-      logger.info('Generating TOTP secret', { userId });
+      logger.info('Setting up 2FA via API');
 
-      // Get user email for QR code label
-      const user = await db.user.findUnique({
-        where: { id: userId },
-        select: { email: true },
-      });
+      const response = await endpoints.auth.setup2FA();
 
-      if (!user) {
-        throw new Error('User not found');
+      if (!response.data) {
+        throw new Error('Failed to setup 2FA');
       }
 
-      // Generate TOTP secret
-      const secret = speakeasy.generateSecret({
-        name: `Luneo (${user.email})`,
-        issuer: 'Luneo',
-        length: 32,
-      });
-
-      // Generate QR code
-      const qrCode = await qrcode.toDataURL(secret.otpauth_url || '');
-
-      // Save secret to database (not enabled yet)
-      // Note: In production, use totp_secrets table from Supabase
-      // For now, store in User model if it has twoFactorSecret field
-      const backupCodes = this.generateBackupCodesInternal(10);
-
-      logger.info('TOTP secret generated', { userId });
-
-      return {
-        secret: secret.base32 || '',
-        qrCode,
-      };
-    } catch (error: any) {
-      logger.error('Error generating TOTP secret', { error, userId });
-      throw error;
-    }
-  }
-
-  /**
-   * Initialise la 2FA pour un utilisateur
-   */
-  async setup(userId: string): Promise<TwoFactorSetup> {
-    try {
-      logger.info('Setting up 2FA', { userId });
-
-      const { secret, qrCode } = await this.generateSecret(userId);
-      const backupCodes = this.generateBackupCodesInternal(10);
-
-      // Save to database (in production, use totp_secrets table)
-      // For now, we'll use cache or a placeholder
-      cacheService.set(`2fa:setup:${userId}`, {
-        secret,
-        backupCodes,
-        enabled: false,
-      }, { ttl: 3600 * 1000 }); // 1 hour to complete setup
-
       const setup: TwoFactorSetup = {
-        secret,
-        qrCode,
-        backupCodes,
+        secret: response.data.secret,
+        qrCode: response.data.qrCodeUrl,
+        backupCodes: response.data.backupCodes,
       };
 
-      logger.info('2FA setup completed', { userId });
+      logger.info('2FA setup completed');
 
       return setup;
-    } catch (error: any) {
-      logger.error('Error setting up 2FA', { error, userId });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error setting up 2FA', { error: errorMessage });
       throw error;
     }
   }
 
+  /**
+   * @deprecated Use setup() instead - no userId needed, uses authenticated user
+   */
+  async generateSecret(userId: string): Promise<{ secret: string; qrCode: string }> {
+    const setup = await this.setup();
+    return {
+      secret: setup.secret,
+      qrCode: setup.qrCode,
+    };
+  }
+
   // ========================================
-  // VERIFICATION
+  // VERIFICATION (via Backend API)
   // ========================================
 
   /**
-   * Vérifie un code 2FA
+   * Vérifie et active la 2FA avec un code TOTP
+   * Appelle l'API backend pour la vérification sécurisée
+   */
+  async verify2FA(token: string): Promise<{ success: boolean; backupCodes?: string[] }> {
+    try {
+      logger.info('Verifying 2FA via API');
+
+      const response = await endpoints.auth.verify2FA({ token });
+
+      if (!response.data) {
+        return { success: false };
+      }
+
+      logger.info('2FA verified successfully');
+
+      return {
+        success: true,
+        backupCodes: response.data.backupCodes,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error verifying 2FA', { error: errorMessage });
+      return { success: false };
+    }
+  }
+
+  /**
+   * @deprecated Use verify2FA() instead
    */
   async verifyCode(
     userId: string,
     code: string,
     method: 'totp' | 'backup' = 'totp'
   ): Promise<boolean> {
-    try {
-      // Get 2FA setup from cache or database
-      const setup = cacheService.get<{ secret: string; backupCodes: string[] }>(`2fa:setup:${userId}`);
-      
-      // In production, query from totp_secrets table
-      // const totpSecret = await db.totpSecret.findUnique({ where: { userId } });
-
-      if (!setup) {
-        throw new Error('2FA not set up');
-      }
-
-      if (method === 'totp') {
-        // Verify TOTP code
-        const isValid = speakeasy.totp.verify({
-          secret: setup.secret,
-          encoding: 'base32',
-          token: code,
-          window: 2, // Allow 2 time periods (60 seconds)
-        });
-
-        return isValid ?? false;
-      } else if (method === 'backup') {
-        // Verify backup code
-        const isValid = setup.backupCodes.includes(code);
-        
-        if (isValid) {
-          // Remove used backup code
-          const updatedCodes = setup.backupCodes.filter((c) => c !== code);
-          cacheService.set(`2fa:setup:${userId}`, {
-            ...setup,
-            backupCodes: updatedCodes,
-          }, { ttl: 3600 * 1000 });
-        }
-
-        return isValid;
-      }
-
-      return false;
-    } catch (error: any) {
-      logger.error('Error verifying 2FA code', { error, userId });
-      throw error;
-    }
+    const result = await this.verify2FA(code);
+    return result.success;
   }
 
   /**
-   * Vérifie un code 2FA (legacy method for compatibility)
+   * @deprecated Use verify2FA() instead
    */
   async verify(
     userId: string,
     verification: TwoFactorVerification
   ): Promise<boolean> {
     if (verification.method === 'totp') {
-      return await this.verifyCode(userId, verification.code, 'totp');
-    } else if (verification.method === 'sms' || verification.method === 'email') {
-      // Verify from cache
-      const cached = cacheService.get<string>(`2fa:${userId}:${verification.method}`);
-      return cached === verification.code;
+      const result = await this.verify2FA(verification.code);
+      return result.success;
     }
+    // SMS/Email not supported in current backend implementation
+    logger.warn('SMS/Email 2FA methods not supported');
     return false;
   }
 
   // ========================================
-  // ENABLE / DISABLE
+  // ENABLE / DISABLE (via Backend API)
   // ========================================
 
   /**
-   * Active la 2FA
+   * Active la 2FA avec un code de vérification
    */
-  async enable(userId: string, verificationCode: string): Promise<void> {
+  async enable(verificationCode: string): Promise<{ backupCodes: string[] }> {
     try {
-      logger.info('Enabling 2FA', { userId });
+      logger.info('Enabling 2FA via API');
 
-      // Verify code first
-      const isValid = await this.verifyCode(userId, verificationCode, 'totp');
-      if (!isValid) {
+      const result = await this.verify2FA(verificationCode);
+
+      if (!result.success) {
         throw new Error('Invalid verification code');
       }
 
-      // Get setup data
-      const setup = cacheService.get<{ secret: string; backupCodes: string[] }>(`2fa:setup:${userId}`);
-      if (!setup) {
-        throw new Error('2FA setup not found');
-      }
+      logger.info('2FA enabled successfully');
 
-      // Enable in database (in production, use totp_secrets table)
-      // await db.totpSecret.update({
-      //   where: { userId },
-      //   data: {
-      //     enabled: true,
-      //     verifiedAt: new Date(),
-      //   },
-      // });
-
-      // Mark as enabled in cache
-      cacheService.set(`2fa:enabled:${userId}`, true, { ttl: 86400 * 365 * 1000 }); // 1 year
-
-      logger.info('2FA enabled', { userId });
-    } catch (error: any) {
-      logger.error('Error enabling 2FA', { error, userId });
+      return {
+        backupCodes: result.backupCodes || [],
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error enabling 2FA', { error: errorMessage });
       throw error;
     }
   }
 
   /**
-   * Désactive la 2FA
+   * Désactive la 2FA via l'API backend
    */
-  async disable(userId: string, password: string): Promise<void> {
+  async disable(): Promise<void> {
     try {
-      logger.info('Disabling 2FA', { userId });
+      logger.info('Disabling 2FA via API');
 
-      // Verify password
-      const user = await db.user.findUnique({
-        where: { id: userId },
-        select: { password: true },
-      });
+      await endpoints.auth.disable2FA();
 
-      if (!user?.password) {
-        throw new Error('User not found or has no password');
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        throw new Error('Invalid password');
-      }
-
-      // Disable in database (in production, use totp_secrets table)
-      // await db.totpSecret.delete({
-      //   where: { userId },
-      // });
-
-      // Remove from cache
-      cacheService.delete(`2fa:enabled:${userId}`);
-      cacheService.delete(`2fa:setup:${userId}`);
-
-      logger.info('2FA disabled', { userId });
-    } catch (error: any) {
-      logger.error('Error disabling 2FA', { error, userId });
+      logger.info('2FA disabled successfully');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error disabling 2FA', { error: errorMessage });
       throw error;
     }
   }
 
   // ========================================
-  // BACKUP CODES
+  // STATUS
   // ========================================
 
   /**
-   * Génère de nouveaux codes de backup
+   * Vérifie si la 2FA est activée pour l'utilisateur connecté
    */
-  async generateBackupCodes(userId: string): Promise<string[]> {
+  async getStatus(): Promise<TwoFactorStatus> {
     try {
-      logger.info('Generating backup codes', { userId });
-
-      // Generate new codes
-      const backupCodes = this.generateBackupCodesInternal(10);
-
-      // Update in database (in production, use totp_secrets table)
-      // await db.totpSecret.update({
-      //   where: { userId },
-      //   data: { backupCodes },
-      // });
-
-      // Update in cache
-      const setup = cacheService.get<{ secret: string; backupCodes: string[] }>(`2fa:setup:${userId}`);
-      if (setup) {
-        cacheService.set(`2fa:setup:${userId}`, {
-          ...setup,
-          backupCodes,
-        }, { ttl: 3600 * 1000 });
+      const response = await endpoints.auth.me();
+      
+      if (!response.data) {
+        return { enabled: false, hasBackupCodes: false };
       }
 
-      logger.info('Backup codes generated', { userId });
-
-      return backupCodes;
-    } catch (error: any) {
-      logger.error('Error generating backup codes', { error, userId });
-      throw error;
+      return {
+        enabled: response.data.is2FAEnabled || false,
+        hasBackupCodes: (response.data.backupCodesCount || 0) > 0,
+      };
+    } catch (error) {
+      logger.error('Error getting 2FA status', { error });
+      return { enabled: false, hasBackupCodes: false };
     }
   }
 
+  /**
+   * @deprecated Use getStatus() instead
+   */
+  async isEnabled(userId: string): Promise<boolean> {
+    const status = await this.getStatus();
+    return status.enabled;
+  }
+
   // ========================================
-  // UTILS
+  // BACKUP CODES (Note: Régénération via nouveau setup requis)
   // ========================================
 
   /**
-   * Génère des codes de backup
+   * @deprecated Pour régénérer les codes de backup, désactivez et réactivez la 2FA
    */
-  private generateBackupCodesInternal(count: number = 10): string[] {
-    const codes: string[] = [];
-    for (let i = 0; i < count; i++) {
-      codes.push(Math.random().toString(36).substring(2, 10).toUpperCase());
-    }
-    return codes;
+  async generateBackupCodes(): Promise<string[]> {
+    logger.warn('generateBackupCodes is deprecated. Re-setup 2FA to get new backup codes.');
+    // Les codes de backup sont générés lors du setup initial
+    // Pour en obtenir de nouveaux, il faut refaire le setup 2FA
+    throw new Error('To regenerate backup codes, please disable and re-enable 2FA');
   }
 }
 
@@ -338,4 +248,3 @@ export class TwoFactorAuthService {
 // ========================================
 
 export const twoFactorAuth = TwoFactorAuthService.getInstance();
-

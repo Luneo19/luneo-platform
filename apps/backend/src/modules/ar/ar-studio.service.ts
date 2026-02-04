@@ -92,7 +92,10 @@ export class ArStudioService {
         updatedAt: product.updatedAt,
       })));
     } catch (error) {
-      this.logger.error(`Failed to list AR models: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Failed to list AR models: ${error instanceof Error ? errorMessage : 'Unknown error'}`, error instanceof Error ? errorStack : undefined);
       throw error;
     }
   }
@@ -147,7 +150,10 @@ export class ArStudioService {
         updatedAt: product.updatedAt,
       };
     } catch (error) {
-      this.logger.error(`Failed to get AR model: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Failed to get AR model: ${error instanceof Error ? errorMessage : 'Unknown error'}`, error instanceof Error ? errorStack : undefined);
       throw error;
     }
   }
@@ -168,8 +174,7 @@ export class ArStudioService {
       const baseUrl = process.env.FRONTEND_URL || 'https://luneo.app';
       const previewUrl = `${baseUrl}/ar/preview/${modelId}`;
 
-      // Générer QR code (utiliser une librairie comme qrcode)
-      // Pour l'instant, retourner une URL placeholder
+      // Generate QR code using external API service
       const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(previewUrl)}`;
 
       return {
@@ -178,7 +183,10 @@ export class ArStudioService {
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
       };
     } catch (error) {
-      this.logger.error(`Failed to generate QR code: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Failed to generate QR code: ${error instanceof Error ? errorMessage : 'Unknown error'}`, error instanceof Error ? errorStack : undefined);
       throw error;
     }
   }
@@ -224,7 +232,10 @@ export class ArStudioService {
         conversionRate: Math.round(conversionRate * 100) / 100,
       };
     } catch (error) {
-      this.logger.error(`Failed to get model analytics: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Failed to get model analytics: ${error instanceof Error ? errorMessage : 'Unknown error'}`, error instanceof Error ? errorStack : undefined);
       throw error;
     }
   }
@@ -305,7 +316,10 @@ export class ArStudioService {
         message: 'Conversion en cours. Vous serez notifié quand le modèle 3D sera prêt.',
       };
     } catch (error) {
-      this.logger.error(`Failed to convert 2D to 3D: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Failed to convert 2D to 3D: ${error instanceof Error ? errorMessage : 'Unknown error'}`, error instanceof Error ? errorStack : undefined);
       throw error;
     }
   }
@@ -370,7 +384,10 @@ export class ArStudioService {
         model_url: statusData.model_urls?.glb,
       };
     } catch (error) {
-      this.logger.error(`Failed to get conversion status: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Failed to get conversion status: ${error instanceof Error ? errorMessage : 'Unknown error'}`, error instanceof Error ? errorStack : undefined);
       throw error;
     }
   }
@@ -418,7 +435,10 @@ export class ArStudioService {
             this.logger.log(`Model optimized: ${sourceUrl} → ${finalUrl}`);
           }
         } catch (error) {
-          this.logger.warn(`Failed to optimize model, using original: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+          this.logger.warn(`Failed to optimize model, using original: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
           // Continue avec l'URL originale si optimisation échoue
         }
       }
@@ -433,7 +453,10 @@ export class ArStudioService {
           }
         }
       } catch (error) {
-        this.logger.warn(`Failed to get file size from headers for ${finalUrl}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+        this.logger.warn(`Failed to get file size from headers for ${finalUrl}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
         // Continue avec fileSize = 0 si échec
       }
 
@@ -463,7 +486,10 @@ export class ArStudioService {
             this.logger.warn(`Could not extract publicId from Cloudinary URL: ${finalUrl}`);
           }
         } catch (error) {
-          this.logger.warn(`Failed to generate signed URL, using original URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+          this.logger.warn(`Failed to generate signed URL, using original URL: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
           // Continue avec l'URL originale si la génération échoue
         }
       }
@@ -475,7 +501,10 @@ export class ArStudioService {
         expiresAt: new Date(Date.now() + expiresIn * 1000), // 24h
       };
     } catch (error) {
-      this.logger.error(`Failed to export AR model: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Failed to export AR model: ${error instanceof Error ? errorMessage : 'Unknown error'}`, error instanceof Error ? errorStack : undefined);
       throw error;
     }
   }
@@ -585,7 +614,10 @@ export class ArStudioService {
           }
         }
       } catch (error) {
-        this.logger.warn(`Failed to get USDZ file size from headers: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+        this.logger.warn(`Failed to get USDZ file size from headers: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
         // Continue avec usdzFileSize = 0 si échec
       }
 
@@ -618,7 +650,10 @@ export class ArStudioService {
         cached: false,
       };
     } catch (error) {
-      this.logger.error(`Failed to convert GLB to USDZ: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Failed to convert GLB to USDZ: ${error instanceof Error ? errorMessage : 'Unknown error'}`, error instanceof Error ? errorStack : undefined);
       throw error;
     }
   }
@@ -721,7 +756,10 @@ export class ArStudioService {
       // Pour USDZ, l'optimisation est déjà gérée dans convertGLBToUSDZ
       return null;
     } catch (error) {
-      this.logger.warn(`Model optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.warn(`Model optimization failed: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return null;
     }
   }
@@ -743,7 +781,10 @@ export class ArStudioService {
       });
       return count;
     } catch (error) {
-      this.logger.warn(`Failed to get AR views count for product ${productId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.warn(`Failed to get AR views count for product ${productId}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return 0; // Fallback à 0 en cas d'erreur
     }
   }
@@ -765,7 +806,10 @@ export class ArStudioService {
       });
       return count;
     } catch (error) {
-      this.logger.warn(`Failed to get AR try-ons count for product ${productId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.warn(`Failed to get AR try-ons count for product ${productId}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return 0; // Fallback à 0 en cas d'erreur
     }
   }
@@ -788,7 +832,10 @@ export class ArStudioService {
       });
       return count;
     } catch (error) {
-      this.logger.warn(`Failed to get AR conversions count for product ${productId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.warn(`Failed to get AR conversions count for product ${productId}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return 0; // Fallback à 0 en cas d'erreur
     }
   }

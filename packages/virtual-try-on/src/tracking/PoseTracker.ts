@@ -157,6 +157,10 @@ export class PoseTracker {
   private frameCount: number = 0;
   private lastPoseDetectedTime: number = 0;
   private poseLostThreshold: number = 500; // ms
+  
+  // FPS tracking
+  private frameTimestamps: number[] = [];
+  private fpsWindowSize: number = 30; // Calculate FPS over last 30 frames
 
   constructor(
     config: PoseTrackerConfig = {},
@@ -356,9 +360,30 @@ export class PoseTracker {
    * Obtient les statistiques de performance
    */
   getStats(): { frameCount: number; fps: number } {
+    // Calculate real FPS from frame timestamps
+    const now = performance.now();
+    
+    // Add current timestamp and clean old ones
+    this.frameTimestamps.push(now);
+    while (this.frameTimestamps.length > this.fpsWindowSize) {
+      this.frameTimestamps.shift();
+    }
+    
+    // Calculate FPS
+    let fps = 0;
+    if (this.frameTimestamps.length >= 2) {
+      const firstTimestamp = this.frameTimestamps[0];
+      const lastTimestamp = this.frameTimestamps[this.frameTimestamps.length - 1];
+      const durationSeconds = (lastTimestamp - firstTimestamp) / 1000;
+      
+      if (durationSeconds > 0) {
+        fps = Math.round((this.frameTimestamps.length - 1) / durationSeconds);
+      }
+    }
+    
     return {
       frameCount: this.frameCount,
-      fps: 0, // TODO: Calculer FPS réel
+      fps,
     };
   }
 

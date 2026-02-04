@@ -5,7 +5,7 @@ import {
   GeometricConstraints,
   SettingConstraints,
   CollisionConstraints,
-} from './cad-constraints.interface';
+} from '@/libs/cad/cad-constraints.interface';
 
 /**
  * Service de validation CAD paramétrique
@@ -290,8 +290,114 @@ export class CADValidationService {
       constraints?.checkStoneClawCollision !== false &&
       parameters.setting?.type === 'claw'
     ) {
-      // TODO: Implémenter validation collision pierre-griffe
-      // Nécessite géométrie 3D plus complexe
+      const clawValidation = this.validateStoneClawCollisions(
+        parameters.stones,
+        parameters.setting.parameters,
+        minClearance,
+      );
+      errors.push(...clawValidation.errors);
+      warnings.push(...clawValidation.warnings);
+    }
+
+    return { errors, warnings };
+  }
+
+  /**
+   * Valide les collisions pierre-griffe pour les sertissages à griffes
+   * 
+   * Vérifie:
+   * 1. Positionnement des griffes par rapport aux pierres
+   * 2. Pénétration des griffes dans la zone de la pierre
+   * 3. Couverture suffisante pour maintenir la pierre
+   */
+  private validateStoneClawCollisions(
+    stones: Array<{ type: string; size: number; position: { x: number; y: number; z: number } }>,
+    clawParams: { clawCount?: number; clawWidth?: number; clawHeight?: number; clawAngle?: number } | undefined,
+    minClearance: number,
+  ): { errors: CADValidationResult['errors']; warnings: CADValidationResult['warnings'] } {
+    const errors: CADValidationResult['errors'] = [];
+    const warnings: CADValidationResult['warnings'] = [];
+
+    // Paramètres de griffe par défaut
+    const clawCount = clawParams?.clawCount || 4;
+    const clawWidth = clawParams?.clawWidth || 0.5; // mm
+    const clawHeight = clawParams?.clawHeight || 2.0; // mm
+    const clawAngle = clawParams?.clawAngle || 15; // degrés d'inclinaison vers la pierre
+
+    // Épaisseur minimale de griffe pour tenir la pierre
+    if (clawWidth < this.CONSTANTS.MIN_CLAW_THICKNESS) {
+      errors.push({
+        type: 'setting',
+        message: `Claw width ${clawWidth}mm is below minimum ${this.CONSTANTS.MIN_CLAW_THICKNESS}mm`,
+        severity: 'error',
+        parameter: 'clawWidth',
+        value: clawWidth,
+        constraint: this.CONSTANTS.MIN_CLAW_THICKNESS,
+      });
+    }
+
+    for (let stoneIdx = 0; stoneIdx < stones.length; stoneIdx++) {
+      const stone = stones[stoneIdx];
+      const stoneRadius = stone.size / 2;
+      
+      // Calculer les positions théoriques des griffes autour de la pierre
+      for (let clawIdx = 0; clawIdx < clawCount; clawIdx++) {
+        const angle = (clawIdx / clawCount) * 2 * Math.PI;
+        
+        // Position de la griffe sur le bord de la pierre (avec clearance)
+        const clawDistance = stoneRadius + minClearance;
+        const clawX = stone.position.x + clawDistance * Math.cos(angle);
+        const clawY = stone.position.y + clawDistance * Math.sin(angle);
+        
+        // Vérifier si la griffe pénètre dans la zone de la pierre (collision)
+        // La griffe doit être inclinée vers la pierre mais ne pas la traverser
+        const clawTipReach = clawHeight * Math.tan(clawAngle * Math.PI / 180);
+        const effectiveReach = clawTipReach + clawWidth / 2;
+        
+        // La griffe doit atteindre la pierre mais pas la traverser
+        if (effectiveReach < minClearance) {
+          warnings.push({
+            type: 'setting',
+            message: `Claw ${clawIdx + 1} for stone ${stoneIdx + 1} may not securely hold the stone`,
+            recommendation: `Increase claw height or angle to ensure stone retention`,
+          });
+        }
+        
+        // Vérifier si la griffe est trop longue et traverse la pierre
+        if (effectiveReach > stoneRadius * 0.5) {
+          errors.push({
+            type: 'collision',
+            message: `Claw ${clawIdx + 1} penetrates too far into stone ${stoneIdx + 1} (${effectiveReach.toFixed(2)}mm > ${(stoneRadius * 0.5).toFixed(2)}mm)`,
+            severity: 'error',
+            parameter: 'clawPenetration',
+            value: effectiveReach,
+            constraint: stoneRadius * 0.5,
+          });
+        }
+        
+        // Vérifier les collisions entre griffes adjacentes
+        if (clawCount > 1) {
+          const arcLength = (2 * Math.PI * (stoneRadius + clawWidth)) / clawCount;
+          if (arcLength < clawWidth * 2) {
+            warnings.push({
+              type: 'setting',
+              message: `Claws around stone ${stoneIdx + 1} are very close together`,
+              recommendation: `Consider reducing claw count or claw width`,
+            });
+            break; // Un seul avertissement par pierre
+          }
+        }
+      }
+      
+      // Vérifier le nombre de griffes minimum pour la taille de pierre
+      const minClawsForSize = Math.ceil(stone.size / 2); // Règle empirique: 1 griffe par 2mm
+      if (clawCount < Math.max(3, minClawsForSize)) {
+        warnings.push({
+          type: 'setting',
+          message: `Stone ${stoneIdx + 1} (${stone.size}mm) may need more than ${clawCount} claws for secure setting`,
+          recommendation: `Consider using ${Math.max(4, minClawsForSize)} claws for stones of this size`,
+        });
+      }
     }
 
     return { errors, warnings };

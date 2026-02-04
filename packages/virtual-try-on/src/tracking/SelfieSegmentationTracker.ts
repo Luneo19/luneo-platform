@@ -68,6 +68,10 @@ export class SelfieSegmentationTracker {
   private frameCount: number = 0;
   private lastSegmentationDetectedTime: number = 0;
   private segmentationLostThreshold: number = 500; // ms
+  
+  // FPS tracking
+  private frameTimestamps: number[] = [];
+  private fpsWindowSize: number = 30;
 
   constructor(
     config: SelfieSegmentationConfig = {},
@@ -292,9 +296,23 @@ export class SelfieSegmentationTracker {
    * Obtient les statistiques de performance
    */
   getStats(): { frameCount: number; fps: number } {
+    const now = performance.now();
+    this.frameTimestamps.push(now);
+    while (this.frameTimestamps.length > this.fpsWindowSize) {
+      this.frameTimestamps.shift();
+    }
+    
+    let fps = 0;
+    if (this.frameTimestamps.length >= 2) {
+      const duration = (this.frameTimestamps[this.frameTimestamps.length - 1] - this.frameTimestamps[0]) / 1000;
+      if (duration > 0) {
+        fps = Math.round((this.frameTimestamps.length - 1) / duration);
+      }
+    }
+    
     return {
       frameCount: this.frameCount,
-      fps: 0, // TODO: Calculer FPS réel
+      fps,
     };
   }
 

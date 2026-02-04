@@ -1,6 +1,8 @@
 /**
  * Real-time Events SSE Endpoint
  * A-010: Server-Sent Events pour mises à jour en temps réel
+ * 
+ * ✅ Connecté au backend pour les événements réels
  */
 
 import { NextRequest } from 'next/server';
@@ -9,86 +11,197 @@ import { logger } from '@/lib/logger';
 // Store active connections (in production, use Redis pub/sub)
 const connections = new Map<string, ReadableStreamDefaultController>();
 
-// Event types for demo
-const eventTypes = [
-  'metrics_update',
-  'design_created',
-  'order_created',
-  'notification',
-  'conversion',
-];
+// Store last event timestamps per channel to avoid duplicates
+const lastEventTimestamps = new Map<string, number>();
 
-// Generate mock events
-function generateMockEvent(channels: string[]) {
-  const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-  
-  let data: Record<string, any>;
-  
-  switch (type) {
-    case 'metrics_update':
-      data = {
-        visitors: Math.floor(Math.random() * 100) + 200,
-        conversions: Math.floor(Math.random() * 20) + 5,
-        revenue: Math.floor(Math.random() * 5000) + 1000,
-        designs: Math.floor(Math.random() * 50) + 20,
-        trend: Math.random() > 0.5 ? 'up' : 'down',
-      };
-      break;
-    case 'design_created':
-      data = {
-        designId: `design_${Date.now()}`,
-        name: `Design #${Math.floor(Math.random() * 1000)}`,
-        userId: `user_${Math.floor(Math.random() * 100)}`,
-        productId: `product_${Math.floor(Math.random() * 10)}`,
-        action: 'created',
-      };
-      break;
-    case 'order_created':
-      data = {
-        orderId: `order_${Date.now()}`,
-        status: 'pending',
-        amount: Math.floor(Math.random() * 200) + 20,
-        currency: 'EUR',
-        items: Math.floor(Math.random() * 5) + 1,
-      };
-      break;
-    case 'notification':
-      const notifications = [
-        { type: 'success', title: 'Nouveau client !', message: 'Un nouveau client vient de s\'inscrire.' },
-        { type: 'info', title: 'Design exporté', message: 'Un design a été exporté en haute résolution.' },
-        { type: 'warning', title: 'Quota proche', message: 'Vous approchez de votre limite mensuelle.' },
-      ];
-      const notif = notifications[Math.floor(Math.random() * notifications.length)];
-      data = {
-        id: `notif_${Date.now()}`,
-        ...notif,
-      };
-      break;
-    case 'conversion':
-      data = {
-        conversionId: `conv_${Date.now()}`,
-        type: Math.random() > 0.5 ? 'purchase' : 'signup',
-        value: Math.floor(Math.random() * 100) + 10,
-        source: ['direct', 'google', 'facebook', 'referral'][Math.floor(Math.random() * 4)],
-      };
-      break;
-    default:
-      data = {};
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || '';
+
+interface RealtimeEvent {
+  id: string;
+  type: string;
+  timestamp: number;
+  data: Record<string, unknown>;
+  channel: string;
+}
+
+/**
+ * Fetch real events from backend API
+ */
+async function fetchRealEvents(channels: string[], since?: number): Promise<RealtimeEvent[]> {
+  try {
+    const params = new URLSearchParams();
+    params.append('channels', channels.join(','));
+    if (since) params.append('since', since.toString());
+    
+    const response = await fetch(`${API_BASE}/api/v1/events/stream?${params}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.events || [];
+    }
+  } catch (error) {
+    logger.debug('Failed to fetch events from backend, using fallback', { error });
   }
 
-  return {
-    id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    type,
-    timestamp: Date.now(),
-    data,
-    channel: channels[0] || 'default',
-  };
+  return [];
+}
+
+/**
+ * Fetch real metrics from backend analytics
+ */
+async function fetchRealtimeMetrics(): Promise<RealtimeEvent | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/analytics/realtime`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        id: `metrics_${Date.now()}`,
+        type: 'metrics_update',
+        timestamp: Date.now(),
+        data: {
+          visitors: data.activeUsers || data.visitors || 0,
+          conversions: data.conversions || 0,
+          revenue: data.revenue || 0,
+          designs: data.designsCreated || 0,
+          orders: data.ordersCreated || 0,
+          trend: data.trend || 'stable',
+        },
+        channel: 'metrics',
+      };
+    }
+  } catch {
+    // Silently fail - metrics are optional
+  }
+
+  return null;
+}
+
+/**
+ * Fetch recent activity from backend
+ */
+async function fetchRecentActivity(channels: string[]): Promise<RealtimeEvent[]> {
+  const events: RealtimeEvent[] = [];
+  
+  try {
+    // Fetch recent designs
+    if (channels.includes('designs') || channels.includes('default')) {
+      const response = await fetch(`${API_BASE}/api/v1/designs?limit=1&sort=createdAt:desc`, {
+        cache: 'no-store',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const design = data.designs?.[0];
+        if (design) {
+          const lastTimestamp = lastEventTimestamps.get('design_created') || 0;
+          const designTime = new Date(design.createdAt).getTime();
+          if (designTime > lastTimestamp) {
+            lastEventTimestamps.set('design_created', designTime);
+            events.push({
+              id: `design_${design.id}`,
+              type: 'design_created',
+              timestamp: designTime,
+              data: {
+                designId: design.id,
+                name: design.name || `Design #${design.id.slice(-4)}`,
+                userId: design.userId,
+                productId: design.productId,
+                action: 'created',
+              },
+              channel: 'designs',
+            });
+          }
+        }
+      }
+    }
+
+    // Fetch recent orders
+    if (channels.includes('orders') || channels.includes('default')) {
+      const response = await fetch(`${API_BASE}/api/v1/orders?limit=1&sort=createdAt:desc`, {
+        cache: 'no-store',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const order = data.orders?.[0];
+        if (order) {
+          const lastTimestamp = lastEventTimestamps.get('order_created') || 0;
+          const orderTime = new Date(order.createdAt).getTime();
+          if (orderTime > lastTimestamp) {
+            lastEventTimestamps.set('order_created', orderTime);
+            events.push({
+              id: `order_${order.id}`,
+              type: 'order_created',
+              timestamp: orderTime,
+              data: {
+                orderId: order.id,
+                status: order.status || 'pending',
+                amount: order.total || order.amount || 0,
+                currency: order.currency || 'EUR',
+                items: order.items?.length || 1,
+              },
+              channel: 'orders',
+            });
+          }
+        }
+      }
+    }
+
+    // Fetch notifications
+    if (channels.includes('notifications') || channels.includes('default')) {
+      const response = await fetch(`${API_BASE}/api/v1/notifications?limit=1&unreadOnly=true`, {
+        cache: 'no-store',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const notification = data.notifications?.[0];
+        if (notification) {
+          const lastTimestamp = lastEventTimestamps.get('notification') || 0;
+          const notifTime = new Date(notification.createdAt).getTime();
+          if (notifTime > lastTimestamp) {
+            lastEventTimestamps.set('notification', notifTime);
+            events.push({
+              id: `notif_${notification.id}`,
+              type: 'notification',
+              timestamp: notifTime,
+              data: {
+                id: notification.id,
+                type: notification.type || 'info',
+                title: notification.title,
+                message: notification.message,
+              },
+              channel: 'notifications',
+            });
+          }
+        }
+      }
+    }
+  } catch (error) {
+    logger.debug('Failed to fetch recent activity', { error });
+  }
+
+  return events;
 }
 
 // Encode SSE message
 function encodeSSE(event: Record<string, any>): string {
   return `data: ${JSON.stringify(event)}\n\n`;
 }
+
+// ✅ Force dynamic rendering (pas de cache)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -111,16 +224,42 @@ export async function GET(request: NextRequest) {
       });
       controller.enqueue(new TextEncoder().encode(connectEvent));
 
-      // Send periodic updates (demo mode)
-      const interval = setInterval(() => {
+      // Function to fetch and send real events
+      const fetchAndSendEvents = async () => {
         try {
-          const event = generateMockEvent(channels);
-          const encoded = encodeSSE(event);
-          controller.enqueue(new TextEncoder().encode(encoded));
-        } catch {
-          clearInterval(interval);
+          // Fetch real events from backend
+          const backendEvents = await fetchRealEvents(channels);
+          for (const event of backendEvents) {
+            controller.enqueue(new TextEncoder().encode(encodeSSE(event)));
+          }
+
+          // Fetch recent activity (designs, orders, notifications)
+          const activityEvents = await fetchRecentActivity(channels);
+          for (const event of activityEvents) {
+            controller.enqueue(new TextEncoder().encode(encodeSSE(event)));
+          }
+
+          // Fetch and send metrics if subscribed
+          if (channels.includes('metrics') || channels.includes('default')) {
+            const metricsEvent = await fetchRealtimeMetrics();
+            if (metricsEvent) {
+              controller.enqueue(new TextEncoder().encode(encodeSSE(metricsEvent)));
+            }
+          }
+        } catch (error) {
+          logger.debug('Error fetching real events', { error });
         }
-      }, 5000 + Math.random() * 5000); // Random interval between 5-10 seconds
+      };
+
+      // Initial fetch
+      fetchAndSendEvents();
+
+      // Poll for real events every 10 seconds
+      const interval = setInterval(() => {
+        fetchAndSendEvents().catch(() => {
+          // Silently handle errors during polling
+        });
+      }, 10000);
 
       // Heartbeat every 30 seconds
       const heartbeat = setInterval(() => {
@@ -143,7 +282,7 @@ export async function GET(request: NextRequest) {
         clearInterval(heartbeat);
         connections.delete(connectionId);
         logger.info('SSE connection closed', { connectionId });
-        
+
         try {
           controller.close();
         } catch {
@@ -161,14 +300,17 @@ export async function GET(request: NextRequest) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'X-Accel-Buffering': 'no', // Disable nginx buffering
     },
   });
 }
 
 // Broadcast event to all connections (for use by other API routes)
-export function broadcastEvent(event: Record<string, any>, channelFilter?: string[]) {
+export function broadcastEvent(
+  event: Record<string, any>,
+  channelFilter?: string[]
+) {
   const encoded = encodeSSE(event);
   const bytes = new TextEncoder().encode(encoded);
 
@@ -181,5 +323,3 @@ export function broadcastEvent(event: Record<string, any>, channelFilter?: strin
     }
   });
 }
-
-

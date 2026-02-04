@@ -1,17 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ApiService } from '../../services/api.service';
+import { useDesignerStore } from '../../store/designerStore';
+import type { WidgetConfig } from '../../types/designer.types';
+import { ARViewer } from '../AR/ARViewer';
 import { Canvas } from '../Canvas/Canvas';
-import { DesignerToolbar } from './DesignerToolbar';
+import { GenerationPanel } from '../Generation/GenerationPanel';
 import { LayersPanel } from '../Layers/LayersPanel';
-import { TextTool } from '../Tools/TextTool/TextTool';
 import { ImageTool } from '../Tools/ImageTool/ImageTool';
 import { ShapeTool } from '../Tools/ShapeTool/ShapeTool';
-import { GenerationPanel } from '../Generation/GenerationPanel';
-import { ARViewer } from '../AR/ARViewer';
-import { useDesignerStore } from '../../store/designerStore';
-import { ApiService } from '../../services/api.service';
-import type { WidgetConfig } from '../../types/designer.types';
+import { TextTool } from '../Tools/TextTool/TextTool';
+import { DesignerToolbar } from './DesignerToolbar';
 
 interface DesignerProps {
   config: WidgetConfig;
@@ -21,7 +21,7 @@ export function Designer({ config }: DesignerProps) {
   const { initDesign, isLoading, design, showLayers } = useDesignerStore();
   const [showGenerationPanel, setShowGenerationPanel] = useState(false);
   const [showARViewer, setShowARViewer] = useState(false);
-  const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
+  const [currentGenerationId] = useState<string | null>(null);
   const [apiService] = useState(() => new ApiService(config.apiKey));
   
   useEffect(() => {
@@ -52,8 +52,26 @@ export function Designer({ config }: DesignerProps) {
   }
   
   const handleGenerationComplete = (imageUrl: string) => {
-    // TODO: Ajouter l'image générée comme layer dans le design
-    console.log('Generation complete:', imageUrl);
+    // Add the generated AI image as a new layer in the design
+    if (imageUrl) {
+      // Create a new image layer with the generated image
+      const newLayerId = addLayer('image', {
+        x: 50,
+        y: 50,
+        width: 200,
+        height: 200,
+        data: {
+          url: imageUrl,
+          alt: 'AI Generated Image',
+          fit: 'contain',
+        },
+      });
+      
+      // Select the new layer
+      if (newLayerId) {
+        selectLayer(newLayerId);
+      }
+    }
     setShowGenerationPanel(false);
   };
 
@@ -67,16 +85,22 @@ export function Designer({ config }: DesignerProps) {
   };
 
   // Extraire les customizations depuis le design
+  interface TextCustomization {
+    text: string;
+    font: string;
+    color: string;
+  }
   const customizations = design?.layers.reduce((acc, layer) => {
-    if (layer.type === 'text' && layer.data) {
+    if (layer.type === 'text' && layer.data && 'content' in layer.data) {
+      const d = layer.data as { content?: string; fontFamily?: string; color?: string };
       acc[layer.id] = {
-        text: (layer.data as any).content,
-        font: (layer.data as any).fontFamily,
-        color: (layer.data as any).color,
+        text: d.content ?? '',
+        font: d.fontFamily ?? 'Arial',
+        color: d.color ?? '#000000',
       };
     }
     return acc;
-  }, {} as Record<string, any>) || {};
+  }, {} as Record<string, TextCustomization>) || {};
 
   return (
     <div className="flex flex-col h-full bg-gray-50">

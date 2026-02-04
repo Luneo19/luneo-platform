@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { firstValueFrom } from 'rxjs';
 
 export interface MaterialVariant {
   materialId: string;
@@ -26,12 +29,35 @@ export interface VariantCache {
 @Injectable()
 export class VariantService {
   private readonly logger = new Logger(VariantService.name);
+  private readonly model3dServiceUrl: string;
+
+  // Définitions de matériaux par défaut pour les bijoux
+  private readonly MATERIAL_PRESETS: Record<string, {
+    color: string;
+    metalness: number;
+    roughness: number;
+    ior?: number;
+  }> = {
+    gold: { color: '#FFD700', metalness: 1.0, roughness: 0.3, ior: 0.47 },
+    'rose-gold': { color: '#E8B4B8', metalness: 1.0, roughness: 0.3, ior: 0.47 },
+    'white-gold': { color: '#FFFDD0', metalness: 1.0, roughness: 0.25, ior: 0.47 },
+    silver: { color: '#C0C0C0', metalness: 1.0, roughness: 0.2, ior: 0.18 },
+    platinum: { color: '#E5E4E2', metalness: 1.0, roughness: 0.15, ior: 2.33 },
+    diamond: { color: '#FFFFFF', metalness: 0.0, roughness: 0.0, ior: 2.42 },
+    ruby: { color: '#E0115F', metalness: 0.0, roughness: 0.1, ior: 1.77 },
+    sapphire: { color: '#0F52BA', metalness: 0.0, roughness: 0.1, ior: 1.77 },
+    emerald: { color: '#50C878', metalness: 0.0, roughness: 0.15, ior: 1.58 },
+  };
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
     private readonly cache: SmartCacheService,
-  ) {}
+    private readonly configService: ConfigService,
+    private readonly httpService: HttpService,
+  ) {
+    this.model3dServiceUrl = this.configService.get<string>('RENDER_3D_SERVICE_URL') || '';
+  }
 
   /**
    * Génère un variant (matériau ou pierre) sans re-export complet
@@ -93,25 +119,102 @@ export class VariantService {
 
   /**
    * Applique un matériau à un modèle 3D
+   * Utilise un service externe si disponible, sinon génère metadata pour application côté client
    */
   private async applyMaterialToModel(
     modelUrl: string,
     material: MaterialVariant,
   ): Promise<string> {
-    // TODO: Implémenter application matériau réel
-    // Options:
-    // 1. Utiliser gltf-transform (Node.js)
-    // 2. Utiliser Three.js pour modifier materials
-    // 3. Utiliser Blender headless
-
     this.logger.debug(`Applying material ${material.materialId} to model`, {
       materialType: material.type,
       properties: material.properties,
     });
 
-    // Simulation: retourner URL modifiée
-    const variantUrl = `${modelUrl}_${material.materialId}.glb`;
+    // Enrichir les propriétés du matériau avec les presets si nécessaire
+    const enrichedMaterial = this.enrichMaterialProperties(material);
+
+    // Option 1: Service externe de transformation 3D
+    if (this.model3dServiceUrl) {
+      try {
+        const response = await firstValueFrom(
+          this.httpService.post<{ url?: string; error?: string }>(
+            `${this.model3dServiceUrl.replace(/\/$/, '')}/transform/material`,
+            {
+              modelUrl,
+              material: enrichedMaterial,
+            },
+            { timeout: 60000 },
+          ),
+        );
+
+        if (response.data?.url) {
+          this.logger.log(`Material applied via external service: ${enrichedMaterial.materialId}`);
+          return response.data.url;
+        }
+      } catch (err) {
+        this.logger.warn(`External material service failed: ${err}`);
+      }
+    }
+
+    // Option 2: Générer un fichier de configuration de matériau
+    // Ce fichier JSON peut être utilisé côté client pour appliquer le matériau dynamiquement
+    const materialConfig = {
+      baseModel: modelUrl,
+      material: enrichedMaterial,
+      appliedAt: new Date().toISOString(),
+    };
+
+    // Upload la configuration du matériau
+    const configFilename = `variants/${material.materialId}_${Date.now()}.json`;
+    const configUrl = await this.storageService.uploadBuffer(
+      Buffer.from(JSON.stringify(materialConfig, null, 2)),
+      configFilename,
+      { contentType: 'application/json' },
+    ) as string;
+
+    // Retourner l'URL du modèle avec un paramètre de matériau
+    // Le viewer 3D côté client peut charger ce JSON et appliquer le matériau
+    const variantUrl = `${modelUrl}?materialConfig=${encodeURIComponent(configUrl)}`;
+    
+    this.logger.log(`Material config generated for ${enrichedMaterial.materialId}`);
     return variantUrl;
+  }
+
+  /**
+   * Enrichit les propriétés du matériau avec les presets par défaut
+   */
+  private enrichMaterialProperties(material: MaterialVariant): MaterialVariant {
+    const preset = this.MATERIAL_PRESETS[material.name.toLowerCase()] ||
+                   this.MATERIAL_PRESETS[material.materialId.toLowerCase()];
+
+    if (preset) {
+      return {
+        ...material,
+        properties: {
+          color: preset.color,
+          metalness: preset.metalness,
+          roughness: preset.roughness,
+          ...material.properties, // Les propriétés explicites écrasent les presets
+        },
+      };
+    }
+
+    // Si pas de preset, utiliser des valeurs par défaut selon le type
+    const defaultsByType: Record<string, { metalness: number; roughness: number }> = {
+      metal: { metalness: 1.0, roughness: 0.3 },
+      stone: { metalness: 0.0, roughness: 0.1 },
+      finish: { metalness: 0.5, roughness: 0.5 },
+    };
+
+    const defaults = defaultsByType[material.type] || { metalness: 0.5, roughness: 0.5 };
+
+    return {
+      ...material,
+      properties: {
+        ...defaults,
+        ...material.properties,
+      },
+    };
   }
 
   /**

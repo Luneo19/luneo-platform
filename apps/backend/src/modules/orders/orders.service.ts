@@ -1,12 +1,14 @@
 import { CurrentUser } from '@/common/types/user.types';
-import { JsonValue } from '@/common/types/utility-types';
 import { Cacheable } from '@/libs/cache/cacheable.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OrderStatus, PaymentStatus, UserRole } from '@prisma/client';
 import type Stripe from 'stripe';
+import { CommissionService } from '@/modules/billing/services/commission.service';
 import { DiscountService } from './services/discount.service';
+import { ReferralService } from '../referral/referral.service';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrdersService {
@@ -18,6 +20,8 @@ export class OrdersService {
     private prisma: PrismaService,
     private configService: ConfigService,
     private discountService: DiscountService,
+    private commissionService: CommissionService,
+    @Optional() private referralService?: ReferralService, // Optional to avoid DI issues in unit tests
   ) {}
 
   /**
@@ -130,23 +134,17 @@ export class OrdersService {
     };
   }
 
-  async create(createOrderDto: Record<string, JsonValue>, currentUser: CurrentUser) {
+  async create(createOrderDto: CreateOrderDto, currentUser: CurrentUser) {
     // Support both old format (single design) and new format (multiple items)
-    const items = createOrderDto.items as Array<{
-      product_id: string;
-      design_id?: string;
-      quantity?: number;
-      customization?: Record<string, any>;
-      production_notes?: string;
-    }> | undefined;
+    const items = createOrderDto.items;
     
-    const designId = createOrderDto.designId as string | undefined; // Legacy support
-    const customerEmail = createOrderDto.customerEmail as string;
-    const customerName = createOrderDto.customerName as string | undefined;
-    const customerPhone = createOrderDto.customerPhone as string | undefined;
-    const shippingAddress = createOrderDto.shippingAddress as string | undefined;
-    const shippingMethod = createOrderDto.shippingMethod as string | undefined;
-    const discountCode = createOrderDto.discountCode as string | undefined;
+    const designId = createOrderDto.designId; // Legacy support
+    const customerEmail = createOrderDto.customerEmail;
+    const customerName = createOrderDto.customerName;
+    const customerPhone = createOrderDto.customerPhone;
+    const shippingAddress = createOrderDto.shippingAddress;
+    const shippingMethod = createOrderDto.shippingMethod;
+    const discountCode = createOrderDto.discountCode;
 
     let orderItems: Array<{
       productId: string;
@@ -160,17 +158,40 @@ export class OrdersService {
     let brandId = currentUser.brandId || '';
 
     // New format: multiple items
+    // ✅ OPTIMISÉ: Charger tous les produits et designs en une seule requête (évite N+1)
     if (items && items.length > 0) {
-      for (const item of items) {
-        const product = await this.prisma.product.findUnique({
-          where: { id: item.product_id },
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            brandId: true,
-          },
+      const productIds = [...new Set(items.map(item => item.product_id))];
+      const designIds = items
+        .map(item => item.design_id)
+        .filter((id): id is string => Boolean(id));
+
+      // Charger tous les produits en une seule requête
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          brandId: true,
+        },
+      });
+
+      // Créer un Map pour accès O(1)
+      const productsMap = new Map(products.map(p => [p.id, p]));
+
+      // Charger tous les designs en une seule requête si nécessaire
+      let designsMap = new Map();
+      if (designIds.length > 0) {
+        const designs = await this.prisma.design.findMany({
+          where: { id: { in: designIds } },
+          select: { id: true, brandId: true, productId: true },
         });
+        designsMap = new Map(designs.map(d => [d.id, d]));
+      }
+
+      // Vérifier chaque item
+      for (const item of items) {
+        const product = productsMap.get(item.product_id);
 
         if (!product) {
           throw new NotFoundException(`Product ${item.product_id} not found`);
@@ -184,10 +205,7 @@ export class OrdersService {
 
         // Verify design if provided
         if (item.design_id) {
-          const design = await this.prisma.design.findUnique({
-            where: { id: item.design_id },
-            select: { id: true, brandId: true, productId: true },
-          });
+          const design = designsMap.get(item.design_id);
 
           if (!design) {
             throw new NotFoundException(`Design ${item.design_id} not found`);
@@ -297,6 +315,7 @@ export class OrdersService {
         );
         discountCents = discountResult.discountCents;
         discountMetadata = {
+          discountId: discountResult.discountId,
           discountCode: discountResult.code,
           discountCents: discountResult.discountCents,
           discountPercent: discountResult.discountPercent,
@@ -305,15 +324,26 @@ export class OrdersService {
         };
         this.logger.log(`Applied discount code ${discountCode}: ${discountCents} cents off`);
       } catch (error) {
-        this.logger.warn(`Failed to apply discount code ${discountCode}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+        this.logger.warn(`Failed to apply discount code ${discountCode}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
         throw error; // Re-throw pour que l'utilisateur soit informé du code invalide
       }
     }
+
+    // Store discount result for later use (after order creation)
+    const discountResultForRecording = discountCode && discountMetadata 
+      ? { discountId: discountMetadata.discountId as string }
+      : null;
 
     // Calculate tax (20% VAT) on subtotal after discount + shipping
     const taxCents = Math.round((subtotalCents - discountCents + shippingCents) * 0.20);
     
     const totalCents = subtotalCents - discountCents + shippingCents + taxCents;
+
+    const commissionPercent = await this.commissionService.getCommissionPercent(brandId);
+    const commissionCents = this.commissionService.calculateCommissionCents(totalCents, commissionPercent);
 
     // Create order with items
     const order = await this.prisma.order.create({
@@ -327,6 +357,8 @@ export class OrdersService {
         taxCents,
         shippingCents,
         totalCents,
+        commissionPercent,
+        commissionCents,
         userId: currentUser.id,
         brandId,
         designId: orderItems.length === 1 && orderItems[0].designId ? orderItems[0].designId : null, // Legacy support
@@ -394,6 +426,51 @@ export class OrdersService {
         },
       },
     });
+
+    // Record discount usage if a discount code was applied
+    if (discountResultForRecording) {
+      try {
+        await this.discountService.recordDiscountUsage(
+          discountResultForRecording.discountId,
+          order.id,
+          currentUser.id,
+        );
+        this.logger.log(`Recorded discount usage for order ${order.orderNumber}`);
+      } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+        // Log error but don't fail the order creation
+        this.logger.warn(
+          `Failed to record discount usage for order ${order.orderNumber}: ${error instanceof Error ? errorMessage : 'Unknown error'}`,
+        );
+      }
+    }
+
+    // ✅ Créer une commission automatiquement si l'utilisateur a été référé
+    if (this.referralService && currentUser.id) {
+      try {
+        const commission = await this.referralService.createCommissionFromOrder(
+          order.id,
+          currentUser.id,
+          totalCents,
+          10, // 10% de commission par défaut
+        );
+        if (commission) {
+          this.logger.log(
+            `Commission created for order ${order.orderNumber}: ${commission.amountCents / 100}€`,
+          );
+        }
+      } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+        // Log error but don't fail the order creation
+        this.logger.warn(
+          `Failed to create commission for order ${order.orderNumber}: ${error instanceof Error ? errorMessage : 'Unknown error'}`,
+        );
+      }
+    }
 
     // Create Stripe checkout session with all items
     const stripe = await this.getStripe();
@@ -467,6 +544,11 @@ export class OrdersService {
         status: true,
         paymentStatus: true,
         stripeSessionId: true,
+        stripePaymentId: true,
+        trackingNumber: true,
+        trackingUrl: true,
+        shippedAt: true,
+        metadata: true,
         userId: true,
         brandId: true,
         designId: true,
@@ -568,7 +650,188 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Mettre à jour le statut d'une commande (admin only)
+   */
+  async updateStatus(id: string, status: OrderStatus, currentUser: CurrentUser) {
+    const order = await this.findOne(id, currentUser);
+
+    // Vérifier que l'utilisateur est admin ou propriétaire de la brand
+    if (currentUser.role !== UserRole.PLATFORM_ADMIN && 
+        currentUser.brandId !== order.brandId) {
+      throw new ForbiddenException('Only admins or brand owners can update order status');
+    }
+
+    // Valider la transition de statut
+    const validTransitions: Record<OrderStatus, OrderStatus[]> = {
+      [OrderStatus.CREATED]: [OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.CANCELLED],
+      [OrderStatus.PENDING_PAYMENT]: [OrderStatus.PAID, OrderStatus.CANCELLED],
+      [OrderStatus.PAID]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED, OrderStatus.REFUNDED],
+      [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED, OrderStatus.REFUNDED],
+      [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REFUNDED],
+      [OrderStatus.DELIVERED]: [OrderStatus.REFUNDED],
+      [OrderStatus.CANCELLED]: [],
+      [OrderStatus.REFUNDED]: [],
+    };
+
+    const allowedStatuses = validTransitions[order.status] || [];
+    if (!allowedStatuses.includes(status)) {
+      throw new BadRequestException(
+        `Cannot transition from ${order.status} to ${status}. Allowed transitions: ${allowedStatuses.join(', ')}`,
+      );
+    }
+
+    return this.prisma.order.update({
+      where: { id },
+      data: { status },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  /**
+   * Récupérer les informations de suivi d'une commande
+   */
+  async getTracking(id: string, currentUser: CurrentUser) {
+    const order = await this.findOne(id, currentUser);
+
+    return {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      trackingNumber: order.trackingNumber || null,
+      trackingUrl: order.trackingUrl || null,
+      shippedAt: order.shippedAt || null,
+      estimatedDelivery: order.shippedAt
+        ? new Date(new Date(order.shippedAt).getTime() + 7 * 24 * 60 * 60 * 1000) // +7 jours
+        : null,
+      shippingAddress: order.shippingAddress,
+      carrier: order.metadata ? (order.metadata as any).carrier : null,
+    };
+  }
+
+  /**
+   * Demander un remboursement pour une commande
+   */
+  async requestRefund(
+    id: string,
+    reason: string,
+    currentUser: CurrentUser,
+  ) {
+    const order = await this.findOne(id, currentUser);
+
+    // Vérifier que la commande peut être remboursée
+    if (order.paymentStatus !== PaymentStatus.SUCCEEDED) {
+      throw new BadRequestException('Only paid orders can be refunded');
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException('Order is already cancelled');
+    }
+
+    // Vérifier que l'utilisateur est le propriétaire de la commande
+    if (order.userId !== currentUser.id && currentUser.role !== UserRole.PLATFORM_ADMIN) {
+      throw new ForbiddenException('Only order owner can request refund');
+    }
+
+    try {
+      // Créer un remboursement Stripe si la commande a été payée via Stripe
+      if (order.stripePaymentId) {
+        const stripe = await this.getStripe();
+        const refund = await stripe.refunds.create({
+          payment_intent: order.stripePaymentId,
+          reason: 'requested_by_customer',
+          metadata: {
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            reason,
+            requestedBy: currentUser.id,
+          },
+        });
+
+        // Mettre à jour la commande
+        const updatedOrder = await this.prisma.order.update({
+          where: { id },
+          data: {
+            status: OrderStatus.CANCELLED,
+            paymentStatus: PaymentStatus.REFUNDED,
+            metadata: {
+              ...((order.metadata as any) || {}),
+              refund: {
+                refundId: refund.id,
+                amountCents: refund.amount,
+                reason,
+                requestedAt: new Date().toISOString(),
+                requestedBy: currentUser.id,
+              },
+            } as any,
+          },
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            paymentStatus: true,
+            metadata: true,
+          },
+        });
+
+        this.logger.log(`Refund processed for order ${order.orderNumber}: ${refund.amount / 100}€`);
+
+        return {
+          success: true,
+          refundId: refund.id,
+          amountCents: refund.amount,
+          order: updatedOrder,
+        };
+      } else {
+        // Pas de paiement Stripe, marquer comme remboursement manuel
+        const updatedOrder = await this.prisma.order.update({
+          where: { id },
+          data: {
+            status: OrderStatus.CANCELLED,
+            paymentStatus: PaymentStatus.REFUNDED,
+            metadata: {
+              ...((order.metadata as any) || {}),
+              refund: {
+                reason,
+                requestedAt: new Date().toISOString(),
+                requestedBy: currentUser.id,
+                type: 'manual',
+              },
+            } as any,
+          },
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            paymentStatus: true,
+          },
+        });
+
+        this.logger.log(`Manual refund requested for order ${order.orderNumber}`);
+
+        return {
+          success: true,
+          refundId: null,
+          amountCents: order.totalCents,
+          order: updatedOrder,
+          note: 'Manual refund - requires admin approval',
+        };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to process refund for order ${order.orderNumber}: ${errorMessage}`);
+      throw new BadRequestException(`Failed to process refund: ${errorMessage}`);
+    }
+  }
+
   private generateOrderNumber(): string {
-    return `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const crypto = require('crypto');
+    const randomPart = crypto.randomBytes(5).toString('hex').toUpperCase();
+    return `ORD-${Date.now()}-${randomPart}`;
   }
 }

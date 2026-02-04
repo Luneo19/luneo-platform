@@ -1,16 +1,16 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import type { 
-  DesignData, 
-  Layer, 
-  CanvasData, 
-  HistoryState,
-  ProductConfig,
-  LayerType,
-  TextLayerData,
-  ImageLayerData,
-  ShapeLayerData
+import type {
+    CanvasData,
+    DesignData,
+    HistoryState,
+    ImageLayerData,
+    Layer,
+    LayerType,
+    ProductConfig,
+    ShapeLayerData,
+    TextLayerData
 } from '../types/designer.types';
 
 interface DesignerState {
@@ -92,7 +92,7 @@ const initialCanvasState: CanvasData = {
 
 const initialHistoryState: HistoryState = {
   past: [],
-  present: null as any,
+  present: null,
   future: [],
   maxStates: 20,
 };
@@ -303,7 +303,7 @@ export const useDesignerStore = create<DesignerStore>()(
         
         undo: () => {
           set((state) => {
-            if (state.history.past.length > 0) {
+            if (state.history.past.length > 0 && state.history.present !== null) {
               const previous = state.history.past[state.history.past.length - 1];
               const newPast = state.history.past.slice(0, -1);
               state.history = {
@@ -320,7 +320,7 @@ export const useDesignerStore = create<DesignerStore>()(
         
         redo: () => {
           set((state) => {
-            if (state.history.future.length > 0) {
+            if (state.history.future.length > 0 && state.history.present !== null) {
               const next = state.history.future[0];
               const newFuture = state.history.future.slice(1);
               state.history = {
@@ -337,13 +337,13 @@ export const useDesignerStore = create<DesignerStore>()(
         
         pushHistory: () => {
           set((state) => {
-            if (state.design) {
+            if (state.design && state.history.present !== null) {
               const newPast = [...state.history.past, state.history.present]
                 .slice(-state.history.maxStates);
               state.history = {
                 ...state.history,
                 past: newPast,
-                present: JSON.parse(JSON.stringify(state.design)),
+                present: JSON.parse(JSON.stringify(state.design)) as DesignData,
                 future: [],
               };
             }
@@ -403,13 +403,126 @@ export const useDesignerStore = create<DesignerStore>()(
         toggleProperties: () => set((state) => ({ showProperties: !state.showProperties })),
         
         exportAsPNG: async () => {
-          // Implementation will use canvas.toBlob()
-          throw new Error('Not implemented');
+          const state = get();
+          if (!state.design) {
+            throw new Error('No design to export');
+          }
+          
+          // Create canvas with design dimensions
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            throw new Error('Canvas context not available');
+          }
+          
+          canvas.width = state.canvas.width;
+          canvas.height = state.canvas.height;
+          
+          // Fill background
+          ctx.fillStyle = state.canvas.backgroundColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Render each layer in order
+          const sortedLayers = [...state.design.layers].sort((a, b) => a.zIndex - b.zIndex);
+          
+          for (const layer of sortedLayers) {
+            if (!layer.visible) continue;
+            
+            ctx.save();
+            ctx.globalAlpha = layer.opacity;
+            
+            // Apply transforms
+            const centerX = layer.x + layer.width / 2;
+            const centerY = layer.y + layer.height / 2;
+            ctx.translate(centerX, centerY);
+            ctx.rotate((layer.rotation * Math.PI) / 180);
+            ctx.translate(-centerX, -centerY);
+            
+            if (layer.type === 'text' && 'content' in layer.data) {
+              const textData = layer.data as TextLayerData;
+              ctx.font = `${textData.fontStyle} ${textData.fontWeight} ${textData.fontSize}px ${textData.fontFamily}`;
+              ctx.fillStyle = textData.color;
+              ctx.textAlign = textData.textAlign as CanvasTextAlign;
+              ctx.textBaseline = 'top';
+              ctx.fillText(textData.content, layer.x, layer.y);
+            } else if (layer.type === 'image' && 'url' in layer.data) {
+              const imgData = layer.data as ImageLayerData;
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              await new Promise<void>((resolve, reject) => {
+                img.onload = () => {
+                  ctx.drawImage(img, layer.x, layer.y, layer.width, layer.height);
+                  resolve();
+                };
+                img.onerror = () => reject(new Error(`Failed to load image: ${imgData.url}`));
+                img.src = imgData.url;
+              });
+            } else if (layer.type === 'shape' && 'shapeType' in layer.data) {
+              const shapeData = layer.data as ShapeLayerData;
+              ctx.fillStyle = shapeData.fill;
+              ctx.strokeStyle = shapeData.stroke;
+              ctx.lineWidth = shapeData.strokeWidth;
+              
+              if (shapeData.shapeType === 'rectangle') {
+                ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+                if (shapeData.strokeWidth > 0) {
+                  ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
+                }
+              } else if (shapeData.shapeType === 'circle') {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, Math.min(layer.width, layer.height) / 2, 0, Math.PI * 2);
+                ctx.fill();
+                if (shapeData.strokeWidth > 0) ctx.stroke();
+              }
+            }
+            
+            ctx.restore();
+          }
+          
+          // Convert to blob and download
+          return new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Failed to create PNG blob'));
+              }
+            }, 'image/png', 1.0);
+          });
         },
         
         exportAsPDF: async () => {
-          // Implementation will use jsPDF
-          throw new Error('Not implemented');
+          const state = get();
+          if (!state.design) {
+            throw new Error('No design to export');
+          }
+          
+          // Dynamic import of jsPDF to avoid bundle bloat
+          const { jsPDF } = await import('jspdf');
+          
+          // First export as PNG
+          const pngBlob = await get().exportAsPNG();
+          const pngUrl = URL.createObjectURL(pngBlob);
+          
+          // Create PDF with design dimensions (convert px to mm: 1px ≈ 0.264583mm)
+          const pxToMm = 0.264583;
+          const widthMm = state.canvas.width * pxToMm;
+          const heightMm = state.canvas.height * pxToMm;
+          
+          const pdf = new jsPDF({
+            orientation: widthMm > heightMm ? 'landscape' : 'portrait',
+            unit: 'mm',
+            format: [widthMm, heightMm],
+          });
+          
+          // Add the PNG image to PDF
+          pdf.addImage(pngUrl, 'PNG', 0, 0, widthMm, heightMm);
+          
+          // Cleanup
+          URL.revokeObjectURL(pngUrl);
+          
+          // Return as blob
+          return pdf.output('blob');
         },
         
         exportAsJSON: () => {
