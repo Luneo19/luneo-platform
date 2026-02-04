@@ -64,8 +64,14 @@ export interface DesignTemplate {
 export interface ProductFilters {
   category?: string;
   search?: string;
+  status?: string;
+  priceMin?: number | null;
+  priceMax?: number | null;
   minPrice?: number;
   maxPrice?: number;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  isActive?: boolean | null;
   tags?: string[];
   sortBy?: 'name' | 'price' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
