@@ -50,10 +50,14 @@ export interface DesignTemplate {
   id: string;
   name: string;
   description?: string;
-  thumbnailUrl: string;
+  thumbnail: string;
+  thumbnailUrl?: string;
   category: string;
+  isPremium?: boolean;
+  downloads?: number;
+  rating?: number;
   tags?: string[];
-  layers: Layer[];
+  layers?: Layer[];
   canvasSize?: {
     width: number;
     height: number;
