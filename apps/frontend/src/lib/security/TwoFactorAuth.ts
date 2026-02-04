@@ -59,14 +59,14 @@ export class TwoFactorAuthService {
 
       const response = await endpoints.auth.setup2FA();
 
-      if (!response.data) {
+      if (!response) {
         throw new Error('Failed to setup 2FA');
       }
 
       const setup: TwoFactorSetup = {
-        secret: response.data.secret,
-        qrCode: response.data.qrCodeUrl,
-        backupCodes: response.data.backupCodes,
+        secret: response.secret,
+        qrCode: response.qrCodeUrl,
+        backupCodes: response.backupCodes,
       };
 
       logger.info('2FA setup completed');
