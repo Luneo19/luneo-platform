@@ -24,12 +24,17 @@ export interface CreditPack {
 
 export interface CreditTransaction {
   id: string;
-  type: 'purchase' | 'usage' | 'refund' | 'bonus' | 'subscription' | 'earned' | string;
+  type: 'purchase' | 'usage' | 'refund' | 'bonus' | 'adjustment' | 'subscription' | 'earned' | string;
   amount: number;
-  description: string;
-  date: Date | number | string;
-  createdAt?: Date | number | string;
-  status: 'completed' | 'pending' | 'failed' | string;
+  balanceBefore?: number;
+  balanceAfter?: number;
+  source?: string;
+  packId?: string;
+  packName?: string;
+  description?: string;
+  date?: Date | number | string;
+  createdAt: Date | number | string;
+  status?: 'completed' | 'pending' | 'failed' | string;
   creditsBefore?: number;
   creditsAfter?: number;
   metadata?: {
@@ -37,6 +42,8 @@ export interface CreditTransaction {
     orderId?: string;
     aiModel?: string;
     endpoint?: string;
+    model?: string;
+    cost?: number;
     [key: string]: unknown;
   };
 }
