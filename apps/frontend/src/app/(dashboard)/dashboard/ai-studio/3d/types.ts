@@ -13,7 +13,9 @@ export interface GeneratedModel {
   complexity: string;
   polyCount: number;
   createdAt: Date;
-  creditsUsed: number;
+  credits: number;
+  creditsUsed?: number;
+  isFavorite?: boolean;
   metadata?: {
     width?: number;
     height?: number;
@@ -40,11 +42,16 @@ export interface GenerationTemplate {
 
 export interface AIStudioStats {
   totalGenerations: number;
-  totalCreditsUsed: number;
-  averageGenerationTime: number;
+  totalCredits: number;
+  avgGenerationTime: number;
   successRate: number;
-  topCategories: Array<{
-    name: string;
-    count: number;
-  }>;
+  favoriteCount: number;
+  byCategory: {
+    product: number;
+    furniture: number;
+    jewelry: number;
+    electronics: number;
+    fashion: number;
+  };
+  avgPolyCount: number;
 }
