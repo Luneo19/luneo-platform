@@ -78,7 +78,8 @@ export async function POST(
         return ApiResponseBuilder.notFound('Order not found');
       }
 
-      assertOwnership(user as { id: string; brandId?: string | null; role?: string }, order, 'Order');
+      // Verify user owns this order
+      await assertOwnership(order.userId);
 
       // Extract items from metadata (items are stored in metadata as per schema)
       const metadata = order.metadata as any;
