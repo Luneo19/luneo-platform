@@ -29,10 +29,13 @@ export interface GenerationTemplate {
   id: string;
   name: string;
   description: string;
-  thumbnailUrl: string;
+  thumbnail: string;
+  thumbnailUrl?: string;
   category: string;
   prompt: string;
-  settings: {
+  complexity: string;
+  uses: number;
+  settings?: {
     complexity: string;
     resolution: string;
     polyCount: number;
