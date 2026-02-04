@@ -238,7 +238,6 @@ function AnalyticsLuxuryPageContent() {
                 refetchTopEvents();
               }}
               title="Erreur de chargement des analytics"
-              variant="default"
             />{' '}
           </div>
         )}{' '}
