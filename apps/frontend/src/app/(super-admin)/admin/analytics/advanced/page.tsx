@@ -126,7 +126,7 @@ export default function AdvancedAnalyticsPage() {
 
   // Generate placeholder data based on real overview metrics
   function generateHeatmapPlaceholder(days: number, overview: typeof overviewData): HeatmapDataPoint[] {
-    const baseActivity = overview?.totalUsers || 100;
+    const baseActivity = overview?.kpis?.customers?.value || 100;
     return Array.from({ length: days }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() - (days - 1 - i));
@@ -144,8 +144,8 @@ export default function AdvancedAnalyticsPage() {
   }
 
   function generateScatterPlaceholder(overview: typeof overviewData): ScatterDataPoint[] {
-    const avgRevenue = overview?.totalRevenue || 50000;
-    const avgOrders = overview?.totalOrders || 500;
+    const avgRevenue = overview?.revenue?.totalRevenue || 50000;
+    const avgOrders = overview?.kpis?.customers?.value ? Math.round(overview.kpis.customers.value * 0.3) : 500;
     return Array.from({ length: 50 }, (_, i) => {
       // Use deterministic variation based on index instead of Math.random()
       const xVariation = 0.8 + ((i * 7) % 20) / 50; // Pseudo-random between 0.8 and 1.2
@@ -160,9 +160,10 @@ export default function AdvancedAnalyticsPage() {
   }
 
   function generateAreaPlaceholder(days: number, overview: typeof overviewData): AreaDataPoint[] {
-    const avgDailyRevenue = (overview?.totalRevenue || 50000) / days;
-    const avgDailyOrders = (overview?.totalOrders || 500) / days;
-    const avgDailyCustomers = (overview?.totalUsers || 1000) / days;
+    const avgDailyRevenue = (overview?.revenue?.totalRevenue || 50000) / days;
+    const totalCustomers = overview?.kpis?.customers?.value || 1000;
+    const avgDailyOrders = (totalCustomers ? Math.round(totalCustomers * 0.3) : 500) / days;
+    const avgDailyCustomers = totalCustomers / days;
     
     return Array.from({ length: days }, (_, i) => {
       const date = new Date();
