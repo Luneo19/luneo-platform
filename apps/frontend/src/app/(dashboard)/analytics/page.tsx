@@ -478,7 +478,6 @@ function AnalyticsLuxuryPageContent() {
             <ErrorDisplay
               error={timeSeriesError}
               onRetry={refetchTimeSeries}
-              variant="compact"
               title="Erreur de chargement du graphique"
             />
           ) : (
@@ -578,7 +577,6 @@ function AnalyticsLuxuryPageContent() {
             <ErrorDisplay
               error={topEventsError}
               onRetry={refetchTopEvents}
-              variant="compact"
               title="Erreur de chargement du graphique"
             />
           ) : (
