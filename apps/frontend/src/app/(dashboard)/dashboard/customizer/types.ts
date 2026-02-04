@@ -23,14 +23,15 @@ export interface Layer {
   name: string;
   visible: boolean;
   locked: boolean;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
   opacity: number;
-  zIndex: number;
-  data: {
+  order: number;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  rotation?: number;
+  zIndex?: number;
+  data?: {
     content?: string;
     fontSize?: number;
     fontFamily?: string;
