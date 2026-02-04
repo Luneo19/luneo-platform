@@ -145,7 +145,7 @@ function AnalyticsLuxuryPageContent() {
   const pieData = useMemo(() => {
     if (!topEvents || topEvents.length === 0) return [];
     return topEvents.slice(0, 5).map((event: TopEvent, index: number) => ({
-      name: event.eventType.replace('_', ' ').toUpperCase(),
+      name: event.name.replace('_', ' ').toUpperCase(),
       value: event.count,
       color: CHART_COLORS.gradient[index % CHART_COLORS.gradient.length],
     }));
