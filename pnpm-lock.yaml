@@ -368,8 +368,8 @@ importers:
         specifier: ^0.4.1675469240
         version: 0.4.1675469240
       '@next/bundle-analyzer':
-        specifier: ^15.0.0
-        version: 15.5.12
+        specifier: ^16.1.6
+        version: 16.1.6
       '@nivo/bar':
         specifier: ^0.87.0
         version: 0.87.0(react-dom@18.3.1)(react@18.3.1)
@@ -3961,8 +3961,8 @@ packages:
       reflect-metadata: 0.1.14
     dev: false
 
-  /@next/bundle-analyzer@15.5.12:
-    resolution: {integrity: sha512-tDkdfvuKz9JlH+B/CEIY0+XqQ5gymVZZWvDer5HJI68rPI0EYfbSadbvIUvHTugYnMkyxSBf8u0P2yGOSQ4h+w==}
+  /@next/bundle-analyzer@16.1.6:
+    resolution: {integrity: sha512-ee2kagdTaeEWPlotgdTOqFHYcD3e2m2bbE3I9Rq2i6ABYi5OgopmtEUe8NM23viaYxLV2tDH/2nd5+qKoEr6cw==}
     dependencies:
       webpack-bundle-analyzer: 4.10.1
     transitivePeerDependencies:
@@ -16565,6 +16565,7 @@ packages:
   /process@0.11.10:
     resolution: {integrity: sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==}
     engines: {node: '>= 0.6.0'}
+    requiresBuild: true
     dev: false
 
   /progress@2.0.3:
