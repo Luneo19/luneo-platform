@@ -3,14 +3,17 @@
  */
 
 export const VIEW_MODES = {
-  FRONT: 'front',
-  BACK: 'back',
-  LEFT: 'left',
-  RIGHT: 'right',
-  '3D': '3d',
+  grid: 'grid',
+  list: 'list',
+  front: 'front',
+  back: 'back',
+  left: 'left',
+  right: 'right',
+  '3d': '3d',
 } as const;
 
 export type ViewMode = typeof VIEW_MODES[keyof typeof VIEW_MODES];
+export type ViewModeKey = keyof typeof VIEW_MODES;
 
 export const DEFAULT_CANVAS_SIZE = {
   width: 800,
