@@ -7,6 +7,7 @@ export type AIStudioTab = 'generate' | 'models' | 'templates' | 'settings';
 export interface GeneratedModel {
   id: string;
   name: string;
+  prompt: string;
   thumbnailUrl: string;
   modelUrl: string;
   category: string;
@@ -16,6 +17,7 @@ export interface GeneratedModel {
   credits: number;
   creditsUsed?: number;
   isFavorite?: boolean;
+  tags?: string[];
   metadata?: {
     width?: number;
     height?: number;
