@@ -102,9 +102,9 @@ export class TwoFactorAuthService {
     try {
       logger.info('Verifying 2FA via API');
 
-      const response = await endpoints.auth.verify2FA({ token });
+      const response = await endpoints.auth.verify2FA(token);
 
-      if (!response.data) {
+      if (!response) {
         return { success: false };
       }
 
@@ -112,7 +112,7 @@ export class TwoFactorAuthService {
 
       return {
         success: true,
-        backupCodes: response.data.backupCodes,
+        backupCodes: response.backupCodes,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -204,15 +204,18 @@ export class TwoFactorAuthService {
    */
   async getStatus(): Promise<TwoFactorStatus> {
     try {
-      const response = await endpoints.auth.me();
+      const user = await endpoints.auth.me();
       
-      if (!response.data) {
+      if (!user) {
         return { enabled: false, hasBackupCodes: false };
       }
 
+      // User type may not have 2FA fields - check safely
+      const userWithMaybe2FA = user as { is2FAEnabled?: boolean; backupCodesCount?: number };
+      
       return {
-        enabled: response.data.is2FAEnabled || false,
-        hasBackupCodes: (response.data.backupCodesCount || 0) > 0,
+        enabled: userWithMaybe2FA.is2FAEnabled || false,
+        hasBackupCodes: (userWithMaybe2FA.backupCodesCount || 0) > 0,
       };
     } catch (error) {
       logger.error('Error getting 2FA status', { error });

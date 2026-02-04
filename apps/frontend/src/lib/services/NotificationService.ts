@@ -690,7 +690,7 @@ export class NotificationService {
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey,
+        applicationServerKey: applicationServerKey as BufferSource,
       });
 
       // Save subscription to backend

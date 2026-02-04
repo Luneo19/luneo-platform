@@ -48,10 +48,8 @@ class HealthCheckService {
     try {
       // Check database
       try {
-        const { PrismaClient } = await import('@prisma/client');
         const { db } = await import('@/lib/db');
         await db.$queryRaw`SELECT 1`;
-        await db.$disconnect();
       } catch (error) {
         checks.database = 'error';
         logger.error('Database health check failed', { error });
