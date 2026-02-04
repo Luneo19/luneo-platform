@@ -32,8 +32,8 @@ export interface CreditTransaction {
   packId?: string;
   packName?: string;
   description?: string;
-  date?: Date | number | string;
-  createdAt: Date | number | string;
+  date?: Date;
+  createdAt: Date;
   status?: 'completed' | 'pending' | 'failed' | string;
   creditsBefore?: number;
   creditsAfter?: number;
