@@ -153,7 +153,7 @@ function AnalyticsLuxuryPageContent() {
 
   // Handle export
   const handleExport = () => {
-    exportAnalytics(period);
+    exportAnalytics({ period, format: 'csv' });
   };
 
   // ========================================
