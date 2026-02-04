@@ -152,7 +152,7 @@ async function fetchAnalyticsData(
  * Generate fallback data based on date range with realistic patterns
  * Uses deterministic calculations instead of random values
  */
-function generateFallbackData(startDate?: string, endDate?: string, dateRange?: string, _reportType: string = 'full') {
+function generateFallbackData(startDate?: string, endDate?: string, dateRange?: string, reportType: string = 'full') {
   const { start, days } = getDateRange(startDate, endDate, dateRange);
 
   // Base metrics that scale with time period
