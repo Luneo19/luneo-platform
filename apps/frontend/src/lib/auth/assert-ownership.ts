@@ -1,4 +1,4 @@
-import { getServerUser } from '@/lib/api/server';
+import { getServerUser } from './get-user';
 
 /**
  * Assert that the current user owns a resource

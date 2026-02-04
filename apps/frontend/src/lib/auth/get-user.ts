@@ -86,16 +86,13 @@ export async function getServerUser(): Promise<AuthUser | null> {
 
 /**
  * Récupère l'utilisateur depuis la requête (API Route)
+ * ✅ Utilise JWT backend (cookies httpOnly) au lieu de Supabase
  */
 export async function getUserFromRequest(
   request: Request
 ): Promise<AuthUser | null> {
   try {
-    // Extract token from Authorization header or cookies
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    // Try to get from cookies
+    // Extract token from cookies
     const cookieHeader = request.headers.get('cookie');
     const cookieMap = cookieHeader
       ? Object.fromEntries(
@@ -106,63 +103,43 @@ export async function getUserFromRequest(
         )
       : {};
 
-    // Use Supabase to verify session
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieMap[name];
-          },
-        },
-      }
-    );
-
-    let supabaseUser;
-
-    if (token) {
-      // If token provided, verify it
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser(token);
-      if (error || !user) {
+    const accessToken = cookieMap['accessToken'];
+    
+    if (!accessToken) {
+      // Try Authorization header as fallback
+      const authHeader = request.headers.get('authorization');
+      const bearerToken = authHeader?.replace('Bearer ', '');
+      if (!bearerToken) {
         return null;
       }
-      supabaseUser = user;
-    } else {
-      // Try to get from session
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error || !user) {
-        return null;
-      }
-      supabaseUser = user;
     }
 
-    // Fetch user from database
-    const dbUser = await db.user.findUnique({
-      where: { id: supabaseUser.id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        brandId: true,
+    // Call backend API to verify token and get user
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.luneo.app';
+    const response = await fetch(`${backendUrl}/api/v1/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Cookie': cookieHeader || '',
+        'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
-    if (!dbUser) {
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (!data || !data.id) {
       return null;
     }
 
     return {
-      id: dbUser.id,
-      email: dbUser.email,
-      role: dbUser.role || undefined,
-      brandId: dbUser.brandId || undefined,
+      id: data.id,
+      email: data.email,
+      role: data.role || undefined,
+      brandId: data.brandId || undefined,
     };
   } catch (error) {
     // Logger is not available in server context, use console for critical errors
