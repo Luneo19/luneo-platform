@@ -8,37 +8,50 @@ export interface CreditPack {
   id: string;
   name: string;
   credits: number;
-  price: number;
-  currency: string;
+  priceCents: number;
+  price?: number;
+  currency?: string;
   popular?: boolean;
+  isFeatured?: boolean;
+  isPopular?: boolean;
+  isActive?: boolean;
   bonus?: number;
+  savings?: number;
+  badge?: string;
   description?: string;
   features?: string[];
 }
 
 export interface CreditTransaction {
   id: string;
-  type: 'purchase' | 'usage' | 'refund' | 'bonus' | 'subscription';
+  type: 'purchase' | 'usage' | 'refund' | 'bonus' | 'subscription' | 'earned' | string;
   amount: number;
   description: string;
-  createdAt: Date | number | string;
-  status: 'completed' | 'pending' | 'failed';
+  date: Date | number | string;
+  createdAt?: Date | number | string;
+  status: 'completed' | 'pending' | 'failed' | string;
+  creditsBefore?: number;
+  creditsAfter?: number;
   metadata?: {
     packId?: string;
     orderId?: string;
     aiModel?: string;
+    endpoint?: string;
     [key: string]: unknown;
   };
 }
 
 export interface CreditStats {
-  totalCredits: number;
-  usedCredits: number;
-  remainingCredits: number;
-  purchasedCredits: number;
-  bonusCredits: number;
-  lastPurchaseDate?: Date | string;
-  nextExpirationDate?: Date | string;
-  monthlyUsage: number;
-  averageUsagePerDay: number;
+  currentBalance: number;
+  totalPurchased: number;
+  totalUsed: number;
+  totalRefunded: number;
+  totalBonus: number;
+  usageRate: number;
+  avgCostPerGeneration: number;
+  totalGenerations: number;
+  byType: Record<string, number>;
+  byEndpoint: Record<string, number>;
+  byModel: Record<string, number>;
+  trends: Array<{ date: string; value: number }>;
 }
