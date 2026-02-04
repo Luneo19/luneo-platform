@@ -679,7 +679,7 @@ export default function TikTokAdsPage() {
                   </div>
                   <div className="text-center p-4 bg-obsidian-black/50 rounded-lg">
                     <p className="text-3xl font-bold text-green-400">{campaigns.filter(c => c.roas >= 3).length}</p>
-                    <p className="text-sm text-gladia-gray-400 mt-1">ROAS > 3x</p>
+                    <p className="text-sm text-gladia-gray-400 mt-1">ROAS &gt; 3x</p>
                   </div>
                   <div className="text-center p-4 bg-obsidian-black/50 rounded-lg">
                     <p className="text-3xl font-bold text-yellow-400">{campaigns.filter(c => c.status === 'paused').length}</p>
