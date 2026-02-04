@@ -13,7 +13,7 @@ export interface GeneratedModel {
   category: string;
   complexity: string;
   polyCount: number;
-  createdAt: Date;
+  createdAt: Date | number | string;
   credits: number;
   creditsUsed?: number;
   isFavorite?: boolean;
