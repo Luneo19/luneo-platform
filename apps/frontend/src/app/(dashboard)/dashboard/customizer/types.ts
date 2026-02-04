@@ -8,6 +8,7 @@ export interface Asset {
   id: string;
   name: string;
   url: string;
+  thumbnail?: string;
   thumbnailUrl?: string;
   type: 'image' | 'svg' | 'icon' | 'video' | 'texture' | 'pattern';
   category?: string;
