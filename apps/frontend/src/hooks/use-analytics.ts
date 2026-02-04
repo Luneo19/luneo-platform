@@ -22,6 +22,8 @@ export interface AnalyticsMetrics {
   totalUsers: number;
   totalRevenue: number;
   totalEvents: number;
+  pageViews: number;
+  conversions: number;
   conversionRate: number;
   avgSessionDuration: number;
   bounceRate: number;
