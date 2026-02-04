@@ -126,7 +126,7 @@ function StatCard({
   title: string;
   value: number;
   change?: number;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   format?: 'number' | 'currency' | 'percent';
 }) {
   const formatValue = (v: number) => {
