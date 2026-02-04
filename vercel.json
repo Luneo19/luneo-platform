@@ -2,7 +2,7 @@
   "buildCommand": "cd apps/frontend && pnpm run build",
   "outputDirectory": "apps/frontend/.next",
   "framework": "nextjs",
-  "installCommand": "pnpm install --filter luneo-frontend... --no-frozen-lockfile",
+  "installCommand": "pnpm install --frozen-lockfile",
   "ignoreCommand": "git log -1 --pretty=format:'%s' | grep -q '\\[deploy vercel\\]' && exit 1 || exit 0",
   "headers": [
     {
