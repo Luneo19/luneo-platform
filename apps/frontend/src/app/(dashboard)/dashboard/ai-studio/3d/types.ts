@@ -13,6 +13,7 @@ export interface GeneratedModel {
   modelUrl: string;
   category: string;
   complexity: string;
+  resolution: string;
   polyCount: number;
   createdAt: Date | number | string;
   credits: number;
@@ -24,6 +25,13 @@ export interface GeneratedModel {
     height?: number;
     format?: string;
     textureQuality?: number;
+    size?: number;
+    vertices?: number;
+    faces?: number;
+    textures?: number;
+    materials?: number;
+    model?: string;
+    seed?: number;
     [key: string]: unknown;
   };
 }
