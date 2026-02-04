@@ -9,7 +9,7 @@ export interface Asset {
   name: string;
   url: string;
   thumbnailUrl?: string;
-  type: 'image' | 'svg' | 'icon';
+  type: 'image' | 'svg' | 'icon' | 'video' | 'texture' | 'pattern';
   category?: string;
   tags?: string[];
   width?: number;
