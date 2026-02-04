@@ -37,6 +37,7 @@ interface AreaDataPoint {
   revenue: number;
   orders: number;
   customers: number;
+  [key: string]: string | number;
 }
 
 export default function AdvancedAnalyticsPage() {
