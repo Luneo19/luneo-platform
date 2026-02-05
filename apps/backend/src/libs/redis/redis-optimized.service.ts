@@ -39,9 +39,21 @@ export class RedisOptimizedService {
   constructor(private configService: ConfigService) {
     const redisUrl = this.configService.get('redis.url') || 'redis://localhost:6379';
     
-    // Si Redis n'est pas configuré, ne pas créer de connexion (mode dégradé)
-    if (!redisUrl || redisUrl === 'redis://localhost:6379') {
-      this.logger.warn('Redis URL not configured, running in degraded mode without cache');
+    // Valider que l'URL Redis est complète et valide
+    const isValidRedisUrl = (url: string): boolean => {
+      if (!url || url === 'redis://localhost:6379') return false;
+      // Vérifier que l'URL contient au moins le host après les credentials
+      try {
+        const parsed = new URL(url);
+        return !!parsed.hostname && parsed.hostname.length > 0;
+      } catch {
+        return false;
+      }
+    };
+    
+    // Si Redis n'est pas configuré correctement, ne pas créer de connexion (mode dégradé)
+    if (!isValidRedisUrl(redisUrl)) {
+      this.logger.warn(`Redis URL not configured or invalid (${redisUrl?.substring(0, 30)}...), running in degraded mode without cache`);
       // Créer un client Redis factice qui ne se connecte pas
       this.redis = null as any;
       return;
