@@ -104,15 +104,23 @@ export class AuthService {
       const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'https://app.luneo.app';
       const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
-      await this.emailService.sendConfirmationEmail(
+      // Queue email asynchronously - don't await to not block signup response
+      this.emailService.queueConfirmationEmail(
         user.email,
         verificationToken,
         verificationUrl,
-        'auto',
-      );
+        { userId: user.id, priority: 'high' },
+      ).then(({ jobId }) => {
+        this.logger.debug(`Confirmation email queued for ${user.email}, jobId: ${jobId}`);
+      }).catch(queueError => {
+        this.logger.warn('Failed to queue verification email', {
+          error: queueError instanceof Error ? queueError.message : 'Unknown error',
+          userId: user.id,
+        });
+      });
     } catch (emailError) {
       // Log error but don't block signup
-      this.logger.warn('Failed to send verification email during signup', {
+      this.logger.warn('Failed to prepare verification email during signup', {
         error: emailError instanceof Error ? emailError.message : 'Unknown error',
         userId: user.id,
       });
@@ -517,23 +525,23 @@ export class AuthService {
     const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
     const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
 
-    // Send reset email
-    try {
-      await this.emailService.sendPasswordResetEmail(
-        user.email,
-        resetToken,
-        resetUrl,
-        'auto',
-      );
-    } catch (error) {
+    // Queue reset email asynchronously - don't await to not block response
+    this.emailService.queuePasswordResetEmail(
+      user.email,
+      resetToken,
+      resetUrl,
+      { userId: user.id, priority: 'high' },
+    ).then(({ jobId }) => {
+      this.logger.debug(`Password reset email queued for ${user.email}, jobId: ${jobId}`);
+    }).catch(error => {
       // Log error but don't reveal it to user
-      this.logger.error('Failed to send password reset email', {
+      this.logger.error('Failed to queue password reset email', {
         error: error instanceof Error ? error.message : 'Unknown error',
         email: user.email,
       });
-    }
+    });
 
-    // Return success message (don't reveal if user exists)
+    // Return success message immediately (don't reveal if user exists)
     return { message: 'If an account with that email exists, a password reset link has been sent.' };
   }
 

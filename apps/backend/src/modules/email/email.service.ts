@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bullmq';
 import { MailgunService, MailgunEmailOptions } from './mailgun.service';
 import { SendGridService, SendGridEmailOptions } from './sendgrid.service';
+import { EmailJobData } from './email.processor';
 
 export interface EmailOptions {
   to: string | string[];
@@ -23,6 +26,13 @@ export interface EmailOptions {
   provider?: 'sendgrid' | 'mailgun' | 'auto';
 }
 
+export interface QueueEmailOptions {
+  priority?: 'low' | 'normal' | 'high';
+  delay?: number; // milliseconds
+  userId?: string;
+  brandId?: string;
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -34,6 +44,7 @@ export class EmailService {
     private configService: ConfigService,
     private mailgunService: MailgunService,
     private sendgridService: SendGridService,
+    @InjectQueue('email') private emailQueue: Queue,
   ) {
     this.initializeProviders();
   }
@@ -274,5 +285,191 @@ export class EmailService {
 
   getMailgunService(): MailgunService {
     return this.mailgunService;
+  }
+
+  // ============================================
+  // ASYNC EMAIL METHODS (via BullMQ queue)
+  // ============================================
+
+  /**
+   * Queue an email for async sending (non-blocking)
+   * Use this for better performance on user-facing operations
+   */
+  async queueEmail(options: EmailOptions, queueOptions?: QueueEmailOptions): Promise<{ jobId: string }> {
+    const jobData: EmailJobData = {
+      type: 'generic',
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+      from: options.from,
+      cc: options.cc,
+      bcc: options.bcc,
+      tags: options.tags,
+      headers: options.headers,
+      provider: options.provider,
+      userId: queueOptions?.userId,
+      brandId: queueOptions?.brandId,
+      priority: queueOptions?.priority || 'normal',
+    };
+
+    const job = await this.emailQueue.add('send', jobData, {
+      priority: this.getPriorityValue(queueOptions?.priority),
+      delay: queueOptions?.delay,
+    });
+
+    this.logger.debug(`Email queued: ${job.id} to ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
+    return { jobId: job.id as string };
+  }
+
+  /**
+   * Queue a welcome email (async, non-blocking)
+   */
+  async queueWelcomeEmail(
+    userEmail: string,
+    userName: string,
+    queueOptions?: QueueEmailOptions,
+  ): Promise<{ jobId: string }> {
+    const jobData: EmailJobData = {
+      type: 'welcome',
+      to: userEmail,
+      subject: 'Bienvenue chez Luneo ! 🎉',
+      data: { userName },
+      tags: ['welcome', 'onboarding'],
+      userId: queueOptions?.userId,
+      priority: queueOptions?.priority || 'normal',
+    };
+
+    const job = await this.emailQueue.add('send', jobData, {
+      priority: this.getPriorityValue(queueOptions?.priority),
+      delay: queueOptions?.delay,
+    });
+
+    this.logger.debug(`Welcome email queued: ${job.id} to ${userEmail}`);
+    return { jobId: job.id as string };
+  }
+
+  /**
+   * Queue a password reset email (async, non-blocking)
+   */
+  async queuePasswordResetEmail(
+    userEmail: string,
+    resetToken: string,
+    resetUrl: string,
+    queueOptions?: QueueEmailOptions,
+  ): Promise<{ jobId: string }> {
+    const jobData: EmailJobData = {
+      type: 'password-reset',
+      to: userEmail,
+      subject: 'Réinitialisation de votre mot de passe',
+      data: { resetToken, resetUrl },
+      tags: ['password-reset', 'security'],
+      userId: queueOptions?.userId,
+      priority: queueOptions?.priority || 'high', // High priority for security emails
+    };
+
+    const job = await this.emailQueue.add('send', jobData, {
+      priority: this.getPriorityValue(queueOptions?.priority || 'high'),
+      delay: queueOptions?.delay,
+    });
+
+    this.logger.debug(`Password reset email queued: ${job.id} to ${userEmail}`);
+    return { jobId: job.id as string };
+  }
+
+  /**
+   * Queue a confirmation email (async, non-blocking)
+   */
+  async queueConfirmationEmail(
+    userEmail: string,
+    confirmationToken: string,
+    confirmationUrl: string,
+    queueOptions?: QueueEmailOptions,
+  ): Promise<{ jobId: string }> {
+    const jobData: EmailJobData = {
+      type: 'confirmation',
+      to: userEmail,
+      subject: 'Confirmez votre adresse email',
+      data: { confirmationToken, confirmationUrl },
+      tags: ['email-confirmation', 'onboarding'],
+      userId: queueOptions?.userId,
+      priority: queueOptions?.priority || 'high', // High priority for signup flow
+    };
+
+    const job = await this.emailQueue.add('send', jobData, {
+      priority: this.getPriorityValue(queueOptions?.priority || 'high'),
+      delay: queueOptions?.delay,
+    });
+
+    this.logger.debug(`Confirmation email queued: ${job.id} to ${userEmail}`);
+    return { jobId: job.id as string };
+  }
+
+  /**
+   * Queue multiple emails as a batch (async, non-blocking)
+   */
+  async queueBatchEmails(
+    emails: Array<{
+      to: string | string[];
+      subject: string;
+      html?: string;
+      text?: string;
+      tags?: string[];
+    }>,
+    queueOptions?: QueueEmailOptions,
+  ): Promise<{ jobId: string }> {
+    const jobData = {
+      emails: emails.map(email => ({
+        type: 'generic' as const,
+        to: email.to,
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+        tags: email.tags,
+      })),
+    };
+
+    const job = await this.emailQueue.add('batch', jobData, {
+      priority: this.getPriorityValue(queueOptions?.priority),
+    });
+
+    this.logger.debug(`Batch email queued: ${job.id} with ${emails.length} emails`);
+    return { jobId: job.id as string };
+  }
+
+  /**
+   * Get queue stats for monitoring
+   */
+  async getQueueStats(): Promise<{
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+  }> {
+    const [waiting, active, completed, failed, delayed] = await Promise.all([
+      this.emailQueue.getWaitingCount(),
+      this.emailQueue.getActiveCount(),
+      this.emailQueue.getCompletedCount(),
+      this.emailQueue.getFailedCount(),
+      this.emailQueue.getDelayedCount(),
+    ]);
+
+    return { waiting, active, completed, failed, delayed };
+  }
+
+  /**
+   * Convert priority string to numeric value
+   */
+  private getPriorityValue(priority?: 'low' | 'normal' | 'high'): number {
+    switch (priority) {
+      case 'high':
+        return 1;
+      case 'low':
+        return 10;
+      case 'normal':
+      default:
+        return 5;
+    }
   }
 }
