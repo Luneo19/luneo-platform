@@ -12,6 +12,7 @@
     "src/modules/visual-customizer/**/*",
     "src/modules/asset-hub/**/*",
     "src/modules/agents/ai-monitor/**/*",
-    "src/modules/agents/usage-guardian/**/*"
+    "src/modules/agents/usage-guardian/**/*",
+    "src/modules/observability/services/dr.service.ts"
   ]
 }

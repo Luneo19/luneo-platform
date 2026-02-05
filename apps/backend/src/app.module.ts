@@ -26,7 +26,7 @@ import {
 // Modules
 import { AdminModule } from './modules/admin/admin.module';
 import { AiModule } from './modules/ai/ai.module';
-import { AgentsModule } from './modules/agents/agents.module';
+// import { AgentsModule } from './modules/agents/agents.module'; // Temporairement désactivé - erreurs Prisma
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AnalyticsCleanModule } from './modules/analytics/analytics-clean.module';
 import { ArStudioModule } from './modules/ar/ar-studio.module';
@@ -41,7 +41,7 @@ import { HealthModule } from './modules/health/health.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { EnterpriseModule } from './modules/enterprise/enterprise.module'; // ✅ PHASE 8
-import { ObservabilityModule } from './modules/observability/observability.module';
+// import { ObservabilityModule } from './modules/observability/observability.module'; // Temporairement désactivé - @aws-sdk manquant
 import { OrdersModule } from './modules/orders/orders.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { PricingModule } from './modules/pricing/pricing.module';
@@ -204,7 +204,7 @@ import { AuditModule } from './modules/audit/audit.module';
     AuthModule,
     UsersModule,
     BrandsModule,
-    AgentsModule,
+    // AgentsModule, // Temporairement désactivé - erreurs Prisma
     ProductsModule,
     DesignsModule,
     OrdersModule,
@@ -234,7 +234,7 @@ import { AuditModule } from './modules/audit/audit.module';
     AnalyticsCleanModule, // Clean minimal analytics
     ArStudioModule,
     MarketplaceModule,
-    ObservabilityModule,
+    // ObservabilityModule, // Temporairement désactivé - @aws-sdk manquant
     TrustSafetyModule,
     CreditsModule,
     MonitoringModule,
