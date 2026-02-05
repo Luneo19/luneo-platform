@@ -24,6 +24,16 @@ const envSchema = z.object({
   // Stripe
   STRIPE_SECRET_KEY: z.string().startsWith('sk_').optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  // Stripe Price IDs - par plan et cycle de facturation
+  STRIPE_PRICE_STARTER_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_STARTER_YEARLY: z.string().optional(),
+  STRIPE_PRICE_PRO_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_PRO_YEARLY: z.string().optional(),
+  STRIPE_PRICE_BUSINESS_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_BUSINESS_YEARLY: z.string().optional(),
+  STRIPE_PRICE_ENTERPRISE_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_ENTERPRISE_YEARLY: z.string().optional(),
+  // Legacy (deprecated - use specific monthly/yearly IDs)
   STRIPE_PRICE_PRO: z.string().optional(),
   STRIPE_PRICE_BUSINESS: z.string().optional(),
   STRIPE_PRICE_ENTERPRISE: z.string().optional(),
@@ -136,11 +146,22 @@ export const oauthConfig = registerAs('oauth', () => ({
 export const stripeConfig = registerAs('stripe', () => ({
   secretKey: process.env.STRIPE_SECRET_KEY,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+  // Price IDs par plan et cycle de facturation
+  priceStarterMonthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
+  priceStarterYearly: process.env.STRIPE_PRICE_STARTER_YEARLY,
+  priceProMonthly: process.env.STRIPE_PRICE_PRO_MONTHLY || process.env.STRIPE_PRICE_PRO,
+  priceProYearly: process.env.STRIPE_PRICE_PRO_YEARLY,
+  priceBusinessMonthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY || process.env.STRIPE_PRICE_BUSINESS,
+  priceBusinessYearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY,
+  priceEnterpriseMonthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY,
+  priceEnterpriseYearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY,
+  // Legacy (deprecated)
   pricePro: process.env.STRIPE_PRICE_PRO,
   priceBusiness: process.env.STRIPE_PRICE_BUSINESS,
   priceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE,
-  successUrl: process.env.STRIPE_SUCCESS_URL || 'https://www.luneo.app/dashboard/billing/success',
-  cancelUrl: process.env.STRIPE_CANCEL_URL || 'https://www.luneo.app/dashboard/billing/cancel',
+  // URLs
+  successUrl: process.env.STRIPE_SUCCESS_URL || 'https://app.luneo.app/dashboard/billing/success',
+  cancelUrl: process.env.STRIPE_CANCEL_URL || 'https://app.luneo.app/dashboard/billing/cancel',
 }));
 
 // Cloudinary configuration

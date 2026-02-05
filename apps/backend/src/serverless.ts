@@ -30,8 +30,11 @@ async function createApp(): Promise<express.Application> {
   
   // Preserve raw body for Stripe webhook signature verification
   // This must be done BEFORE NestJS body parsing
-  // Apply raw body parser specifically for webhook route
+  // Apply raw body parser specifically for webhook routes
   server.use('/billing/webhook', express.raw({ type: 'application/json' }));
+  server.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
+  server.use('/api/v1/billing/webhook', express.raw({ type: 'application/json' }));
+  server.use('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }));
   
   // Apply JSON body parser for all other routes
   server.use(express.json());

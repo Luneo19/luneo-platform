@@ -64,23 +64,23 @@ export class BillingService {
 
     const billingInterval = options?.billingInterval || 'monthly';
 
-    // ✅ Obtenir les Price IDs Stripe depuis la config
+    // ✅ Obtenir les Price IDs Stripe depuis la config (avec fallback vers les IDs de test)
     const planPriceIds: Record<string, { monthly: string | null; yearly: string | null }> = {
       starter: {
-        monthly: this.configService.get<string>('stripe.priceStarterMonthly') || 'price_1SY2bqKG9MsM6fdSlgkR5hNX',
-        yearly: this.configService.get<string>('stripe.priceStarterYearly') || 'price_1SY2bxKG9MsM6fdSe78TX8fZ',
+        monthly: this.configService.get<string>('stripe.priceStarterMonthly') || 'price_1SxN49KG9MsM6fdSQBimFF2p',
+        yearly: this.configService.get<string>('stripe.priceStarterYearly') || 'price_1SxN4GKG9MsM6fdSvd3MdQsg',
       },
       professional: {
-        monthly: this.configService.get<string>('stripe.pricePro') || this.configService.get<string>('stripe.priceProMonthly'),
-        yearly: this.configService.get<string>('stripe.priceProYearly'),
+        monthly: this.configService.get<string>('stripe.priceProMonthly') || 'price_1SqKzdKG9MsM6fdSAZZrmTXO',
+        yearly: this.configService.get<string>('stripe.priceProYearly') || 'price_1SqKzdKG9MsM6fdSiLDDW6Ui',
       },
       business: {
-        monthly: this.configService.get<string>('stripe.priceBusiness') || this.configService.get<string>('stripe.priceBusinessMonthly'),
-        yearly: this.configService.get<string>('stripe.priceBusinessYearly'),
+        monthly: this.configService.get<string>('stripe.priceBusinessMonthly') || 'price_1SqKzeKG9MsM6fdS4Er2R29w',
+        yearly: this.configService.get<string>('stripe.priceBusinessYearly') || 'price_1SqKzeKG9MsM6fdSxaatQloI',
       },
       enterprise: {
-        monthly: null, // Sur demande
-        yearly: null,
+        monthly: this.configService.get<string>('stripe.priceEnterpriseMonthly') || 'price_1SxN4OKG9MsM6fdSxskfUHbG',
+        yearly: this.configService.get<string>('stripe.priceEnterpriseYearly') || 'price_1SxN4PKG9MsM6fdShT8bgtxM',
       },
     };
 

@@ -517,7 +517,14 @@ async function bootstrap() {
     // This prevents the ERR_ERL_PERMISSIVE_TRUST_PROXY warning
     server.set('trust proxy', 1);
     
-    // Parse JSON and URL-encoded bodies FIRST (before NestJS)
+    // Preserve raw body for Stripe webhook signature verification
+    // This must be done BEFORE NestJS/JSON body parsing
+    server.use('/api/v1/billing/webhook', express.raw({ type: 'application/json' }));
+    server.use('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }));
+    server.use('/billing/webhook', express.raw({ type: 'application/json' }));
+    server.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
+    
+    // Parse JSON and URL-encoded bodies for all other routes
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     

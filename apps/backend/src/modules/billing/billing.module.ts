@@ -5,11 +5,12 @@ import { ConfigModule } from '@nestjs/config';
 import { PlansModule } from '../plans/plans.module';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
+import { CommissionService } from './services/commission.service';
 
 @Module({
   imports: [ConfigModule, CreditsModule, PrismaModule, PlansModule],
   controllers: [BillingController],
-  providers: [BillingService],
-  exports: [BillingService],
+  providers: [BillingService, CommissionService],
+  exports: [BillingService, CommissionService],
 })
 export class BillingModule {}

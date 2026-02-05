@@ -1,5 +1,13 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger } from '@nestjs/common';
+import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger, BadRequestException, Request } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
+import { BillingService } from '@/modules/billing/billing.service';
+import { Public } from '@/common/decorators/public.decorator';
+import type { Request as ExpressRequest } from 'express';
+import Stripe from 'stripe';
+
+interface RawBodyRequest<T> extends ExpressRequest {
+  rawBody?: Buffer;
+}
 
 export interface SendGridWebhookEvent {
   email: string;
@@ -24,7 +32,66 @@ export interface SendGridWebhookEvent {
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
 
-  constructor(private readonly webhooksService: WebhooksService) {}
+  constructor(
+    private readonly webhooksService: WebhooksService,
+    private readonly billingService: BillingService,
+  ) {}
+
+  /**
+   * Webhook Stripe pour les événements de paiement
+   * URL: POST /webhooks/stripe
+   */
+  @Public()
+  @Post('stripe')
+  @HttpCode(HttpStatus.OK)
+  async handleStripeWebhook(
+    @Request() req: RawBodyRequest<ExpressRequest>,
+    @Headers('stripe-signature') signature: string,
+  ): Promise<{ received: boolean; processed?: boolean }> {
+    if (!signature) {
+      throw new BadRequestException('Missing Stripe signature header');
+    }
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      this.logger.error('STRIPE_WEBHOOK_SECRET is not configured');
+      throw new BadRequestException('Webhook secret not configured');
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      const stripe = await this.billingService.getStripe();
+      event = stripe.webhooks.constructEvent(
+        req.rawBody as Buffer,
+        signature,
+        webhookSecret,
+      );
+    } catch (err: any) {
+      this.logger.warn('Invalid Stripe webhook signature', { error: err.message });
+      throw new BadRequestException(`Webhook signature verification failed: ${err.message}`);
+    }
+
+    this.logger.log('Stripe webhook received', {
+      type: event.type,
+      id: event.id,
+    });
+
+    try {
+      const result = await this.billingService.handleStripeWebhook(event);
+      
+      return {
+        received: true,
+        processed: result.processed,
+      };
+    } catch (error) {
+      this.logger.error('Error processing Stripe webhook', error, {
+        eventType: event.type,
+        eventId: event.id,
+      });
+      throw error;
+    }
+  }
 
   @Post('sendgrid')
   @HttpCode(HttpStatus.OK)
