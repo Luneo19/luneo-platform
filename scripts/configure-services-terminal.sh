@@ -69,12 +69,21 @@ echo ""
 # ═══════════════════════════════════════════════════════════════
 
 echo -e "${BLUE}2. Configuration SendGrid...${NC}"
+echo -e "${YELLOW}📋 Instructions:${NC}"
+echo "1. Créer un compte sur https://sendgrid.com"
+echo "2. Créer une API Key avec permissions 'Mail Send'"
+echo "3. Copier la clé API"
+echo ""
 
-SENDGRID_API_KEY="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"
+read -sp "SENDGRID_API_KEY (commençant par SG.): " sendgrid_key
+echo ""
 
-write_env_var "SENDGRID_API_KEY" "$SENDGRID_API_KEY"
-
-echo -e "${GREEN}✅ SendGrid configuré${NC}"
+if [ -n "$sendgrid_key" ]; then
+    write_env_var "SENDGRID_API_KEY" "$sendgrid_key"
+    echo -e "${GREEN}✅ SendGrid configuré${NC}"
+else
+    echo -e "${YELLOW}⚠️  SendGrid non configuré${NC}"
+fi
 echo ""
 
 # ═══════════════════════════════════════════════════════════════

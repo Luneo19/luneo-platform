@@ -56,11 +56,13 @@ export class TrackerService {
       await this.prisma.aIUsageLog.create({
         data: {
           brandId: tracking.brandId || null,
-          userId: tracking.userId || null,
+          userId: tracking.userId,
           agentId: tracking.agentId || null,
           model: tracking.model,
           provider: tracking.provider,
           operation: tracking.operation,
+          promptTokens: tracking.inputTokens,
+          completionTokens: tracking.outputTokens,
           inputTokens: tracking.inputTokens,
           outputTokens: tracking.outputTokens,
           totalTokens: tracking.totalTokens,

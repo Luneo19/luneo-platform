@@ -123,6 +123,65 @@ enum CustomizationType {
   POSITION
 }
 
+// ========================================
+// ENUMS POUR ASSET HUB
+// ========================================
+
+enum AssetFileType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  MODEL_3D
+  AUDIO
+  OTHER
+}
+
+// ========================================
+// ENUMS POUR PROJECTS
+// ========================================
+
+enum ProjectType {
+  DESIGN
+  CAMPAIGN
+  COLLECTION
+  TEMPLATE
+  OTHER
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum WorkspaceEnvironment {
+  DEVELOPMENT
+  STAGING
+  PRODUCTION
+}
+
+// ========================================
+// ENUMS POUR CONFIGURATOR 3D
+// ========================================
+
+enum Configurator3DOptionType {
+  COLOR
+  TEXTURE
+  MATERIAL
+  SIZE
+  TEXT
+  IMAGE
+  MODEL
+}
+
+enum Configurator3DSessionStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+  EXPIRED
+}
+
 enum ProductStatus {
   DRAFT
   ACTIVE
@@ -3937,7 +3996,7 @@ model SLATicket {
 
 model AIQuota {
   id        String   @id @default(cuid())
-  userId    String   @unique
+  userId    String?  @unique  // Optional pour les quotas brand-level
   brandId   String?  @unique
   planId    String?
   
@@ -3981,11 +4040,14 @@ model AIUsageLog {
   // Provider info
   provider    String?
   model       String
+  operation   String?  // Type d'opération (chat, completion, embedding, etc.)
   
-  // Request details
+  // Request details - support both naming conventions
   promptTokens     Int
   completionTokens Int
   totalTokens      Int
+  inputTokens      Int?  // Alias pour promptTokens
+  outputTokens     Int?  // Alias pour completionTokens
   costCents        Int @default(0)
   latencyMs        Int @default(0)
   
@@ -4003,6 +4065,7 @@ model AIUsageLog {
   @@index([createdAt])
   @@index([model])
   @@index([provider])
+  @@index([operation])
 }
 
 model AIAnalytics {
@@ -4011,13 +4074,14 @@ model AIAnalytics {
   agentId   String?
   
   // Aggregated data
-  date        DateTime @db.Date
+  date              DateTime @db.Date
   totalRequests     Int @default(0)
   totalTokens       Int @default(0)
   totalCostCents    Int @default(0)
   averageLatencyMs  Int @default(0)
   errorRate         Float @default(0)
   conversationCount Int @default(0)
+  messageCount      Int @default(0)  // Nombre de messages
   
   // By model breakdown (JSON)
   modelBreakdown    Json?
@@ -4214,4 +4278,214 @@ model RestoreDrillRecord {
   @@index([backupId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ========================================
+// ASSET HUB
+// ========================================
+
+model AssetFolder {
+  id        String   @id @default(cuid())
+  brandId   String
+  parentId  String?
+  
+  name        String
+  description String?
+  path        String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  parent   AssetFolder?  @relation("FolderTree", fields: [parentId], references: [id])
+  children AssetFolder[] @relation("FolderTree")
+  files    AssetFile[]
+  
+  @@index([brandId])
+  @@index([parentId])
+}
+
+model AssetFile {
+  id        String   @id @default(cuid())
+  brandId   String
+  folderId  String?
+  
+  // File info
+  name         String
+  originalName String?
+  mimeType     String
+  size         Int
+  type         AssetFileType @default(OTHER)
+  
+  // Storage
+  url          String
+  thumbnailUrl String?
+  publicId     String?
+  
+  // Metadata
+  width    Int?
+  height   Int?
+  duration Int?
+  metadata Json?
+  tags     String[] @default([])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  folder AssetFolder? @relation(fields: [folderId], references: [id])
+  
+  @@index([brandId])
+  @@index([folderId])
+  @@index([type])
+}
+
+// ========================================
+// PROJECTS & WORKSPACES
+// ========================================
+
+model Workspace {
+  id        String   @id @default(cuid())
+  brandId   String
+  
+  name        String
+  slug        String
+  description String?
+  environment WorkspaceEnvironment @default(DEVELOPMENT)
+  
+  isDefault Boolean @default(false)
+  settings  Json?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  projects Project[]
+  
+  @@unique([brandId, slug])
+  @@index([brandId])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  brandId     String
+  workspaceId String?
+  
+  name        String
+  slug        String
+  description String?
+  type        ProjectType    @default(DESIGN)
+  status      ProjectStatus  @default(DRAFT)
+  
+  // Metadata
+  thumbnail String?
+  settings  Json?
+  metadata  Json?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  
+  // Relations
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  configurator3DConfigurations Configurator3DConfiguration[]
+  
+  @@unique([brandId, slug])
+  @@index([brandId])
+  @@index([workspaceId])
+  @@index([type])
+  @@index([status])
+}
+
+// ========================================
+// CONFIGURATOR 3D
+// ========================================
+
+model Configurator3DConfiguration {
+  id        String   @id @default(cuid())
+  brandId   String
+  productId String?
+  projectId String?
+  
+  name        String
+  description String?
+  
+  // 3D Model
+  modelUrl     String?
+  thumbnailUrl String?
+  
+  // Settings
+  settings Json?
+  
+  isActive  Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  project  Project? @relation(fields: [projectId], references: [id])
+  options  Configurator3DOption[]
+  sessions Configurator3DSession[]
+  
+  @@index([brandId])
+  @@index([productId])
+  @@index([projectId])
+  @@index([isActive])
+}
+
+model Configurator3DOption {
+  id              String   @id @default(cuid())
+  configurationId String
+  
+  name        String
+  type        Configurator3DOptionType
+  description String?
+  
+  // Values
+  value       String?
+  values      Json?
+  defaultValue String?
+  
+  // Display
+  sortOrder   Int @default(0)
+  isRequired  Boolean @default(false)
+  
+  // Pricing
+  priceDelta  Int @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  
+  @@index([configurationId])
+  @@index([type])
+}
+
+model Configurator3DSession {
+  id              String   @id @default(cuid())
+  configurationId String
+  userId          String?
+  
+  status Configurator3DSessionStatus @default(ACTIVE)
+  
+  // Session data
+  selectedOptions Json?
+  previewUrl      String?
+  
+  // Metadata
+  deviceInfo String?
+  ipAddress  String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime?
+  
+  // Relations
+  configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  
+  @@index([configurationId])
+  @@index([userId])
+  @@index([status])
 }

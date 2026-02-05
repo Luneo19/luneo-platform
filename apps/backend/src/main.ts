@@ -539,42 +539,74 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
     
-    // CORS - Gérer manuellement AVANT tous les autres middlewares pour éviter les conflits
-    const corsOrigin = configService.get('app.corsOrigin') || '*';
-    const allowedOrigins = corsOrigin.includes(',') 
-      ? corsOrigin.split(',').map(o => o.trim()).filter(Boolean)
-      : corsOrigin === '*' ? ['*'] : [corsOrigin];
+    // CORS - Configuration sécurisée avec liste d'origines explicites
+    // IMPORTANT: Ne JAMAIS utiliser '*' en production avec credentials
+    const corsOriginEnv = configService.get('app.corsOrigin') || '';
+    const nodeEnv = configService.get('app.nodeEnv') || 'development';
     
-    logger.log(`CORS: Configuré avec ${allowedOrigins.length} origines: ${allowedOrigins.join(', ')}`);
+    // Définir les origines autorisées explicitement
+    const productionOrigins = [
+      'https://app.luneo.app',
+      'https://luneo.app',
+      'https://www.luneo.app',
+      'https://api.luneo.app',
+    ];
+    
+    const developmentOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+    ];
+    
+    // Combiner les origines selon l'environnement
+    let allowedOrigins: string[] = [];
+    
+    if (nodeEnv === 'production') {
+      // En production: origines de production + origines de l'env var (si spécifiées)
+      allowedOrigins = [...productionOrigins];
+      if (corsOriginEnv && corsOriginEnv !== '*') {
+        const envOrigins = corsOriginEnv.split(',').map(o => o.trim()).filter(Boolean);
+        allowedOrigins = [...new Set([...allowedOrigins, ...envOrigins])];
+      }
+    } else {
+      // En développement: toutes les origines + origines de l'env var
+      allowedOrigins = [...productionOrigins, ...developmentOrigins];
+      if (corsOriginEnv && corsOriginEnv !== '*') {
+        const envOrigins = corsOriginEnv.split(',').map(o => o.trim()).filter(Boolean);
+        allowedOrigins = [...new Set([...allowedOrigins, ...envOrigins])];
+      }
+    }
+    
+    logger.log(`CORS: Environnement ${nodeEnv}, ${allowedOrigins.length} origines autorisées`);
+    logger.debug(`CORS Origins: ${allowedOrigins.join(', ')}`);
     
   // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
   server.use((req, res, next): void => {
     const origin = req.headers.origin;
     
-    // Déterminer l'origine autorisée
-    let allowedOrigin: string | null = null;
-    if (allowedOrigins.includes('*')) {
-      allowedOrigin = '*';
-    } else if (origin && allowedOrigins.includes(origin)) {
-      allowedOrigin = origin;
-    } else if (origin && allowedOrigins.some(allowed => origin === allowed)) {
-      allowedOrigin = origin;
-    }
+    // Vérifier si l'origine est autorisée
+    const isAllowed = origin && allowedOrigins.includes(origin);
     
-    // Ne définir le header QUE si une origine est autorisée
-    if (allowedOrigin) {
-      // Supprimer tout header CORS existant pour éviter les doublons
+    if (isAllowed) {
       res.removeHeader('Access-Control-Allow-Origin');
-      res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+      res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Request-Time, x-request-time');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Request-Time, x-request-time, X-Request-Id');
       res.setHeader('Access-Control-Max-Age', '86400');
+    } else if (origin && nodeEnv === 'production') {
+      // Logger les tentatives d'accès non autorisées en production
+      logger.warn(`CORS: Origine non autorisée bloquée: ${origin}`);
     }
     
     // Gérer les requêtes OPTIONS (preflight) - répondre AVANT NestJS
     if (req.method === 'OPTIONS') {
-      res.status(204).end();
+      if (isAllowed) {
+        res.status(204).end();
+      } else {
+        res.status(403).json({ error: 'CORS origin not allowed' });
+      }
       return;
     }
     

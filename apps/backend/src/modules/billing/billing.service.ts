@@ -1,20 +1,122 @@
 import { CreditsService } from '@/libs/credits/credits.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type Stripe from 'stripe';
 
+// Map des Price IDs validés au démarrage
+interface ValidatedPriceIds {
+  starter: { monthly: string; yearly: string };
+  professional: { monthly: string; yearly: string };
+  business: { monthly: string; yearly: string };
+  enterprise: { monthly: string; yearly: string };
+}
+
 @Injectable()
-export class BillingService {
+export class BillingService implements OnModuleInit {
   private readonly logger = new Logger(BillingService.name);
   private stripeInstance: Stripe | null = null;
   private stripeModule: typeof import('stripe') | null = null;
+  private validatedPriceIds: ValidatedPriceIds | null = null;
+  private stripeConfigValid = false;
 
   constructor(
     private configService: ConfigService,
     private creditsService: CreditsService,
     private prisma: PrismaService,
   ) {}
+
+  /**
+   * Valide la configuration Stripe au démarrage
+   * HOTFIX-004: Validation obligatoire des Price IDs
+   */
+  async onModuleInit() {
+    const nodeEnv = this.configService.get<string>('app.nodeEnv') || 'development';
+    
+    this.logger.log('🔧 Validating Stripe configuration...');
+    
+    try {
+      // Vérifier que STRIPE_SECRET_KEY est configuré
+      const secretKey = this.configService.get<string>('stripe.secretKey');
+      if (!secretKey) {
+        if (nodeEnv === 'production') {
+          this.logger.error('❌ STRIPE_SECRET_KEY is required in production');
+          throw new Error('STRIPE_SECRET_KEY is required');
+        }
+        this.logger.warn('⚠️ STRIPE_SECRET_KEY not configured - Stripe features disabled');
+        return;
+      }
+
+      // Récupérer les Price IDs depuis la configuration
+      const priceIds = {
+        starter: {
+          monthly: this.configService.get<string>('stripe.priceStarterMonthly'),
+          yearly: this.configService.get<string>('stripe.priceStarterYearly'),
+        },
+        professional: {
+          monthly: this.configService.get<string>('stripe.priceProMonthly'),
+          yearly: this.configService.get<string>('stripe.priceProYearly'),
+        },
+        business: {
+          monthly: this.configService.get<string>('stripe.priceBusinessMonthly'),
+          yearly: this.configService.get<string>('stripe.priceBusinessYearly'),
+        },
+        enterprise: {
+          monthly: this.configService.get<string>('stripe.priceEnterpriseMonthly'),
+          yearly: this.configService.get<string>('stripe.priceEnterpriseYearly'),
+        },
+      };
+
+      // Vérifier que tous les Price IDs sont configurés
+      const missingIds: string[] = [];
+      for (const [plan, intervals] of Object.entries(priceIds)) {
+        if (!intervals.monthly) missingIds.push(`stripe.price${plan.charAt(0).toUpperCase() + plan.slice(1)}Monthly`);
+        if (!intervals.yearly) missingIds.push(`stripe.price${plan.charAt(0).toUpperCase() + plan.slice(1)}Yearly`);
+      }
+
+      if (missingIds.length > 0) {
+        if (nodeEnv === 'production') {
+          this.logger.error(`❌ Missing Stripe Price IDs: ${missingIds.join(', ')}`);
+          throw new Error(`Missing Stripe Price IDs: ${missingIds.join(', ')}`);
+        }
+        this.logger.warn(`⚠️ Missing Stripe Price IDs (using test fallbacks): ${missingIds.join(', ')}`);
+      }
+
+      // En production, valider que les Price IDs existent dans Stripe
+      if (nodeEnv === 'production') {
+        const stripe = await this.getStripe();
+        
+        for (const [plan, intervals] of Object.entries(priceIds)) {
+          for (const [interval, priceId] of Object.entries(intervals)) {
+            if (priceId) {
+              try {
+                const price = await stripe.prices.retrieve(priceId);
+                if (!price.active) {
+                  this.logger.warn(`⚠️ Stripe Price ID ${priceId} (${plan}/${interval}) is inactive`);
+                }
+                this.logger.debug(`✓ Validated ${plan}/${interval}: ${priceId}`);
+              } catch (error: any) {
+                this.logger.error(`❌ Invalid Stripe Price ID: ${priceId} (${plan}/${interval}) - ${error.message}`);
+                throw new Error(`Invalid Stripe Price ID for ${plan}/${interval}: ${priceId}`);
+              }
+            }
+          }
+        }
+        
+        this.validatedPriceIds = priceIds as ValidatedPriceIds;
+        this.logger.log('✅ All Stripe Price IDs validated successfully');
+      }
+
+      this.stripeConfigValid = true;
+      this.logger.log('✅ Stripe configuration validated');
+    } catch (error: any) {
+      if (nodeEnv === 'production') {
+        this.logger.error(`❌ Stripe configuration validation failed: ${error.message}`);
+        throw error;
+      }
+      this.logger.warn(`⚠️ Stripe configuration validation skipped in ${nodeEnv}: ${error.message}`);
+    }
+  }
 
   /**
    * Lazy load Stripe module to reduce cold start time
@@ -49,7 +151,13 @@ export class BillingService {
       addOns?: Array<{ type: string; quantity: number }>;
     },
   ) {
-    // ✅ Validation
+    // ✅ Vérifier que Stripe est configuré
+    const nodeEnv = this.configService.get<string>('app.nodeEnv') || 'development';
+    if (!this.stripeConfigValid && nodeEnv === 'production') {
+      throw new Error('Stripe is not properly configured. Please contact support.');
+    }
+
+    // ✅ Validation des paramètres
     if (!planId || typeof planId !== 'string' || planId.trim().length === 0) {
       throw new Error('Plan ID is required');
     }
@@ -64,25 +172,34 @@ export class BillingService {
 
     const billingInterval = options?.billingInterval || 'monthly';
 
-    // ✅ Obtenir les Price IDs Stripe depuis la config (avec fallback vers les IDs de test)
-    const planPriceIds: Record<string, { monthly: string | null; yearly: string | null }> = {
-      starter: {
-        monthly: this.configService.get<string>('stripe.priceStarterMonthly') || 'price_1SxN49KG9MsM6fdSQBimFF2p',
-        yearly: this.configService.get<string>('stripe.priceStarterYearly') || 'price_1SxN4GKG9MsM6fdSvd3MdQsg',
-      },
-      professional: {
-        monthly: this.configService.get<string>('stripe.priceProMonthly') || 'price_1SqKzdKG9MsM6fdSAZZrmTXO',
-        yearly: this.configService.get<string>('stripe.priceProYearly') || 'price_1SqKzdKG9MsM6fdSiLDDW6Ui',
-      },
-      business: {
-        monthly: this.configService.get<string>('stripe.priceBusinessMonthly') || 'price_1SqKzeKG9MsM6fdS4Er2R29w',
-        yearly: this.configService.get<string>('stripe.priceBusinessYearly') || 'price_1SqKzeKG9MsM6fdSxaatQloI',
-      },
-      enterprise: {
-        monthly: this.configService.get<string>('stripe.priceEnterpriseMonthly') || 'price_1SxN4OKG9MsM6fdSxskfUHbG',
-        yearly: this.configService.get<string>('stripe.priceEnterpriseYearly') || 'price_1SxN4PKG9MsM6fdShT8bgtxM',
-      },
-    };
+    // ✅ Utiliser les Price IDs validés en production, sinon fallback pour dev/test
+    let planPriceIds: Record<string, { monthly: string | null; yearly: string | null }>;
+    
+    if (this.validatedPriceIds) {
+      // En production: utiliser les IDs validés au démarrage
+      planPriceIds = this.validatedPriceIds as unknown as Record<string, { monthly: string; yearly: string }>;
+    } else {
+      // En dev/test: utiliser les IDs de configuration avec fallbacks de test
+      // NOTE: Les fallbacks sont uniquement pour le développement local
+      planPriceIds = {
+        starter: {
+          monthly: this.configService.get<string>('stripe.priceStarterMonthly') || 'price_test_starter_monthly',
+          yearly: this.configService.get<string>('stripe.priceStarterYearly') || 'price_test_starter_yearly',
+        },
+        professional: {
+          monthly: this.configService.get<string>('stripe.priceProMonthly') || 'price_test_pro_monthly',
+          yearly: this.configService.get<string>('stripe.priceProYearly') || 'price_test_pro_yearly',
+        },
+        business: {
+          monthly: this.configService.get<string>('stripe.priceBusinessMonthly') || 'price_test_business_monthly',
+          yearly: this.configService.get<string>('stripe.priceBusinessYearly') || 'price_test_business_yearly',
+        },
+        enterprise: {
+          monthly: this.configService.get<string>('stripe.priceEnterpriseMonthly') || 'price_test_enterprise_monthly',
+          yearly: this.configService.get<string>('stripe.priceEnterpriseYearly') || 'price_test_enterprise_yearly',
+        },
+      };
+    }
 
     const priceId = billingInterval === 'yearly'
       ? planPriceIds[planId]?.yearly

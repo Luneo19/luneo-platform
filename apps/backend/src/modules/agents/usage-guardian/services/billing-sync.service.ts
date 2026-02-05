@@ -123,9 +123,12 @@ export class BillingSyncService {
     await this.prisma.aIUsageLog.create({
       data: {
         brandId,
+        userId: 'system', // System-generated overage record
         operation: 'overage',
         model: 'overage',
         provider: 'system',
+        promptTokens: 0,
+        completionTokens: 0,
         inputTokens: 0,
         outputTokens: 0,
         totalTokens: overageTokens,

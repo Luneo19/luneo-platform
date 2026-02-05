@@ -114,7 +114,7 @@ services:
       - DATABASE_URL=postgresql://luneo_user:$POSTGRES_PASSWORD@postgres:5432/luneo_prod
       - JWT_SECRET=luneo_jwt_secret_2024_production_secure
       - JWT_REFRESH_SECRET=luneo_refresh_secret_2024_production_secure
-      - SENDGRID_API_KEY=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
+      - SENDGRID_API_KEY=\${SENDGRID_API_KEY}
       - SENDGRID_DOMAIN=luneo.app
       - SMTP_FROM=Luneo <no-reply@luneo.app>
 

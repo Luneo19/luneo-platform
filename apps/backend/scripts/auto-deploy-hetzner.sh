@@ -302,7 +302,7 @@ services:
       - REDIS_URL=redis://:$POSTGRES_PASSWORD@redis:6379
       - JWT_SECRET=Luneo2024SuperSecretJWTKey32Chars!
       - JWT_REFRESH_SECRET=Luneo2024SuperSecretRefreshKey32Chars!
-      - SENDGRID_API_KEY=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
+      - SENDGRID_API_KEY=\${SENDGRID_API_KEY}
       - SENDGRID_DOMAIN=luneo.app
       - SENDGRID_FROM_NAME=Luneo
       - SENDGRID_FROM_EMAIL=no-reply@luneo.app

@@ -117,8 +117,8 @@ CLOUDINARY_API_SECRET=""
 OPENAI_API_KEY=""
 REPLICATE_API_TOKEN=""
 
-# SendGrid Configuration (DÉJÀ CONFIGURÉ)
-SENDGRID_API_KEY="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"
+# SendGrid Configuration (REQUIRED - set via environment variable)
+SENDGRID_API_KEY="\${SENDGRID_API_KEY:?'SENDGRID_API_KEY environment variable is required'}"
 SENDGRID_DOMAIN="luneo.app"
 SENDGRID_FROM_NAME="Luneo"
 SENDGRID_FROM_EMAIL="no-reply@luneo.app"

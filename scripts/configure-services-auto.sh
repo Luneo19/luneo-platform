@@ -66,12 +66,20 @@ write_env_var "CLOUDINARY_API_SECRET" "$CLOUDINARY_API_SECRET"
 echo -e "${GREEN}   ✅ Configuré${NC}"
 echo ""
 
-# 2. SENDGRID (Déjà configuré)
+# 2. SENDGRID (À configurer manuellement)
 echo -e "${BLUE}2. SendGrid...${NC}"
-SENDGRID_API_KEY="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"
+current_sendgrid=$(read_env_var "SENDGRID_API_KEY")
 
-write_env_var "SENDGRID_API_KEY" "$SENDGRID_API_KEY"
-echo -e "${GREEN}   ✅ Configuré${NC}"
+if [ -z "$current_sendgrid" ] || [[ "$current_sendgrid" == *"your-"* ]]; then
+    echo -e "${YELLOW}   ⚠️  Non configuré${NC}"
+    echo -e "${YELLOW}   📋 Pour configurer:${NC}"
+    echo -e "${YELLOW}      1. Créer compte: https://sendgrid.com${NC}"
+    echo -e "${YELLOW}      2. Créer API Key${NC}"
+    echo -e "${YELLOW}      3. Exécuter:${NC}"
+    echo -e "${CYAN}         echo 'SENDGRID_API_KEY=\"SG.xxx\"' >> ${ENV_FILE}${NC}"
+else
+    echo -e "${GREEN}   ✅ Déjà configuré${NC}"
+fi
 echo ""
 
 # 3. UPSTASH REDIS (À configurer manuellement)

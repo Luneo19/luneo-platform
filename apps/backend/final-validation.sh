@@ -44,12 +44,16 @@ const transporter = nodemailer.createTransport({
   host: 'smtp.sendgrid.net',
   port: 587,
   secure: false,
-  auth: { user: 'apikey', pass: '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' }
+  auth: { user: 'apikey', pass: process.env.SENDGRID_API_KEY }
 });
-transporter.verify((error, success) => {
-  if (error) console.log('❌ Erreur:', error.message);
-  else console.log('✅ SendGrid opérationnel');
-});
+if (!process.env.SENDGRID_API_KEY) {
+  console.log('⚠️ SENDGRID_API_KEY not configured');
+} else {
+  transporter.verify((error, success) => {
+    if (error) console.log('❌ Erreur:', error.message);
+    else console.log('✅ SendGrid opérationnel');
+  });
+}
 \""
 echo ""
 

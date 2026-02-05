@@ -340,16 +340,16 @@ export class AnalyticsService {
           messageCount: analytics.messageCount,
           totalTokens: analytics.totalTokens,
           totalCostCents: analytics.totalCostCents,
-          avgLatencyMs: analytics.avgLatencyMs,
-          errorCount: analytics.errorCount,
+          averageLatencyMs: analytics.avgLatencyMs,
+          errorRate: analytics.errorCount > 0 ? analytics.errorCount / (analytics.conversationCount || 1) : 0,
         },
         update: {
           conversationCount: analytics.conversationCount,
           messageCount: analytics.messageCount,
           totalTokens: analytics.totalTokens,
           totalCostCents: analytics.totalCostCents,
-          avgLatencyMs: analytics.avgLatencyMs,
-          errorCount: analytics.errorCount,
+          averageLatencyMs: analytics.avgLatencyMs,
+          errorRate: analytics.errorCount > 0 ? analytics.errorCount / (analytics.conversationCount || 1) : 0,
         },
       });
     } catch (error) {
