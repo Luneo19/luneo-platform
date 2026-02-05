@@ -11,8 +11,9 @@
     "src/modules/configurator-3d/**/*",
     "src/modules/visual-customizer/**/*",
     "src/modules/asset-hub/**/*",
-    "src/modules/agents/ai-monitor/**/*",
-    "src/modules/agents/usage-guardian/**/*",
-    "src/modules/observability/services/dr.service.ts"
+    "src/modules/agents/**/*",
+    "src/modules/observability/**/*",
+    "src/modules/analytics/services/predictive.service.ts",
+    "src/modules/analytics/controllers/predictive.controller.ts"
   ]
 }

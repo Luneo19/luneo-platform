@@ -19,7 +19,7 @@ import { AnalyticsController } from './controllers/analytics.controller';
 import { AnalyticsAdvancedController } from './controllers/analytics-advanced.controller';
 // import { AdvancedAnalyticsController } from './controllers/advanced-analytics.controller'; // File not found
 import { AnalyticsExportController } from './controllers/export.controller';
-import { PredictiveController } from './controllers/predictive.controller';
+// import { PredictiveController } from './controllers/predictive.controller'; // Temporairement désactivé - dépend de AgentsModule
 import { ReportsController } from './controllers/reports.controller';
 import { WebVitalsController } from './controllers/web-vitals.controller';
 
@@ -31,7 +31,7 @@ import { AnalyticsAdvancedService } from './services/analytics-advanced.service'
 import { AdvancedAnalyticsService } from './services/advanced-analytics.service';
 import { AnalyticsExportService } from './services/export.service';
 import { AnalyticsCalculationsService } from './services/analytics-calculations.service';
-import { PredictiveService } from './services/predictive.service';
+// import { PredictiveService } from './services/predictive.service'; // Temporairement désactivé - dépend de AgentsModule
 import { ReportsService } from './services/reports.service';
 import { MetricsService } from './services/metrics.service';
 import { WebVitalsService } from './services/web-vitals.service';
@@ -41,7 +41,7 @@ import { MLPredictionService } from './services/ml-prediction.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { StorageModule } from '@/libs/storage/storage.module';
-import { AgentsModule } from '@/modules/agents/agents.module';
+// import { AgentsModule } from '@/modules/agents/agents.module'; // Temporairement désactivé - AgentsModule désactivé
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
 
 @Module({
@@ -71,14 +71,14 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
         },
       },
     ),
-    forwardRef(() => AgentsModule), // Pour LLMRouterService - utiliser forwardRef pour éviter dépendance circulaire
+    // forwardRef(() => AgentsModule), // Temporairement désactivé - AgentsModule désactivé
   ],
   controllers: [
     AnalyticsController,
     AnalyticsAdvancedController,
     // AdvancedAnalyticsController, // File not found
     AnalyticsExportController,
-    PredictiveController,
+    // PredictiveController, // Temporairement désactivé - dépend de AgentsModule
     ReportsController,
     WebVitalsController,
   ],
@@ -90,7 +90,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     AdvancedAnalyticsService,
     AnalyticsExportService,
     AnalyticsCalculationsService,
-    PredictiveService,
+    // PredictiveService, // Temporairement désactivé - dépend de AgentsModule
     ReportsService,
     MetricsService,
     WebVitalsService,
@@ -104,7 +104,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     AdvancedAnalyticsService,
     AnalyticsExportService,
     AnalyticsCalculationsService,
-    PredictiveService,
+    // PredictiveService, // Temporairement désactivé - dépend de AgentsModule
     ReportsService,
     MetricsService,
     WebVitalsService,

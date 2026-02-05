@@ -33,6 +33,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface DiscountResult {
+  discountId?: string;
   discountCents: number;
   discountPercent: number;
   code: string;
@@ -148,6 +149,7 @@ export class DiscountService {
     this.logger.log(`Applied discount code ${normalizedCode}: ${discountCents} cents off`);
 
     return {
+      discountId: discount.id,
       discountCents,
       discountPercent: discount.type === 'PERCENTAGE' ? discount.value : 0,
       code: normalizedCode,

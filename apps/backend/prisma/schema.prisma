@@ -639,6 +639,12 @@ model Design {
 
   // Collections
   collectionItems DesignCollectionItem[]
+  
+  // IP Claims / Blocking
+  isBlocked         Boolean   @default(false)
+  blockedReason     String?
+  blockedAt         DateTime?
+  blockedByClaimId  String?
 
   @@index([userId])
   @@index([brandId])
@@ -648,6 +654,7 @@ model Design {
   @@index([createdAt])
   @@index([specId]) // NOUVEAU
   @@index([brandId, status]) // NOUVEAU: Composite
+  @@index([isBlocked])
 }
 
 // ========================================
@@ -747,8 +754,13 @@ model Order {
   quotes         Quote[]
 
   // Discount & Referral
-  discountUsages DiscountUsage[]
-  commissions    Commission[]
+  discountUsages    DiscountUsage[]
+  commissions       Commission[]
+  
+  // Commission tracking
+  commissionPercent Float?
+  commissionCents   Int?
+  discountId        String?
 
   @@index([userId])
   @@index([brandId])
@@ -3926,82 +3938,117 @@ model SLATicket {
 model AIQuota {
   id        String   @id @default(cuid())
   userId    String   @unique
+  brandId   String?  @unique
+  planId    String?
   
   // Limits
-  dailyLimit    Int @default(100)
-  monthlyLimit  Int @default(3000)
+  dailyLimit       Int @default(100)
+  monthlyLimit     Int @default(3000)
+  tokenLimit       Int @default(1000000)
+  requestLimit     Int @default(10000)
+  totalLimit       Int @default(100000)
+  limitType        String @default("requests")
+  limitValue       Int @default(1000)
+  monthlyTokens    Int @default(1000000)
+  monthlyRequests  Int @default(10000)
   
   // Usage
   dailyUsed     Int @default(0)
   monthlyUsed   Int @default(0)
+  usedTokens    Int @default(0)
+  usedRequests  Int @default(0)
+  totalUsed     Int @default(0)
   
   // Reset timestamps
-  dailyResetAt  DateTime @default(now())
+  dailyResetAt   DateTime @default(now())
   monthlyResetAt DateTime @default(now())
+  resetAt        DateTime @default(now())
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   @@index([userId])
+  @@index([brandId])
+  @@index([planId])
 }
 
 model AIUsageLog {
   id        String   @id @default(cuid())
   userId    String
+  brandId   String?
+  agentId   String?
+  
+  // Provider info
+  provider    String?
+  model       String
   
   // Request details
-  model       String
-  promptTokens Int
+  promptTokens     Int
   completionTokens Int
-  totalTokens Int
-  costCents   Int @default(0)
+  totalTokens      Int
+  costCents        Int @default(0)
+  latencyMs        Int @default(0)
   
   // Metadata
-  requestType String?
-  success     Boolean @default(true)
+  requestType  String?
+  success      Boolean @default(true)
   errorMessage String?
+  metadata     Json?
   
   createdAt DateTime @default(now())
   
   @@index([userId])
+  @@index([brandId])
+  @@index([agentId])
   @@index([createdAt])
   @@index([model])
+  @@index([provider])
 }
 
 model AIAnalytics {
   id        String   @id @default(cuid())
+  brandId   String?
+  agentId   String?
   
   // Aggregated data
   date        DateTime @db.Date
-  totalRequests Int @default(0)
-  totalTokens   Int @default(0)
-  totalCostCents Int @default(0)
-  averageLatencyMs Int @default(0)
-  errorRate     Float @default(0)
+  totalRequests     Int @default(0)
+  totalTokens       Int @default(0)
+  totalCostCents    Int @default(0)
+  averageLatencyMs  Int @default(0)
+  errorRate         Float @default(0)
+  conversationCount Int @default(0)
   
   // By model breakdown (JSON)
-  modelBreakdown Json?
+  modelBreakdown    Json?
+  providerBreakdown Json?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@unique([date])
+  @@unique([brandId, agentId, date])
   @@index([date])
+  @@index([brandId])
+  @@index([agentId])
 }
 
 model AIRateLimit {
   id        String   @id @default(cuid())
-  userId    String
+  userId    String?
+  brandId   String?
   
   // Rate limit data
-  windowStart DateTime
+  windowStart  DateTime
   requestCount Int @default(0)
+  tokenCount   Int @default(0)
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   @@unique([userId, windowStart])
+  @@unique([brandId, userId, windowStart])
   @@index([userId])
+  @@index([brandId])
   @@index([windowStart])
 }
 
@@ -4015,8 +4062,14 @@ model ARIntegration {
   
   // Platform config
   platform    String // 'web', 'ios', 'android'
+  name        String
   apiKey      String?
+  apiSecret   String?
   webhookUrl  String?
+  
+  // Sync status
+  lastSyncAt  DateTime?
+  syncStatus  String @default("idle")
   
   // Settings
   isActive    Boolean @default(true)
@@ -4032,25 +4085,31 @@ model ARIntegration {
 
 model SyncHistory {
   id        String   @id @default(cuid())
+  integrationId String
   
   // Sync details
-  entityType  String
-  entityId    String
+  entityType  String?
+  entityId    String?
+  syncType    String?
   status      String @default("pending")
+  
+  // Results
+  itemsSynced      Int @default(0)
+  recordsProcessed Int @default(0)
+  errors           Json?
+  errorMessage     String?
+  metadata         Json?
   
   // Timestamps
   startedAt   DateTime @default(now())
   completedAt DateTime?
   
-  // Results
-  recordsProcessed Int @default(0)
-  errorMessage     String?
-  metadata         Json?
-  
   createdAt DateTime @default(now())
   
+  @@index([integrationId])
   @@index([entityType])
   @@index([entityId])
+  @@index([syncType])
   @@index([status])
   @@index([startedAt])
 }
@@ -4068,7 +4127,8 @@ model WebhookDelivery {
   payload     Json
   
   // Response
-  statusCode  Int?
+  statusCode   Int?
+  responseCode Int?
   responseBody String? @db.Text
   
   // Status
@@ -4099,7 +4159,9 @@ model BackupRecord {
   
   // Storage
   storagePath String?
+  location    String?
   sizeBytes   BigInt @default(0)
+  size        Int    @default(0)
   
   // Checksums
   checksum    String?
@@ -4109,9 +4171,10 @@ model BackupRecord {
   completedAt DateTime?
   expiresAt   DateTime?
   
-  // Metadata
-  metadata    Json?
+  // Metadata & Errors
+  metadata     Json?
   errorMessage String?
+  error        String?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4130,18 +4193,20 @@ model RestoreDrillRecord {
   status      String @default("pending")
   
   // Results
-  tablesRestored Int @default(0)
+  tablesRestored  Int @default(0)
   recordsVerified Int @default(0)
-  discrepancies  Json?
+  discrepancies   Json?
+  duration        Int?
   
   // Timestamps
   startedAt   DateTime @default(now())
   completedAt DateTime?
   
-  // Metadata
-  performedBy String?
-  notes       String? @db.Text
+  // Metadata & Errors
+  performedBy  String?
+  notes        String? @db.Text
   errorMessage String?
+  error        String?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
