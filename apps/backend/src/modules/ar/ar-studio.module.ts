@@ -6,6 +6,7 @@
 
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 import { ArStudioController } from './ar-studio.controller';
 import { ArStudioService } from './ar-studio.service';
 import { ArIntegrationsController } from './controllers/ar-integrations.controller';
@@ -16,7 +17,7 @@ import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { StorageModule } from '@/libs/storage/storage.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, StorageModule],
+  imports: [PrismaModule, ConfigModule, StorageModule, HttpModule],
   controllers: [
     ArStudioController,
     ArIntegrationsController,
