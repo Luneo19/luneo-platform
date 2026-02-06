@@ -2,7 +2,7 @@
   "buildCommand": "cd apps/frontend && pnpm run build",
   "outputDirectory": "apps/frontend/.next",
   "framework": "nextjs",
-  "installCommand": "npm install -g pnpm && pnpm install --no-frozen-lockfile && cd apps/frontend && npx prisma generate",
+  "installCommand": "pnpm install --filter luneo-frontend... --ignore-scripts --no-frozen-lockfile && cd apps/frontend && npx prisma generate",
   "headers": [
     {
       "source": "/images/(.*)",
