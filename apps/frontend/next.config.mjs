@@ -14,15 +14,15 @@ const withBundleAnalyzer = bundleAnalyzer({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Production optimizations
-  // Note: 'standalone' output is not recommended for Vercel deployments
-  // Vercel's native Next.js build system is optimized for serverless functions
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
-  output: 'standalone',
+  // Note: 'standalone' output is not recommended for Vercel deployments
+  // Only use standalone for Docker/Railway deployments
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   // Fix monorepo detection
   // Note: outputFileTracingRoot can cause routing issues on Vercel
   // Commented out to let Vercel handle file tracing automatically
