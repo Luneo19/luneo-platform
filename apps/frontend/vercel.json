@@ -1,7 +1,5 @@
 {
   "framework": "nextjs",
-  "installCommand": "cd ../.. && pnpm install --ignore-scripts && cd apps/frontend && npx prisma generate",
-  "buildCommand": "pnpm run build",
   "headers": [
     {
       "source": "/_next/static/(.*)",
