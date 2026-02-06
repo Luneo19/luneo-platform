@@ -151,7 +151,7 @@ export function Navigation() {
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {activeDropdown === 'product' && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-[1001]">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4">{megaMenu.product.title}</h3>
                     <ul className="space-y-3">
                       {megaMenu.product.links.map((link) => (
@@ -188,7 +188,7 @@ export function Navigation() {
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {activeDropdown === 'solutions' && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-[1001]">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4">{megaMenu.solutions.title}</h3>
                     <ul className="space-y-3">
                       {megaMenu.solutions.links.map((link) => (
@@ -225,7 +225,7 @@ export function Navigation() {
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {activeDropdown === 'resources' && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-[1001]">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4">{megaMenu.resources.title}</h3>
                     <ul className="space-y-3">
                       {megaMenu.resources.links.map((link) => (

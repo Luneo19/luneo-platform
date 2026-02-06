@@ -299,6 +299,16 @@ const nextConfig = {
     ];
   },
 
+  // Rewrites - Handle legacy paths
+  async rewrites() {
+    return [
+      {
+        source: '/manifest.json',
+        destination: '/manifest.webmanifest',
+      },
+    ];
+  },
+
   // Redirects - Éviter les 404
   async redirects() {
     return [
