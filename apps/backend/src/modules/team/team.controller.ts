@@ -35,6 +35,28 @@ export class TeamController {
     return this.teamService.findAll(req.user.brandId || req.user.id);
   }
 
+  @Post('invite')
+  @ApiOperation({ summary: 'Inviter un nouveau membre' })
+  @ApiResponse({ status: 201, description: 'Invitation créée' })
+  async invite(@Body() inviteDto: { email: string; role?: string }, @Request() req) {
+    return this.teamService.invite(inviteDto, req.user.brandId || req.user.id, req.user.id);
+  }
+
+  @Get('invite')
+  @ApiOperation({ summary: 'Lister toutes les invitations' })
+  @ApiResponse({ status: 200, description: 'Liste des invitations' })
+  async getInvites(@Request() req) {
+    return this.teamService.getInvites(req.user.brandId || req.user.id);
+  }
+
+  @Delete('invite/:id')
+  @ApiOperation({ summary: 'Annuler une invitation' })
+  @ApiParam({ name: 'id', description: 'ID de l\'invitation' })
+  @ApiResponse({ status: 200, description: 'Invitation annulée' })
+  async cancelInvite(@Param('id') id: string, @Request() req) {
+    return this.teamService.cancelInvite(id, req.user.brandId || req.user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtenir un membre d\'équipe' })
   @ApiParam({ name: 'id', description: 'ID du membre' })
@@ -57,27 +79,5 @@ export class TeamController {
   @ApiResponse({ status: 200, description: 'Membre supprimé' })
   async delete(@Param('id') id: string, @Request() req) {
     return this.teamService.delete(id, req.user.brandId || req.user.id, req.user.id);
-  }
-
-  @Post('invite')
-  @ApiOperation({ summary: 'Inviter un nouveau membre' })
-  @ApiResponse({ status: 201, description: 'Invitation créée' })
-  async invite(@Body() inviteDto: { email: string; role?: string }, @Request() req) {
-    return this.teamService.invite(inviteDto, req.user.brandId || req.user.id, req.user.id);
-  }
-
-  @Get('invite')
-  @ApiOperation({ summary: 'Lister toutes les invitations' })
-  @ApiResponse({ status: 200, description: 'Liste des invitations' })
-  async getInvites(@Request() req) {
-    return this.teamService.getInvites(req.user.brandId || req.user.id);
-  }
-
-  @Delete('invite/:id')
-  @ApiOperation({ summary: 'Annuler une invitation' })
-  @ApiParam({ name: 'id', description: 'ID de l\'invitation' })
-  @ApiResponse({ status: 200, description: 'Invitation annulée' })
-  async cancelInvite(@Param('id') id: string, @Request() req) {
-    return this.teamService.cancelInvite(id, req.user.brandId || req.user.id);
   }
 }

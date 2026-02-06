@@ -136,11 +136,40 @@ export class OrdersController {
   @Post(':id/cancel')
   @ApiOperation({ summary: 'Annuler une commande' })
   @ApiParam({ name: 'id', description: 'ID de la commande' })
-  @ApiResponse({
-    status: 200,
-    description: 'Commande annulée',
-  })
+  @ApiResponse({ status: 200, description: 'Commande annulée' })
   async cancel(@Param('id') id: string, @Request() req) {
     return this.ordersService.cancel(id, req.user);
+  }
+
+  @Put(':id/status')
+  @ApiOperation({ summary: 'Mettre à jour le statut d\'une commande' })
+  @ApiParam({ name: 'id', description: 'ID de la commande' })
+  @ApiResponse({ status: 200, description: 'Statut mis à jour' })
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+    @Request() req,
+  ) {
+    return this.ordersService.updateStatus(id, body.status as any, req.user);
+  }
+
+  @Get(':id/tracking')
+  @ApiOperation({ summary: 'Obtenir le suivi d\'une commande' })
+  @ApiParam({ name: 'id', description: 'ID de la commande' })
+  @ApiResponse({ status: 200, description: 'Informations de suivi' })
+  async getTracking(@Param('id') id: string, @Request() req) {
+    return this.ordersService.getTracking(id, req.user);
+  }
+
+  @Post(':id/refund')
+  @ApiOperation({ summary: 'Demander un remboursement' })
+  @ApiParam({ name: 'id', description: 'ID de la commande' })
+  @ApiResponse({ status: 200, description: 'Demande de remboursement créée' })
+  async requestRefund(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Request() req,
+  ) {
+    return this.ordersService.requestRefund(id, body.reason, req.user);
   }
 }

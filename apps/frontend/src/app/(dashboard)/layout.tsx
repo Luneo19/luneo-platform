@@ -26,7 +26,7 @@ export default function DashboardLayoutGroup({
         if (!supabase || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
           // Use backend API auth check instead
           try {
-            const response = await fetch('/api/v1/auth/me');
+            const response = await fetch('/api/auth/me');
             if (!response.ok) {
               setIsAuthenticated(false);
               const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';

@@ -274,7 +274,7 @@ export const endpoints = {
   ai: {
     generate: (data: { prompt: string; productId: string; options?: Record<string, unknown> }) =>
       api.post<GenerateDesignResponse>('/api/v1/ai/generate', data),
-    status: (jobId: string) => api.get(`/api/v1/ai/status/${jobId}`),
+    status: (jobId: string) => api.get(`/api/v1/generation/${jobId}/status`),
   },
 
   // Orders
@@ -308,9 +308,9 @@ export const endpoints = {
   // Billing
   billing: {
     subscription: () => api.get('/api/v1/billing/subscription'),
-    plans: () => api.get('/api/v1/billing/plans'),
-    subscribe: (planId: string) => api.post('/api/v1/billing/subscribe', { planId }),
-    cancel: () => api.post('/api/v1/billing/cancel'),
+    plans: () => api.get('/api/v1/plans'),
+    subscribe: (planId: string, email?: string) => api.post('/api/v1/billing/create-checkout-session', { planId, email }),
+    cancel: () => api.post('/api/v1/billing/cancel-downgrade'),
     invoices: () => api.get('/api/v1/billing/invoices'),
     paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
   },

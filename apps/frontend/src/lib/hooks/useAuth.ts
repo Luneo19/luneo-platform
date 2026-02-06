@@ -151,10 +151,10 @@ export function useIsAuthenticated() {
 export function useOAuthLogin() {
   return {
     loginWithGoogle: () => {
-      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/google`;
     },
     loginWithGithub: () => {
-      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/github`;
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/github`;
     },
   };
 }
