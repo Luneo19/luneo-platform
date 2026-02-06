@@ -2,7 +2,7 @@
   "framework": "nextjs",
   "buildCommand": "cd apps/frontend && NODE_OPTIONS=--max_old_space_size=4096 pnpm run build",
   "outputDirectory": "apps/frontend/.next",
-  "installCommand": "pnpm install && cd apps/frontend && npx prisma generate",
+  "installCommand": "pnpm install --no-optional && cd apps/frontend && npx prisma generate",
   "headers": [
     {
       "source": "/_next/static/(.*)",
