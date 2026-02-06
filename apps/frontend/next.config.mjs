@@ -52,11 +52,11 @@ const nextConfig = {
         pathname: '/**',
       },
       // Cloudflare R2 / Custom CDN
-      ...(process.env.NEXT_PUBLIC_CDN_URL ? [{
+      ...(process.env.NEXT_PUBLIC_CDN_URL && process.env.NEXT_PUBLIC_CDN_URL.startsWith('http') ? [{
         protocol: 'https',
-        hostname: new URL(process.env.NEXT_PUBLIC_CDN_URL).hostname,
+        hostname: (() => { try { return new URL(process.env.NEXT_PUBLIC_CDN_URL).hostname; } catch { return null; } })(),
         pathname: '/**',
-      }] : []),
+      }].filter(p => p.hostname) : []),
     ],
     // Use Cloudinary loader if configured
     ...(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && {
