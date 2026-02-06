@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd apps/frontend && echo '=== Starting build ===' && ls -la && pnpm run build 2>&1 || (echo '=== Build failed ===' && exit 1)",
+  "buildCommand": "cd apps/frontend && pnpm run build",
   "outputDirectory": "apps/frontend/.next",
   "framework": "nextjs",
   "installCommand": "pnpm install --ignore-scripts && cd apps/frontend && npx prisma generate",
@@ -9,10 +9,6 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        },
-        {
-          "key": "CDN-Cache-Control",
           "value": "public, max-age=31536000, immutable"
         }
       ]
