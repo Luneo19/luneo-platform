@@ -134,8 +134,8 @@ const nextConfig = {
       );
     }
 
-    // Production optimizations
-    if (!dev && !isServer) {
+    // Production optimizations - disabled on Vercel for build performance
+    if (!dev && !isServer && !process.env.VERCEL) {
       config.optimization = {
         ...config.optimization,
         moduleIds: 'deterministic',
