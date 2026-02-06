@@ -142,6 +142,211 @@ export class BillingController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('change-plan')
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Changer de plan d\'abonnement',
+    description: `
+      Change le plan d'abonnement de l'utilisateur.
+      
+      **Upgrades**: Appliqués immédiatement avec prorata (l'utilisateur est facturé pour la différence).
+      **Downgrades**: Appliqués à la fin de la période de facturation courante (sauf si immediateChange=true).
+      
+      Le montant de prorata est calculé au prorata temporis en fonction du temps restant dans la période courante.
+    `
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Plan changé avec succès',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+        type: { type: 'string', enum: ['upgrade', 'downgrade', 'same'] },
+        effectiveDate: { type: 'string', format: 'date-time' },
+        prorationAmount: { type: 'number', description: 'Montant du prorata en centimes' },
+        prorationAmountFormatted: { type: 'string', description: 'Montant formaté (ex: 12,50 €)' },
+        message: { type: 'string' },
+        subscriptionId: { type: 'string' },
+        previousPlan: { type: 'string' },
+        newPlan: { type: 'string' },
+      }
+    }
+  })
+  async changePlan(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Body() body: {
+      planId: string;
+      billingInterval?: 'monthly' | 'yearly';
+      immediateChange?: boolean;
+    }
+  ) {
+    if (!body.planId) {
+      throw new BadRequestException('planId is required');
+    }
+    
+    const validPlans = ['starter', 'professional', 'business', 'enterprise'];
+    if (!validPlans.includes(body.planId.toLowerCase())) {
+      throw new BadRequestException(`Invalid planId. Must be one of: ${validPlans.join(', ')}`);
+    }
+
+    return this.billingService.changePlan(req.user.id, body.planId.toLowerCase(), {
+      billingInterval: body.billingInterval,
+      immediateChange: body.immediateChange,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('preview-plan-change')
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Prévisualiser un changement de plan',
+    description: 'Affiche le montant du prorata et les détails du changement avant de l\'appliquer.'
+  })
+  @ApiQuery({ name: 'planId', required: true, type: String, description: 'ID du nouveau plan' })
+  @ApiQuery({ name: 'interval', required: false, enum: ['monthly', 'yearly'], description: 'Intervalle de facturation' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Prévisualisation du changement de plan',
+    schema: {
+      properties: {
+        currentPlan: { type: 'string' },
+        newPlan: { type: 'string' },
+        type: { type: 'string', enum: ['upgrade', 'downgrade', 'same'] },
+        currentPrice: { type: 'number', description: 'Prix actuel en centimes' },
+        newPrice: { type: 'number', description: 'Nouveau prix en centimes' },
+        prorationAmount: { type: 'number', description: 'Montant du prorata en centimes' },
+        prorationAmountFormatted: { type: 'string' },
+        effectiveDate: { type: 'string', format: 'date-time' },
+        nextBillingDate: { type: 'string', format: 'date-time' },
+        currency: { type: 'string' },
+      }
+    }
+  })
+  async previewPlanChange(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Query('planId') planId: string,
+    @Query('interval') interval?: 'monthly' | 'yearly',
+  ) {
+    if (!planId) {
+      throw new BadRequestException('planId query parameter is required');
+    }
+    
+    return this.billingService.previewPlanChange(
+      req.user.id,
+      planId.toLowerCase(),
+      interval || 'monthly'
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('downgrade-impact')
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Vérifier l\'impact d\'un downgrade',
+    description: `
+      Analyse l'impact d'un downgrade sur les ressources et fonctionnalités de l'utilisateur.
+      
+      Retourne:
+      - Les ressources qui dépasseraient les nouvelles limites (produits, membres d'équipe, etc.)
+      - Les fonctionnalités qui seraient perdues
+      - Des recommandations pour préparer le downgrade
+    `
+  })
+  @ApiQuery({ name: 'planId', required: true, type: String, description: 'ID du nouveau plan cible' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Analyse d\'impact du downgrade',
+    schema: {
+      properties: {
+        hasImpact: { type: 'boolean' },
+        impactedResources: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              resource: { type: 'string' },
+              current: { type: 'number' },
+              newLimit: { type: 'number' },
+              excess: { type: 'number' },
+              action: { type: 'string', enum: ['archived', 'readonly', 'deleted_warning'] },
+              description: { type: 'string' },
+            }
+          }
+        },
+        lostFeatures: { type: 'array', items: { type: 'string' } },
+        recommendations: { type: 'array', items: { type: 'string' } },
+      }
+    }
+  })
+  async checkDowngradeImpact(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Query('planId') planId: string,
+  ) {
+    if (!planId) {
+      throw new BadRequestException('planId query parameter is required');
+    }
+    
+    return this.billingService.checkDowngradeImpact(req.user.id, planId.toLowerCase());
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('scheduled-changes')
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Voir les changements de plan programmés',
+    description: 'Retourne les informations sur un downgrade ou une annulation programmée.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Changements programmés',
+    schema: {
+      properties: {
+        hasScheduledChanges: { type: 'boolean' },
+        scheduledChanges: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['downgrade', 'cancel'] },
+            newPlan: { type: 'string' },
+            effectiveDate: { type: 'string', format: 'date-time' },
+            reason: { type: 'string' },
+          }
+        },
+        currentPlan: { type: 'string' },
+        currentStatus: { type: 'string' },
+      }
+    }
+  })
+  async getScheduledChanges(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    return this.billingService.getScheduledPlanChanges(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('cancel-downgrade')
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Annuler un downgrade programmé',
+    description: 'Annule un downgrade qui était programmé pour la fin de la période de facturation.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Downgrade annulé avec succès',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        currentPlan: { type: 'string' },
+      }
+    }
+  })
+  async cancelScheduledDowngrade(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    return this.billingService.cancelScheduledDowngrade(req.user.id);
+  }
+
   @Public()
   @Post('webhook')
   @HttpCode(HttpStatus.OK)

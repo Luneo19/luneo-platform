@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { AdvancedAnalyticsService } from '../services/advanced-analytics.service';
@@ -45,7 +45,7 @@ export class AnalyticsAdvancedController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('Brand ID required');
+      throw new BadRequestException('Brand ID required');
     }
 
     const stepsArray = steps.split(',').map((s) => s.trim());
@@ -83,7 +83,7 @@ export class AnalyticsAdvancedController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('Brand ID required');
+      throw new BadRequestException('Brand ID required');
     }
 
     const start = new Date(startDate);

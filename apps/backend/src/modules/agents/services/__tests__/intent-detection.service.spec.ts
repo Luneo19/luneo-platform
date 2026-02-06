@@ -22,6 +22,8 @@ describe('IntentDetectionService', () => {
     const mockCache = {
       get: jest.fn(),
       set: jest.fn(),
+      getSimple: jest.fn(),
+      setSimple: jest.fn(),
     };
 
     const mockMetrics = {
@@ -65,7 +67,7 @@ describe('IntentDetectionService', () => {
         reasoning: 'Cached',
       };
 
-      cache.get.mockResolvedValue(cachedResult);
+      cache.getSimple.mockResolvedValue(cachedResult);
 
       const result = await service.detectIntent(
         'Show me sales data',
@@ -79,7 +81,7 @@ describe('IntentDetectionService', () => {
     });
 
     it('should call LLM if not cached', async () => {
-      cache.get.mockResolvedValue(null);
+      cache.getSimple.mockResolvedValue(null);
       llmRouter.chat.mockResolvedValue({
         content: JSON.stringify({
           intent: 'analyze_sales',
@@ -106,11 +108,11 @@ describe('IntentDetectionService', () => {
       expect(result.intent).toBe('analyze_sales');
       expect(result.confidence).toBeGreaterThan(0);
       expect(metrics.recordCacheMiss).toHaveBeenCalled();
-      expect(cache.set).toHaveBeenCalled();
+      expect(cache.setSimple).toHaveBeenCalled();
     });
 
     it('should fallback to keyword detection on LLM error', async () => {
-      cache.get.mockResolvedValue(null);
+      cache.getSimple.mockResolvedValue(null);
       llmRouter.chat.mockRejectedValue(new Error('LLM unavailable'));
 
       const result = await service.detectIntent(

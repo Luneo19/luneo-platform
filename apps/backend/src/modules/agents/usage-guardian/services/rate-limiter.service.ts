@@ -10,7 +10,7 @@
  * - ✅ Logger au lieu de console.log
  */
 
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { LimitsConfigService } from './limits-config.service';
@@ -53,7 +53,7 @@ export class RateLimiterService {
 
     if (!entityId) {
       this.logger.warn('No brandId or userId provided for rate limit check');
-      throw new Error('Brand or user ID required for rate limit check');
+      throw new BadRequestException('Brand or user ID required for rate limit check');
     }
 
     const limits = this.limitsConfig.getLimits(planId);

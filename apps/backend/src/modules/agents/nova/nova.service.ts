@@ -14,7 +14,7 @@
  * - ✅ Gestion d'erreurs
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { z } from 'zod';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -181,7 +181,7 @@ export class NovaService {
         );
 
         if (!usageCheck.allowed) {
-          throw new Error(usageCheck.reason || 'Usage limit exceeded');
+          throw new BadRequestException(usageCheck.reason || 'Usage limit exceeded');
         }
       }
 
@@ -457,19 +457,19 @@ export class NovaService {
   async createTicket(data: CreateTicketData): Promise<CreatedTicket> {
     // ✅ Validation des entrées
     if (!data || typeof data !== 'object') {
-      throw new Error('Invalid ticket data provided');
+      throw new BadRequestException('Invalid ticket data provided');
     }
 
     if (!data.userId || typeof data.userId !== 'string' || data.userId.trim().length === 0) {
-      throw new Error('User ID is required to create a ticket');
+      throw new BadRequestException('User ID is required to create a ticket');
     }
 
     if (!data.subject || typeof data.subject !== 'string' || data.subject.trim().length === 0) {
-      throw new Error('Subject is required to create a ticket');
+      throw new BadRequestException('Subject is required to create a ticket');
     }
 
     if (!data.description || typeof data.description !== 'string' || data.description.trim().length === 0) {
-      throw new Error('Description is required to create a ticket');
+      throw new BadRequestException('Description is required to create a ticket');
     }
 
     // ✅ Validation de la priorité
@@ -540,7 +540,7 @@ export class NovaService {
       this.logger.error(
         `Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
-      throw new Error(`Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown'}`);
+      throw new InternalServerErrorException(`Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown'}`);
     }
   }
 

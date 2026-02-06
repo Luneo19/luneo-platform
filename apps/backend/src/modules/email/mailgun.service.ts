@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Mailgun from 'mailgun.js';
 import FormData from 'form-data';
+import { withTimeout, DEFAULT_TIMEOUTS, TimeoutError } from '@/libs/resilience/timeout.util';
 
 export interface MailgunEmailOptions {
   to: string | string[];
@@ -59,7 +60,7 @@ export class MailgunService {
    */
   async sendSimpleMessage(options: MailgunEmailOptions): Promise<any> {
     if (!this.mailgun) {
-      throw new Error('Mailgun not initialized. Check your configuration.');
+      throw new InternalServerErrorException('Mailgun not initialized. Check your configuration.');
     }
 
     try {
@@ -124,11 +125,19 @@ export class MailgunService {
         }
       }
 
-      const result = await mg.messages.create(this.domain, messageData);
+      // TIMEOUT-01: Timeout de 30s pour l'envoi d'email
+      const result = await withTimeout(
+        mg.messages.create(this.domain, messageData),
+        DEFAULT_TIMEOUTS.MAILGUN_SEND,
+        'Mailgun.send',
+      );
       
       this.logger.log(`Email sent successfully to ${options.to}`);
       return result;
     } catch (error) {
+      if (error instanceof TimeoutError) {
+        this.logger.error(`Mailgun email timed out after ${DEFAULT_TIMEOUTS.MAILGUN_SEND}ms`);
+      }
       this.logger.error('Failed to send email:', error);
       throw error;
     }
@@ -262,7 +271,7 @@ export class MailgunService {
    */
   async getStats(): Promise<any> {
     if (!this.mailgun) {
-      throw new Error('Mailgun not initialized');
+      throw new InternalServerErrorException('Mailgun not initialized');
     }
 
     try {

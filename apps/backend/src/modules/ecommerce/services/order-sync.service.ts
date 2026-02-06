@@ -2,8 +2,9 @@ import { JsonValue } from '@/common/types/utility-types';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable, Logger } from '@nestjs/common';
-import { EcommerceIntegration, OrderStatus } from '@prisma/client';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+// ENUM-01: Import des enums Prisma pour intégrité des données
+import { EcommerceIntegration, OrderStatus, SyncLogStatus, SyncLogType, SyncDirection } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { MagentoConnector } from '../connectors/magento/magento.connector';
 import { ShopifyConnector } from '../connectors/shopify/shopify.connector';
@@ -52,7 +53,7 @@ export class OrderSyncService {
       });
 
       if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
+        throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
       this.logger.log(`Starting order sync for ${integration.platform} integration ${integrationId}`);
@@ -74,29 +75,40 @@ export class OrderSyncService {
           break;
       }
 
-      // Traiter chaque commande
-      for (const order of orders) {
-        try {
-          await this.processOrder(integration, order);
-          itemsProcessed++;
-        } catch (error) {
-          this.logger.error(`Error processing order:`, error);
-          errors.push({
-            message: (error as Error).message || 'Unknown error',
-            orderId: (order as any).id?.toString(),
-            error,
-          });
-          itemsFailed++;
-        }
+      // PERF-01: Traiter les commandes en batch (parallèle contrôlé)
+      const BATCH_SIZE = 10; // Nombre de commandes traitées en parallèle
+      
+      for (let i = 0; i < orders.length; i += BATCH_SIZE) {
+        const batch = orders.slice(i, i + BATCH_SIZE);
+        
+        const results = await Promise.allSettled(
+          batch.map(order => this.processOrder(integration, order))
+        );
+        
+        // Analyser les résultats du batch
+        results.forEach((result, index) => {
+          const order = batch[index];
+          if (result.status === 'fulfilled') {
+            itemsProcessed++;
+          } else {
+            this.logger.error(`Error processing order:`, result.reason);
+            errors.push({
+              message: result.reason?.message || 'Unknown error',
+              orderId: (order as any).id?.toString(),
+              error: result.reason,
+            });
+            itemsFailed++;
+          }
+        });
       }
 
-      // Sauvegarder le log
+      // Sauvegarder le log - ENUM-01: Utilise enums Prisma
       const syncLog = await this.prisma.syncLog.create({
         data: {
           integrationId,
-          type: 'order',
-          direction: 'import',
-          status: itemsFailed === 0 ? 'success' : itemsFailed < itemsProcessed ? 'partial' : 'failed',
+          type: SyncLogType.ORDER,
+          direction: SyncDirection.IMPORT,
+          status: itemsFailed === 0 ? SyncLogStatus.SUCCESS : itemsFailed < itemsProcessed ? SyncLogStatus.PARTIAL : SyncLogStatus.FAILED,
           itemsProcessed,
           itemsFailed,
           errors: errors as any,
@@ -153,7 +165,7 @@ export class OrderSyncService {
       });
 
       if (!order || !order.metadata) {
-        throw new Error(`Order ${luneoOrderId} not found or has no metadata`);
+        throw new NotFoundException(`Order ${luneoOrderId} not found or has no metadata`);
       }
 
       // Trouver l'intégration
@@ -250,6 +262,7 @@ export class OrderSyncService {
 
   /**
    * Obtient les commandes récentes d'une intégration
+   * PERF-03: Filtrage en DB au lieu de mémoire avec Prisma JSON path
    */
   async getRecentOrders(integrationId: string, limit: number = 50): Promise<Array<{
     id: string;
@@ -261,11 +274,15 @@ export class OrderSyncService {
     design: { id: string; prompt: string; previewUrl: string | null };
   }>> {
     try {
-      // Query orders with metadata containing integrationId
-      // Note: Prisma doesn't support JSON path queries directly, so we filter in memory
-      // For production, consider adding a dedicated integrationId field or using raw SQL
-      const allOrders = await this.prisma.order.findMany({
-        take: limit * 2, // Get more to filter
+      // PERF-03: Utilise le filtrage JSON path de Prisma directement en DB
+      const orders = await this.prisma.order.findMany({
+        where: {
+          metadata: {
+            path: ['integrationId'],
+            equals: integrationId,
+          },
+        },
+        take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
           product: {
@@ -285,17 +302,8 @@ export class OrderSyncService {
         },
       });
 
-      // Filter orders where metadata.integrationId matches
-      const filteredOrders = allOrders.filter(order => {
-        if (!order.metadata || typeof order.metadata !== 'object') {
-          return false;
-        }
-        const metadata = order.metadata as Record<string, JsonValue>;
-        return metadata.integrationId === integrationId;
-      }).slice(0, limit);
-
       // Transform to expected return type
-      return filteredOrders.map(order => ({
+      return orders.map(order => ({
         id: order.id,
         orderNumber: order.orderNumber,
         status: order.status,

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
@@ -75,7 +75,7 @@ export class SMTPService {
    */
   async sendEmail(options: SMTPEmailOptions): Promise<any> {
     if (!this.smtpAvailable) {
-      throw new Error('SMTP service not initialized. Check your configuration.');
+      throw new InternalServerErrorException('SMTP service not initialized. Check your configuration.');
     }
 
     try {

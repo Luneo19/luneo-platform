@@ -14,12 +14,13 @@
  * - ✅ Types explicites
  * - ✅ Validation robuste
  * - ✅ Logging structuré
+ * - ✅ SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
  */
 
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { CurrencyUtils } from '@/config/currency.config';
 import { ConfigService } from '@nestjs/config';
-import type Stripe from 'stripe';
 
 // ============================================================================
 // TYPES STRICTS
@@ -94,6 +95,7 @@ export class RevenueSharingService {
   /**
    * Traite un achat de template
    * Conforme au plan PHASE 7 - Revenue sharing
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async purchaseTemplate(data: PurchaseTemplateData): Promise<PurchaseResult> {
     // ✅ Validation
@@ -109,56 +111,51 @@ export class RevenueSharingService {
       throw new BadRequestException('Price must be greater than 0');
     }
 
-    try {
-      // ✅ Récupérer le template
-      const templates = await this.prisma.$queryRawUnsafe<Array<{
-        id: string;
-        creatorId: string;
-        priceCents: number;
-        isFree: boolean;
-        revenueSharePercent: number;
-      }>>(
-        `SELECT "id", "creatorId", "priceCents", "isFree", "revenueSharePercent" 
-         FROM "MarketplaceTemplate" WHERE "id" = $1 LIMIT 1`,
-        data.templateId.trim(),
-      );
+    const cleanTemplateId = data.templateId.trim();
+    const cleanBuyerId = data.buyerId.trim();
 
-      if (!templates || templates.length === 0) {
+    try {
+      // ✅ Récupérer le template avec Prisma
+      const template = await this.prisma.marketplaceTemplate.findUnique({
+        where: { id: cleanTemplateId },
+        select: {
+          id: true,
+          creatorId: true,
+          priceCents: true,
+          isFree: true,
+          revenueSharePercent: true,
+        },
+      });
+
+      if (!template) {
         throw new NotFoundException(`Template ${data.templateId} not found`);
       }
-
-      const template = templates[0];
 
       // ✅ Si le template est gratuit, pas de revenue sharing
       if (template.isFree || template.priceCents === 0) {
         // Créer quand même un enregistrement pour tracking
-        const purchase = await this.prisma.$executeRaw`
-          INSERT INTO "TemplatePurchase" (
-            "id", "templateId", "buyerId", "creatorId",
-            "priceCents", "platformFeeCents", "creatorRevenueCents",
-            "paymentStatus", "createdAt", "updatedAt"
-          ) VALUES (
-            gen_random_uuid()::text,
-            ${data.templateId.trim()},
-            ${data.buyerId.trim()},
-            ${template.creatorId},
-            0, 0, 0,
-            'succeeded',
-            NOW(), NOW()
-          )
-          RETURNING *
-        `;
+        const purchase = await this.prisma.templatePurchase.create({
+          data: {
+            templateId: cleanTemplateId,
+            buyerId: cleanBuyerId,
+            creatorId: template.creatorId,
+            priceCents: 0,
+            platformFeeCents: 0,
+            creatorRevenueCents: 0,
+            paymentStatus: 'succeeded',
+          },
+        });
 
         // ✅ Incrémenter les downloads
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "MarketplaceTemplate" SET "downloads" = "downloads" + 1 WHERE "id" = $1`,
-          data.templateId.trim(),
-        );
+        await this.prisma.marketplaceTemplate.update({
+          where: { id: cleanTemplateId },
+          data: { downloads: { increment: 1 } },
+        });
 
         return {
-          purchaseId: (purchase as any).id,
-          templateId: data.templateId.trim(),
-          buyerId: data.buyerId.trim(),
+          purchaseId: purchase.id,
+          templateId: cleanTemplateId,
+          buyerId: cleanBuyerId,
           creatorId: template.creatorId,
           priceCents: 0,
           platformFeeCents: 0,
@@ -172,45 +169,36 @@ export class RevenueSharingService {
       const creatorRevenueCents = data.priceCents - platformFeeCents;
 
       // ✅ Créer l'enregistrement d'achat
-      const purchase = await this.prisma.$executeRaw`
-        INSERT INTO "TemplatePurchase" (
-          "id", "templateId", "buyerId", "creatorId",
-          "priceCents", "platformFeeCents", "creatorRevenueCents",
-          "stripePaymentIntentId", "paymentStatus",
-          "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${data.templateId.trim()},
-          ${data.buyerId.trim()},
-          ${template.creatorId},
-          ${data.priceCents},
-          ${platformFeeCents},
-          ${creatorRevenueCents},
-          ${data.stripePaymentIntentId || null},
-          'pending',
-          NOW(), NOW()
-        )
-        RETURNING *
-      `;
+      const purchase = await this.prisma.templatePurchase.create({
+        data: {
+          templateId: cleanTemplateId,
+          buyerId: cleanBuyerId,
+          creatorId: template.creatorId,
+          priceCents: data.priceCents,
+          platformFeeCents,
+          creatorRevenueCents,
+          stripePaymentIntentId: data.stripePaymentIntentId || null,
+          paymentStatus: 'pending',
+        },
+      });
 
       // ✅ Mettre à jour les stats du template
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "MarketplaceTemplate" SET
-          "downloads" = "downloads" + 1,
-          "totalRevenueCents" = "totalRevenueCents" + $1
-        WHERE "id" = $2`,
-        data.priceCents,
-        data.templateId.trim(),
-      );
+      await this.prisma.marketplaceTemplate.update({
+        where: { id: cleanTemplateId },
+        data: {
+          downloads: { increment: 1 },
+          totalRevenueCents: { increment: data.priceCents },
+        },
+      });
 
       this.logger.log(
         `Template purchase created: ${data.templateId} by ${data.buyerId}, revenue: ${creatorRevenueCents} cents`,
       );
 
       return {
-        purchaseId: (purchase as any).id,
-        templateId: data.templateId.trim(),
-        buyerId: data.buyerId.trim(),
+        purchaseId: purchase.id,
+        templateId: cleanTemplateId,
+        buyerId: cleanBuyerId,
         creatorId: template.creatorId,
         priceCents: data.priceCents,
         platformFeeCents,
@@ -227,6 +215,7 @@ export class RevenueSharingService {
 
   /**
    * Confirme un achat (après paiement Stripe réussi)
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRawUnsafe
    */
   async confirmPurchase(purchaseId: string, stripePaymentIntentId: string): Promise<void> {
     // ✅ Validation
@@ -236,15 +225,13 @@ export class RevenueSharingService {
 
     try {
       // ✅ Mettre à jour le statut de l'achat
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "TemplatePurchase" SET
-          "stripePaymentIntentId" = $1,
-          "paymentStatus" = 'succeeded',
-          "updatedAt" = NOW()
-        WHERE "id" = $2`,
-        stripePaymentIntentId,
-        purchaseId.trim(),
-      );
+      await this.prisma.templatePurchase.update({
+        where: { id: purchaseId.trim() },
+        data: {
+          stripePaymentIntentId,
+          paymentStatus: 'succeeded',
+        },
+      });
 
       this.logger.log(`Purchase ${purchaseId} confirmed`);
     } catch (error) {
@@ -258,6 +245,7 @@ export class RevenueSharingService {
   /**
    * Crée un payout pour un créateur
    * Conforme au plan PHASE 7 - Revenue sharing
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async createPayout(data: CreatePayoutData): Promise<CreatorPayout> {
     // ✅ Validation
@@ -277,73 +265,52 @@ export class RevenueSharingService {
       throw new BadRequestException('Period start must be before period end');
     }
 
+    const cleanCreatorId = data.creatorId.trim();
+
     try {
-      // ✅ Calculer le revenue total pour la période
-      const revenueResult = await this.prisma.$queryRawUnsafe<Array<{
-        totalRevenueCents: number;
-        platformFeeCents: number;
-        netAmountCents: number;
-      }>>(
-        `SELECT
-          COALESCE(SUM("priceCents"), 0)::int as "totalRevenueCents",
-          COALESCE(SUM("platformFeeCents"), 0)::int as "platformFeeCents",
-          COALESCE(SUM("creatorRevenueCents"), 0)::int as "netAmountCents"
-        FROM "TemplatePurchase"
-        WHERE "creatorId" = $1
-          AND "paymentStatus" = 'succeeded'
-          AND "createdAt" >= $2
-          AND "createdAt" < $3`,
-        data.creatorId.trim(),
-        data.periodStart,
-        data.periodEnd,
-      );
+      // ✅ Calculer le revenue total pour la période avec Prisma aggregate
+      const revenueResult = await this.prisma.templatePurchase.aggregate({
+        where: {
+          creatorId: cleanCreatorId,
+          paymentStatus: 'succeeded',
+          createdAt: {
+            gte: data.periodStart,
+            lt: data.periodEnd,
+          },
+        },
+        _sum: {
+          priceCents: true,
+          platformFeeCents: true,
+          creatorRevenueCents: true,
+        },
+      });
 
-      if (!revenueResult || revenueResult.length === 0) {
-        throw new NotFoundException('No revenue found for this period');
-      }
+      const totalRevenueCents = revenueResult._sum.priceCents || 0;
+      const platformFeeCents = revenueResult._sum.platformFeeCents || 0;
+      const netAmountCents = revenueResult._sum.creatorRevenueCents || 0;
 
-      const revenue = revenueResult[0];
-
-      if (revenue.netAmountCents <= 0) {
+      if (netAmountCents <= 0) {
         throw new BadRequestException('No revenue to payout for this period');
       }
 
       // ✅ Créer le payout
-      const payout = await this.prisma.$executeRaw`
-        INSERT INTO "CreatorPayout" (
-          "id", "creatorId",
-          "totalRevenueCents", "platformFeeCents", "netAmountCents",
-          "status", "periodStart", "periodEnd",
-          "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${data.creatorId.trim()},
-          ${revenue.totalRevenueCents},
-          ${revenue.platformFeeCents},
-          ${revenue.netAmountCents},
-          'pending',
-          ${data.periodStart},
-          ${data.periodEnd},
-          NOW(), NOW()
-        )
-        RETURNING *
-      `;
+      const payout = await this.prisma.creatorPayout.create({
+        data: {
+          creatorId: cleanCreatorId,
+          totalRevenueCents,
+          platformFeeCents,
+          netAmountCents,
+          status: 'pending',
+          periodStart: data.periodStart,
+          periodEnd: data.periodEnd,
+        },
+      });
 
       this.logger.log(
-        `Payout created for creator ${data.creatorId}: ${revenue.netAmountCents} cents`,
+        `Payout created for creator ${data.creatorId}: ${netAmountCents} cents`,
       );
 
-      // ✅ Récupérer le payout créé
-      const payouts = await this.prisma.$queryRawUnsafe<CreatorPayout[]>(
-        `SELECT * FROM "CreatorPayout" WHERE "id" = $1 LIMIT 1`,
-        (payout as any).id,
-      );
-
-      if (!payouts || payouts.length === 0) {
-        throw new Error('Failed to retrieve created payout');
-      }
-
-      return payouts[0];
+      return payout as CreatorPayout;
     } catch (error) {
       this.logger.error(
         `Failed to create payout: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -354,6 +321,7 @@ export class RevenueSharingService {
 
   /**
    * Traite un payout via Stripe Connect
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async processPayout(payoutId: string, stripeConnectAccountId: string): Promise<CreatorPayout> {
     // ✅ Validation
@@ -365,18 +333,17 @@ export class RevenueSharingService {
       throw new BadRequestException('Stripe Connect account ID is required');
     }
 
+    const cleanPayoutId = payoutId.trim();
+
     try {
       // ✅ Récupérer le payout
-      const payouts = await this.prisma.$queryRawUnsafe<CreatorPayout[]>(
-        `SELECT * FROM "CreatorPayout" WHERE "id" = $1 LIMIT 1`,
-        payoutId.trim(),
-      );
+      const payout = await this.prisma.creatorPayout.findUnique({
+        where: { id: cleanPayoutId },
+      });
 
-      if (!payouts || payouts.length === 0) {
+      if (!payout) {
         throw new NotFoundException(`Payout ${payoutId} not found`);
       }
-
-      const payout = payouts[0];
 
       if (payout.status !== 'pending') {
         throw new BadRequestException(`Payout ${payoutId} is not in pending status`);
@@ -385,7 +352,7 @@ export class RevenueSharingService {
       // ✅ Créer le transfer Stripe
       const stripeSecretKey = this.configService.get<string>('stripe.secretKey');
       if (!stripeSecretKey) {
-        throw new Error('Stripe secret key not configured');
+        throw new InternalServerErrorException('Stripe secret key not configured');
       }
 
       const stripeModule = await import('stripe');
@@ -395,7 +362,7 @@ export class RevenueSharingService {
 
       const transfer = await stripe.transfers.create({
         amount: payout.netAmountCents,
-        currency: 'eur',
+        currency: CurrencyUtils.getStripeCurrency(),
         destination: stripeConnectAccountId,
         metadata: {
           payoutId: payout.id,
@@ -406,40 +373,26 @@ export class RevenueSharingService {
       });
 
       // ✅ Mettre à jour le payout
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "CreatorPayout" SET
-          "stripeTransferId" = $1,
-          "status" = 'processing',
-          "updatedAt" = NOW()
-        WHERE "id" = $2`,
-        transfer.id,
-        payoutId.trim(),
-      );
+      const updatedPayout = await this.prisma.creatorPayout.update({
+        where: { id: cleanPayoutId },
+        data: {
+          stripeTransferId: transfer.id,
+          status: 'processing',
+        },
+      });
 
       this.logger.log(`Payout ${payoutId} processed via Stripe transfer ${transfer.id}`);
 
-      // ✅ Récupérer le payout mis à jour
-      const updatedPayouts = await this.prisma.$queryRawUnsafe<CreatorPayout[]>(
-        `SELECT * FROM "CreatorPayout" WHERE "id" = $1 LIMIT 1`,
-        payoutId.trim(),
-      );
-
-      if (!updatedPayouts || updatedPayouts.length === 0) {
-        throw new Error('Failed to retrieve updated payout');
-      }
-
-      return updatedPayouts[0];
+      return updatedPayout as CreatorPayout;
     } catch (error) {
       // ✅ Marquer le payout comme failed en cas d'erreur
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "CreatorPayout" SET
-          "status" = 'failed',
-          "failureReason" = $1,
-          "updatedAt" = NOW()
-        WHERE "id" = $2`,
-        error instanceof Error ? error.message : 'Unknown error',
-        payoutId.trim(),
-      );
+      await this.prisma.creatorPayout.update({
+        where: { id: cleanPayoutId },
+        data: {
+          status: 'failed',
+          failureReason: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
 
       this.logger.error(
         `Failed to process payout: ${error instanceof Error ? error.message : 'Unknown'}`,

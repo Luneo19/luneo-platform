@@ -13,6 +13,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -235,7 +236,7 @@ export class TryOnController {
     @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string } | undefined,
   ) {
     if (!file) {
-      throw new Error('File is required');
+      throw new BadRequestException('File is required');
     }
     return this.screenshotService.create(
       sessionId,

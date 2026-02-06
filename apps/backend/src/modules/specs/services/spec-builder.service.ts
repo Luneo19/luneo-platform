@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface ZoneInput {
@@ -41,7 +41,7 @@ export class SpecBuilderService {
     const invalidZones = zoneIds.filter(id => !productZoneIds.includes(id));
 
     if (invalidZones.length > 0) {
-      throw new Error(`Invalid zones: ${invalidZones.join(', ')}`);
+      throw new BadRequestException(`Invalid zones: ${invalidZones.join(', ')}`);
     }
 
     // 3. Construire le spec JSON

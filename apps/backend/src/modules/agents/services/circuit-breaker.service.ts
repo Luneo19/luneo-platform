@@ -9,7 +9,7 @@
  * - ✅ Types explicites
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
 // ============================================================================
 // TYPES
@@ -74,7 +74,7 @@ export class CircuitBreakerService {
       this.logger.warn(
         `Circuit breaker OPEN for ${key}, rejecting request`,
       );
-      throw new Error(
+      throw new ServiceUnavailableException(
         `Circuit breaker is OPEN for ${key}. Service temporarily unavailable.`,
       );
     }

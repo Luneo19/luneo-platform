@@ -1,14 +1,18 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 /**
  * Service pour l'authentification à deux facteurs (2FA)
  * Utilise TOTP (Time-based One-Time Password) avec speakeasy
+ * SEC-07: Les backup codes sont hashés avec bcrypt
  */
 @Injectable()
 export class TwoFactorService {
   private readonly logger = new Logger(TwoFactorService.name);
+  private readonly BACKUP_CODE_SALT_ROUNDS = 10;
 
   /**
    * Génère un secret 2FA pour un utilisateur
@@ -68,12 +72,17 @@ export class TwoFactorService {
   }
 
   /**
-   * Génère un code de backup (codes de récupération)
+   * Génère des codes de backup (codes de récupération)
    * Utilise crypto pour une génération sécurisée
+   * SEC-07: Retourne plaintext pour affichage unique ET hashs pour stockage
    */
-  generateBackupCodes(count: number = 10): string[] {
-    const crypto = require('crypto');
-    const codes: string[] = [];
+  async generateBackupCodes(count: number = 10): Promise<{
+    plaintextCodes: string[];
+    hashedCodes: string[];
+  }> {
+    const plaintextCodes: string[] = [];
+    const hashedCodes: string[] = [];
+
     for (let i = 0; i < count; i++) {
       // Générer un code cryptographiquement sécurisé de 8 caractères
       const randomBytes = crypto.randomBytes(6);
@@ -81,16 +90,47 @@ export class TwoFactorService {
         .replace(/[+/=]/g, '') // Remove non-alphanumeric characters
         .substring(0, 8)
         .toUpperCase();
-      codes.push(code);
+      
+      plaintextCodes.push(code);
+      
+      // Hasher le code pour stockage sécurisé
+      const hashedCode = await bcrypt.hash(code, this.BACKUP_CODE_SALT_ROUNDS);
+      hashedCodes.push(hashedCode);
     }
-    return codes;
+
+    return { plaintextCodes, hashedCodes };
   }
 
   /**
-   * Valide un code de backup
+   * Valide un code de backup contre les codes hashés
+   * SEC-07: Comparaison sécurisée avec bcrypt
    */
-  validateBackupCode(backupCodes: string[], code: string): boolean {
+  async validateBackupCode(hashedCodes: string[], code: string): Promise<{
+    isValid: boolean;
+    matchedIndex: number | null;
+  }> {
     const normalizedCode = code.toUpperCase().trim();
-    return backupCodes.includes(normalizedCode);
+
+    for (let i = 0; i < hashedCodes.length; i++) {
+      const hashedCode = hashedCodes[i];
+      
+      // Support legacy plaintext codes (migration)
+      if (hashedCode === normalizedCode) {
+        this.logger.warn('Legacy plaintext backup code detected - consider migrating');
+        return { isValid: true, matchedIndex: i };
+      }
+
+      // Vérifier avec bcrypt pour les codes hashés
+      try {
+        const isMatch = await bcrypt.compare(normalizedCode, hashedCode);
+        if (isMatch) {
+          return { isValid: true, matchedIndex: i };
+        }
+      } catch {
+        // Continue to next code if comparison fails
+      }
+    }
+
+    return { isValid: false, matchedIndex: null };
   }
 }

@@ -12,6 +12,7 @@ import {
   UploadedFile,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -91,7 +92,7 @@ export class AssetHubController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     if (!file) {
-      throw new Error('File is required');
+      throw new BadRequestException('File is required');
     }
     return this.fileService.upload(
       req.user.brandId,

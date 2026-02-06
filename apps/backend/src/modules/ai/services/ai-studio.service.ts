@@ -7,7 +7,7 @@
 import { BudgetService } from '@/libs/budgets/budget.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AIGenerationStatus as PrismaAIGenerationStatus, AIGenerationType as PrismaAIGenerationType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
@@ -815,7 +815,7 @@ Only return the JSON array, no other text.`;
       });
 
       if (!template) {
-        throw new Error(`Template ${id} not found`);
+        throw new NotFoundException(`Template ${id} not found`);
       }
 
       const params = (template.parameters as any) || {};
@@ -916,7 +916,7 @@ Only return the JSON array, no other text.`;
       });
 
       if (!existing) {
-        throw new Error(`Template ${id} not found`);
+        throw new NotFoundException(`Template ${id} not found`);
       }
 
       const existingParams = (existing.parameters as any) || {};
@@ -980,7 +980,7 @@ Only return the JSON array, no other text.`;
       });
 
       if (!template) {
-        throw new Error(`Template ${id} not found`);
+        throw new NotFoundException(`Template ${id} not found`);
       }
 
       await this.prisma.aIGeneration.delete({
@@ -1083,7 +1083,7 @@ Only return the JSON array, no other text.`;
       });
 
       if (!animation) {
-        throw new Error(`Animation ${id} not found`);
+        throw new NotFoundException(`Animation ${id} not found`);
       }
 
       const params = (animation.parameters as any) || {};
@@ -1200,7 +1200,7 @@ Only return the JSON array, no other text.`;
       });
 
       if (!animation) {
-        throw new Error(`Animation ${id} not found`);
+        throw new NotFoundException(`Animation ${id} not found`);
       }
 
       await this.prisma.aIGeneration.delete({

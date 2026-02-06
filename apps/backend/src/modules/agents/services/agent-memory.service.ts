@@ -7,7 +7,7 @@
  * - ✅ Gestion d'erreurs
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
@@ -44,7 +44,7 @@ export class AgentMemoryService {
     });
 
     if (!conversation) {
-      throw new Error(`Conversation ${conversationId} not found`);
+      throw new NotFoundException(`Conversation ${conversationId} not found`);
     }
 
     const currentContext = (conversation.context || {}) as AgentContext;

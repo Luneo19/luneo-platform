@@ -41,7 +41,7 @@ export class CreditsController {
       }
       const secretKey = this.configService.get<string>('stripe.secretKey');
       if (!secretKey) {
-        throw new Error('STRIPE_SECRET_KEY is not configured');
+        throw new BadRequestException('STRIPE_SECRET_KEY is not configured');
       }
       this.stripeInstance = new this.stripeModule.default(secretKey, {
         apiVersion: '2023-10-16',

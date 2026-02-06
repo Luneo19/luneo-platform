@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UsageMeteringService } from './usage-metering.service';
 import { BillingCalculationService } from './billing-calculation.service';
@@ -145,7 +145,7 @@ export class UsageReportingService {
       });
 
       if (!brand) {
-        throw new Error('Brand not found');
+        throw new NotFoundException('Brand not found');
       }
 
       // Usage actuel

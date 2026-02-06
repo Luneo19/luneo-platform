@@ -1,50 +1,55 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-// Optional: Replicate SDK (install with: npm install replicate)
-let Replicate: any;
-try {
-  Replicate = require('replicate').default || require('replicate');
-} catch (e) {
-  // Replicate not installed
-}
-// @ts-ignore - Package local
-import { hashPrompt, sanitizePrompt } from '../ai-safety';
-import { AIGenerationOptions, AIGenerationResult, AIProvider, AIProviderConfig } from './ai-provider.interface';
+import OpenAI from 'openai';
+import { hashPrompt, sanitizePrompt } from '@/libs/ai/ai-safety';
+import { AIGenerationOptions, AIGenerationResult, AIProvider, AIProviderConfig } from '@/libs/ai/providers/ai-provider.interface';
 
 @Injectable()
-export class ReplicateSDXLProvider implements AIProvider {
-  private readonly logger = new Logger(ReplicateSDXLProvider.name);
-  private readonly client: any | null;
+export class OpenAIProvider implements AIProvider {
+  private readonly logger = new Logger(OpenAIProvider.name);
+  private readonly client: OpenAI;
   private readonly config: AIProviderConfig;
 
   constructor(private readonly configService: ConfigService) {
-    const apiToken = this.configService.get<string>('ai.replicate.apiToken');
-
-    if (apiToken && Replicate) {
-      this.client = new Replicate({
-        auth: apiToken,
-      });
-    } else {
-      this.client = null;
-      if (!Replicate) {
-        this.logger.warn('Replicate SDK not installed. Install with: npm install replicate');
-      } else {
-        this.logger.warn('Replicate API token not configured');
-      }
+    const apiKey = this.configService.get<string>('ai.openai.apiKey');
+    
+    // Validate API key - must be present and look like a valid OpenAI key
+    const isValidApiKey = this.isValidOpenAIKey(apiKey);
+    
+    if (!isValidApiKey) {
+      this.logger.warn('OpenAI API key not configured or invalid - provider will be disabled');
     }
 
+    // Only initialize client if we have a valid key
+    this.client = new OpenAI({
+      apiKey: isValidApiKey ? apiKey : 'disabled',
+    });
+
     this.config = {
-      name: 'replicate-sdxl',
-      enabled: !!apiToken,
-      priority: 2, // Priorité moyenne (fallback)
-      costPerImageCents: 20, // ~0.20€ par image SDXL (moins cher que DALL-E)
+      name: 'openai',
+      enabled: isValidApiKey,
+      priority: 1, // Haute priorité
+      costPerImageCents: 40, // ~0.40€ par image DALL-E 3 HD
       maxRetries: 3,
-      timeout: 60000, // 60s (SDXL peut être plus lent)
+      timeout: 30000, // 30s
     };
   }
 
+  /**
+   * Validates if the API key looks like a valid OpenAI key
+   */
+  private isValidOpenAIKey(apiKey: string | undefined): boolean {
+    if (!apiKey) return false;
+    // OpenAI keys start with 'sk-' and are at least 40 characters
+    // Reject obvious placeholders
+    if (apiKey.includes('placeholder') || apiKey.includes('xxxxx') || apiKey === 'disabled') {
+      return false;
+    }
+    return apiKey.startsWith('sk-') && apiKey.length >= 40;
+  }
+
   getName(): string {
-    return 'replicate-sdxl';
+    return 'openai';
   }
 
   getConfig(): AIProviderConfig {
@@ -54,41 +59,38 @@ export class ReplicateSDXLProvider implements AIProvider {
   async generateImage(options: AIGenerationOptions): Promise<AIGenerationResult> {
     const startTime = Date.now();
 
-    if (!this.client) {
-      throw new Error('Replicate client not initialized');
-    }
-
     try {
       // Sanitizer le prompt avec ai-safety
-      const sanitized = sanitizePrompt(options.prompt, { maxLength: 1000 });
+      const sanitized = sanitizePrompt(options.prompt, { maxLength: 1200 });
       if (sanitized.blocked) {
-        throw new Error(`Prompt blocked: ${sanitized.reasons?.join(', ')}`);
+        throw new BadRequestException(`Prompt blocked: ${sanitized.reasons?.join(', ')}`);
       }
 
-      this.logger.debug(`Generating image with Replicate SDXL`, {
+      const model = options.model || 'dall-e-3';
+      const size = options.size || '1024x1024';
+      const quality = options.quality || 'standard';
+
+      this.logger.debug(`Generating image with OpenAI ${model}`, {
+        size,
+        quality,
         promptLength: sanitized.prompt.length,
         promptHash: hashPrompt(sanitized.prompt),
       });
 
-      // SDXL model sur Replicate
-      const model = 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b';
-
-      const output = await this.client.run(model as any, {
-        input: {
-          prompt: sanitized.prompt, // Utiliser le prompt sanitizé
-          width: this.parseSize(options.size || '1024x1024').width,
-          height: this.parseSize(options.size || '1024x1024').height,
-          num_outputs: options.n || 1,
-          guidance_scale: 7.5,
-          num_inference_steps: 50,
-        },
+      const response = await this.client.images.generate({
+        model: model as 'dall-e-3',
+        prompt: sanitized.prompt, // Utiliser le prompt sanitizé
+        size: size as '1024x1024' | '1792x1024' | '1024x1792',
+        quality: quality as 'hd' | 'standard',
+        n: options.n || 1,
+        response_format: 'url',
       });
 
-      if (!output || (Array.isArray(output) && output.length === 0)) {
-        throw new Error('No image returned from Replicate');
+      if (!response.data || response.data.length === 0 || !response.data[0].url) {
+        throw new InternalServerErrorException('No image URL returned from OpenAI');
       }
 
-      const imageUrl = Array.isArray(output) ? output[0] : output;
+      const imageUrl = response.data[0].url;
       const generationTime = Date.now() - startTime;
 
       // Télécharger l'image pour obtenir la taille
@@ -99,44 +101,50 @@ export class ReplicateSDXLProvider implements AIProvider {
         images: [
           {
             url: imageUrl,
-            width: this.parseSize(options.size || '1024x1024').width,
-            height: this.parseSize(options.size || '1024x1024').height,
+            width: size === '1024x1024' ? 1024 : size === '1792x1024' ? 1792 : 1024,
+            height: size === '1024x1024' ? 1024 : size === '1024x1792' ? 1792 : 1024,
             format: 'png',
             size: imageBuffer.byteLength,
           },
         ],
         metadata: {
-          provider: 'replicate',
-          model: 'sdxl',
+          provider: 'openai',
+          model,
           version: '1.0',
           generationTime,
           prompt: sanitized.prompt, // Stocker le prompt sanitizé
+          seed: response.data[0].revised_prompt ? undefined : undefined, // OpenAI ne retourne pas de seed
         },
         costs: {
           costCents: this.estimateCost(options),
         },
       };
     } catch (error) {
-      this.logger.error(`Replicate SDXL generation failed:`, error);
-      throw new Error(`Replicate SDXL generation failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`OpenAI generation failed:`, error);
+      throw new InternalServerErrorException(`OpenAI generation failed: ${errorMessage}`);
     }
   }
 
   estimateCost(options: AIGenerationOptions): number {
-    // SDXL sur Replicate: ~0.20€ par image
-    return 20; // cents
+    // DALL-E 3 pricing (approximatif)
+    const baseCost = options.quality === 'hd' ? 80 : 40; // cents
+    return baseCost;
   }
 
   async isAvailable(): Promise<boolean> {
-    if (!this.config.enabled || !this.client) {
+    if (!this.config.enabled) {
       return false;
     }
 
     try {
-      // Test simple: vérifier que le client est initialisé
+      // Test simple: vérifier que l'API key est valide
+      // (on pourrait faire un appel test, mais c'est coûteux)
       return true;
     } catch (error) {
-      this.logger.warn('Replicate SDXL provider not available:', error);
+      this.logger.warn('OpenAI provider not available:', error);
       return false;
     }
   }
@@ -147,23 +155,50 @@ export class ReplicateSDXLProvider implements AIProvider {
     confidence: number;
     categories?: string[];
   }> {
-    // Replicate n'a pas d'API de modération intégrée
-    // On retourne approuvé par défaut (la modération sera faite par OpenAI ou autre)
-    return {
-      isApproved: true,
-      confidence: 0.7, // Confiance moyenne (pas de modération native)
-    };
-  }
+    try {
+      const moderation = await this.client.moderations.create({
+        input: prompt,
+      });
 
-  private parseSize(size: string): { width: number; height: number } {
-    const [width, height] = size.split('x').map(Number);
-    return { width, height };
+      const result = moderation.results[0];
+      const flagged = result.flagged;
+      const categories = Object.entries(result.categories)
+        .filter(([_, value]) => value === true)
+        .map(([key]) => key);
+
+      return {
+        isApproved: !flagged,
+        reason: flagged ? categories.join(', ') : undefined,
+        confidence: result.category_scores
+          ? Math.max(...Object.values(result.category_scores as unknown as Record<string, number>))
+          : 0.95,
+        categories: flagged ? categories : undefined,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.warn(`OpenAI moderation failed: ${errorMessage}`);
+      // En cas d'erreur, on approuve par défaut (fail-open)
+      return {
+        isApproved: true,
+        confidence: 0.5,
+      };
+    }
   }
 }
 
+/**
+ * @deprecated Use OpenAIProvider instead
+ * Type alias for backwards compatibility
+ */
+export type ReplicateSDXLProvider = OpenAIProvider;
 
-
-
+/**
+ * @deprecated Use OpenAIProvider instead
+ * Value alias for backwards compatibility
+ */
+export const ReplicateSDXLProvider = OpenAIProvider;
 
 
 

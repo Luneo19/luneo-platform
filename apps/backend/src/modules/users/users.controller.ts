@@ -28,6 +28,7 @@ import { Request as ExpressRequest } from 'express';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Roles } from '@/common/guards/roles.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 
@@ -46,6 +47,7 @@ type UploadedFile = {
 
 @ApiTags('users')
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { StorageService } from '@/libs/storage/storage.service';
 import sharp from 'sharp';
 
@@ -46,7 +46,7 @@ export class ImageProcessorService {
       return composed;
     } catch (error) {
       this.logger.error(`Image composition failed: ${error.message}`);
-      throw new Error(`Failed to compose image: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to compose image: ${error.message}`);
     }
   }
 
@@ -64,7 +64,7 @@ export class ImageProcessorService {
         .toBuffer();
     } catch (error) {
       this.logger.error(`Thumbnail creation failed: ${error.message}`);
-      throw new Error(`Failed to create thumbnail: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to create thumbnail: ${error.message}`);
     }
   }
 

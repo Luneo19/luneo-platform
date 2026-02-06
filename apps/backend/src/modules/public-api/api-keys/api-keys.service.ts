@@ -75,7 +75,7 @@ export class ApiKeysService {
   async createApiKey(brandId: string, data: CreateApiKeyDto): Promise<{ apiKey: ApiKey; secret: string }> {
     const keyId = `luneo_${this.generateKeyId()}`;
     const secret = this.generateSecret();
-    const hashedSecret = await bcrypt.hash(secret, 12);
+    const hashedSecret = await bcrypt.hash(secret, 13);
 
     const apiKey = await this.prisma.apiKey.create({
       data: {
@@ -252,7 +252,7 @@ export class ApiKeysService {
    */
   async regenerateSecret(id: string, brandId: string): Promise<{ secret: string }> {
     const secret = this.generateSecret();
-    const hashedSecret = await bcrypt.hash(secret, 12);
+    const hashedSecret = await bcrypt.hash(secret, 13);
 
     await this.prisma.apiKey.update({
       where: { id, brandId },

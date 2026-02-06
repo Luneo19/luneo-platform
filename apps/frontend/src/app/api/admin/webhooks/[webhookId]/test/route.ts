@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { db } from '@/lib/db';
 import crypto from 'crypto';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function POST(
   request: NextRequest,
@@ -72,7 +73,7 @@ export async function POST(
       response: responseText.substring(0, 500),
     });
   } catch (error) {
-    console.error('Error testing webhook:', error);
+    serverLogger.apiError('/api/admin/webhooks/[webhookId]/test', 'POST', error, 500);
     return NextResponse.json({ error: 'Failed to test webhook' }, { status: 500 });
   }
 }

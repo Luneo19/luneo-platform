@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 @Injectable()
@@ -41,7 +41,7 @@ export class SLAEnforcementService {
     });
 
     if (!workOrder || !workOrder.slaDeadline) {
-      throw new Error(`WorkOrder ${workOrderId} not found or no SLA deadline`);
+      throw new NotFoundException(`WorkOrder ${workOrderId} not found or no SLA deadline`);
     }
 
     const artisan = workOrder.artisan;
@@ -188,7 +188,7 @@ export class SLAEnforcementService {
   async evaluateAllActiveSLAs() {
     const activeWorkOrders = await this.prisma.workOrder.findMany({
       where: {
-        status: { in: ['assigned', 'accepted', 'in_progress', 'qc_pending'] },
+        status: { in: ['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS', 'QC_PENDING'] },
         slaDeadline: { not: null },
       },
       include: { artisan: true },
@@ -215,7 +215,7 @@ export class SLAEnforcementService {
     });
 
     if (!payout) {
-      throw new Error(`Payout ${payoutId} not found`);
+      throw new NotFoundException(`Payout ${payoutId} not found`);
     }
 
     // Récupérer les SLA records pour les work orders

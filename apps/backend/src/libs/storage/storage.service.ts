@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
 
@@ -49,7 +49,7 @@ export class StorageService {
       return result.secure_url;
     } catch (error) {
       this.logger.error(`Failed to upload file: ${error.message}`);
-      throw new Error(`Échec de l'upload (Cloudinary): ${error.message}`);
+      throw new InternalServerErrorException(`Échec de l'upload (Cloudinary): ${error.message}`);
     }
   }
 
@@ -89,7 +89,7 @@ export class StorageService {
       this.logger.log(`File deleted successfully from Cloudinary: ${key}`);
     } catch (error) {
       this.logger.error(`Failed to delete file: ${error.message}`);
-      throw new Error(`Échec de la suppression (Cloudinary): ${error.message}`);
+      throw new InternalServerErrorException(`Échec de la suppression (Cloudinary): ${error.message}`);
     }
   }
 
@@ -111,7 +111,7 @@ export class StorageService {
       return url;
     } catch (error) {
       this.logger.error(`Failed to generate signed URL: ${error.message}`);
-      throw new Error(`Échec de génération d'URL (Cloudinary): ${error.message}`);
+      throw new InternalServerErrorException(`Échec de génération d'URL (Cloudinary): ${error.message}`);
     }
   }
 

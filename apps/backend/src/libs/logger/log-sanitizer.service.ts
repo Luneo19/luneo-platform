@@ -1,6 +1,8 @@
 /**
  * Log Sanitizer Service
  * Automatically masks sensitive information in logs
+ * 
+ * SEC-10: Protection des PII (Personally Identifiable Information)
  */
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -25,6 +27,11 @@ export interface SanitizeOptions {
    * Replacement string for masked parts
    */
   maskChar?: string;
+  
+  /**
+   * SEC-10: For emails - keep the domain part visible
+   */
+  keepDomain?: boolean;
 }
 
 @Injectable()
@@ -37,6 +44,27 @@ export class LogSanitizerService {
     name: string;
     options?: SanitizeOptions;
   }> = [
+    // SEC-10: Email addresses (PII)
+    {
+      pattern: /([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+      name: 'email',
+      options: { showStart: 2, showEnd: 0, keepDomain: true },
+    },
+    
+    // SEC-10: Phone numbers (PII) - formats variés
+    {
+      pattern: /(?:\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g,
+      name: 'phone',
+      options: { showStart: 0, showEnd: 4 },
+    },
+    
+    // SEC-10: IP addresses
+    {
+      pattern: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
+      name: 'ip_address',
+      options: { showStart: 0, showEnd: 0 },
+    },
+    
     // Passwords
     {
       pattern: /(?:password|passwd|pwd)\s*[:=]\s*["']?([^"'\s]+)["']?/gi,
@@ -213,9 +241,25 @@ export class LogSanitizerService {
 
   /**
    * Get mask options for a sensitive key
+   * SEC-10: Support amélioré pour les PII
    */
   private getMaskOptionsForKey(key: string): SanitizeOptions {
     const lowerKey = key.toLowerCase();
+    
+    // SEC-10: Email addresses - keep domain visible for debugging
+    if (lowerKey.includes('email')) {
+      return { keepDomain: true, showStart: 2, showEnd: 0 };
+    }
+    
+    // SEC-10: Phone numbers - show last 4 digits
+    if (lowerKey.includes('phone')) {
+      return { showStart: 0, showEnd: 4 };
+    }
+    
+    // SEC-10: IP addresses - show first two octets
+    if (lowerKey.includes('ip')) {
+      return { showStart: 0, showEnd: 0 };
+    }
     
     // API keys should be partially masked
     if (lowerKey.includes('apikey') || lowerKey.includes('api_key')) {
@@ -233,6 +277,7 @@ export class LogSanitizerService {
 
   /**
    * Check if a key is sensitive
+   * SEC-10: Inclut désormais les PII (email, phone, ip)
    */
   private isSensitiveKey(key: string): boolean {
     const sensitiveKeys = [
@@ -259,6 +304,18 @@ export class LogSanitizerService {
       'client_secret',
       'cloudinaryApiSecret',
       'cloudinary_api_secret',
+      // SEC-10: PII fields
+      'email',
+      'userEmail',
+      'user_email',
+      'phone',
+      'phoneNumber',
+      'phone_number',
+      'ip',
+      'ipAddress',
+      'ip_address',
+      'clientIp',
+      'client_ip',
     ];
 
     const lowerKey = key.toLowerCase();
@@ -279,7 +336,17 @@ export class LogSanitizerService {
       showStart = 0,
       showEnd = 0,
       maskChar = '*',
+      keepDomain = false,
     } = options;
+
+    // SEC-10: Special handling for email addresses
+    if (keepDomain && str.includes('@')) {
+      const [localPart, domain] = str.split('@');
+      const maskedLocal = localPart.length > 2 
+        ? localPart.substring(0, 2) + maskChar.repeat(Math.min(6, localPart.length - 2))
+        : maskChar.repeat(4);
+      return `${maskedLocal}@${domain}`;
+    }
 
     if (maskFull || str.length <= showStart + showEnd) {
       return maskChar.repeat(8);
@@ -290,6 +357,43 @@ export class LogSanitizerService {
     const middle = maskChar.repeat(Math.max(4, str.length - showStart - showEnd));
 
     return `${start}${middle}${end}`;
+  }
+  
+  /**
+   * SEC-10: Masque une adresse email en gardant le domaine visible
+   * @example "john.doe@example.com" => "jo****@example.com"
+   */
+  maskEmail(email: string): string {
+    if (!email || !email.includes('@')) {
+      return email;
+    }
+    const [localPart, domain] = email.split('@');
+    const maskedLocal = localPart.length > 2 
+      ? localPart.substring(0, 2) + '*'.repeat(Math.min(6, localPart.length - 2))
+      : '****';
+    return `${maskedLocal}@${domain}`;
+  }
+  
+  /**
+   * SEC-10: Masque un numéro de téléphone en ne gardant que les 4 derniers chiffres
+   * @example "+33612345678" => "****5678"
+   */
+  maskPhone(phone: string): string {
+    if (!phone) return phone;
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length <= 4) return '****';
+    return '****' + digits.slice(-4);
+  }
+  
+  /**
+   * SEC-10: Masque une adresse IP
+   * @example "192.168.1.1" => "192.168.***.***"
+   */
+  maskIpAddress(ip: string): string {
+    if (!ip) return ip;
+    const parts = ip.split('.');
+    if (parts.length !== 4) return ip;
+    return `${parts[0]}.${parts[1]}.***.***`;
   }
 
   /**

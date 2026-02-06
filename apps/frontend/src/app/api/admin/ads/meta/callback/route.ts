@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { exchangeCodeForToken } from '@/lib/admin/integrations/oauth-helpers';
 import { db } from '@/lib/db';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
     // Rediriger vers la page Meta Ads
     return NextResponse.redirect(new URL('/admin/ads/meta?connected=true', request.url));
   } catch (error) {
-    console.error('Error processing Meta OAuth callback:', error);
+    serverLogger.apiError('/api/admin/ads/meta/callback', 'GET', error);
     return NextResponse.redirect(
       new URL('/admin/ads/meta?error=connection_failed', request.url)
     );

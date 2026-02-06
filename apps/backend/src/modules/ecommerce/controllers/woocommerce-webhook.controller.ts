@@ -16,10 +16,12 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { WooCommerceWebhookService } from '../services/woocommerce-webhook.service';
+import { Public } from '@/common/decorators/public.decorator';
 import * as crypto from 'crypto';
 
 @ApiTags('ecommerce')
 @Controller('ecommerce/woocommerce/webhook')
+@Public()
 export class WooCommerceWebhookController {
   private readonly logger = new Logger(WooCommerceWebhookController.name);
 

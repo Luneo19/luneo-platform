@@ -1,7 +1,7 @@
 import { JsonValue } from '@/common/types/utility-types';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { ShopifyConnector } from '../connectors/shopify/shopify.connector';
 import { WooCommerceConnector } from '../connectors/woocommerce/woocommerce.connector';
@@ -51,7 +51,7 @@ export class WebhookHandlerService {
       );
 
       if (!isValid) {
-        throw new Error('Invalid webhook signature');
+        throw new BadRequestException('Invalid webhook signature');
       }
 
       // Log du webhook
@@ -156,7 +156,7 @@ export class WebhookHandlerService {
       });
 
       if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
+        throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
       const webhooks = await this.prisma.webhookLog.findMany({
@@ -186,7 +186,7 @@ export class WebhookHandlerService {
       });
 
       if (!webhook) {
-        throw new Error(`Webhook ${webhookId} not found`);
+        throw new NotFoundException(`Webhook ${webhookId} not found`);
       }
 
       const webhookRecord = await this.prisma.webhook.findUnique({
@@ -194,7 +194,7 @@ export class WebhookHandlerService {
       });
 
       if (!webhookRecord) {
-        throw new Error('Webhook not found');
+        throw new NotFoundException('Webhook not found');
       }
 
       // Trouver l'intégration via brandId
@@ -206,7 +206,7 @@ export class WebhookHandlerService {
       });
 
       if (!integration) {
-        throw new Error('No active integration found for webhook');
+        throw new NotFoundException('No active integration found for webhook');
       }
 
       // Réessayer selon la plateforme
@@ -249,7 +249,7 @@ export class WebhookHandlerService {
       });
 
       if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
+        throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
       const now = new Date();

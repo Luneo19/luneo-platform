@@ -1,10 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { SvgGeneratorService } from './svg-generator.service';
 import { DxfGeneratorService } from './dxf-generator.service';
 import { PdfGeneratorService } from './pdf-generator.service';
-// import * as archiver from 'archiver'; // TODO: Install archiver package
+import * as archiver from 'archiver'; // ✅ archiver package installed
 import { Readable } from 'stream';
 
 export interface ExportPackOptions {
@@ -84,7 +84,7 @@ export class ExportPackService {
     }
 
     if (files.length === 0) {
-      throw new Error('No files generated');
+      throw new InternalServerErrorException('No files generated');
     }
 
     // Ajouter metadata si demandé
@@ -156,10 +156,6 @@ export class ExportPackService {
   private async createZip(
     files: Array<{ name: string; content: Buffer }>,
   ): Promise<Buffer> {
-    // TODO: Install archiver package to enable ZIP export
-    this.logger.warn('ZIP export not available - archiver package not installed');
-    return Buffer.from('');
-    /*
     return new Promise((resolve, reject) => {
       const archive = archiver('zip', {
         zlib: { level: 9 }, // Compression maximale
@@ -186,7 +182,6 @@ export class ExportPackService {
 
       archive.finalize();
     });
-    */
   }
 }
 

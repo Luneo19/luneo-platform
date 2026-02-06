@@ -22,6 +22,7 @@ import { Queue } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { SyncEngineService } from '@/modules/ecommerce/services/sync-engine.service';
+import { EncryptionService } from '@/libs/crypto/encryption.service';
 
 // ============================================================================
 // TYPES STRICTS
@@ -57,6 +58,7 @@ export class PrestaShopService {
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
     private readonly syncEngine: SyncEngineService,
+    private readonly encryptionService: EncryptionService,
     @InjectQueue('ecommerce-sync') private readonly syncQueue: Queue,
   ) {}
 
@@ -220,11 +222,10 @@ export class PrestaShopService {
   }
 
   /**
-   * Chiffre un token pour stockage sécurisé
+   * Chiffre un token avec AES-256-GCM
+   * SEC-06: Chiffrement des credentials PrestaShop
    */
   private encryptToken(token: string): string {
-    // TODO: Implémenter chiffrement réel (AES-256-GCM)
-    // Pour l'instant, retourner tel quel (à améliorer)
-    return token;
+    return this.encryptionService.encrypt(token);
   }
 }

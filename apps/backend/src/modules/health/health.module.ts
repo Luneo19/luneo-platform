@@ -5,9 +5,16 @@ import { RailwayHealthController } from './railway-health.controller';
 import { MetricsModule } from '@/libs/metrics/metrics.module';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
+import { CloudinaryModule } from '@/libs/storage/cloudinary.module';
 
 @Module({
-  imports: [TerminusModule, MetricsModule, PrismaModule, RedisOptimizedModule],
+  imports: [
+    TerminusModule, 
+    MetricsModule, 
+    PrismaModule, 
+    RedisOptimizedModule,
+    CloudinaryModule, // HEALTH-01: Health check Cloudinary
+  ],
   controllers: [HealthController, RailwayHealthController],
   exports: [],
 })

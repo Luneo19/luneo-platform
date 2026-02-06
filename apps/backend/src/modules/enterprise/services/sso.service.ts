@@ -15,13 +15,14 @@
  * - ✅ Types explicites
  * - ✅ Validation robuste
  * - ✅ Logging structuré
+ * - ✅ SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
  */
 
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
-import * as xml2js from 'xml2js';
+import { Prisma } from '@prisma/client';
 
 // ============================================================================
 // TYPES STRICTS
@@ -100,6 +101,7 @@ export class SSOService {
   /**
    * Crée une configuration SAML
    * Conforme au plan PHASE 8 - SSO/SAML
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRaw
    */
   async createSAMLConfig(data: SAMLConfigData): Promise<SSOConfiguration> {
     // ✅ Validation
@@ -127,9 +129,11 @@ export class SSOService {
       throw new BadRequestException('SAML callback URL is required');
     }
 
+    const cleanBrandId = data.brandId.trim();
+
     // ✅ Vérifier que le brand existe
     const brand = await this.prisma.brand.findUnique({
-      where: { id: data.brandId.trim() },
+      where: { id: cleanBrandId },
       select: { id: true },
     });
 
@@ -138,12 +142,14 @@ export class SSOService {
     }
 
     // ✅ Vérifier qu'il n'y a pas déjà une config SAML pour ce brand
-    const existing = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      `SELECT id FROM "SSOConfiguration" WHERE "brandId" = $1 AND "provider" = 'saml' LIMIT 1`,
-      data.brandId.trim(),
-    );
+    const existing = await this.prisma.sSOConfiguration.findFirst({
+      where: {
+        brandId: cleanBrandId,
+        provider: 'saml',
+      },
+    });
 
-    if (existing && existing.length > 0) {
+    if (existing) {
       throw new BadRequestException('SAML configuration already exists for this brand');
     }
 
@@ -154,39 +160,29 @@ export class SSOService {
         encryptedPvk = this.encryptSecret(data.samlDecryptionPvk);
       }
 
-      // ✅ Créer la configuration
-      const config = await this.prisma.$executeRaw`
-        INSERT INTO "SSOConfiguration" (
-          "id", "brandId", "provider", "name", "enabled",
-          "samlEntryPoint", "samlIssuer", "samlCert", "samlCallbackUrl", "samlDecryptionPvk",
-          "metadataUrl", "metadataXml",
-          "autoProvisioning", "defaultRole", "attributeMapping",
-          "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${data.brandId.trim()},
-          'saml',
-          ${data.name.trim()},
-          true,
-          ${data.samlEntryPoint.trim()},
-          ${data.samlIssuer.trim()},
-          ${data.samlCert.trim()},
-          ${data.samlCallbackUrl.trim()},
-          ${encryptedPvk},
-          ${data.metadataUrl || null},
-          ${data.metadataXml || null},
-          ${data.autoProvisioning !== undefined ? data.autoProvisioning : true},
-          ${data.defaultRole || null},
-          ${data.attributeMapping ? JSON.stringify(data.attributeMapping) : null}::jsonb,
-          NOW(), NOW()
-        )
-        RETURNING *
-      `;
+      // ✅ Créer la configuration avec Prisma
+      const config = await this.prisma.sSOConfiguration.create({
+        data: {
+          brandId: cleanBrandId,
+          provider: 'saml',
+          name: data.name.trim(),
+          enabled: true,
+          samlEntryPoint: data.samlEntryPoint.trim(),
+          samlIssuer: data.samlIssuer.trim(),
+          samlCert: data.samlCert.trim(),
+          samlCallbackUrl: data.samlCallbackUrl.trim(),
+          samlDecryptionPvk: encryptedPvk,
+          metadataUrl: data.metadataUrl || null,
+          metadataXml: data.metadataXml || null,
+          autoProvisioning: data.autoProvisioning !== undefined ? data.autoProvisioning : true,
+          defaultRole: data.defaultRole || null,
+          attributeMapping: data.attributeMapping ? (data.attributeMapping as Prisma.JsonObject) : Prisma.JsonNull,
+        },
+      });
 
       this.logger.log(`SAML configuration created: ${data.name} for brand ${data.brandId}`);
 
-      // ✅ Récupérer la configuration créée
-      return this.getSSOConfig(data.brandId.trim(), 'saml');
+      return config as unknown as SSOConfiguration;
     } catch (error) {
       this.logger.error(
         `Failed to create SAML configuration: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -197,6 +193,7 @@ export class SSOService {
 
   /**
    * Crée une configuration OIDC
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRaw
    */
   async createOIDCConfig(data: OIDCConfigData): Promise<SSOConfiguration> {
     // ✅ Validation
@@ -224,9 +221,11 @@ export class SSOService {
       throw new BadRequestException('OIDC callback URL is required');
     }
 
+    const cleanBrandId = data.brandId.trim();
+
     // ✅ Vérifier que le brand existe
     const brand = await this.prisma.brand.findUnique({
-      where: { id: data.brandId.trim() },
+      where: { id: cleanBrandId },
       select: { id: true },
     });
 
@@ -235,12 +234,14 @@ export class SSOService {
     }
 
     // ✅ Vérifier qu'il n'y a pas déjà une config OIDC pour ce brand
-    const existing = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      `SELECT id FROM "SSOConfiguration" WHERE "brandId" = $1 AND "provider" = 'oidc' LIMIT 1`,
-      data.brandId.trim(),
-    );
+    const existing = await this.prisma.sSOConfiguration.findFirst({
+      where: {
+        brandId: cleanBrandId,
+        provider: 'oidc',
+      },
+    });
 
-    if (existing && existing.length > 0) {
+    if (existing) {
       throw new BadRequestException('OIDC configuration already exists for this brand');
     }
 
@@ -248,36 +249,27 @@ export class SSOService {
       // ✅ Encrypter le client secret
       const encryptedSecret = this.encryptSecret(data.oidcClientSecret);
 
-      // ✅ Créer la configuration
-      const config = await this.prisma.$executeRaw`
-        INSERT INTO "SSOConfiguration" (
-          "id", "brandId", "provider", "name", "enabled",
-          "oidcIssuer", "oidcClientId", "oidcClientSecret", "oidcCallbackUrl", "oidcScope",
-          "autoProvisioning", "defaultRole", "attributeMapping",
-          "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${data.brandId.trim()},
-          'oidc',
-          ${data.name.trim()},
-          true,
-          ${data.oidcIssuer.trim()},
-          ${data.oidcClientId.trim()},
-          ${encryptedSecret},
-          ${data.oidcCallbackUrl.trim()},
-          ${data.oidcScope || 'openid profile email'},
-          ${data.autoProvisioning !== undefined ? data.autoProvisioning : true},
-          ${data.defaultRole || null},
-          ${data.attributeMapping ? JSON.stringify(data.attributeMapping) : null}::jsonb,
-          NOW(), NOW()
-        )
-        RETURNING *
-      `;
+      // ✅ Créer la configuration avec Prisma
+      const config = await this.prisma.sSOConfiguration.create({
+        data: {
+          brandId: cleanBrandId,
+          provider: 'oidc',
+          name: data.name.trim(),
+          enabled: true,
+          oidcIssuer: data.oidcIssuer.trim(),
+          oidcClientId: data.oidcClientId.trim(),
+          oidcClientSecret: encryptedSecret,
+          oidcCallbackUrl: data.oidcCallbackUrl.trim(),
+          oidcScope: data.oidcScope || 'openid profile email',
+          autoProvisioning: data.autoProvisioning !== undefined ? data.autoProvisioning : true,
+          defaultRole: data.defaultRole || null,
+          attributeMapping: data.attributeMapping ? (data.attributeMapping as Prisma.JsonObject) : Prisma.JsonNull,
+        },
+      });
 
       this.logger.log(`OIDC configuration created: ${data.name} for brand ${data.brandId}`);
 
-      // ✅ Récupérer la configuration créée
-      return this.getSSOConfig(data.brandId.trim(), 'oidc');
+      return config as unknown as SSOConfiguration;
     } catch (error) {
       this.logger.error(
         `Failed to create OIDC configuration: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -288,6 +280,7 @@ export class SSOService {
 
   /**
    * Obtient une configuration SSO
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async getSSOConfig(brandId: string, provider: 'saml' | 'oidc'): Promise<SSOConfiguration> {
     // ✅ Validation
@@ -295,17 +288,19 @@ export class SSOService {
       throw new BadRequestException('Brand ID is required');
     }
 
-    const configs = await this.prisma.$queryRawUnsafe<SSOConfiguration[]>(
-      `SELECT * FROM "SSOConfiguration" WHERE "brandId" = $1 AND "provider" = $2 AND "enabled" = true LIMIT 1`,
-      brandId.trim(),
-      provider,
-    );
+    const config = await this.prisma.sSOConfiguration.findFirst({
+      where: {
+        brandId: brandId.trim(),
+        provider,
+        enabled: true,
+      },
+    });
 
-    if (!configs || configs.length === 0) {
+    if (!config) {
       throw new NotFoundException(`SSO configuration not found for brand ${brandId} and provider ${provider}`);
     }
 
-    return configs[0];
+    return config as unknown as SSOConfiguration;
   }
 
   /**

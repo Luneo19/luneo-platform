@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { CurrencyUtils } from '@/config/currency.config';
 import type Stripe from 'stripe';
 
 @Injectable()
@@ -36,7 +37,7 @@ export class StripeConnectService {
     });
 
     if (!artisan || !artisan.stripeAccountId) {
-      throw new Error(`Artisan ${artisanId} not found or Stripe account not set up`);
+      throw new NotFoundException(`Artisan ${artisanId} not found or Stripe account not set up`);
     }
 
     // Récupérer les work orders
@@ -44,12 +45,12 @@ export class StripeConnectService {
       where: {
         id: { in: workOrderIds },
         artisanId,
-        payoutStatus: 'pending',
+        payoutStatus: 'PENDING',
       },
     });
 
     if (workOrders.length === 0) {
-      throw new Error('No pending work orders found');
+      throw new NotFoundException('No pending work orders found');
     }
 
     // Calculer le montant total
@@ -71,7 +72,7 @@ export class StripeConnectService {
         workOrderIds,
         periodStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 derniers jours
         periodEnd: new Date(),
-        status: 'pending',
+        status: 'PENDING',
       },
     });
 
@@ -80,7 +81,7 @@ export class StripeConnectService {
       const stripe = await this.getStripe();
       const transfer = await stripe.transfers.create({
         amount: netAmountCents,
-        currency: 'eur',
+        currency: CurrencyUtils.getStripeCurrency(),
         destination: artisan.stripeAccountId,
         metadata: {
           payoutId: payout.id,
@@ -93,7 +94,7 @@ export class StripeConnectService {
         where: { id: payout.id },
         data: {
           stripeTransferId: transfer.id,
-          status: 'processing',
+          status: 'PROCESSING',
         },
       });
 
@@ -101,7 +102,7 @@ export class StripeConnectService {
       await this.prisma.workOrder.updateMany({
         where: { id: { in: workOrderIds } },
         data: {
-          payoutStatus: 'processing',
+          payoutStatus: 'PROCESSING',
           payoutId: payout.id,
         },
       });
@@ -114,7 +115,7 @@ export class StripeConnectService {
       await this.prisma.payout.update({
         where: { id: payout.id },
         data: {
-          status: 'failed',
+          status: 'FAILED',
           failureReason: error.message,
         },
       });
@@ -140,8 +141,8 @@ export class StripeConnectService {
         const pendingWorkOrders = await this.prisma.workOrder.findMany({
           where: {
             artisanId: artisan.id,
-            payoutStatus: 'pending',
-            status: 'completed',
+            payoutStatus: 'PENDING',
+            status: 'COMPLETED',
           },
         });
 
@@ -361,31 +362,31 @@ export class StripeConnectService {
     }
 
     // Mettre à jour le statut
-    let status: 'pending' | 'processing' | 'paid' | 'failed' | 'cancelled' = 'processing';
+    let status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' = 'PROCESSING';
 
     if (transfer.reversed) {
-      status = 'failed';
+      status = 'FAILED';
     } else if (transfer.amount_reversed > 0) {
-      status = 'failed';
+      status = 'FAILED';
     } else {
-      status = 'paid';
+      status = 'COMPLETED';
     }
 
     await this.prisma.payout.update({
       where: { id: payout.id },
       data: {
         status,
-        paidAt: status === 'paid' ? new Date() : null,
-        failureReason: status === 'failed' ? 'Transfer reversed' : null,
+        paidAt: status === 'COMPLETED' ? new Date() : null,
+        failureReason: status === 'FAILED' ? 'Transfer reversed' : null,
       },
     });
 
     // Mettre à jour les work orders
-    if (status === 'paid') {
+    if (status === 'COMPLETED') {
       await this.prisma.workOrder.updateMany({
         where: { payoutId: payout.id },
         data: {
-          payoutStatus: 'paid',
+          payoutStatus: 'PAID',
         },
       });
     }

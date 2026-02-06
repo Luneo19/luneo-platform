@@ -4,7 +4,7 @@
  * Respecte la Bible Luneo : pas de any, types stricts, logging professionnel
  */
 
-import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '@/libs/storage/storage.service';
@@ -167,7 +167,7 @@ export class ArStudioService {
 
       const model = await this.getModelById(modelId, brandId);
       if (!model) {
-        throw new Error('AR model not found');
+        throw new NotFoundException('AR model not found');
       }
 
       // URL de preview AR (à configurer selon votre domaine)
@@ -717,7 +717,7 @@ export class ArStudioService {
         });
 
         if (!optimizeResponse.ok) {
-          throw new Error(`CloudConvert optimization failed: ${optimizeResponse.statusText}`);
+          throw new InternalServerErrorException(`CloudConvert optimization failed: ${optimizeResponse.statusText}`);
         }
 
         const jobData = await optimizeResponse.json();
@@ -744,13 +744,13 @@ export class ArStudioService {
           }
 
           if (task?.status === 'error') {
-            throw new Error(`CloudConvert optimization error: ${task.message}`);
+            throw new InternalServerErrorException(`CloudConvert optimization error: ${task.message}`);
           }
 
           attempts++;
         }
 
-        throw new Error('CloudConvert optimization timeout');
+        throw new InternalServerErrorException('CloudConvert optimization timeout');
       }
 
       // Pour USDZ, l'optimisation est déjà gérée dans convertGLBToUSDZ

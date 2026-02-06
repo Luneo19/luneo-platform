@@ -9,7 +9,8 @@ import {
   Query,
   UseGuards,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  NotFoundException
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
@@ -387,7 +388,7 @@ export class ProductEngineController {
     }
 
     if (!preset) {
-      throw new Error(`Preset ${body.presetId} not found`);
+      throw new NotFoundException(`Preset ${body.presetId} not found`);
     }
 
     // Créer la zone avec le preset

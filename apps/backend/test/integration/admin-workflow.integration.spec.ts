@@ -3,48 +3,48 @@
  * Tests Admin workflow: Admin Login → View Customers → Analytics → Export
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import { AppModule } from '@/app.module';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { describeIntegration } from '@/common/test/integration-test.helper';
+import { createIntegrationTestApp, closeIntegrationTestApp } from '@/common/test/test-app.module';
 
-describe('Admin Workflow Integration', () => {
+describeIntegration('Admin Workflow Integration', () => {
   let app: INestApplication;
+  let moduleFixture: TestingModule;
   let prisma: PrismaService;
   let adminAccessToken: string;
   let adminUserId: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
+    const testApp = await createIntegrationTestApp();
+    app = testApp.app;
+    moduleFixture = testApp.moduleFixture;
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-  });
+  }, 60000);
 
   afterAll(async () => {
-    await app.close();
+    await closeIntegrationTestApp(app);
   });
 
   beforeEach(async () => {
-    // Clean up test data
+    // Clean up test data in correct order (respecting foreign keys)
     await prisma.order.deleteMany({});
     await prisma.design.deleteMany({});
     await prisma.refreshToken.deleteMany({});
     await prisma.userQuota.deleteMany({});
     await prisma.user.deleteMany({});
+    await prisma.product.deleteMany({});
+    await prisma.brand.deleteMany({});
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('AdminPassword123!', 12);
+    const hashedPassword = await bcrypt.hash('AdminPassword123!', 13);
     const adminUser = await prisma.user.create({
       data: {
-        email: 'admin@luneo.app',
+        email: `admin-${Date.now()}@luneo.app`,
         password: hashedPassword,
         firstName: 'Admin',
         lastName: 'User',
@@ -59,13 +59,19 @@ describe('Admin Workflow Integration', () => {
     const loginResponse = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({
-        email: 'admin@luneo.app',
+        email: adminUser.email,
         password: 'AdminPassword123!',
-      })
-      .expect(200);
+      });
 
-    adminAccessToken = loginResponse.body.accessToken;
-  });
+    if (loginResponse.status !== 200) {
+      console.error('Admin login failed:', loginResponse.status, loginResponse.body);
+      throw new Error(`Admin login failed with status ${loginResponse.status}`);
+    }
+
+    // Handle wrapped response
+    const loginData = loginResponse.body.data || loginResponse.body;
+    adminAccessToken = loginData.accessToken;
+  }, 30000);
 
   describe('Admin Customer Management', () => {
     beforeEach(async () => {
@@ -91,9 +97,11 @@ describe('Admin Workflow Integration', () => {
         .query({ page: 1, limit: 10 })
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body).toHaveProperty('meta');
-      expect(response.body.data.length).toBeGreaterThan(0);
+      // Handle wrapped response
+      const body = response.body.data || response.body;
+      expect(body).toHaveProperty('data');
+      expect(body).toHaveProperty('meta');
+      expect(body.data.length).toBeGreaterThan(0);
     });
 
     it('should filter customers by email', async () => {
@@ -103,8 +111,10 @@ describe('Admin Workflow Integration', () => {
         .query({ search: 'customer0@example.com' })
         .expect(200);
 
-      expect(response.body.data.length).toBeGreaterThan(0);
-      expect(response.body.data[0].email).toContain('customer0');
+      // Handle wrapped response
+      const body = response.body.data || response.body;
+      expect(body.data.length).toBeGreaterThan(0);
+      expect(body.data[0].email).toContain('customer0');
     });
 
     it('should get customer details', async () => {
@@ -121,20 +131,23 @@ describe('Admin Workflow Integration', () => {
           .set('Authorization', `Bearer ${adminAccessToken}`)
           .expect(200);
 
-        expect(response.body).toHaveProperty('id');
-        expect(response.body).toHaveProperty('email');
-        expect(response.body.id).toBe(customerId);
+        // Handle wrapped response
+        const body = response.body.data || response.body;
+        expect(body).toHaveProperty('id');
+        expect(body).toHaveProperty('email');
+        expect(body.id).toBe(customerId);
       }
     });
   });
 
   describe('Admin Analytics', () => {
     beforeEach(async () => {
-      // Create test data for analytics
+      // Create test data for analytics with unique slugs
+      const timestamp = Date.now();
       const brand = await prisma.brand.create({
         data: {
           name: 'Test Brand',
-          slug: 'test-brand',
+          slug: `test-brand-${timestamp}`,
           website: 'https://test.com',
         },
       });
@@ -142,7 +155,7 @@ describe('Admin Workflow Integration', () => {
       const product = await prisma.product.create({
         data: {
           name: 'Test Product',
-          slug: 'test-product',
+          slug: `test-product-${timestamp}`,
           price: 29.99,
           brandId: brand.id,
         },
@@ -152,7 +165,7 @@ describe('Admin Workflow Integration', () => {
       for (let i = 0; i < 3; i++) {
         const user = await prisma.user.create({
           data: {
-            email: `analytics-user${i}@example.com`,
+            email: `analytics-user${i}-${timestamp}@example.com`,
             password: await bcrypt.hash('Password123!', 12),
             firstName: `User${i}`,
             lastName: 'Test',
@@ -175,7 +188,7 @@ describe('Admin Workflow Integration', () => {
 
         await prisma.order.create({
           data: {
-            orderNumber: `ORD-${Date.now()}-${i}`,
+            orderNumber: `ORD-${timestamp}-${i}`,
             customerEmail: user.email,
             designId: design.id,
             userId: user.id,
@@ -194,11 +207,13 @@ describe('Admin Workflow Integration', () => {
         .set('Authorization', `Bearer ${adminAccessToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('mrr');
-      expect(response.body).toHaveProperty('customers');
-      expect(response.body).toHaveProperty('churnRate');
-      expect(typeof response.body.mrr).toBe('number');
-      expect(typeof response.body.customers).toBe('number');
+      // Handle wrapped response
+      const body = response.body.data || response.body;
+      expect(body).toHaveProperty('mrr');
+      expect(body).toHaveProperty('customers');
+      expect(body).toHaveProperty('churnRate');
+      expect(typeof body.mrr).toBe('number');
+      expect(typeof body.customers).toBe('number');
     });
 
     it('should get revenue metrics', async () => {
@@ -208,9 +223,11 @@ describe('Admin Workflow Integration', () => {
         .query({ period: '30d' })
         .expect(200);
 
-      expect(response.body).toHaveProperty('totalRevenue');
-      expect(response.body).toHaveProperty('mrr');
-      expect(response.body).toHaveProperty('arr');
+      // Handle wrapped response
+      const body = response.body.data || response.body;
+      expect(body).toHaveProperty('totalRevenue');
+      expect(body).toHaveProperty('mrr');
+      expect(body).toHaveProperty('arr');
     });
   });
 

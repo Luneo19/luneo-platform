@@ -9,7 +9,7 @@
  * - ✅ Types explicites
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { LLMRouterService, LLMProvider, LLM_MODELS, Message } from './llm-router.service';
@@ -264,17 +264,17 @@ export class RAGService {
     // ✅ Validation des entrées
     if (!originalPrompt || typeof originalPrompt !== 'string' || originalPrompt.trim().length === 0) {
       this.logger.warn('Invalid originalPrompt provided to enhancePrompt');
-      throw new Error('Original prompt is required');
+      throw new BadRequestException('Original prompt is required');
     }
 
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
       this.logger.warn('Invalid query provided to enhancePrompt');
-      throw new Error('Query is required');
+      throw new BadRequestException('Query is required');
     }
 
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to enhancePrompt');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
     // Rechercher documents pertinents
     const documents = await this.search(query, brandId, options);

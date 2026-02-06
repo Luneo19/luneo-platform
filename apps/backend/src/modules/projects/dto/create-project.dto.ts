@@ -35,7 +35,7 @@ export class CreateProjectDto {
   @ApiProperty({
     description: 'Type de projet',
     enum: ProjectType,
-    example: ProjectType.VIRTUAL_TRY_ON,
+    example: ProjectType.DESIGN,
   })
   @IsEnum(ProjectType)
   type: ProjectType;

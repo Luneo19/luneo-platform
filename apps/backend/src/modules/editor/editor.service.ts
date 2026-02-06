@@ -5,7 +5,7 @@
  */
 
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 export interface EditorProject {
@@ -171,7 +171,7 @@ export class EditorService {
 
       // Vérifier que l'utilisateur est le propriétaire
       if (project.userId !== userId) {
-        throw new Error('User is not the owner of this project');
+        throw new ForbiddenException('User is not the owner of this project');
       }
 
       const brand = await this.prisma.brand.findUnique({
@@ -224,7 +224,7 @@ export class EditorService {
 
       // Vérifier que l'utilisateur est le propriétaire
       if (project.userId !== userId) {
-        throw new Error('User is not the owner of this project');
+        throw new ForbiddenException('User is not the owner of this project');
       }
 
       const brand = await this.prisma.brand.findUnique({
@@ -292,7 +292,7 @@ export class EditorService {
       const project = await this.getProject(id, brandId);
 
       if (project.userId !== userId) {
-        throw new Error('User is not the owner of this project');
+        throw new ForbiddenException('User is not the owner of this project');
       }
 
       const brand = await this.prisma.brand.findUnique({

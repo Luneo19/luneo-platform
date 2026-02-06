@@ -3,7 +3,7 @@
  * Handles upscale, background removal, extract colors, smart crop
  */
 
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CreditsService } from '@/libs/credits/credits.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -93,7 +93,7 @@ export class AIImageService {
             width = metadata.width || 0;
             height = metadata.height || 0;
           } else {
-            throw new Error(`Upscale failed: ${prediction.error}`);
+            throw new InternalServerErrorException(`Upscale failed: ${prediction.error}`);
           }
         } catch (replicateError) {
           this.logger.warn('Replicate upscale failed, falling back to Cloudinary', replicateError);
@@ -187,7 +187,7 @@ export class AIImageService {
         if (prediction.status === 'succeeded') {
           resultUrl = prediction.output;
         } else {
-          throw new Error(`Background removal failed: ${prediction.error}`);
+          throw new InternalServerErrorException(`Background removal failed: ${prediction.error}`);
         }
       } else {
         throw new BadRequestException('Replicate API key not configured');

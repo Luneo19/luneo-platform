@@ -9,7 +9,7 @@
  * - ✅ Gardes pour éviter les crashes
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
@@ -43,7 +43,7 @@ export class MetricsService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getRealTimeMetrics');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     const cacheKey = `metrics:realtime:${brandId.trim()}`;

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { hashPrompt, sanitizePrompt } from '@/libs/ai/ai-safety';
@@ -63,7 +63,7 @@ export class OpenAIProvider implements AIProvider {
       // Sanitizer le prompt avec ai-safety
       const sanitized = sanitizePrompt(options.prompt, { maxLength: 1200 });
       if (sanitized.blocked) {
-        throw new Error(`Prompt blocked: ${sanitized.reasons?.join(', ')}`);
+        throw new BadRequestException(`Prompt blocked: ${sanitized.reasons?.join(', ')}`);
       }
 
       const model = options.model || 'dall-e-3';
@@ -87,7 +87,7 @@ export class OpenAIProvider implements AIProvider {
       });
 
       if (!response.data || response.data.length === 0 || !response.data[0].url) {
-        throw new Error('No image URL returned from OpenAI');
+        throw new InternalServerErrorException('No image URL returned from OpenAI');
       }
 
       const imageUrl = response.data[0].url;
@@ -124,7 +124,7 @@ export class OpenAIProvider implements AIProvider {
       const errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(`OpenAI generation failed:`, error);
-      throw new Error(`OpenAI generation failed: ${errorMessage}`);
+      throw new InternalServerErrorException(`OpenAI generation failed: ${errorMessage}`);
     }
   }
 

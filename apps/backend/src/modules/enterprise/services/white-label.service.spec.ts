@@ -13,7 +13,7 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
 describe('WhiteLabelService', () => {
   let service: WhiteLabelService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: any; // Use any for mock methods
   let cacheService: jest.Mocked<SmartCacheService>;
 
   const mockBrand = {
@@ -42,6 +42,25 @@ describe('WhiteLabelService', () => {
     const mockPrisma = {
       brand: {
         findUnique: jest.fn(),
+      },
+      customDomain: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        count: jest.fn(),
+      },
+      customTheme: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+        delete: jest.fn(),
+        count: jest.fn(),
       },
       $executeRaw: jest.fn(),
       $queryRawUnsafe: jest.fn(),
@@ -89,8 +108,8 @@ describe('WhiteLabelService', () => {
 
     it('should create theme with valid data', async () => {
       prismaService.brand.findUnique.mockResolvedValue(mockBrand as any);
-      prismaService.$executeRaw.mockResolvedValue([mockTheme] as any);
-      prismaService.$queryRawUnsafe.mockResolvedValue([mockTheme] as any);
+      prismaService.customTheme.updateMany.mockResolvedValue({ count: 0 });
+      prismaService.customTheme.create.mockResolvedValue(mockTheme as any);
 
       const result = await service.createTheme(validThemeData);
 
@@ -128,7 +147,7 @@ describe('WhiteLabelService', () => {
 
   describe('getActiveTheme', () => {
     it('should return active theme when exists', async () => {
-      prismaService.$queryRawUnsafe.mockResolvedValue([mockTheme] as any);
+      prismaService.customTheme.findFirst.mockResolvedValue(mockTheme as any);
 
       const result = await service.getActiveTheme('brand-123');
 
@@ -142,7 +161,7 @@ describe('WhiteLabelService', () => {
     });
 
     it('should throw NotFoundException when no active theme exists', async () => {
-      prismaService.$queryRawUnsafe.mockResolvedValue([]);
+      prismaService.customTheme.findFirst.mockResolvedValue(null);
 
       await expect(service.getActiveTheme('brand-123')).rejects.toThrow(NotFoundException);
     });
@@ -155,12 +174,18 @@ describe('WhiteLabelService', () => {
     };
 
     it('should create domain with valid data', async () => {
+      const createdDomain = {
+        id: 'domain-123',
+        brandId: 'brand-123',
+        domain: 'custom.example.com',
+        isActive: false,
+        sslCertificate: null,
+        sslExpiresAt: null,
+      };
+      
       prismaService.brand.findUnique.mockResolvedValue(mockBrand as any);
-      prismaService.$queryRawUnsafe
-        .mockResolvedValueOnce([]) // Check existing domain
-        .mockResolvedValueOnce([{ id: 'domain-123' }] as any) // After insert
-        .mockResolvedValueOnce([{ id: 'domain-123', ...validDomainData }] as any); // Get created domain
-      prismaService.$executeRaw.mockResolvedValue([{ id: 'domain-123' }] as any);
+      prismaService.customDomain.findUnique.mockResolvedValue(null); // No existing domain
+      prismaService.customDomain.create.mockResolvedValue(createdDomain);
 
       const result = await service.createCustomDomain(validDomainData);
 
@@ -176,7 +201,8 @@ describe('WhiteLabelService', () => {
 
     it('should throw BadRequestException when domain is already taken', async () => {
       prismaService.brand.findUnique.mockResolvedValue(mockBrand as any);
-      prismaService.$queryRawUnsafe.mockResolvedValue([{ id: 'existing-domain' }] as any);
+      // Mock that the domain already exists
+      prismaService.customDomain.findUnique.mockResolvedValue({ id: 'existing-domain', domain: 'custom.example.com' });
 
       await expect(service.createCustomDomain(validDomainData)).rejects.toThrow(BadRequestException);
     });
@@ -184,9 +210,11 @@ describe('WhiteLabelService', () => {
 
   describe('activateDomain', () => {
     it('should activate domain successfully', async () => {
-      prismaService.$queryRawUnsafe
-        .mockResolvedValueOnce(undefined) // executeRawUnsafe
-        .mockResolvedValueOnce([{ id: 'domain-123', isActive: true }] as any); // Get updated domain
+      const mockDomain = { id: 'domain-123', isActive: false, brandId: 'brand-123' };
+      const activatedDomain = { ...mockDomain, isActive: true };
+      
+      prismaService.customDomain.findUnique.mockResolvedValue(mockDomain);
+      prismaService.customDomain.update.mockResolvedValue(activatedDomain);
 
       const result = await service.activateDomain('domain-123');
 
@@ -196,6 +224,12 @@ describe('WhiteLabelService', () => {
 
     it('should throw BadRequestException when domainId is missing', async () => {
       await expect(service.activateDomain('')).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException when domain does not exist', async () => {
+      prismaService.customDomain.findUnique.mockResolvedValue(null);
+
+      await expect(service.activateDomain('non-existent')).rejects.toThrow(NotFoundException);
     });
   });
 });

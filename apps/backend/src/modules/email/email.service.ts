@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bullmq';
@@ -82,7 +82,7 @@ export class EmailService {
         case 'auto':
           return await this.sendWithAutoProvider(options);
         default:
-          throw new Error(`Unknown email provider: ${provider}`);
+          throw new BadRequestException(`Unknown email provider: ${provider}`);
       }
     } catch (error) {
       this.logger.error(`Failed to send email with ${provider}:`, error);
@@ -102,7 +102,7 @@ export class EmailService {
    */
   private async sendWithSendGrid(options: EmailOptions): Promise<any> {
     if (!this.sendgridAvailable) {
-      throw new Error('SendGrid not available');
+      throw new ServiceUnavailableException('SendGrid not available');
     }
 
     const sendgridOptions: SendGridEmailOptions = {
@@ -128,7 +128,7 @@ export class EmailService {
    */
   private async sendWithMailgun(options: EmailOptions): Promise<any> {
     if (!this.mailgunAvailable) {
-      throw new Error('Mailgun not available');
+      throw new ServiceUnavailableException('Mailgun not available');
     }
 
     const mailgunOptions: MailgunEmailOptions = {
@@ -171,7 +171,7 @@ export class EmailService {
       return await this.sendWithSendGrid(options);
     }
 
-    throw new Error('No email provider available');
+    throw new ServiceUnavailableException('No email provider available');
   }
 
   /**

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { db } from '@/lib/db';
 import { subDays } from 'date-fns';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(funnel);
   } catch (error) {
-    console.error('Error fetching funnel data:', error);
+    serverLogger.apiError('/api/admin/analytics/funnel', 'GET', error, 500);
     return NextResponse.json(
       { error: 'Failed to fetch funnel data' },
       { status: 500 }

@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { firstValueFrom } from 'rxjs';
 import {
   MagentoProduct,
@@ -11,7 +12,8 @@ import {
   SyncResult,
   SyncOptions,
 } from '../../interfaces/ecommerce.interface';
-
+// ENUM-01: Import des enums Prisma pour intégrité des données
+import { SyncLogStatus, SyncLogType, SyncDirection } from '@prisma/client';
 @Injectable()
 export class MagentoConnector {
   private readonly logger = new Logger(MagentoConnector.name);
@@ -21,6 +23,7 @@ export class MagentoConnector {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   /**
@@ -88,7 +91,7 @@ export class MagentoConnector {
       return response.data?.data?.storeConfig !== undefined;
     } catch (error) {
       this.logger.error(`Invalid Magento token:`, error);
-      throw new Error('Invalid Magento API token');
+      throw new BadRequestException('Invalid Magento API token');
     }
   }
 
@@ -267,6 +270,7 @@ export class MagentoConnector {
 
   /**
    * Synchronise les produits
+   * PERF-02: Batch loading des mappings + traitement parallèle
    */
   async syncProducts(integrationId: string, options?: SyncOptions): Promise<SyncResult> {
     const startTime = Date.now();
@@ -279,26 +283,53 @@ export class MagentoConnector {
 
       const products = await this.getProducts(integrationId, { pageSize: 100 });
 
-      for (const product of products) {
-        try {
-          await this.handleProductUpdate(integrationId, product);
-          itemsProcessed++;
-        } catch (error) {
-          errors.push({
-            itemId: product.sku,
-            code: 'SYNC_ERROR',
-            message: error.message,
-          });
-          itemsFailed++;
-        }
+      // PERF-02: Charger tous les mappings existants en une seule requête
+      const existingMappings = await this.prisma.productMapping.findMany({
+        where: {
+          integrationId,
+          externalSku: { in: products.map(p => p.sku) },
+        },
+      });
+
+      // PERF-02: Créer une Map pour lookup O(1)
+      const mappingBySku = new Map(existingMappings.map(m => [m.externalSku, m]));
+
+      // PERF-02: Traiter les produits en batch parallèle
+      const BATCH_SIZE = 10;
+      
+      for (let i = 0; i < products.length; i += BATCH_SIZE) {
+        const batch = products.slice(i, i + BATCH_SIZE);
+        
+        const results = await Promise.allSettled(
+          batch.map(product => this.handleProductUpdateWithMapping(
+            integrationId,
+            product,
+            mappingBySku.get(product.sku),
+          ))
+        );
+        
+        results.forEach((result, index) => {
+          const product = batch[index];
+          if (result.status === 'fulfilled') {
+            itemsProcessed++;
+          } else {
+            errors.push({
+              itemId: product.sku,
+              code: 'SYNC_ERROR',
+              message: result.reason?.message || 'Unknown error',
+            });
+            itemsFailed++;
+          }
+        });
       }
 
+      // ENUM-01: Utilise enums Prisma pour intégrité des données
       const syncLog = await this.prisma.syncLog.create({
         data: {
           integrationId,
-          type: 'product',
-          direction: 'import',
-          status: itemsFailed === 0 ? 'success' : 'partial',
+          type: SyncLogType.PRODUCT,
+          direction: SyncDirection.IMPORT,
+          status: itemsFailed === 0 ? SyncLogStatus.SUCCESS : SyncLogStatus.PARTIAL,
           itemsProcessed,
           itemsFailed,
           errors,
@@ -331,7 +362,24 @@ export class MagentoConnector {
   }
 
   /**
-   * Traite une mise à jour de produit
+   * Traite une mise à jour de produit avec mapping pré-chargé
+   * PERF-02: Évite les requêtes N+1 en utilisant le mapping pré-chargé
+   */
+  private async handleProductUpdateWithMapping(
+    integrationId: string,
+    product: MagentoProduct,
+    mapping: { luneoProductId: string } | undefined,
+  ): Promise<void> {
+    if (mapping) {
+      await this.updateLuneoProductFromMagento(mapping.luneoProductId, product);
+    } else {
+      await this.createLuneoProductFromMagento(integrationId, product);
+    }
+  }
+
+  /**
+   * Traite une mise à jour de produit (méthode legacy, préférer handleProductUpdateWithMapping)
+   * @deprecated Utiliser handleProductUpdateWithMapping avec batch loading
    */
   private async handleProductUpdate(integrationId: string, product: MagentoProduct): Promise<void> {
     const mapping = await this.prisma.productMapping.findFirst({
@@ -341,11 +389,7 @@ export class MagentoConnector {
       },
     });
 
-    if (mapping) {
-      await this.updateLuneoProductFromMagento(mapping.luneoProductId, product);
-    } else {
-      await this.createLuneoProductFromMagento(integrationId, product);
-    }
+    await this.handleProductUpdateWithMapping(integrationId, product, mapping || undefined);
   }
 
   /**
@@ -412,24 +456,33 @@ export class MagentoConnector {
     });
 
     if (!integration) {
-      throw new Error(`Integration ${integrationId} not found`);
+      throw new NotFoundException(`Integration ${integrationId} not found`);
     }
 
     return integration;
   }
 
   /**
-   * Crypte un token
+   * Chiffre un token avec AES-256-GCM
+   * SEC-05: Chiffrement des credentials Magento
    */
   private encryptToken(token: string): string {
-    return Buffer.from(token).toString('base64');
+    return this.encryptionService.encrypt(token);
   }
 
   /**
-   * Décrypte un token
+   * Déchiffre un token avec AES-256-GCM
+   * Supporte la migration depuis Base64 pour les données existantes
    */
   private decryptToken(encryptedToken: string): string {
-    return Buffer.from(encryptedToken, 'base64').toString('utf8');
+    try {
+      // Essayer d'abord le nouveau format AES-256-GCM
+      return this.encryptionService.decrypt(encryptedToken);
+    } catch {
+      // Fallback vers Base64 pour les données existantes
+      this.logger.warn('Decrypting legacy Base64 token - consider migrating');
+      return Buffer.from(encryptedToken, 'base64').toString('utf8');
+    }
   }
 }
 

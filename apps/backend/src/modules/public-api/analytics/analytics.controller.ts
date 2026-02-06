@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { AnalyticsService } from './analytics.service';
 import { GetAnalyticsDto } from '../dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandId } from '../decorators/brand-id.decorator';
 
 @ApiTags('Analytics')
 @Controller('analytics')
@@ -14,12 +15,10 @@ export class AnalyticsController {
   @Get()
   @ApiOperation({ summary: 'Get analytics data' })
   @ApiResponse({ status: 200, description: 'Analytics data retrieved successfully' })
-  async getAnalytics(@Query() query: GetAnalyticsDto) {
-    const brandId = this.getCurrentBrandId();
+  async getAnalytics(
+    @BrandId() brandId: string,
+    @Query() query: GetAnalyticsDto,
+  ) {
     return this.analyticsService.getAnalytics(brandId, query);
-  }
-
-  private getCurrentBrandId(): string {
-    return (global as any).currentBrandId || 'default-brand-id';
   }
 }

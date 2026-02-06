@@ -5,6 +5,8 @@
 
 import { createMockPrismaService, testFixtures } from '@/common/test/test-setup';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { StorageService } from '@/libs/storage/storage.service';
+import { HttpService } from '@nestjs/axios';
 import { getQueueToken } from '@nestjs/bull';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -32,6 +34,20 @@ describe('DesignsService', () => {
         {
           provide: getQueueToken('ai-generation'),
           useValue: mockQueue,
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn().mockResolvedValue({ url: 'https://cdn.example.com/file.png' }),
+            deleteFile: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: HttpService,
+          useValue: {
+            get: jest.fn(),
+            post: jest.fn(),
+          },
         },
       ],
     }).compile();

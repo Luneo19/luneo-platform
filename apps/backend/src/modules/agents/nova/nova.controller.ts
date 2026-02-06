@@ -22,6 +22,7 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { z } from 'zod';
@@ -127,7 +128,7 @@ export class NovaController {
     const validated = TicketRequestSchema.parse(body);
 
     if (!validated.subject || !validated.description) {
-      throw new Error('Subject and description are required');
+      throw new BadRequestException('Subject and description are required');
     }
 
     // Mapper les catégories du schema Zod vers celles du service

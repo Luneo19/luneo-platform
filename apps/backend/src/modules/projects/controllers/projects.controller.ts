@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -54,7 +55,7 @@ export class ProjectsController {
     @Query() query: ProjectQueryDto,
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.projectsService.findAll(req.user.brandId, query);
   }
@@ -75,7 +76,7 @@ export class ProjectsController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.projectsService.findOne(id, req.user.brandId);
   }
@@ -96,7 +97,7 @@ export class ProjectsController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.projectsService.create(req.user.brandId, dto, req.user);
   }
@@ -118,7 +119,7 @@ export class ProjectsController {
     @Body() dto: UpdateProjectDto,
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.projectsService.update(id, req.user.brandId, dto);
   }
@@ -140,7 +141,7 @@ export class ProjectsController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.projectsService.remove(id, req.user.brandId);
   }
@@ -162,7 +163,7 @@ export class ProjectsController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.projectsService.regenerateApiKey(id, req.user.brandId);
   }

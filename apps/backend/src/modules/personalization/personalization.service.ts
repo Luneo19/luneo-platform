@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { RulesEngineService } from './services/rules-engine.service';
 import { UnicodeNormalizerService } from './services/unicode-normalizer.service';
 import { TextValidatorService } from './services/text-validator.service';
@@ -89,7 +89,7 @@ export class PersonalizationService {
       );
     }
 
-    throw new Error(`Unsupported auto-fit type: ${dto.type}`);
+    throw new BadRequestException(`Unsupported auto-fit type: ${dto.type}`);
   }
 }
 

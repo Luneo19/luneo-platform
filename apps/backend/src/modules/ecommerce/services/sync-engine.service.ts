@@ -17,7 +17,7 @@
  * - ✅ Logging structuré
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -109,11 +109,11 @@ export class SyncEngineService {
   async queueSyncJob(options: SyncJobOptions): Promise<string> {
     // ✅ Validation des entrées
     if (!options.integrationId || typeof options.integrationId !== 'string' || options.integrationId.trim().length === 0) {
-      throw new Error('Integration ID is required');
+      throw new BadRequestException('Integration ID is required');
     }
 
     if (!options.type || !['product', 'order', 'inventory', 'full'].includes(options.type)) {
-      throw new Error('Invalid sync job type');
+      throw new BadRequestException('Invalid sync job type');
     }
 
     // ✅ Vérifier que l'intégration existe
@@ -122,11 +122,11 @@ export class SyncEngineService {
     });
 
     if (!integration) {
-      throw new Error(`Integration ${options.integrationId} not found`);
+      throw new NotFoundException(`Integration ${options.integrationId} not found`);
     }
 
     if (integration.status !== 'active') {
-      throw new Error(`Integration ${options.integrationId} is not active`);
+      throw new BadRequestException(`Integration ${options.integrationId} is not active`);
     }
 
     try {
@@ -192,7 +192,7 @@ export class SyncEngineService {
   ): Promise<string> {
     // ✅ Validation
     if (!integrationId || typeof integrationId !== 'string' || integrationId.trim().length === 0) {
-      throw new Error('Integration ID is required');
+      throw new BadRequestException('Integration ID is required');
     }
 
     // ✅ Expression cron selon l'intervalle
@@ -280,7 +280,7 @@ export class SyncEngineService {
       const job = await this.syncQueue.getJob(jobId);
 
       if (!job) {
-        throw new Error(`Job ${jobId} not found`);
+        throw new NotFoundException(`Job ${jobId} not found`);
       }
 
       await job.remove();
@@ -301,13 +301,13 @@ export class SyncEngineService {
       const job = await this.syncQueue.getJob(jobId);
 
       if (!job) {
-        throw new Error(`Job ${jobId} not found`);
+        throw new NotFoundException(`Job ${jobId} not found`);
       }
 
       const state = await job.getState();
 
       if (state !== 'failed') {
-        throw new Error(`Job ${jobId} is not in failed state`);
+        throw new BadRequestException(`Job ${jobId} is not in failed state`);
       }
 
       // ✅ Créer un nouveau job avec les mêmes données
@@ -388,7 +388,7 @@ export class SyncEngineService {
       case 'weekly':
         return '0 2 * * 1'; // Tous les lundis à 2h du matin
       default:
-        throw new Error(`Invalid interval: ${interval}`);
+        throw new BadRequestException(`Invalid interval: ${interval}`);
     }
   }
 }

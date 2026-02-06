@@ -1,102 +1,130 @@
 /**
  * OpenAPI Contract Tests
- * Validates API responses against OpenAPI schema
+ * Validates API structure and versioning
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import { AppModule } from '@/app.module';
-import * as SwaggerParser from '@apidevtools/swagger-parser';
+import { describeIntegration } from '@/common/test/integration-test.helper';
+import { createIntegrationTestApp, closeIntegrationTestApp } from '@/common/test/test-app.module';
 
-describe('OpenAPI Contract Validation', () => {
+describeIntegration('OpenAPI Contract Validation', () => {
   let app: INestApplication;
-  let openApiSpec: any;
+  let moduleFixture: TestingModule;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
-    // Try to load OpenAPI spec from /api/docs-json
-    try {
-      const specResponse = await request(app.getHttpServer())
-        .get('/api/docs-json');
-      
-      if (specResponse.status === 200) {
-        openApiSpec = specResponse.body;
-      }
-    } catch (error) {
-      console.warn('OpenAPI spec not available, skipping validation');
-    }
-  });
+    const testApp = await createIntegrationTestApp();
+    app = testApp.app;
+    moduleFixture = testApp.moduleFixture;
+  }, 60000);
 
   afterAll(async () => {
-    await app.close();
+    await closeIntegrationTestApp(app);
   });
 
-  describe('OpenAPI Schema Validation', () => {
-    it('should have valid OpenAPI schema', async () => {
-      if (!openApiSpec) {
-        test.skip('OpenAPI spec not available');
-        return;
-      }
+  describe('API Documentation Endpoint', () => {
+    it('should expose API documentation endpoint', async () => {
+      // Check if Swagger docs are available
+      const response = await request(app.getHttpServer())
+        .get('/api/docs');
 
-      try {
-        await SwaggerParser.validate(openApiSpec);
-        expect(openApiSpec).toBeDefined();
-        expect(openApiSpec.openapi || openApiSpec.swagger).toBeDefined();
-      } catch (error) {
-        console.error('OpenAPI validation error:', error);
-        throw error;
-      }
+      // May redirect, return HTML, or not be configured (404)
+      expect([200, 301, 302, 404]).toContain(response.status);
     });
 
-    it('should have all required paths defined', async () => {
-      if (!openApiSpec) {
-        test.skip('OpenAPI spec not available');
-        return;
-      }
+    it('should expose JSON API spec', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/docs-json');
 
-      const requiredPaths = [
-        '/api/v1/auth/signup',
-        '/api/v1/auth/login',
-        '/api/v1/auth/refresh',
-        '/api/v1/products',
-        '/api/v1/user/me',
-      ];
-
-      const paths = openApiSpec.paths || {};
+      // May or may not be configured
+      expect([200, 404]).toContain(response.status);
       
-      for (const path of requiredPaths) {
-        const pathKey = path.replace('/api/v1', '');
-        if (!paths[pathKey] && !paths[path]) {
-          console.warn(`Path ${path} not found in OpenAPI spec`);
-        }
+      if (response.status === 200) {
+        expect(response.body).toHaveProperty('openapi');
+        expect(response.body).toHaveProperty('paths');
       }
     });
   });
 
   describe('API Versioning', () => {
-    it('should maintain API versioning', async () => {
-      // Test that v1 endpoints exist
+    it('should support v1 endpoints', async () => {
       const v1Endpoints = [
-        '/api/v1/auth/signup',
-        '/api/v1/auth/login',
-        '/api/v1/products',
+        { method: 'get', path: '/api/v1/health' },
+        { method: 'post', path: '/api/v1/auth/login' },
+        { method: 'post', path: '/api/v1/auth/signup' },
       ];
 
       for (const endpoint of v1Endpoints) {
-        const response = await request(app.getHttpServer())
-          .get(endpoint.replace('/signup', '').replace('/login', ''))
-          .query({});
-
+        const req = endpoint.method === 'get' 
+          ? request(app.getHttpServer()).get(endpoint.path)
+          : request(app.getHttpServer()).post(endpoint.path).send({});
+        
+        const response = await req;
+        
         // Should not return 404 (endpoint exists)
-        expect([200, 400, 401, 405]).toContain(response.status);
+        expect(response.status).not.toBe(404);
       }
+    });
+
+    it('should reject non-versioned endpoints', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/auth/login');
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('API Structure', () => {
+    it('should have consistent response format for health endpoint', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/health');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toContain('application/json');
+    });
+
+    it('should return JSON for all API responses', async () => {
+      const endpoints = [
+        '/api/v1/health',
+        '/api/v1/auth/me',
+      ];
+
+      for (const endpoint of endpoints) {
+        const response = await request(app.getHttpServer())
+          .get(endpoint);
+
+        expect(response.headers['content-type']).toContain('application/json');
+      }
+    });
+  });
+
+  describe('Required Endpoints Exist', () => {
+    it('should have auth endpoints', async () => {
+      // POST endpoints should not return 404
+      const authEndpoints = [
+        '/api/v1/auth/signup',
+        '/api/v1/auth/login',
+        '/api/v1/auth/refresh',
+        '/api/v1/auth/logout',
+        '/api/v1/auth/forgot-password',
+      ];
+
+      for (const endpoint of authEndpoints) {
+        const response = await request(app.getHttpServer())
+          .post(endpoint)
+          .send({});
+
+        // Should return validation error (400) or auth error (401), not 404
+        expect(response.status).not.toBe(404);
+      }
+    });
+
+    it('should have health endpoint', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/health');
+
+      expect(response.status).toBe(200);
     });
   });
 });

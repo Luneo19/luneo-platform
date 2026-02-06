@@ -6,13 +6,16 @@ import {
   UnauthorizedException,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CronJobsService } from './cron-jobs.service';
 import { Public } from '@/common/decorators/public.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('Cron Jobs')
 @Controller('cron')
+@UseGuards(JwtAuthGuard)
 export class CronJobsController {
   constructor(private readonly cronJobsService: CronJobsService) {}
 

@@ -62,6 +62,7 @@ export class EngagementService {
   /**
    * Like/unlike un template
    * Conforme au plan PHASE 7 - Engagement
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async toggleLike(templateId: string, userId: string): Promise<{ liked: boolean; likesCount: number }> {
     // ✅ Validation
@@ -73,66 +74,77 @@ export class EngagementService {
       throw new BadRequestException('User ID is required');
     }
 
+    const cleanTemplateId = templateId.trim();
+    const cleanUserId = userId.trim();
+
     try {
-      // ✅ Vérifier si le like existe déjà
-      const existing = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-        `SELECT id FROM "TemplateLike" WHERE "templateId" = $1 AND "userId" = $2 LIMIT 1`,
-        templateId.trim(),
-        userId.trim(),
-      );
+      // ✅ Vérifier si le like existe déjà (utilise contrainte unique)
+      const existing = await this.prisma.templateLike.findUnique({
+        where: {
+          templateId_userId: {
+            templateId: cleanTemplateId,
+            userId: cleanUserId,
+          },
+        },
+      });
 
-      if (existing && existing.length > 0) {
+      if (existing) {
         // ✅ Unlike: supprimer le like
-        await this.prisma.$executeRawUnsafe(
-          `DELETE FROM "TemplateLike" WHERE "templateId" = $1 AND "userId" = $2`,
-          templateId.trim(),
-          userId.trim(),
-        );
+        await this.prisma.templateLike.delete({
+          where: {
+            templateId_userId: {
+              templateId: cleanTemplateId,
+              userId: cleanUserId,
+            },
+          },
+        });
 
-        // ✅ Décrémenter le compteur
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "MarketplaceTemplate" SET "likes" = GREATEST("likes" - 1, 0) WHERE "id" = $1`,
-          templateId.trim(),
-        );
+        // ✅ Décrémenter le compteur (avec protection contre les valeurs négatives)
+        const template = await this.prisma.marketplaceTemplate.update({
+          where: { id: cleanTemplateId },
+          data: {
+            likes: { decrement: 1 },
+          },
+          select: { likes: true },
+        });
 
-        // ✅ Récupérer le nouveau count
-        const countResult = await this.prisma.$queryRawUnsafe<Array<{ likes: number }>>(
-          `SELECT "likes" FROM "MarketplaceTemplate" WHERE "id" = $1 LIMIT 1`,
-          templateId.trim(),
-        );
+        // ✅ S'assurer que likes n'est pas négatif
+        if (template.likes < 0) {
+          await this.prisma.marketplaceTemplate.update({
+            where: { id: cleanTemplateId },
+            data: { likes: 0 },
+          });
+        }
 
         this.logger.log(`Template ${templateId} unliked by user ${userId}`);
 
         return {
           liked: false,
-          likesCount: countResult[0]?.likes || 0,
+          likesCount: Math.max(0, template.likes),
         };
       } else {
         // ✅ Like: créer le like
-        await this.prisma.$executeRawUnsafe(
-          `INSERT INTO "TemplateLike" ("id", "templateId", "userId", "createdAt")
-           VALUES (gen_random_uuid()::text, $1, $2, NOW())`,
-          templateId.trim(),
-          userId.trim(),
-        );
+        await this.prisma.templateLike.create({
+          data: {
+            templateId: cleanTemplateId,
+            userId: cleanUserId,
+          },
+        });
 
         // ✅ Incrémenter le compteur
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "MarketplaceTemplate" SET "likes" = "likes" + 1 WHERE "id" = $1`,
-          templateId.trim(),
-        );
-
-        // ✅ Récupérer le nouveau count
-        const countResult = await this.prisma.$queryRawUnsafe<Array<{ likes: number }>>(
-          `SELECT "likes" FROM "MarketplaceTemplate" WHERE "id" = $1 LIMIT 1`,
-          templateId.trim(),
-        );
+        const template = await this.prisma.marketplaceTemplate.update({
+          where: { id: cleanTemplateId },
+          data: {
+            likes: { increment: 1 },
+          },
+          select: { likes: true },
+        });
 
         this.logger.log(`Template ${templateId} liked by user ${userId}`);
 
         return {
           liked: true,
-          likesCount: countResult[0]?.likes || 0,
+          likesCount: template.likes,
         };
       }
     } catch (error) {
@@ -145,6 +157,7 @@ export class EngagementService {
 
   /**
    * Follow/unfollow un créateur
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async toggleFollow(followerId: string, followingId: string): Promise<{ following: boolean; followersCount: number }> {
     // ✅ Validation
@@ -160,66 +173,77 @@ export class EngagementService {
       throw new BadRequestException('Cannot follow yourself');
     }
 
-    try {
-      // ✅ Vérifier si le follow existe déjà
-      const existing = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-        `SELECT id FROM "CreatorFollow" WHERE "followerId" = $1 AND "followingId" = $2 LIMIT 1`,
-        followerId.trim(),
-        followingId.trim(),
-      );
+    const cleanFollowerId = followerId.trim();
+    const cleanFollowingId = followingId.trim();
 
-      if (existing && existing.length > 0) {
+    try {
+      // ✅ Vérifier si le follow existe déjà (utilise contrainte unique)
+      const existing = await this.prisma.creatorFollow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: cleanFollowerId,
+            followingId: cleanFollowingId,
+          },
+        },
+      });
+
+      if (existing) {
         // ✅ Unfollow: supprimer le follow
-        await this.prisma.$executeRawUnsafe(
-          `DELETE FROM "CreatorFollow" WHERE "followerId" = $1 AND "followingId" = $2`,
-          followerId.trim(),
-          followingId.trim(),
-        );
+        await this.prisma.creatorFollow.delete({
+          where: {
+            followerId_followingId: {
+              followerId: cleanFollowerId,
+              followingId: cleanFollowingId,
+            },
+          },
+        });
 
         // ✅ Décrémenter le compteur
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "CreatorProfile" SET "followersCount" = GREATEST("followersCount" - 1, 0) WHERE "id" = $1`,
-          followingId.trim(),
-        );
+        const profile = await this.prisma.creatorProfile.update({
+          where: { id: cleanFollowingId },
+          data: {
+            followersCount: { decrement: 1 },
+          },
+          select: { followersCount: true },
+        });
 
-        // ✅ Récupérer le nouveau count
-        const countResult = await this.prisma.$queryRawUnsafe<Array<{ followersCount: number }>>(
-          `SELECT "followersCount" FROM "CreatorProfile" WHERE "id" = $1 LIMIT 1`,
-          followingId.trim(),
-        );
+        // ✅ S'assurer que followersCount n'est pas négatif
+        if (profile.followersCount < 0) {
+          await this.prisma.creatorProfile.update({
+            where: { id: cleanFollowingId },
+            data: { followersCount: 0 },
+          });
+        }
 
         this.logger.log(`Creator ${followingId} unfollowed by user ${followerId}`);
 
         return {
           following: false,
-          followersCount: countResult[0]?.followersCount || 0,
+          followersCount: Math.max(0, profile.followersCount),
         };
       } else {
         // ✅ Follow: créer le follow
-        await this.prisma.$executeRawUnsafe(
-          `INSERT INTO "CreatorFollow" ("id", "followerId", "followingId", "createdAt")
-           VALUES (gen_random_uuid()::text, $1, $2, NOW())`,
-          followerId.trim(),
-          followingId.trim(),
-        );
+        await this.prisma.creatorFollow.create({
+          data: {
+            followerId: cleanFollowerId,
+            followingId: cleanFollowingId,
+          },
+        });
 
         // ✅ Incrémenter le compteur
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "CreatorProfile" SET "followersCount" = "followersCount" + 1 WHERE "id" = $1`,
-          followingId.trim(),
-        );
-
-        // ✅ Récupérer le nouveau count
-        const countResult = await this.prisma.$queryRawUnsafe<Array<{ followersCount: number }>>(
-          `SELECT "followersCount" FROM "CreatorProfile" WHERE "id" = $1 LIMIT 1`,
-          followingId.trim(),
-        );
+        const profile = await this.prisma.creatorProfile.update({
+          where: { id: cleanFollowingId },
+          data: {
+            followersCount: { increment: 1 },
+          },
+          select: { followersCount: true },
+        });
 
         this.logger.log(`Creator ${followingId} followed by user ${followerId}`);
 
         return {
           following: true,
-          followersCount: countResult[0]?.followersCount || 0,
+          followersCount: profile.followersCount,
         };
       }
     } catch (error) {
@@ -232,6 +256,7 @@ export class EngagementService {
 
   /**
    * Crée ou met à jour une review
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async createOrUpdateReview(data: CreateReviewData): Promise<TemplateReview> {
     // ✅ Validation
@@ -247,68 +272,47 @@ export class EngagementService {
       throw new BadRequestException('Rating must be between 1 and 5');
     }
 
+    const cleanTemplateId = data.templateId.trim();
+    const cleanUserId = data.userId.trim();
+
     try {
-      // ✅ Vérifier si une review existe déjà
-      const existing = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-        `SELECT id FROM "TemplateReview" WHERE "templateId" = $1 AND "userId" = $2 LIMIT 1`,
-        data.templateId.trim(),
-        data.userId.trim(),
-      );
+      // ✅ Upsert la review (créer ou mettre à jour)
+      const review = await this.prisma.templateReview.upsert({
+        where: {
+          templateId_userId: {
+            templateId: cleanTemplateId,
+            userId: cleanUserId,
+          },
+        },
+        update: {
+          rating: data.rating,
+          comment: data.comment || null,
+        },
+        create: {
+          templateId: cleanTemplateId,
+          userId: cleanUserId,
+          purchaseId: data.purchaseId || null,
+          rating: data.rating,
+          comment: data.comment || null,
+        },
+      });
 
-      if (existing && existing.length > 0) {
-        // ✅ Mettre à jour la review existante
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "TemplateReview" SET
-            "rating" = $1,
-            "comment" = $2,
-            "updatedAt" = NOW()
-          WHERE "id" = $3`,
-          data.rating,
-          data.comment || null,
-          existing[0].id,
-        );
+      // ✅ Recalculer la moyenne des ratings
+      await this.updateTemplateRating(cleanTemplateId);
 
-        // ✅ Recalculer la moyenne des ratings
-        await this.updateTemplateRating(data.templateId.trim());
+      // ✅ Mettre à jour le compteur de reviews
+      const reviewCount = await this.prisma.templateReview.count({
+        where: { templateId: cleanTemplateId },
+      });
 
-        // ✅ Récupérer la review mise à jour
-        const reviews = await this.prisma.$queryRawUnsafe<TemplateReview[]>(
-          `SELECT * FROM "TemplateReview" WHERE "id" = $1 LIMIT 1`,
-          existing[0].id,
-        );
+      await this.prisma.marketplaceTemplate.update({
+        where: { id: cleanTemplateId },
+        data: { reviews: reviewCount },
+      });
 
-        this.logger.log(`Review updated for template ${data.templateId} by user ${data.userId}`);
+      this.logger.log(`Review saved for template ${data.templateId} by user ${data.userId}`);
 
-        return reviews[0];
-      } else {
-        // ✅ Créer une nouvelle review
-        const review = await this.prisma.$executeRawUnsafe(
-          `INSERT INTO "TemplateReview" (
-            "id", "templateId", "userId", "purchaseId", "rating", "comment", "createdAt", "updatedAt"
-          ) VALUES (
-            gen_random_uuid()::text, $1, $2, $3, $4, $5, NOW(), NOW()
-          )
-          RETURNING *`,
-          data.templateId.trim(),
-          data.userId.trim(),
-          data.purchaseId || null,
-          data.rating,
-          data.comment || null,
-        );
-
-        // ✅ Incrémenter le compteur de reviews
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "MarketplaceTemplate" SET "reviews" = "reviews" + 1 WHERE "id" = $1`,
-          data.templateId.trim(),
-        );
-
-        // ✅ Recalculer la moyenne des ratings
-        await this.updateTemplateRating(data.templateId.trim());
-
-        this.logger.log(`Review created for template ${data.templateId} by user ${data.userId}`);
-
-        return (review as any)[0];
-      }
+      return review as TemplateReview;
     } catch (error) {
       this.logger.error(
         `Failed to create/update review: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -319,6 +323,7 @@ export class EngagementService {
 
   /**
    * Ajoute/retire un template des favoris
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async toggleFavorite(templateId: string, userId: string): Promise<{ favorited: boolean }> {
     // ✅ Validation
@@ -330,33 +335,42 @@ export class EngagementService {
       throw new BadRequestException('User ID is required');
     }
 
-    try {
-      // ✅ Vérifier si le favorite existe déjà
-      const existing = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-        `SELECT id FROM "TemplateFavorite" WHERE "templateId" = $1 AND "userId" = $2 LIMIT 1`,
-        templateId.trim(),
-        userId.trim(),
-      );
+    const cleanTemplateId = templateId.trim();
+    const cleanUserId = userId.trim();
 
-      if (existing && existing.length > 0) {
+    try {
+      // ✅ Vérifier si le favorite existe déjà (utilise contrainte unique)
+      const existing = await this.prisma.templateFavorite.findUnique({
+        where: {
+          templateId_userId: {
+            templateId: cleanTemplateId,
+            userId: cleanUserId,
+          },
+        },
+      });
+
+      if (existing) {
         // ✅ Retirer des favoris
-        await this.prisma.$executeRawUnsafe(
-          `DELETE FROM "TemplateFavorite" WHERE "templateId" = $1 AND "userId" = $2`,
-          templateId.trim(),
-          userId.trim(),
-        );
+        await this.prisma.templateFavorite.delete({
+          where: {
+            templateId_userId: {
+              templateId: cleanTemplateId,
+              userId: cleanUserId,
+            },
+          },
+        });
 
         this.logger.log(`Template ${templateId} removed from favorites by user ${userId}`);
 
         return { favorited: false };
       } else {
         // ✅ Ajouter aux favoris
-        await this.prisma.$executeRawUnsafe(
-          `INSERT INTO "TemplateFavorite" ("id", "templateId", "userId", "createdAt")
-           VALUES (gen_random_uuid()::text, $1, $2, NOW())`,
-          templateId.trim(),
-          userId.trim(),
-        );
+        await this.prisma.templateFavorite.create({
+          data: {
+            templateId: cleanTemplateId,
+            userId: cleanUserId,
+          },
+        });
 
         this.logger.log(`Template ${templateId} added to favorites by user ${userId}`);
 
@@ -372,22 +386,25 @@ export class EngagementService {
 
   /**
    * Met à jour la moyenne des ratings d'un template
+   * SEC-11: Utilise méthodes Prisma aggregate au lieu de $queryRawUnsafe
    */
   private async updateTemplateRating(templateId: string): Promise<void> {
     try {
-      const ratingResult = await this.prisma.$queryRawUnsafe<Array<{ averageRating: number }>>(
-        `SELECT COALESCE(AVG("rating"), 0.0)::float as "averageRating"
-         FROM "TemplateReview" WHERE "templateId" = $1`,
-        templateId.trim(),
-      );
+      const cleanTemplateId = templateId.trim();
 
-      if (ratingResult && ratingResult.length > 0) {
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "MarketplaceTemplate" SET "averageRating" = $1 WHERE "id" = $2`,
-          ratingResult[0].averageRating,
-          templateId.trim(),
-        );
-      }
+      // ✅ Calculer la moyenne avec Prisma aggregate
+      const result = await this.prisma.templateReview.aggregate({
+        where: { templateId: cleanTemplateId },
+        _avg: { rating: true },
+      });
+
+      const averageRating = result._avg.rating || 0;
+
+      // ✅ Mettre à jour le template
+      await this.prisma.marketplaceTemplate.update({
+        where: { id: cleanTemplateId },
+        data: { averageRating },
+      });
     } catch (error) {
       this.logger.error(
         `Failed to update template rating: ${error instanceof Error ? error.message : 'Unknown'}`,

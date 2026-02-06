@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   CallHandler,
   Inject,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable, of } from 'rxjs';
@@ -23,6 +24,8 @@ import { CACHE_KEY, CACHE_TTL_KEY, CACHE_TAGS_KEY } from './cache.decorator';
  */
 @Injectable()
 export class EnhancedCacheableInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(EnhancedCacheableInterceptor.name);
+
   constructor(
     private readonly reflector: Reflector,
     @Inject(RedisOptimizedService)
@@ -65,7 +68,7 @@ export class EnhancedCacheableInterceptor implements NestInterceptor {
       }
     } catch (error) {
       // If cache fails, continue without cache
-      console.error('Cache read error:', error);
+      this.logger.error('Cache read error', error instanceof Error ? error.stack : String(error));
     }
 
     // Execute handler and cache result
@@ -79,7 +82,7 @@ export class EnhancedCacheableInterceptor implements NestInterceptor {
             await this.storeCacheTags(cacheKey, tags);
           }
         } catch (error) {
-          console.error('Cache write error:', error);
+          this.logger.error('Cache write error', error instanceof Error ? error.stack : String(error));
         }
       }),
     );

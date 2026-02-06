@@ -26,6 +26,8 @@ import {
   Logger,
   Sse,
   MessageEvent,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Observable } from 'rxjs';
@@ -101,11 +103,11 @@ export class LunaController {
     @Query('conversationId') conversationId?: string,
   ): Observable<MessageEvent> {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     if (!message) {
-      throw new Error('Message is required');
+      throw new BadRequestException('Message is required');
     }
 
     // Construire les messages pour streaming
@@ -151,7 +153,7 @@ export class LunaController {
     @CurrentUser() user: CurrentUserType,
   ) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     // ✅ RÈGLE: Validation Zod
@@ -187,7 +189,7 @@ export class LunaController {
     @CurrentUser() user: CurrentUserType,
   ) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     const validated = ActionRequestSchema.parse(body);
@@ -219,7 +221,7 @@ export class LunaController {
     @CurrentUser() user: CurrentUserType,
   ) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     const conversations = await this.lunaService.getConversations(brand.id, user.id);
@@ -244,7 +246,7 @@ export class LunaController {
     @CurrentBrand() brand: { id: string } | null,
   ) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     // ✅ RÈGLE: Validation du paramètre

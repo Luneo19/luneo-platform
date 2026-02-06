@@ -2,7 +2,7 @@ import { JsonValue } from '@/common/types/utility-types';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EcommerceIntegration, SyncLog } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { MagentoConnector } from '../connectors/magento/magento.connector';
@@ -48,7 +48,7 @@ export class ProductSyncService {
       });
 
       if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
+        throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
       this.logger.log(`Starting product sync for ${integration.platform} integration ${integrationId}`);
@@ -70,7 +70,7 @@ export class ProductSyncService {
           break;
 
         default:
-          throw new Error(`Unsupported platform: ${integration.platform}`);
+          throw new BadRequestException(`Unsupported platform: ${integration.platform}`);
       }
 
       // Mettre à jour la dernière sync
@@ -102,7 +102,7 @@ export class ProductSyncService {
       });
 
       if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
+        throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
       if (direction === 'export') {
@@ -127,7 +127,7 @@ export class ProductSyncService {
     });
 
     if (!product) {
-      throw new Error(`Product ${luneoProductId} not found`);
+      throw new NotFoundException(`Product ${luneoProductId} not found`);
     }
 
     // Vérifier si le produit est déjà mappé
@@ -346,9 +346,9 @@ export class ProductSyncService {
       const stats = {
         period,
         totalSyncs: syncLogs.length,
-        successfulSyncs: syncLogs.filter(log => log.status === 'success').length,
-        failedSyncs: syncLogs.filter(log => log.status === 'failed').length,
-        partialSyncs: syncLogs.filter(log => log.status === 'partial').length,
+        successfulSyncs: syncLogs.filter(log => log.status === 'SUCCESS').length,
+        failedSyncs: syncLogs.filter(log => log.status === 'FAILED').length,
+        partialSyncs: syncLogs.filter(log => log.status === 'PARTIAL').length,
         totalItemsProcessed: syncLogs.reduce((sum, log) => sum + log.itemsProcessed, 0),
         totalItemsFailed: syncLogs.reduce((sum, log) => sum + log.itemsFailed, 0),
         averageDuration: syncLogs.length > 0 

@@ -14,6 +14,7 @@
  * - ✅ Types explicites
  * - ✅ Validation robuste
  * - ✅ Logging structuré
+ * - ✅ SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
  */
 
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
@@ -104,6 +105,7 @@ export class WhiteLabelService {
   /**
    * Crée un thème personnalisé
    * Conforme au plan PHASE 8 - White-label
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRaw
    */
   async createTheme(data: CreateThemeData): Promise<CustomTheme> {
     // ✅ Validation
@@ -124,9 +126,11 @@ export class WhiteLabelService {
       }
     }
 
+    const cleanBrandId = data.brandId.trim();
+
     // ✅ Vérifier que le brand existe
     const brand = await this.prisma.brand.findUnique({
-      where: { id: data.brandId.trim() },
+      where: { id: cleanBrandId },
       select: { id: true, whiteLabel: true },
     });
 
@@ -139,40 +143,37 @@ export class WhiteLabelService {
     }
 
     try {
-      // ✅ Créer le thème
-      const theme = await this.prisma.$executeRaw`
-        INSERT INTO "CustomTheme" (
-          "id", "brandId", "name", "primaryColor", "secondaryColor", "accentColor",
-          "backgroundColor", "textColor", "fontFamily", "borderRadius",
-          "logoUrl", "faviconUrl", "customCss", "isActive",
-          "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${data.brandId.trim()},
-          ${data.name.trim()},
-          ${data.primaryColor.trim()},
-          ${data.secondaryColor.trim()},
-          ${data.accentColor.trim()},
-          ${data.backgroundColor.trim()},
-          ${data.textColor.trim()},
-          ${data.fontFamily || 'Inter'},
-          ${data.borderRadius || '8px'},
-          ${data.logoUrl || null},
-          ${data.faviconUrl || null},
-          ${data.customCss || null},
-          true,
-          NOW(), NOW()
-        )
-        RETURNING *
-      `;
+      // ✅ Désactiver les thèmes précédents pour ce brand
+      await this.prisma.customTheme.updateMany({
+        where: { brandId: cleanBrandId, isActive: true },
+        data: { isActive: false },
+      });
+
+      // ✅ Créer le thème avec Prisma
+      const theme = await this.prisma.customTheme.create({
+        data: {
+          brandId: cleanBrandId,
+          name: data.name.trim(),
+          primaryColor: data.primaryColor.trim(),
+          secondaryColor: data.secondaryColor.trim(),
+          accentColor: data.accentColor.trim(),
+          backgroundColor: data.backgroundColor.trim(),
+          textColor: data.textColor.trim(),
+          fontFamily: data.fontFamily || 'Inter',
+          borderRadius: data.borderRadius || '8px',
+          logoUrl: data.logoUrl || null,
+          faviconUrl: data.faviconUrl || null,
+          customCss: data.customCss || null,
+          isActive: true,
+        },
+      });
 
       this.logger.log(`Custom theme created: ${data.name} for brand ${data.brandId}`);
 
       // ✅ Invalider le cache
       await this.cache.invalidateTags([`white-label:theme:${data.brandId}`]);
 
-      // ✅ Récupérer le thème créé
-      return this.getActiveTheme(data.brandId.trim());
+      return theme as CustomTheme;
     } catch (error) {
       this.logger.error(
         `Failed to create custom theme: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -183,6 +184,7 @@ export class WhiteLabelService {
 
   /**
    * Obtient le thème actif d'un brand
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async getActiveTheme(brandId: string): Promise<CustomTheme> {
     // ✅ Validation
@@ -190,21 +192,27 @@ export class WhiteLabelService {
       throw new BadRequestException('Brand ID is required');
     }
 
-    // ✅ Récupérer le thème (le cache sera géré automatiquement si nécessaire)
-    const themes = await this.prisma.$queryRawUnsafe<CustomTheme[]>(
-      `SELECT * FROM "CustomTheme" WHERE "brandId" = $1 AND "isActive" = true ORDER BY "createdAt" DESC LIMIT 1`,
-      brandId.trim(),
-    );
+    const cleanBrandId = brandId.trim();
 
-    if (!themes || themes.length === 0) {
+    // ✅ Récupérer le thème actif avec Prisma
+    const theme = await this.prisma.customTheme.findFirst({
+      where: {
+        brandId: cleanBrandId,
+        isActive: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!theme) {
       throw new NotFoundException(`No active theme found for brand ${brandId}`);
     }
 
-    return themes[0];
+    return theme as CustomTheme;
   }
 
   /**
    * Crée un domaine personnalisé
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async createCustomDomain(data: CreateCustomDomainData): Promise<CustomDomain> {
     // ✅ Validation
@@ -222,9 +230,12 @@ export class WhiteLabelService {
       throw new BadRequestException('Invalid domain format');
     }
 
+    const cleanBrandId = data.brandId.trim();
+    const cleanDomain = data.domain.trim().toLowerCase();
+
     // ✅ Vérifier que le brand existe et a white-label activé
     const brand = await this.prisma.brand.findUnique({
-      where: { id: data.brandId.trim() },
+      where: { id: cleanBrandId },
       select: { id: true, whiteLabel: true },
     });
 
@@ -236,48 +247,30 @@ export class WhiteLabelService {
       throw new BadRequestException('White-label is not enabled for this brand');
     }
 
-    // ✅ Vérifier que le domaine n'est pas déjà pris
-    const existing = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      `SELECT id FROM "CustomDomain" WHERE "domain" = $1 LIMIT 1`,
-      data.domain.trim().toLowerCase(),
-    );
+    // ✅ Vérifier que le domaine n'est pas déjà pris (contrainte unique sur domain)
+    const existing = await this.prisma.customDomain.findUnique({
+      where: { domain: cleanDomain },
+    });
 
-    if (existing && existing.length > 0) {
+    if (existing) {
       throw new BadRequestException('Domain already taken');
     }
 
     try {
-      // ✅ Créer le domaine
-      const domain = await this.prisma.$executeRaw`
-        INSERT INTO "CustomDomain" (
-          "id", "brandId", "domain", "isActive",
-          "sslCertificate", "sslExpiresAt",
-          "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${data.brandId.trim()},
-          ${data.domain.trim().toLowerCase()},
-          false, -- Inactif par défaut jusqu'à vérification SSL
-          ${data.sslCertificate || null},
-          ${data.sslExpiresAt || null},
-          NOW(), NOW()
-        )
-        RETURNING *
-      `;
+      // ✅ Créer le domaine avec Prisma
+      const domain = await this.prisma.customDomain.create({
+        data: {
+          brandId: cleanBrandId,
+          domain: cleanDomain,
+          isActive: false, // Inactif par défaut jusqu'à vérification SSL
+          sslCertificate: data.sslCertificate || null,
+          sslExpiresAt: data.sslExpiresAt || null,
+        },
+      });
 
       this.logger.log(`Custom domain created: ${data.domain} for brand ${data.brandId}`);
 
-      // ✅ Récupérer le domaine créé
-      const domains = await this.prisma.$queryRawUnsafe<CustomDomain[]>(
-        `SELECT * FROM "CustomDomain" WHERE "id" = $1 LIMIT 1`,
-        (domain as any).id,
-      );
-
-      if (!domains || domains.length === 0) {
-        throw new Error('Failed to retrieve created domain');
-      }
-
-      return domains[0];
+      return domain as CustomDomain;
     } catch (error) {
       this.logger.error(
         `Failed to create custom domain: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -288,6 +281,7 @@ export class WhiteLabelService {
 
   /**
    * Active un domaine personnalisé (après vérification SSL)
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRawUnsafe
    */
   async activateDomain(domainId: string): Promise<CustomDomain> {
     // ✅ Validation
@@ -295,25 +289,27 @@ export class WhiteLabelService {
       throw new BadRequestException('Domain ID is required');
     }
 
+    const cleanDomainId = domainId.trim();
+
     try {
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "CustomDomain" SET "isActive" = true, "updatedAt" = NOW() WHERE "id" = $1`,
-        domainId.trim(),
-      );
+      // ✅ Vérifier que le domaine existe
+      const existing = await this.prisma.customDomain.findUnique({
+        where: { id: cleanDomainId },
+      });
 
-      this.logger.log(`Custom domain ${domainId} activated`);
-
-      // ✅ Récupérer le domaine mis à jour
-      const domains = await this.prisma.$queryRawUnsafe<CustomDomain[]>(
-        `SELECT * FROM "CustomDomain" WHERE "id" = $1 LIMIT 1`,
-        domainId.trim(),
-      );
-
-      if (!domains || domains.length === 0) {
+      if (!existing) {
         throw new NotFoundException(`Domain ${domainId} not found`);
       }
 
-      return domains[0];
+      // ✅ Activer le domaine
+      const domain = await this.prisma.customDomain.update({
+        where: { id: cleanDomainId },
+        data: { isActive: true },
+      });
+
+      this.logger.log(`Custom domain ${domainId} activated`);
+
+      return domain as CustomDomain;
     } catch (error) {
       this.logger.error(
         `Failed to activate domain: ${error instanceof Error ? error.message : 'Unknown'}`,

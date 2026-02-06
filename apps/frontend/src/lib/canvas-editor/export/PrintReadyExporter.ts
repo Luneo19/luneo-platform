@@ -1,10 +1,12 @@
 /**
  * PRINT-READY EXPORTER
  * Export designs en PNG 300 DPI, PDF/X-4, SVG
+ * 
+ * BUNDLE-01: jsPDF (~200KB) importé dynamiquement pour réduire le bundle initial
  */
 
 import Konva from 'konva';
-import jsPDF from 'jspdf';
+// jsPDF est importé dynamiquement dans exportPDF() - voir BUNDLE-01
 
 export interface ExportConfig {
   dpi: number;
@@ -39,8 +41,12 @@ export class PrintReadyExporter {
   
   /**
    * Export PDF/X-4 (pro print)
+   * BUNDLE-01: jsPDF importé dynamiquement pour économiser ~200KB
    */
-  exportPDF(): Blob {
+  async exportPDF(): Promise<Blob> {
+    // BUNDLE-01: Dynamic import de jsPDF
+    const { default: jsPDF } = await import('jspdf');
+    
     // Get stage dimensions in mm
     const widthMM = this.stage.width() / 3.7795; // px to mm (72 DPI)
     const heightMM = this.stage.height() / 3.7795;
@@ -88,9 +94,10 @@ export class PrintReadyExporter {
   
   /**
    * Add crop marks to PDF
+   * BUNDLE-01: Type any car jsPDF est importé dynamiquement
    */
   private addCropMarks(
-    pdf: jsPDF,
+    pdf: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     widthMM: number,
     heightMM: number,
     bleed: number

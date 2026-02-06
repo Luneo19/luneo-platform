@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { db } from '@/lib/db';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(
   request: NextRequest,
@@ -38,7 +39,7 @@ export async function GET(
 
     return NextResponse.json({ webhook });
   } catch (error) {
-    console.error('Error fetching webhook:', error);
+    serverLogger.apiError(`/api/admin/webhooks/${params.webhookId}`, 'GET', error);
     return NextResponse.json({ error: 'Failed to fetch webhook' }, { status: 500 });
   }
 }
@@ -68,7 +69,7 @@ export async function PATCH(
 
     return NextResponse.json({ webhook });
   } catch (error) {
-    console.error('Error updating webhook:', error);
+    serverLogger.apiError(`/api/admin/webhooks/${params.webhookId}`, 'PATCH', error);
     return NextResponse.json({ error: 'Failed to update webhook' }, { status: 500 });
   }
 }
@@ -91,7 +92,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting webhook:', error);
+    serverLogger.apiError(`/api/admin/webhooks/${params.webhookId}`, 'DELETE', error);
     return NextResponse.json({ error: 'Failed to delete webhook' }, { status: 500 });
   }
 }

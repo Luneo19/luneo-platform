@@ -80,7 +80,8 @@ export class Configurator3DService {
         id: true,
         name: true,
         description: true,
-        model3dId: true,
+        modelUrl: true, // Utiliser modelUrl au lieu de model3dId
+        thumbnailUrl: true,
         sceneConfig: true,
         uiConfig: true,
         isActive: true,
@@ -141,7 +142,7 @@ export class Configurator3DService {
     // Vérifier que le projet existe
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true },
+      select: { id: true, brandId: true },
     });
 
     if (!project) {
@@ -150,7 +151,9 @@ export class Configurator3DService {
 
     const config = await this.prisma.configurator3DConfiguration.create({
       data: {
-        ...dto,
+        name: dto.name,
+        description: dto.description,
+        brandId: project.brandId, // Récupérer brandId depuis project
         projectId,
         sceneConfig: (dto.sceneConfig || {}) as any,
         uiConfig: (dto.uiConfig || {}) as any,

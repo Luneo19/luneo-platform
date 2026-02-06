@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { CurrencyUtils } from '@/config/currency.config';
 import { AnalyticsDashboard, AnalyticsMetrics } from '../interfaces/analytics.interface';
 
 // ============================================================================
@@ -705,7 +706,7 @@ export class AnalyticsService {
         period,
         revenue: {
           total: totalRevenue,
-          currency: 'EUR',
+          currency: CurrencyUtils.getDefaultCurrency(),
           breakdown: {
             subscriptions: Math.round(totalRevenue * 0.78), // Estimation
             usage: Math.round(totalRevenue * 0.22) // Estimation
@@ -725,22 +726,22 @@ export class AnalyticsService {
     // ✅ Validation des entrées
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       this.logger.warn('Invalid userId provided to recordWebVital');
-      throw new Error('User ID is required');
+      throw new BadRequestException('User ID is required');
     }
 
     if (!data || typeof data !== 'object') {
       this.logger.warn('Invalid data provided to recordWebVital');
-      throw new Error('Web vital data is required');
+      throw new BadRequestException('Web vital data is required');
     }
 
     if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
       this.logger.warn('Invalid metric name provided to recordWebVital');
-      throw new Error('Metric name is required');
+      throw new BadRequestException('Metric name is required');
     }
 
     if (typeof data.value !== 'number' || Number.isNaN(data.value)) {
       this.logger.warn('Invalid metric value provided to recordWebVital');
-      throw new Error('Metric value must be a valid number');
+      throw new BadRequestException('Metric value must be a valid number');
     }
     try {
       this.logger.log(`Recording web vital: ${data.name} = ${data.value} for user: ${userId}`);
@@ -804,7 +805,7 @@ export class AnalyticsService {
       // ✅ Validation des entrées
       if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
         this.logger.warn('Invalid userId provided to getWebVitals');
-        throw new Error('User ID is required');
+        throw new BadRequestException('User ID is required');
       }
 
       this.logger.log(`Getting web vitals for user: ${userId}`);

@@ -126,15 +126,19 @@ function setSecurityHeaders(response: NextResponse, nonce?: string): void {
     'max-age=31536000; includeSubDomains; preload'
   );
 
-  // Content Security Policy with nonce (if provided)
+  // Content Security Policy with nonce
   // Nonces provide better security than 'unsafe-inline'
   let csp: string;
   
-  if (nonce && process.env.NODE_ENV === 'production') {
-    // Use nonce-based CSP in production for better security
+  // Use nonce-based CSP in all environments for consistent security
+  // Set DISABLE_CSP_NONCES=true to use unsafe-inline for debugging
+  const useNonces = nonce && process.env.DISABLE_CSP_NONCES !== 'true';
+  
+  if (useNonces) {
+    // Use nonce-based CSP for better security
     csp = buildCSPWithNonce(nonce);
   } else {
-    // Fallback to inline CSP (for development or if nonce not available)
+    // Fallback to unsafe-inline CSP (only for debugging when DISABLE_CSP_NONCES=true)
     csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live",

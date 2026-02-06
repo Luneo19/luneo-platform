@@ -17,7 +17,7 @@
  * - ✅ Logging structuré
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { z } from 'zod';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -310,7 +310,7 @@ export class LunaService {
       );
 
       if (!usageCheck.allowed) {
-        throw new Error(usageCheck.reason || 'Usage limit exceeded');
+        throw new BadRequestException(usageCheck.reason || 'Usage limit exceeded');
       }
 
       // 1. Récupérer ou créer la conversation
@@ -660,7 +660,7 @@ export class LunaService {
     // ✅ Garde pour éviter les crashes si dashboard est null/undefined
     if (!dashboard || !dashboard.metrics) {
       this.logger.warn(`Dashboard data incomplete for brand ${brandId}`);
-      throw new Error('Dashboard data unavailable');
+      throw new InternalServerErrorException('Dashboard data unavailable');
     }
 
     // ✅ Logique explicite pour la sélection du funnel

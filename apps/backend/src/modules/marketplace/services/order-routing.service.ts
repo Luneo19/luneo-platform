@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface RoutingCriteria {
@@ -41,7 +41,7 @@ export class OrderRoutingService {
     const artisans = await this.prisma.artisan.findMany({
       where: {
         status: 'active',
-        kycStatus: 'verified',
+        kycStatus: 'VERIFIED',
         // Pas en quarantaine
         OR: [
           { quarantineUntil: null },
@@ -225,7 +225,7 @@ export class OrderRoutingService {
     });
 
     if (!order) {
-      throw new Error(`Order ${orderId} not found`);
+      throw new NotFoundException(`Order ${orderId} not found`);
     }
 
     // Récupérer l'artisan
@@ -234,7 +234,7 @@ export class OrderRoutingService {
     });
 
     if (!artisan) {
-      throw new Error(`Artisan ${artisanId} not found`);
+      throw new NotFoundException(`Artisan ${artisanId} not found`);
     }
 
     // Calculer le score de routage
@@ -267,7 +267,7 @@ export class OrderRoutingService {
         routingScore,
         routingReason: 'Automated routing',
         selectedAt: new Date(),
-        status: 'assigned',
+        status: 'ASSIGNED',
         payoutAmountCents: quote.priceCents,
         commissionCents: Math.round(quote.priceCents * 0.1), // 10% commission
         slaDeadline: new Date(Date.now() + quote.leadTime * 24 * 60 * 60 * 1000),

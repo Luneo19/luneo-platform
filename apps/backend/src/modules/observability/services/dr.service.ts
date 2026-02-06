@@ -1,5 +1,5 @@
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { execFile } from 'child_process';
 import { createReadStream, createWriteStream } from 'fs';
@@ -90,7 +90,7 @@ export class DRService {
    */
   private async uploadToS3(localPath: string, s3Key: string): Promise<string> {
     if (!this.s3Client) {
-      throw new Error('S3 client not configured');
+      throw new InternalServerErrorException('S3 client not configured');
     }
 
     try {
@@ -116,7 +116,7 @@ export class DRService {
    */
   private async downloadFromS3(s3Key: string, localPath: string): Promise<void> {
     if (!this.s3Client) {
-      throw new Error('S3 client not configured');
+      throw new InternalServerErrorException('S3 client not configured');
     }
 
     try {
@@ -179,7 +179,7 @@ export class DRService {
     try {
       const dbUrl = this.configService.get<string>('DATABASE_URL');
       if (!dbUrl) {
-        throw new Error('Database URL not configured');
+        throw new InternalServerErrorException('Database URL not configured');
       }
 
       await mkdir(this.backupStoragePath, { recursive: true });
@@ -413,7 +413,7 @@ export class DRService {
 
       if (isRealFile) {
         const dbUrl = this.configService.get<string>('DATABASE_URL');
-        if (!dbUrl) throw new Error('Database URL not configured');
+        if (!dbUrl) throw new InternalServerErrorException('Database URL not configured');
         try {
           await execFileAsync('pg_restore', ['-d', dbUrl, '--clean', '--if-exists', '-F', 'c', location], {
             maxBuffer: 50 * 1024 * 1024,
@@ -505,7 +505,7 @@ export class DRService {
     const backup = backups.find((b) => b.id === backupId);
 
     if (!backup) {
-      throw new Error(`Backup ${backupId} not found`);
+      throw new NotFoundException(`Backup ${backupId} not found`);
     }
 
     // Exécuter le drill (dans un environnement de test)

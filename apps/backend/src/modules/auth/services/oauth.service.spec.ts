@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import { OAuthService, OAuthUser } from './oauth.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { UserRole } from '@prisma/client';
 
 describe('OAuthService', () => {
@@ -76,6 +77,11 @@ describe('OAuthService', () => {
       get: jest.fn(),
     };
 
+    const mockEncryptionService = {
+      encrypt: jest.fn().mockReturnValue('encrypted-token'),
+      decrypt: jest.fn().mockReturnValue('decrypted-token'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OAuthService,
@@ -90,6 +96,10 @@ describe('OAuthService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: EncryptionService,
+          useValue: mockEncryptionService,
         },
       ],
     }).compile();
@@ -124,8 +134,8 @@ describe('OAuthService', () => {
           userId: mockUser.id,
           provider: mockOAuthUser.provider,
           providerId: mockOAuthUser.providerId,
-          accessToken: mockOAuthUser.accessToken,
-          refreshToken: mockOAuthUser.refreshToken,
+          accessToken: expect.any(String),
+          refreshToken: expect.any(String),
         },
       });
       expect(result).toEqual(mockUser);
@@ -146,12 +156,12 @@ describe('OAuthService', () => {
         accessToken: 'new-access-token',
       });
 
-      // Assert
+      // Assert - tokens are encrypted before storage
       expect(prisma.oAuthAccount.update).toHaveBeenCalledWith({
         where: { id: mockOAuthAccount.id },
         data: {
-          accessToken: 'new-access-token',
-          refreshToken: mockOAuthUser.refreshToken,
+          accessToken: expect.any(String),
+          refreshToken: expect.any(String),
         },
       });
       expect(result).toEqual(mockUser);
@@ -166,7 +176,7 @@ describe('OAuthService', () => {
       // Act
       const result = await service.findOrCreateOAuthUser(mockOAuthUser);
 
-      // Assert
+      // Assert - tokens are encrypted before storage
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: {
           email: mockOAuthUser.email,
@@ -179,8 +189,8 @@ describe('OAuthService', () => {
             create: {
               provider: mockOAuthUser.provider,
               providerId: mockOAuthUser.providerId,
-              accessToken: mockOAuthUser.accessToken,
-              refreshToken: mockOAuthUser.refreshToken,
+              accessToken: expect.any(String),
+              refreshToken: expect.any(String),
             },
           },
         },

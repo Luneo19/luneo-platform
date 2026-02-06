@@ -14,12 +14,21 @@ import { SyncEngineService } from './services/sync-engine.service';
 import { SyncWorker } from './workers/sync.worker';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
+import { CryptoModule } from '@/libs/crypto/crypto.module';
 
 @Module({
   imports: [
     PrismaModule,
     SmartCacheModule,
-    HttpModule,
+    CryptoModule, // SEC-06: Chiffrement AES-256-GCM des credentials
+    /**
+     * TIMEOUT-01: Configuration HttpModule avec timeout 30s pour Shopify/WooCommerce
+     * Évite les requêtes qui bloquent indéfiniment
+     */
+    HttpModule.register({
+      timeout: 30000, // 30 secondes
+      maxRedirects: 5,
+    }),
     BullModule.registerQueue({
       name: 'ecommerce-sync',
     }),

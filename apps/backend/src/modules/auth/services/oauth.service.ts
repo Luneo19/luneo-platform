@@ -1,13 +1,16 @@
 /**
  * OAuth Service
  * Centralized OAuth logic and user management
+ * 
+ * SEC-05: Chiffrement AES-256-GCM des tokens OAuth
  */
 
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '@prisma/client';
+import { EncryptionService } from '@/libs/crypto/encryption.service';
 
 export interface OAuthUser {
   provider: 'google' | 'github' | 'saml' | 'oidc';
@@ -53,7 +56,36 @@ export class OAuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly encryptionService: EncryptionService,
   ) {}
+
+  /**
+   * SEC-05: Chiffre un token OAuth pour stockage sécurisé
+   */
+  private encryptToken(token: string | undefined): string | null {
+    if (!token) return null;
+    try {
+      return this.encryptionService.encrypt(token);
+    } catch (error) {
+      this.logger.error('Failed to encrypt OAuth token', error);
+      throw new InternalServerErrorException('Failed to encrypt OAuth token');
+    }
+  }
+
+  /**
+   * SEC-05: Déchiffre un token OAuth
+   * Supporte la migration depuis données non chiffrées
+   */
+  private decryptToken(encryptedToken: string | null): string | null {
+    if (!encryptedToken) return null;
+    try {
+      return this.encryptionService.decrypt(encryptedToken);
+    } catch {
+      // Fallback pour les données existantes non chiffrées
+      this.logger.warn('Decrypting legacy unencrypted OAuth token - migration recommended');
+      return encryptedToken;
+    }
+  }
 
   /**
    * Get OAuth configuration
@@ -136,22 +168,24 @@ export class OAuthService {
 
         if (!existingOAuth) {
           // Link OAuth account to existing user
+          // SEC-05: Chiffrer les tokens avant stockage
           await this.prisma.oAuthAccount.create({
             data: {
               userId: user.id,
               provider: oauthUser.provider,
               providerId: oauthUser.providerId,
-              accessToken: oauthUser.accessToken,
-              refreshToken: oauthUser.refreshToken,
+              accessToken: this.encryptToken(oauthUser.accessToken),
+              refreshToken: this.encryptToken(oauthUser.refreshToken),
             },
           });
         } else {
           // Update tokens
+          // SEC-05: Chiffrer les tokens avant stockage
           await this.prisma.oAuthAccount.update({
             where: { id: existingOAuth.id },
             data: {
-              accessToken: oauthUser.accessToken,
-              refreshToken: oauthUser.refreshToken,
+              accessToken: this.encryptToken(oauthUser.accessToken),
+              refreshToken: this.encryptToken(oauthUser.refreshToken),
             },
           });
         }
@@ -171,11 +205,12 @@ export class OAuthService {
 
       if (existingOAuth && existingOAuth.user) {
         // Update tokens
+        // SEC-05: Chiffrer les tokens avant stockage
         await this.prisma.oAuthAccount.update({
           where: { id: existingOAuth.id },
           data: {
-            accessToken: oauthUser.accessToken,
-            refreshToken: oauthUser.refreshToken,
+            accessToken: this.encryptToken(oauthUser.accessToken),
+            refreshToken: this.encryptToken(oauthUser.refreshToken),
           },
         });
 
@@ -184,6 +219,7 @@ export class OAuthService {
       }
 
       // Create new user
+      // SEC-05: Chiffrer les tokens OAuth avant stockage
       const newUser = await this.prisma.user.create({
         data: {
           email: oauthUser.email,
@@ -196,8 +232,8 @@ export class OAuthService {
             create: {
               provider: oauthUser.provider,
               providerId: oauthUser.providerId,
-              accessToken: oauthUser.accessToken,
-              refreshToken: oauthUser.refreshToken,
+              accessToken: this.encryptToken(oauthUser.accessToken),
+              refreshToken: this.encryptToken(oauthUser.refreshToken),
             },
           },
         },

@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateTryOnConfigurationDto } from '../dto/create-try-on-configuration.dto';
 import { UpdateTryOnConfigurationDto } from '../dto/update-try-on-configuration.dto';
@@ -245,7 +245,7 @@ export class TryOnConfigurationService {
     });
 
     if (existing) {
-      throw new Error(
+      throw new BadRequestException(
         `Product ${dto.productId} is already mapped to this configuration`,
       );
     }

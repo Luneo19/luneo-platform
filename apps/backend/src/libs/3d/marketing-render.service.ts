@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -98,7 +98,7 @@ export class MarketingRenderService {
       const model = await this.getModel3D(request.designId, request.productId);
 
       if (!model) {
-        throw new Error(`3D model not found for design ${request.designId}`);
+        throw new NotFoundException(`3D model not found for design ${request.designId}`);
       }
 
       const options = request.options || {};

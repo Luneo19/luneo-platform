@@ -15,6 +15,8 @@
  * ```
  */
 
+import { InternalServerErrorException } from '@nestjs/common';
+
 export class PrometheusHelper {
   private prometheusUrl: string;
 
@@ -30,7 +32,7 @@ export class PrometheusHelper {
     const data = await response.json();
 
     if (data.status !== 'success') {
-      throw new Error(`Prometheus query failed: ${data.error}`);
+      throw new InternalServerErrorException(`Prometheus query failed: ${data.error}`);
     }
 
     return data.data.result;

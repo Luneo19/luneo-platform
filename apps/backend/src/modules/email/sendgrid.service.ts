@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as sgMail from '@sendgrid/mail';
+import { withTimeout, DEFAULT_TIMEOUTS, TimeoutError } from '@/libs/resilience/timeout.util';
 
 export interface SendGridEmailOptions {
   to: string | string[];
@@ -99,7 +100,7 @@ export class SendGridService {
    */
   async sendSimpleMessage(options: SendGridEmailOptions): Promise<any> {
     if (!this.sendgridAvailable) {
-      throw new Error('SendGrid not initialized. Check your configuration.');
+      throw new InternalServerErrorException('SendGrid not initialized. Check your configuration.');
     }
 
     try {
@@ -173,11 +174,19 @@ export class SendGridService {
         msg.trackingSettings = options.trackingSettings;
       }
 
-      const result = await sgMail.send(msg);
+      // TIMEOUT-01: Timeout de 30s pour l'envoi d'email
+      const result = await withTimeout(
+        sgMail.send(msg),
+        DEFAULT_TIMEOUTS.SENDGRID_SEND,
+        'SendGrid.send',
+      );
       
       this.logger.log(`Email sent successfully via SendGrid to ${options.to}`);
       return result;
     } catch (error) {
+      if (error instanceof TimeoutError) {
+        this.logger.error(`SendGrid email timed out after ${DEFAULT_TIMEOUTS.SENDGRID_SEND}ms`);
+      }
       this.logger.error('Failed to send email via SendGrid:', error);
       throw error;
     }
@@ -395,7 +404,7 @@ export class SendGridService {
    */
   async getStats(startDate?: Date, endDate?: Date): Promise<any> {
     if (!this.sendgridAvailable) {
-      throw new Error('SendGrid not initialized');
+      throw new InternalServerErrorException('SendGrid not initialized');
     }
 
     try {

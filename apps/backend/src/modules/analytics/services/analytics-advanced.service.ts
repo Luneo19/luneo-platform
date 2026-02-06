@@ -4,7 +4,7 @@
  * Respecte les patterns existants du projet
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AnalyticsCalculationsService } from './analytics-calculations.service';
 import { Prisma } from '@prisma/client';
@@ -130,7 +130,7 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getFunnels');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     try {
@@ -228,12 +228,12 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!funnelId || typeof funnelId !== 'string' || funnelId.trim().length === 0) {
       this.logger.warn('Invalid funnelId provided to getFunnelData');
-      throw new Error('Funnel ID is required');
+      throw new BadRequestException('Funnel ID is required');
     }
 
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getFunnelData');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     try {
@@ -336,22 +336,22 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to createFunnel');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     if (!data || typeof data !== 'object') {
       this.logger.warn('Invalid data provided to createFunnel');
-      throw new Error('Funnel data is required');
+      throw new BadRequestException('Funnel data is required');
     }
 
     if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
       this.logger.warn('Invalid funnel name provided');
-      throw new Error('Funnel name is required');
+      throw new BadRequestException('Funnel name is required');
     }
 
     if (!Array.isArray(data.steps) || data.steps.length === 0) {
       this.logger.warn('Invalid funnel steps provided');
-      throw new Error('At least one funnel step is required');
+      throw new BadRequestException('At least one funnel step is required');
     }
 
     try {
@@ -451,7 +451,7 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getRetentionPredictions');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
     try {
       this.logger.log(`Getting retention predictions for brand: ${brandId}`);
@@ -492,7 +492,7 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getSegments');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     try {
@@ -569,17 +569,17 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to createSegment');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     if (!data || typeof data !== 'object') {
       this.logger.warn('Invalid data provided to createSegment');
-      throw new Error('Segment data is required');
+      throw new BadRequestException('Segment data is required');
     }
 
     if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
       this.logger.warn('Invalid segment name provided');
-      throw new Error('Segment name is required');
+      throw new BadRequestException('Segment name is required');
     }
 
     try {
@@ -675,7 +675,7 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getSegmentPredictions');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
     try {
       this.logger.log(`Getting segment predictions for brand: ${brandId}`);
@@ -847,7 +847,7 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getBenchmarks');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
     try {
       this.logger.log(`Getting benchmarks for brand: ${brandId}`);
@@ -884,7 +884,7 @@ export class AnalyticsAdvancedService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getSeasonality');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
     try {
       this.logger.log(`Getting seasonality for brand: ${brandId}`);

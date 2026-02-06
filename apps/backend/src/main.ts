@@ -36,15 +36,19 @@ async function bootstrap() {
   logger.log(`Environment: NODE_ENV=${process.env.NODE_ENV}, PORT=${process.env.PORT}`);
   
   try {
-    // Validate environment variables
-    logger.log('Validating environment variables...');
+    // SVC-04: Validate environment variables at startup
+    // This will throw in production if critical variables are missing
     validateEnv();
-    logger.log('Environment variables validated');
   } catch (error) {
-    logger.warn(`Environment validation failed: ${error.message}. Some variables may be missing.`);
-    // Continue anyway - some variables are optional
-    if (!process.env.DATABASE_URL) {
-      logger.warn('DATABASE_URL not configured. Database features will be unavailable.');
+    if (process.env.NODE_ENV === 'production') {
+      // En production, arrêter immédiatement si variables critiques manquantes
+      logger.error(`🚨 FATAL: ${error.message}`);
+      logger.error('L\'application ne peut pas démarrer sans les variables critiques.');
+      process.exit(1);
+    } else {
+      // En développement, continuer avec un warning
+      logger.warn(`⚠️ Environment validation warning: ${error.message}`);
+      logger.warn('Continuing in development mode with partial configuration...');
     }
   }
 
@@ -486,7 +490,7 @@ async function bootstrap() {
       const bcrypt = require('bcryptjs');
       const tempPrisma = new PrismaClient();
       
-      const adminPassword = await bcrypt.hash('admin123', 12);
+      const adminPassword = await bcrypt.hash('admin123', 13);
       const adminUser = await tempPrisma.user.upsert({
         where: { email: 'admin@luneo.com' },
         update: {},

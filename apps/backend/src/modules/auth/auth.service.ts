@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -27,10 +28,24 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
+    private encryptionService: EncryptionService,
     private bruteForceService: BruteForceService,
     private twoFactorService: TwoFactorService,
     private captchaService: CaptchaService,
   ) {}
+
+  /**
+   * SEC-05: Chiffre un token OAuth pour stockage sécurisé
+   */
+  private encryptOAuthToken(token: string | undefined): string | null {
+    if (!token) return null;
+    try {
+      return this.encryptionService.encrypt(token);
+    } catch (error) {
+      this.logger.error('Failed to encrypt OAuth token', error);
+      throw new InternalServerErrorException('Failed to encrypt OAuth token');
+    }
+  }
 
   async signup(signupDto: SignupDto) {
     const { email, password, firstName, lastName, role, captchaToken } = signupDto;
@@ -61,8 +76,8 @@ export class AuthService {
       throw new ConflictException('User already exists');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // Hash password (13 rounds pour meilleure sécurité - OWASP recommandation)
+    const hashedPassword = await bcrypt.hash(password, 13);
 
     // Create user
     const user = await this.prisma.user.create({
@@ -92,38 +107,41 @@ export class AuthService {
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
     // ✅ Generate email verification token and send email
-    try {
-      const verificationToken = await this.jwtService.signAsync(
-        { sub: user.id, email: user.email, type: 'email-verification' },
-        {
-          secret: this.configService.get('jwt.secret'),
-          expiresIn: '24h', // 24 hours expiration
-        },
-      );
+    // Skip email in test mode to avoid BullMQ blocking
+    if (process.env.SKIP_EMAIL_VERIFICATION !== 'true') {
+      try {
+        const verificationToken = await this.jwtService.signAsync(
+          { sub: user.id, email: user.email, type: 'email-verification' },
+          {
+            secret: this.configService.get('jwt.secret'),
+            expiresIn: '24h', // 24 hours expiration
+          },
+        );
 
-      const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'https://app.luneo.app';
-      const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
+        const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'https://app.luneo.app';
+        const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
-      // Queue email asynchronously - don't await to not block signup response
-      this.emailService.queueConfirmationEmail(
-        user.email,
-        verificationToken,
-        verificationUrl,
-        { userId: user.id, priority: 'high' },
-      ).then(({ jobId }) => {
-        this.logger.debug(`Confirmation email queued for ${user.email}, jobId: ${jobId}`);
-      }).catch(queueError => {
-        this.logger.warn('Failed to queue verification email', {
-          error: queueError instanceof Error ? queueError.message : 'Unknown error',
+        // Queue email asynchronously - don't await to not block signup response
+        this.emailService.queueConfirmationEmail(
+          user.email,
+          verificationToken,
+          verificationUrl,
+          { userId: user.id, priority: 'high' },
+        ).then(({ jobId }) => {
+          this.logger.debug(`Confirmation email queued for ${user.email}, jobId: ${jobId}`);
+        }).catch(queueError => {
+          this.logger.warn('Failed to queue verification email', {
+            error: queueError instanceof Error ? queueError.message : 'Unknown error',
+            userId: user.id,
+          });
+        });
+      } catch (emailError) {
+        // Log error but don't block signup
+        this.logger.warn('Failed to prepare verification email during signup', {
+          error: emailError instanceof Error ? emailError.message : 'Unknown error',
           userId: user.id,
         });
-      });
-    } catch (emailError) {
-      // Log error but don't block signup
-      this.logger.warn('Failed to prepare verification email during signup', {
-        error: emailError instanceof Error ? emailError.message : 'Unknown error',
-        userId: user.id,
-      });
+      }
     }
 
     return {
@@ -144,9 +162,9 @@ export class AuthService {
     const { email, password } = loginDto;
     const clientIp = ip || 'unknown';
 
-    // DÉSACTIVÉ TEMPORAIREMENT: Protection brute force désactivée pour éviter timeout Redis
-    // TODO: Réactiver une fois Redis stabilisé
-    // await this.bruteForceService.checkAndThrow(email, clientIp);
+    // Protection brute force avec fail-open (timeouts intégrés dans le service)
+    // Le service gère les erreurs Redis et les timeouts de manière transparente
+    await this.bruteForceService.checkAndThrow(email, clientIp);
 
     // Find user
     const user = await this.prisma.user.findUnique({
@@ -157,16 +175,16 @@ export class AuthService {
     });
 
     if (!user || !user.password) {
-      // DÉSACTIVÉ: Enregistrer tentative échouée (désactivé pour éviter timeout)
-      // await this.bruteForceService.recordFailedAttempt(email, clientIp);
+      // Enregistrer tentative échouée (fail-safe, n'échoue pas si Redis a des problèmes)
+      await this.bruteForceService.recordFailedAttempt(email, clientIp);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      // DÉSACTIVÉ: Enregistrer tentative échouée (désactivé pour éviter timeout)
-      // await this.bruteForceService.recordFailedAttempt(email, clientIp);
+      // Enregistrer tentative échouée (fail-safe)
+      await this.bruteForceService.recordFailedAttempt(email, clientIp);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -180,8 +198,8 @@ export class AuthService {
         },
       );
 
-      // DÉSACTIVÉ: Réinitialiser tentatives brute force (désactivé pour éviter timeout)
-      // await this.bruteForceService.resetAttempts(email, clientIp);
+      // Réinitialiser tentatives brute force après succès (fail-safe)
+      await this.bruteForceService.resetAttempts(email, clientIp);
 
       return {
         requires2FA: true,
@@ -195,8 +213,8 @@ export class AuthService {
       };
     }
 
-    // DÉSACTIVÉ: Réinitialiser tentatives brute force (désactivé pour éviter timeout)
-    // await this.bruteForceService.resetAttempts(email, clientIp);
+    // Réinitialiser tentatives brute force après succès (fail-safe)
+    await this.bruteForceService.resetAttempts(email, clientIp);
 
     // Update last login
     await this.prisma.user.update({
@@ -255,16 +273,17 @@ export class AuthService {
       // Vérifier code 2FA
       const isValid = this.twoFactorService.verifyToken(user.twoFASecret, token);
       if (!isValid) {
-        // Vérifier codes de backup
+        // Vérifier codes de backup (SEC-07: codes hashés)
         if (user.backupCodes.length > 0) {
-          const isBackupCode = this.twoFactorService.validateBackupCode(user.backupCodes, token);
-          if (isBackupCode) {
-            // Retirer le code de backup utilisé
+          const backupResult = await this.twoFactorService.validateBackupCode(user.backupCodes, token);
+          if (backupResult.isValid && backupResult.matchedIndex !== null) {
+            // Retirer le code de backup utilisé (par son index dans la liste hashée)
+            const remainingCodes = user.backupCodes.filter((_, index) => index !== backupResult.matchedIndex);
             await this.prisma.user.update({
               where: { id: user.id },
               data: {
                 backupCodes: {
-                  set: user.backupCodes.filter(code => code !== token.toUpperCase()),
+                  set: remainingCodes,
                 },
               },
             });
@@ -326,22 +345,22 @@ export class AuthService {
     // Générer QR code
     const qrCodeUrl = await this.twoFactorService.generateQRCode(otpauthUrl);
 
-    // Générer codes de backup
-    const backupCodes = this.twoFactorService.generateBackupCodes(10);
+    // Générer codes de backup (SEC-07: hasher pour stockage)
+    const { plaintextCodes, hashedCodes } = await this.twoFactorService.generateBackupCodes(10);
 
-    // Sauvegarder secret temporairement (pas encore activé)
+    // Sauvegarder secret temporairement et codes hashés (pas encore activé)
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         temp2FASecret: secret,
-        backupCodes,
+        backupCodes: hashedCodes, // Stocker les codes hashés
       },
     });
 
     return {
       secret,
       qrCodeUrl,
-      backupCodes, // Afficher une seule fois à l'utilisateur
+      backupCodes: plaintextCodes, // Afficher une seule fois à l'utilisateur (plaintext)
     };
   }
 
@@ -396,11 +415,20 @@ export class AuthService {
     return { message: '2FA disabled successfully' };
   }
 
+  /**
+   * SEC-08: Rotation des refresh tokens avec détection de réutilisation
+   * 
+   * Implémente le pattern "Refresh Token Rotation" recommandé par l'OWASP:
+   * - Chaque refresh token ne peut être utilisé qu'une seule fois
+   * - Un nouveau token est généré à chaque utilisation
+   * - Si un token déjà utilisé est réutilisé, toute la famille est invalidée
+   *   (indique potentiellement un vol de token)
+   */
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
     const { refreshToken } = refreshTokenDto;
 
     try {
-      // Verify refresh token
+      // Verify refresh token JWT signature
       const payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.get('jwt.refreshSecret'),
       });
@@ -417,8 +445,33 @@ export class AuthService {
         },
       });
 
-      if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
+      if (!tokenRecord) {
         throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      // SEC-08: Détection de réutilisation de token
+      // Si le token a déjà été utilisé, c'est une potentielle attaque
+      // Note: Temporary type assertions until Prisma client is regenerated with new fields
+      const tokenRecordAny = tokenRecord as any;
+      if (tokenRecordAny.usedAt || tokenRecordAny.revokedAt) {
+        this.logger.warn(
+          `Refresh token reuse detected for user ${tokenRecord.userId}. ` +
+          `Token family ${tokenRecordAny.family} will be invalidated. ` +
+          `Potential token theft attempt.`
+        );
+        
+        // Invalider toute la famille de tokens (sécurité)
+        await this.prisma.refreshToken.updateMany({
+          where: { family: tokenRecordAny.family } as any,
+          data: { revokedAt: new Date() } as any,
+        });
+        
+        throw new UnauthorizedException('Refresh token has been revoked. Please login again.');
+      }
+
+      // Vérifier expiration
+      if (tokenRecord.expiresAt < new Date()) {
+        throw new UnauthorizedException('Refresh token expired');
       }
 
       // Generate new tokens
@@ -428,13 +481,19 @@ export class AuthService {
         tokenRecord.user.role,
       );
 
-      // Delete old refresh token
-      await this.prisma.refreshToken.delete({
+      // SEC-08: Marquer l'ancien token comme utilisé (pas supprimer, pour détecter réutilisation)
+      // Note: Temporary type assertion until Prisma client is regenerated with new fields
+      await this.prisma.refreshToken.update({
         where: { id: tokenRecord.id },
+        data: { usedAt: new Date() } as any,
       });
 
-      // Save new refresh token
-      await this.saveRefreshToken(tokenRecord.user.id, tokens.refreshToken);
+      // Save new refresh token with same family
+      await this.saveRefreshToken(
+        tokenRecord.user.id, 
+        tokens.refreshToken,
+        (tokenRecord as any).family, // Conserver la famille pour traçabilité
+      );
 
       return {
         user: {
@@ -449,6 +508,9 @@ export class AuthService {
         ...tokens,
       };
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -482,7 +544,14 @@ export class AuthService {
     };
   }
 
-  async saveRefreshToken(userId: string, token: string) {
+  /**
+   * SEC-08: Sauvegarde du refresh token avec gestion de famille
+   * 
+   * @param userId - ID de l'utilisateur
+   * @param token - Le refresh token JWT
+   * @param family - Optionnel: famille de tokens pour rotation (nouvelle famille si non fourni)
+   */
+  async saveRefreshToken(userId: string, token: string, family?: string) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
@@ -491,8 +560,38 @@ export class AuthService {
         userId,
         token,
         expiresAt,
+        // SEC-08: Si family fourni, utiliser la même famille (rotation)
+        // Sinon, Prisma génère un nouveau cuid() (nouvelle session)
+        ...(family && { family }),
       },
     });
+  }
+
+  /**
+   * SEC-08: Nettoie les tokens expirés et révoqués (à appeler périodiquement)
+   * Cette méthode peut être appelée par un cron job ou un scheduler
+   */
+  async cleanupExpiredTokens() {
+    // Note: revokedAt and usedAt fields require Prisma client regeneration
+    // Using type assertion until the client is updated
+    const result = await this.prisma.refreshToken.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: new Date() } },
+          { revokedAt: { not: null } } as any,
+          // Supprimer aussi les tokens utilisés de plus de 24h
+          // (garde une fenêtre pour détecter les réutilisations récentes)
+          {
+            usedAt: { 
+              lt: new Date(Date.now() - 24 * 60 * 60 * 1000) 
+            },
+          } as any,
+        ],
+      },
+    });
+    
+    this.logger.log(`Cleaned up ${result.count} expired/revoked refresh tokens`);
+    return result.count;
   }
 
   /**
@@ -586,8 +685,8 @@ export class AuthService {
         throw new BadRequestException('New password must be different from the current password');
       }
 
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(password, 12);
+      // Hash new password (13 rounds pour meilleure sécurité - OWASP recommandation)
+      const hashedPassword = await bcrypt.hash(password, 13);
 
       // Update password
       await this.prisma.user.update({
@@ -726,6 +825,7 @@ export class AuthService {
 
     if (existingOAuth) {
       // Update tokens
+      // SEC-05: Chiffrer les tokens OAuth avant stockage
       await this.prisma.oAuthAccount.update({
         where: {
           provider_providerId: {
@@ -734,8 +834,8 @@ export class AuthService {
           },
         },
         data: {
-          accessToken,
-          refreshToken: refreshToken || existingOAuth.refreshToken,
+          accessToken: this.encryptOAuthToken(accessToken),
+          refreshToken: this.encryptOAuthToken(refreshToken) || existingOAuth.refreshToken,
         },
       });
 
@@ -796,6 +896,7 @@ export class AuthService {
     }
 
     // Create OAuth account
+    // SEC-05: Chiffrer les tokens OAuth avant stockage
     await this.prisma.oAuthAccount.upsert({
       where: {
         provider_providerId: {
@@ -807,12 +908,12 @@ export class AuthService {
         provider,
         providerId,
         userId: user.id,
-        accessToken,
-        refreshToken: refreshToken || null,
+        accessToken: this.encryptOAuthToken(accessToken),
+        refreshToken: this.encryptOAuthToken(refreshToken),
       },
       update: {
-        accessToken,
-        refreshToken: refreshToken || undefined,
+        accessToken: this.encryptOAuthToken(accessToken),
+        refreshToken: this.encryptOAuthToken(refreshToken) || undefined,
       },
     });
 
@@ -885,6 +986,7 @@ export class AuthService {
 
   /**
    * Link OAuth account to user
+   * SEC-05: Chiffre les tokens OAuth avant stockage
    */
   async linkOAuthAccount(userId: string, data: {
     provider: string;
@@ -893,6 +995,10 @@ export class AuthService {
     refreshToken: string | null;
     expiresAt: Date | null;
   }) {
+    // SEC-05: Chiffrer les tokens avant stockage
+    const encryptedAccessToken = data.accessToken ? this.encryptOAuthToken(data.accessToken) : null;
+    const encryptedRefreshToken = data.refreshToken ? this.encryptOAuthToken(data.refreshToken) : null;
+
     return this.prisma.oAuthAccount.upsert({
       where: {
         provider_providerId: {
@@ -904,13 +1010,13 @@ export class AuthService {
         provider: data.provider,
         providerId: data.providerId,
         userId,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
         expiresAt: data.expiresAt,
       },
       update: {
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
         expiresAt: data.expiresAt,
       },
     });

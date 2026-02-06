@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
@@ -49,7 +49,7 @@ export class Render2DService {
       // Valider la requête
       const validation = await this.validateRenderRequest(request);
       if (!validation.isValid) {
-        throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+        throw new BadRequestException(`Validation failed: ${validation.errors.join(', ')}`);
       }
 
       // Récupérer les données du design
@@ -175,7 +175,7 @@ export class Render2DService {
       });
       
       if (!design) {
-        throw new Error(`Design ${designId} not found`);
+        throw new NotFoundException(`Design ${designId} not found`);
       }
       
       return {
@@ -194,7 +194,7 @@ export class Render2DService {
     });
 
     if (!product) {
-      throw new Error(`Product ${productId} not found`);
+      throw new NotFoundException(`Product ${productId} not found`);
     }
 
     return {
@@ -563,7 +563,7 @@ export class Render2DService {
   private async downloadAsset(url: string): Promise<Buffer> {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to download asset: ${response.statusText}`);
+      throw new InternalServerErrorException(`Failed to download asset: ${response.statusText}`);
     }
     return Buffer.from(await response.arrayBuffer());
   }

@@ -15,7 +15,7 @@
  * - ✅ Logging structuré
  */
 
-import { Injectable, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, UnauthorizedException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
@@ -25,6 +25,7 @@ import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { EncryptionService } from '@/libs/crypto/encryption.service';
 
 // ============================================================================
 // TYPES & SCHEMAS
@@ -115,6 +116,7 @@ export class ShopifyService {
     private readonly httpService: HttpService,
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
+    private readonly encryptionService: EncryptionService,
     @InjectQueue('integration-sync') private readonly syncQueue: Queue,
   ) {
     // Rendre les variables Shopify optionnelles pour éviter l'erreur au démarrage
@@ -145,7 +147,7 @@ export class ShopifyService {
    */
   generateAuthUrl(shopDomain: string, redirectUri: string, state: string): string {
     if (!this.clientId) {
-      throw new Error('Shopify Client ID not configured. Please set SHOPIFY_CLIENT_ID environment variable.');
+      throw new InternalServerErrorException('Shopify Client ID not configured. Please set SHOPIFY_CLIENT_ID environment variable.');
     }
     
     const params = new URLSearchParams({
@@ -168,7 +170,7 @@ export class ShopifyService {
   ): Promise<{ accessToken: string; scope: string }> {
     // ✅ Validation des credentials
     if (!this.clientId || !this.clientSecret) {
-      throw new Error('Shopify credentials not configured. Please set SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET environment variables.');
+      throw new InternalServerErrorException('Shopify credentials not configured. Please set SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET environment variables.');
     }
 
     // ✅ Validation du shopDomain
@@ -332,22 +334,27 @@ export class ShopifyService {
   }
 
   /**
-   * Chiffre un token pour stockage sécurisé
-   * TODO: Implémenter chiffrement réel (AES-256-GCM) avec clé depuis ConfigService
+   * Chiffre un token pour stockage sécurisé avec AES-256-GCM
+   * SEC-06: Chiffrement des credentials Shopify
    */
   private encryptToken(token: string): string {
-    // ✅ Pour l'instant, retourner tel quel (à améliorer avec chiffrement réel)
-    // En production, utiliser AES-256-GCM avec clé depuis ConfigService
-    return token;
+    return this.encryptionService.encrypt(token);
   }
 
   /**
-   * Déchiffre un token
-   * TODO: Implémenter déchiffrement réel
+   * Déchiffre un token avec AES-256-GCM
+   * Supporte la migration depuis données non chiffrées pour les intégrations existantes
    */
   private decryptToken(encryptedToken: string): string {
-    // ✅ Pour l'instant, retourner tel quel (à améliorer avec déchiffrement réel)
-    return encryptedToken;
+    try {
+      // Essayer d'abord le nouveau format AES-256-GCM
+      return this.encryptionService.decrypt(encryptedToken);
+    } catch {
+      // Fallback pour les données existantes non chiffrées
+      // Log pour identifier les données à migrer
+      this.logger.warn('Decrypting legacy unencrypted token - migration recommended');
+      return encryptedToken;
+    }
   }
 
   /**
@@ -493,7 +500,7 @@ export class ShopifyService {
     });
 
     if (!integration) {
-      throw new Error(`No Shopify integration found for brand ${brandId}`);
+      throw new NotFoundException(`No Shopify integration found for brand ${brandId}`);
     }
 
     // Vérifier si le produit existe déjà via ProductMapping

@@ -6,7 +6,7 @@
  * TODO: Intégrer avec TensorFlow.js, PyTorch, ou API ML externe (AWS SageMaker, Google AI Platform)
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -51,7 +51,7 @@ export class MLPredictionService {
     this.logger.log(`Predicting churn for user: ${request.userId}`);
 
     if (!request.userId) {
-      throw new Error('userId is required for churn prediction');
+      throw new BadRequestException('userId is required for churn prediction');
     }
 
     // TODO: Récupérer features réelles depuis la DB
@@ -87,7 +87,7 @@ export class MLPredictionService {
     this.logger.log(`Predicting LTV for user: ${request.userId}`);
 
     if (!request.userId) {
-      throw new Error('userId is required for LTV prediction');
+      throw new BadRequestException('userId is required for LTV prediction');
     }
 
     // TODO: Récupérer features réelles
@@ -123,7 +123,7 @@ export class MLPredictionService {
     this.logger.log(`Predicting conversion for user: ${request.userId}`);
 
     if (!request.userId) {
-      throw new Error('userId is required for conversion prediction');
+      throw new BadRequestException('userId is required for conversion prediction');
     }
 
     const features = await this.getConversionFeatures(request.userId);
@@ -153,7 +153,7 @@ export class MLPredictionService {
     this.logger.log(`Predicting revenue for brand: ${request.brandId}`);
 
     if (!request.brandId) {
-      throw new Error('brandId is required for revenue prediction');
+      throw new BadRequestException('brandId is required for revenue prediction');
     }
 
     const features = await this.getRevenueFeatures(request.brandId);
@@ -229,7 +229,7 @@ export class MLPredictionService {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const lastLogin = user.lastLoginAt || user.createdAt;
@@ -261,7 +261,7 @@ export class MLPredictionService {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     return {
@@ -289,7 +289,7 @@ export class MLPredictionService {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     return {

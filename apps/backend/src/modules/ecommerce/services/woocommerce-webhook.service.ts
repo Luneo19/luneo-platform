@@ -3,8 +3,9 @@
  * Handles WooCommerce webhook events and syncs with Luneo database
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { CurrencyUtils } from '@/config/currency.config';
 import { OrderStatus } from '@prisma/client';
 import { WooCommerceConnector } from '../connectors/woocommerce/woocommerce.connector';
 import { JsonValue } from '@/common/types/utility-types';
@@ -106,7 +107,7 @@ export class WooCommerceWebhookService {
       });
 
       if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
+        throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
       // Create product in Luneo database
@@ -117,7 +118,7 @@ export class WooCommerceWebhookService {
           description: product.description || null,
           sku: product.sku || `WC-${product.id}`,
           price: parseFloat(product.sale_price || product.price || '0'),
-          currency: 'EUR',
+          currency: CurrencyUtils.getDefaultCurrency(),
           images: product.images?.map(img => img.src) || [],
           isActive: product.status === 'publish',
           isPublic: product.status === 'publish',
@@ -296,7 +297,7 @@ export class WooCommerceWebhookService {
       });
 
       if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
+        throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
       // Process line items to find customized products
@@ -358,7 +359,7 @@ export class WooCommerceWebhookService {
               taxCents: 0,
               shippingCents: 0,
               totalCents: Math.round(parseFloat(order.total) * 100),
-              currency: order.currency.toUpperCase() || 'EUR',
+              currency: CurrencyUtils.normalize(order.currency || CurrencyUtils.getDefaultCurrency()),
               brandId: integration.brandId,
               productId: mapping.luneoProductId,
               designId: designId,
@@ -462,7 +463,7 @@ export class WooCommerceWebhookService {
       });
 
       if (!integration) {
-        throw new Error(`Integration ${integrationId} not found`);
+        throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
       const luneoOrders = await this.prisma.order.findMany({

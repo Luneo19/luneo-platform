@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
 import { randomBytes } from 'crypto';
@@ -40,7 +40,7 @@ export class TryOnSessionService {
     }
 
     if (!config.isActive) {
-      throw new Error('Try-on configuration is not active');
+      throw new BadRequestException('Try-on configuration is not active');
     }
 
     const sessionId = this.generateSessionId();

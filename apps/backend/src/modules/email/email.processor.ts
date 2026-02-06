@@ -1,5 +1,5 @@
 import { Process, Processor } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
+import { Logger, InternalServerErrorException } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { MailgunService } from './mailgun.service';
 import { SendGridService } from './sendgrid.service';
@@ -290,6 +290,6 @@ export class EmailProcessor {
       });
     }
 
-    throw new Error('No email provider available');
+    throw new InternalServerErrorException('No email provider available');
   }
 }

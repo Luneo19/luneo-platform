@@ -31,10 +31,35 @@ export class AiController {
   @ApiOperation({ summary: 'Obtenir le quota IA de l\'utilisateur' })
   @ApiResponse({
     status: 200,
-    description: 'Quota IA',
+    description: 'Quota IA avec statistiques d\'utilisation',
+    schema: {
+      type: 'object',
+      properties: {
+        quota: {
+          type: 'object',
+          properties: {
+            monthlyLimit: { type: 'number', example: 100 },
+            monthlyUsed: { type: 'number', example: 25 },
+            costLimitCents: { type: 'number', example: 5000 },
+            costUsedCents: { type: 'number', example: 1250 },
+            percentageUsed: { type: 'number', example: 25 },
+            resetAt: { type: 'string', format: 'date-time', nullable: true },
+          },
+        },
+        stats: {
+          type: 'object',
+          properties: {
+            totalGenerations: { type: 'number', example: 150 },
+            generationsThisMonth: { type: 'number', example: 25 },
+            totalCostCents: { type: 'number', example: 7500 },
+            costThisMonth: { type: 'number', example: 1250 },
+          },
+        },
+      },
+    },
   })
   async getQuota(@Request() req: { user: CurrentUser }) {
-    return { message: 'AI quota endpoint' };
+    return this.aiService.getUserQuota(req.user.id);
   }
 
   @Post('generate')

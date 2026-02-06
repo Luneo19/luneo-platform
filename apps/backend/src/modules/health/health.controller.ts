@@ -2,6 +2,7 @@ import { Public } from '@/common/decorators/public.decorator';
 import { PrometheusService } from '@/libs/metrics/prometheus.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
+import { CloudinaryService } from '@/libs/storage/cloudinary.service';
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/terminus';
@@ -14,6 +15,7 @@ export class HealthController {
     private readonly prometheus: PrometheusService,
     private readonly prisma: PrismaService,
     private readonly redis: RedisOptimizedService,
+    private readonly cloudinary: CloudinaryService, // HEALTH-01
   ) {}
 
   @Get()
@@ -136,6 +138,28 @@ export class HealthController {
               : 'Memory usage normal',
           },
         };
+      },
+      // HEALTH-01: Cloudinary health check
+      async () => {
+        try {
+          const result = await this.cloudinary.healthCheck();
+          return {
+            cloudinary: {
+              status: result.healthy ? 'up' : 'down',
+              latency: `${result.latencyMs}ms`,
+              message: result.healthy 
+                ? 'Cloudinary connection healthy' 
+                : 'Cloudinary health check failed',
+            },
+          };
+        } catch (error) {
+          return {
+            cloudinary: {
+              status: 'down',
+              message: error instanceof Error ? error.message : 'Cloudinary check failed',
+            },
+          };
+        }
       },
     ]);
   }

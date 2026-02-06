@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
+/**
+ * Public API Service
+ * API-04: Suppression du hack (global as any).currentBrandId
+ * brandId est maintenant passé explicitement à chaque méthode
+ */
+
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { CreateDesignDto, CreateOrderDto, GetAnalyticsDto } from './dto';
@@ -15,15 +21,9 @@ export class PublicApiService {
     private readonly analyticsService: AnalyticsService,
   ) {}
 
-  async getBrandInfo() {
-    const cacheKey = 'brand:info';
+  async getBrandInfo(brandId: string) {
+    const cacheKey = `brand:info:${brandId}`;
     return this.cache.getOrSet(cacheKey, async () => {
-      // Get brand info from request context (set by API key guard)
-      const brandId = this.getCurrentBrandId();
-      if (!brandId) {
-        throw new UnauthorizedException('Brand context not found');
-      }
-
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
         select: {
@@ -47,8 +47,7 @@ export class PublicApiService {
     }, 300); // Cache for 5 minutes
   }
 
-  async getProducts(page: number = 1, limit: number = 10) {
-    const brandId = this.getCurrentBrandId();
+  async getProducts(brandId: string, page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
     
     const [products, total] = await Promise.all([
@@ -86,9 +85,7 @@ export class PublicApiService {
     };
   }
 
-  async getProduct(id: string) {
-    const brandId = this.getCurrentBrandId();
-    
+  async getProduct(brandId: string, id: string) {
     const product = await this.prisma.product.findFirst({
       where: { 
         id,
@@ -119,9 +116,7 @@ export class PublicApiService {
     return product;
   }
 
-  async createDesign(createDesignDto: CreateDesignDto) {
-    const brandId = this.getCurrentBrandId();
-    
+  async createDesign(brandId: string, createDesignDto: CreateDesignDto) {
     // Validate product exists and belongs to brand
     const product = await this.prisma.product.findFirst({
       where: { 
@@ -161,14 +156,12 @@ export class PublicApiService {
       designId: design.id,
       brandId,
       status: design.status,
-    });
+    }, brandId);
 
     return design;
   }
 
-  async getDesign(id: string) {
-    const brandId = this.getCurrentBrandId();
-    
+  async getDesign(brandId: string, id: string) {
     const design = await this.prisma.design.findFirst({
       where: { 
         id,
@@ -202,9 +195,7 @@ export class PublicApiService {
     return design;
   }
 
-  async createOrder(createOrderDto: CreateOrderDto) {
-    const brandId = this.getCurrentBrandId();
-    
+  async createOrder(brandId: string, createOrderDto: CreateOrderDto) {
     // Validate design exists and belongs to brand
     const design = await this.prisma.design.findFirst({
       where: { 
@@ -262,14 +253,12 @@ export class PublicApiService {
       brandId,
       status: order.status,
       totalAmount: order.totalCents / 100,
-    });
+    }, brandId);
 
     return order;
   }
 
-  async getOrder(id: string) {
-    const brandId = this.getCurrentBrandId();
-    
+  async getOrder(brandId: string, id: string) {
     const order = await this.prisma.order.findFirst({
       where: { 
         id,
@@ -302,8 +291,7 @@ export class PublicApiService {
     return order;
   }
 
-  async getOrders(page: number = 1, limit: number = 10, status?: string) {
-    const brandId = this.getCurrentBrandId();
+  async getOrders(brandId: string, page: number = 1, limit: number = 10, status?: string) {
     const skip = (page - 1) * limit;
     
     const where: any = { brandId };
@@ -347,20 +335,11 @@ export class PublicApiService {
     };
   }
 
-  async getAnalytics(query: GetAnalyticsDto) {
-    const brandId = this.getCurrentBrandId();
+  async getAnalytics(brandId: string, query: GetAnalyticsDto) {
     return this.analyticsService.getAnalytics(brandId, query);
   }
 
-  async testWebhook(payload: any) {
-    const brandId = this.getCurrentBrandId();
+  async testWebhook(brandId: string, payload: any) {
     return this.webhookService.sendWebhook('test' as any, payload, brandId);
-  }
-
-  private getCurrentBrandId(): string | null {
-    // This would be set by the API key guard
-    // For now, we'll extract it from the request context
-    // In a real implementation, this would come from the authenticated API key
-    return (global as any).currentBrandId || null;
   }
 }

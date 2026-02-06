@@ -16,6 +16,7 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -44,7 +45,7 @@ export class ArIntegrationsController {
   @ApiResponse({ status: HttpStatus.OK, description: 'List of integrations' })
   async listIntegrations(@User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arIntegrationsService.listIntegrations(user.brandId);
@@ -57,7 +58,7 @@ export class ArIntegrationsController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Integration not found' })
   async getIntegration(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arIntegrationsService.getIntegration(id, user.brandId);
@@ -72,7 +73,7 @@ export class ArIntegrationsController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arIntegrationsService.createIntegration(user.brandId, {
@@ -94,7 +95,7 @@ export class ArIntegrationsController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arIntegrationsService.updateIntegration(id, user.brandId, dto);
@@ -108,7 +109,7 @@ export class ArIntegrationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteIntegration(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     await this.arIntegrationsService.deleteIntegration(id, user.brandId);
@@ -120,7 +121,7 @@ export class ArIntegrationsController {
   @ApiResponse({ status: HttpStatus.OK, description: 'Connection test result' })
   async testConnection(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arIntegrationsService.testConnection(id, user.brandId);
@@ -137,7 +138,7 @@ export class ArIntegrationsController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arIntegrationsService.syncIntegration(id, user.brandId, type);
@@ -154,7 +155,7 @@ export class ArIntegrationsController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arIntegrationsService.getSyncHistory(id, user.brandId, limit ? parseInt(limit, 10) : 20);

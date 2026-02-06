@@ -13,7 +13,7 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
 describe('CreatorProfileService', () => {
   let service: CreatorProfileService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: any; // Use any for mock methods
   let cacheService: jest.Mocked<SmartCacheService>;
 
   const mockUser = {
@@ -47,7 +47,15 @@ describe('CreatorProfileService', () => {
       user: {
         findUnique: jest.fn(),
       },
+      creatorProfile: {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        count: jest.fn(),
+      },
       $queryRaw: jest.fn(),
+      $queryRawUnsafe: jest.fn(),
       $executeRaw: jest.fn(),
       $executeRawUnsafe: jest.fn(),
     };
@@ -91,9 +99,9 @@ describe('CreatorProfileService', () => {
 
     it('should create profile with valid data', async () => {
       prismaService.user.findUnique.mockResolvedValue(mockUser as any);
-      prismaService.$queryRaw.mockResolvedValue([]);
-      prismaService.$executeRaw.mockResolvedValue([mockProfile] as any);
-      prismaService.$queryRawUnsafe.mockResolvedValue([mockProfile] as any);
+      // No existing profile with this username
+      prismaService.creatorProfile.findUnique.mockResolvedValue(null);
+      prismaService.creatorProfile.create.mockResolvedValue(mockProfile as any);
 
       const result = await service.createProfile(validData);
 
@@ -101,6 +109,7 @@ describe('CreatorProfileService', () => {
       expect(prismaService.user.findUnique).toHaveBeenCalledWith({
         where: { id: validData.userId },
       });
+      expect(prismaService.creatorProfile.create).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when userId is missing', async () => {
@@ -129,7 +138,7 @@ describe('CreatorProfileService', () => {
 
     it('should throw BadRequestException when username is already taken', async () => {
       prismaService.user.findUnique.mockResolvedValue(mockUser as any);
-      prismaService.$queryRaw.mockResolvedValue([{ id: 'existing-profile' }] as any);
+      prismaService.creatorProfile.findUnique.mockResolvedValue({ id: 'existing-profile', username: 'johndoe' });
 
       await expect(service.createProfile(validData)).rejects.toThrow(BadRequestException);
     });
@@ -137,7 +146,7 @@ describe('CreatorProfileService', () => {
 
   describe('getProfileByUserId', () => {
     it('should return profile when user exists', async () => {
-      prismaService.$queryRawUnsafe.mockResolvedValue([mockProfile] as any);
+      prismaService.creatorProfile.findUnique.mockResolvedValue(mockProfile);
 
       const result = await service.getProfileByUserId('user-123');
 
@@ -150,7 +159,7 @@ describe('CreatorProfileService', () => {
     });
 
     it('should throw NotFoundException when profile does not exist', async () => {
-      prismaService.$queryRawUnsafe.mockResolvedValue([]);
+      prismaService.creatorProfile.findUnique.mockResolvedValue(null);
 
       await expect(service.getProfileByUserId('user-123')).rejects.toThrow(NotFoundException);
     });
@@ -158,7 +167,7 @@ describe('CreatorProfileService', () => {
 
   describe('getProfileByUsername', () => {
     it('should return profile when username exists', async () => {
-      prismaService.$queryRawUnsafe.mockResolvedValue([mockProfile] as any);
+      prismaService.creatorProfile.findUnique.mockResolvedValue(mockProfile);
 
       const result = await service.getProfileByUsername('johndoe');
 
@@ -167,7 +176,7 @@ describe('CreatorProfileService', () => {
     });
 
     it('should throw NotFoundException when username does not exist', async () => {
-      prismaService.$queryRawUnsafe.mockResolvedValue([]);
+      prismaService.creatorProfile.findUnique.mockResolvedValue(null);
 
       await expect(service.getProfileByUsername('nonexistent')).rejects.toThrow(NotFoundException);
     });
@@ -175,10 +184,9 @@ describe('CreatorProfileService', () => {
 
   describe('updateProfile', () => {
     it('should update profile with valid data', async () => {
-      prismaService.$queryRawUnsafe
-        .mockResolvedValueOnce([mockProfile] as any) // getProfileByUserId
-        .mockResolvedValueOnce([mockProfile] as any) // getProfileByUserId after update
-        .mockResolvedValueOnce(undefined); // executeRawUnsafe
+      const updatedProfile = { ...mockProfile, displayName: 'John Updated', bio: 'Updated bio' };
+      prismaService.creatorProfile.findUnique.mockResolvedValue(mockProfile);
+      prismaService.creatorProfile.update.mockResolvedValue(updatedProfile);
 
       const updateData = {
         displayName: 'John Updated',
@@ -188,7 +196,7 @@ describe('CreatorProfileService', () => {
       const result = await service.updateProfile('user-123', updateData);
 
       expect(result).toBeDefined();
-      expect(prismaService.$executeRawUnsafe).toHaveBeenCalled();
+      expect(prismaService.creatorProfile.update).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when userId is missing', async () => {
@@ -200,14 +208,14 @@ describe('CreatorProfileService', () => {
 
   describe('verifyCreator', () => {
     it('should verify creator successfully', async () => {
-      prismaService.$queryRawUnsafe
-        .mockResolvedValueOnce(undefined) // executeRawUnsafe
-        .mockResolvedValueOnce([mockProfile] as any); // getProfileByUserId
+      const verifiedProfile = { ...mockProfile, verified: true, verifiedAt: new Date() };
+      prismaService.creatorProfile.update.mockResolvedValue(verifiedProfile);
 
       const result = await service.verifyCreator('user-123', true);
 
       expect(result).toBeDefined();
-      expect(prismaService.$executeRawUnsafe).toHaveBeenCalled();
+      expect(result.verified).toBe(true);
+      expect(prismaService.creatorProfile.update).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when userId is missing', async () => {

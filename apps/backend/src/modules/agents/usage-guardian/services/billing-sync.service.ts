@@ -10,6 +10,7 @@
  */
 
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { CurrencyUtils } from '@/config/currency.config';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
@@ -110,7 +111,7 @@ export class BillingSyncService {
           await this.stripe.invoiceItems.create({
             customer: brand.stripeCustomerId,
             amount: overageCostCents,
-            currency: 'eur',
+            currency: CurrencyUtils.getStripeCurrency(),
             description: `Usage IA - Overage ${overageTokens} tokens`,
           });
           this.logger.log(`Overage invoice item created for brand ${brandId}`);
@@ -244,7 +245,7 @@ export class BillingSyncService {
         currentPeriodEnd: new Date(subscription.current_period_end * 1000),
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
         priceAmount: price?.unit_amount || 0,
-        priceCurrency: price?.currency || 'eur',
+        priceCurrency: price?.currency || CurrencyUtils.getStripeCurrency(),
         interval: price?.recurring?.interval || 'month',
         features,
       };

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -49,7 +49,7 @@ export class CustomizationService {
       if (!response.ok) {
         const errorText = await response.text();
         this.logger.error('AI Engine error', { status: response.status, error: errorText });
-        throw new Error(`AI Engine error: ${response.status} - ${errorText}`);
+        throw new InternalServerErrorException(`AI Engine error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
@@ -65,10 +65,10 @@ export class CustomizationService {
 
       // Retry logic (simple, peut être amélioré)
       if (error.name === 'AbortError' || error.message.includes('timeout')) {
-        throw new Error('La génération a pris trop de temps. Veuillez réessayer.');
+        throw new InternalServerErrorException('La génération a pris trop de temps. Veuillez réessayer.');
       }
 
-      throw new Error(`Erreur lors de la génération: ${error.message}`);
+      throw new InternalServerErrorException(`Erreur lors de la génération: ${error.message}`);
     }
   }
 }

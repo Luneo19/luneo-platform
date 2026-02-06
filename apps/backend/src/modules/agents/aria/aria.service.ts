@@ -16,7 +16,7 @@
  * - ✅ Gestion d'erreurs
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
@@ -249,7 +249,7 @@ export class AriaService {
         );
 
         if (!usageCheck.allowed) {
-          throw new Error(usageCheck.reason || 'Usage limit exceeded');
+          throw new BadRequestException(usageCheck.reason || 'Usage limit exceeded');
         }
       }
 

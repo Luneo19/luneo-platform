@@ -10,6 +10,8 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +24,7 @@ import {
 import { Request as ExpressRequest } from 'express';
 import { ProductsService } from './products.service';
 import { Public } from '@/common/decorators/public.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/types/user.types';
 import { JsonValue } from '@/common/types/utility-types';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -30,6 +33,7 @@ import { ProductQueryDto } from './dto/product-query.dto';
 
 @ApiTags('products')
 @Controller('products')
+@UseGuards(JwtAuthGuard)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
@@ -132,7 +136,7 @@ export class ProductsController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.productsService.create(req.user.brandId, createProductDto as any, req.user);
   }
@@ -167,7 +171,7 @@ export class ProductsController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.productsService.update(req.user.brandId, id, updateProductDto as any, req.user);
   }
@@ -204,7 +208,7 @@ export class ProductsController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     await this.productsService.remove(id, req.user.brandId, req.user);
     return { success: true };
@@ -222,7 +226,7 @@ export class ProductsController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.productsService.bulkAction(req.user.brandId, body.productIds, body.action, req.user);
   }
@@ -239,7 +243,7 @@ export class ProductsController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.productsService.export(req.user.brandId, query as Record<string, unknown>, req.user);
   }
@@ -256,7 +260,7 @@ export class ProductsController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     if (!req.user.brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
     return this.productsService.import(req.user.brandId, body.csvData, req.user);
   }

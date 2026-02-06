@@ -59,7 +59,23 @@ export class CollectionsService {
     };
   }
 
-  async findOne(id: string, userId: string, brandId: string) {
+  /**
+   * PERF-02: Pagination ajoutée sur les items de collection
+   * Les collections avec beaucoup d'items ne chargent plus tout d'un coup
+   */
+  async findOne(
+    id: string, 
+    userId: string, 
+    brandId: string,
+    options?: {
+      itemsPage?: number;
+      itemsLimit?: number;
+    }
+  ) {
+    const itemsPage = options?.itemsPage || 1;
+    const itemsLimit = Math.min(options?.itemsLimit || 50, 100);
+    const itemsSkip = (itemsPage - 1) * itemsLimit;
+
     const collection = await this.prisma.designCollection.findUnique({
       where: { id },
       include: {
@@ -86,6 +102,8 @@ export class CollectionsService {
             },
           },
           orderBy: { order: 'asc' },
+          skip: itemsSkip,
+          take: itemsLimit,
         },
         user: {
           select: {
@@ -93,6 +111,11 @@ export class CollectionsService {
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        _count: {
+          select: {
+            items: true,
           },
         },
       },
@@ -106,7 +129,20 @@ export class CollectionsService {
       throw new ForbiddenException('Access denied to this collection');
     }
 
-    return collection;
+    // PERF-02: Retourner les infos de pagination
+    return {
+      ...collection,
+      pagination: {
+        items: {
+          page: itemsPage,
+          limit: itemsLimit,
+          total: collection._count.items,
+          totalPages: Math.ceil(collection._count.items / itemsLimit),
+          hasNext: itemsPage * itemsLimit < collection._count.items,
+          hasPrev: itemsPage > 1,
+        },
+      },
+    };
   }
 
   async create(data: { name: string; description?: string; isPublic?: boolean; coverImage?: string }, userId: string, brandId: string) {

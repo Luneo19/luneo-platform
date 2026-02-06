@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { db } from '@/lib/db';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(enrichedAutomations);
   } catch (error) {
-    console.error('Error fetching automations:', error);
+    serverLogger.apiError('/api/admin/marketing/automations', 'GET', error);
     return NextResponse.json({ error: 'Failed to fetch automations' }, { status: 500 });
   }
 }
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(automation, { status: 201 });
   } catch (error) {
-    console.error('Error creating automation:', error);
+    serverLogger.apiError('/api/admin/marketing/automations', 'POST', error);
     return NextResponse.json(
       { error: 'Failed to create automation' },
       { status: 500 }

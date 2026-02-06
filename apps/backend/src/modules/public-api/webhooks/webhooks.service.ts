@@ -24,12 +24,17 @@ export class WebhookService {
   async sendWebhook(
     event: WebhookEvent,
     data: Record<string, any>,
-    brandId?: string,
+    brandId: string, // API-04: brandId is now required (no global fallback)
   ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
+    if (!brandId) {
+      this.logger.error('brandId is required for webhook delivery');
+      return { success: false, error: 'brandId is required' };
+    }
+    
     try {
       // Get brand webhook configuration
       const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId || (global as any).currentBrandId },
+        where: { id: brandId },
         select: {
           id: true,
           name: true,
@@ -81,13 +86,16 @@ export class WebhookService {
       this.logger.error(`Failed to send webhook for event ${event}:`, error);
       
       // Store failed webhook delivery
-      await this.storeWebhookDelivery(
-        brandId || (global as any).currentBrandId,
-        event,
-        data,
-        null,
-        error.message,
-      );
+      // API-04: brandId is now required, no global fallback
+      if (brandId) {
+        await this.storeWebhookDelivery(
+          brandId,
+          event,
+          data,
+          null,
+          error.message,
+        );
+      }
 
       return {
         success: false,

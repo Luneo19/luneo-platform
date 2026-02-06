@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { db } from '@/lib/db';
 import { subMonths, format, startOfMonth } from 'date-fns';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(Array.from(cohortsMap.values()));
   } catch (error) {
-    console.error('Error fetching cohort data:', error);
+    serverLogger.apiError('/api/admin/analytics/cohort', 'GET', error, 500);
     return NextResponse.json(
       { error: 'Failed to fetch cohort data' },
       { status: 500 }

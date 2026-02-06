@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { PublicApiController } from './public-api.controller';
 import { PublicApiService } from './public-api.service';
 import { ApiKeysModule } from './api-keys/api-keys.module';
@@ -11,6 +12,7 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 
 @Module({
   imports: [
+    ConfigModule, // SEC-09: Pour ApiKeyGuard
     PrismaModule,
     SmartCacheModule,
     ApiKeysModule,

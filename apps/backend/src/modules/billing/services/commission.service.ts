@@ -105,33 +105,6 @@ export class CommissionService {
   }
 
   /**
-   * Apply discount to an order
-   * @deprecated Utiliser DiscountService.validateAndApplyDiscount() à la place
-   */
-  async applyDiscount(
-    originalAmount: number,
-    discountCode?: string,
-  ): Promise<DiscountResult> {
-    // Cette méthode est dépréciée - utiliser DiscountService
-    this.logger.warn('CommissionService.applyDiscount is deprecated. Use DiscountService instead.');
-    
-    if (!discountCode) {
-      return {
-        discountAmount: 0,
-        originalAmount,
-        finalAmount: originalAmount,
-      };
-    }
-
-    return {
-      discountId: undefined,
-      discountAmount: 0,
-      originalAmount,
-      finalAmount: originalAmount,
-    };
-  }
-
-  /**
    * Get commission rate for a brand based on their subscription plan
    * @param brandId - ID de la marque
    * @returns Taux de commission (0.1 = 10%)

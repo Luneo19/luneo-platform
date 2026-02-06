@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { logger } from '@/lib/logger';
 
 interface Notification {
   id: string;
@@ -102,7 +103,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
         },
       ]);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      logger.error('Failed to fetch notifications', error as Error);
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +118,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
         prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
       );
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      logger.error('Failed to mark notification as read', error as Error);
     }
   };
 
@@ -128,7 +129,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
       
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
+      logger.error('Failed to mark all notifications as read', error as Error);
     }
   };
 
@@ -139,7 +140,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
       
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (error) {
-      console.error('Failed to delete notification:', error);
+      logger.error('Failed to delete notification', error as Error);
     }
   };
 

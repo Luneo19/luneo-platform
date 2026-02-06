@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { 
@@ -477,7 +477,7 @@ export class PricingEngine {
       });
 
       if (!product) {
-        throw new Error(`Product ${productId} not found`);
+        throw new NotFoundException(`Product ${productId} not found`);
       }
 
       // Coût de base

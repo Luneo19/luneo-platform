@@ -9,7 +9,7 @@
  * - ✅ Types explicites
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { LLMRouterService, LLMProvider, LLM_MODELS, Message } from './llm-router.service';
 import { AgentMetricsService } from './agent-metrics.service';
@@ -149,7 +149,7 @@ Réponds UNIQUEMENT en JSON valide:
       // Extraire JSON de la réponse (peut contenir markdown)
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in response');
+        throw new BadRequestException('No JSON found in response');
       }
 
       const parsed = JSON.parse(jsonMatch[0]);

@@ -4,7 +4,7 @@
  * Respecte la Bible Luneo : pas de any, types stricts, logging professionnel
  */
 
-import { Controller, Get, Post, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards, Request, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { ArStudioService } from './ar-studio.service';
@@ -24,7 +24,7 @@ export class ArStudioController {
   async listModels(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const models = await this.arStudioService.listModels(brandId);
@@ -41,12 +41,12 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const model = await this.arStudioService.getModelById(id, brandId);
     if (!model) {
-      throw new Error('AR model not found');
+      throw new NotFoundException('AR model not found');
     }
 
     return { success: true, data: { model } };
@@ -62,7 +62,7 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const qrCodeData = await this.arStudioService.generateQRCode(id, brandId);
@@ -79,7 +79,7 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const analytics = await this.arStudioService.getModelAnalytics(id, brandId);
@@ -96,12 +96,12 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const model = await this.arStudioService.getModelById(id, brandId);
     if (!model) {
-      throw new Error('AR model not found');
+      throw new NotFoundException('AR model not found');
     }
 
     const baseUrl = process.env.FRONTEND_URL || 'https://luneo.app';
@@ -126,7 +126,7 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const result = await this.arStudioService.convert2DTo3D(
@@ -148,7 +148,7 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const result = await this.arStudioService.getConversionStatus(
@@ -174,7 +174,7 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const result = await this.arStudioService.exportModel(
@@ -205,7 +205,7 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('User must have a brandId');
+      throw new BadRequestException('User must have a brandId');
     }
 
     const result = await this.arStudioService.convertGLBToUSDZ(

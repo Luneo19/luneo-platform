@@ -106,7 +106,7 @@ export class ArtisanOnboardingService {
         maxVolume: request.maxVolume || 10,
         averageLeadTime: request.averageLeadTime || 7,
         minOrderValue: request.minOrderValue || 0,
-        kycStatus: 'pending',
+        kycStatus: 'PENDING',
         status: 'inactive', // Inactif jusqu'à vérification KYC
       },
     });
@@ -191,7 +191,7 @@ export class ArtisanOnboardingService {
       where: { id: artisanId },
       data: {
         kycDocuments: kycDocuments as any,
-        kycStatus: 'pending', // En attente de vérification
+        kycStatus: 'PENDING', // En attente de vérification
       },
     });
 
@@ -234,7 +234,7 @@ export class ArtisanOnboardingService {
     await this.prisma.artisan.update({
       where: { id: artisanId },
       data: {
-        kycStatus: verified ? 'verified' : 'rejected',
+        kycStatus: verified ? 'VERIFIED' : 'REJECTED',
         kycVerifiedAt: verified ? new Date() : null,
         status: verified ? 'active' : 'suspended',
       },

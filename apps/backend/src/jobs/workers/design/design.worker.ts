@@ -116,9 +116,6 @@ export class DesignWorker {
         },
       });
 
-      // Déclencher les webhooks de succès
-      await this.triggerSuccessWebhooks(designId, brandId, uploadedAssets);
-
       // Mettre en cache les résultats
       await this.cacheDesignResults(designId, uploadedAssets);
 
@@ -873,23 +870,6 @@ export class DesignWorker {
     await this.cache.setSimple(cacheKey, JSON.stringify(cacheData), 3600); // 1 heure
   }
 
-  /**
-   * Déclenche les webhooks de succès (déprécié - utiliser OutboxService)
-   * @deprecated Use OutboxService.publish('design.completed', ...) instead
-   */
-  private async triggerSuccessWebhooks(designId: string, brandId: string, assets: any[]): Promise<void> {
-    // Migration vers Outbox: les événements sont maintenant publiés via OutboxService
-    this.logger.debug(`Success webhooks for design ${designId} (migrated to Outbox)`);
-  }
-
-  /**
-   * Déclenche les webhooks d'erreur (déprécié - utiliser OutboxService)
-   * @deprecated Use OutboxService.publish('design.failed', ...) instead
-   */
-  private async triggerErrorWebhooks(designId: string, brandId: string, error: string): Promise<void> {
-    // Migration vers Outbox: les événements sont maintenant publiés via OutboxService
-    this.logger.debug(`Error webhooks for design ${designId} (migrated to Outbox)`);
-  }
 }
 
 

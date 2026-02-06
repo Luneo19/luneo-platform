@@ -8,6 +8,8 @@ import {
   Body,
   Request,
   Query,
+  UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,9 +20,17 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { DesignsService } from './designs.service';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { CreateDesignDto } from './dto/create-design.dto';
+import { FindAllDesignsQueryDto } from './dto/find-all-designs-query.dto';
+import { GetVersionsQueryDto } from './dto/get-versions-query.dto';
+import { CreateVersionDto } from './dto/create-version.dto';
+import { UpdateDesignDto } from './dto/update-design.dto';
+import { ExportForPrintDto } from './dto/export-for-print.dto';
 
 @ApiTags('designs')
 @Controller('designs')
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class DesignsController {
   constructor(private readonly designsService: DesignsService) {}
@@ -30,10 +40,6 @@ export class DesignsController {
     summary: 'Lister tous les designs de l\'utilisateur',
     description: 'Récupère une liste paginée des designs créés par l\'utilisateur authentifié, avec filtres optionnels par statut et recherche textuelle. Les designs sont triés par date de création (plus récents en premier).',
   })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Numéro de page (défaut: 1)', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Nombre d\'éléments par page (défaut: 20, max: 100)', example: 20 })
-  @ApiQuery({ name: 'status', required: false, enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'], description: 'Filtrer par statut de génération', example: 'COMPLETED' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Recherche textuelle dans les noms et descriptions de designs', example: 'collier' })
   @ApiResponse({
     status: 200,
     description: 'Liste des designs récupérée avec succès',
@@ -68,16 +74,13 @@ export class DesignsController {
   @ApiResponse({ status: 400, description: 'Paramètres de requête invalides' })
   async findAll(
     @Request() req,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('status') status?: string,
-    @Query('search') search?: string,
+    @Query() query: FindAllDesignsQueryDto,
   ) {
     return this.designsService.findAll(req.user, {
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      status,
-      search,
+      page: query.page,
+      limit: query.limit,
+      status: query.status,
+      search: query.search,
     });
   }
 
@@ -106,7 +109,7 @@ export class DesignsController {
   @ApiResponse({ status: 402, description: 'Crédits insuffisants - L\'utilisateur n\'a pas assez de crédits pour cette génération' })
   @ApiResponse({ status: 404, description: 'Produit non trouvé - Le productId fourni n\'existe pas' })
   @ApiResponse({ status: 429, description: 'Trop de requêtes - Limite de générations par minute atteinte' })
-  async create(@Body() createDesignDto: any, @Request() req) {
+  async create(@Body() createDesignDto: CreateDesignDto, @Request() req) {
     return this.designsService.create(createDesignDto, req.user);
   }
 
@@ -139,14 +142,12 @@ export class DesignsController {
   async getVersions(
     @Param('id') id: string,
     @Request() req,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('autoOnly') autoOnly?: string,
+    @Query() query: GetVersionsQueryDto,
   ) {
     return this.designsService.getVersions(id, req.user, {
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      autoOnly: autoOnly === 'true',
+      page: query.page,
+      limit: query.limit,
+      autoOnly: query.autoOnly,
     });
   }
 
@@ -154,15 +155,15 @@ export class DesignsController {
   @ApiOperation({ summary: 'Créer une nouvelle version d\'un design' })
   @ApiParam({ name: 'id', description: 'ID du design' })
   @ApiResponse({ status: 201, description: 'Version créée' })
-  async createVersion(@Param('id') id: string, @Body() body: any, @Request() req) {
-    return this.designsService.createVersion(id, body, req.user);
+  async createVersion(@Param('id') id: string, @Body() createVersionDto: CreateVersionDto, @Request() req) {
+    return this.designsService.createVersion(id, createVersionDto, req.user);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Mettre à jour un design' })
   @ApiParam({ name: 'id', description: 'ID du design' })
   @ApiResponse({ status: 200, description: 'Design mis à jour' })
-  async update(@Param('id') id: string, @Body() updateDto: any, @Request() req) {
+  async update(@Param('id') id: string, @Body() updateDto: UpdateDesignDto, @Request() req) {
     return this.designsService.update(id, updateDto, req.user);
   }
 
@@ -183,23 +184,17 @@ export class DesignsController {
   })
   async exportForPrint(
     @Param('id') id: string,
-    @Body() body: {
-      format?: 'pdf' | 'png' | 'jpg' | 'svg';
-      quality?: 'low' | 'medium' | 'high' | 'ultra';
-      dimensions?: { width: number; height: number };
-      imageUrl?: string;
-      designData?: any;
-    },
+    @Body() exportDto: ExportForPrintDto,
     @Request() req,
   ) {
     return this.designsService.exportForPrint(
       id,
       {
-        format: body.format || 'pdf',
-        quality: body.quality || 'high',
-        dimensions: body.dimensions,
-        imageUrl: body.imageUrl,
-        designData: body.designData,
+        format: exportDto.format || 'pdf',
+        quality: exportDto.quality || 'high',
+        dimensions: exportDto.dimensions,
+        imageUrl: exportDto.imageUrl,
+        designData: exportDto.designData,
       },
       req.user,
     );
@@ -213,24 +208,20 @@ export class DesignsController {
     description: 'Design exporté avec succès',
   })
   async exportForPrintAlias(
-    @Body() body: {
-      designId: string;
-      format?: 'pdf' | 'png' | 'jpg' | 'svg';
-      quality?: 'low' | 'medium' | 'high' | 'ultra';
-      dimensions?: { width: number; height: number };
-      imageUrl?: string;
-      designData?: any;
-    },
+    @Body() exportDto: ExportForPrintDto,
     @Request() req,
   ) {
+    if (!exportDto.designId) {
+      throw new BadRequestException('designId is required for this endpoint');
+    }
     return this.designsService.exportForPrint(
-      body.designId,
+      exportDto.designId,
       {
-        format: body.format || 'pdf',
-        quality: body.quality || 'high',
-        dimensions: body.dimensions,
-        imageUrl: body.imageUrl,
-        designData: body.designData,
+        format: exportDto.format || 'pdf',
+        quality: exportDto.quality || 'high',
+        dimensions: exportDto.dimensions,
+        imageUrl: exportDto.imageUrl,
+        designData: exportDto.designData,
       },
       req.user,
     );

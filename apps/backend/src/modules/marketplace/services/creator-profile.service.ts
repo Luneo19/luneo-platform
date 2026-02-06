@@ -14,11 +14,13 @@
  * - ✅ Types explicites
  * - ✅ Validation robuste
  * - ✅ Logging structuré
+ * - ✅ SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
  */
 
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { Prisma } from '@prisma/client';
 
 // ============================================================================
 // TYPES STRICTS
@@ -106,6 +108,7 @@ export class CreatorProfileService {
   /**
    * Crée un profil créateur
    * Conforme au plan PHASE 7 - Profils créateurs
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRaw
    */
   async createProfile(data: CreateCreatorProfileData): Promise<CreatorProfile> {
     // ✅ Validation
@@ -123,57 +126,58 @@ export class CreatorProfileService {
 
     // ✅ Validation du format username (alphanumeric + underscore, 3-30 chars)
     const usernameRegex = /^[a-zA-Z0-9_]{3,30}$/;
-    if (!usernameRegex.test(data.username.trim())) {
+    const cleanUsername = data.username.trim();
+    if (!usernameRegex.test(cleanUsername)) {
       throw new BadRequestException('Username must be 3-30 characters, alphanumeric and underscores only');
     }
 
+    const cleanUserId = data.userId.trim();
+
     // ✅ Vérifier que l'utilisateur existe
     const user = await this.prisma.user.findUnique({
-      where: { id: data.userId.trim() },
+      where: { id: cleanUserId },
     });
 
     if (!user) {
       throw new NotFoundException(`User ${data.userId} not found`);
     }
 
-    // ✅ Vérifier que le username n'est pas déjà pris
-    const existingProfile = await this.prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM "CreatorProfile" WHERE "username" = ${data.username.trim()} LIMIT 1
-    `;
+    // ✅ Vérifier que le username n'est pas déjà pris (contrainte unique)
+    const existingProfile = await this.prisma.creatorProfile.findUnique({
+      where: { username: cleanUsername },
+    });
 
-    if (existingProfile && existingProfile.length > 0) {
+    if (existingProfile) {
       throw new BadRequestException('Username already taken');
     }
 
     try {
-      // ✅ Créer le profil
-      const profile = await this.prisma.$executeRaw`
-        INSERT INTO "CreatorProfile" (
-          "id", "userId", "username", "displayName", "bio", "avatar", "coverImage", "website", "socialLinks",
-          "verified", "status", "templatesCount", "totalSales", "totalEarningsCents", "followersCount", 
-          "followingCount", "averageRating", "payoutEnabled", "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${data.userId.trim()},
-          ${data.username.trim()},
-          ${data.displayName.trim()},
-          ${data.bio || null},
-          ${data.avatar || null},
-          ${data.coverImage || null},
-          ${data.website || null},
-          ${data.socialLinks ? JSON.stringify(data.socialLinks) : null}::jsonb,
-          false,
-          'active',
-          0, 0, 0, 0, 0, 0.0, false,
-          NOW(), NOW()
-        )
-        RETURNING *
-      `;
+      // ✅ Créer le profil avec Prisma
+      const profile = await this.prisma.creatorProfile.create({
+        data: {
+          userId: cleanUserId,
+          username: cleanUsername,
+          displayName: data.displayName.trim(),
+          bio: data.bio || null,
+          avatar: data.avatar || null,
+          coverImage: data.coverImage || null,
+          website: data.website || null,
+          socialLinks: data.socialLinks ? (data.socialLinks as Prisma.JsonObject) : Prisma.JsonNull,
+          verified: false,
+          status: 'active',
+          templatesCount: 0,
+          totalSales: 0,
+          totalEarningsCents: 0,
+          followersCount: 0,
+          followingCount: 0,
+          averageRating: 0.0,
+          payoutEnabled: false,
+        },
+      });
 
       this.logger.log(`Creator profile created: ${data.username} for user ${data.userId}`);
 
-      // ✅ Récupérer le profil créé
-      return this.getProfileByUserId(data.userId.trim());
+      return profile as unknown as CreatorProfile;
     } catch (error) {
       this.logger.error(
         `Failed to create creator profile: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -184,6 +188,7 @@ export class CreatorProfileService {
 
   /**
    * Obtient un profil par userId
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRaw
    */
   async getProfileByUserId(userId: string): Promise<CreatorProfile> {
     // ✅ Validation
@@ -191,19 +196,20 @@ export class CreatorProfileService {
       throw new BadRequestException('User ID is required');
     }
 
-    const profile = await this.prisma.$queryRaw<CreatorProfile[]>`
-      SELECT * FROM "CreatorProfile" WHERE "userId" = ${userId.trim()} LIMIT 1
-    `;
+    const profile = await this.prisma.creatorProfile.findUnique({
+      where: { userId: userId.trim() },
+    });
 
-    if (!profile || profile.length === 0) {
+    if (!profile) {
       throw new NotFoundException(`Creator profile not found for user ${userId}`);
     }
 
-    return profile[0];
+    return profile as unknown as CreatorProfile;
   }
 
   /**
    * Obtient un profil par username
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRaw
    */
   async getProfileByUsername(username: string): Promise<CreatorProfile> {
     // ✅ Validation
@@ -211,19 +217,20 @@ export class CreatorProfileService {
       throw new BadRequestException('Username is required');
     }
 
-    const profile = await this.prisma.$queryRaw<CreatorProfile[]>`
-      SELECT * FROM "CreatorProfile" WHERE "username" = ${username.trim()} LIMIT 1
-    `;
+    const profile = await this.prisma.creatorProfile.findUnique({
+      where: { username: username.trim() },
+    });
 
-    if (!profile || profile.length === 0) {
+    if (!profile) {
       throw new NotFoundException(`Creator profile not found for username ${username}`);
     }
 
-    return profile[0];
+    return profile as unknown as CreatorProfile;
   }
 
   /**
    * Met à jour un profil créateur
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRawUnsafe
    */
   async updateProfile(userId: string, data: UpdateCreatorProfileData): Promise<CreatorProfile> {
     // ✅ Validation
@@ -231,62 +238,53 @@ export class CreatorProfileService {
       throw new BadRequestException('User ID is required');
     }
 
+    const cleanUserId = userId.trim();
+
     // ✅ Vérifier que le profil existe
-    const existingProfile = await this.getProfileByUserId(userId.trim());
+    const existingProfile = await this.getProfileByUserId(cleanUserId);
 
     try {
-      // ✅ Construire la requête de mise à jour
-      const updates: string[] = [];
-      const values: any[] = [];
-      let paramIndex = 1;
+      // ✅ Construire les données de mise à jour
+      const updateData: Prisma.CreatorProfileUpdateInput = {};
 
       if (data.displayName !== undefined) {
-        updates.push(`"displayName" = $${paramIndex++}`);
-        values.push(data.displayName.trim());
+        updateData.displayName = data.displayName.trim();
       }
 
       if (data.bio !== undefined) {
-        updates.push(`"bio" = $${paramIndex++}`);
-        values.push(data.bio || null);
+        updateData.bio = data.bio || null;
       }
 
       if (data.avatar !== undefined) {
-        updates.push(`"avatar" = $${paramIndex++}`);
-        values.push(data.avatar || null);
+        updateData.avatar = data.avatar || null;
       }
 
       if (data.coverImage !== undefined) {
-        updates.push(`"coverImage" = $${paramIndex++}`);
-        values.push(data.coverImage || null);
+        updateData.coverImage = data.coverImage || null;
       }
 
       if (data.website !== undefined) {
-        updates.push(`"website" = $${paramIndex++}`);
-        values.push(data.website || null);
+        updateData.website = data.website || null;
       }
 
       if (data.socialLinks !== undefined) {
-        updates.push(`"socialLinks" = $${paramIndex++}::jsonb`);
-        values.push(JSON.stringify(data.socialLinks));
+        updateData.socialLinks = data.socialLinks ? (data.socialLinks as Prisma.JsonObject) : Prisma.JsonNull;
       }
 
-      if (updates.length === 0) {
-        return existingProfile; // Aucune mise à jour
+      // ✅ Si rien à mettre à jour, retourner le profil existant
+      if (Object.keys(updateData).length === 0) {
+        return existingProfile;
       }
 
-      updates.push(`"updatedAt" = NOW()`);
-      values.push(userId.trim());
-
-      // ✅ Exécuter la mise à jour
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "CreatorProfile" SET ${updates.join(', ')} WHERE "userId" = $${paramIndex}`,
-        ...values,
-      );
+      // ✅ Mettre à jour avec Prisma
+      const profile = await this.prisma.creatorProfile.update({
+        where: { userId: cleanUserId },
+        data: updateData,
+      });
 
       this.logger.log(`Creator profile updated for user ${userId}`);
 
-      // ✅ Retourner le profil mis à jour
-      return this.getProfileByUserId(userId.trim());
+      return profile as unknown as CreatorProfile;
     } catch (error) {
       this.logger.error(
         `Failed to update creator profile: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -296,7 +294,69 @@ export class CreatorProfileService {
   }
 
   /**
+   * Obtient les statistiques d'un créateur avec cache Redis
+   * PERF-04: Cache avec TTL 1h pour réduire les requêtes DB
+   */
+  async getCreatorStats(userId: string): Promise<{
+    templatesCount: number;
+    totalSales: number;
+    totalEarningsCents: number;
+    followersCount: number;
+    followingCount: number;
+    averageRating: number;
+  }> {
+    // ✅ Validation
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new BadRequestException('User ID is required');
+    }
+
+    const cleanUserId = userId.trim();
+    const cacheKey = `creator-stats:${cleanUserId}`;
+
+    // PERF-04: Utiliser le cache avec TTL 1h (3600s)
+    const cachedStats = await this.cache.get(
+      cacheKey,
+      'user', // Utilise la stratégie 'user' avec TTL 1800s, on override à 3600
+      async () => {
+        const profile = await this.prisma.creatorProfile.findUnique({
+          where: { userId: cleanUserId },
+          select: {
+            templatesCount: true,
+            totalSales: true,
+            totalEarningsCents: true,
+            followersCount: true,
+            followingCount: true,
+            averageRating: true,
+          },
+        });
+
+        if (!profile) {
+          return null;
+        }
+
+        return {
+          templatesCount: profile.templatesCount,
+          totalSales: profile.totalSales,
+          totalEarningsCents: profile.totalEarningsCents,
+          followersCount: profile.followersCount,
+          followingCount: profile.followingCount,
+          averageRating: profile.averageRating ?? 0,
+        };
+      },
+      { ttl: 3600, tags: [`creator:${cleanUserId}`] },
+    );
+
+    if (!cachedStats) {
+      throw new NotFoundException(`Creator profile not found for user ${userId}`);
+    }
+
+    return cachedStats;
+  }
+
+  /**
    * Met à jour les statistiques d'un profil
+   * SEC-11: Utilise méthodes Prisma au lieu de raw queries
+   * PERF-04: Invalide le cache après mise à jour
    */
   async updateStats(userId: string): Promise<void> {
     // ✅ Validation
@@ -304,55 +364,71 @@ export class CreatorProfileService {
       throw new BadRequestException('User ID is required');
     }
 
+    const cleanUserId = userId.trim();
+
     try {
-      // ✅ Calculer les stats depuis les tables
-      const stats = await this.prisma.$queryRaw<Array<{
-        templatesCount: number;
-        totalSales: number;
-        totalEarningsCents: number;
-        followersCount: number;
-        followingCount: number;
-        averageRating: number;
-      }>>`
-        SELECT
-          (SELECT COUNT(*)::int FROM "MarketplaceTemplate" WHERE "creatorId" = cp."id" AND "status" = 'published') as "templatesCount",
-          (SELECT COUNT(*)::int FROM "TemplatePurchase" WHERE "creatorId" = cp."id" AND "paymentStatus" = 'succeeded') as "totalSales",
-          (SELECT COALESCE(SUM("creatorRevenueCents"), 0)::int FROM "TemplatePurchase" WHERE "creatorId" = cp."id" AND "paymentStatus" = 'succeeded') as "totalEarningsCents",
-          (SELECT COUNT(*)::int FROM "CreatorFollow" WHERE "followingId" = cp."id") as "followersCount",
-          (SELECT COUNT(*)::int FROM "CreatorFollow" WHERE "followerId" = cp."id") as "followingCount",
-          (SELECT COALESCE(AVG("rating"), 0.0)::float FROM "TemplateReview" tr
-           JOIN "MarketplaceTemplate" mt ON tr."templateId" = mt."id"
-           WHERE mt."creatorId" = cp."id") as "averageRating"
-        FROM "CreatorProfile" cp
-        WHERE cp."userId" = ${userId.trim()}
-        LIMIT 1
-      `;
+      // ✅ Récupérer le profil pour obtenir l'id
+      const profile = await this.prisma.creatorProfile.findUnique({
+        where: { userId: cleanUserId },
+        select: { id: true },
+      });
 
-      if (stats && stats.length > 0) {
-        const stat = stats[0];
-
-        // ✅ Mettre à jour le profil
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE "CreatorProfile" SET
-            "templatesCount" = $1,
-            "totalSales" = $2,
-            "totalEarningsCents" = $3,
-            "followersCount" = $4,
-            "followingCount" = $5,
-            "averageRating" = $6,
-            "updatedAt" = NOW()
-          WHERE "userId" = $7`,
-          stat.templatesCount,
-          stat.totalSales,
-          stat.totalEarningsCents,
-          stat.followersCount,
-          stat.followingCount,
-          stat.averageRating,
-          userId.trim(),
-        );
-
-        this.logger.log(`Stats updated for creator profile ${userId}`);
+      if (!profile) {
+        this.logger.warn(`Creator profile not found for user ${userId}`);
+        return;
       }
+
+      // ✅ Calculer les stats avec des requêtes Prisma parallèles
+      const [templatesCount, salesData, followersCount, followingCount, ratingsData] = await Promise.all([
+        // Templates publiés
+        this.prisma.marketplaceTemplate.count({
+          where: { creatorId: profile.id, status: 'published' },
+        }),
+        // Ventes et revenus
+        this.prisma.templatePurchase.aggregate({
+          where: { creatorId: profile.id, paymentStatus: 'succeeded' },
+          _count: true,
+          _sum: { creatorRevenueCents: true },
+        }),
+        // Followers
+        this.prisma.creatorFollow.count({
+          where: { followingId: profile.id },
+        }),
+        // Following
+        this.prisma.creatorFollow.count({
+          where: { followerId: profile.id },
+        }),
+        // Rating moyen - nécessite une sous-requête via les templates
+        this.prisma.templateReview.aggregate({
+          where: {
+            templateId: {
+              in: await this.prisma.marketplaceTemplate.findMany({
+                where: { creatorId: profile.id },
+                select: { id: true },
+              }).then(templates => templates.map(t => t.id)),
+            },
+          },
+          _avg: { rating: true },
+        }),
+      ]);
+
+      // ✅ Mettre à jour le profil avec les stats calculées
+      await this.prisma.creatorProfile.update({
+        where: { userId: cleanUserId },
+        data: {
+          templatesCount,
+          totalSales: salesData._count || 0,
+          totalEarningsCents: salesData._sum.creatorRevenueCents || 0,
+          followersCount,
+          followingCount,
+          averageRating: ratingsData._avg.rating || 0.0,
+        },
+      });
+
+      // PERF-04: Invalider le cache après mise à jour
+      await this.cache.invalidateTags([`creator:${cleanUserId}`]);
+
+      this.logger.log(`Stats updated for creator profile ${userId}`);
     } catch (error) {
       this.logger.error(
         `Failed to update creator stats: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -363,6 +439,7 @@ export class CreatorProfileService {
 
   /**
    * Vérifie un créateur (admin)
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRawUnsafe
    */
   async verifyCreator(userId: string, verified: boolean): Promise<CreatorProfile> {
     // ✅ Validation
@@ -370,20 +447,21 @@ export class CreatorProfileService {
       throw new BadRequestException('User ID is required');
     }
 
+    const cleanUserId = userId.trim();
+
     try {
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "CreatorProfile" SET
-          "verified" = $1,
-          "verifiedAt" = ${verified ? 'NOW()' : 'NULL'},
-          "updatedAt" = NOW()
-        WHERE "userId" = $2`,
-        verified,
-        userId.trim(),
-      );
+      // ✅ Mettre à jour avec Prisma
+      const profile = await this.prisma.creatorProfile.update({
+        where: { userId: cleanUserId },
+        data: {
+          verified,
+          verifiedAt: verified ? new Date() : null,
+        },
+      });
 
       this.logger.log(`Creator ${userId} ${verified ? 'verified' : 'unverified'}`);
 
-      return this.getProfileByUserId(userId.trim());
+      return profile as unknown as CreatorProfile;
     } catch (error) {
       this.logger.error(
         `Failed to verify creator: ${error instanceof Error ? error.message : 'Unknown'}`,

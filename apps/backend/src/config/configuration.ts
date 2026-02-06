@@ -2,26 +2,52 @@ import { Logger } from '@nestjs/common';
 import { registerAs } from '@nestjs/config';
 import { z } from 'zod';
 
-const envSchema = z.object({
-  // Database
+// Re-export currency configuration utilities
+export { 
+  currencyConfig, 
+  CurrencyUtils, 
+  SUPPORTED_CURRENCIES, 
+  CURRENCY_SYMBOLS, 
+  STRIPE_CURRENCIES,
+  type SupportedCurrency,
+} from './currency.config';
+
+const logger = new Logger('EnvValidation');
+const isProduction = process.env.NODE_ENV === 'production';
+
+/**
+ * SVC-04: Validation stricte des variables d'environnement au démarrage
+ * 
+ * Variables critiques (obligatoires en production) :
+ * - DATABASE_URL : Connexion PostgreSQL
+ * - JWT_SECRET / JWT_REFRESH_SECRET : Authentification
+ * - STRIPE_SECRET_KEY : Paiements (si billing activé)
+ * 
+ * Variables optionnelles (fonctionnalités désactivées si absentes) :
+ * - Redis, OAuth, Cloudinary, AI providers, Email
+ */
+
+// Schéma de base avec toutes les variables
+const baseEnvSchema = z.object({
+  // Database - CRITIQUE
   DATABASE_URL: z.string().url().optional(),
   
-  // Redis
+  // Redis - Optionnel (cache/sessions)
   REDIS_URL: z.string().optional(),
   
-  // JWT
+  // JWT - CRITIQUE pour l'authentification
   JWT_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   
-  // OAuth
+  // OAuth - Optionnel
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   
-  // Stripe
+  // Stripe - CRITIQUE en production (pas de fallback hardcodé!)
   STRIPE_SECRET_KEY: z.string().startsWith('sk_').optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   // Stripe Price IDs - par plan et cycle de facturation
@@ -39,17 +65,18 @@ const envSchema = z.object({
   STRIPE_PRICE_ENTERPRISE: z.string().optional(),
   STRIPE_SUCCESS_URL: z.string().url().optional(),
   STRIPE_CANCEL_URL: z.string().url().optional(),
+  STRIPE_TRIAL_PERIOD_DAYS: z.string().transform(Number).optional(),
   
-  // Cloudinary
+  // Cloudinary - Optionnel
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
   
-  // AI Providers
+  // AI Providers - Optionnel
   OPENAI_API_KEY: z.string().optional(),
   REPLICATE_API_TOKEN: z.string().optional(),
   
-  // Email
+  // Email - Optionnel (alertes désactivées si absent)
   SENDGRID_API_KEY: z.string().optional(),
   MAILGUN_API_KEY: z.string().optional(),
   MAILGUN_DOMAIN: z.string().optional(),
@@ -93,24 +120,174 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('*'),
   RATE_LIMIT_TTL: z.string().transform(Number).default('60'),
   RATE_LIMIT_LIMIT: z.string().transform(Number).default('100'),
+  
+  // Currency - Multi-devises support
+  DEFAULT_CURRENCY: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).default('EUR'),
+  SUPPORTED_CURRENCIES: z.string().optional(),
+  CURRENCY_EXCHANGE_RATE_USD: z.string().transform(Number).optional(),
+  CURRENCY_EXCHANGE_RATE_GBP: z.string().transform(Number).optional(),
+  CURRENCY_EXCHANGE_RATE_CHF: z.string().transform(Number).optional(),
+  CURRENCY_EXCHANGE_RATE_CAD: z.string().transform(Number).optional(),
 });
 
-export type EnvConfig = z.infer<typeof envSchema>;
+export type EnvConfig = z.infer<typeof baseEnvSchema>;
 
+/**
+ * Variables critiques qui DOIVENT être présentes en production
+ */
+const CRITICAL_VARS = {
+  DATABASE_URL: 'Connexion base de données PostgreSQL',
+  JWT_SECRET: 'Secret JWT pour l\'authentification (min 32 caractères)',
+  JWT_REFRESH_SECRET: 'Secret JWT refresh (min 32 caractères)',
+} as const;
+
+/**
+ * Variables recommandées pour la production (warning si absentes)
+ */
+const RECOMMENDED_PRODUCTION_VARS = {
+  STRIPE_SECRET_KEY: 'Paiements Stripe (billing désactivé si absent)',
+  STRIPE_WEBHOOK_SECRET: 'Webhook Stripe (events non vérifiés si absent)',
+  SENTRY_DSN: 'Monitoring Sentry (erreurs non trackées si absent)',
+  FRONTEND_URL: 'URL frontend pour CORS et redirections',
+  SENDGRID_API_KEY: 'Emails transactionnels (notifications désactivées si absent)',
+} as const;
+
+/**
+ * Vérifie la présence des variables critiques
+ */
+function checkCriticalVars(): { missing: string[]; details: string[] } {
+  const missing: string[] = [];
+  const details: string[] = [];
+  
+  for (const [key, description] of Object.entries(CRITICAL_VARS)) {
+    if (!process.env[key]) {
+      missing.push(key);
+      details.push(`  ❌ ${key}: ${description}`);
+    }
+  }
+  
+  return { missing, details };
+}
+
+/**
+ * Vérifie les variables recommandées en production
+ */
+function checkRecommendedVars(): { missing: string[]; details: string[] } {
+  if (!isProduction) return { missing: [], details: [] };
+  
+  const missing: string[] = [];
+  const details: string[] = [];
+  
+  for (const [key, description] of Object.entries(RECOMMENDED_PRODUCTION_VARS)) {
+    if (!process.env[key]) {
+      missing.push(key);
+      details.push(`  ⚠️  ${key}: ${description}`);
+    }
+  }
+  
+  return { missing, details };
+}
+
+/**
+ * Valide et parse les variables d'environnement au démarrage
+ * SVC-04: Validation stricte avec arrêt en cas de variable critique manquante
+ */
 export const validateEnv = (): EnvConfig => {
-  const logger = new Logger('Configuration');
+  logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.log('🔍 Validation des variables d\'environnement...');
+  logger.log(`   Environnement: ${process.env.NODE_ENV || 'development'}`);
+  logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // 1. Vérifier les variables critiques
+  const critical = checkCriticalVars();
+  if (critical.missing.length > 0) {
+    logger.error('❌ Variables d\'environnement CRITIQUES manquantes:');
+    critical.details.forEach(detail => logger.error(detail));
+    
+    if (isProduction) {
+      logger.error('');
+      logger.error('🚨 ARRÊT: Variables critiques manquantes en PRODUCTION');
+      logger.error('   L\'application ne peut pas démarrer sans ces variables.');
+      logger.error('');
+      throw new Error(
+        `Variables critiques manquantes: ${critical.missing.join(', ')}. ` +
+        'Définissez ces variables d\'environnement avant de démarrer en production.'
+      );
+    } else {
+      logger.warn('⚠️  Mode développement: poursuite malgré les variables manquantes');
+    }
+  } else {
+    logger.log('✅ Toutes les variables critiques sont présentes');
+  }
+  
+  // 2. Vérifier les variables recommandées (warning seulement)
+  const recommended = checkRecommendedVars();
+  if (recommended.missing.length > 0) {
+    logger.warn('');
+    logger.warn('⚠️  Variables recommandées manquantes en production:');
+    recommended.details.forEach(detail => logger.warn(detail));
+    logger.warn('   Certaines fonctionnalités seront désactivées.');
+  }
+  
+  // 3. Valider avec Zod (format et types)
   try {
-    return envSchema.parse(process.env);
-  } catch (error) {
-    // Log les détails de l'erreur pour debugging
-    logger.error('Environment validation error details:', {
-      message: error.message,
-      issues: error.issues || [],
-      input: Object.keys(process.env).filter(key => key.startsWith('DATABASE') || key.startsWith('JWT') || key.startsWith('STRIPE')),
-    });
-    throw new Error(`Environment validation failed: ${error.message}`);
+    const config = baseEnvSchema.parse(process.env);
+    
+    logger.log('');
+    logger.log('✅ Validation des variables d\'environnement réussie');
+    logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    // Log des fonctionnalités activées/désactivées
+    logFeatureStatus();
+    
+    return config;
+  } catch (error: any) {
+    // Erreur Zod (format invalide)
+    logger.error('');
+    logger.error('❌ Erreur de validation (format invalide):');
+    
+    if (error.issues) {
+      error.issues.forEach((issue: any) => {
+        logger.error(`   ${issue.path.join('.')}: ${issue.message}`);
+      });
+    } else {
+      logger.error(`   ${error.message}`);
+    }
+    
+    if (isProduction) {
+      throw new Error(`Validation des variables d'environnement échouée: ${error.message}`);
+    }
+    
+    logger.warn('⚠️  Mode développement: poursuite avec configuration partielle');
+    // En dev, retourner une config partielle
+    return baseEnvSchema.partial().parse(process.env) as EnvConfig;
   }
 };
+
+/**
+ * Log le statut des fonctionnalités basé sur les variables d'environnement
+ */
+function logFeatureStatus(): void {
+  const features = [
+    { name: 'Base de données', enabled: !!process.env.DATABASE_URL },
+    { name: 'Redis (cache)', enabled: !!process.env.REDIS_URL },
+    { name: 'Paiements Stripe', enabled: !!process.env.STRIPE_SECRET_KEY },
+    { name: 'OAuth Google', enabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) },
+    { name: 'OAuth GitHub', enabled: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) },
+    { name: 'Cloudinary (images)', enabled: !!process.env.CLOUDINARY_API_KEY },
+    { name: 'OpenAI', enabled: !!process.env.OPENAI_API_KEY },
+    { name: 'Emails (SendGrid)', enabled: !!process.env.SENDGRID_API_KEY },
+    { name: 'Monitoring Sentry', enabled: !!process.env.SENTRY_DSN },
+  ];
+  
+  logger.log('');
+  logger.log('📋 Statut des fonctionnalités:');
+  features.forEach(f => {
+    const status = f.enabled ? '✅' : '⬚ ';
+    logger.log(`   ${status} ${f.name}`);
+  });
+  logger.log('');
+}
 
 // Database configuration
 export const databaseConfig = registerAs('database', () => ({
@@ -162,6 +339,8 @@ export const stripeConfig = registerAs('stripe', () => ({
   // URLs
   successUrl: process.env.STRIPE_SUCCESS_URL || 'https://app.luneo.app/dashboard/billing/success',
   cancelUrl: process.env.STRIPE_CANCEL_URL || 'https://app.luneo.app/dashboard/billing/cancel',
+  // Trial period (configurable)
+  trialPeriodDays: parseInt(process.env.STRIPE_TRIAL_PERIOD_DAYS || '14', 10),
 }));
 
 // Cloudinary configuration

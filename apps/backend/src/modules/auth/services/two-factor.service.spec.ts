@@ -51,44 +51,47 @@ describe('TwoFactorService', () => {
   });
 
   describe('generateBackupCodes', () => {
-    it('should generate backup codes', () => {
-      const codes = service.generateBackupCodes(10);
+    it('should generate backup codes', async () => {
+      const result = await service.generateBackupCodes(10);
       
-      expect(codes).toHaveLength(10);
-      codes.forEach(code => {
+      expect(result.plaintextCodes).toHaveLength(10);
+      expect(result.hashedCodes).toHaveLength(10);
+      result.plaintextCodes.forEach(code => {
         expect(code).toBeDefined();
         expect(code.length).toBeGreaterThan(0);
       });
     });
 
-    it('should generate unique backup codes', () => {
-      const codes = service.generateBackupCodes(10);
-      const uniqueCodes = new Set(codes);
+    it('should generate unique backup codes', async () => {
+      const result = await service.generateBackupCodes(10);
+      const uniqueCodes = new Set(result.plaintextCodes);
       
-      expect(uniqueCodes.size).toBe(codes.length);
+      expect(uniqueCodes.size).toBe(result.plaintextCodes.length);
     });
   });
 
   describe('validateBackupCode', () => {
-    it('should validate a correct backup code', () => {
+    it('should validate a correct backup code', async () => {
       const codes = ['ABC123', 'DEF456', 'GHI789'];
-      const result = service.validateBackupCode(codes, 'ABC123');
+      const result = await service.validateBackupCode(codes, 'ABC123');
       
-      expect(result).toBe(true);
+      expect(result.isValid).toBe(true);
+      expect(result.matchedIndex).toBe(0);
     });
 
-    it('should reject an incorrect backup code', () => {
+    it('should reject an incorrect backup code', async () => {
       const codes = ['ABC123', 'DEF456', 'GHI789'];
-      const result = service.validateBackupCode(codes, 'XYZ999');
+      const result = await service.validateBackupCode(codes, 'XYZ999');
       
-      expect(result).toBe(false);
+      expect(result.isValid).toBe(false);
+      expect(result.matchedIndex).toBeNull();
     });
 
-    it('should be case insensitive', () => {
+    it('should be case insensitive', async () => {
       const codes = ['ABC123', 'DEF456'];
-      const result = service.validateBackupCode(codes, 'abc123');
+      const result = await service.validateBackupCode(codes, 'abc123');
       
-      expect(result).toBe(true);
+      expect(result.isValid).toBe(true);
     });
   });
 });

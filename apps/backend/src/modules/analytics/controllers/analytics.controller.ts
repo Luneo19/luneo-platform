@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { AnalyticsService } from '../services/analytics.service';
+import { RecordWebVitalDto } from '../dto/record-web-vital.dto';
 
 @ApiTags('Analytics')
 @ApiBearerAuth()
@@ -74,8 +75,8 @@ export class AnalyticsController {
   @Post('web-vitals')
   @ApiOperation({ summary: 'Record a web vital metric' })
   @ApiResponse({ status: 201, description: 'Web vital recorded successfully' })
-  async recordWebVital(@Body() body: any, @Request() req) {
-    return this.analyticsService.recordWebVital(req.user.id, req.user.brandId || null, body);
+  async recordWebVital(@Body() dto: RecordWebVitalDto, @Request() req) {
+    return this.analyticsService.recordWebVital(req.user.id, req.user.brandId || null, dto);
   }
 
   @Get('web-vitals')

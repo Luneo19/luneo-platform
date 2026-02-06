@@ -1,8 +1,13 @@
-import { Controller, Get, Post, Body, Query, Param, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, HttpStatus, HttpCode, Request, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { OAuthService } from './oauth.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
+/**
+ * OAuth Controller
+ * API-04: Suppression du hack (global as any).currentBrandId
+ * brandId est maintenant extrait du user authentifié via JWT
+ */
 @ApiTags('OAuth')
 @Controller('oauth')
 @UseGuards(JwtAuthGuard)
@@ -16,10 +21,11 @@ export class OAuthController {
   @ApiQuery({ name: 'redirect_uri', description: 'Redirect URI after authorization' })
   @ApiQuery({ name: 'scopes', description: 'Requested scopes (comma-separated)', required: false })
   async authorize(
+    @Request() req: any,
     @Query('redirect_uri') redirectUri: string,
     @Query('scopes') scopes?: string,
   ) {
-    const brandId = this.getCurrentBrandId();
+    const brandId = this.getBrandIdFromRequest(req);
     const scopeArray = scopes ? scopes.split(',').map(s => s.trim()) : [];
     
     return this.oauthService.generateAuthUrl(brandId, redirectUri, scopeArray);
@@ -57,8 +63,8 @@ export class OAuthController {
   @Get('config')
   @ApiOperation({ summary: 'Get OAuth client configuration' })
   @ApiResponse({ status: 200, description: 'Client configuration retrieved successfully' })
-  async getConfig() {
-    const brandId = this.getCurrentBrandId();
+  async getConfig(@Request() req: any) {
+    const brandId = this.getBrandIdFromRequest(req);
     return this.oauthService.getClientConfig(brandId);
   }
 
@@ -71,8 +77,15 @@ export class OAuthController {
     return this.oauthService.validateAccessToken(token);
   }
 
-  private getCurrentBrandId(): string {
-    // This would be extracted from the authenticated user context
-    return (global as any).currentBrandId || 'default-brand-id';
+  /**
+   * API-04: Extrait brandId de l'utilisateur authentifié via JWT
+   * L'utilisateur doit être associé à une marque
+   */
+  private getBrandIdFromRequest(req: any): string {
+    const user = req.user;
+    if (!user?.brandId) {
+      throw new BadRequestException('User is not associated with a brand');
+    }
+    return user.brandId;
   }
 }

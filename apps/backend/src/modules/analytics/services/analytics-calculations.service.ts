@@ -4,7 +4,7 @@
  * Respecte les patterns existants du projet
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { FunnelData, CohortAnalysis } from '../interfaces/analytics-advanced.interface';
 
@@ -27,19 +27,19 @@ export class AnalyticsCalculationsService {
   ): Promise<FunnelData> {
     // ✅ Validation des entrées
     if (!funnelId || typeof funnelId !== 'string' || funnelId.trim().length === 0) {
-      throw new Error('Funnel ID is required');
+      throw new BadRequestException('Funnel ID is required');
     }
 
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     if (!(startDate instanceof Date) || !(endDate instanceof Date) || Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-      throw new Error('Valid start and end dates are required');
+      throw new BadRequestException('Valid start and end dates are required');
     }
 
     if (startDate.getTime() >= endDate.getTime()) {
-      throw new Error('Start date must be before end date');
+      throw new BadRequestException('Start date must be before end date');
     }
 
     try {
@@ -51,7 +51,7 @@ export class AnalyticsCalculationsService {
       });
 
       if (!funnel) {
-        throw new Error(`Funnel ${funnelId} not found for brand ${brandId}`);
+        throw new NotFoundException(`Funnel ${funnelId} not found for brand ${brandId}`);
       }
 
       // ✅ Normaliser les steps avec gardes
@@ -73,7 +73,7 @@ export class AnalyticsCalculationsService {
         steps.map(async (step: unknown, index: number) => {
           // ✅ Validation et normalisation de l'étape
           if (!step || typeof step !== 'object') {
-            throw new Error(`Invalid step at index ${index}`);
+            throw new BadRequestException(`Invalid step at index ${index}`);
           }
 
           const stepObj = step as { id?: string; name?: string; eventType?: string; order?: number };
@@ -82,7 +82,7 @@ export class AnalyticsCalculationsService {
             : '';
 
           if (!stepEventType) {
-            throw new Error(`Step at index ${index} has no eventType`);
+            throw new BadRequestException(`Step at index ${index} has no eventType`);
           }
 
           // ✅ Compter les utilisateurs uniques pour cette étape (amélioration PHASE 2)
@@ -103,7 +103,7 @@ export class AnalyticsCalculationsService {
           if (index > 0) {
             const previousStep = steps[index - 1] as unknown;
             if (!previousStep || typeof previousStep !== 'object') {
-              throw new Error(`Invalid previous step at index ${index - 1}`);
+              throw new BadRequestException(`Invalid previous step at index ${index - 1}`);
             }
 
             const previousStepObj = previousStep as { eventType?: string };

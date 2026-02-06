@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { db } from '@/lib/db';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -174,7 +175,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching customers:', error);
+    serverLogger.apiError('/api/admin/customers', 'GET', error, 500);
     return NextResponse.json(
       { error: 'Failed to fetch customers' },
       { status: 500 }

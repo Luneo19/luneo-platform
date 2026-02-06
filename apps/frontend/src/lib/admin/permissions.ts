@@ -6,6 +6,7 @@
 import { getServerUser } from '@/lib/auth/get-user';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
+import { serverLogger } from '@/lib/logger-server';
 
 export interface AdminUser {
   id: string;
@@ -44,7 +45,7 @@ export async function checkAdminAccess(): Promise<boolean> {
     // Vérifier si l'utilisateur a le rôle PLATFORM_ADMIN
     return dbUser.role === 'PLATFORM_ADMIN';
   } catch (error) {
-    console.error('[Admin Permissions] Error checking admin access:', error);
+    serverLogger.error('[Admin Permissions] Error checking admin access', error);
     return false;
   }
 }
@@ -54,34 +55,26 @@ export async function checkAdminAccess(): Promise<boolean> {
  * À utiliser dans les Server Components
  */
 export async function requireAdminAccess(): Promise<AdminUser> {
-  // Logs de débogage
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Admin Permissions] Checking admin access...');
-  }
+  serverLogger.debug('[Admin Permissions] Checking admin access...');
   
   const user = await getServerUser();
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Admin Permissions] getServerUser result:', user ? `User found: ${user.email}` : 'User null');
-  }
+  serverLogger.debug('[Admin Permissions] getServerUser result', { 
+    found: !!user, 
+    email: user?.email 
+  });
   
   if (!user) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Admin Permissions] No user, redirecting to login');
-    }
+    serverLogger.debug('[Admin Permissions] No user, redirecting to login');
     redirect('/login?redirect=/admin');
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Admin Permissions] User role from JWT:', user.role);
-  }
+  serverLogger.debug('[Admin Permissions] User role from JWT', { role: user.role });
 
   // Vérifier le rôle directement depuis le JWT (déjà vérifié par backend)
   // Si le rôle est PLATFORM_ADMIN dans le JWT, on peut faire confiance
   if (user.role === 'PLATFORM_ADMIN') {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Admin Permissions] Access granted based on JWT role');
-    }
+    serverLogger.debug('[Admin Permissions] Access granted based on JWT role');
     return {
       id: user.id,
       email: user.email,
@@ -102,23 +95,19 @@ export async function requireAdminAccess(): Promise<AdminUser> {
     },
   });
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Admin Permissions] DB user:', dbUser ? 'Found' : 'Not found');
-    console.log('[Admin Permissions] DB user role:', dbUser?.role);
-    console.log('[Admin Permissions] Is active:', dbUser?.isActive);
-    console.log('[Admin Permissions] Role check:', dbUser?.role === 'PLATFORM_ADMIN');
-  }
+  serverLogger.debug('[Admin Permissions] DB user check', {
+    found: !!dbUser,
+    role: dbUser?.role,
+    isActive: dbUser?.isActive,
+    isPlatformAdmin: dbUser?.role === 'PLATFORM_ADMIN',
+  });
 
   if (!dbUser || !dbUser.isActive || dbUser.role !== 'PLATFORM_ADMIN') {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Admin Permissions] Access denied, redirecting');
-    }
+    serverLogger.debug('[Admin Permissions] Access denied, redirecting');
     redirect('/dashboard?error=unauthorized');
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Admin Permissions] Access granted');
-  }
+  serverLogger.debug('[Admin Permissions] Access granted');
   
   return {
     id: dbUser.id,
@@ -162,7 +151,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
       brandId: dbUser.brandId,
     };
   } catch (error) {
-    console.error('[Admin Permissions] Error getting admin user:', error);
+    serverLogger.error('[Admin Permissions] Error getting admin user', error);
     return null;
   }
 }

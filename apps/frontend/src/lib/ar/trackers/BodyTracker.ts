@@ -19,6 +19,7 @@
 // Dynamic import will be used at runtime
 import { Camera } from '@mediapipe/camera_utils';
 import type { TrackingData } from '../AREngine';
+import { logger } from '@/lib/logger';
 
 // Type aliases for flexibility (MediaPipe may not be installed)
 type PoseType = any;
@@ -83,7 +84,7 @@ export class BodyTracker {
    */
   async initialize(videoElement?: HTMLVideoElement): Promise<void> {
     if (this.isInitialized) {
-      console.warn('[BodyTracker] Already initialized');
+      logger.warn('[BodyTracker] Already initialized');
       return;
     }
 
@@ -131,9 +132,9 @@ export class BodyTracker {
       }
 
       this.isInitialized = true;
-      console.log('[BodyTracker] ✅ Initialized');
+      logger.info('[BodyTracker] Initialized');
     } catch (error) {
-      console.error('[BodyTracker] Initialization failed:', error);
+      logger.error('[BodyTracker] Initialization failed', error as Error);
       throw error;
     }
   }
@@ -147,7 +148,7 @@ export class BodyTracker {
     }
 
     if (this.isTracking) {
-      console.warn('[BodyTracker] Already tracking');
+      logger.warn('[BodyTracker] Already tracking');
       return;
     }
 
@@ -156,9 +157,9 @@ export class BodyTracker {
         await this.camera.start();
       }
       this.isTracking = true;
-      console.log('[BodyTracker] ✅ Started');
+      logger.info('[BodyTracker] Started');
     } catch (error) {
-      console.error('[BodyTracker] Failed to start:', error);
+      logger.error('[BodyTracker] Failed to start', error as Error);
       throw error;
     }
   }
@@ -174,7 +175,7 @@ export class BodyTracker {
     }
     this.isTracking = false;
     this.lastResult = null;
-    console.log('[BodyTracker] ✅ Stopped');
+    logger.info('[BodyTracker] Stopped');
   }
 
   /**
@@ -189,7 +190,7 @@ export class BodyTracker {
       await this.pose.send({ image: videoElement });
       return this.lastResult;
     } catch (error) {
-      console.error('[BodyTracker] Detection failed:', error);
+      logger.error('[BodyTracker] Detection failed', error as Error);
       return null;
     }
   }
@@ -263,6 +264,6 @@ export class BodyTracker {
     this.videoElement = null;
     this.isInitialized = false;
     this.lastResult = null;
-    console.log('[BodyTracker] ✅ Disposed');
+    logger.info('[BodyTracker] Disposed');
   }
 }

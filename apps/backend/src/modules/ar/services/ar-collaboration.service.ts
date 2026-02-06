@@ -4,7 +4,7 @@
  * Respecte la Bible Luneo : pas de any, types stricts, logging professionnel
  */
 
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
@@ -173,7 +173,7 @@ export class ArCollaborationService {
       // Vérifier les permissions
       const member = project.members.find((m) => m.userId === userId);
       if (!member || (member.role !== 'owner' && member.role !== 'editor')) {
-        throw new Error('Insufficient permissions');
+        throw new ForbiddenException('Insufficient permissions');
       }
 
       const brand = await this.prisma.brand.findUnique({
@@ -227,7 +227,7 @@ export class ArCollaborationService {
       // Vérifier les permissions (seul le owner peut supprimer)
       const member = project.members.find((m) => m.userId === userId);
       if (!member || member.role !== 'owner') {
-        throw new Error('Only project owner can delete the project');
+        throw new ForbiddenException('Only project owner can delete the project');
       }
 
       const brand = await this.prisma.brand.findUnique({
@@ -274,12 +274,12 @@ export class ArCollaborationService {
       // Vérifier les permissions (seul owner/editor peut inviter)
       const member = project.members.find((m) => m.userId === userId);
       if (!member || (member.role !== 'owner' && member.role !== 'editor')) {
-        throw new Error('Insufficient permissions to invite members');
+        throw new ForbiddenException('Insufficient permissions to invite members');
       }
 
       // Vérifier que le membre n'existe pas déjà
       if (project.members.some((m) => m.userId === newMember.userId)) {
-        throw new Error('Member already exists in project');
+        throw new BadRequestException('Member already exists in project');
       }
 
       const brand = await this.prisma.brand.findUnique({
@@ -332,7 +332,7 @@ export class ArCollaborationService {
       // Vérifier que l'utilisateur est membre
       const member = project.members.find((m) => m.userId === userId);
       if (!member) {
-        throw new Error('User is not a member of this project');
+        throw new ForbiddenException('User is not a member of this project');
       }
 
       const brand = await this.prisma.brand.findUnique({

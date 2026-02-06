@@ -67,11 +67,13 @@ describe('CaptchaService', () => {
       expect(result).toBe(true);
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://www.google.com/recaptcha/api/siteverify',
+        null, // Body is null
         expect.objectContaining({
-          secret: 'test-secret-key',
-          response: token,
+          params: {
+            secret: 'test-secret-key',
+            response: token,
+          },
         }),
-        expect.any(Object),
       );
     });
 
@@ -131,14 +133,31 @@ describe('CaptchaService', () => {
       );
     });
 
-    it('should return true if CAPTCHA is disabled', async () => {
-      // Arrange
-      configService.get.mockReturnValue('false');
+    it('should return true if CAPTCHA is disabled in dev mode', async () => {
+      // Re-create service with no secret key for dev mode
+      const mockConfigServiceNoKey = {
+        get: jest.fn().mockImplementation((key: string) => {
+          const config: Record<string, string | undefined> = {
+            'captcha.secretKey': '', // Empty = disabled
+            'app.nodeEnv': 'development',
+          };
+          return config[key];
+        }),
+      };
+
+      const module = await Test.createTestingModule({
+        providers: [
+          CaptchaService,
+          { provide: ConfigService, useValue: mockConfigServiceNoKey },
+        ],
+      }).compile();
+
+      const devService = module.get<CaptchaService>(CaptchaService);
       const token = 'any-token';
       const action = 'register';
 
       // Act
-      const result = await service.verifyToken(token, action);
+      const result = await devService.verifyToken(token, action);
 
       // Assert
       expect(result).toBe(true);

@@ -3,12 +3,14 @@
  * Provides endpoints for Grafana datasource integration
  */
 
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { GrafanaDatasourceService } from './datasource.service';
 import { Public } from '@/common/decorators/public.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @Controller('api/monitoring/grafana')
+@UseGuards(JwtAuthGuard)
 export class GrafanaController {
   constructor(
     private readonly datasourceService: GrafanaDatasourceService,

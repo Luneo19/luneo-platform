@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 
 // AR Engine
 import { AREngine, TrackerType, TrackingData, ARProduct } from '@/lib/ar/AREngine';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -80,7 +81,7 @@ export function ARViewer({
           onTrackingUpdate?.(data);
         },
         onError: (error) => {
-          console.error('[ARViewer] Error:', error);
+          logger.error('[ARViewer] Error', error);
           setStatus('error');
           setErrorMessage(error.message);
         },
@@ -100,7 +101,7 @@ export function ARViewer({
       arEngineRef.current = engine;
       setStatus('ready');
     } catch (error) {
-      console.error('[ARViewer] Initialization failed:', error);
+      logger.error('[ARViewer] Initialization failed', error as Error);
 
       if (error instanceof Error && error.message.includes('Camera')) {
         setStatus('no-camera');
@@ -132,7 +133,7 @@ export function ARViewer({
       const imageDataUrl = arEngineRef.current.captureImage();
       onCapture?.(imageDataUrl);
     } catch (error) {
-      console.error('[ARViewer] Capture failed:', error);
+      logger.error('[ARViewer] Capture failed', error as Error);
     }
   }, [onCapture]);
 
@@ -162,7 +163,7 @@ export function ARViewer({
       try {
         await engine.loadProduct(product);
       } catch (error) {
-        console.error(`[ARViewer] Failed to load product ${product.id}:`, error);
+        logger.error(`[ARViewer] Failed to load product ${product.id}`, error as Error);
       }
     });
   }, [products, status]);

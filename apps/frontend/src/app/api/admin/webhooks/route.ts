@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { db } from '@/lib/db';
 import crypto from 'crypto';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ webhooks });
   } catch (error) {
-    console.error('Error fetching webhooks:', error);
+    serverLogger.apiError('/api/admin/webhooks', 'GET', error, 500);
     return NextResponse.json({ error: 'Failed to fetch webhooks' }, { status: 500 });
   }
 }
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(webhook, { status: 201 });
   } catch (error) {
-    console.error('Error creating webhook:', error);
+    serverLogger.apiError('/api/admin/webhooks', 'POST', error, 500);
     return NextResponse.json({ error: 'Failed to create webhook' }, { status: 500 });
   }
 }

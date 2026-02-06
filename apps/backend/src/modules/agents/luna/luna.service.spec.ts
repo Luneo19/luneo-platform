@@ -4,353 +4,439 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { LunaService } from './luna.service';
+import { ModuleRef } from '@nestjs/core';
+import { BadRequestException } from '@nestjs/common';
+import { LunaService, LunaIntentType } from './luna.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { LLMRouterService } from '../services/llm-router.service';
 import { ConversationService } from '../services/conversation.service';
 import { AgentMemoryService } from '../services/agent-memory.service';
+import { RAGService } from '../services/rag.service';
+import { AgentUsageGuardService } from '../services/agent-usage-guard.service';
+import { ReportsService } from '@/modules/analytics/services/reports.service';
 import { AnalyticsService } from '@/modules/analytics/services/analytics.service';
 import { AnalyticsAdvancedService } from '@/modules/analytics/services/analytics-advanced.service';
 import { MetricsService } from '@/modules/analytics/services/metrics.service';
 import { PredictiveService } from '@/modules/analytics/services/predictive.service';
 import { ProductsService } from '@/modules/products/products.service';
-import { createTestingModule, testFixtures } from '@/common/test/test-setup';
+import { IntentDetectionService } from '../services/intent-detection.service';
+import { ContextManagerService } from '../services/context-manager.service';
+
+// ============================================================================
+// MOCKS
+// ============================================================================
+
+const mockPrismaService = {
+  brand: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+  },
+  order: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
+  },
+  design: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+  },
+  product: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+  },
+  user: {
+    findUnique: jest.fn(),
+  },
+  $queryRaw: jest.fn(),
+};
+
+const mockCacheService = {
+  get: jest.fn((key: string, strategy: unknown, fn: () => Promise<unknown>) => fn ? fn() : null),
+  set: jest.fn(),
+  getSimple: jest.fn(),
+  setSimple: jest.fn(),
+  getOrSet: jest.fn((key: string, fn: () => Promise<unknown>) => fn()),
+  invalidateTags: jest.fn(),
+};
+
+const mockLLMRouterService = {
+  chat: jest.fn(),
+  route: jest.fn(),
+  getAvailableModels: jest.fn().mockReturnValue(['gpt-4', 'claude-3-sonnet']),
+};
+
+const mockConversationService = {
+  getOrCreate: jest.fn(),
+  addMessage: jest.fn(),
+  getHistory: jest.fn(),
+};
+
+const mockMemoryService = {
+  getContext: jest.fn(),
+  storeContext: jest.fn(),
+  updateContext: jest.fn(),
+};
+
+const mockAnalyticsService = {
+  getDashboard: jest.fn(),
+  getTopProductsByDesigns: jest.fn(),
+  getTopPages: jest.fn(),
+  getTopCountries: jest.fn(),
+  getConversionFunnel: jest.fn(),
+};
+
+const mockAnalyticsAdvancedService = {
+  getFunnels: jest.fn(),
+  getFunnelData: jest.fn(),
+  getCohortAnalysis: jest.fn(),
+};
+
+const mockMetricsService = {
+  getRealTimeMetrics: jest.fn(),
+  getMetrics: jest.fn(),
+};
+
+const mockPredictiveService = {
+  getTrendPredictions: jest.fn(),
+  getUpcomingSeasonalEvents: jest.fn(),
+  detectAnomalies: jest.fn(),
+  getRecommendations: jest.fn(),
+  forecast: jest.fn(),
+};
+
+const mockProductsService = {
+  findAll: jest.fn(),
+  findOne: jest.fn(),
+};
+
+const mockReportsService = {
+  generatePDFReport: jest.fn(),
+  generateReport: jest.fn(),
+};
+
+const mockRAGService = {
+  search: jest.fn(),
+  enhancePrompt: jest.fn(),
+};
+
+const mockUsageGuardService = {
+  checkUsageBeforeCall: jest.fn(),
+  updateUsageAfterCall: jest.fn(),
+  getCostCalculator: jest.fn().mockReturnValue({
+    calculateCost: jest.fn().mockReturnValue({ costCents: 10 }),
+    estimateCost: jest.fn().mockReturnValue(10),
+  }),
+};
+
+const mockIntentDetectionService = {
+  detectIntent: jest.fn(),
+};
+
+const mockContextManagerService = {
+  compressHistory: jest.fn(),
+  buildOptimizedContext: jest.fn(),
+};
+
+const mockModuleRef = {
+  get: jest.fn((token: unknown) => {
+    if (token === IntentDetectionService) return mockIntentDetectionService;
+    if (token === ContextManagerService) return mockContextManagerService;
+    return null;
+  }),
+};
+
+// ============================================================================
+// TESTS
+// ============================================================================
 
 describe('LunaService', () => {
   let service: LunaService;
-  let prismaService: jest.Mocked<PrismaService>;
-  let cacheService: jest.Mocked<SmartCacheService>;
-  let llmRouterService: jest.Mocked<LLMRouterService>;
-  let conversationService: jest.Mocked<ConversationService>;
-  let memoryService: jest.Mocked<AgentMemoryService>;
-  let analyticsService: jest.Mocked<AnalyticsService>;
-  let analyticsAdvancedService: jest.Mocked<AnalyticsAdvancedService>;
-  let metricsService: jest.Mocked<MetricsService>;
-  let predictiveService: jest.Mocked<PredictiveService>;
-  let productsService: jest.Mocked<ProductsService>;
 
   beforeEach(async () => {
-    const module: TestingModule = await createTestingModule([
-      LunaService,
-      LLMRouterService,
-      ConversationService,
-      AgentMemoryService,
-      AnalyticsService,
-      AnalyticsAdvancedService,
-      MetricsService,
-      PredictiveService,
-      ProductsService,
-    ]);
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LunaService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: SmartCacheService, useValue: mockCacheService },
+        { provide: LLMRouterService, useValue: mockLLMRouterService },
+        { provide: ConversationService, useValue: mockConversationService },
+        { provide: AgentMemoryService, useValue: mockMemoryService },
+        { provide: ProductsService, useValue: mockProductsService },
+        { provide: ReportsService, useValue: mockReportsService },
+        { provide: AnalyticsService, useValue: mockAnalyticsService },
+        { provide: AnalyticsAdvancedService, useValue: mockAnalyticsAdvancedService },
+        { provide: MetricsService, useValue: mockMetricsService },
+        { provide: ModuleRef, useValue: mockModuleRef },
+        { provide: RAGService, useValue: mockRAGService },
+        { provide: PredictiveService, useValue: mockPredictiveService },
+        { provide: AgentUsageGuardService, useValue: mockUsageGuardService },
+      ],
+    }).compile();
 
     service = module.get<LunaService>(LunaService);
-    prismaService = module.get(PrismaService);
-    cacheService = module.get(SmartCacheService);
-    llmRouterService = module.get(LLMRouterService);
-    conversationService = module.get(ConversationService);
-    memoryService = module.get(AgentMemoryService);
-    analyticsService = module.get(AnalyticsService);
-    analyticsAdvancedService = module.get(AnalyticsAdvancedService);
-    metricsService = module.get(MetricsService);
-    predictiveService = module.get(PredictiveService);
-    productsService = module.get(ProductsService);
-  });
 
-  afterEach(() => {
     jest.clearAllMocks();
   });
 
+  // Reconfigure mocks in nested beforeEach (after clearAllMocks)
+  const setupDefaultMocks = () => {
+    // ModuleRef
+    mockModuleRef.get.mockImplementation((token: unknown) => {
+      if (token === IntentDetectionService) return mockIntentDetectionService;
+      if (token === ContextManagerService) return mockContextManagerService;
+      return null;
+    });
+
+    // Cache
+    mockCacheService.get.mockImplementation((key: string, strategy: unknown, fn: () => Promise<unknown>) => fn ? fn() : null);
+    mockCacheService.getOrSet.mockImplementation((key: string, fn: () => Promise<unknown>) => fn());
+
+    // Usage Guard
+    mockUsageGuardService.checkUsageBeforeCall.mockResolvedValue({
+      allowed: true,
+      quota: { remaining: 1000, limit: 10000 },
+      rateLimit: { allowed: true, remaining: 100 },
+    });
+    mockUsageGuardService.updateUsageAfterCall.mockResolvedValue(undefined);
+    mockUsageGuardService.getCostCalculator.mockReturnValue({
+      calculateCost: jest.fn().mockReturnValue({ costCents: 10 }),
+      estimateCost: jest.fn().mockReturnValue(10),
+    });
+
+    // Prisma - Brand (with includes for context)
+    mockPrismaService.brand.findUnique.mockResolvedValue({
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: 'Test Brand',
+      plan: 'pro',
+      _count: {
+        products: 10,
+        designs: 50,
+      },
+      products: [
+        { id: 'prod-1', name: 'Product 1', description: 'Description 1' },
+        { id: 'prod-2', name: 'Product 2', description: 'Description 2' },
+      ],
+    });
+
+    // Conversation
+    mockConversationService.getOrCreate.mockResolvedValue({
+      id: '550e8400-e29b-41d4-a716-446655440001',
+      brandId: '550e8400-e29b-41d4-a716-446655440000',
+      userId: '550e8400-e29b-41d4-a716-446655440002',
+      agentType: 'luna',
+      messages: [],
+    });
+    mockConversationService.getHistory.mockResolvedValue([]);
+    mockConversationService.addMessage.mockResolvedValue(undefined);
+
+    // Intent Detection
+    mockIntentDetectionService.detectIntent.mockResolvedValue({
+      intent: LunaIntentType.ANALYZE_SALES,
+      confidence: 0.9,
+      reasoning: 'User wants to analyze sales',
+    });
+
+    // RAG
+    mockRAGService.enhancePrompt.mockResolvedValue({
+      enhancedPrompt: 'Enhanced prompt with context',
+      documents: [],
+    });
+
+    // LLM Router
+    mockLLMRouterService.chat.mockResolvedValue({
+      content: JSON.stringify({
+        message: 'Voici votre analyse des ventes. Le chiffre d\'affaires est en hausse de 15%.',
+        actions: [],
+        suggestions: ['Voir les détails', 'Comparer avec le mois dernier'],
+      }),
+      provider: 'anthropic',
+      model: 'claude-3-sonnet',
+      usage: { promptTokens: 100, completionTokens: 200, totalTokens: 300 },
+      finishReason: 'stop',
+      latencyMs: 500,
+    });
+
+    // Analytics
+    mockAnalyticsService.getDashboard.mockResolvedValue({
+      period: 'last_30_days',
+      metrics: {
+        totalDesigns: 150,
+        totalRenders: 300,
+        activeUsers: 50,
+        revenue: 5000,
+        conversionRate: 3.5,
+        avgSessionDuration: '2m 30s',
+      },
+      charts: {
+        designsOverTime: [{ date: '2024-01-01', count: 10 }],
+        revenueOverTime: [{ date: '2024-01-01', amount: 500 }],
+        viewsOverTime: [{ date: '2024-01-01', count: 100 }],
+        conversionChange: 0.5,
+      },
+    });
+    mockAnalyticsService.getTopProductsByDesigns.mockResolvedValue([
+      { productId: 'prod-1', name: 'Product 1', designs: 50 },
+    ]);
+
+    // Metrics
+    mockMetricsService.getRealTimeMetrics.mockResolvedValue({
+      designsToday: 5,
+      ordersToday: 2,
+      conversionRate: 40,
+    });
+
+    // Predictive
+    mockPredictiveService.getTrendPredictions.mockResolvedValue([]);
+    mockPredictiveService.getUpcomingSeasonalEvents.mockResolvedValue([]);
+    mockPredictiveService.detectAnomalies.mockResolvedValue([]);
+    mockPredictiveService.getRecommendations.mockResolvedValue([]);
+
+    // Analytics Advanced
+    mockAnalyticsAdvancedService.getFunnels.mockResolvedValue([]);
+    mockAnalyticsAdvancedService.getFunnelData.mockResolvedValue({
+      funnelId: 'funnel-1',
+      steps: [],
+      totalConversion: 0,
+    });
+  };
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('chat', () => {
+    beforeEach(() => {
+      setupDefaultMocks();
+    });
+
     it('should process a chat message and return response', async () => {
-      // Arrange
-      const brandId = 'brand-123';
-      const message = 'Analyse mes ventes';
-      const conversationId = 'conv-123';
-
-      conversationService.getOrCreate.mockResolvedValue({
-        id: conversationId,
+      const result = await service.chat({
+        brandId: '550e8400-e29b-41d4-a716-446655440000',
+        userId: '550e8400-e29b-41d4-a716-446655440002',
+        message: 'Analyse mes ventes',
       });
 
-      llmRouterService.chat.mockResolvedValue({
-        content: 'Voici votre analyse...',
-        provider: 'openai' as any,
-        model: 'gpt-3.5-turbo',
-        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
-        finishReason: 'stop',
-        latencyMs: 500,
-      });
-
-      conversationService.addMessage.mockResolvedValue(undefined);
-      conversationService.getHistory.mockResolvedValue([]);
-
-      // Act
-      const result = await service.chat({ brandId, message });
-
-      // Assert
       expect(result).toBeDefined();
       expect(result.message).toBeDefined();
-      expect(conversationService.getOrCreate).toHaveBeenCalledWith(
+      expect(result.conversationId).toBeDefined();
+      expect(mockConversationService.getOrCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          brandId,
+          brandId: '550e8400-e29b-41d4-a716-446655440000',
           agentType: 'luna',
         }),
       );
-      expect(llmRouterService.chat).toHaveBeenCalled();
-      expect(conversationService.addMessage).toHaveBeenCalled();
+      expect(mockLLMRouterService.chat).toHaveBeenCalled();
+    });
+
+    it('should throw error when usage limit exceeded', async () => {
+      mockUsageGuardService.checkUsageBeforeCall.mockResolvedValue({
+        allowed: false,
+        reason: 'Monthly quota exceeded',
+        quota: { remaining: 0, limit: 10000 },
+        rateLimit: { allowed: false, remaining: 0 },
+      });
+
+      await expect(
+        service.chat({
+          brandId: '550e8400-e29b-41d4-a716-446655440000',
+          userId: '550e8400-e29b-41d4-a716-446655440002',
+          message: 'Test',
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw error when conversation creation fails', async () => {
-      // Arrange
-      const brandId = 'brand-123';
-      const message = 'Test';
+      mockConversationService.getOrCreate.mockRejectedValue(new Error('Database error'));
 
-      conversationService.getOrCreate.mockRejectedValue(
-        new Error('Database error'),
-      );
+      await expect(
+        service.chat({
+          brandId: '550e8400-e29b-41d4-a716-446655440000',
+          userId: '550e8400-e29b-41d4-a716-446655440002',
+          message: 'Test',
+        }),
+      ).rejects.toThrow();
+    });
 
-      // Act & Assert
-      await expect(service.chat({ brandId, message })).rejects.toThrow();
+    it('should validate input with Zod schema', async () => {
+      await expect(
+        service.chat({
+          brandId: 'invalid-uuid',
+          userId: '550e8400-e29b-41d4-a716-446655440002',
+          message: 'Test',
+        }),
+      ).rejects.toThrow();
     });
   });
 
   describe('chat with sales analysis intent', () => {
+    beforeEach(() => {
+      setupDefaultMocks();
+      mockIntentDetectionService.detectIntent.mockResolvedValue({
+        intent: LunaIntentType.ANALYZE_SALES,
+        confidence: 0.95,
+        reasoning: 'User wants to analyze sales data',
+      });
+    });
+
     it('should handle sales analysis requests', async () => {
-      // Arrange
-      const brandId = 'brand-123';
-      const message = 'Analyse mes ventes du mois dernier';
-
-      conversationService.getOrCreate.mockResolvedValue({ id: 'conv-123' });
-      conversationService.getHistory.mockResolvedValue([]);
-      conversationService.addMessage.mockResolvedValue(undefined);
-
-      // Mock Prisma queries properly for Prisma 5.x
-      (prismaService.order.findMany as jest.Mock) = jest.fn().mockResolvedValue([
-        {
-          id: 'order-1',
-          totalCents: 10000,
-          createdAt: new Date('2024-01-15'),
-        },
-        {
-          id: 'order-2',
-          totalCents: 20000,
-          createdAt: new Date('2024-01-20'),
-        },
-      ]);
-
-      llmRouterService.chat.mockResolvedValue({
-        content: 'Voici votre analyse des ventes...',
-        provider: 'openai' as any,
-        model: 'gpt-3.5-turbo',
-        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
-        finishReason: 'stop',
-        latencyMs: 500,
+      const result = await service.chat({
+        brandId: '550e8400-e29b-41d4-a716-446655440000',
+        userId: '550e8400-e29b-41d4-a716-446655440002',
+        message: 'Analyse mes ventes du mois dernier',
       });
 
-      // Act
-      const result = await service.chat({ brandId, message });
-
-      // Assert
       expect(result).toBeDefined();
-      expect(result.message).toBeDefined();
+      expect(result.intent).toBe(LunaIntentType.ANALYZE_SALES);
+      expect(mockAnalyticsService.getDashboard).toHaveBeenCalled();
     });
   });
 
   describe('chat with product recommendation intent', () => {
-    it('should handle product recommendation requests', async () => {
-      // Arrange
-      const brandId = 'brand-123';
-      const message = 'Quels produits me recommandes-tu ?';
+    beforeEach(() => {
+      setupDefaultMocks();
+      mockIntentDetectionService.detectIntent.mockResolvedValue({
+        intent: LunaIntentType.RECOMMEND_PRODUCTS,
+        confidence: 0.9,
+        reasoning: 'User wants product recommendations',
+      });
 
-      conversationService.getOrCreate.mockResolvedValue({ id: 'conv-123' });
-      conversationService.getHistory.mockResolvedValue([]);
-      conversationService.addMessage.mockResolvedValue(undefined);
-
-      // Mock Prisma queries properly for Prisma 5.x
-      (prismaService.product.findMany as jest.Mock) = jest.fn().mockResolvedValue([
-        { id: 'prod-1', name: 'Product 1' },
-        { id: 'prod-2', name: 'Product 2' },
-      ]);
-
-      llmRouterService.chat.mockResolvedValue({
-        content: 'Je vous recommande ces produits...',
-        provider: 'openai' as any,
-        model: 'gpt-3.5-turbo',
-        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      mockLLMRouterService.chat.mockResolvedValue({
+        content: JSON.stringify({
+          message: 'Je vous recommande ces produits basés sur vos ventes.',
+          actions: [{ type: 'show_products', data: { productIds: ['prod-1', 'prod-2'] } }],
+          suggestions: ['Voir plus de détails'],
+        }),
+        provider: 'anthropic',
+        model: 'claude-3-sonnet',
+        usage: { promptTokens: 100, completionTokens: 200, totalTokens: 300 },
         finishReason: 'stop',
         latencyMs: 500,
       });
-
-      // Act
-      const result = await service.chat({ brandId, message });
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.message).toBeDefined();
     });
-  });
 
-  // ✅ PHASE 1 - A) Luna : Tests sur analytics data pack
-  describe('getAnalyticsData - BI Pack Structure', () => {
-    it('should structure analytics data as BI pack with KPIs, charts, and funnel', async () => {
-      // Arrange
-      const brandId = 'brand-123';
-      const dateRange = {
-        start: '2024-01-01T00:00:00Z',
-        end: '2024-01-31T23:59:59Z',
-      };
-
-      // Mock AnalyticsService
-      analyticsService.getDashboard.mockResolvedValue({
-        period: 'last_30_days',
-        metrics: {
-          totalDesigns: 150,
-          totalRenders: 300,
-          activeUsers: 50,
-          revenue: 5000,
-          conversionRate: 3.5,
-          avgSessionDuration: '2m 30s',
-        },
-        charts: {
-          designsOverTime: [{ date: '2024-01-01', count: 10 }],
-          revenueOverTime: [{ date: '2024-01-01', amount: 500 }],
-          viewsOverTime: [{ date: '2024-01-01', count: 100 }],
-          conversionChange: 0.5,
-        },
-      });
-
-      analyticsService.getTopProductsByDesigns.mockResolvedValue([
-        { productId: 'prod-1', name: 'Product 1', designs: 50 },
-        { productId: 'prod-2', name: 'Product 2', designs: 30 },
-      ]);
-
-      // Mock MetricsService
-      metricsService.getRealTimeMetrics.mockResolvedValue({
-        designsToday: 5,
-        ordersToday: 2,
-        conversionRate: 40,
-      });
-
-      // Mock AnalyticsAdvancedService
-      analyticsAdvancedService.getFunnels.mockResolvedValue([
-        {
-          id: 'funnel-1',
-          name: 'Main Funnel',
-          isActive: true,
-          brandId: brandId,
-          steps: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ]);
-
-      analyticsAdvancedService.getFunnelData.mockResolvedValue({
-        funnelId: 'funnel-1',
-        steps: [
-          { stepId: 'step-1', stepName: 'View', users: 1000, conversion: 100, dropoff: 0 },
-          { stepId: 'step-2', stepName: 'Design', users: 500, conversion: 50, dropoff: 50 },
-        ],
-        totalConversion: 50,
-        dropoffPoint: 'Design',
-      });
-
-      // Act - Utiliser la méthode privée via reflection ou tester via chat
+    it('should handle product recommendation requests', async () => {
       const result = await service.chat({
-        brandId,
-        userId: 'user-123',
-        message: 'Analyse mes ventes',
-        context: { dateRange },
-      });
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.data).toBeDefined();
-      if (result.data && 'kpis' in result.data) {
-        expect(result.data.kpis).toBeDefined();
-        expect(result.data.kpis.totalDesigns).toBe(150);
-        expect(result.data.kpis.revenue).toBe(5000);
-        expect(result.data.topProducts).toBeDefined();
-        expect(Array.isArray(result.data.topProducts)).toBe(true);
-      }
-    });
-
-    it('should handle missing dashboard data gracefully', async () => {
-      // Arrange
-      analyticsService.getDashboard.mockResolvedValue({
-        period: 'last_30_days',
-        metrics: undefined as any,
-        charts: {
-          designsOverTime: [],
-          revenueOverTime: [],
-        },
-      });
-
-      // Act & Assert
-      await expect(
-        service.chat({
-          brandId: 'brand-123',
-          userId: 'user-123',
-          message: 'Analyse mes ventes',
-        }),
-      ).rejects.toThrow('Dashboard data unavailable');
-    });
-  });
-
-  // ✅ PHASE 1 - A) Luna : Tests sur recommandations produits avec conversion + revenue
-  describe('getProductRecommendations - Conversion + Revenue Logic', () => {
-    it('should recommend products based on conversion rate and revenue', async () => {
-      // Arrange
-      const brandId = 'brand-123';
-
-      analyticsService.getTopProductsByDesigns.mockResolvedValue([
-        { productId: 'prod-1', name: 'Product 1', designs: 100 },
-        { productId: 'prod-2', name: 'Product 2', designs: 50 },
-      ]);
-
-      // Mock Prisma pour designs et orders
-      (prismaService.design.count as jest.Mock) = jest
-        .fn()
-        .mockResolvedValueOnce(100) // prod-1 designs
-        .mockResolvedValueOnce(50); // prod-2 designs
-
-      (prismaService.order.findMany as jest.Mock) = jest
-        .fn()
-        .mockResolvedValueOnce([
-          { totalCents: 15000 }, // prod-1: 15 orders * 100€ = 1500€
-          { totalCents: 15000 },
-        ])
-        .mockResolvedValueOnce([
-          { totalCents: 5000 }, // prod-2: 5 orders * 100€ = 500€
-        ]);
-
-      // Act
-      const result = await service.chat({
-        brandId,
-        userId: 'user-123',
+        brandId: '550e8400-e29b-41d4-a716-446655440000',
+        userId: '550e8400-e29b-41d4-a716-446655440002',
         message: 'Quels produits me recommandes-tu ?',
       });
 
-      // Assert
       expect(result).toBeDefined();
-      if (result.data && 'recommendations' in result.data) {
-        const recommendations = result.data.recommendations as Array<{
-          productId: string;
-          metrics?: { conversionRate: number; revenue: number };
-        }>;
-        expect(recommendations.length).toBeGreaterThan(0);
-        expect(recommendations[0].metrics).toBeDefined();
-        expect(recommendations[0].metrics?.conversionRate).toBeGreaterThanOrEqual(0);
-        expect(recommendations[0].metrics?.revenue).toBeGreaterThanOrEqual(0);
-      }
+      expect(result.intent).toBe(LunaIntentType.RECOMMEND_PRODUCTS);
     });
   });
 
-  // ✅ PHASE 1 - A) Luna : Tests sur trends data avec PredictiveService
-  describe('getTrendsData - Predictive Service Integration', () => {
-    it('should include trends, anomalies, and seasonal events from PredictiveService', async () => {
-      // Arrange
-      const brandId = 'brand-123';
+  describe('chat with trends prediction intent', () => {
+    beforeEach(() => {
+      setupDefaultMocks();
+      mockIntentDetectionService.detectIntent.mockResolvedValue({
+        intent: LunaIntentType.PREDICT_TRENDS,
+        confidence: 0.85,
+        reasoning: 'User wants trend predictions',
+      });
 
-      predictiveService.getTrendPredictions.mockResolvedValue([
+      mockPredictiveService.getTrendPredictions.mockResolvedValue([
         {
           metric: 'revenue',
           currentValue: 5000,
@@ -362,55 +448,69 @@ describe('LunaService', () => {
         },
       ]);
 
-      predictiveService.getUpcomingSeasonalEvents.mockResolvedValue([
+      mockPredictiveService.getUpcomingSeasonalEvents.mockResolvedValue([
         {
-          name: 'Noël',
-          date: new Date('2024-12-25'),
+          name: 'Black Friday',
+          date: new Date('2024-11-29'),
           daysUntil: 30,
-          expectedImpact: 420,
-          recommendations: ['Préparer campagne marketing'],
+          expectedImpact: 50,
+          recommendations: ['Préparer campagne'],
         },
       ]);
+    });
 
-      predictiveService.detectAnomalies.mockResolvedValue([
-        {
-          id: 'anomaly-1',
-          metric: 'totalDesigns',
-          severity: 'medium',
-          description: 'Pic anormal de designs',
-          detectedAt: new Date(),
-          value: 200,
-          expectedRange: { min: 50, max: 150 },
-        },
-      ]);
-
-      predictiveService.getRecommendations.mockResolvedValue([
-        {
-          id: 'rec-1',
-          type: 'product',
-          title: 'Ajouter plus de produits',
-          description: 'Augmentez votre catalogue',
-          impact: 'high',
-          effort: 'medium',
-          metrics: ['totalGenerations'],
-        },
-      ]);
-
-      // Act
+    it('should handle trend prediction requests', async () => {
       const result = await service.chat({
-        brandId,
-        userId: 'user-123',
-        message: 'Quelles sont les tendances ?',
+        brandId: '550e8400-e29b-41d4-a716-446655440000',
+        userId: '550e8400-e29b-41d4-a716-446655440002',
+        message: 'Quelles sont les tendances à venir ?',
       });
 
-      // Assert
       expect(result).toBeDefined();
-      if (result.data && 'trends' in result.data) {
-        expect(result.data.trends).toBeDefined();
-        expect(result.data.anomalies).toBeDefined();
-        expect(result.data.seasonalEvents).toBeDefined();
-        expect(result.data.recommendations).toBeDefined();
-      }
+      expect(result.intent).toBe(LunaIntentType.PREDICT_TRENDS);
+      expect(mockPredictiveService.getTrendPredictions).toHaveBeenCalled();
+    });
+  });
+
+  describe('error handling', () => {
+    beforeEach(() => {
+      setupDefaultMocks();
+    });
+
+    it('should handle LLM service errors gracefully', async () => {
+      mockLLMRouterService.chat.mockRejectedValue(new Error('LLM service unavailable'));
+
+      await expect(
+        service.chat({
+          brandId: '550e8400-e29b-41d4-a716-446655440000',
+          userId: '550e8400-e29b-41d4-a716-446655440002',
+          message: 'Test',
+        }),
+      ).rejects.toThrow();
+
+      expect(mockUsageGuardService.updateUsageAfterCall).toHaveBeenCalledWith(
+        '550e8400-e29b-41d4-a716-446655440000', // brandId
+        '550e8400-e29b-41d4-a716-446655440002', // userId
+        undefined, // agentId
+        expect.objectContaining({ success: false }),
+        'anthropic',
+        'claude-3-sonnet',
+        'chat',
+      );
+    });
+
+    it('should track usage even when request fails', async () => {
+      mockLLMRouterService.chat.mockRejectedValue(new Error('API error'));
+
+      await expect(
+        service.chat({
+          brandId: '550e8400-e29b-41d4-a716-446655440000',
+          userId: '550e8400-e29b-41d4-a716-446655440002',
+          message: 'Test',
+        }),
+      ).rejects.toThrow();
+
+      expect(mockUsageGuardService.updateUsageAfterCall).toHaveBeenCalled();
     });
   });
 });

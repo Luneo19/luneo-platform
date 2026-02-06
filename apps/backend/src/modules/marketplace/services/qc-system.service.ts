@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface QCReport {
@@ -38,7 +38,7 @@ export class QCSystemService {
     });
 
     if (!workOrder) {
-      throw new Error(`WorkOrder ${report.workOrderId} not found`);
+      throw new NotFoundException(`WorkOrder ${report.workOrderId} not found`);
     }
 
     // Créer le rapport QC
@@ -60,7 +60,7 @@ export class QCSystemService {
         qcPassed: report.passed,
         qcIssues: report.issues.map((i) => i.description),
         qcReportId: qcReport.id,
-        status: report.passed ? 'qc_passed' : 'qc_failed',
+        status: report.passed ? 'QC_PASSED' : 'QC_FAILED',
       },
     });
 
@@ -191,7 +191,7 @@ export class QCSystemService {
     });
 
     if (!artisan) {
-      throw new Error(`Artisan ${artisanId} not found`);
+      throw new NotFoundException(`Artisan ${artisanId} not found`);
     }
 
     // Récupérer les rapports QC récents

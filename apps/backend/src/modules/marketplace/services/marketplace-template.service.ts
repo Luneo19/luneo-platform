@@ -14,11 +14,13 @@
  * - ✅ Types explicites
  * - ✅ Validation robuste
  * - ✅ Logging structuré
+ * - ✅ SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
  */
 
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { Prisma } from '@prisma/client';
 
 // ============================================================================
 // TYPES STRICTS
@@ -119,6 +121,7 @@ export class MarketplaceTemplateService {
   /**
    * Crée un template marketplace
    * Conforme au plan PHASE 7 - Templates DB
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRaw
    */
   async createTemplate(data: CreateMarketplaceTemplateData): Promise<MarketplaceTemplate> {
     // ✅ Validation
@@ -140,64 +143,57 @@ export class MarketplaceTemplateService {
 
     // ✅ Validation du slug (alphanumeric + dash, 3-100 chars)
     const slugRegex = /^[a-z0-9-]{3,100}$/;
-    if (!slugRegex.test(data.slug.trim())) {
+    const cleanSlug = data.slug.trim();
+    if (!slugRegex.test(cleanSlug)) {
       throw new BadRequestException('Slug must be 3-100 characters, lowercase alphanumeric and dashes only');
     }
 
-    // ✅ Vérifier que le slug n'est pas déjà pris
-    const existing = await this.prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM "MarketplaceTemplate" WHERE "slug" = ${data.slug.trim()} LIMIT 1
-    `;
+    // ✅ Vérifier que le slug n'est pas déjà pris (contrainte unique sur slug)
+    const existing = await this.prisma.marketplaceTemplate.findUnique({
+      where: { slug: cleanSlug },
+    });
 
-    if (existing && existing.length > 0) {
+    if (existing) {
       throw new BadRequestException('Slug already taken');
     }
 
     try {
-      // ✅ Créer le template
-      const template = await this.prisma.$executeRaw`
-        INSERT INTO "MarketplaceTemplate" (
-          "id", "creatorId", "name", "slug", "description", "category", "tags",
-          "promptTemplate", "negativePrompt", "variables", "exampleOutputs",
-          "aiProvider", "model", "quality", "style",
-          "priceCents", "isFree", "revenueSharePercent",
-          "downloads", "likes", "reviews", "averageRating", "totalRevenueCents",
-          "status", "featured", "thumbnailUrl", "previewImages", "metadata",
-          "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${data.creatorId.trim()},
-          ${data.name.trim()},
-          ${data.slug.trim()},
-          ${data.description || null},
-          ${data.category || null},
-          ${data.tags ? data.tags : []}::text[],
-          ${data.promptTemplate.trim()},
-          ${data.negativePrompt || null},
-          ${data.variables ? JSON.stringify(data.variables) : null}::jsonb,
-          ${data.exampleOutputs ? data.exampleOutputs : []}::text[],
-          ${data.aiProvider || 'openai'},
-          ${data.model || 'dall-e-3'},
-          ${data.quality || 'standard'},
-          ${data.style || 'natural'},
-          ${data.priceCents || 0},
-          ${data.isFree !== undefined ? data.isFree : (data.priceCents === 0 || !data.priceCents)},
-          ${data.revenueSharePercent || 70},
-          0, 0, 0, 0.0, 0,
-          'draft',
-          false,
-          ${data.thumbnailUrl || null},
-          ${data.previewImages ? data.previewImages : []}::text[],
-          ${data.metadata ? JSON.stringify(data.metadata) : null}::jsonb,
-          NOW(), NOW()
-        )
-        RETURNING *
-      `;
+      // ✅ Créer le template avec Prisma
+      const template = await this.prisma.marketplaceTemplate.create({
+        data: {
+          creatorId: data.creatorId.trim(),
+          name: data.name.trim(),
+          slug: cleanSlug,
+          description: data.description || null,
+          category: data.category || null,
+          tags: data.tags || [],
+          promptTemplate: data.promptTemplate.trim(),
+          negativePrompt: data.negativePrompt || null,
+          variables: data.variables ? (data.variables as Prisma.JsonObject) : Prisma.JsonNull,
+          exampleOutputs: data.exampleOutputs || [],
+          aiProvider: data.aiProvider || 'openai',
+          model: data.model || 'dall-e-3',
+          quality: data.quality || 'standard',
+          style: data.style || 'natural',
+          priceCents: data.priceCents || 0,
+          isFree: data.isFree !== undefined ? data.isFree : (data.priceCents === 0 || !data.priceCents),
+          revenueSharePercent: data.revenueSharePercent || 70,
+          downloads: 0,
+          likes: 0,
+          reviews: 0,
+          averageRating: 0.0,
+          totalRevenueCents: 0,
+          status: 'draft',
+          featured: false,
+          thumbnailUrl: data.thumbnailUrl || null,
+          previewImages: data.previewImages || [],
+          metadata: data.metadata ? (data.metadata as Prisma.JsonObject) : Prisma.JsonNull,
+        },
+      });
 
       this.logger.log(`Marketplace template created: ${data.slug} by creator ${data.creatorId}`);
 
-      // ✅ Récupérer le template créé
-      return this.getTemplateBySlug(data.slug.trim());
+      return template as unknown as MarketplaceTemplate;
     } catch (error) {
       this.logger.error(
         `Failed to create marketplace template: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -208,6 +204,7 @@ export class MarketplaceTemplateService {
 
   /**
    * Obtient un template par slug
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRaw
    */
   async getTemplateBySlug(slug: string): Promise<MarketplaceTemplate> {
     // ✅ Validation
@@ -215,20 +212,21 @@ export class MarketplaceTemplateService {
       throw new BadRequestException('Slug is required');
     }
 
-    const templates = await this.prisma.$queryRaw<MarketplaceTemplate[]>`
-      SELECT * FROM "MarketplaceTemplate" WHERE "slug" = ${slug.trim()} LIMIT 1
-    `;
+    const template = await this.prisma.marketplaceTemplate.findUnique({
+      where: { slug: slug.trim() },
+    });
 
-    if (!templates || templates.length === 0) {
+    if (!template) {
       throw new NotFoundException(`Template not found: ${slug}`);
     }
 
-    return templates[0];
+    return template as unknown as MarketplaceTemplate;
   }
 
   /**
    * Recherche des templates
    * Conforme au plan PHASE 7 - Recherche et filtrage
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async searchTemplates(options: SearchTemplatesOptions = {}): Promise<{
     templates: MarketplaceTemplate[];
@@ -238,93 +236,78 @@ export class MarketplaceTemplateService {
   }> {
     const page = options.page || 1;
     const limit = options.limit || 20;
-    const offset = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
     try {
-      // ✅ Construire la requête avec filtres
-      let whereConditions: string[] = [];
-      const params: any[] = [];
-      let paramIndex = 1;
+      // ✅ Construire le filtre Prisma dynamique
+      const where: Prisma.MarketplaceTemplateWhereInput = {};
 
       // Status par défaut: seulement published
-      if (!options.status) {
-        whereConditions.push(`"status" = 'published'`);
-      } else {
-        whereConditions.push(`"status" = $${paramIndex++}`);
-        params.push(options.status);
-      }
+      where.status = options.status || 'published';
 
       if (options.category) {
-        whereConditions.push(`"category" = $${paramIndex++}`);
-        params.push(options.category);
+        where.category = options.category;
       }
 
       if (options.creatorId) {
-        whereConditions.push(`"creatorId" = $${paramIndex++}`);
-        params.push(options.creatorId);
+        where.creatorId = options.creatorId;
       }
 
       if (options.featured !== undefined) {
-        whereConditions.push(`"featured" = $${paramIndex++}`);
-        params.push(options.featured);
+        where.featured = options.featured;
       }
 
       if (options.minRating !== undefined) {
-        whereConditions.push(`"averageRating" >= $${paramIndex++}`);
-        params.push(options.minRating);
+        where.averageRating = { gte: options.minRating };
       }
 
       if (options.search) {
-        whereConditions.push(`("name" ILIKE $${paramIndex++} OR "description" ILIKE $${paramIndex})`);
-        params.push(`%${options.search}%`);
-        paramIndex++;
+        where.OR = [
+          { name: { contains: options.search, mode: 'insensitive' } },
+          { description: { contains: options.search, mode: 'insensitive' } },
+        ];
       }
 
       if (options.tags && options.tags.length > 0) {
-        whereConditions.push(`"tags" && $${paramIndex++}::text[]`);
-        params.push(options.tags);
+        where.tags = { hasSome: options.tags };
       }
 
-      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
       // ✅ Déterminer le tri
-      let orderBy = 'ORDER BY "createdAt" DESC';
+      let orderBy: Prisma.MarketplaceTemplateOrderByWithRelationInput | Prisma.MarketplaceTemplateOrderByWithRelationInput[] = { createdAt: 'desc' };
+      
       if (options.sortBy) {
         switch (options.sortBy) {
           case 'newest':
-            orderBy = 'ORDER BY "createdAt" DESC';
+            orderBy = { createdAt: 'desc' };
             break;
           case 'popular':
-            orderBy = 'ORDER BY "downloads" DESC, "likes" DESC';
+            orderBy = [{ downloads: 'desc' }, { likes: 'desc' }];
             break;
           case 'rating':
-            orderBy = 'ORDER BY "averageRating" DESC, "reviews" DESC';
+            orderBy = [{ averageRating: 'desc' }, { reviews: 'desc' }];
             break;
           case 'price':
-            orderBy = 'ORDER BY "priceCents" ASC';
+            orderBy = { priceCents: 'asc' };
             break;
           case 'downloads':
-            orderBy = 'ORDER BY "downloads" DESC';
+            orderBy = { downloads: 'desc' };
             break;
         }
       }
 
-      // ✅ Compter le total
-      const countResult = await this.prisma.$queryRawUnsafe<Array<{ count: number }>>(
-        `SELECT COUNT(*)::int as count FROM "MarketplaceTemplate" ${whereClause}`,
-        ...params,
-      );
-      const total = countResult[0]?.count || 0;
-
-      // ✅ Récupérer les templates
-      params.push(limit, offset);
-      const templates = await this.prisma.$queryRawUnsafe<MarketplaceTemplate[]>(
-        `SELECT * FROM "MarketplaceTemplate" ${whereClause} ${orderBy} LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
-        ...params,
-      );
+      // ✅ Compter le total et récupérer les templates en parallèle
+      const [total, templates] = await Promise.all([
+        this.prisma.marketplaceTemplate.count({ where }),
+        this.prisma.marketplaceTemplate.findMany({
+          where,
+          orderBy,
+          skip,
+          take: limit,
+        }),
+      ]);
 
       return {
-        templates: templates || [],
+        templates: templates as unknown as MarketplaceTemplate[],
         total,
         page,
         limit,
@@ -339,6 +322,7 @@ export class MarketplaceTemplateService {
 
   /**
    * Publie un template
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRawUnsafe
    */
   async publishTemplate(templateId: string): Promise<MarketplaceTemplate> {
     // ✅ Validation
@@ -346,29 +330,30 @@ export class MarketplaceTemplateService {
       throw new BadRequestException('Template ID is required');
     }
 
+    const cleanTemplateId = templateId.trim();
+
     try {
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "MarketplaceTemplate" SET
-          "status" = 'published',
-          "publishedAt" = NOW(),
-          "updatedAt" = NOW()
-        WHERE "id" = $1`,
-        templateId.trim(),
-      );
+      // ✅ Vérifier que le template existe
+      const existing = await this.prisma.marketplaceTemplate.findUnique({
+        where: { id: cleanTemplateId },
+      });
 
-      this.logger.log(`Template ${templateId} published`);
-
-      // ✅ Récupérer le template mis à jour
-      const templates = await this.prisma.$queryRawUnsafe<MarketplaceTemplate[]>(
-        `SELECT * FROM "MarketplaceTemplate" WHERE "id" = $1 LIMIT 1`,
-        templateId.trim(),
-      );
-
-      if (!templates || templates.length === 0) {
+      if (!existing) {
         throw new NotFoundException(`Template ${templateId} not found`);
       }
 
-      return templates[0];
+      // ✅ Publier le template
+      const template = await this.prisma.marketplaceTemplate.update({
+        where: { id: cleanTemplateId },
+        data: {
+          status: 'published',
+          publishedAt: new Date(),
+        },
+      });
+
+      this.logger.log(`Template ${templateId} published`);
+
+      return template as unknown as MarketplaceTemplate;
     } catch (error) {
       this.logger.error(
         `Failed to publish template: ${error instanceof Error ? error.message : 'Unknown'}`,

@@ -42,8 +42,8 @@ export class AssetFileService {
     const { skip, take, page, limit } = normalizePagination(pagination);
 
     const where: any = {
-      organizationId,
-      ...(filters.projectId && { projectId: filters.projectId }),
+      // Utiliser brandId comme organizationId pour compatibilité
+      brandId: organizationId,
       ...(filters.folderId && { folderId: filters.folderId }),
       ...(filters.type && { type: filters.type }),
       ...(filters.search && {
@@ -62,8 +62,11 @@ export class AssetFileService {
           name: true,
           originalName: true,
           type: true,
+          size: true,
           sizeBytes: true,
+          url: true,
           cdnUrl: true,
+          thumbnailUrl: true,
           thumbnails: true,
           tags: true,
           createdAt: true,
@@ -98,16 +101,19 @@ export class AssetFileService {
     const file = await this.prisma.assetFile.findFirst({
       where: {
         id,
-        organizationId,
+        brandId: organizationId, // Utiliser brandId pour compatibilité
       },
       select: {
         id: true,
         name: true,
         originalName: true,
         mimeType: true,
+        size: true,
         sizeBytes: true,
         storageKey: true,
+        url: true,
         cdnUrl: true,
+        thumbnailUrl: true,
         type: true,
         metadata: true,
         thumbnails: true,
@@ -118,20 +124,6 @@ export class AssetFileService {
           select: {
             id: true,
             name: true,
-          },
-        },
-        model3D: {
-          select: {
-            id: true,
-            format: true,
-            processingStatus: true,
-          },
-        },
-        texture: {
-          select: {
-            id: true,
-            type: true,
-            resolution: true,
           },
         },
       },
@@ -169,23 +161,24 @@ export class AssetFileService {
     // Créer l'enregistrement
     const assetFile = await this.prisma.assetFile.create({
       data: {
-        organizationId,
-        projectId: dto.projectId,
+        brandId: organizationId, // Utiliser brandId pour compatibilité
         name: dto.name || file.originalname,
         originalName: file.originalname,
         mimeType: file.mimetype,
-        sizeBytes: BigInt(file.size),
+        size: file.size,
+        sizeBytes: file.size,
         storageKey,
+        url: cdnUrl,
         cdnUrl,
         type: dto.type,
         metadata: (dto.metadata || {}) as any,
         tags: dto.tags || [],
         folderId: dto.folderId,
-        uploadedById,
       },
       select: {
         id: true,
         name: true,
+        url: true,
         cdnUrl: true,
         type: true,
         createdAt: true,

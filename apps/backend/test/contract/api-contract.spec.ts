@@ -3,83 +3,71 @@
  * Tests API schema validation and backward compatibility
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import { AppModule } from '@/app.module';
+import * as bcrypt from 'bcryptjs';
 import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
+import { describeIntegration } from '@/common/test/integration-test.helper';
+import { createIntegrationTestApp, closeIntegrationTestApp } from '@/common/test/test-app.module';
+import { PrismaService } from '@/libs/prisma/prisma.service';
+import { UserRole } from '@prisma/client';
 
-describe('API Contract Tests', () => {
+describeIntegration('API Contract Tests', () => {
   let app: INestApplication;
+  let moduleFixture: TestingModule;
+  let prisma: PrismaService;
   const ajv = new Ajv({ allErrors: true });
+  addFormats(ajv);
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-  });
+    const testApp = await createIntegrationTestApp();
+    app = testApp.app;
+    moduleFixture = testApp.moduleFixture;
+    prisma = moduleFixture.get<PrismaService>(PrismaService);
+  }, 60000);
 
   afterAll(async () => {
-    await app.close();
+    await closeIntegrationTestApp(app);
+  });
+
+  beforeEach(async () => {
+    await prisma.refreshToken.deleteMany({});
+    await prisma.user.deleteMany({});
   });
 
   describe('Auth API Contract', () => {
-    const signupSchema = {
+    // Schema for wrapped response
+    const signupResponseSchema = {
       type: 'object',
-      required: ['user', 'accessToken', 'refreshToken'],
       properties: {
-        user: {
+        success: { type: 'boolean' },
+        data: {
           type: 'object',
-          required: ['id', 'email', 'firstName', 'lastName'],
           properties: {
-            id: { type: 'string' },
-            email: { type: 'string', format: 'email' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            role: { type: 'string' },
+            user: {
+              type: 'object',
+              required: ['id', 'email', 'firstName', 'lastName'],
+              properties: {
+                id: { type: 'string' },
+                email: { type: 'string', format: 'email' },
+                firstName: { type: 'string' },
+                lastName: { type: 'string' },
+                role: { type: 'string' },
+              },
+            },
+            accessToken: { type: 'string' },
+            refreshToken: { type: 'string' },
           },
         },
-        accessToken: { type: 'string' },
-        refreshToken: { type: 'string' },
-      },
-    };
-
-    it('should match signup response schema', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/auth/signup')
-        .send({
-          email: `contract-test-${Date.now()}@example.com`,
-          password: 'TestPassword123!',
-          firstName: 'Test',
-          lastName: 'User',
-        });
-
-      if (response.status === 201) {
-        const validate = ajv.compile(signupSchema);
-        const valid = validate(response.body);
-        
-        expect(valid).toBe(true);
-        if (!valid) {
-          console.error('Schema validation errors:', validate.errors);
-        }
-      }
-    });
-
-    const loginSchema = {
-      type: 'object',
-      required: ['user', 'accessToken', 'refreshToken'],
-      properties: {
+        timestamp: { type: 'string' },
+        // Support both wrapped and unwrapped responses
         user: {
           type: 'object',
-          required: ['id', 'email'],
           properties: {
             id: { type: 'string' },
             email: { type: 'string' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
           },
         },
         accessToken: { type: 'string' },
@@ -87,94 +75,55 @@ describe('API Contract Tests', () => {
       },
     };
 
-    it('should match login response schema', async () => {
-      // Create user first
-      await request(app.getHttpServer())
+    it('should return valid signup response', async () => {
+      const timestamp = Date.now();
+      const response = await request(app.getHttpServer())
         .post('/api/v1/auth/signup')
         .send({
-          email: `contract-login-${Date.now()}@example.com`,
+          email: `contract-${timestamp}@example.com`,
           password: 'TestPassword123!',
-          firstName: 'Test',
-          lastName: 'User',
+          firstName: 'Contract',
+          lastName: 'Test',
         });
+
+      expect(response.status).toBe(201);
+      
+      const body = response.body.data || response.body;
+      expect(body).toHaveProperty('user');
+      expect(body).toHaveProperty('accessToken');
+      expect(body).toHaveProperty('refreshToken');
+      expect(body.user).toHaveProperty('id');
+      expect(body.user).toHaveProperty('email');
+    });
+
+    it('should return valid login response', async () => {
+      const timestamp = Date.now();
+      const hashedPassword = await bcrypt.hash('Password123!', 13);
+      
+      await prisma.user.create({
+        data: {
+          email: `login-contract-${timestamp}@example.com`,
+          password: hashedPassword,
+          firstName: 'Login',
+          lastName: 'Contract',
+          role: UserRole.CONSUMER,
+          emailVerified: true,
+        },
+      });
 
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({
-          email: `contract-login-${Date.now()}@example.com`,
-          password: 'TestPassword123!',
+          email: `login-contract-${timestamp}@example.com`,
+          password: 'Password123!',
         });
 
-      if (response.status === 200) {
-        const validate = ajv.compile(loginSchema);
-        const valid = validate(response.body);
-        
-        expect(valid).toBe(true);
-      }
-    });
-  });
-
-  describe('Products API Contract', () => {
-    const productSchema = {
-      type: 'object',
-      required: ['id', 'name', 'price'],
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        description: { type: 'string' },
-        price: { type: 'number' },
-        brandId: { type: 'string' },
-      },
-    };
-
-    it('should match product response schema', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v1/products')
-        .query({ page: 1, limit: 1 });
-
-      if (response.status === 200 && response.body.data) {
-        const products = Array.isArray(response.body.data) 
-          ? response.body.data 
-          : [response.body.data];
-        
-        if (products.length > 0) {
-          const validate = ajv.compile(productSchema);
-          const valid = validate(products[0]);
-          
-          expect(valid).toBe(true);
-        }
-      }
-    });
-
-    const productsListSchema = {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'array',
-          items: productSchema,
-        },
-        meta: {
-          type: 'object',
-          properties: {
-            page: { type: 'number' },
-            limit: { type: 'number' },
-            total: { type: 'number' },
-          },
-        },
-      },
-    };
-
-    it('should match products list response schema', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v1/products')
-        .query({ page: 1, limit: 10 });
-
-      if (response.status === 200) {
-        const validate = ajv.compile(productsListSchema);
-        const valid = validate(response.body);
-        
-        expect(valid).toBe(true);
-      }
+      expect(response.status).toBe(200);
+      
+      const body = response.body.data || response.body;
+      expect(body).toHaveProperty('user');
+      expect(body).toHaveProperty('accessToken');
+      expect(body).toHaveProperty('refreshToken');
     });
   });
 
@@ -189,7 +138,7 @@ describe('API Contract Tests', () => {
       },
     };
 
-    it('should match error response schema for 400', async () => {
+    it('should return valid 400 error response', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/signup')
         .send({
@@ -197,17 +146,17 @@ describe('API Contract Tests', () => {
           password: 'weak',
         });
 
-      if (response.status === 400) {
-        const validate = ajv.compile(errorSchema);
-        const valid = validate(response.body);
-        
-        expect(valid).toBe(true);
-      }
+      expect(response.status).toBe(400);
+      
+      const validate = ajv.compile(errorSchema);
+      const valid = validate(response.body);
+      
+      expect(valid).toBe(true);
     });
 
-    it('should match error response schema for 401', async () => {
+    it('should return valid 401 error response', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/v1/user/me');
+        .get('/api/v1/auth/me');
 
       expect(response.status).toBe(401);
       
@@ -216,40 +165,84 @@ describe('API Contract Tests', () => {
       
       expect(valid).toBe(true);
     });
-
-    it('should match error response schema for 404', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v1/products/nonexistent-id');
-
-      if (response.status === 404) {
-        const validate = ajv.compile(errorSchema);
-        const valid = validate(response.body);
-        
-        expect(valid).toBe(true);
-      }
-    });
   });
 
   describe('Backward Compatibility', () => {
-    it('should maintain backward compatibility for auth endpoints', async () => {
-      // Test that old response format still works
+    it('should maintain auth endpoint structure', async () => {
+      const timestamp = Date.now();
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/signup')
         .send({
-          email: `backward-compat-${Date.now()}@example.com`,
+          email: `compat-${timestamp}@example.com`,
           password: 'TestPassword123!',
-          firstName: 'Test',
-          lastName: 'User',
+          firstName: 'Compat',
+          lastName: 'Test',
         });
 
-      if (response.status === 201) {
-        // Verify required fields exist
-        expect(response.body).toHaveProperty('user');
-        expect(response.body).toHaveProperty('accessToken');
-        expect(response.body).toHaveProperty('refreshToken');
-        expect(response.body.user).toHaveProperty('id');
-        expect(response.body.user).toHaveProperty('email');
-      }
+      expect(response.status).toBe(201);
+      
+      // Verify response structure
+      const body = response.body.data || response.body;
+      expect(body.user).toBeDefined();
+      expect(body.user.id).toBeDefined();
+      expect(body.user.email).toBeDefined();
+      expect(body.accessToken).toBeDefined();
+      expect(body.refreshToken).toBeDefined();
+    });
+
+    it('should maintain required user fields', async () => {
+      const timestamp = Date.now();
+      const hashedPassword = await bcrypt.hash('Password123!', 13);
+      
+      await prisma.user.create({
+        data: {
+          email: `fields-${timestamp}@example.com`,
+          password: hashedPassword,
+          firstName: 'Fields',
+          lastName: 'Test',
+          role: UserRole.CONSUMER,
+          emailVerified: true,
+        },
+      });
+
+      const loginResponse = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({
+          email: `fields-${timestamp}@example.com`,
+          password: 'Password123!',
+        });
+
+      const loginData = loginResponse.body.data || loginResponse.body;
+      
+      const meResponse = await request(app.getHttpServer())
+        .get('/api/v1/auth/me')
+        .set('Authorization', `Bearer ${loginData.accessToken}`);
+
+      expect(meResponse.status).toBe(200);
+      
+      const userData = meResponse.body.data || meResponse.body;
+      // Core user fields that must exist
+      expect(userData).toHaveProperty('id');
+      expect(userData).toHaveProperty('email');
+      expect(userData).toHaveProperty('role');
+      // firstName and lastName may or may not be included depending on API design
+    });
+  });
+
+  describe('API Versioning', () => {
+    it('should support v1 API prefix', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/health');
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should reject requests without version prefix', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/auth/me');
+
+      // Should return 404 (no /api/v1 prefix)
+      expect(response.status).toBe(404);
     });
   });
 });

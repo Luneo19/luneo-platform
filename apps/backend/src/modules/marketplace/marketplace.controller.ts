@@ -13,6 +13,7 @@ import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
+import { CurrentUser } from '@/common/types/user.types';
 import { ArtisanOnboardingService } from './services/artisan-onboarding.service';
 import { OrderRoutingService } from './services/order-routing.service';
 import { StripeConnectService } from './services/stripe-connect.service';
@@ -29,6 +30,15 @@ import { AddCapabilityDto } from './dto/add-capability.dto';
 import { RoutingCriteriaDto, RouteOrderDto } from './dto/route-order.dto';
 import { CreatePayoutDto } from './dto/create-payout.dto';
 import { CreateQCReportDto } from './dto/create-qc-report.dto';
+import { CreateSellerConnectDto } from './dto/create-seller-connect.dto';
+import { CreateCreatorProfileDto } from './dto/create-creator-profile.dto';
+import { UpdateCreatorProfileDto } from './dto/update-creator-profile.dto';
+import { VerifyCreatorDto } from './dto/verify-creator.dto';
+import { CreateMarketplaceTemplateDto } from './dto/create-marketplace-template.dto';
+import { SearchTemplatesDto } from './dto/search-templates.dto';
+import { PurchaseTemplateDto } from './dto/purchase-template.dto';
+import { CreateCreatorPayoutDto } from './dto/create-creator-payout.dto';
+import { CreateReviewDto } from './dto/create-review.dto';
 
 @ApiTags('Marketplace')
 @Controller('marketplace')
@@ -124,19 +134,13 @@ export class MarketplaceController {
   @ApiOperation({ summary: 'Crée un compte Stripe Connect pour un seller' })
   @ApiResponse({ status: 201, description: 'Compte Connect créé' })
   async createSellerConnect(
-    @Body() body: {
-      country?: string;
-      businessType?: 'individual' | 'company';
-      businessName?: string;
-      firstName?: string;
-      lastName?: string;
-    },
+    @Body() dto: CreateSellerConnectDto,
     @Request() req: ExpressRequest & { user: { id: string; email?: string } },
   ) {
     return this.stripeConnect.createSellerConnectAccount(
       req.user.id,
       req.user.email || '',
-      body,
+      dto,
     );
   }
 
@@ -179,8 +183,8 @@ export class MarketplaceController {
   @Post('creators')
   @ApiOperation({ summary: 'Crée un profil créateur' })
   @ApiResponse({ status: 201, description: 'Profil créateur créé' })
-  async createCreatorProfile(@Body() body: any) {
-    return this.creatorProfile.createProfile(body);
+  async createCreatorProfile(@Body() dto: CreateCreatorProfileDto) {
+    return this.creatorProfile.createProfile(dto);
   }
 
   @Get('creators/:userId')
@@ -200,16 +204,16 @@ export class MarketplaceController {
   @Put('creators/:userId')
   @ApiOperation({ summary: 'Met à jour un profil créateur' })
   @ApiResponse({ status: 200, description: 'Profil créateur mis à jour' })
-  async updateCreatorProfile(@Param('userId') userId: string, @Body() body: any) {
-    return this.creatorProfile.updateProfile(userId, body);
+  async updateCreatorProfile(@Param('userId') userId: string, @Body() dto: UpdateCreatorProfileDto) {
+    return this.creatorProfile.updateProfile(userId, dto);
   }
 
   @Post('creators/:userId/verify')
   @Roles('PLATFORM_ADMIN')
   @ApiOperation({ summary: 'Vérifie un créateur (admin)' })
   @ApiResponse({ status: 200, description: 'Créateur vérifié' })
-  async verifyCreator(@Param('userId') userId: string, @Body() body: { verified: boolean }) {
-    return this.creatorProfile.verifyCreator(userId, body.verified);
+  async verifyCreator(@Param('userId') userId: string, @Body() dto: VerifyCreatorDto) {
+    return this.creatorProfile.verifyCreator(userId, dto.verified);
   }
 
   // ========================================
@@ -219,15 +223,16 @@ export class MarketplaceController {
   @Post('templates')
   @ApiOperation({ summary: 'Crée un template marketplace' })
   @ApiResponse({ status: 201, description: 'Template créé' })
-  async createTemplate(@Body() body: any) {
-    return this.marketplaceTemplate.createTemplate(body);
+  async createTemplate(@Body() dto: CreateMarketplaceTemplateDto) {
+    return this.marketplaceTemplate.createTemplate(dto);
   }
 
   @Get('templates')
   @ApiOperation({ summary: 'Recherche des templates marketplace' })
   @ApiResponse({ status: 200, description: 'Templates récupérés' })
-  async searchTemplates(@Query() query: any) {
-    return this.marketplaceTemplate.searchTemplates(query);
+  async searchTemplates(@Query() dto: SearchTemplatesDto) {
+    // Cast DTO to SearchTemplatesOptions for proper type alignment
+    return this.marketplaceTemplate.searchTemplates(dto as any);
   }
 
   @Get('templates/:slug')
@@ -251,12 +256,12 @@ export class MarketplaceController {
   @Post('templates/:templateId/purchase')
   @ApiOperation({ summary: 'Achète un template' })
   @ApiResponse({ status: 201, description: 'Achat traité' })
-  async purchaseTemplate(@Param('templateId') templateId: string, @Body() body: any) {
+  async purchaseTemplate(@Param('templateId') templateId: string, @Body() dto: PurchaseTemplateDto) {
     return this.revenueSharing.purchaseTemplate({
       templateId,
-      buyerId: body.buyerId,
-      priceCents: body.priceCents,
-      stripePaymentIntentId: body.stripePaymentIntentId,
+      buyerId: dto.buyerId,
+      priceCents: dto.priceCents,
+      stripePaymentIntentId: dto.stripePaymentIntentId,
     });
   }
 
@@ -274,11 +279,11 @@ export class MarketplaceController {
   @Post('creators/:creatorId/payouts')
   @ApiOperation({ summary: 'Crée un payout pour un créateur' })
   @ApiResponse({ status: 201, description: 'Payout créé' })
-  async createCreatorPayout(@Param('creatorId') creatorId: string, @Body() body: any) {
+  async createCreatorPayout(@Param('creatorId') creatorId: string, @Body() dto: CreateCreatorPayoutDto) {
     return this.revenueSharing.createPayout({
       creatorId,
-      periodStart: new Date(body.periodStart),
-      periodEnd: new Date(body.periodEnd),
+      periodStart: new Date(dto.periodStart),
+      periodEnd: new Date(dto.periodEnd),
     });
   }
 
@@ -299,34 +304,34 @@ export class MarketplaceController {
   @Post('templates/:templateId/like')
   @ApiOperation({ summary: 'Like/unlike un template' })
   @ApiResponse({ status: 200, description: 'Like toggled' })
-  async toggleLike(@Param('templateId') templateId: string, @Request() req: ExpressRequest & { user: any }) {
+  async toggleLike(@Param('templateId') templateId: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
     return this.engagement.toggleLike(templateId, req.user.id);
   }
 
   @Post('creators/:creatorId/follow')
   @ApiOperation({ summary: 'Follow/unfollow un créateur' })
   @ApiResponse({ status: 200, description: 'Follow toggled' })
-  async toggleFollow(@Param('creatorId') creatorId: string, @Request() req: ExpressRequest & { user: any }) {
+  async toggleFollow(@Param('creatorId') creatorId: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
     return this.engagement.toggleFollow(req.user.id, creatorId);
   }
 
   @Post('templates/:templateId/reviews')
   @ApiOperation({ summary: 'Crée ou met à jour une review' })
   @ApiResponse({ status: 201, description: 'Review créée/mise à jour' })
-  async createOrUpdateReview(@Param('templateId') templateId: string, @Body() body: any, @Request() req: ExpressRequest & { user: any }) {
+  async createOrUpdateReview(@Param('templateId') templateId: string, @Body() dto: CreateReviewDto, @Request() req: ExpressRequest & { user: CurrentUser }) {
     return this.engagement.createOrUpdateReview({
       templateId,
       userId: req.user.id,
-      rating: body.rating,
-      comment: body.comment,
-      purchaseId: body.purchaseId,
+      rating: dto.rating,
+      comment: dto.comment,
+      purchaseId: dto.purchaseId,
     });
   }
 
   @Post('templates/:templateId/favorite')
   @ApiOperation({ summary: 'Ajoute/retire un template des favoris' })
   @ApiResponse({ status: 200, description: 'Favorite toggled' })
-  async toggleFavorite(@Param('templateId') templateId: string, @Request() req: ExpressRequest & { user: any }) {
+  async toggleFavorite(@Param('templateId') templateId: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
     return this.engagement.toggleFavorite(templateId, req.user.id);
   }
 

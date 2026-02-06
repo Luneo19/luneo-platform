@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 
 @Injectable()
@@ -31,7 +31,7 @@ export class DLQService {
   async getFailedJobs(queueName: string, limit: number = 50): Promise<Job[]> {
     const queue = this.getQueues().get(queueName);
     if (!queue) {
-      throw new Error(`Queue ${queueName} not found`);
+      throw new NotFoundException(`Queue ${queueName} not found`);
     }
 
     const failed = await queue.getFailed(0, limit - 1);
@@ -63,16 +63,16 @@ export class DLQService {
   async retryJob(queueName: string, jobId: string): Promise<void> {
     const queue = this.getQueues().get(queueName);
     if (!queue) {
-      throw new Error(`Queue ${queueName} not found`);
+      throw new NotFoundException(`Queue ${queueName} not found`);
     }
 
     const job = await queue.getJob(jobId);
     if (!job) {
-      throw new Error(`Job ${jobId} not found in queue ${queueName}`);
+      throw new NotFoundException(`Job ${jobId} not found in queue ${queueName}`);
     }
 
     if (!job.failedReason) {
-      throw new Error(`Job ${jobId} is not failed`);
+      throw new BadRequestException(`Job ${jobId} is not failed`);
     }
 
     await job.retry();
@@ -85,12 +85,12 @@ export class DLQService {
   async removeJob(queueName: string, jobId: string): Promise<void> {
     const queue = this.getQueues().get(queueName);
     if (!queue) {
-      throw new Error(`Queue ${queueName} not found`);
+      throw new NotFoundException(`Queue ${queueName} not found`);
     }
 
     const job = await queue.getJob(jobId);
     if (!job) {
-      throw new Error(`Job ${jobId} not found in queue ${queueName}`);
+      throw new NotFoundException(`Job ${jobId} not found in queue ${queueName}`);
     }
 
     await job.remove();
@@ -103,7 +103,7 @@ export class DLQService {
   async cleanupOldFailedJobs(queueName: string, olderThanDays: number = 30): Promise<number> {
     const queue = this.getQueues().get(queueName);
     if (!queue) {
-      throw new Error(`Queue ${queueName} not found`);
+      throw new NotFoundException(`Queue ${queueName} not found`);
     }
 
     const cutoffDate = new Date();

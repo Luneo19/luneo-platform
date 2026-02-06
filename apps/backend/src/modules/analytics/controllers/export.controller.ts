@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Request, Res } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Request, Res, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
@@ -28,12 +28,12 @@ export class AnalyticsExportController {
     @Res() res?: Response,
   ) {
     if (!res) {
-      throw new Error('Response object required');
+      throw new BadRequestException('Response object required');
     }
 
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('Brand ID required');
+      throw new BadRequestException('Brand ID required');
     }
 
     await this.exportService.exportToPDF(
@@ -63,12 +63,12 @@ export class AnalyticsExportController {
     @Res() res?: Response,
   ) {
     if (!res) {
-      throw new Error('Response object required');
+      throw new BadRequestException('Response object required');
     }
 
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('Brand ID required');
+      throw new BadRequestException('Brand ID required');
     }
 
     await this.exportService.exportToExcel(
@@ -97,12 +97,12 @@ export class AnalyticsExportController {
     @Res() res?: Response,
   ) {
     if (!res) {
-      throw new Error('Response object required');
+      throw new BadRequestException('Response object required');
     }
 
     const brandId = req.user.brandId;
     if (!brandId) {
-      throw new Error('Brand ID required');
+      throw new BadRequestException('Brand ID required');
     }
 
     await this.exportService.exportToCSV(

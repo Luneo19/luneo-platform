@@ -6,6 +6,11 @@ import { GDPRService } from './services/gdpr.service';
 import { Role, Permission } from './interfaces/rbac.interface';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { RequirePermissions } from './decorators/require-permissions.decorator';
+import { AssignRoleDto } from './dto/assign-role.dto';
+import { ExportAuditLogsDto } from './dto/export-audit-logs.dto';
+import { DeleteUserDataDto } from './dto/delete-user-data.dto';
+import { RecordConsentDto } from './dto/record-consent.dto';
+import { ScheduleDataRetentionDto } from './dto/schedule-data-retention.dto';
 
 /**
  * Controller pour la sécurité et conformité
@@ -49,10 +54,10 @@ export class SecurityController {
   @ApiResponse({ status: 200, description: 'Role assigned' })
   async assignRole(
     @Param('userId') userId: string,
-    @Body() body: { role: Role },
+    @Body() dto: AssignRoleDto,
   ) {
-    await this.rbacService.assignRole(userId, body.role);
-    return { success: true, userId, role: body.role };
+    await this.rbacService.assignRole(userId, dto.role);
+    return { success: true, userId, role: dto.role };
   }
 
   @Get('users/:userId/permissions')
@@ -148,8 +153,8 @@ export class SecurityController {
   @RequirePermissions(Permission.AUDIT_EXPORT)
   @ApiOperation({ summary: 'Export audit logs to CSV' })
   @ApiResponse({ status: 200, description: 'CSV exported' })
-  async exportAuditLogsCSV(@Query() filters: any) {
-    const csv = await this.auditLogs.exportToCSV(filters);
+  async exportAuditLogsCSV(@Query() dto: ExportAuditLogsDto) {
+    const csv = await this.auditLogs.exportToCSV(dto);
     return {
       csv,
       filename: `audit-logs-${new Date().toISOString()}.csv`,
@@ -182,9 +187,9 @@ export class SecurityController {
   @ApiResponse({ status: 200, description: 'User data deleted' })
   async deleteUserData(
     @Param('userId') userId: string,
-    @Body() body: { reason?: string },
+    @Body() dto: DeleteUserDataDto,
   ) {
-    return this.gdprService.deleteUserData(userId, body.reason);
+    return this.gdprService.deleteUserData(userId, dto.reason);
   }
 
   @Post('gdpr/anonymize/:userId')
@@ -200,13 +205,11 @@ export class SecurityController {
   @Post('gdpr/consent')
   @ApiOperation({ summary: 'Record user consent' })
   @ApiResponse({ status: 201, description: 'Consent recorded' })
-  async recordConsent(
-    @Body() body: { userId: string; consentType: string; given: boolean },
-  ) {
+  async recordConsent(@Body() dto: RecordConsentDto) {
     await this.gdprService.recordConsent(
-      body.userId,
-      body.consentType,
-      body.given,
+      dto.userId,
+      dto.consentType,
+      dto.given,
     );
     return { success: true };
   }
@@ -233,8 +236,8 @@ export class SecurityController {
   @RequirePermissions(Permission.SETTINGS_UPDATE)
   @ApiOperation({ summary: 'Schedule data retention cleanup' })
   @ApiResponse({ status: 200, description: 'Retention scheduled' })
-  async scheduleDataRetention(@Body() body: { days?: number }) {
-    return this.gdprService.scheduleDataRetention(body.days);
+  async scheduleDataRetention(@Body() dto: ScheduleDataRetentionDto) {
+    return this.gdprService.scheduleDataRetention(dto.days);
   }
 }
 

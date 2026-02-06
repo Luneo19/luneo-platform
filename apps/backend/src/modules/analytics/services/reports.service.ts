@@ -9,7 +9,7 @@
  * - ✅ Gardes pour éviter les crashes
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { StorageService } from '@/libs/storage/storage.service';
@@ -114,27 +114,27 @@ export class ReportsService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to generatePDFReport');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     if (!dateRange || typeof dateRange !== 'object') {
       this.logger.warn('Invalid dateRange provided to generatePDFReport');
-      throw new Error('Date range is required');
+      throw new BadRequestException('Date range is required');
     }
 
     if (!dateRange.start || !(dateRange.start instanceof Date) || Number.isNaN(dateRange.start.getTime())) {
       this.logger.warn('Invalid start date provided to generatePDFReport');
-      throw new Error('Valid start date is required');
+      throw new BadRequestException('Valid start date is required');
     }
 
     if (!dateRange.end || !(dateRange.end instanceof Date) || Number.isNaN(dateRange.end.getTime())) {
       this.logger.warn('Invalid end date provided to generatePDFReport');
-      throw new Error('Valid end date is required');
+      throw new BadRequestException('Valid end date is required');
     }
 
     if (dateRange.start.getTime() >= dateRange.end.getTime()) {
       this.logger.warn('Invalid date range: start >= end');
-      throw new Error('Start date must be before end date');
+      throw new BadRequestException('Start date must be before end date');
     }
 
     this.logger.log(`Generating ${type} report for brand ${brandId}`);
@@ -146,7 +146,7 @@ export class ReportsService {
       // ✅ Générer le contenu JSON avec validation
       const jsonContent = JSON.stringify(data, null, 2);
       if (!jsonContent || jsonContent.length === 0) {
-        throw new Error('Failed to serialize report data');
+        throw new InternalServerErrorException('Failed to serialize report data');
       }
 
       const buffer = Buffer.from(jsonContent, 'utf-8');
@@ -163,7 +163,7 @@ export class ReportsService {
       );
 
       if (!url || typeof url !== 'string' || url.trim().length === 0) {
-        throw new Error('Failed to upload report to storage');
+        throw new InternalServerErrorException('Failed to upload report to storage');
       }
 
       this.logger.log(`Report generated: ${url}`);
@@ -189,11 +189,11 @@ export class ReportsService {
 
     // ✅ Validation des dates
     if (!start || !(start instanceof Date) || Number.isNaN(start.getTime())) {
-      throw new Error('Invalid start date');
+      throw new BadRequestException('Invalid start date');
     }
 
     if (!end || !(end instanceof Date) || Number.isNaN(end.getTime())) {
-      throw new Error('Invalid end date');
+      throw new BadRequestException('Invalid end date');
     }
 
     try {
@@ -222,7 +222,7 @@ export class ReportsService {
   private async getSalesData(brandId: string, start: Date, end: Date): Promise<SalesReportData> {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     try {
@@ -267,7 +267,7 @@ export class ReportsService {
   private async getProductsData(brandId: string, start: Date, end: Date): Promise<ProductsReportData> {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     try {
@@ -315,7 +315,7 @@ export class ReportsService {
   private async getAnalyticsData(brandId: string, start: Date, end: Date): Promise<AnalyticsReportData> {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     try {

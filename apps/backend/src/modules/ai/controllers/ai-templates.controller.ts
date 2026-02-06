@@ -16,6 +16,7 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -59,7 +60,7 @@ export class AITemplatesController {
     @Query('limit') limit?: string,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     const pageNum = page ? parseInt(page, 10) : 1;
@@ -82,7 +83,7 @@ export class AITemplatesController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Template not found' })
   async getTemplate(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.aiStudioService.getTemplate(id, user.brandId);
@@ -97,7 +98,7 @@ export class AITemplatesController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.aiStudioService.createTemplate(user.brandId, user.id, dto);
@@ -114,7 +115,7 @@ export class AITemplatesController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.aiStudioService.updateTemplate(id, user.brandId, dto);
@@ -128,7 +129,7 @@ export class AITemplatesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTemplate(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     await this.aiStudioService.deleteTemplate(id, user.brandId);
@@ -151,7 +152,7 @@ export class AITemplatesController {
     @Query('limit') limit?: string,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     const pageNum = page ? parseInt(page, 10) : 1;
@@ -173,7 +174,7 @@ export class AITemplatesController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Animation not found' })
   async getAnimation(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.aiStudioService.getAnimation(id, user.brandId, user.id);
@@ -188,7 +189,7 @@ export class AITemplatesController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.aiStudioService.generateAnimation(user.brandId, user.id, dto);
@@ -202,7 +203,7 @@ export class AITemplatesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteAnimation(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     await this.aiStudioService.deleteAnimation(id, user.brandId, user.id);

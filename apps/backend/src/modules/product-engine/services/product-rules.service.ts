@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { 
@@ -532,21 +532,21 @@ export class ProductRulesService {
    */
   private validateRulesStructure(rules: ProductRules): void {
     if (!rules.zones || !Array.isArray(rules.zones)) {
-      throw new Error('Les règles doivent contenir un tableau de zones');
+      throw new BadRequestException('Les règles doivent contenir un tableau de zones');
     }
 
     for (const zone of rules.zones) {
       if (!zone.id || !zone.label || !zone.type) {
-        throw new Error('Chaque zone doit avoir un id, label et type');
+        throw new BadRequestException('Chaque zone doit avoir un id, label et type');
       }
 
       if (!['image', 'text', 'color', 'select'].includes(zone.type)) {
-        throw new Error(`Type de zone invalide: ${zone.type}`);
+        throw new BadRequestException(`Type de zone invalide: ${zone.type}`);
       }
 
       if (typeof zone.x !== 'number' || typeof zone.y !== 'number' ||
           typeof zone.width !== 'number' || typeof zone.height !== 'number') {
-        throw new Error('Les coordonnées et dimensions de zone doivent être des nombres');
+        throw new BadRequestException('Les coordonnées et dimensions de zone doivent être des nombres');
       }
     }
   }

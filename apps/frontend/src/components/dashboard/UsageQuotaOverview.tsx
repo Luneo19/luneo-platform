@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from '
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
-import jsPDF from 'jspdf';
+// BUNDLE-01: jsPDF importé dynamiquement (~200KB) - voir exportReportPDF()
 import {
   PLAN_CATALOG,
   PLAN_DEFINITIONS,
@@ -590,12 +590,18 @@ export function UsageQuotaOverview() {
         ? 'Flux instable'
         : 'Flux standby';
 
-  const handleExportReport = useCallback(() => {
+  /**
+   * BUNDLE-01: Export PDF avec jsPDF chargé dynamiquement
+   * jsPDF fait ~200KB, on ne le charge que quand l'utilisateur clique
+   */
+  const handleExportReport = useCallback(async () => {
     if (!effectiveSummary || !effectivePlan) {
       return;
     }
     setExportingReport(true);
     try {
+      // BUNDLE-01: Dynamic import de jsPDF (économie ~200KB bundle initial)
+      const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF();
       doc.setFontSize(16);
       doc.text('Luneo · Rapport Usage & Quotas', 14, 20);

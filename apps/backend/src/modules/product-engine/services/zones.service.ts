@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { 
@@ -27,7 +27,7 @@ export class ZonesService {
       });
 
       if (!product) {
-        throw new Error(`Product ${productId} not found`);
+        throw new NotFoundException(`Product ${productId} not found`);
       }
 
       const rules = (product.rulesJson as any) || { zones: [] };
@@ -71,14 +71,14 @@ export class ZonesService {
       });
 
       if (!product) {
-        throw new Error(`Product ${productId} not found`);
+        throw new NotFoundException(`Product ${productId} not found`);
       }
 
       const rules = (product.rulesJson as any) || { zones: [] };
       const zoneIndex = rules.zones.findIndex(z => z.id === zoneId);
 
       if (zoneIndex === -1) {
-        throw new Error(`Zone ${zoneId} not found`);
+        throw new NotFoundException(`Zone ${zoneId} not found`);
       }
 
       // Mettre à jour la zone
@@ -117,14 +117,14 @@ export class ZonesService {
       });
 
       if (!product) {
-        throw new Error(`Product ${productId} not found`);
+        throw new NotFoundException(`Product ${productId} not found`);
       }
 
       const rules = (product.rulesJson as any) || { zones: [] };
       const zoneIndex = rules.zones.findIndex(z => z.id === zoneId);
 
       if (zoneIndex === -1) {
-        throw new Error(`Zone ${zoneId} not found`);
+        throw new NotFoundException(`Zone ${zoneId} not found`);
       }
 
       // Supprimer la zone
@@ -157,14 +157,14 @@ export class ZonesService {
       });
 
       if (!product) {
-        throw new Error(`Product ${productId} not found`);
+        throw new NotFoundException(`Product ${productId} not found`);
       }
 
       const rules = (product.rulesJson as any) || { zones: [] };
       const originalZone = rules.zones.find(z => z.id === zoneId);
 
       if (!originalZone) {
-        throw new Error(`Zone ${zoneId} not found`);
+        throw new NotFoundException(`Zone ${zoneId} not found`);
       }
 
       // Créer une copie avec un nouvel ID
@@ -243,7 +243,7 @@ export class ZonesService {
       });
 
       if (!product) {
-        throw new Error(`Product ${productId} not found`);
+        throw new NotFoundException(`Product ${productId} not found`);
       }
 
       const rules = (product.rulesJson as any) || { zones: [] };

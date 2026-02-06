@@ -16,6 +16,7 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -45,7 +46,7 @@ export class EditorController {
   @ApiResponse({ status: HttpStatus.OK, description: 'List of projects' })
   async listProjects(@User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.editorService.listProjects(user.brandId, user.id);
@@ -58,7 +59,7 @@ export class EditorController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Project not found' })
   async getProject(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.editorService.getProject(id, user.brandId);
@@ -73,7 +74,7 @@ export class EditorController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.editorService.createProject(user.brandId, user.id, dto);
@@ -90,7 +91,7 @@ export class EditorController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.editorService.updateProject(id, user.brandId, user.id, dto);
@@ -104,7 +105,7 @@ export class EditorController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteProject(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     await this.editorService.deleteProject(id, user.brandId, user.id);
@@ -121,7 +122,7 @@ export class EditorController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.editorService.exportProject(id, user.brandId, format);
@@ -137,7 +138,7 @@ export class EditorController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.editorService.addHistoryEntry(id, user.brandId, user.id, dto);

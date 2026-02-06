@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AIGenerationOptions, AIGenerationResult, AIProvider, AIProviderConfig } from '@/libs/ai/providers/ai-provider.interface';
 import { hashPrompt, sanitizePrompt } from '@/libs/ai/ai-safety';
@@ -32,7 +32,7 @@ export class StabilityProvider implements AIProvider {
 
   async generateImage(options: AIGenerationOptions): Promise<AIGenerationResult> {
     if (!this.apiKey) {
-      throw new Error('Stability AI API key not configured');
+      throw new InternalServerErrorException('Stability AI API key not configured');
     }
 
     const startTime = Date.now();
@@ -41,7 +41,7 @@ export class StabilityProvider implements AIProvider {
       // Sanitizer le prompt
       const sanitized = sanitizePrompt(options.prompt, { maxLength: 1000 });
       if (sanitized.blocked) {
-        throw new Error(`Prompt blocked: ${sanitized.reasons?.join(', ')}`);
+        throw new BadRequestException(`Prompt blocked: ${sanitized.reasons?.join(', ')}`);
       }
 
       const size = options.size || '1024x1024';
@@ -78,14 +78,14 @@ export class StabilityProvider implements AIProvider {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(`Stability AI API error: ${error.message || response.statusText}`);
+        throw new InternalServerErrorException(`Stability AI API error: ${error.message || response.statusText}`);
       }
 
       const result = await response.json();
       const imageBase64 = result.artifacts?.[0]?.base64;
 
       if (!imageBase64) {
-        throw new Error('No image returned from Stability AI');
+        throw new InternalServerErrorException('No image returned from Stability AI');
       }
 
       // Convertir base64 en URL (on pourrait uploader vers storage)
@@ -117,7 +117,7 @@ export class StabilityProvider implements AIProvider {
       };
     } catch (error: any) {
       this.logger.error(`Stability AI generation failed:`, error);
-      throw new Error(`Stability AI generation failed: ${error.message}`);
+      throw new InternalServerErrorException(`Stability AI generation failed: ${error.message}`);
     }
   }
 

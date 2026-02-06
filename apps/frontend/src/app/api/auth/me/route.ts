@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     const user = await response.json();
     return NextResponse.json(user);
   } catch (error) {
-    console.error('[API Auth Me] Error:', error);
+    serverLogger.apiError('/api/auth/me', 'GET', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

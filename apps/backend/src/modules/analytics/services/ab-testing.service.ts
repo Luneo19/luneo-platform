@@ -1,5 +1,5 @@
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 export interface Experiment {
@@ -110,13 +110,13 @@ export class ABTestingService {
       });
 
       if (!experiment) {
-        throw new Error('Experiment not found');
+        throw new NotFoundException('Experiment not found');
       }
 
       // Vérifier brandId dans targetAudience si nécessaire
       const targetAudience = experiment.targetAudience as Record<string, unknown> | null;
       if (targetAudience && targetAudience.brandId && targetAudience.brandId !== brandId) {
-        throw new Error('Experiment not found');
+        throw new NotFoundException('Experiment not found');
       }
 
       const updated = await this.prisma.experiment.update({
@@ -164,13 +164,13 @@ export class ABTestingService {
       });
 
       if (!experiment || experiment.status !== 'running') {
-        throw new Error('Experiment not found or not running');
+        throw new BadRequestException('Experiment not found or not running');
       }
 
       const variants = (experiment.variants as Experiment['variants']) || [];
 
       if (variants.length === 0) {
-        throw new Error('Experiment has no variants');
+        throw new BadRequestException('Experiment has no variants');
       }
 
       // Assigner selon poids (hash userId pour consistance)
@@ -308,7 +308,7 @@ export class ABTestingService {
       });
 
       if (!experiment) {
-        throw new Error('Experiment not found');
+        throw new NotFoundException('Experiment not found');
       }
 
       const variants = (experiment.variants as Experiment['variants']) || [];

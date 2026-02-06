@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Configurator3DSessionStatus } from '@prisma/client';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
@@ -41,7 +41,7 @@ export class Configurator3DSessionService {
     }
 
     if (!config.isActive) {
-      throw new Error('Configurator 3D configuration is not active');
+      throw new BadRequestException('Configurator 3D configuration is not active');
     }
 
     const sessionId = this.generateSessionId();

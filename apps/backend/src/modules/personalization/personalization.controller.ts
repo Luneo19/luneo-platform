@@ -4,6 +4,7 @@ import {
   Body,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { PersonalizationService } from './personalization.service';
@@ -13,6 +14,7 @@ import { AutoFitDto } from './dto/auto-fit.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { BrandScopedGuard } from '@/common/guards/brand-scoped.guard';
 import { BrandScoped } from '@/common/decorators/brand-scoped.decorator';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 
 @ApiTags('personalization')
 @Controller('v1/personalization')
@@ -20,17 +22,30 @@ import { BrandScoped } from '@/common/decorators/brand-scoped.decorator';
 @ApiBearerAuth()
 @BrandScoped()
 export class PersonalizationController {
-  constructor(private readonly personalizationService: PersonalizationService) {}
+  constructor(
+    private readonly personalizationService: PersonalizationService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Post('validate')
   @ApiOperation({ summary: 'Valider des inputs de zones' })
   @ApiResponse({ status: 200, description: 'Validation result' })
+  @ApiResponse({ status: 403, description: 'Product does not belong to brand' })
   async validate(
     @Body() dto: ValidateZoneInputDto,
     @Request() req: any,
   ) {
-    // Vérifier que le product appartient au brand
-    // TODO: Ajouter vérification brandId
+    // SEC-12: Vérifier que le product appartient au brand de l'utilisateur
+    const brandId = req.brandId;
+    const product = await this.prisma.product.findUnique({
+      where: { id: dto.productId },
+      select: { brandId: true },
+    });
+
+    if (!product || product.brandId !== brandId) {
+      throw new ForbiddenException('Product does not belong to your brand');
+    }
+
     return this.personalizationService.validateZoneInputs(dto);
   }
 

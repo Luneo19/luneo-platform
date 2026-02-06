@@ -1,98 +1,89 @@
 /**
  * Integration Tests - OAuth Workflow
- * Tests OAuth flows: Google/GitHub OAuth → User Creation → Session
+ * Tests OAuth account management at database level
+ * (Full OAuth flow requires external providers)
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '@/app.module';
+import { TestingModule } from '@nestjs/testing';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { describeIntegration } from '@/common/test/integration-test.helper';
+import { createIntegrationTestApp, closeIntegrationTestApp } from '@/common/test/test-app.module';
+import * as bcrypt from 'bcryptjs';
+import { UserRole } from '@prisma/client';
 
-describe('OAuth Workflow Integration', () => {
+describeIntegration('OAuth Workflow Integration', () => {
   let app: INestApplication;
+  let moduleFixture: TestingModule;
   let prisma: PrismaService;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
+    const testApp = await createIntegrationTestApp();
+    app = testApp.app;
+    moduleFixture = testApp.moduleFixture;
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-  });
+  }, 60000);
 
   afterAll(async () => {
-    await app.close();
+    await closeIntegrationTestApp(app);
   });
 
   beforeEach(async () => {
     // Clean up test data
     await prisma.oAuthAccount.deleteMany({});
+    await prisma.order.deleteMany({});
+    await prisma.design.deleteMany({});
     await prisma.refreshToken.deleteMany({});
     await prisma.userQuota.deleteMany({});
     await prisma.user.deleteMany({});
+    await prisma.product.deleteMany({});
+    await prisma.brand.deleteMany({});
   });
 
   describe('Google OAuth Flow', () => {
-    it('should create new user from Google OAuth', async () => {
-      // Mock Google OAuth callback
-      // In real scenario, this would be handled by Passport strategy
-      const mockGoogleProfile = {
-        id: 'google-123',
-        emails: [{ value: 'google-user@example.com' }],
-        name: {
-          givenName: 'Google',
-          familyName: 'User',
+    it('should create OAuth account for new user', async () => {
+      const timestamp = Date.now();
+      
+      // Create user (simulating OAuth user creation)
+      const user = await prisma.user.create({
+        data: {
+          email: `google-user-${timestamp}@example.com`,
+          firstName: 'Google',
+          lastName: 'User',
+          emailVerified: true, // OAuth emails are pre-verified
+          role: UserRole.CONSUMER,
         },
-        photos: [{ value: 'https://example.com/avatar.jpg' }],
-      };
-
-      // Simulate OAuth callback (this would normally be handled by Passport)
-      // For integration test, we'll test the OAuthService directly
-      const oauthData = {
-        provider: 'google',
-        providerId: mockGoogleProfile.id,
-        email: mockGoogleProfile.emails[0].value,
-        firstName: mockGoogleProfile.name.givenName,
-        lastName: mockGoogleProfile.name.familyName,
-        picture: mockGoogleProfile.photos[0].value,
-        accessToken: 'google-access-token',
-        refreshToken: 'google-refresh-token',
-      };
-
-      // Verify user is created
-      const userBefore = await prisma.user.findUnique({
-        where: { email: oauthData.email },
       });
-      expect(userBefore).toBeNull();
 
-      // In real scenario, OAuth callback would create user
-      // For now, we'll verify the OAuth account structure
+      // Create OAuth account
       const oauthAccount = await prisma.oAuthAccount.create({
         data: {
-          provider: oauthData.provider,
-          providerId: oauthData.providerId,
-          userId: 'temp-user-id', // Would be actual user ID
-          accessToken: oauthData.accessToken,
-          refreshToken: oauthData.refreshToken,
+          provider: 'google',
+          providerId: `google-${timestamp}`,
+          userId: user.id,
+          accessToken: 'google-access-token',
+          refreshToken: 'google-refresh-token',
         },
       });
 
       expect(oauthAccount.provider).toBe('google');
-      expect(oauthAccount.providerId).toBe(mockGoogleProfile.id);
+      expect(oauthAccount.userId).toBe(user.id);
+      expect(oauthAccount.providerId).toBe(`google-${timestamp}`);
     });
 
-    it('should link OAuth account to existing user', async () => {
-      // Create existing user
+    it('should link OAuth account to existing user with password', async () => {
+      const timestamp = Date.now();
+      const hashedPassword = await bcrypt.hash('Password123!', 13);
+      
+      // Create existing user with password
       const existingUser = await prisma.user.create({
         data: {
-          email: 'existing@example.com',
+          email: `existing-${timestamp}@example.com`,
           firstName: 'Existing',
           lastName: 'User',
-          password: 'hashed-password',
+          password: hashedPassword,
+          emailVerified: true,
+          role: UserRole.CONSUMER,
         },
       });
 
@@ -100,7 +91,7 @@ describe('OAuth Workflow Integration', () => {
       const oauthAccount = await prisma.oAuthAccount.create({
         data: {
           provider: 'google',
-          providerId: 'google-456',
+          providerId: `google-link-${timestamp}`,
           userId: existingUser.id,
           accessToken: 'google-access-token',
           refreshToken: 'google-refresh-token',
@@ -118,70 +109,135 @@ describe('OAuth Workflow Integration', () => {
       expect(userWithOAuth?.oauthAccounts).toHaveLength(1);
       expect(userWithOAuth?.oauthAccounts[0].provider).toBe('google');
     });
+
+    it('should prevent duplicate OAuth accounts for same provider', async () => {
+      const timestamp = Date.now();
+      
+      const user = await prisma.user.create({
+        data: {
+          email: `oauth-dup-${timestamp}@example.com`,
+          firstName: 'OAuth',
+          lastName: 'Duplicate',
+          emailVerified: true,
+          role: UserRole.CONSUMER,
+        },
+      });
+
+      // Create first OAuth account
+      await prisma.oAuthAccount.create({
+        data: {
+          provider: 'google',
+          providerId: `google-dup-${timestamp}`,
+          userId: user.id,
+          accessToken: 'token1',
+        },
+      });
+
+      // Try to create duplicate - should fail
+      await expect(
+        prisma.oAuthAccount.create({
+          data: {
+            provider: 'google',
+            providerId: `google-dup-${timestamp}`,
+            userId: user.id,
+            accessToken: 'token2',
+          },
+        })
+      ).rejects.toThrow();
+    });
   });
 
   describe('GitHub OAuth Flow', () => {
-    it('should create new user from GitHub OAuth', async () => {
-      const mockGitHubProfile = {
-        id: 'github-123',
-        username: 'githubuser',
-        displayName: 'GitHub User',
-        emails: [{ value: 'github-user@example.com' }],
-        photos: [{ value: 'https://example.com/github-avatar.jpg' }],
-      };
+    it('should create OAuth account for GitHub user', async () => {
+      const timestamp = Date.now();
+      
+      const user = await prisma.user.create({
+        data: {
+          email: `github-user-${timestamp}@example.com`,
+          firstName: 'GitHub',
+          lastName: 'User',
+          emailVerified: true,
+          role: UserRole.CONSUMER,
+        },
+      });
 
-      const oauthData = {
-        provider: 'github',
-        providerId: mockGitHubProfile.id,
-        email: mockGitHubProfile.emails[0].value,
-        firstName: mockGitHubProfile.displayName,
-        lastName: '',
-        picture: mockGitHubProfile.photos[0].value,
-        accessToken: 'github-access-token',
-        refreshToken: 'github-refresh-token',
-      };
-
-      // Verify OAuth account can be created
       const oauthAccount = await prisma.oAuthAccount.create({
         data: {
-          provider: oauthData.provider,
-          providerId: oauthData.providerId,
-          userId: 'temp-user-id',
-          accessToken: oauthData.accessToken,
-          refreshToken: oauthData.refreshToken,
+          provider: 'github',
+          providerId: `github-${timestamp}`,
+          userId: user.id,
+          accessToken: 'github-access-token',
         },
       });
 
       expect(oauthAccount.provider).toBe('github');
-      expect(oauthAccount.providerId).toBe(mockGitHubProfile.id);
+      expect(oauthAccount.userId).toBe(user.id);
     });
   });
 
-  describe('OAuth Session Management', () => {
-    it('should create session after OAuth login', async () => {
-      // Create user via OAuth
-      const oauthUser = await prisma.user.create({
+  describe('Multiple OAuth Providers', () => {
+    it('should allow user to link multiple OAuth providers', async () => {
+      const timestamp = Date.now();
+      
+      const user = await prisma.user.create({
         data: {
-          email: 'oauth-session@example.com',
-          firstName: 'OAuth',
-          lastName: 'User',
-          emailVerified: true, // OAuth emails are pre-verified
+          email: `multi-oauth-${timestamp}@example.com`,
+          firstName: 'Multi',
+          lastName: 'OAuth',
+          emailVerified: true,
+          role: UserRole.CONSUMER,
         },
       });
 
+      // Link Google
       await prisma.oAuthAccount.create({
         data: {
           provider: 'google',
-          providerId: 'google-session-123',
-          userId: oauthUser.id,
-          accessToken: 'session-token',
+          providerId: `google-multi-${timestamp}`,
+          userId: user.id,
+          accessToken: 'google-token',
         },
       });
 
-      // Verify user can login (OAuth users don't have password)
-      // In real scenario, OAuth login would return tokens
-      expect(oauthUser.emailVerified).toBe(true);
+      // Link GitHub
+      await prisma.oAuthAccount.create({
+        data: {
+          provider: 'github',
+          providerId: `github-multi-${timestamp}`,
+          userId: user.id,
+          accessToken: 'github-token',
+        },
+      });
+
+      // Verify both are linked
+      const userWithOAuth = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { oauthAccounts: true },
+      });
+
+      expect(userWithOAuth?.oauthAccounts).toHaveLength(2);
+      expect(userWithOAuth?.oauthAccounts.map(a => a.provider).sort()).toEqual(['github', 'google']);
+    });
+  });
+
+  describe('OAuth User Properties', () => {
+    it('should create user without password when using OAuth', async () => {
+      const timestamp = Date.now();
+      
+      // OAuth users don't need password
+      const oauthUser = await prisma.user.create({
+        data: {
+          email: `oauth-nopass-${timestamp}@example.com`,
+          firstName: 'OAuth',
+          lastName: 'NoPassword',
+          emailVerified: true, // OAuth emails are pre-verified
+          role: UserRole.CONSUMER,
+          // No password field
+        },
+      });
+
       expect(oauthUser.password).toBeNull();
+      expect(oauthUser.emailVerified).toBe(true);
     });
   });
 });

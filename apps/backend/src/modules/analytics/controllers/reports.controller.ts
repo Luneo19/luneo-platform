@@ -24,6 +24,8 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { z } from 'zod';
@@ -65,7 +67,7 @@ export class ReportsController {
   @ApiOperation({ summary: 'Liste des rapports' })
   async getReports(@CurrentBrand() brand: { id: string } | null) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     // TODO: Implémenter la récupération des rapports
@@ -88,13 +90,13 @@ export class ReportsController {
     @CurrentBrand() brand: { id: string } | null,
   ) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     const validated = GenerateReportSchema.parse(body);
 
     if (!validated.dateRange.start || !validated.dateRange.end) {
-      throw new Error('Date range start and end are required');
+      throw new BadRequestException('Date range start and end are required');
     }
 
     const report = await this.reportsService.generatePDFReport(
@@ -121,7 +123,7 @@ export class ReportsController {
     @CurrentBrand() brand: { id: string } | null,
   ) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     z.string().uuid().parse(id);

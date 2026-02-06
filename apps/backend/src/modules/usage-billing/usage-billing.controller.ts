@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { UsageMeteringService } from './services/usage-metering.service';
 import { UsageTrackingService } from './services/usage-tracking.service';
 import { QuotasService } from './services/quotas.service';
@@ -12,6 +13,7 @@ import { UsageMetricType } from './interfaces/usage.interface';
  */
 @ApiTags('Usage & Billing')
 @Controller('usage-billing')
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class UsageBillingController {
   constructor(

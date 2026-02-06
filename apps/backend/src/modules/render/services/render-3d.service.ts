@@ -2,7 +2,7 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { RenderRequest, RenderResult } from '../interfaces/render.interface';
@@ -161,7 +161,7 @@ export class Render3DService {
       // Récupérer la configuration depuis Prisma
       const configuration = await this.getConfiguration(body.configurationId);
       if (!configuration) {
-        throw new Error(`Configuration ${body.configurationId} not found`);
+        throw new NotFoundException(`Configuration ${body.configurationId} not found`);
       }
 
       // Déterminer les dimensions selon le preset
@@ -238,7 +238,7 @@ export class Render3DService {
       
       // No modelUrl available - return error
       this.logger.warn(`No model URL available for configuration ${body.configurationId}`);
-      throw new Error('Unable to generate 3D render - no model URL provided. Please configure a 3D model URL for this product.');
+      throw new BadRequestException('Unable to generate 3D render - no model URL provided. Please configure a 3D model URL for this product.');
     } catch (error) {
       this.logger.error(`3D high-res render failed for configuration ${body.configurationId}:`, error);
       throw error;
@@ -375,7 +375,7 @@ export class Render3DService {
       // Récupérer la configuration depuis Prisma
       const configuration = await this.getConfiguration(body.configurationId);
       if (!configuration) {
-        throw new Error(`Configuration ${body.configurationId} not found`);
+        throw new NotFoundException(`Configuration ${body.configurationId} not found`);
       }
 
       // Déterminer le format selon la plateforme

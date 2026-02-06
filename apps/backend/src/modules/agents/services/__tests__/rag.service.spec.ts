@@ -26,6 +26,8 @@ describe('RAGService', () => {
     const mockCache = {
       get: jest.fn(),
       set: jest.fn(),
+      getSimple: jest.fn(),
+      setSimple: jest.fn(),
     };
 
     const mockLlmRouter = {
@@ -87,7 +89,7 @@ describe('RAGService', () => {
         },
       ];
 
-      cache.get.mockResolvedValue(cachedDocs);
+      cache.getSimple.mockResolvedValue(cachedDocs);
 
       const result = await service.search('test query', 'brand-id');
 
@@ -96,7 +98,7 @@ describe('RAGService', () => {
     });
 
     it('should search articles if not cached', async () => {
-      cache.get.mockResolvedValue(null);
+      cache.getSimple.mockResolvedValue(null);
       (prisma.knowledgeBaseArticle.findMany as jest.Mock).mockResolvedValue([
         {
           id: '1',
@@ -119,12 +121,13 @@ describe('RAGService', () => {
 
       expect(result.length).toBeGreaterThan(0);
       expect(result[0].content).toContain('Test Article');
-      expect(cache.set).toHaveBeenCalled();
+      expect(cache.setSimple).toHaveBeenCalled();
     });
   });
 
   describe('enhancePrompt', () => {
     it('should enhance prompt with RAG documents', async () => {
+      cache.getSimple.mockResolvedValue(null);
       (prisma.knowledgeBaseArticle.findMany as jest.Mock).mockResolvedValue([
         {
           id: '1',

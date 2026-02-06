@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import type OpenAI from 'openai';
@@ -64,7 +64,7 @@ export class ContentModerationService {
           result = await this.moderateAIGeneration(request.content, request.context);
           break;
         default:
-          throw new Error(`Unsupported moderation type: ${request.type}`);
+          throw new BadRequestException(`Unsupported moderation type: ${request.type}`);
       }
 
       // Sauvegarder le résultat

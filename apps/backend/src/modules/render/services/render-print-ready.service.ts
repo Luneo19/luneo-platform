@@ -1,7 +1,7 @@
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { createCanvas, loadImage, type CanvasRenderingContext2D, type CanvasTextAlign, type Image } from 'canvas';
 import sharp from 'sharp';
 // Types from widget package (will be imported from shared types later)
@@ -126,7 +126,7 @@ export class RenderPrintReadyService {
       // Load from URL
       const response = await fetch(src);
       if (!response.ok) {
-        throw new Error(`Failed to load image: ${response.statusText}`);
+        throw new InternalServerErrorException(`Failed to load image: ${response.statusText}`);
       }
       
       const arrayBuffer = await response.arrayBuffer();
@@ -464,7 +464,7 @@ export class RenderPrintReadyService {
     });
     
     if (!design) {
-      throw new Error(`Design not found: ${designId}`);
+      throw new NotFoundException(`Design not found: ${designId}`);
     }
     
     // Convert to DesignData format

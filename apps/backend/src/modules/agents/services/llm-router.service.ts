@@ -9,7 +9,7 @@
  * - ✅ Injectable NestJS
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { z } from 'zod';
@@ -357,7 +357,7 @@ export class LLMRouterService {
   ): Promise<LLMResponse> {
     const circuitBreaker = this.circuitBreakers.get(provider);
     if (!circuitBreaker) {
-      throw new Error(`No circuit breaker for provider ${provider}`);
+      throw new InternalServerErrorException(`No circuit breaker for provider ${provider}`);
     }
 
     // Exécuter avec circuit breaker
@@ -375,7 +375,7 @@ export class LLMRouterService {
               case LLMProvider.MISTRAL:
                 return this.callMistral(request);
               default:
-                throw new Error(`Unsupported provider: ${provider}`);
+                throw new BadRequestException(`Unsupported provider: ${provider}`);
             }
           },
           {

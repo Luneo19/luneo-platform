@@ -14,6 +14,7 @@
  * - ✅ Types explicites
  * - ✅ Validation robuste
  * - ✅ Logging structuré
+ * - ✅ SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
  */
 
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
@@ -45,6 +46,7 @@ export interface SLAConfig {
  * Ticket avec SLA
  */
 export interface SLATicket {
+  id: string;
   ticketId: string;
   brandId: string;
   planId: string;
@@ -155,6 +157,7 @@ export class SLASupportService {
 
   /**
    * Crée un ticket avec SLA tracking
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRaw
    */
   async createSLATicket(ticketId: string, brandId: string, priority: 'low' | 'medium' | 'high' | 'critical'): Promise<SLATicket> {
     // ✅ Validation
@@ -166,9 +169,12 @@ export class SLASupportService {
       throw new BadRequestException('Brand ID is required');
     }
 
+    const cleanTicketId = ticketId.trim();
+    const cleanBrandId = brandId.trim();
+
     // ✅ Récupérer le plan du brand
     const brand = await this.prisma.brand.findUnique({
-      where: { id: brandId.trim() },
+      where: { id: cleanBrandId },
       select: { id: true, plan: true },
     });
 
@@ -185,30 +191,23 @@ export class SLASupportService {
     const resolutionDeadline = new Date(now.getTime() + slaConfig.resolutionTimeHours * 60 * 60 * 1000);
 
     try {
-      // ✅ Créer l'enregistrement SLA
-      await this.prisma.$executeRaw`
-        INSERT INTO "SLATicket" (
-          "id", "ticketId", "brandId", "planId", "priority",
-          "createdAt", "slaResponseDeadline", "slaResolutionDeadline",
-          "slaStatus", "escalationLevel"
-        ) VALUES (
-          gen_random_uuid()::text,
-          ${ticketId.trim()},
-          ${brandId.trim()},
-          ${planId},
-          ${priority},
-          NOW(),
-          ${responseDeadline},
-          ${resolutionDeadline},
-          'on_time',
-          0
-        )
-      `;
+      // ✅ Créer l'enregistrement SLA avec Prisma
+      const ticket = await this.prisma.sLATicket.create({
+        data: {
+          ticketId: cleanTicketId,
+          brandId: cleanBrandId,
+          planId,
+          priority,
+          slaResponseDeadline: responseDeadline,
+          slaResolutionDeadline: resolutionDeadline,
+          slaStatus: 'on_time',
+          escalationLevel: 0,
+        },
+      });
 
       this.logger.log(`SLA ticket created: ${ticketId} for brand ${brandId} with plan ${planId}`);
 
-      // ✅ Récupérer le ticket créé
-      return this.getSLATicket(ticketId.trim());
+      return ticket as unknown as SLATicket;
     } catch (error) {
       this.logger.error(
         `Failed to create SLA ticket: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -219,6 +218,7 @@ export class SLASupportService {
 
   /**
    * Obtient un ticket SLA
+   * SEC-11: Utilise méthodes Prisma au lieu de $queryRawUnsafe
    */
   async getSLATicket(ticketId: string): Promise<SLATicket> {
     // ✅ Validation
@@ -226,20 +226,20 @@ export class SLASupportService {
       throw new BadRequestException('Ticket ID is required');
     }
 
-    const tickets = await this.prisma.$queryRawUnsafe<SLATicket[]>(
-      `SELECT * FROM "SLATicket" WHERE "ticketId" = $1 LIMIT 1`,
-      ticketId.trim(),
-    );
+    const ticket = await this.prisma.sLATicket.findFirst({
+      where: { ticketId: ticketId.trim() },
+    });
 
-    if (!tickets || tickets.length === 0) {
+    if (!ticket) {
       throw new NotFoundException(`SLA ticket not found: ${ticketId}`);
     }
 
-    return tickets[0];
+    return ticket as unknown as SLATicket;
   }
 
   /**
    * Met à jour le statut SLA d'un ticket
+   * SEC-11: Utilise méthodes Prisma au lieu de $executeRawUnsafe
    */
   async updateSLATicketStatus(ticketId: string, firstResponseAt?: Date, resolvedAt?: Date): Promise<SLATicket> {
     // ✅ Validation
@@ -247,9 +247,11 @@ export class SLASupportService {
       throw new BadRequestException('Ticket ID is required');
     }
 
+    const cleanTicketId = ticketId.trim();
+
     try {
       // ✅ Récupérer le ticket actuel
-      const ticket = await this.getSLATicket(ticketId.trim());
+      const ticket = await this.getSLATicket(cleanTicketId);
       const slaConfig = this.getSLAConfig(ticket.planId);
 
       // ✅ Calculer le statut SLA
@@ -290,23 +292,18 @@ export class SLASupportService {
         }
       }
 
-      // ✅ Mettre à jour le ticket
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE "SLATicket" SET
-          "firstResponseAt" = COALESCE($1, "firstResponseAt"),
-          "resolvedAt" = COALESCE($2, "resolvedAt"),
-          "slaStatus" = $3,
-          "escalationLevel" = $4,
-          "updatedAt" = NOW()
-        WHERE "ticketId" = $5`,
-        firstResponseAt || null,
-        resolvedAt || null,
-        slaStatus,
-        escalationLevel,
-        ticketId.trim(),
-      );
+      // ✅ Mettre à jour le ticket avec Prisma
+      const updatedTicket = await this.prisma.sLATicket.update({
+        where: { id: ticket.id },
+        data: {
+          firstResponseAt: firstResponseAt || ticket.firstResponseAt,
+          resolvedAt: resolvedAt || ticket.resolvedAt,
+          slaStatus,
+          escalationLevel,
+        },
+      });
 
-      return this.getSLATicket(ticketId.trim());
+      return updatedTicket as unknown as SLATicket;
     } catch (error) {
       this.logger.error(
         `Failed to update SLA ticket status: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -316,7 +313,9 @@ export class SLASupportService {
   }
 
   /**
-   * Calcule les métriques SLA pour un brand
+   * Calcule les métriques SLA pour un brand avec cache
+   * SEC-11: Utilise Prisma aggregate et groupBy au lieu de $queryRawUnsafe
+   * PERF-05: Cache Redis avec TTL 15min
    */
   async calculateSLAMetrics(brandId: string, periodStart: Date, periodEnd: Date): Promise<SLAMetrics> {
     // ✅ Validation
@@ -324,62 +323,122 @@ export class SLASupportService {
       throw new BadRequestException('Brand ID is required');
     }
 
-    try {
-      const metrics = await this.prisma.$queryRawUnsafe<Array<{
-        totalTickets: number;
-        ticketsOnTime: number;
-        ticketsAtRisk: number;
-        ticketsBreached: number;
-        averageResponseTimeHours: number;
-        averageResolutionTimeHours: number;
-      }>>(
-        `SELECT
-          COUNT(*)::int as "totalTickets",
-          COUNT(*) FILTER (WHERE "slaStatus" = 'on_time')::int as "ticketsOnTime",
-          COUNT(*) FILTER (WHERE "slaStatus" = 'at_risk')::int as "ticketsAtRisk",
-          COUNT(*) FILTER (WHERE "slaStatus" = 'breached')::int as "ticketsBreached",
-          COALESCE(AVG(EXTRACT(EPOCH FROM ("firstResponseAt" - "createdAt")) / 3600), 0)::float as "averageResponseTimeHours",
-          COALESCE(AVG(EXTRACT(EPOCH FROM ("resolvedAt" - "createdAt")) / 3600), 0)::float as "averageResolutionTimeHours"
-        FROM "SLATicket"
-        WHERE "brandId" = $1
-          AND "createdAt" >= $2
-          AND "createdAt" < $3`,
-        brandId.trim(),
-        periodStart,
-        periodEnd,
-      );
+    const cleanBrandId = brandId.trim();
 
-      if (!metrics || metrics.length === 0) {
-        return {
-          brandId: brandId.trim(),
-          periodStart,
-          periodEnd,
-          totalTickets: 0,
-          ticketsOnTime: 0,
-          ticketsAtRisk: 0,
-          ticketsBreached: 0,
-          averageResponseTimeHours: 0,
-          averageResolutionTimeHours: 0,
-          uptimePercent: 100,
-          slaCompliancePercent: 100,
-        };
+    // PERF-05: Générer une clé de cache unique pour cette période
+    const cacheKey = `sla-metrics:${cleanBrandId}:${periodStart.toISOString()}:${periodEnd.toISOString()}`;
+
+    return await this.cache.get(
+      cacheKey,
+      'analytics', // Stratégie analytics avec TTL court
+      async () => this.computeSLAMetrics(cleanBrandId, periodStart, periodEnd),
+      { ttl: 900, tags: [`sla:${cleanBrandId}`] }, // 15 minutes
+    ) ?? await this.computeSLAMetrics(cleanBrandId, periodStart, periodEnd);
+  }
+
+  /**
+   * Calcul interne des métriques SLA (sans cache)
+   */
+  private async computeSLAMetrics(
+    cleanBrandId: string,
+    periodStart: Date,
+    periodEnd: Date,
+  ): Promise<SLAMetrics> {
+    try {
+      // ✅ Récupérer les statistiques avec Prisma
+      const [totalCount, statusCounts, avgTimes] = await Promise.all([
+        // Total tickets
+        this.prisma.sLATicket.count({
+          where: {
+            brandId: cleanBrandId,
+            createdAt: {
+              gte: periodStart,
+              lt: periodEnd,
+            },
+          },
+        }),
+        // Counts by status
+        this.prisma.sLATicket.groupBy({
+          by: ['slaStatus'],
+          where: {
+            brandId: cleanBrandId,
+            createdAt: {
+              gte: periodStart,
+              lt: periodEnd,
+            },
+          },
+          _count: true,
+        }),
+        // Average times - nécessite tous les tickets pour le calcul
+        this.prisma.sLATicket.findMany({
+          where: {
+            brandId: cleanBrandId,
+            createdAt: {
+              gte: periodStart,
+              lt: periodEnd,
+            },
+          },
+          select: {
+            createdAt: true,
+            firstResponseAt: true,
+            resolvedAt: true,
+          },
+        }),
+      ]);
+
+      // ✅ Calculer les counts par status
+      let ticketsOnTime = 0;
+      let ticketsAtRisk = 0;
+      let ticketsBreached = 0;
+
+      for (const status of statusCounts) {
+        switch (status.slaStatus) {
+          case 'on_time':
+            ticketsOnTime = status._count;
+            break;
+          case 'at_risk':
+            ticketsAtRisk = status._count;
+            break;
+          case 'breached':
+            ticketsBreached = status._count;
+            break;
+        }
       }
 
-      const metric = metrics[0];
-      const slaCompliancePercent = metric.totalTickets > 0
-        ? (metric.ticketsOnTime / metric.totalTickets) * 100
+      // ✅ Calculer les moyennes de temps
+      let totalResponseTime = 0;
+      let responseCount = 0;
+      let totalResolutionTime = 0;
+      let resolutionCount = 0;
+
+      for (const ticket of avgTimes) {
+        if (ticket.firstResponseAt) {
+          totalResponseTime += (ticket.firstResponseAt.getTime() - ticket.createdAt.getTime()) / (1000 * 60 * 60);
+          responseCount++;
+        }
+        if (ticket.resolvedAt) {
+          totalResolutionTime += (ticket.resolvedAt.getTime() - ticket.createdAt.getTime()) / (1000 * 60 * 60);
+          resolutionCount++;
+        }
+      }
+
+      const averageResponseTimeHours = responseCount > 0 ? totalResponseTime / responseCount : 0;
+      const averageResolutionTimeHours = resolutionCount > 0 ? totalResolutionTime / resolutionCount : 0;
+
+      const slaCompliancePercent = totalCount > 0
+        ? (ticketsOnTime / totalCount) * 100
         : 100;
 
       return {
-        brandId: brandId.trim(),
+        brandId: cleanBrandId,
         periodStart,
         periodEnd,
-        totalTickets: metric.totalTickets,
-        ticketsOnTime: metric.ticketsOnTime,
-        ticketsAtRisk: metric.ticketsAtRisk,
-        ticketsBreached: metric.ticketsBreached,
-        averageResponseTimeHours: metric.averageResponseTimeHours,
-        averageResolutionTimeHours: metric.averageResolutionTimeHours,
+        totalTickets: totalCount,
+        ticketsOnTime,
+        ticketsAtRisk,
+        ticketsBreached,
+        averageResponseTimeHours,
+        averageResolutionTimeHours,
         uptimePercent: 100, // TODO: Calculer depuis les métriques de monitoring
         slaCompliancePercent,
       };

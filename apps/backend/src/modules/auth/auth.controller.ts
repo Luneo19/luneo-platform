@@ -126,9 +126,12 @@ export class AuthController {
     
     // Return user data (tokens are in httpOnly cookies)
     // Tokens removed from response for security (httpOnly cookies only)
-    return {
+    // Using res.json() because passthrough is false
+    return res.status(HttpStatus.CREATED).json({
       user: result.user,
-    };
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
   }
 
   @Post('login')
@@ -189,11 +192,11 @@ export class AuthController {
     
     // Si 2FA requis, retourner tempToken sans cookies
     if ('requires2FA' in result && result.requires2FA) {
-      return {
+      return res.status(HttpStatus.OK).json({
         requires2FA: true,
         tempToken: result.tempToken,
         user: result.user,
-      };
+      });
     }
     
     // Set httpOnly cookies
@@ -204,12 +207,19 @@ export class AuthController {
         result.refreshToken,
         this.configService,
       );
+      
+      // Return user data with tokens (using res.json because passthrough is false)
+      return res.status(HttpStatus.OK).json({
+        user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
     }
     
-    // Return user data (tokens are in httpOnly cookies)
-    return {
+    // Fallback return (shouldn't happen but needed for TypeScript)
+    return res.status(HttpStatus.OK).json({
       user: result.user,
-    };
+    });
   }
 
   @Post('login/2fa')
@@ -232,9 +242,11 @@ export class AuthController {
       this.configService,
     );
     
-    return {
+    return res.status(HttpStatus.OK).json({
       user: result.user,
-    };
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
   }
 
   @Post('2fa/setup')
@@ -320,7 +332,11 @@ export class AuthController {
     const refreshToken = req.cookies?.refreshToken || refreshTokenDto.refreshToken;
     
     if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token not provided in cookie or body');
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        statusCode: 401,
+        message: 'Refresh token not provided in cookie or body',
+        error: 'Unauthorized',
+      });
     }
     
     const result = await this.authService.refreshToken({ refreshToken });
@@ -333,11 +349,12 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data (tokens are in httpOnly cookies)
-    // Tokens removed from response for security (httpOnly cookies only)
-    return {
+    // Return user data with tokens (using res.json because passthrough is false)
+    return res.status(HttpStatus.OK).json({
       user: result.user,
-    };
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
   }
 
   @Post('logout')
@@ -380,7 +397,7 @@ export class AuthController {
     // Clear httpOnly cookies
     AuthCookiesHelper.clearAuthCookies(res, this.configService);
     
-    return result;
+    return res.status(HttpStatus.OK).json(result);
   }
 
   @Get('me')

@@ -30,7 +30,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import * as THREE from 'three';
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+// BUNDLE-01: jsPDF importé dynamiquement (~200KB) - voir handleExportPDF()
 import { ThreeDErrorBoundary } from '@/components/ErrorBoundary';
 import { exportToGLB, exportToPNG, disposeThreeJSResources, downloadBlob } from '@/lib/utils/export-3d';
 
@@ -464,7 +464,10 @@ function Configurator3DDemo({
     }
   }, []);
 
-  // Export PDF 300DPI
+  /**
+   * BUNDLE-01: Export PDF 300DPI avec jsPDF chargé dynamiquement
+   * Économie ~200KB sur le bundle initial
+   */
   const exportPDF = useCallback(async () => {
     if (!canvasRef.current) return;
     
@@ -473,6 +476,8 @@ function Configurator3DDemo({
       const canvas = canvasRef.current.querySelector('canvas');
       if (!canvas) return;
 
+      // BUNDLE-01: Dynamic import de jsPDF
+      const { default: jsPDF } = await import('jspdf');
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF({
         orientation: 'landscape',

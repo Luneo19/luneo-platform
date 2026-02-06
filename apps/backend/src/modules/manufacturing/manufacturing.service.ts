@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ExportPackService } from './services/export-pack.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { GenerateExportPackDto } from './dto/generate-export-pack.dto';
@@ -43,7 +43,7 @@ export class ManufacturingService {
     });
 
     if (!order) {
-      throw new Error(`Order not found: ${orderId}`);
+      throw new NotFoundException(`Order not found: ${orderId}`);
     }
 
     // Récupérer les bundles de tous les items

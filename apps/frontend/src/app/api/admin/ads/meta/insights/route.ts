@@ -8,6 +8,7 @@ import { getAdminUser } from '@/lib/admin/permissions';
 import { MetaAdsClient } from '@/lib/admin/integrations/meta-ads';
 import { db } from '@/lib/db';
 import { subDays } from 'date-fns';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ insights });
   } catch (error) {
-    console.error('Error fetching Meta insights:', error);
+    serverLogger.apiError('/api/admin/ads/meta/insights', 'GET', error, 500);
     return NextResponse.json(
       { error: 'Failed to fetch insights' },
       { status: 500 }

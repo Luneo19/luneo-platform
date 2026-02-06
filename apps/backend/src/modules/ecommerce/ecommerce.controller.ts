@@ -9,6 +9,7 @@ import {
     HttpCode,
     HttpStatus,
     NotFoundException,
+    BadRequestException,
     Param,
     Post,
     Put,
@@ -105,7 +106,7 @@ export class EcommerceController {
       }
 
       if (!brandId || brandId === 'undefined' || brandId === 'null') {
-        throw new Error('Invalid brand ID in OAuth state');
+        throw new BadRequestException('Invalid brand ID in OAuth state');
       }
 
       // Sauvegarder l'intégration

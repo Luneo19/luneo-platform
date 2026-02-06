@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 
 // Web Push types
 interface PushSubscriptionKeys {
@@ -22,18 +23,29 @@ interface PushPayload {
   data?: Record<string, unknown>;
 }
 
+/**
+ * PERF-01: Push subscriptions migrées vers Redis
+ * - Plus de perte de données au redémarrage
+ * - Support du scaling horizontal (multi-instances)
+ * - TTL automatique pour nettoyer les subscriptions expirées
+ */
+const PUSH_SUB_REDIS_PREFIX = 'push:sub:';
+const PUSH_SUB_TTL = 60 * 60 * 24 * 30; // 30 jours
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly vapidPublicKey: string;
   private webPushEnabled: boolean = false;
+  private redisAvailable: boolean = false;
   
-  // In-memory push subscriptions (in production, use Redis or DB table)
-  private pushSubscriptions: Map<string, PushSubscriptionData[]> = new Map();
+  // Fallback in-memory pour mode dégradé (si Redis indisponible)
+  private inMemoryFallback: Map<string, PushSubscriptionData[]> = new Map();
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private redis: RedisOptimizedService,
   ) {
     this.vapidPublicKey = this.configService.get<string>('VAPID_PUBLIC_KEY') || '';
     
@@ -45,10 +57,31 @@ export class NotificationsService {
     } else {
       this.logger.warn('VAPID keys not configured - push notifications disabled');
     }
+    
+    // Check Redis availability
+    this.checkRedisAvailability();
+  }
+  
+  /**
+   * Vérifie si Redis est disponible pour le stockage des subscriptions
+   */
+  private async checkRedisAvailability(): Promise<void> {
+    try {
+      const isHealthy = await this.redis.healthCheck();
+      this.redisAvailable = isHealthy;
+      if (isHealthy) {
+        this.logger.log('✅ Push subscriptions: Redis storage enabled');
+      } else {
+        this.logger.warn('⚠️ Push subscriptions: Redis unavailable, using in-memory fallback');
+      }
+    } catch {
+      this.redisAvailable = false;
+      this.logger.warn('⚠️ Push subscriptions: Redis check failed, using in-memory fallback');
+    }
   }
 
   // ========================================
-  // PUSH NOTIFICATIONS
+  // PUSH NOTIFICATIONS (PERF-01: Redis-backed)
   // ========================================
 
   /**
@@ -57,16 +90,68 @@ export class NotificationsService {
   getVapidPublicKey(): string {
     return this.vapidPublicKey;
   }
+  
+  /**
+   * Récupère les subscriptions d'un utilisateur depuis Redis ou fallback
+   */
+  private async getUserSubscriptions(userId: string): Promise<PushSubscriptionData[]> {
+    if (this.redisAvailable) {
+      try {
+        const data = await this.redis.get<PushSubscriptionData[]>(
+          `${PUSH_SUB_REDIS_PREFIX}${userId}`,
+          'session'
+        );
+        return data || [];
+      } catch (error) {
+        this.logger.error(`Failed to get subscriptions from Redis for user ${userId}`, error);
+        // Fallback to in-memory
+        return this.inMemoryFallback.get(userId) || [];
+      }
+    }
+    return this.inMemoryFallback.get(userId) || [];
+  }
+  
+  /**
+   * Sauvegarde les subscriptions d'un utilisateur dans Redis ou fallback
+   */
+  private async saveUserSubscriptions(userId: string, subscriptions: PushSubscriptionData[]): Promise<boolean> {
+    // Toujours sauvegarder en mémoire comme backup
+    if (subscriptions.length > 0) {
+      this.inMemoryFallback.set(userId, subscriptions);
+    } else {
+      this.inMemoryFallback.delete(userId);
+    }
+    
+    if (this.redisAvailable) {
+      try {
+        if (subscriptions.length > 0) {
+          await this.redis.set(
+            `${PUSH_SUB_REDIS_PREFIX}${userId}`,
+            subscriptions,
+            'session',
+            { ttl: PUSH_SUB_TTL }
+          );
+        } else {
+          await this.redis.del(`${PUSH_SUB_REDIS_PREFIX}${userId}`, 'session');
+        }
+        return true;
+      } catch (error) {
+        this.logger.error(`Failed to save subscriptions to Redis for user ${userId}`, error);
+        return false;
+      }
+    }
+    return true;
+  }
 
   /**
    * Subscribe user to push notifications
+   * PERF-01: Stockage Redis persistant
    */
   async subscribeToPush(userId: string, subscription: PushSubscriptionData): Promise<{ success: boolean }> {
     try {
-      // Store subscription in memory (for MVP - use Redis/DB in production)
-      const existing = this.pushSubscriptions.get(userId) || [];
+      const existing = await this.getUserSubscriptions(userId);
       
-      // Check if already subscribed
+      // Check if already subscribed (update if exists)
       const existingIndex = existing.findIndex(s => s.endpoint === subscription.endpoint);
       if (existingIndex >= 0) {
         existing[existingIndex] = subscription;
@@ -74,8 +159,8 @@ export class NotificationsService {
         existing.push(subscription);
       }
       
-      this.pushSubscriptions.set(userId, existing);
-      this.logger.log(`Push subscription added for user ${userId}`);
+      await this.saveUserSubscriptions(userId, existing);
+      this.logger.log(`Push subscription added for user ${userId} (Redis: ${this.redisAvailable})`);
       
       return { success: true };
     } catch (error) {
@@ -86,17 +171,14 @@ export class NotificationsService {
 
   /**
    * Unsubscribe user from push notifications
+   * PERF-01: Suppression depuis Redis
    */
   async unsubscribeFromPush(userId: string, endpoint: string): Promise<{ success: boolean }> {
     try {
-      const existing = this.pushSubscriptions.get(userId) || [];
+      const existing = await this.getUserSubscriptions(userId);
       const filtered = existing.filter(s => s.endpoint !== endpoint);
       
-      if (filtered.length > 0) {
-        this.pushSubscriptions.set(userId, filtered);
-      } else {
-        this.pushSubscriptions.delete(userId);
-      }
+      await this.saveUserSubscriptions(userId, filtered);
       
       this.logger.log(`Push subscription removed for user ${userId}`);
       return { success: true };
@@ -135,9 +217,10 @@ export class NotificationsService {
 
   /**
    * Send push notification to all user subscriptions
+   * PERF-01: Lecture depuis Redis
    */
   async sendPushToUser(userId: string, payload: PushPayload): Promise<{ sent: number; failed: number }> {
-    const subscriptions = this.pushSubscriptions.get(userId) || [];
+    const subscriptions = await this.getUserSubscriptions(userId);
     let sent = 0;
     let failed = 0;
 

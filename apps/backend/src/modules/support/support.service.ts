@@ -58,7 +58,28 @@ export class SupportService {
     };
   }
 
-  async getTicket(id: string, userId: string) {
+  /**
+   * PERF-02: Pagination ajoutée sur messages et activities
+   * Les tickets avec beaucoup de messages ne chargent plus tout d'un coup
+   */
+  async getTicket(
+    id: string, 
+    userId: string,
+    options?: { 
+      messagesPage?: number; 
+      messagesLimit?: number;
+      activitiesPage?: number;
+      activitiesLimit?: number;
+    }
+  ) {
+    const messagesPage = options?.messagesPage || 1;
+    const messagesLimit = Math.min(options?.messagesLimit || 50, 100);
+    const messagesSkip = (messagesPage - 1) * messagesLimit;
+    
+    const activitiesPage = options?.activitiesPage || 1;
+    const activitiesLimit = Math.min(options?.activitiesLimit || 20, 50);
+    const activitiesSkip = (activitiesPage - 1) * activitiesLimit;
+
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       include: {
@@ -76,6 +97,8 @@ export class SupportService {
             attachments: true,
           },
           orderBy: { createdAt: 'asc' },
+          skip: messagesSkip,
+          take: messagesLimit,
         },
         attachments: true,
         assignedUser: {
@@ -97,6 +120,14 @@ export class SupportService {
             },
           },
           orderBy: { createdAt: 'desc' },
+          skip: activitiesSkip,
+          take: activitiesLimit,
+        },
+        _count: {
+          select: {
+            messages: true,
+            activities: true,
+          },
         },
       },
     });
@@ -109,7 +140,28 @@ export class SupportService {
       throw new ForbiddenException('Access denied to this ticket');
     }
 
-    return ticket;
+    // PERF-02: Retourner les infos de pagination
+    return {
+      ...ticket,
+      pagination: {
+        messages: {
+          page: messagesPage,
+          limit: messagesLimit,
+          total: ticket._count.messages,
+          totalPages: Math.ceil(ticket._count.messages / messagesLimit),
+          hasNext: messagesPage * messagesLimit < ticket._count.messages,
+          hasPrev: messagesPage > 1,
+        },
+        activities: {
+          page: activitiesPage,
+          limit: activitiesLimit,
+          total: ticket._count.activities,
+          totalPages: Math.ceil(ticket._count.activities / activitiesLimit),
+          hasNext: activitiesPage * activitiesLimit < ticket._count.activities,
+          hasPrev: activitiesPage > 1,
+        },
+      },
+    };
   }
 
   async createTicket(data: {

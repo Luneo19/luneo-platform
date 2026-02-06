@@ -15,6 +15,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { LLMRouterService } from '../../services/llm-router.service';
 import { IntentDetectionService } from '../../services/intent-detection.service';
+import { AgentUsageGuardService } from '../../services/agent-usage-guard.service';
 
 // ============================================================================
 // MOCKS
@@ -32,6 +33,9 @@ const mockPrismaService = {
   },
   ticketActivity: {
     create: jest.fn(),
+  },
+  brand: {
+    findUnique: jest.fn(),
   },
 };
 
@@ -56,6 +60,20 @@ const mockModuleRef = {
   }),
 };
 
+const mockAgentUsageGuardService = {
+  checkUsageBeforeCall: jest.fn().mockResolvedValue({
+    allowed: true,
+    quota: { remaining: 1000, limit: 10000 },
+    rateLimit: { allowed: true, remaining: 100 },
+  }),
+  recordUsageAfterCall: jest.fn().mockResolvedValue(undefined),
+  updateUsageAfterCall: jest.fn().mockResolvedValue(undefined),
+  getCostCalculator: jest.fn().mockReturnValue({
+    estimateCost: jest.fn().mockReturnValue(10),
+    calculateCost: jest.fn().mockReturnValue(10),
+  }),
+};
+
 // ============================================================================
 // TESTS
 // ============================================================================
@@ -71,6 +89,7 @@ describe('NovaService', () => {
         { provide: SmartCacheService, useValue: mockCacheService },
         { provide: LLMRouterService, useValue: mockLLMRouterService },
         { provide: ModuleRef, useValue: mockModuleRef },
+        { provide: AgentUsageGuardService, useValue: mockAgentUsageGuardService },
       ],
     }).compile();
 
@@ -95,6 +114,29 @@ describe('NovaService', () => {
     };
 
     beforeEach(() => {
+      // Reconfigure mocks after clearAllMocks
+      mockModuleRef.get.mockImplementation((token: unknown) => {
+        if (token === IntentDetectionService) {
+          return mockIntentDetectionService;
+        }
+        return null;
+      });
+
+      mockCacheService.getOrSet.mockImplementation(
+        (key: string, fn: () => Promise<unknown>) => fn(),
+      );
+
+      mockAgentUsageGuardService.checkUsageBeforeCall.mockResolvedValue({
+        allowed: true,
+        quota: { remaining: 1000, limit: 10000 },
+        rateLimit: { allowed: true, remaining: 100 },
+      });
+      mockAgentUsageGuardService.updateUsageAfterCall.mockResolvedValue(undefined);
+      mockAgentUsageGuardService.getCostCalculator.mockReturnValue({
+        estimateCost: jest.fn().mockReturnValue(10),
+        calculateCost: jest.fn().mockReturnValue({ costCents: 10 }),
+      });
+
       mockIntentDetectionService.detectIntent.mockResolvedValue({
         intent: NovaIntentType.BILLING,
         confidence: 0.9,
@@ -128,6 +170,10 @@ describe('NovaService', () => {
       });
       mockPrismaService.ticketMessage.create.mockResolvedValue({});
       mockPrismaService.ticketActivity.create.mockResolvedValue({});
+      mockPrismaService.brand.findUnique.mockResolvedValue({
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        plan: 'pro',
+      });
     });
 
     it('should process a support message and return response with articles', async () => {
@@ -142,9 +188,9 @@ describe('NovaService', () => {
 
     it('should create a ticket when escalation is needed', async () => {
       mockIntentDetectionService.detectIntent.mockResolvedValue({
-        intent: NovaIntentType.TECHNICAL,
+        intent: NovaIntentType.TICKET, // Use TICKET intent to trigger escalation
         confidence: 0.9,
-        reasoning: 'Technical issue',
+        reasoning: 'User wants to create a ticket',
       });
 
       const result = await service.chatWithContext(baseInput);

@@ -8,7 +8,7 @@
  * - ✅ Types explicites
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -109,7 +109,7 @@ export class LLMStreamService {
         await this.streamMistral(model, messages, options, observer);
         break;
       default:
-        throw new Error(`Unsupported provider: ${provider}`);
+        throw new BadRequestException(`Unsupported provider: ${provider}`);
     }
   }
 
@@ -204,7 +204,7 @@ export class LLMStreamService {
         observer.error(error);
       });
     } catch (error) {
-      observer.error(error instanceof Error ? error : new Error(String(error)));
+      observer.error(error instanceof Error ? error : new InternalServerErrorException(String(error)));
     }
   }
 
@@ -304,7 +304,7 @@ export class LLMStreamService {
         observer.error(error);
       });
     } catch (error) {
-      observer.error(error instanceof Error ? error : new Error(String(error)));
+      observer.error(error instanceof Error ? error : new InternalServerErrorException(String(error)));
     }
   }
 
@@ -394,7 +394,7 @@ export class LLMStreamService {
         observer.error(error);
       });
     } catch (error) {
-      observer.error(error instanceof Error ? error : new Error(String(error)));
+      observer.error(error instanceof Error ? error : new InternalServerErrorException(String(error)));
     }
   }
 }

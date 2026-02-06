@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { getOAuthUrl } from '@/lib/admin/integrations/oauth-helpers';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       redirectUri,
     });
   } catch (error) {
-    console.error('Error generating Meta OAuth URL:', error);
+    serverLogger.apiError('/api/admin/ads/meta/connect', 'GET', error, 500);
     return NextResponse.json(
       { error: 'Failed to generate OAuth URL' },
       { status: 500 }

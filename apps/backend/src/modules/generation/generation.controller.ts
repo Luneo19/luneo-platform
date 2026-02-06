@@ -8,6 +8,7 @@ import {
   UseGuards,
   Req,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -38,7 +39,7 @@ export class GenerationController {
   ): Promise<GenerationResponseDto> {
     const clientId = req.brandId;
     if (!clientId) {
-      throw new Error('Brand ID not found in request');
+      throw new BadRequestException('Brand ID not found in request');
     }
 
     return this.generationService.create({
@@ -65,7 +66,7 @@ export class GenerationController {
   ): Promise<GenerationResponseDto> {
     const clientId = req.user?.brandId;
     if (!clientId) {
-      throw new Error('Brand ID not found in user context');
+      throw new BadRequestException('Brand ID not found in user context');
     }
 
     return this.generationService.create({
@@ -124,7 +125,7 @@ export class GenerationController {
   ) {
     const clientId = req.user?.brandId;
     if (!clientId) {
-      throw new Error('Brand ID not found in user context');
+      throw new BadRequestException('Brand ID not found in user context');
     }
 
     return this.generationService.findAll({

@@ -32,7 +32,8 @@ module.exports = {
     },
   },
   testTimeout: 30000,
-  maxWorkers: 4,
+  // Use sequential execution to prevent database conflicts in integration tests
+  maxWorkers: process.env.RUN_INTEGRATION_TESTS === 'true' ? 1 : 4,
   setupFilesAfterEnv: ['<rootDir>/src/common/test/jest.setup.ts'],
   clearMocks: true,
   resetMocks: true,

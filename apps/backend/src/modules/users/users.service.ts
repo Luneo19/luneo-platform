@@ -1,67 +1,90 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import * as bcrypt from 'bcryptjs';
 import { CloudinaryService } from '@/libs/storage/cloudinary.service';
 
+/**
+ * CACHE-01: Service utilisateurs avec cache Redis
+ * - Profil utilisateur: TTL 5 minutes (300s)
+ * - Quota utilisateur: TTL 1 minute (60s) 
+ * - Sessions: pas de cache (données sensibles)
+ */
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private prisma: PrismaService,
     private cloudinaryService: CloudinaryService,
+    private cache: SmartCacheService,
   ) {}
 
+  /**
+   * CACHE-01: Récupère un utilisateur avec cache Redis (TTL 5min)
+   */
   async findOne(id: string, currentUser: CurrentUser) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        avatar: true,
-        role: true,
-        brandId: true,
-        createdAt: true,
-        updatedAt: true,
-        brand: {
+    // Check permissions first (before cache lookup)
+    if (currentUser.role !== UserRole.PLATFORM_ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const user = await this.cache.get(
+      id,
+      'user',
+      async () => {
+        return this.prisma.user.findUnique({
+          where: { id },
           select: {
             id: true,
-            name: true,
-            logo: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+            brandId: true,
+            createdAt: true,
+            updatedAt: true,
+            brand: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
+            userQuota: {
+              select: {
+                id: true,
+                monthlyLimit: true,
+                monthlyUsed: true,
+                costLimitCents: true,
+                costUsedCents: true,
+                resetAt: true,
+              },
+            },
           },
-        },
-        userQuota: {
-          select: {
-            id: true,
-            monthlyLimit: true,
-            monthlyUsed: true,
-            costLimitCents: true,
-            costUsedCents: true,
-            resetAt: true,
-          },
-        },
+        });
       },
-    });
+      { ttl: 300, tags: [`user:${id}`] } // 5 minutes
+    );
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Check permissions
-    if (currentUser.role !== UserRole.PLATFORM_ADMIN && currentUser.id !== id) {
-      throw new ForbiddenException('Access denied');
-    }
-
     return user;
   }
 
+  /**
+   * CACHE-01: Met à jour le profil et invalide le cache
+   */
   async updateProfile(userId: string, updateData: UpdateProfileDto) {
     const { firstName, lastName, avatar } = updateData;
 
-    return this.prisma.user.update({
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
         firstName,
@@ -97,12 +120,29 @@ export class UsersService {
         },
       },
     });
+
+    // CACHE-01: Invalider le cache utilisateur après modification
+    await this.cache.invalidate(userId, 'user');
+    this.logger.debug(`Cache invalidated for user:${userId}`);
+
+    return user;
   }
 
+  /**
+   * CACHE-01: Récupère le quota utilisateur avec cache Redis (TTL 1min)
+   * TTL court car les quotas changent fréquemment
+   */
   async getUserQuota(userId: string) {
-    const quota = await this.prisma.userQuota.findUnique({
-      where: { userId },
-    });
+    const quota = await this.cache.get(
+      `quota:${userId}`,
+      'user',
+      async () => {
+        return this.prisma.userQuota.findUnique({
+          where: { userId },
+        });
+      },
+      { ttl: 60, tags: [`user:${userId}`, `quota:${userId}`] } // 1 minute
+    );
 
     if (!quota) {
       throw new NotFoundException('User quota not found');
@@ -137,7 +177,7 @@ export class UsersService {
       throw new BadRequestException('Current password is incorrect');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 13);
 
     await this.prisma.user.update({
       where: { id: userId },

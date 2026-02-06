@@ -8,7 +8,7 @@
  * - ✅ Validation Zod
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -194,23 +194,23 @@ export class ConversationService {
     // ✅ Validation des entrées
     if (!conversationId || typeof conversationId !== 'string' || conversationId.trim().length === 0) {
       this.logger.warn('Invalid conversationId provided to addMessage');
-      throw new Error('Conversation ID is required');
+      throw new BadRequestException('Conversation ID is required');
     }
 
     if (!message || typeof message !== 'object') {
       this.logger.warn('Invalid message provided to addMessage');
-      throw new Error('Message is required');
+      throw new BadRequestException('Message is required');
     }
 
     if (!message.content || typeof message.content !== 'string' || message.content.trim().length === 0) {
       this.logger.warn('Invalid message content provided to addMessage');
-      throw new Error('Message content is required');
+      throw new BadRequestException('Message content is required');
     }
 
     const validRoles = ['user', 'assistant', 'system'] as const;
     if (!validRoles.includes(message.role)) {
       this.logger.warn(`Invalid message role provided: ${message.role}`);
-      throw new Error(`Invalid message role. Must be one of: ${validRoles.join(', ')}`);
+      throw new BadRequestException(`Invalid message role. Must be one of: ${validRoles.join(', ')}`);
     }
 
     try {

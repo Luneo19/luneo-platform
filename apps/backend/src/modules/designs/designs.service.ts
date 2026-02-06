@@ -4,7 +4,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { DesignStatus, UserRole } from '@prisma/client';
 import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
@@ -825,7 +825,7 @@ export class DesignsService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error exporting design for print:`, error);
-      throw new Error(`Failed to export design: ${errorMessage}`);
+      throw new InternalServerErrorException(`Failed to export design: ${errorMessage}`);
     }
   }
 

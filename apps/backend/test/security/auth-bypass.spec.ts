@@ -3,109 +3,193 @@
  * Tests for authentication bypass vulnerabilities
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import { AppModule } from '@/app.module';
+import * as bcrypt from 'bcryptjs';
+import { describeIntegration } from '@/common/test/integration-test.helper';
+import { createIntegrationTestApp, closeIntegrationTestApp } from '@/common/test/test-app.module';
+import { PrismaService } from '@/libs/prisma/prisma.service';
+import { UserRole } from '@prisma/client';
 
-describe('Security Tests - Authentication Bypass', () => {
+describeIntegration('Security Tests - Authentication Bypass', () => {
   let app: INestApplication;
+  let moduleFixture: TestingModule;
+  let prisma: PrismaService;
+  let consumerToken: string;
+  let adminToken: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-  });
+    const testApp = await createIntegrationTestApp();
+    app = testApp.app;
+    moduleFixture = testApp.moduleFixture;
+    prisma = moduleFixture.get<PrismaService>(PrismaService);
+  }, 60000);
 
   afterAll(async () => {
-    await app.close();
+    await closeIntegrationTestApp(app);
   });
 
-  describe('Authentication Bypass - Protected Endpoints', () => {
-    it('should require authentication for protected endpoints', async () => {
-      const protectedEndpoints = [
-        '/api/v1/user/me',
-        '/api/v1/designs',
-        '/api/v1/orders',
-        '/api/v1/admin/customers',
-      ];
+  beforeEach(async () => {
+    await prisma.order.deleteMany({});
+    await prisma.design.deleteMany({});
+    await prisma.refreshToken.deleteMany({});
+    await prisma.userQuota.deleteMany({});
+    await prisma.user.deleteMany({});
+    await prisma.product.deleteMany({});
+    await prisma.brand.deleteMany({});
 
-      for (const endpoint of protectedEndpoints) {
-        const response = await request(app.getHttpServer())
-          .get(endpoint);
+    const timestamp = Date.now();
+    const hashedPassword = await bcrypt.hash('Password123!', 13);
 
-        // Should return 401 Unauthorized
-        expect(response.status).toBe(401);
-      }
+    // Create consumer user
+    const consumer = await prisma.user.create({
+      data: {
+        email: `consumer-${timestamp}@example.com`,
+        password: hashedPassword,
+        firstName: 'Consumer',
+        lastName: 'User',
+        role: UserRole.CONSUMER,
+        emailVerified: true,
+      },
     });
 
-    it('should reject invalid JWT tokens', async () => {
+    // Create admin user
+    const admin = await prisma.user.create({
+      data: {
+        email: `admin-${timestamp}@example.com`,
+        password: hashedPassword,
+        firstName: 'Admin',
+        lastName: 'User',
+        role: UserRole.PLATFORM_ADMIN,
+        emailVerified: true,
+      },
+    });
+
+    // Login as consumer
+    const consumerLogin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: consumer.email, password: 'Password123!' });
+    consumerToken = (consumerLogin.body.data || consumerLogin.body).accessToken;
+
+    // Wait for different timestamp
+    await new Promise(resolve => setTimeout(resolve, 1100));
+
+    // Login as admin
+    const adminLogin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: admin.email, password: 'Password123!' });
+    adminToken = (adminLogin.body.data || adminLogin.body).accessToken;
+  }, 30000);
+
+  describe('Authentication Bypass - Protected Endpoints', () => {
+    it('should require authentication for /auth/me', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/auth/me');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should require authentication for admin endpoints', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/admin/customers');
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('Authentication Bypass - Invalid Tokens', () => {
+    it('should reject completely invalid tokens', async () => {
       const invalidTokens = [
         'invalid-token',
-        'Bearer invalid-token',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid',
-        'expired-token',
+        'not-a-jwt',
+        '12345',
       ];
 
       for (const token of invalidTokens) {
         const response = await request(app.getHttpServer())
-          .get('/api/v1/user/me')
+          .get('/api/v1/auth/me')
           .set('Authorization', `Bearer ${token}`);
 
-        // Should return 401
         expect(response.status).toBe(401);
       }
     });
 
-    it('should reject tampered JWT tokens', async () => {
-      // Create a token and tamper with it
-      const tamperedToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.tampered-signature';
+    it('should reject malformed JWT tokens', async () => {
+      const malformedTokens = [
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.fake',
+      ];
+
+      for (const token of malformedTokens) {
+        const response = await request(app.getHttpServer())
+          .get('/api/v1/auth/me')
+          .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(401);
+      }
+    });
+
+    it('should reject tokens with wrong signature', async () => {
+      // JWT with valid structure but wrong signature
+      const wrongSignatureToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.wrong-signature';
 
       const response = await request(app.getHttpServer())
-        .get('/api/v1/user/me')
-        .set('Authorization', `Bearer ${tamperedToken}`);
+        .get('/api/v1/auth/me')
+        .set('Authorization', `Bearer ${wrongSignatureToken}`);
 
-      // Should return 401
       expect(response.status).toBe(401);
     });
   });
 
   describe('Authentication Bypass - Role Bypass', () => {
     it('should prevent consumer from accessing admin endpoints', async () => {
-      // Create consumer user and get token
-      const signupResponse = await request(app.getHttpServer())
-        .post('/api/v1/auth/signup')
-        .send({
-          email: `consumer-${Date.now()}@example.com`,
-          password: 'TestPassword123!',
-          firstName: 'Consumer',
-          lastName: 'User',
-        });
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/admin/customers')
+        .set('Authorization', `Bearer ${consumerToken}`);
 
-      if (signupResponse.status === 201) {
-        const consumerToken = signupResponse.body.accessToken;
+      // Should return 403 Forbidden
+      expect(response.status).toBe(403);
+    });
 
-        // Try to access admin endpoint
-        const adminResponse = await request(app.getHttpServer())
-          .get('/api/v1/admin/customers')
-          .set('Authorization', `Bearer ${consumerToken}`);
+    it('should allow admin to access admin endpoints', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/admin/customers')
+        .set('Authorization', `Bearer ${adminToken}`);
 
-        // Should return 403 Forbidden
-        expect(adminResponse.status).toBe(403);
-      }
+      // Should return 200 OK
+      expect(response.status).toBe(200);
+    });
+
+    it('should prevent consumer from accessing admin analytics', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/admin/analytics/overview')
+        .set('Authorization', `Bearer ${consumerToken}`);
+
+      expect(response.status).toBe(403);
     });
   });
 
-  describe('Authentication Bypass - Token Manipulation', () => {
-    it('should reject tokens with modified user ID', async () => {
-      // This test would require creating a valid token and modifying the payload
-      // For now, we test that invalid tokens are rejected
+  describe('Authentication Bypass - Authorization Header', () => {
+    it('should reject missing Authorization header', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/v1/user/me')
-        .set('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYWtlLWlkIn0.fake-signature');
+        .get('/api/v1/auth/me');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should reject empty Bearer token', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/auth/me')
+        .set('Authorization', 'Bearer ');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should reject wrong authorization scheme', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/auth/me')
+        .set('Authorization', `Basic ${consumerToken}`);
 
       expect(response.status).toBe(401);
     });

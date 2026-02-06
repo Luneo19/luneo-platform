@@ -83,12 +83,49 @@ export const securityConfig = {
   },
 
   // Content Security Policy
+  // NOTE: Use nonce-based CSP via middleware for better security
+  // These directives are fallback for non-nonce scenarios
   csp: {
+    // Nonce-based directives (preferred - used by middleware)
+    nonceDirectives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        // Nonce will be added dynamically: "'nonce-{nonce}'"
+        'https://js.stripe.com',
+        'https://www.googletagmanager.com',
+        'https://www.google-analytics.com',
+        'https://vercel.live',
+      ],
+      styleSrc: [
+        "'self'",
+        // Nonce will be added dynamically: "'nonce-{nonce}'"
+        'https://fonts.googleapis.com',
+      ],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      connectSrc: [
+        "'self'",
+        'https://api.stripe.com',
+        'https://*.supabase.co',
+        'wss://*.supabase.co',
+        'https://*.sentry.io',
+        'https://www.google-analytics.com',
+        'https://vitals.vercel-insights.com',
+      ],
+      frameSrc: ["'self'", 'https://js.stripe.com', 'https://hooks.stripe.com'],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+      upgradeInsecureRequests: true,
+    },
+    // Fallback directives (legacy - only used when DISABLE_CSP_NONCES=true)
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'",
+        "'unsafe-inline'", // Only for legacy fallback
         "'unsafe-eval'",
         'https://js.stripe.com',
         'https://www.googletagmanager.com',

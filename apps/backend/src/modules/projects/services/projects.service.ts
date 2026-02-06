@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
@@ -49,7 +49,7 @@ export class ProjectsService {
     const { skip, take, page, limit } = normalizePagination(pagination);
 
     const where = {
-      organizationId,
+      brandId: organizationId, // Utiliser brandId pour compatibilité
       ...(type && { type }),
       ...(status && { status }),
       ...(search && {
@@ -71,20 +71,14 @@ export class ProjectsService {
           slug: true,
           status: true,
           apiKey: true,
-          webhookUrl: true,
+          thumbnail: true,
+          settings: true,
           createdAt: true,
           updatedAt: true,
-          organization: {
+          workspace: {
             select: {
               id: true,
               name: true,
-              logo: true,
-            },
-          },
-          _count: {
-            select: {
-              workspaces: true,
-              apiKeys: true,
             },
           },
         },
@@ -111,7 +105,7 @@ export class ProjectsService {
     const project = await this.prisma.project.findFirst({
       where: {
         id,
-        organizationId,
+        brandId: organizationId, // Utiliser brandId pour compatibilité
       },
       select: {
         id: true,
@@ -122,33 +116,18 @@ export class ProjectsService {
         status: true,
         settings: true,
         apiKey: true,
-        webhookUrl: true,
-        webhookSecret: true,
+        thumbnail: true,
+        metadata: true,
         createdAt: true,
         updatedAt: true,
-        createdBy: true,
-        organization: {
-          select: {
-            id: true,
-            name: true,
-            logo: true,
-          },
-        },
-        workspaces: {
+        workspace: {
           select: {
             id: true,
             name: true,
             environment: true,
-            config: true,
+            settings: true,
             createdAt: true,
             updatedAt: true,
-          },
-          orderBy: { environment: 'asc' },
-        },
-        _count: {
-          select: {
-            workspaces: true,
-            apiKeys: true,
           },
         },
       },
@@ -170,28 +149,31 @@ export class ProjectsService {
     dto: CreateProjectDto,
     user: CurrentUser,
   ) {
-    // Vérifier que le slug est unique pour cette organisation
+    // Vérifier que le slug est unique pour ce brand
     const existing = await this.prisma.project.findUnique({
       where: {
-        organizationId_slug: {
-          organizationId,
+        brandId_slug: {
+          brandId: organizationId,
           slug: dto.slug,
         },
       },
     });
 
     if (existing) {
-      throw new Error(`Un projet avec le slug "${dto.slug}" existe déjà`);
+      throw new BadRequestException(`Un projet avec le slug "${dto.slug}" existe déjà`);
     }
 
     const apiKey = this.generateApiKey();
 
     const project = await this.prisma.project.create({
       data: {
-        ...dto,
-        organizationId,
+        name: dto.name,
+        slug: dto.slug,
+        description: dto.description,
+        type: dto.type,
+        status: 'DRAFT', // Statut par défaut
+        brandId: organizationId, // Utiliser brandId pour compatibilité
         apiKey,
-        createdBy: user.id,
         settings: (dto.settings || {}) as any,
       },
       select: {
@@ -230,20 +212,27 @@ export class ProjectsService {
     if (dto.slug) {
       const existing = await this.prisma.project.findFirst({
         where: {
-          organizationId,
+          brandId: organizationId,
           slug: dto.slug,
           id: { not: id },
         },
       });
 
       if (existing) {
-        throw new Error(`Un projet avec le slug "${dto.slug}" existe déjà`);
+        throw new BadRequestException(`Un projet avec le slug "${dto.slug}" existe déjà`);
       }
     }
 
     const project = await this.prisma.project.update({
       where: { id },
-      data: dto as any,
+      data: {
+        ...(dto.name && { name: dto.name }),
+        ...(dto.slug && { slug: dto.slug }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.type && { type: dto.type }),
+        ...(dto.status && { status: dto.status }),
+        ...(dto.settings && { settings: dto.settings as any }),
+      },
       select: {
         id: true,
         name: true,
@@ -253,7 +242,6 @@ export class ProjectsService {
         status: true,
         settings: true,
         apiKey: true,
-        webhookUrl: true,
         updatedAt: true,
       },
     });

@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateFolderDto } from '../dto/create-folder.dto';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
@@ -21,7 +21,7 @@ export class AssetFolderService {
   async findAll(organizationId: string, parentId?: string) {
     return this.prisma.assetFolder.findMany({
       where: {
-        organizationId,
+        brandId: organizationId, // Utiliser brandId pour compatibilité
         parentId: parentId || null,
       },
       select: {
@@ -53,7 +53,7 @@ export class AssetFolderService {
     const folder = await this.prisma.assetFolder.findFirst({
       where: {
         id,
-        organizationId,
+        brandId: organizationId, // Utiliser brandId pour compatibilité
       },
       select: {
         id: true,
@@ -119,7 +119,7 @@ export class AssetFolderService {
 
     const folder = await this.prisma.assetFolder.create({
       data: {
-        organizationId,
+        brandId: organizationId, // Utiliser brandId pour compatibilité
         name: dto.name,
         parentId: dto.parentId,
         path,
@@ -153,7 +153,7 @@ export class AssetFolderService {
       folder._count.files > 0 || folder._count.children > 0;
 
     if (hasContent) {
-      throw new Error(
+      throw new BadRequestException(
         'Cannot delete folder: it contains files or subfolders',
       );
     }

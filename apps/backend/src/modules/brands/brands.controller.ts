@@ -6,6 +6,7 @@ import {
   Patch,
   Body,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,9 +18,11 @@ import {
 import { BrandsService } from './brands.service';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('brands')
 @Controller('brands')
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class BrandsController {
   constructor(private readonly brandsService: BrandsService) {}

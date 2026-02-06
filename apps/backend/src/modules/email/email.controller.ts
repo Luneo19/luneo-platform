@@ -1,9 +1,10 @@
-import { Controller, Post, Body, Get, Query, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { EmailService } from './email.service';
 import { MailgunService } from './mailgun.service';
 import { SendGridService } from './sendgrid.service';
 import { JsonValue } from '@/common/types/utility-types';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 export class SendEmailDto {
   to!: string | string[];
@@ -24,6 +25,7 @@ export class TestEmailDto {
 
 @ApiTags('Email')
 @Controller('email')
+@UseGuards(JwtAuthGuard)
 export class EmailController {
   constructor(
     private readonly emailService: EmailService,

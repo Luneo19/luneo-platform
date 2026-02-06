@@ -1,6 +1,7 @@
 import { CurrentUser } from '@/common/types/user.types';
 import { Cacheable } from '@/libs/cache/cacheable.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { CurrencyUtils } from '@/config/currency.config';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OrderStatus, PaymentStatus, UserRole } from '@prisma/client';
@@ -485,7 +486,7 @@ export class OrdersService {
         
         return {
           price_data: {
-            currency: 'eur',
+            currency: CurrencyUtils.getStripeCurrency(),
             product_data: {
               name: `${productName}${item.quantity > 1 ? ` x${item.quantity}` : ''}`,
               description,

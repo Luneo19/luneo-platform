@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { MetaAdsClient } from '@/lib/admin/integrations/meta-ads';
 import { db } from '@/lib/db';
+import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ campaigns });
   } catch (error) {
-    console.error('Error fetching Meta campaigns:', error);
+    serverLogger.apiError('/api/admin/ads/meta/campaigns', 'GET', error, 500);
     return NextResponse.json(
       { error: 'Failed to fetch campaigns' },
       { status: 500 }

@@ -18,6 +18,7 @@
 
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { CurrencyUtils } from '@/config/currency.config';
 
 // ============================================================================
 // TYPES STRICTS
@@ -414,7 +415,7 @@ export class PricingPlansService {
       subtotalCents,
       discountCents,
       totalCents,
-      currency: 'EUR',
+      currency: CurrencyUtils.getDefaultCurrency(),
     };
   }
 

@@ -16,6 +16,7 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -45,7 +46,7 @@ export class ArCollaborationController {
   @ApiResponse({ status: HttpStatus.OK, description: 'List of projects' })
   async listProjects(@User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arCollaborationService.listProjects(user.brandId, user.id);
@@ -58,7 +59,7 @@ export class ArCollaborationController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Project not found' })
   async getProject(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arCollaborationService.getProject(id, user.brandId);
@@ -73,7 +74,7 @@ export class ArCollaborationController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arCollaborationService.createProject(user.brandId, user.id, {
@@ -98,7 +99,7 @@ export class ArCollaborationController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arCollaborationService.updateProject(id, user.brandId, user.id, dto);
@@ -112,7 +113,7 @@ export class ArCollaborationController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteProject(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     await this.arCollaborationService.deleteProject(id, user.brandId, user.id);
@@ -128,7 +129,7 @@ export class ArCollaborationController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arCollaborationService.addMember(id, user.brandId, user.id, dto);
@@ -145,7 +146,7 @@ export class ArCollaborationController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
-      throw new Error('User must be associated with a brand');
+      throw new BadRequestException('User must be associated with a brand');
     }
 
     return this.arCollaborationService.addComment(id, user.brandId, user.id, dto);

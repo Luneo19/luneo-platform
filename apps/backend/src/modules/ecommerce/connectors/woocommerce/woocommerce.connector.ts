@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
 import {
@@ -12,7 +13,8 @@ import {
   SyncResult,
   SyncOptions,
 } from '../../interfaces/ecommerce.interface';
-
+// ENUM-01: Import des enums Prisma pour intégrité des données
+import { SyncLogStatus, SyncLogType, SyncDirection } from '@prisma/client';
 @Injectable()
 export class WooCommerceConnector {
   private readonly logger = new Logger(WooCommerceConnector.name);
@@ -22,6 +24,7 @@ export class WooCommerceConnector {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   /**
@@ -84,7 +87,7 @@ export class WooCommerceConnector {
       return response.status === 200;
     } catch (error) {
       this.logger.error(`Invalid WooCommerce credentials:`, error);
-      throw new Error('Invalid WooCommerce credentials');
+      throw new BadRequestException('Invalid WooCommerce credentials');
     }
   }
 
@@ -307,7 +310,7 @@ export class WooCommerceConnector {
       );
 
       if (!isValid) {
-        throw new Error('Invalid webhook signature');
+        throw new BadRequestException('Invalid webhook signature');
       }
 
       // Traiter selon le topic
@@ -547,12 +550,13 @@ export class WooCommerceConnector {
         }
       }
 
+      // ENUM-01: Utilise enums Prisma pour intégrité des données
       const syncLog = await this.prisma.syncLog.create({
         data: {
           integrationId,
-          type: 'product',
-          direction: 'import',
-          status: itemsFailed === 0 ? 'success' : 'partial',
+          type: SyncLogType.PRODUCT,
+          direction: SyncDirection.IMPORT,
+          status: itemsFailed === 0 ? SyncLogStatus.SUCCESS : SyncLogStatus.PARTIAL,
           itemsProcessed,
           itemsFailed,
           errors,
@@ -593,7 +597,7 @@ export class WooCommerceConnector {
     });
 
     if (!integration) {
-      throw new Error(`Integration ${integrationId} not found`);
+      throw new NotFoundException(`Integration ${integrationId} not found`);
     }
 
     return integration;
@@ -617,17 +621,26 @@ export class WooCommerceConnector {
   }
 
   /**
-   * Crypte un token
+   * Chiffre un token avec AES-256-GCM
+   * SEC-06: Chiffrement des credentials WooCommerce
    */
   private encryptToken(token: string): string {
-    return Buffer.from(token).toString('base64');
+    return this.encryptionService.encrypt(token);
   }
 
   /**
-   * Décrypte un token
+   * Déchiffre un token avec AES-256-GCM
+   * Supporte la migration depuis Base64 pour les données existantes
    */
   private decryptToken(encryptedToken: string): string {
-    return Buffer.from(encryptedToken, 'base64').toString('utf8');
+    try {
+      // Essayer d'abord le nouveau format AES-256-GCM
+      return this.encryptionService.decrypt(encryptedToken);
+    } catch {
+      // Fallback vers Base64 pour les données existantes
+      this.logger.warn('Decrypting legacy Base64 token - consider migrating');
+      return Buffer.from(encryptedToken, 'base64').toString('utf8');
+    }
   }
 }
 

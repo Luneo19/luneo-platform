@@ -1,67 +1,28 @@
-import { Metadata } from 'next';
+/**
+ * Solutions Page Layout with SEO Metadata
+ * FE-03: Ajouter SEO metadata pages publiques
+ */
 
-export const metadata: Metadata = {
-  title: {
-    template: '%s | Solutions Luneo',
-    default: 'Solutions de Personnalisation Produits',
-  },
-  description: 'Découvrez nos solutions de personnalisation produits : éditeur 2D, configurateur 3D, Virtual Try-On AR, AI Design Hub, et intégrations e-commerce.',
-  openGraph: {
-    type: 'website',
-    locale: 'fr_FR',
-    siteName: 'Luneo Platform',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Luneo Solutions',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    creator: '@luneo_app',
-  },
-};
+import { generateMetadata as generateSEOMetadata } from '@/lib/seo/metadata';
+import type { Metadata } from 'next';
+import { ReactNode } from 'react';
 
-export default function SolutionsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const metadata: Metadata = generateSEOMetadata({
+  title: 'Solutions - Personnalisation par Industrie',
+  description: 'Découvrez nos solutions de personnalisation de produits adaptées à votre industrie : Mode, Accessoires, Goodies, Décoration, Sport et plus encore.',
+  keywords: [
+    'solutions personnalisation',
+    'personnalisation mode',
+    'personnalisation accessoires',
+    'goodies entreprise',
+    'produits personnalisés',
+    'customisation industrie',
+    'B2B personnalisation',
+  ],
+  canonicalUrl: '/solutions',
+  ogType: 'website',
+});
+
+export default function SolutionsLayout({ children }: { children: ReactNode }) {
   return children;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

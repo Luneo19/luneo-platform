@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger, BadRequestException, Request } from '@nestjs/common';
+import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger, BadRequestException, Request, UseGuards } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
 import { BillingService } from '@/modules/billing/billing.service';
 import { Public } from '@/common/decorators/public.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import type { Request as ExpressRequest } from 'express';
 import Stripe from 'stripe';
 
@@ -29,6 +30,7 @@ export interface SendGridWebhookEvent {
 }
 
 @Controller('webhooks')
+@UseGuards(JwtAuthGuard)
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
 

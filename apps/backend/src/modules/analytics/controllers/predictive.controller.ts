@@ -3,7 +3,7 @@
  * @module PredictiveController
  */
 
-import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
@@ -27,7 +27,7 @@ export class PredictiveController {
     @Query('horizon') horizon: '7d' | '30d' | '90d' = '30d',
   ) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     const trends = await this.predictiveService.getTrendPredictions(brand.id, horizon);
@@ -42,7 +42,7 @@ export class PredictiveController {
   @ApiOperation({ summary: 'Détection d\'anomalies' })
   async getAnomalies(@CurrentBrand() brand: { id: string } | null) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     const anomalies = await this.predictiveService.detectAnomalies(brand.id);
@@ -57,7 +57,7 @@ export class PredictiveController {
   @ApiOperation({ summary: 'Recommandations IA' })
   async getRecommendations(@CurrentBrand() brand: { id: string } | null) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     const recommendations = await this.predictiveService.getRecommendations(brand.id);
@@ -72,7 +72,7 @@ export class PredictiveController {
   @ApiOperation({ summary: 'Événements saisonniers à venir' })
   async getSeasonalEvents(@CurrentBrand() brand: { id: string } | null) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     const events = await this.predictiveService.getUpcomingSeasonalEvents(brand.id);
@@ -94,7 +94,7 @@ export class PredictiveController {
     },
   ) {
     if (!brand) {
-      throw new Error('Brand not found');
+      throw new NotFoundException('Brand not found');
     }
 
     let result;
@@ -132,7 +132,7 @@ export class PredictiveController {
         });
         break;
       default:
-        throw new Error(`Unknown prediction type: ${body.type}`);
+        throw new BadRequestException(`Unknown prediction type: ${body.type}`);
     }
 
     return {

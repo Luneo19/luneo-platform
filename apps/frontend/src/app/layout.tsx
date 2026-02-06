@@ -27,6 +27,7 @@ if (typeof window !== 'undefined') {
 import { loadI18nConfig, type SupportedLocale, type TranslationMessages } from "@/i18n/server";
 import { loadFeatureFlags } from "@/lib/feature-flags/loadFeatureFlags";
 import { getDefaultOrganizationSchema, getDefaultWebSiteSchema } from "@/lib/seo/schema";
+import { serverLogger } from "@/lib/logger-server";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://luneo.app'),
@@ -138,10 +139,7 @@ export default async function RootLayout({
     timezone = i18nConfig.timezone;
     availableLocales = i18nConfig.availableLocales;
   } catch (error) {
-    // Logger not available in Server Component, use console for critical errors
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[Layout] Failed to load i18n config:', error);
-    }
+    serverLogger.error('[Layout] Failed to load i18n config', error);
     // Utiliser les valeurs par défaut
     locale = 'en';
     messages = {} as TranslationMessages;
@@ -159,10 +157,7 @@ export default async function RootLayout({
   try {
     featureFlags = await loadFeatureFlags();
   } catch (error) {
-    // Logger not available in Server Component, use console for critical errors
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[Layout] Failed to load feature flags:', error);
-    }
+    serverLogger.error('[Layout] Failed to load feature flags', error);
     // Utiliser les valeurs par défaut
     featureFlags = {
       flags: {

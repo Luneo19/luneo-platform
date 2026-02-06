@@ -74,6 +74,36 @@ export function buildStrictCSPWithNonce(nonce: string): string {
   ].join('; ');
 }
 
+/**
+ * Build CSP directive for development with strict mode
+ * Uses nonces but also allows 'unsafe-eval' for dev tools (HMR, sourcemaps)
+ */
+export function buildDevCSPWithNonce(nonce: string): string {
+  const nonceValue = `'nonce-${nonce}'`;
+  
+  return [
+    "default-src 'self'",
+    // 'unsafe-eval' needed for Next.js HMR and development tools
+    `script-src 'self' ${nonceValue} 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live`,
+    `style-src 'self' ${nonceValue} https://fonts.googleapis.com`,
+    "img-src 'self' data: blob: https: http:",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "connect-src 'self' http://localhost:* ws://localhost:* https://api.stripe.com https://*.supabase.co https://*.sentry.io wss://*.supabase.co https://www.google-analytics.com https://vitals.vercel-insights.com",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join('; ');
+}
+
+/**
+ * Utility to extract nonce from headers (for server components)
+ */
+export function getNonceFromHeaders(headers: Headers): string | null {
+  return headers.get('X-CSP-Nonce');
+}
+
 
 
 

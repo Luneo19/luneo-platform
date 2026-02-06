@@ -8,6 +8,7 @@
 
 import { db } from '@/lib/db';
 import { cookies } from 'next/headers';
+import { serverLogger } from '@/lib/logger-server';
 
 export interface AuthUser {
   id: string;
@@ -68,7 +69,7 @@ export async function getServerUser(): Promise<AuthUser | null> {
       };
     } catch (fetchError) {
       // Fallback : Décoder le JWT directement (moins sécurisé mais fonctionne)
-      console.warn('[getServerUser] API route failed, trying JWT decode fallback:', fetchError);
+      serverLogger.warn('[getServerUser] API route failed, trying JWT decode fallback', { error: fetchError });
       
       // Option 2 : Décoder le JWT et récupérer depuis DB
       // Note : Nécessite d'installer jsonwebtoken ou jose
@@ -76,10 +77,7 @@ export async function getServerUser(): Promise<AuthUser | null> {
       return null;
     }
   } catch (error) {
-    // Logger is not available in server context, use console for critical errors
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[getServerUser] Error getting server user:', error);
-    }
+    serverLogger.error('[getServerUser] Error getting server user', error);
     return null;
   }
 }
@@ -142,10 +140,7 @@ export async function getUserFromRequest(
       brandId: data.brandId || undefined,
     };
   } catch (error) {
-    // Logger is not available in server context, use console for critical errors
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error getting user from request', error);
-    }
+    serverLogger.error('[getUserFromRequest] Error getting user from request', error);
     return null;
   }
 }

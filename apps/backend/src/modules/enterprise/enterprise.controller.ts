@@ -16,6 +16,10 @@ import { Roles } from '@/common/guards/roles.guard';
 import { WhiteLabelService } from './services/white-label.service';
 import { SSOService } from './services/sso.service';
 import { SLASupportService } from './services/sla-support.service';
+import { CreateThemeDto } from './dto/create-theme.dto';
+import { CreateCustomDomainDto } from './dto/create-custom-domain.dto';
+import { CreateSAMLConfigDto } from './dto/create-saml-config.dto';
+import { CreateOIDCConfigDto } from './dto/create-oidc-config.dto';
 
 @ApiTags('Enterprise')
 @Controller('enterprise')
@@ -35,8 +39,8 @@ export class EnterpriseController {
   @Post('white-label/themes')
   @ApiOperation({ summary: 'Crée un thème personnalisé' })
   @ApiResponse({ status: 201, description: 'Thème créé' })
-  async createTheme(@Body() body: any) {
-    return this.whiteLabel.createTheme(body);
+  async createTheme(@Body() dto: CreateThemeDto) {
+    return this.whiteLabel.createTheme(dto);
   }
 
   @Get('white-label/themes/:brandId')
@@ -49,8 +53,8 @@ export class EnterpriseController {
   @Post('white-label/domains')
   @ApiOperation({ summary: 'Crée un domaine personnalisé' })
   @ApiResponse({ status: 201, description: 'Domaine créé' })
-  async createCustomDomain(@Body() body: any) {
-    return this.whiteLabel.createCustomDomain(body);
+  async createCustomDomain(@Body() dto: CreateCustomDomainDto) {
+    return this.whiteLabel.createCustomDomain(dto);
   }
 
   @Post('white-label/domains/:domainId/activate')
@@ -67,15 +71,15 @@ export class EnterpriseController {
   @Post('sso/saml')
   @ApiOperation({ summary: 'Crée une configuration SAML' })
   @ApiResponse({ status: 201, description: 'Configuration SAML créée' })
-  async createSAMLConfig(@Body() body: any) {
-    return this.sso.createSAMLConfig(body);
+  async createSAMLConfig(@Body() dto: CreateSAMLConfigDto) {
+    return this.sso.createSAMLConfig(dto);
   }
 
   @Post('sso/oidc')
   @ApiOperation({ summary: 'Crée une configuration OIDC' })
   @ApiResponse({ status: 201, description: 'Configuration OIDC créée' })
-  async createOIDCConfig(@Body() body: any) {
-    return this.sso.createOIDCConfig(body);
+  async createOIDCConfig(@Body() dto: CreateOIDCConfigDto) {
+    return this.sso.createOIDCConfig(dto);
   }
 
   @Get('sso/:brandId/:provider')

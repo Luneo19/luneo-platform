@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UsageMeteringService } from './usage-metering.service';
 import { QuotasService } from './quotas.service';
@@ -109,7 +109,7 @@ export class BillingCalculationService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to calculateCurrentBill');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     try {
@@ -121,7 +121,7 @@ export class BillingCalculationService {
 
       if (!brand) {
         this.logger.warn(`Brand not found: ${brandId}`);
-        throw new Error('Brand not found');
+        throw new NotFoundException('Brand not found');
       }
 
       const planName = (brand.plan && typeof brand.plan === 'string' && brand.plan.trim().length > 0)
@@ -213,12 +213,12 @@ export class BillingCalculationService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to estimateActionCost');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     if (typeof quantity !== 'number' || quantity < 0 || !Number.isFinite(quantity)) {
       this.logger.warn(`Invalid quantity provided: ${quantity}`);
-      throw new Error('Quantity must be a positive number');
+      throw new BadRequestException('Quantity must be a positive number');
     }
     try {
       const brand = await this.prisma.brand.findUnique({
@@ -227,7 +227,7 @@ export class BillingCalculationService {
       });
 
       if (!brand) {
-        throw new Error('Brand not found');
+        throw new NotFoundException('Brand not found');
       }
 
       const planLimits = this.quotasService.getPlanLimits(brand.plan || 'starter');
@@ -288,7 +288,7 @@ export class BillingCalculationService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to projectCosts');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
 
     if (typeof days !== 'number' || days < 1 || days > 365 || !Number.isFinite(days)) {
@@ -406,7 +406,7 @@ export class BillingCalculationService {
     // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to comparePlans');
-      throw new Error('Brand ID is required');
+      throw new BadRequestException('Brand ID is required');
     }
     try {
       const currentUsage = await this.meteringService.getCurrentUsage(brandId);
