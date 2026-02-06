@@ -18,6 +18,7 @@ export class BillingController {
   @Post('create-checkout-session')
   @ApiOperation({ summary: 'Créer une session de paiement Stripe avec support des add-ons' })
   @ApiResponse({ status: 200, description: 'Session créée avec succès' })
+  @ApiResponse({ status: 400, description: 'Email invalide ou manquant' })
   async createCheckoutSession(
     @Body() body: {
       planId: string;
@@ -27,13 +28,23 @@ export class BillingController {
     },
   ): Promise<{ success: boolean; url?: string; sessionId?: string; error?: string }> {
     try {
-      // Pour les utilisateurs non connectés, on utilise l'email fourni
-      const userId = 'anonymous';
-      const userEmail = body.email || 'user@example.com';
+      // Validation de l'email - obligatoire pour les utilisateurs non connectés
+      if (!body.email || !body.email.includes('@') || body.email.length < 5) {
+        throw new BadRequestException('A valid email address is required');
+      }
+
+      // Normaliser l'email
+      const userEmail = body.email.toLowerCase().trim();
+      
+      // Générer un userId temporaire unique basé sur timestamp + random
+      // Ce userId sera remplacé par l'ID réel après création du compte via webhook Stripe
+      const tempUserId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+      this.logger.log(`Creating checkout session for guest user: ${userEmail}`);
 
       const result = await this.billingService.createCheckoutSession(
         body.planId,
-        userId,
+        tempUserId,
         userEmail,
         {
           billingInterval: body.billingInterval || 'monthly',
@@ -43,6 +54,7 @@ export class BillingController {
 
       return result;
     } catch (error) {
+      this.logger.error(`Checkout session creation failed: ${error.message}`);
       return {
         success: false,
         error: error.message,

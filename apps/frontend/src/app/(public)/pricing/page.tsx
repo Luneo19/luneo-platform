@@ -47,6 +47,7 @@ import { usePricingPlans } from '@/lib/hooks/useMarketingData';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
 import { Loader2 } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 // ============================================
 // TYPES
@@ -509,13 +510,25 @@ function PlanCard({ plan, isYearly, onCheckout }: { plan: Plan; isYearly: boolea
       logger.error('Erreur lors de la création de la session checkout', error);
       const errorMessage = error?.message || error?.error || 'Une erreur est survenue. Veuillez réessayer.';
       
-      // Afficher un message d'erreur plus informatif
+      // Afficher un message d'erreur plus informatif avec toast
       if (errorMessage.includes('rate limit') || errorMessage.includes('max requests')) {
-        alert('Trop de requêtes. Veuillez patienter quelques instants avant de réessayer.');
+        toast({
+          title: 'Trop de requêtes',
+          description: 'Veuillez patienter quelques instants avant de réessayer.',
+          variant: 'destructive',
+        });
       } else if (errorMessage.includes('Configuration') || errorMessage.includes('Stripe')) {
-        alert('Erreur de configuration. Veuillez contacter le support.');
+        toast({
+          title: 'Erreur de configuration',
+          description: 'Veuillez contacter le support.',
+          variant: 'destructive',
+        });
       } else {
-        alert(errorMessage);
+        toast({
+          title: 'Erreur',
+          description: errorMessage,
+          variant: 'destructive',
+        });
       }
     } finally {
       setIsLoading(false);

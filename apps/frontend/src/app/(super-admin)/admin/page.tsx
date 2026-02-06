@@ -23,9 +23,9 @@ export default function AdminOverviewPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4">
-          <p className="text-red-300 text-sm">
-            <strong>Error:</strong> Failed to load dashboard data. Please try again later.
+        <div className="bg-destructive/20 border border-destructive/50 rounded-lg p-4">
+          <p className="text-destructive text-sm">
+            <strong>Erreur :</strong> Impossible de charger les données du dashboard. Veuillez réessayer.
           </p>
         </div>
       </div>
@@ -36,9 +36,9 @@ export default function AdminOverviewPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Super Admin Dashboard</h1>
-        <p className="text-zinc-400 mt-2">
-          Welcome back! Here's your business at a glance.
+        <h1 className="text-3xl font-bold text-foreground">Super Admin Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
+          Bienvenue ! Voici un aperçu de votre activité.
         </p>
       </div>
 

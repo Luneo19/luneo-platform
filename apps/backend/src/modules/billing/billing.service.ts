@@ -110,6 +110,9 @@ export class BillingService implements OnModuleInit {
 
       // En production, valider que les Price IDs existent dans Stripe
       if (nodeEnv === 'production') {
+        // Initialiser à true, sera mis à false si une erreur survient
+        let validationSuccessful = true;
+        
         try {
           const stripe = await this.getStripe();
           
@@ -125,18 +128,20 @@ export class BillingService implements OnModuleInit {
                 } catch (error: any) {
                   this.logger.error(`❌ Invalid Stripe Price ID: ${priceId} (${plan}/${interval}) - ${error.message}`);
                   // Continue validation, don't throw - allows app to start in degraded mode
-                  this.stripeConfigValid = false;
+                  validationSuccessful = false;
                 }
               }
             }
           }
           
-          if (this.stripeConfigValid !== false) {
+          if (validationSuccessful) {
             this.validatedPriceIds = priceIds as ValidatedPriceIds;
             this.logger.log('✅ All Stripe Price IDs validated successfully');
             this.stripeConfigValid = true;
           } else {
-            this.logger.warn('⚠️ Stripe validation failed - billing features will be unavailable');
+            this.logger.warn('⚠️ Some Stripe Price IDs are invalid - billing features may be limited');
+            // Still allow app to start but mark config as partially valid
+            this.stripeConfigValid = false;
           }
         } catch (stripeError: any) {
           this.logger.error(`❌ Stripe API error during validation: ${stripeError.message}`);
@@ -510,12 +515,17 @@ export class BillingService implements OnModuleInit {
         };
       }
 
-      // Récupérer les factures depuis Stripe
-      const stripe = await this.getStripe();
-      const invoices = await stripe.invoices.list({
-        customer: user.brand.stripeCustomerId,
-        limit,
-      });
+      // Récupérer les factures depuis Stripe avec résilience
+      const invoices = await this.executeWithResilience(
+        async () => {
+          const stripe = await this.getStripe();
+          return stripe.invoices.list({
+            customer: user.brand.stripeCustomerId,
+            limit,
+          });
+        },
+        'stripe.invoices.list',
+      );
 
       const formattedInvoices = invoices.data.map((invoice) => ({
         id: invoice.id,

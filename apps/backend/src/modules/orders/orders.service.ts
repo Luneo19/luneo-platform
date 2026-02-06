@@ -498,16 +498,42 @@ export class OrdersService {
       })
     );
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      success_url: `${this.configService.get('app.frontendUrl')}/orders/${order.id}/success`,
-      cancel_url: `${this.configService.get('app.frontendUrl')}/orders/${order.id}/cancel`,
-      metadata: {
-        orderId: order.id,
-      },
-    });
+    // Create Stripe session with retry logic for resilience
+    let session: Stripe.Checkout.Session;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        session = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: lineItems,
+          mode: 'payment',
+          success_url: `${this.configService.get('app.frontendUrl')}/orders/${order.id}/success`,
+          cancel_url: `${this.configService.get('app.frontendUrl')}/orders/${order.id}/cancel`,
+          metadata: {
+            orderId: order.id,
+          },
+        });
+        break; // Success, exit loop
+      } catch (stripeError: any) {
+        retryCount++;
+        const isRetryable = stripeError.type === 'StripeConnectionError' || 
+                           stripeError.type === 'StripeAPIError' ||
+                           stripeError.statusCode === 429 ||
+                           stripeError.statusCode >= 500;
+        
+        if (!isRetryable || retryCount >= maxRetries) {
+          this.logger.error(`Stripe checkout session creation failed after ${retryCount} attempts: ${stripeError.message}`);
+          throw new BadRequestException(`Payment initialization failed: ${stripeError.message}`);
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.pow(2, retryCount - 1) * 1000;
+        this.logger.warn(`Stripe error (attempt ${retryCount}/${maxRetries}), retrying in ${delay}ms: ${stripeError.message}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
 
     // Update order with session ID
     await this.prisma.order.update({
