@@ -1,6 +1,0 @@
-# Ignorer les dépendances backend lors du build frontend
-apps/backend
-node_modules/canvas
-node_modules/@prisma/client
-node_modules/@nestjs
-packages/*/node_modules/canvas
