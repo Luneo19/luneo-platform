@@ -110,37 +110,47 @@ export class BillingService implements OnModuleInit {
 
       // En production, valider que les Price IDs existent dans Stripe
       if (nodeEnv === 'production') {
-        const stripe = await this.getStripe();
-        
-        for (const [plan, intervals] of Object.entries(priceIds)) {
-          for (const [interval, priceId] of Object.entries(intervals)) {
-            if (priceId) {
-              try {
-                const price = await stripe.prices.retrieve(priceId);
-                if (!price.active) {
-                  this.logger.warn(`⚠️ Stripe Price ID ${priceId} (${plan}/${interval}) is inactive`);
+        try {
+          const stripe = await this.getStripe();
+          
+          for (const [plan, intervals] of Object.entries(priceIds)) {
+            for (const [interval, priceId] of Object.entries(intervals)) {
+              if (priceId) {
+                try {
+                  const price = await stripe.prices.retrieve(priceId);
+                  if (!price.active) {
+                    this.logger.warn(`⚠️ Stripe Price ID ${priceId} (${plan}/${interval}) is inactive`);
+                  }
+                  this.logger.debug(`✓ Validated ${plan}/${interval}: ${priceId}`);
+                } catch (error: any) {
+                  this.logger.error(`❌ Invalid Stripe Price ID: ${priceId} (${plan}/${interval}) - ${error.message}`);
+                  // Continue validation, don't throw - allows app to start in degraded mode
+                  this.stripeConfigValid = false;
                 }
-                this.logger.debug(`✓ Validated ${plan}/${interval}: ${priceId}`);
-              } catch (error: any) {
-                this.logger.error(`❌ Invalid Stripe Price ID: ${priceId} (${plan}/${interval}) - ${error.message}`);
-                throw new BadRequestException(`Invalid Stripe Price ID for ${plan}/${interval}: ${priceId}`);
               }
             }
           }
+          
+          if (this.stripeConfigValid !== false) {
+            this.validatedPriceIds = priceIds as ValidatedPriceIds;
+            this.logger.log('✅ All Stripe Price IDs validated successfully');
+            this.stripeConfigValid = true;
+          } else {
+            this.logger.warn('⚠️ Stripe validation failed - billing features will be unavailable');
+          }
+        } catch (stripeError: any) {
+          this.logger.error(`❌ Stripe API error during validation: ${stripeError.message}`);
+          this.logger.warn('⚠️ App starting in degraded mode - billing features unavailable');
+          this.stripeConfigValid = false;
         }
-        
-        this.validatedPriceIds = priceIds as ValidatedPriceIds;
-        this.logger.log('✅ All Stripe Price IDs validated successfully');
+      } else {
+        this.stripeConfigValid = true;
+        this.logger.log('✅ Stripe configuration validated (non-production mode)');
       }
-
-      this.stripeConfigValid = true;
-      this.logger.log('✅ Stripe configuration validated');
     } catch (error: any) {
-      if (nodeEnv === 'production') {
-        this.logger.error(`❌ Stripe configuration validation failed: ${error.message}`);
-        throw error;
-      }
-      this.logger.warn(`⚠️ Stripe configuration validation skipped in ${nodeEnv}: ${error.message}`);
+      this.logger.error(`❌ Stripe configuration validation failed: ${error.message}`);
+      this.logger.warn('⚠️ App starting in degraded mode - billing features unavailable');
+      this.stripeConfigValid = false;
     }
   }
 
