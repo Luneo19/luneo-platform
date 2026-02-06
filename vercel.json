@@ -1,8 +1,12 @@
 {
+  "version": 2,
   "framework": "nextjs",
-  "installCommand": "pnpm install --filter=luneo-frontend... --ignore-scripts",
-  "buildCommand": "cd apps/frontend && npx prisma generate && pnpm run build",
+  "installCommand": "npm install -g pnpm@8 && pnpm install --filter=luneo-frontend... --ignore-scripts --no-frozen-lockfile || pnpm install --ignore-scripts --no-frozen-lockfile",
+  "buildCommand": "cd apps/frontend && npx prisma generate && NODE_OPTIONS=--max_old_space_size=4096 pnpm run build",
   "outputDirectory": "apps/frontend/.next",
+  "env": {
+    "SKIP_INSTALL_HOOKS": "true"
+  },
   "headers": [
     {
       "source": "/_next/static/(.*)",
