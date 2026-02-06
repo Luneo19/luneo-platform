@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../libs/prisma/prisma.service';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 
 /**
  * Types de plans disponibles

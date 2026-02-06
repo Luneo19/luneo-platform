@@ -16,6 +16,8 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { WebVitalsReporter } from "@/components/WebVitalsReporter";
 import { LazyAnalytics } from "@/components/LazyAnalytics";
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
 
 // Initialize Sentry monitoring
 if (typeof window !== 'undefined') {
@@ -227,6 +229,8 @@ export default async function RootLayout({
         >
           <AnalyticsProvider>
             {children}
+            <Toaster />
+            <SonnerToaster position="top-right" richColors closeButton />
             <CookieBanner />
             <Analytics />
             <SpeedInsights />
