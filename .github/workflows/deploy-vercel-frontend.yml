@@ -1,14 +1,13 @@
 name: Deploy Frontend to Vercel
 
-# DÉSACTIVÉ: Déploiement automatique désactivé pour économiser les crédits Vercel
-# Pour déployer manuellement, utilisez: gh workflow run deploy-vercel-frontend.yml
 on:
-  # push:
-  #   branches: [main]
-  #   paths:
-  #     - 'apps/frontend/**'
-  #     - '.github/workflows/deploy-vercel-frontend.yml'
-  workflow_dispatch: # Seulement déploiement manuel
+  push:
+    branches: [main]
+    paths:
+      - 'apps/frontend/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-vercel-frontend.yml'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -18,28 +17,38 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: 'apps/frontend/package-lock.json'
+        node-version: '20'
+        cache: 'pnpm'
         
     - name: Install dependencies
-      run: |
-        cd apps/frontend
-        npm ci
-        
+      run: pnpm install --ignore-scripts
+      
+    - name: Generate Prisma client
+      run: cd apps/frontend && npx prisma generate
+      
     - name: Build project
-      run: |
-        cd apps/frontend
-        npm run build
+      run: cd apps/frontend && pnpm run build
+      env:
+        VERCEL: "1"
+        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+        NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
         
+    - name: Install Vercel CLI
+      run: npm install -g vercel@latest
+      
+    - name: Pull Vercel Environment Information
+      run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      
     - name: Deploy to Vercel
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        working-directory: apps/frontend
-        vercel-args: '--prod'
+      run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      env:
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
