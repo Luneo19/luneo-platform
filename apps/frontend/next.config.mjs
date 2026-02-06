@@ -74,20 +74,11 @@ const nextConfig = {
 
   // Experimental features for performance
   experimental: {
-    optimizeCss: true,
+    // Disabled for Vercel compatibility
+    // optimizeCss: true,
     optimizePackageImports: [
-      '@nivo/line',
-      '@nivo/bar',
-      '@nivo/pie',
-      '@nivo/core',
-      'framer-motion',
       'lodash',
       'date-fns',
-      '@react-three/fiber',
-      '@react-three/drei',
-      'three',
-      'react-chartjs-2',
-      'chart.js',
     ],
     serverActions: {
       bodySizeLimit: '2mb',
