@@ -25,10 +25,29 @@ export default function DashboardLayoutGroup({
         // Skip auth check if Supabase is not configured
         if (!supabase || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
           // Use backend API auth check instead
+          // ✅ FIX: Vérifier d'abord si un token existe avant d'appeler le backend
+          const hasToken = typeof window !== 'undefined' && (
+            localStorage.getItem('accessToken') ||
+            localStorage.getItem('token') ||
+            document.cookie.includes('accessToken') ||
+            document.cookie.includes('refreshToken')
+          );
+          
+          if (!hasToken) {
+            // Pas de token = pas connecté, redirect vers login
+            setIsAuthenticated(false);
+            const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
+            router.push('/login?redirect=' + encodeURIComponent(currentPath));
+            return;
+          }
+          
           try {
             const response = await fetch('/api/auth/me');
             if (!response.ok) {
               setIsAuthenticated(false);
+              // Token invalide, nettoyer
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('token');
               const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
               router.push('/login?redirect=' + encodeURIComponent(currentPath));
               return;

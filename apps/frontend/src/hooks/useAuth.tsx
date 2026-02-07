@@ -131,6 +131,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadUser = async () => {
       setIsLoading(true);
       try {
+        // ✅ FIX: Vérifier la présence d'un token AVANT d'appeler /auth/me
+        // Évite les requêtes 401 inutiles quand personne n'est connecté
+        const hasToken = typeof window !== 'undefined' && (
+          localStorage.getItem('accessToken') ||
+          localStorage.getItem('token') ||
+          document.cookie.includes('accessToken') ||
+          document.cookie.includes('refreshToken')
+        );
+        
+        if (!hasToken) {
+          // Pas de token = pas connecté, pas besoin d'appeler le backend
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
           method: 'GET',
           credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
@@ -140,8 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!response.ok) {
           if (response.status === 401) {
-            // Not authenticated - clear user
+            // Not authenticated - clear user and token
             setUser(null);
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('token');
             return;
           }
           throw new Error(`Failed to fetch user: ${response.statusText}`);
@@ -169,9 +187,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     loadUser();
 
-    // Poll for user changes every 5 minutes (refresh token might have been refreshed)
+    // Poll for user changes every 5 minutes ONLY if user is logged in
+    // ✅ FIX: Ne pas poll si pas de token (évite les 401 inutiles)
     const intervalId = setInterval(() => {
-      if (isMounted) {
+      if (!isMounted) return;
+      const hasToken = typeof window !== 'undefined' && (
+        localStorage.getItem('accessToken') ||
+        localStorage.getItem('token') ||
+        document.cookie.includes('accessToken') ||
+        document.cookie.includes('refreshToken')
+      );
+      if (hasToken) {
         loadUser();
       }
     }, 5 * 60 * 1000); // 5 minutes

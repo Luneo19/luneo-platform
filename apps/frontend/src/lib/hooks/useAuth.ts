@@ -12,6 +12,18 @@ export function useCurrentUser() {
   return useQuery<User>({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
+      // ✅ FIX: Vérifier la présence d'un token AVANT d'appeler /auth/me
+      // Évite les requêtes 401 inutiles quand personne n'est connecté
+      if (typeof window !== 'undefined') {
+        const hasToken = 
+          localStorage.getItem('accessToken') ||
+          localStorage.getItem('token') ||
+          document.cookie.includes('accessToken') ||
+          document.cookie.includes('refreshToken');
+        if (!hasToken) {
+          throw new Error('No auth token found');
+        }
+      }
       try {
         return await endpoints.auth.me();
       } catch (error) {
@@ -22,6 +34,10 @@ export function useCurrentUser() {
     retry: false, // Ne pas retry sur 401 pour éviter les boucles
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true, // Refetch quand la fenêtre redevient active
+    enabled: typeof window !== 'undefined' && Boolean(
+      (typeof localStorage !== 'undefined' && (localStorage.getItem('accessToken') || localStorage.getItem('token'))) ||
+      (typeof document !== 'undefined' && (document.cookie.includes('accessToken') || document.cookie.includes('refreshToken')))
+    ),
   });
 }
 
