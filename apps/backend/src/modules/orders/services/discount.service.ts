@@ -109,8 +109,14 @@ export class DiscountService {
     }
 
     // Vérifier si le code est spécifique à une marque
-    if (discount.brandId && brandId && discount.brandId !== brandId) {
-      throw new BadRequestException(`Discount code ${code} is not valid for this brand`);
+    // ✅ FIX: Rejeter si le discount a un brandId mais que brandId n'est pas fourni
+    if (discount.brandId) {
+      if (!brandId) {
+        throw new BadRequestException(`Discount code ${code} is restricted to a specific brand`);
+      }
+      if (discount.brandId !== brandId) {
+        throw new BadRequestException(`Discount code ${code} is not valid for this brand`);
+      }
     }
 
     // Vérifier si l'utilisateur a déjà utilisé ce code
@@ -208,29 +214,49 @@ export class DiscountService {
     userId?: string,
   ): Promise<void> {
     try {
-      // Créer l'enregistrement d'utilisation
-      await this.prisma.discountUsage.create({
-        data: {
-          discountId,
-          orderId,
-          userId,
-        },
-      });
+      // ✅ FIX: Transaction atomique pour éviter race condition et incohérence
+      // Créer l'enregistrement d'utilisation ET incrémenter le compteur en une seule transaction
+      await this.prisma.$transaction(async (tx) => {
+        // Re-vérifier la limite d'usage dans la transaction (SELECT FOR UPDATE implicite)
+        const discount = await tx.discount.findUnique({
+          where: { id: discountId },
+          select: { usageLimit: true, usageCount: true },
+        });
 
-      // Incrémenter le compteur d'utilisation
-      await this.prisma.discount.update({
-        where: { id: discountId },
-        data: {
-          usageCount: {
-            increment: 1,
+        if (discount?.usageLimit && discount.usageCount >= discount.usageLimit) {
+          throw new BadRequestException(`Discount has reached its usage limit`);
+        }
+
+        // Créer l'enregistrement d'utilisation
+        await tx.discountUsage.create({
+          data: {
+            discountId,
+            orderId,
+            userId,
           },
-        },
+        });
+
+        // Incrémenter le compteur d'utilisation
+        await tx.discount.update({
+          where: { id: discountId },
+          data: {
+            usageCount: {
+              increment: 1,
+            },
+          },
+        });
+      }, {
+        timeout: 5000,
+        isolationLevel: 'RepeatableRead',
       });
 
       this.logger.log(`Recorded discount usage: discountId=${discountId}, orderId=${orderId}`);
     } catch (error) {
       this.logger.error('Failed to record discount usage', error);
-      // Ne pas throw pour ne pas bloquer le processus de commande
+      // Re-throw BadRequestException (usage limit), swallow others
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
     }
   }
 }

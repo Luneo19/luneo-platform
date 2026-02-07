@@ -1457,6 +1457,74 @@ export class BillingService implements OnModuleInit {
   }
 
   /**
+   * Cancel subscription (immediate or at period end)
+   * 
+   * BIL-CANCEL: Annulation d'abonnement
+   * @param userId - ID de l'utilisateur
+   * @param immediate - Si true, annulation immédiate. Si false (défaut), annulation à la fin de la période
+   */
+  async cancelSubscription(userId: string, immediate: boolean = false): Promise<{
+    success: boolean;
+    message: string;
+    cancelAt?: Date;
+  }> {
+    const stripe = await this.getStripe();
+    
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { brand: true },
+    });
+
+    if (!user?.brand?.stripeSubscriptionId) {
+      throw new BadRequestException('No active subscription found');
+    }
+
+    try {
+      let subscription: Stripe.Subscription;
+      
+      if (immediate) {
+        // Annulation immédiate - l'accès est coupé tout de suite
+        subscription = await stripe.subscriptions.cancel(user.brand.stripeSubscriptionId);
+        
+        await this.prisma.brand.update({
+          where: { id: user.brand.id },
+          data: {
+            subscriptionStatus: 'CANCELED',
+            plan: 'free',
+          },
+        });
+
+        this.logger.log(`Subscription cancelled immediately for user ${userId}`);
+        
+        return {
+          success: true,
+          message: 'Votre abonnement a été annulé immédiatement. Vous avez été basculé sur le plan gratuit.',
+        };
+      } else {
+        // Annulation à la fin de la période de facturation
+        subscription = await stripe.subscriptions.update(user.brand.stripeSubscriptionId, {
+          cancel_at_period_end: true,
+        });
+
+        const cancelAt = subscription.current_period_end 
+          ? new Date(subscription.current_period_end * 1000)
+          : undefined;
+
+        this.logger.log(`Subscription set to cancel at period end for user ${userId}`, { cancelAt });
+        
+        return {
+          success: true,
+          message: `Votre abonnement sera annulé à la fin de la période de facturation${cancelAt ? ` (${cancelAt.toLocaleDateString('fr-FR')})` : ''}. Vous conservez l'accès jusque-là.`,
+          cancelAt,
+        };
+      }
+    } catch (error: any) {
+      this.logger.error(`Failed to cancel subscription for user ${userId}: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to cancel subscription: ${error.message}`);
+    }
+  }
+
+  /**
    * Get any scheduled plan changes
    * 
    * BIL-DOWNGRADE: Voir les changements programmés
@@ -1769,8 +1837,12 @@ export class BillingService implements OnModuleInit {
     // Handle subscription checkout
     if (session.mode === 'subscription' && session.customer) {
       const customerId = typeof session.customer === 'string' ? session.customer : session.customer.id;
+      const subscriptionId = typeof session.subscription === 'string' 
+        ? session.subscription 
+        : (session.subscription as any)?.id;
       
-      // Update brand with Stripe customer ID
+      // ✅ FIX CRITICAL: Mettre à jour Brand avec TOUS les détails de la subscription
+      // (pas seulement le customerId)
       if (session.metadata?.userId) {
         const user = await this.prisma.user.findUnique({
           where: { id: session.metadata.userId },
@@ -1778,12 +1850,39 @@ export class BillingService implements OnModuleInit {
         });
 
         if (user?.brandId) {
+          // Extraire le plan depuis les métadonnées de la session
+          const planId = session.metadata?.planId || 'starter';
+          
+          // Récupérer les détails de la subscription pour le statut et trial
+          let subscriptionStatus = 'ACTIVE';
+          let trialEndsAt: Date | null = null;
+          let currentPeriodEnd: Date | null = null;
+          
+          if (subscriptionId) {
+            try {
+              const stripe = await this.getStripe();
+              const sub = await stripe.subscriptions.retrieve(subscriptionId);
+              subscriptionStatus = this.mapStripeStatusToAppStatus(sub.status);
+              trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
+              currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+            } catch (err: any) {
+              this.logger.warn(`Could not retrieve subscription ${subscriptionId}: ${err.message}`);
+            }
+          }
+
           await this.prisma.brand.update({
             where: { id: user.brandId },
             data: {
               stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId || undefined,
+              plan: planId,
+              subscriptionStatus: subscriptionStatus as any,
+              trialEndsAt,
+              planExpiresAt: currentPeriodEnd,
             },
           });
+          
+          this.logger.log(`Brand ${user.brandId} updated with subscription ${subscriptionId}, plan: ${planId}, status: ${subscriptionStatus}`);
         }
       }
 
@@ -1792,6 +1891,7 @@ export class BillingService implements OnModuleInit {
         result: {
           type: 'subscription_created',
           customerId,
+          subscriptionId,
           sessionId: session.id,
         },
       };
@@ -2159,19 +2259,42 @@ export class BillingService implements OnModuleInit {
    * Handle invoice.payment_succeeded event
    */
   private async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<{ processed: boolean; result?: any }> {
+    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
+    
     this.logger.log('Processing invoice payment succeeded', {
       invoiceId: invoice.id,
-      customerId: typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id,
+      customerId,
     });
 
-    // Log the successful payment
-    // Additional business logic can be added here (e.g., send confirmation emails)
+    // ✅ FIX: Mettre à jour le statut de la Brand à ACTIVE après paiement réussi
+    // Critique pour la reprise après un paiement échoué (PAST_DUE -> ACTIVE)
+    if (customerId) {
+      try {
+        const brand = await this.prisma.brand.findFirst({
+          where: { stripeCustomerId: customerId },
+          select: { id: true, subscriptionStatus: true },
+        });
+
+        if (brand && brand.subscriptionStatus !== 'ACTIVE') {
+          await this.prisma.brand.update({
+            where: { id: brand.id },
+            data: {
+              subscriptionStatus: 'ACTIVE',
+            },
+          });
+          this.logger.log(`Brand ${brand.id} status updated to ACTIVE after successful payment`);
+        }
+      } catch (error: any) {
+        this.logger.error(`Failed to update brand status after payment success: ${error.message}`);
+      }
+    }
 
     return {
       processed: true,
       result: {
         type: 'invoice_payment_succeeded',
         invoiceId: invoice.id,
+        customerId,
       },
     };
   }

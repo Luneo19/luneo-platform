@@ -14,9 +14,9 @@ export interface DiscountResult {
  * 
  * @description
  * Les taux de commission varient selon le plan d'abonnement :
- * - FREE/STARTER: 15% (compense le plan gratuit/basique)
+ * - FREE: 15% (compense le plan gratuit)
+ * - STARTER: 12% (plan de démarrage)
  * - PROFESSIONAL: 10% (plan standard)
- * - BUSINESS: 7% (volume élevé)
  * - ENTERPRISE: 5% (négociable, grands comptes)
  * 
  * Commission minimum: 1€ par commande
@@ -43,8 +43,7 @@ export class CommissionService {
     FREE: 15,          // 15% - Plan gratuit
     STARTER: 12,       // 12% - Plan de démarrage
     PROFESSIONAL: 10,  // 10% - Plan professionnel
-    BUSINESS: 7,       // 7% - Plan business (volume)
-    ENTERPRISE: 5,     // 5% - Enterprise (négociable)
+    ENTERPRISE: 5,     // 5% - Enterprise (grands comptes, négociable)
   };
 
   /**

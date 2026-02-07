@@ -359,6 +359,31 @@ export class BillingController {
     return this.billingService.cancelScheduledDowngrade(req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('cancel-subscription')
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Annuler l\'abonnement',
+    description: 'Annule l\'abonnement. Par défaut, l\'annulation prend effet à la fin de la période de facturation.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Abonnement annulé',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        cancelAt: { type: 'string', format: 'date-time' },
+      }
+    }
+  })
+  async cancelSubscription(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Body() body: { immediate?: boolean },
+  ) {
+    return this.billingService.cancelSubscription(req.user.id, body?.immediate || false);
+  }
+
   @Public()
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
