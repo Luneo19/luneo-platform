@@ -302,14 +302,35 @@ export class BillingService implements OnModuleInit {
         },
       ];
 
-      // ✅ Ajouter les add-ons si fournis
-      // Note: Pour les add-ons, on peut soit créer des Price IDs Stripe dédiés,
-      // soit utiliser des line items avec prix personnalisés
-      // Pour l'instant, on utilise des line items avec prix personnalisés
+      // ✅ Ajouter les add-ons si fournis (utilise les Price IDs Stripe dédiés)
       if (options?.addOns && options.addOns.length > 0) {
-        // TODO: Créer des Price IDs Stripe pour chaque add-on et les utiliser ici
-        // Pour l'instant, on stocke les add-ons dans metadata et on les facturera séparément
-        this.logger.log(`Add-ons requested: ${JSON.stringify(options.addOns)}`);
+        const addonsConfig = this.configService.get<Record<string, any>>('stripe.addons') || {};
+        const addonTypeMap: Record<string, string> = {
+          'extra_designs': 'extraDesigns',
+          'extra_storage': 'extraStorage',
+          'extra_team_members': 'extraTeamMembers',
+          'extra_api_calls': 'extraApiCalls',
+          'extra_renders_3d': 'extraRenders3d',
+        };
+
+        for (const addon of options.addOns) {
+          const configKey = addonTypeMap[addon.type];
+          if (!configKey || !addonsConfig[configKey]) {
+            this.logger.warn(`Unknown add-on type: ${addon.type}, skipping`);
+            continue;
+          }
+
+          const addonPriceId = addonsConfig[configKey][billingInterval === 'yearly' ? 'yearly' : 'monthly'];
+          if (addonPriceId) {
+            lineItems.push({
+              price: addonPriceId,
+              quantity: addon.quantity || 1,
+            });
+            this.logger.log(`Add-on added to checkout: ${addon.type} x${addon.quantity} (${addonPriceId})`);
+          } else {
+            this.logger.warn(`No price ID found for add-on: ${addon.type} (${billingInterval})`);
+          }
+        }
       }
 
     try {

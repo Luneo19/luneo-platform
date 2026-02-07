@@ -336,6 +336,34 @@ export const stripeConfig = registerAs('stripe', () => ({
   pricePro: process.env.STRIPE_PRICE_PRO,
   priceBusiness: process.env.STRIPE_PRICE_BUSINESS,
   priceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE,
+  // Add-on Price IDs
+  addons: {
+    extraDesigns: {
+      productId: process.env.STRIPE_ADDON_EXTRA_DESIGNS_PRODUCT_ID,
+      monthly: process.env.STRIPE_ADDON_EXTRA_DESIGNS_MONTHLY,
+      yearly: process.env.STRIPE_ADDON_EXTRA_DESIGNS_YEARLY,
+    },
+    extraStorage: {
+      productId: process.env.STRIPE_ADDON_EXTRA_STORAGE_PRODUCT_ID,
+      monthly: process.env.STRIPE_ADDON_EXTRA_STORAGE_MONTHLY,
+      yearly: process.env.STRIPE_ADDON_EXTRA_STORAGE_YEARLY,
+    },
+    extraTeamMembers: {
+      productId: process.env.STRIPE_ADDON_EXTRA_TEAM_MEMBERS_PRODUCT_ID,
+      monthly: process.env.STRIPE_ADDON_EXTRA_TEAM_MEMBERS_MONTHLY,
+      yearly: process.env.STRIPE_ADDON_EXTRA_TEAM_MEMBERS_YEARLY,
+    },
+    extraApiCalls: {
+      productId: process.env.STRIPE_ADDON_EXTRA_API_CALLS_PRODUCT_ID,
+      monthly: process.env.STRIPE_ADDON_EXTRA_API_CALLS_MONTHLY,
+      yearly: process.env.STRIPE_ADDON_EXTRA_API_CALLS_YEARLY,
+    },
+    extraRenders3d: {
+      productId: process.env.STRIPE_ADDON_EXTRA_RENDERS_3D_PRODUCT_ID,
+      monthly: process.env.STRIPE_ADDON_EXTRA_RENDERS_3D_MONTHLY,
+      yearly: process.env.STRIPE_ADDON_EXTRA_RENDERS_3D_YEARLY,
+    },
+  },
   // URLs
   successUrl: process.env.STRIPE_SUCCESS_URL || 'https://app.luneo.app/dashboard/billing/success',
   cancelUrl: process.env.STRIPE_CANCEL_URL || 'https://app.luneo.app/dashboard/billing/cancel',
