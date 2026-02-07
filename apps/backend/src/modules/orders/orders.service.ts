@@ -338,13 +338,16 @@ export class OrdersService {
       ? { discountId: discountMetadata.discountId as string }
       : null;
 
-    // Calculate tax (20% VAT) on subtotal after discount + shipping
-    const taxCents = Math.round((subtotalCents - discountCents + shippingCents) * 0.20);
+    // Calculate tax (20% VAT) on subtotal after discount (shipping can be VAT-exempt selon juridiction)
+    const taxableAmountCents = subtotalCents - discountCents;
+    const taxCents = Math.round(taxableAmountCents * 0.20);
     
     const totalCents = subtotalCents - discountCents + shippingCents + taxCents;
 
+    // ✅ Commission calculée sur le subtotal APRÈS remise, AVANT taxes et shipping
+    // C'est la pratique standard marketplace (commission sur le montant net produit)
     const commissionPercent = await this.commissionService.getCommissionPercent(brandId);
-    const commissionCents = this.commissionService.calculateCommissionCents(totalCents, commissionPercent);
+    const commissionCents = this.commissionService.calculateCommissionCents(taxableAmountCents, commissionPercent);
 
     // Create order with items
     const order = await this.prisma.order.create({
@@ -449,13 +452,15 @@ export class OrdersService {
     }
 
     // ✅ Créer une commission automatiquement si l'utilisateur a été référé
+    // Commission de referral : configurable, appliquée sur le subtotal net (comme la commission plateforme)
+    const referralCommissionPercent = this.configService.get<number>('referral.commissionPercent') || 10;
     if (this.referralService && currentUser.id) {
       try {
         const commission = await this.referralService.createCommissionFromOrder(
           order.id,
           currentUser.id,
-          totalCents,
-          10, // 10% de commission par défaut
+          taxableAmountCents, // ✅ Commission referral sur subtotal net, pas totalCents
+          referralCommissionPercent,
         );
         if (commission) {
           this.logger.log(
@@ -642,6 +647,27 @@ export class OrdersService {
   async update(id: string, data: { status?: OrderStatus; trackingNumber?: string; notes?: string }, currentUser: CurrentUser) {
     const order = await this.findOne(id, currentUser);
 
+    // ✅ FIX: Valider la transition de statut si un changement de statut est demandé
+    if (data.status && data.status !== order.status) {
+      const validTransitions: Record<OrderStatus, OrderStatus[]> = {
+        [OrderStatus.CREATED]: [OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.CANCELLED],
+        [OrderStatus.PENDING_PAYMENT]: [OrderStatus.PAID, OrderStatus.CANCELLED],
+        [OrderStatus.PAID]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED, OrderStatus.REFUNDED],
+        [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED, OrderStatus.REFUNDED],
+        [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REFUNDED],
+        [OrderStatus.DELIVERED]: [OrderStatus.REFUNDED],
+        [OrderStatus.CANCELLED]: [],
+        [OrderStatus.REFUNDED]: [],
+      };
+
+      const allowedStatuses = validTransitions[order.status] || [];
+      if (!allowedStatuses.includes(data.status)) {
+        throw new BadRequestException(
+          `Cannot transition from ${order.status} to ${data.status}. Allowed: ${allowedStatuses.join(', ')}`,
+        );
+      }
+    }
+
     const updateData: any = {};
     if (data.status) updateData.status = data.status;
     if (data.trackingNumber) updateData.trackingNumber = data.trackingNumber;
@@ -664,8 +690,33 @@ export class OrdersService {
   async cancel(id: string, currentUser: CurrentUser) {
     const order = await this.findOne(id, currentUser);
 
-    if (order.status !== OrderStatus.CREATED) {
-      throw new ForbiddenException('Order cannot be cancelled');
+    // ✅ FIX: Permettre l'annulation aussi pour PENDING_PAYMENT
+    if (order.status !== OrderStatus.CREATED && order.status !== OrderStatus.PENDING_PAYMENT) {
+      throw new ForbiddenException('Order can only be cancelled when in CREATED or PENDING_PAYMENT status');
+    }
+
+    // ✅ FIX: Reverser l'utilisation du code promo si applicable
+    try {
+      const discountUsage = await this.prisma.discountUsage.findFirst({
+        where: { orderId: id },
+      });
+
+      if (discountUsage) {
+        // Supprimer l'enregistrement d'utilisation
+        await this.prisma.discountUsage.delete({
+          where: { id: discountUsage.id },
+        });
+
+        // Décrémenter le compteur d'utilisation du discount
+        await this.prisma.discount.update({
+          where: { id: discountUsage.discountId },
+          data: { usageCount: { decrement: 1 } },
+        });
+
+        this.logger.log(`Reversed discount usage for cancelled order ${id}`);
+      }
+    } catch (error: any) {
+      this.logger.warn(`Failed to reverse discount usage for order ${id}: ${error.message}`);
     }
 
     return this.prisma.order.update({
@@ -808,6 +859,9 @@ export class OrdersService {
 
         this.logger.log(`Refund processed for order ${order.orderNumber}: ${refund.amount / 100}€`);
 
+        // ✅ FIX: Reverser discount usage et commissions
+        await this.reverseOrderSideEffects(id, order.orderNumber);
+
         return {
           success: true,
           refundId: refund.id,
@@ -841,6 +895,9 @@ export class OrdersService {
 
         this.logger.log(`Manual refund requested for order ${order.orderNumber}`);
 
+        // ✅ FIX: Reverser discount usage et commissions
+        await this.reverseOrderSideEffects(id, order.orderNumber);
+
         return {
           success: true,
           refundId: null,
@@ -853,6 +910,51 @@ export class OrdersService {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to process refund for order ${order.orderNumber}: ${errorMessage}`);
       throw new BadRequestException(`Failed to process refund: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * ✅ Reverse les effets de bord d'une commande (discount usage, commissions)
+   * Appelé lors d'un annulation ou d'un remboursement
+   */
+  private async reverseOrderSideEffects(orderId: string, orderNumber: string): Promise<void> {
+    // 1. Reverser l'utilisation du code promo
+    try {
+      const discountUsage = await this.prisma.discountUsage.findFirst({
+        where: { orderId },
+      });
+
+      if (discountUsage) {
+        await this.prisma.discountUsage.delete({
+          where: { id: discountUsage.id },
+        });
+
+        await this.prisma.discount.update({
+          where: { id: discountUsage.discountId },
+          data: { usageCount: { decrement: 1 } },
+        });
+
+        this.logger.log(`Reversed discount usage for order ${orderNumber}`);
+      }
+    } catch (error: any) {
+      this.logger.warn(`Failed to reverse discount usage for order ${orderNumber}: ${error.message}`);
+    }
+
+    // 2. Annuler les commissions non-payées liées à cette commande
+    try {
+      const commissions = await this.prisma.commission.findMany({
+        where: { orderId, status: 'PENDING' },
+      });
+
+      if (commissions.length > 0) {
+        await this.prisma.commission.updateMany({
+          where: { orderId, status: 'PENDING' },
+          data: { status: 'CANCELLED' as any },
+        });
+        this.logger.log(`Cancelled ${commissions.length} pending commissions for order ${orderNumber}`);
+      }
+    } catch (error: any) {
+      this.logger.warn(`Failed to cancel commissions for order ${orderNumber}: ${error.message}`);
     }
   }
 

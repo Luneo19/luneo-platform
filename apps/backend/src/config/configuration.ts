@@ -450,3 +450,23 @@ export const monitoringConfig = registerAs('monitoring', () => ({
     endpoint: process.env.MONITORING_OPENTELEMETRY_ENDPOINT || 'http://localhost:14268/api/traces',
   },
 }));
+
+// Marketplace configuration
+export const marketplaceConfig = registerAs('marketplace', () => ({
+  // Pourcentage de la plateforme sur les ventes de templates (par défaut 30%)
+  platformFeePercent: parseInt(process.env.MARKETPLACE_PLATFORM_FEE_PERCENT || '30', 10),
+  // Montant minimum de payout en centimes (par défaut 10€)
+  minPayoutCents: parseInt(process.env.MARKETPLACE_MIN_PAYOUT_CENTS || '1000', 10),
+  // Stripe Connect fees percentage (par défaut 2%)
+  connectFeesPercent: parseFloat(process.env.MARKETPLACE_CONNECT_FEES_PERCENT || '2'),
+}));
+
+// Referral configuration
+export const referralConfig = registerAs('referral', () => ({
+  // Pourcentage de commission par défaut pour les affiliés (par défaut 10%)
+  commissionPercent: parseInt(process.env.REFERRAL_COMMISSION_PERCENT || '10', 10),
+  // Durée du cookie de referral en jours (par défaut 30)
+  cookieDurationDays: parseInt(process.env.REFERRAL_COOKIE_DURATION_DAYS || '30', 10),
+  // Montant minimum de retrait en centimes (par défaut 50€)
+  minWithdrawalCents: parseInt(process.env.REFERRAL_MIN_WITHDRAWAL_CENTS || '5000', 10),
+}));

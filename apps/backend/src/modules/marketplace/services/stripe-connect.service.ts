@@ -59,8 +59,18 @@ export class StripeConnectService {
       0,
     );
 
-    const feesCents = Math.round(totalAmountCents * 0.02); // 2% fees
+    // Frais Stripe Connect configurables (par défaut 2%)
+    const connectFeesPercent = this.configService.get<number>('marketplace.connectFeesPercent') || 2;
+    const feesCents = Math.round(totalAmountCents * (connectFeesPercent / 100));
     const netAmountCents = totalAmountCents - feesCents;
+
+    // Validation : montant minimum de payout
+    const minPayoutCents = this.configService.get<number>('marketplace.minPayoutCents') || 1000;
+    if (netAmountCents < minPayoutCents) {
+      throw new NotFoundException(
+        `Net payout amount (${netAmountCents} cents) is below the minimum (${minPayoutCents} cents). Work orders will accumulate until threshold is reached.`
+      );
+    }
 
     // Créer le payout dans la DB
     const payout = await this.prisma.payout.create({
@@ -112,14 +122,20 @@ export class StripeConnectService {
       return { payout, transfer };
     } catch (error) {
       // Marquer le payout comme failed
+      // Sanitiser le message d'erreur pour ne pas exposer de détails Stripe internes
+      const sanitizedReason = error instanceof Error 
+        ? (error.message.includes('Stripe') ? 'Payment processing error' : error.message)
+        : 'Unknown error';
+      
       await this.prisma.payout.update({
         where: { id: payout.id },
         data: {
           status: 'FAILED',
-          failureReason: error.message,
+          failureReason: sanitizedReason,
         },
       });
 
+      this.logger.error(`Payout ${payout.id} failed for artisan ${artisanId}:`, error);
       throw error;
     }
   }

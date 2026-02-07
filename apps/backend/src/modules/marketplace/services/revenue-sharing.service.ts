@@ -85,12 +85,19 @@ export interface CreatorPayout {
 @Injectable()
 export class RevenueSharingService {
   private readonly logger = new Logger(RevenueSharingService.name);
-  private readonly platformFeePercent = 30; // 30% pour la plateforme, 70% pour le créateur
+  /**
+   * Pourcentage par défaut pour la plateforme (configurable via env)
+   * 30% plateforme, 70% créateur par défaut
+   * Peut être surchargé par template via revenueSharePercent
+   */
+  private readonly defaultPlatformFeePercent: number;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.defaultPlatformFeePercent = this.configService.get<number>('marketplace.platformFeePercent') || 30;
+  }
 
   /**
    * Traite un achat de template
@@ -165,8 +172,16 @@ export class RevenueSharingService {
       }
 
       // ✅ Calculer le revenue sharing
-      const platformFeeCents = Math.round(data.priceCents * (this.platformFeePercent / 100));
-      const creatorRevenueCents = data.priceCents - platformFeeCents;
+      // Utiliser le revenueSharePercent du template si défini (= % pour le créateur), sinon le défaut
+      const creatorSharePercent = template.revenueSharePercent 
+        ? template.revenueSharePercent 
+        : (100 - this.defaultPlatformFeePercent);
+      const effectivePlatformFeePercent = 100 - creatorSharePercent;
+      
+      // Utiliser le prix du template (source of truth) et non data.priceCents si différent
+      const effectivePriceCents = template.priceCents || data.priceCents;
+      const platformFeeCents = Math.round(effectivePriceCents * (effectivePlatformFeePercent / 100));
+      const creatorRevenueCents = effectivePriceCents - platformFeeCents;
 
       // ✅ Créer l'enregistrement d'achat
       const purchase = await this.prisma.templatePurchase.create({

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 /**
@@ -12,6 +12,26 @@ export enum PlanType {
   BUSINESS = 'business',
   ENTERPRISE = 'enterprise'
 }
+
+/**
+ * Types d'add-ons disponibles
+ */
+export interface ActiveAddon {
+  type: string;       // ex: 'extra_designs', 'extra_storage', etc.
+  quantity: number;    // nombre d'unités achetées
+  stripePriceId?: string;
+}
+
+/**
+ * Bonus par add-on (ce que chaque unité ajoute aux limites)
+ */
+const ADDON_BONUSES: Record<string, Partial<PlanLimits>> = {
+  extra_designs:      { designsPerMonth: 100 },     // +100 designs par unité
+  extra_storage:      { storageGB: 10 },             // +10 GB par unité
+  extra_team_members: { teamMembers: 5 },            // +5 membres par unité
+  extra_api_calls:    {},                             // géré par usage metering
+  extra_renders_3d:   {},                             // géré par usage metering
+};
 
 export interface PlanLimits {
   designsPerMonth: number;
@@ -222,11 +242,70 @@ export class PlansService {
   }
 
   /**
-   * Get plan limits for a user
+   * Get active add-ons for a brand from Stripe subscription metadata
+   * Reads from the brand's `limits` JSON field where add-ons are persisted by webhooks
+   */
+  async getActiveAddons(brandId: string): Promise<ActiveAddon[]> {
+    try {
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        select: { limits: true },
+      });
+
+      if (!brand?.limits || typeof brand.limits !== 'object') {
+        return [];
+      }
+
+      const limitsData = brand.limits as Record<string, any>;
+      return Array.isArray(limitsData.activeAddons) ? limitsData.activeAddons : [];
+    } catch (error) {
+      this.logger.error(`Error getting active addons for brand ${brandId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get plan limits for a user, INCLUDING add-on bonuses
+   * This is the single source of truth for effective limits
    */
   async getUserLimits(userId: string): Promise<PlanLimits> {
     const plan = await this.getUserPlan(userId);
-    return this.planLimits[plan];
+    const baseLimits = { ...this.planLimits[plan] };
+
+    // Si plan illimité, pas besoin de calculer les add-ons
+    if (plan === PlanType.ENTERPRISE) {
+      return baseLimits;
+    }
+
+    // Récupérer les add-ons actifs
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { brandId: true },
+      });
+
+      if (user?.brandId) {
+        const addons = await this.getActiveAddons(user.brandId);
+        
+        for (const addon of addons) {
+          const bonus = ADDON_BONUSES[addon.type];
+          if (bonus) {
+            for (const [key, value] of Object.entries(bonus)) {
+              if (typeof value === 'number' && typeof (baseLimits as any)[key] === 'number') {
+                // Ne pas ajouter de bonus si la limite est déjà illimitée (-1)
+                if ((baseLimits as any)[key] !== -1) {
+                  (baseLimits as any)[key] += value * (addon.quantity || 1);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error calculating addon bonuses for user ${userId}:`, error);
+    }
+
+    return baseLimits;
   }
 
   /**
@@ -388,5 +467,106 @@ export class PlansService {
    */
   getAllPlanLimits(): Record<PlanType, PlanLimits> {
     return { ...this.planLimits };
+  }
+
+  // ========================================
+  // ENFORCEMENT METHODS (bloquantes)
+  // ========================================
+
+  /**
+   * Enforce design limit - throws if user cannot create
+   * Call this BEFORE creating a design
+   */
+  async enforceDesignLimit(userId: string): Promise<void> {
+    const result = await this.checkDesignLimit(userId);
+    if (!result.canCreate) {
+      throw new ForbiddenException(
+        `Limite de designs atteinte (${result.limit}/mois). Passez à un plan supérieur ou ajoutez l'add-on "Extra Designs".`
+      );
+    }
+  }
+
+  /**
+   * Enforce team limit - throws if user cannot invite
+   * Call this BEFORE sending a team invitation
+   */
+  async enforceTeamLimit(userId: string): Promise<void> {
+    const result = await this.checkTeamLimit(userId);
+    if (!result.canInvite) {
+      throw new ForbiddenException(
+        `Limite de membres d'équipe atteinte (${result.limit}). Passez à un plan supérieur ou ajoutez l'add-on "Extra Team Members".`
+      );
+    }
+  }
+
+  /**
+   * Enforce product limit - throws if user cannot create product
+   * Call this BEFORE creating a product
+   */
+  async enforceProductLimit(userId: string): Promise<void> {
+    const result = await this.checkProductLimit(userId);
+    if (!result.canCreate) {
+      throw new ForbiddenException(
+        `Limite de produits atteinte (${result.limit}). Passez à un plan supérieur.`
+      );
+    }
+  }
+
+  // ========================================
+  // ADD-ON PERSISTENCE (called by webhooks)
+  // ========================================
+
+  /**
+   * Persist active add-ons to brand's limits field
+   * Called by the Stripe webhook handler when subscription changes
+   * 
+   * @param brandId - ID de la marque
+   * @param subscriptionItems - Items de la subscription Stripe
+   * @param addonPriceIds - Map de Price ID Stripe -> type d'addon
+   */
+  async syncAddonsFromSubscription(
+    brandId: string,
+    subscriptionItems: Array<{ price: { id: string; product?: any }; quantity: number }>,
+    addonPriceIds: Record<string, string>,
+  ): Promise<void> {
+    try {
+      const activeAddons: ActiveAddon[] = [];
+
+      for (const item of subscriptionItems) {
+        const addonType = addonPriceIds[item.price.id];
+        if (addonType) {
+          activeAddons.push({
+            type: addonType,
+            quantity: item.quantity || 1,
+            stripePriceId: item.price.id,
+          });
+        }
+      }
+
+      // Récupérer les limites existantes pour ne pas écraser d'autres données
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        select: { limits: true },
+      });
+
+      const currentLimits = (brand?.limits as Record<string, any>) || {};
+
+      await this.prisma.brand.update({
+        where: { id: brandId },
+        data: {
+          limits: {
+            ...currentLimits,
+            activeAddons: activeAddons.map(a => ({ ...a })),
+            addonsUpdatedAt: new Date().toISOString(),
+          } as any,
+        },
+      });
+
+      this.logger.log(`Synced ${activeAddons.length} add-ons for brand ${brandId}`, {
+        addons: activeAddons.map(a => `${a.type} x${a.quantity}`),
+      });
+    } catch (error) {
+      this.logger.error(`Error syncing add-ons for brand ${brandId}:`, error);
+    }
   }
 }

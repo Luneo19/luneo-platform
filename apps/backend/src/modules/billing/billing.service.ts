@@ -1797,6 +1797,78 @@ export class BillingService implements OnModuleInit {
       };
     }
 
+    // ✅ FIX: Handle order payment completion
+    // Trouver la commande associée à cette session Stripe et mettre à jour son statut
+    if (session.mode === 'payment') {
+      const orderId = session.metadata?.orderId;
+      if (orderId) {
+        try {
+          const order = await this.prisma.order.findUnique({
+            where: { id: orderId },
+            select: { id: true, status: true, orderNumber: true, paymentStatus: true },
+          });
+
+          if (order && order.paymentStatus !== 'SUCCEEDED') {
+            await this.prisma.order.update({
+              where: { id: orderId },
+              data: {
+                status: 'PAID',
+                paymentStatus: 'SUCCEEDED',
+                stripePaymentId: typeof session.payment_intent === 'string' 
+                  ? session.payment_intent 
+                  : session.payment_intent?.id || null,
+              },
+            });
+            this.logger.log(`Order ${order.orderNumber} marked as PAID (session ${session.id})`);
+
+            return {
+              processed: true,
+              result: {
+                type: 'order_payment',
+                orderId,
+                orderNumber: order.orderNumber,
+              },
+            };
+          }
+        } catch (error: any) {
+          this.logger.error(`Failed to update order ${orderId} payment status: ${error.message}`);
+        }
+      }
+
+      // Fallback: chercher par stripeSessionId si pas de metadata orderId
+      try {
+        const order = await this.prisma.order.findFirst({
+          where: { stripeSessionId: session.id },
+          select: { id: true, status: true, orderNumber: true, paymentStatus: true },
+        });
+
+        if (order && order.paymentStatus !== 'SUCCEEDED') {
+          await this.prisma.order.update({
+            where: { id: order.id },
+            data: {
+              status: 'PAID',
+              paymentStatus: 'SUCCEEDED',
+              stripePaymentId: typeof session.payment_intent === 'string' 
+                ? session.payment_intent 
+                : session.payment_intent?.id || null,
+            },
+          });
+          this.logger.log(`Order ${order.orderNumber} marked as PAID via session lookup (session ${session.id})`);
+
+          return {
+            processed: true,
+            result: {
+              type: 'order_payment',
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+            },
+          };
+        }
+      } catch (error: any) {
+        this.logger.error(`Failed to find/update order by session ${session.id}: ${error.message}`);
+      }
+    }
+
     return { processed: false };
   }
 
@@ -1886,16 +1958,67 @@ export class BillingService implements OnModuleInit {
         ? new Date(subscription.trial_end * 1000) 
         : null;
 
+      // ✅ Identifier le plan principal parmi les items (exclure les add-ons)
+      // Les add-ons ont des metadata 'addon' ou sont dans la config addons
+      const addonsConfig = this.configService.get<Record<string, any>>('stripe.addons') || {};
+      const addonPriceIdSet = new Set<string>();
+      const addonPriceIdToType: Record<string, string> = {};
+      
+      for (const [addonKey, addonConf] of Object.entries(addonsConfig)) {
+        const conf = addonConf as any;
+        if (conf?.monthly) { addonPriceIdSet.add(conf.monthly); addonPriceIdToType[conf.monthly] = addonKey; }
+        if (conf?.yearly) { addonPriceIdSet.add(conf.yearly); addonPriceIdToType[conf.yearly] = addonKey; }
+      }
+
+      // Le plan principal = premier item qui n'est PAS un add-on
+      const planItem = subscription.items.data.find(item => !addonPriceIdSet.has(item.price.id));
+      const planName = planItem?.price?.nickname 
+        || subscription.metadata?.planId 
+        || brand.plan 
+        || 'starter';
+
       await this.prisma.brand.update({
         where: { id: brand.id },
         data: {
           stripeSubscriptionId: subscription.id,
           subscriptionStatus: appStatus,
-          plan: subscription.items.data[0]?.price?.nickname || brand.plan || 'professional',
+          plan: planName,
           planExpiresAt: currentPeriodEnd,
           trialEndsAt: trialEnd,
         },
       });
+
+      // ✅ Synchroniser les add-ons actifs dans la DB (via PlansService ou directement)
+      const activeAddons: Array<{ type: string; quantity: number; stripePriceId: string }> = [];
+      for (const item of subscription.items.data) {
+        const addonType = addonPriceIdToType[item.price.id];
+        if (addonType) {
+          // Convertir camelCase (extraDesigns) en snake_case (extra_designs)
+          const snakeType = addonType.replace(/([A-Z])/g, '_$1').toLowerCase();
+          activeAddons.push({
+            type: snakeType,
+            quantity: item.quantity || 1,
+            stripePriceId: item.price.id,
+          });
+        }
+      }
+
+      // Persister les add-ons dans le champ limits JSON de la brand
+      const currentLimits = (brand.limits as Record<string, any>) || {};
+      await this.prisma.brand.update({
+        where: { id: brand.id },
+        data: {
+          limits: {
+            ...currentLimits,
+            activeAddons,
+            addonsUpdatedAt: new Date().toISOString(),
+          },
+        },
+      });
+
+      if (activeAddons.length > 0) {
+        this.logger.log(`Synced ${activeAddons.length} add-ons for brand ${brand.id}: ${activeAddons.map(a => `${a.type} x${a.quantity}`).join(', ')}`);
+      }
 
       // Log le changement de statut
       if (previousStatus !== appStatus) {
@@ -1970,6 +2093,9 @@ export class BillingService implements OnModuleInit {
     });
 
     if (brand) {
+      // ✅ FIX: Reset plan, add-ons et limites lors de l'annulation
+      const currentLimits = (brand.limits as Record<string, any>) || {};
+      
       await this.prisma.brand.update({
         where: { id: brand.id },
         data: {
@@ -1977,8 +2103,16 @@ export class BillingService implements OnModuleInit {
           subscriptionStatus: 'CANCELED',
           stripeSubscriptionId: null, // Supprimer la référence
           planExpiresAt: null,
+          limits: {
+            ...currentLimits,
+            activeAddons: [],  // ✅ Reset les add-ons
+            addonsUpdatedAt: new Date().toISOString(),
+            canceledAt: new Date().toISOString(),
+          } as any,
         },
       });
+
+      this.logger.log(`Brand ${brand.id} downgraded to starter plan, add-ons cleared`);
 
       // Notifier l'utilisateur
       const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];

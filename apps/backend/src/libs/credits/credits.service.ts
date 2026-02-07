@@ -84,23 +84,23 @@ export class CreditsService {
     try {
       // Transaction Prisma pour garantir atomicité
       const result = await this.prisma.$transaction(async (tx) => {
-        // Lock user row avec SELECT FOR UPDATE (PostgreSQL)
-        const user = await tx.user.findUnique({
-          where: { id: userId },
-          select: { 
-            aiCredits: true, 
-            aiCreditsUsed: true,
-            email: true,
-          },
-        });
+        // ✅ FIX: Lock user row avec SELECT FOR UPDATE (PostgreSQL) pour éviter race conditions
+        const lockedUsers = await tx.$queryRawUnsafe<Array<{ ai_credits: number; ai_credits_used: number; email: string }>>(
+          `SELECT ai_credits, ai_credits_used, email FROM "User" WHERE id = $1 FOR UPDATE`,
+          userId,
+        );
 
+        const user = lockedUsers[0];
         if (!user) {
           throw new BadRequestException('User not found');
         }
 
-        if (user.aiCredits < cost) {
+        const userCredits = user.ai_credits;
+        const userCreditsUsed = user.ai_credits_used;
+
+        if (userCredits < cost) {
           throw new BadRequestException(
-            `Insufficient credits. Required: ${cost}, Available: ${user.aiCredits}`,
+            `Insufficient credits. Required: ${cost}, Available: ${userCredits}`,
           );
         }
 
@@ -119,7 +119,7 @@ export class CreditsService {
           data: {
             userId,
             amount: -cost,
-            balanceBefore: user.aiCredits,
+            balanceBefore: userCredits,
             balanceAfter: updatedUser.aiCredits,
             type: 'usage',
             source: endpoint,
@@ -135,7 +135,7 @@ export class CreditsService {
         return { newBalance: updatedUser.aiCredits, transaction };
       }, {
         timeout: 10000, // 10 secondes max pour transaction
-        isolationLevel: 'ReadCommitted', // Optimisé pour performance
+        isolationLevel: 'RepeatableRead', // ✅ FIX: Plus sûr pour les opérations de crédits
       });
 
       // Invalider cache immédiatement
