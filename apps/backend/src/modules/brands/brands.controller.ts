@@ -55,7 +55,7 @@ export class BrandsController {
   @ApiOperation({ summary: 'Créer une nouvelle marque' })
   @ApiResponse({ status: 201, description: 'Marque créée avec succès' })
   async create(@Body() createBrandDto: CreateBrandDto, @Request() req) {
-    return this.brandsService.create(createBrandDto, req.user.id);
+    return this.brandsService.create(createBrandDto as any, req.user.id);
   }
 
   @Get(':id')
@@ -79,7 +79,7 @@ export class BrandsController {
   @ApiParam({ name: 'id', description: 'ID de la marque' })
   @ApiResponse({ status: 200, description: 'Marque mise à jour' })
   async update(@Param('id') id: string, @Body() updateBrandDto: UpdateBrandDto, @Request() req) {
-    return this.brandsService.update(id, updateBrandDto, req.user);
+    return this.brandsService.update(id, updateBrandDto as any, req.user);
   }
 
   @Post(':id/webhooks')
@@ -87,6 +87,6 @@ export class BrandsController {
   @ApiParam({ name: 'id', description: 'ID de la marque' })
   @ApiResponse({ status: 201, description: 'Webhook ajouté' })
   async addWebhook(@Param('id') id: string, @Body() webhookData: AddWebhookDto, @Request() req) {
-    return this.brandsService.addWebhook(id, webhookData, req.user);
+    return this.brandsService.addWebhook(id, webhookData as any, req.user);
   }
 }
