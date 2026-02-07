@@ -5,6 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { Subscription, SubscriptionTier } from '../types';
 
@@ -17,15 +18,11 @@ export function useBilling() {
   const fetchSubscription = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/billing/subscription');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de la récupération de l\'abonnement');
-      }
-
-      setSubscription(data.subscription);
-      return data.subscription;
+      const data = await endpoints.billing.subscription();
+      const raw = data as { subscription?: Subscription };
+      const sub = raw.subscription ?? (data as { data?: { subscription?: Subscription } }).data?.subscription;
+      setSubscription(sub ?? null);
+      return sub ?? null;
     } catch (error: any) {
       logger.error('Error fetching subscription', { error });
       toast({
@@ -43,22 +40,7 @@ export function useBilling() {
     async (plan: SubscriptionTier, cancelAtPeriodEnd?: boolean): Promise<{ success: boolean }> => {
       try {
         setIsLoading(true);
-
-        const response = await fetch('/api/billing/subscription', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            plan,
-            cancelAtPeriodEnd,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors de la mise à jour de l\'abonnement');
-        }
-
+        await endpoints.billing.changePlan({ planId: plan });
         toast({ title: 'Succès', description: 'Abonnement mis à jour avec succès' });
         router.refresh();
         await fetchSubscription();
@@ -82,21 +64,7 @@ export function useBilling() {
     async (cancelAtPeriodEnd: boolean = true): Promise<{ success: boolean }> => {
       try {
         setIsLoading(true);
-
-        const response = await fetch('/api/billing/subscription', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cancelAtPeriodEnd,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors de l\'annulation de l\'abonnement');
-        }
-
+        await endpoints.billing.cancelSubscription(!cancelAtPeriodEnd);
         toast({ title: 'Succès', description: 'Abonnement annulé avec succès' });
         router.refresh();
         await fetchSubscription();
@@ -120,27 +88,12 @@ export function useBilling() {
     async (planId: SubscriptionTier, period: 'monthly' | 'yearly'): Promise<{ success: boolean; url?: string }> => {
       try {
         setIsLoading(true);
-
-        const response = await fetch('/api/billing/create-checkout-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            planId,
-            period,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors de la création de la session de paiement');
+        const data = await endpoints.billing.subscribe(planId);
+        const url = (data as { url?: string }).url;
+        if (url) {
+          window.location.href = url;
+          return { success: true, url };
         }
-
-        if (data.url) {
-          window.location.href = data.url;
-          return { success: true, url: data.url };
-        }
-
         return { success: true };
       } catch (error: any) {
         logger.error('Error creating checkout session', { error });

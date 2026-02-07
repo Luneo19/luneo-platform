@@ -1,5 +1,44 @@
-import { IsString, IsEnum, IsOptional, IsUrl, IsObject, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsUrl,
+  IsObject,
+  IsNumber,
+  IsArray,
+  ValidateNested,
+  Min,
+  Max,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export class ImageModerationMetadataDto {
+  @ApiPropertyOptional({ description: 'Image width in pixels' })
+  @IsNumber()
+  @Min(1)
+  @Max(50000)
+  @IsOptional()
+  width?: number;
+
+  @ApiPropertyOptional({ description: 'Image height in pixels' })
+  @IsNumber()
+  @Min(1)
+  @Max(50000)
+  @IsOptional()
+  height?: number;
+
+  @ApiPropertyOptional({ description: 'File size in bytes' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  size?: number;
+
+  @ApiPropertyOptional({ description: 'MIME type (e.g. image/jpeg)' })
+  @IsString()
+  @IsOptional()
+  mimeType?: string;
+}
 
 export class ModerateContentDto {
   @ApiProperty({ description: 'Content type', enum: ['text', 'image', 'ai_generation'] })
@@ -16,6 +55,12 @@ export class ModerateContentDto {
   @IsOptional()
   imageUrl?: string;
 
+  @ApiPropertyOptional({ description: 'Image metadata for image/ai_generation moderation' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ImageModerationMetadataDto)
+  imageMetadata?: ImageModerationMetadataDto;
+
   @ApiPropertyOptional({ description: 'User ID' })
   @IsString()
   @IsOptional()
@@ -26,10 +71,15 @@ export class ModerateContentDto {
   @IsOptional()
   brandId?: string;
 
+  @ApiPropertyOptional({ description: 'Design ID' })
+  @IsString()
+  @IsOptional()
+  designId?: string;
+
   @ApiPropertyOptional({ description: 'Additional context' })
   @IsObject()
   @IsOptional()
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 

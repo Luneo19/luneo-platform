@@ -4,6 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { AISettings } from '../types';
 
@@ -23,26 +24,18 @@ export function useAIGenerate() {
       setProgress(0);
 
       try {
-        const response = await fetch('/api/ai/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: options.prompt,
+        setProgress(50);
+        const data = await endpoints.ai.generate({
+          prompt: options.prompt,
+          productId: '',
+          options: {
             model: options.model,
             size: options.size,
             quality: options.quality,
             style: options.style,
             type: options.type,
-          }),
+          },
         });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
-          throw new Error(errorData.message || `Erreur HTTP ${response.status}`);
-        }
-
-        setProgress(50);
-        const data = await response.json();
 
         setProgress(100);
         setTimeout(() => setProgress(0), 500);
@@ -52,14 +45,18 @@ export function useAIGenerate() {
           description: 'Génération en cours...',
         });
 
+        const generationId = (data as { designId?: string; data?: { id?: string }; generationId?: string; id?: string }).designId
+          ?? (data as { data?: { id?: string } }).data?.id
+          ?? (data as { generationId?: string }).generationId
+          ?? (data as { id?: string }).id;
         return {
           success: true,
-          generationId: data.data?.id || data.generationId || data.id,
+          generationId,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('AI generation error', { error, options });
         const errorMessage =
-          error.message || 'Erreur lors de la génération. Réessayez.';
+          error instanceof Error ? error.message : 'Erreur lors de la génération. Réessayez.';
         toast({
           title: 'Erreur',
           description: errorMessage,

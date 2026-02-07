@@ -4,7 +4,7 @@
  * Respecte les patterns existants du projet
  */
 
-import { db } from '@/lib/db';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -45,11 +45,7 @@ export const collaborationRouter = router({
     .input(ShareResourceSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        const user = await db.user.findUnique({
-          where: { id: ctx.user.id },
-          select: { brandId: true },
-        });
-
+        const user = await endpoints.auth.me() as { brandId?: string };
         if (!user?.brandId) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -57,32 +53,26 @@ export const collaborationRouter = router({
           });
         }
 
-        // Créer la ressource partagée dans la base de données
-        const sharedResource = await db.sharedResource.create({
-          data: {
-            resourceType: input.resourceType,
-            resourceId: input.resourceId,
-            sharedWith: input.sharedWith,
-            permissions: input.permissions as any,
-            isPublic: input.isPublic,
-            publicToken: input.isPublic ? `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null,
-            createdBy: ctx.user.id,
-            brandId: user.brandId,
-          },
+        const sharedResource = await api.post<any>('/api/v1/collaboration/share', {
+          resourceType: input.resourceType,
+          resourceId: input.resourceId,
+          sharedWith: input.sharedWith,
+          permissions: input.permissions,
+          isPublic: input.isPublic,
         });
 
         return {
           success: true,
           sharedResource: {
             id: sharedResource.id,
-            resourceType: sharedResource.resourceType,
-            resourceId: sharedResource.resourceId,
-            sharedWith: sharedResource.sharedWith,
-            permissions: sharedResource.permissions as any,
-            isPublic: sharedResource.isPublic,
+            resourceType: sharedResource.resourceType ?? input.resourceType,
+            resourceId: sharedResource.resourceId ?? input.resourceId,
+            sharedWith: sharedResource.sharedWith ?? input.sharedWith,
+            permissions: sharedResource.permissions ?? input.permissions,
+            isPublic: sharedResource.isPublic ?? input.isPublic,
             publicToken: sharedResource.publicToken,
-            createdBy: sharedResource.createdBy,
-            brandId: sharedResource.brandId,
+            createdBy: sharedResource.createdBy ?? ctx.user.id,
+            brandId: sharedResource.brandId ?? user.brandId,
             createdAt: sharedResource.createdAt,
             updatedAt: sharedResource.updatedAt,
           },
@@ -104,11 +94,7 @@ export const collaborationRouter = router({
    */
   getSharedResources: protectedProcedure.query(async ({ ctx }) => {
     try {
-      const user = await db.user.findUnique({
-        where: { id: ctx.user.id },
-        select: { brandId: true },
-      });
-
+      const user = await endpoints.auth.me() as { brandId?: string };
       if (!user?.brandId) {
         throw new TRPCError({
           code: 'FORBIDDEN',
@@ -116,18 +102,8 @@ export const collaborationRouter = router({
         });
       }
 
-        // Récupérer les ressources partagées avec l'utilisateur
-        const resources = await db.sharedResource.findMany({
-          where: {
-            brandId: user.brandId,
-            OR: [
-              { sharedWith: { has: ctx.user.id } },
-              { createdBy: ctx.user.id },
-              { isPublic: true },
-            ],
-          },
-          orderBy: { createdAt: 'desc' },
-        });
+        const response = await api.get<any>('/api/v1/collaboration/shared');
+        const resources = (response as any)?.resources ?? (response as any)?.data ?? Array.isArray(response) ? response : [];
 
         return {
           success: true,
@@ -172,39 +148,30 @@ export const collaborationRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        // Récupérer l'utilisateur pour les infos de l'auteur
-        const author = await db.user.findUnique({
-          where: { id: ctx.user.id },
-          select: { id: true, email: true, firstName: true, lastName: true },
-        });
-
-        // Créer le commentaire dans la base de données
-        const comment = await db.comment.create({
-          data: {
-            resourceType: input.resourceType,
-            resourceId: input.resourceId,
-            content: input.content,
-            parentId: input.parentId,
-            authorId: ctx.user.id,
-            sharedResourceId: input.sharedResourceId,
-          },
+        const author = await endpoints.auth.me() as any;
+        const comment = await api.post<any>('/api/v1/collaboration/comments', {
+          resourceType: input.resourceType,
+          resourceId: input.resourceId,
+          content: input.content,
+          parentId: input.parentId,
+          sharedResourceId: input.sharedResourceId,
         });
 
         return {
           success: true,
           comment: {
             id: comment.id,
-            resourceType: comment.resourceType,
-            resourceId: comment.resourceId,
-            content: comment.content,
-            parentId: comment.parentId,
-            authorId: comment.authorId,
+            resourceType: comment.resourceType ?? input.resourceType,
+            resourceId: comment.resourceId ?? input.resourceId,
+            content: comment.content ?? input.content,
+            parentId: comment.parentId ?? input.parentId,
+            authorId: comment.authorId ?? ctx.user.id,
             author: {
-              id: author?.id || ctx.user.id,
-              name: author ? `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.email : ctx.user.email,
-              email: author?.email || ctx.user.email,
+              id: author?.id ?? ctx.user.id,
+              name: author?.name ?? (author ? `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.email : '') ?? ctx.user.email,
+              email: author?.email ?? ctx.user.email,
             },
-            sharedResourceId: comment.sharedResourceId,
+            sharedResourceId: comment.sharedResourceId ?? input.sharedResourceId,
             createdAt: comment.createdAt,
             updatedAt: comment.updatedAt,
           },
@@ -234,43 +201,18 @@ export const collaborationRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        // Récupérer les commentaires depuis la base de données
-        const comments = await db.comment.findMany({
-          where: {
+        const response = await api.get<any>('/api/v1/collaboration/comments', {
+          params: {
             resourceType: input.resourceType,
             resourceId: input.resourceId,
             sharedResourceId: input.sharedResourceId,
           },
-          include: {
-            author: {
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                avatar: true,
-              },
-            },
-            replies: {
-              include: {
-                author: {
-                  select: {
-                    id: true,
-                    email: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: { createdAt: 'asc' },
         });
+        const comments = (response as any)?.comments ?? (response as any)?.data ?? Array.isArray(response) ? response : [];
 
         return {
           success: true,
-          comments: comments
+          comments: (Array.isArray(comments) ? comments : [])
             .filter((c: any) => !c.parentId) // Seulement les commentaires racine
             .map((comment: any) => ({
               id: comment.id,
@@ -280,10 +222,10 @@ export const collaborationRouter = router({
               parentId: comment.parentId,
               authorId: comment.authorId,
               author: {
-                id: comment.author.id,
-                name: `${comment.author.firstName || ''} ${comment.author.lastName || ''}`.trim() || comment.author.email,
-                email: comment.author.email,
-                avatar: comment.author.avatar,
+                id: comment.author?.id ?? comment.authorId,
+                name: comment.author ? `${comment.author.firstName || ''} ${comment.author.lastName || ''}`.trim() || comment.author.email : '',
+                email: comment.author?.email ?? '',
+                avatar: comment.author?.avatar,
               },
               sharedResourceId: comment.sharedResourceId,
               createdAt: comment.createdAt,
@@ -296,10 +238,10 @@ export const collaborationRouter = router({
                 parentId: reply.parentId,
                 authorId: reply.authorId,
                 author: {
-                  id: reply.author.id,
-                  name: `${reply.author.firstName || ''} ${reply.author.lastName || ''}`.trim() || reply.author.email,
-                  email: reply.author.email,
-                  avatar: reply.author.avatar,
+                  id: reply.author?.id ?? reply.authorId,
+                  name: reply.author ? `${reply.author.firstName || ''} ${reply.author.lastName || ''}`.trim() || reply.author.email : '',
+                  email: reply.author?.email ?? '',
+                  avatar: reply.author?.avatar,
                 },
                 sharedResourceId: reply.sharedResourceId,
                 createdAt: reply.createdAt,

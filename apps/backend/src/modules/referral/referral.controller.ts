@@ -32,6 +32,7 @@ export class ReferralController {
   }
 
   @Post('join')
+  /** @Public: referral signup form (no auth required) */
   @Public()
   @ApiOperation({ summary: 'Inscription au programme d\'affiliation' })
   @ApiResponse({ status: 200, description: 'Demande envoyée avec succès' })

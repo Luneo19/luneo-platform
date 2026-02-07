@@ -10,6 +10,7 @@ import { CommissionService } from '@/modules/billing/services/commission.service
 import { DiscountService } from './services/discount.service';
 import { ReferralService } from '../referral/referral.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
@@ -23,6 +24,7 @@ export class OrdersService {
     private discountService: DiscountService,
     private commissionService: CommissionService,
     @Optional() private referralService?: ReferralService, // Optional to avoid DI issues in unit tests
+    @Optional() private notificationsService?: NotificationsService,
   ) {}
 
   /**
@@ -578,8 +580,11 @@ export class OrdersService {
         stripeSessionId: true,
         stripePaymentId: true,
         trackingNumber: true,
+        trackingCarrier: true,
         trackingUrl: true,
         shippedAt: true,
+        deliveredAt: true,
+        estimatedDelivery: true,
         metadata: true,
         userId: true,
         brandId: true,
@@ -774,21 +779,45 @@ export class OrdersService {
   /**
    * Récupérer les informations de suivi d'une commande
    */
-  async getTracking(id: string, currentUser: CurrentUser) {
-    const order = await this.findOne(id, currentUser);
+  async getTracking(orderId: string, currentUser: CurrentUser) {
+    const where: { id: string; userId?: string; brandId?: string; OR?: Array<{ userId: string } | { brandId: string }> } = {
+      id: orderId,
+    };
+    if (currentUser.role !== UserRole.PLATFORM_ADMIN) {
+      where.OR = [{ userId: currentUser.id }, ...(currentUser.brandId ? [{ brandId: currentUser.brandId }] : [])];
+    }
+
+    const order = await this.prisma.order.findFirst({
+      where,
+      select: {
+        id: true,
+        status: true,
+        trackingNumber: true,
+        trackingCarrier: true,
+        trackingUrl: true,
+        shippedAt: true,
+        deliveredAt: true,
+        estimatedDelivery: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
 
     return {
       orderId: order.id,
-      orderNumber: order.orderNumber,
-      status: order.status,
-      trackingNumber: order.trackingNumber || null,
-      trackingUrl: order.trackingUrl || null,
-      shippedAt: order.shippedAt || null,
-      estimatedDelivery: order.shippedAt
-        ? new Date(new Date(order.shippedAt).getTime() + 7 * 24 * 60 * 60 * 1000) // +7 jours
+      status: order.trackingNumber ? order.status : ('pending' as OrderStatus),
+      tracking: order.trackingNumber
+        ? {
+            number: order.trackingNumber,
+            carrier: order.trackingCarrier || 'unknown',
+            url: order.trackingUrl || null,
+            shippedAt: order.shippedAt ?? null,
+            deliveredAt: order.deliveredAt ?? null,
+            estimatedDelivery: order.estimatedDelivery ?? null,
+          }
         : null,
-      shippingAddress: order.shippingAddress,
-      carrier: order.metadata ? (order.metadata as any).carrier : null,
     };
   }
 
@@ -911,6 +940,13 @@ export class OrdersService {
       this.logger.error(`Failed to process refund for order ${order.orderNumber}: ${errorMessage}`);
       throw new BadRequestException(`Failed to process refund: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Process a refund (admin endpoint) - delegates to requestRefund
+   */
+  async processRefund(id: string, adminUser: CurrentUser) {
+    return this.requestRefund(id, 'Admin-initiated refund', adminUser);
   }
 
   /**

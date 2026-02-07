@@ -2,7 +2,7 @@
  * Types for Customizer
  */
 
-export type CustomizerTab = 'products' | 'templates' | 'layers' | 'assets' | 'settings';
+export type CustomizerTab = 'products' | 'templates' | 'assets' | 'history';
 
 export interface Asset {
   id: string;

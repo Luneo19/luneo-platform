@@ -19,12 +19,11 @@ export default function AuthError({
   reset: () => void;
 }) {
   useEffect(() => {
-    logger.error('Auth page error', {
-      error,
-      message: error.message,
-      stack: error.stack,
-      digest: error.digest,
-    });
+    logger.error(
+      'Auth page error',
+      error instanceof Error ? error : new Error(String(error)),
+      { message: error.message, stack: error.stack, digest: error.digest }
+    );
   }, [error]);
 
   return (

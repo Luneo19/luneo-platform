@@ -10,8 +10,8 @@
 import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../server';
 import { TRPCError } from '@trpc/server';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-import { db } from '@/lib/db';
 
 // ========================================
 // SCHEMAS ZOD
@@ -65,10 +65,7 @@ export const arRouter = router({
       try {
         logger.info('Creating AR session', { productId: input.productId });
 
-        // Vérifie que le produit existe
-        const product = await db.product.findUnique({
-          where: { id: input.productId },
-        });
+        const product = await endpoints.products.get(input.productId).catch(() => null);
 
         if (!product) {
           throw new TRPCError({
@@ -205,9 +202,7 @@ export const arRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const product = await db.product.findUnique({
-          where: { id: input.productId },
-        });
+        const product = await endpoints.products.get(input.productId).catch(() => null);
 
         if (!product) {
           throw new TRPCError({
@@ -216,10 +211,10 @@ export const arRouter = router({
           });
         }
 
-        // Vérifie permissions
+        const prod = product as { brandId?: string };
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
-          ctx.user?.brandId !== product.brandId
+          ctx.user?.brandId !== prod.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',

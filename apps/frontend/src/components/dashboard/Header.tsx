@@ -51,13 +51,15 @@ const Header = memo(function Header({
 
   const handleLogout = useCallback(async () => {
     setShowUserMenu(false);
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     try {
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      window.location.href = '/login';
+      await fetch(`${API_URL}/api/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
     } catch (error) {
       logger.error('Logout error:', error);
+    } finally {
       window.location.href = '/login';
     }
   }, []);

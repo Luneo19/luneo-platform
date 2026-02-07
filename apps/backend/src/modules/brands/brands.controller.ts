@@ -4,10 +4,12 @@ import {
   Post,
   Param,
   Patch,
+  Put,
   Body,
   Request,
   Query,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,6 +31,28 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 @ApiBearerAuth()
 export class BrandsController {
   constructor(private readonly brandsService: BrandsService) {}
+
+  @Get('settings')
+  @ApiOperation({ summary: 'Get brand settings for the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Brand settings' })
+  @ApiResponse({ status: 404, description: 'User has no brand' })
+  async getSettings(@Request() req) {
+    if (!req.user.brandId) {
+      throw new NotFoundException('No brand associated with this user');
+    }
+    return this.brandsService.findOne(req.user.brandId, req.user);
+  }
+
+  @Put('settings')
+  @ApiOperation({ summary: 'Update brand settings for the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Brand settings updated' })
+  @ApiResponse({ status: 404, description: 'User has no brand' })
+  async updateSettings(@Request() req, @Body() updateBrandDto: UpdateBrandDto) {
+    if (!req.user.brandId) {
+      throw new NotFoundException('No brand associated with this user');
+    }
+    return this.brandsService.update(req.user.brandId, updateBrandDto as any, req.user);
+  }
 
   @Get()
   @Roles(UserRole.PLATFORM_ADMIN)

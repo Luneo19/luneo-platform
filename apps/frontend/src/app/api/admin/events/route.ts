@@ -1,13 +1,22 @@
 /**
  * ★★★ ADMIN EVENTS API ★★★
- * API route pour récupérer tous les événements système
+ * Forwards to NestJS backend.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
-import { db } from '@/lib/db';
-import { subDays } from 'date-fns';
 import { serverLogger } from '@/lib/logger-server';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+function forwardHeaders(request: NextRequest): HeadersInit {
+  const headers: HeadersInit = {
+    Cookie: request.headers.get('cookie') || '',
+  };
+  const auth = request.headers.get('authorization');
+  if (auth) headers['Authorization'] = auth;
+  return headers;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,51 +26,15 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30');
-    const type = searchParams.get('type');
-    const limit = parseInt(searchParams.get('limit') || '100');
+    const url = new URL(`${API_URL}/api/v1/admin/events`);
+    searchParams.forEach((v, k) => url.searchParams.set(k, v));
 
-    const dateFrom = subDays(new Date(), days);
-
-    const where: any = {
-      createdAt: {
-        gte: dateFrom,
-      },
-    };
-
-    if (type) {
-      where.type = type;
+    const res = await fetch(url.toString(), { headers: forwardHeaders(request) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.json(data.error ?? { error: 'Failed to fetch events' }, { status: res.status });
     }
-
-    const events = await db.event.findMany({
-      where,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return NextResponse.json({
-      events: events.map((e: any) => ({
-        id: e.id,
-        type: e.type,
-        data: e.data || {},
-        customerId: e.customerId,
-        createdAt: e.createdAt,
-      })),
-      total: events.length,
-    });
+    return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/events', 'GET', error, 500);
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });

@@ -68,51 +68,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Option 2: Stocker dans Supabase
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-
-        // Vérifier si l'email existe déjà
-        const { data: existing } = await supabase
-          .from('newsletter_subscribers')
-          .select('id')
-          .eq('email', email)
-          .single();
-
-        if (existing) {
-          // Déjà inscrit - réactiver si désabonné
-          await supabase
-            .from('newsletter_subscribers')
-            .update({
-              status: 'active',
-              resubscribed_at: new Date().toISOString(),
-            })
-            .eq('email', email);
-
-          logger.info('Subscriber reactivated', { email: email.replace(/(.{2}).*@/, '$1***@') });
-        } else {
-          // Nouvel abonné
-          await supabase.from('newsletter_subscribers').insert({
-            email,
-            source,
-            status: 'active',
-            created_at: new Date().toISOString(),
-          });
-
-          logger.info('New subscriber added', { email: email.replace(/(.{2}).*@/, '$1***@') });
-        }
-      } catch (dbError: unknown) {
-        // Si la table n'existe pas, on ignore
-        const errorMessage = dbError instanceof Error ? dbError.message : '';
-        if (!errorMessage.includes('does not exist')) {
-          logger.error('Database error', { error: dbError });
-        }
-      }
+    // Option 2: Store subscription via backend API
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    try {
+      await fetch(`${backendUrl}/api/v1/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source }),
+      });
+      logger.info('Subscriber stored via backend', { email: email.replace(/(.{2}).*@/, '$1***@') });
+    } catch (dbError) {
+      logger.warn('Backend newsletter storage failed', { error: dbError });
     }
 
     // Envoyer email de confirmation

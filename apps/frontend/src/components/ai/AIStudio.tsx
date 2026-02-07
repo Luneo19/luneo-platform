@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -75,21 +76,19 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
   const loadHistory = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
-      const response = await fetch('/api/designs?limit=50&sort_by=created_at&sort_order=desc');
-      if (response.ok) {
-        const data = await response.json();
-        const designs = (data.designs || []).map((d: any) => ({
-          id: d.id,
-          url: d.preview_url || d.original_url,
-          prompt: d.prompt || '',
-          style: d.metadata?.style,
-          createdAt: d.created_at,
-          status: d.status || 'completed',
-          revised_prompt: d.revised_prompt,
-        }));
-        setHistory(designs);
-        setGeneratedImages(designs.slice(0, 12)); // Show recent 12
-      }
+      const data = await endpoints.designs.list({ limit: 50 }) as any;
+      const designsList = data?.designs || (Array.isArray(data) ? data : []);
+      const designs = designsList.map((d: any) => ({
+        id: d.id,
+        url: d.preview_url || d.original_url,
+        prompt: d.prompt || '',
+        style: d.metadata?.style,
+        createdAt: d.created_at || d.createdAt,
+        status: d.status || 'completed',
+        revised_prompt: d.revised_prompt,
+      }));
+      setHistory(designs);
+      setGeneratedImages(designs.slice(0, 12)); // Show recent 12
     } catch (error) {
       logger.error('Failed to load design history', { error });
     } finally {
@@ -109,35 +108,28 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
 
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          size,
-          quality,
-          style,
-        }),
+      const result = await endpoints.ai.generate({
+        prompt: prompt.trim(),
+        productId: '',
+        options: { size, quality, style },
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Erreur lors de la génération');
-      }
-
-      const generatedDesign = result.data?.design || result.design;
-      const imageUrl = result.data?.imageUrl || result.imageUrl || generatedDesign?.preview_url;
+      const generatedDesign = (result as { data?: { design?: Record<string, unknown> }; design?: Record<string, unknown> }).data?.design
+        || (result as { design?: Record<string, unknown> }).design;
+      const res = result as { data?: { imageUrl?: string; revisedPrompt?: string }; imageUrl?: string };
+      const imageUrl = res.data?.imageUrl || res.imageUrl
+        || (generatedDesign as { preview_url?: string })?.preview_url;
 
       if (imageUrl) {
+        const gen = generatedDesign as Record<string, unknown> | undefined;
         const newDesign: GeneratedDesign = {
-          id: generatedDesign?.id || Date.now().toString(),
+          id: (gen?.id as string) || Date.now().toString(),
           url: imageUrl,
           prompt: prompt.trim(),
           style,
           createdAt: new Date().toISOString(),
           status: 'completed',
-          revised_prompt: generatedDesign?.revised_prompt || result.data?.revisedPrompt,
+          revised_prompt: (gen?.revised_prompt as string) || res.data?.revisedPrompt,
         };
 
         setGeneratedImages([newDesign, ...generatedImages]);
@@ -198,18 +190,13 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
 
   const handleDelete = async (designId: string) => {
     try {
-      const response = await fetch(`/api/designs/${designId}`, {
-        method: 'DELETE',
+      await endpoints.designs.delete(designId);
+      setGeneratedImages(generatedImages.filter((d) => d.id !== designId));
+      setHistory(history.filter((d) => d.id !== designId));
+      toast({
+        title: 'Supprimé',
+        description: 'Design supprimé avec succès',
       });
-
-      if (response.ok) {
-        setGeneratedImages(generatedImages.filter((d) => d.id !== designId));
-        setHistory(history.filter((d) => d.id !== designId));
-        toast({
-          title: 'Supprimé',
-          description: 'Design supprimé avec succès',
-        });
-      }
     } catch (error) {
       logger.error('Delete error', { error, designId });
       toast({

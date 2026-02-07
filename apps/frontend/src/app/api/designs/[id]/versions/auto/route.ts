@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { idSchema } from '@/lib/validation/zod-schemas';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { apiRateLimit } from '@/lib/rate-limit';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
  * POST /api/designs/[id]/versions/auto
@@ -28,10 +30,8 @@ export async function POST(
       throw { status: 400, message: 'ID de design invalide (format UUID requis)', code: 'INVALID_UUID' };
     }
 
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -64,98 +64,29 @@ export async function POST(
     }
 
     const validatedBody = autoVersionSchema.parse(body);
-    const { auto_save = true } = validatedBody;
 
-    // Récupérer le design actuel
-    const { data: design, error: designError } = await supabase
-      .from('custom_designs')
-      .select('*')
-      .eq('id', designId)
-      .eq('user_id', user.id)
-      .single();
+    // Forward to backend API
+    const backendResponse = await fetch(`${API_URL}/api/v1/designs/${designId}/versions/auto`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: request.headers.get('cookie') || '',
+      },
+      body: JSON.stringify(validatedBody),
+    });
 
-    if (designError || !design) {
-      if (designError?.code === 'PGRST116') {
+    if (!backendResponse.ok) {
+      if (backendResponse.status === 404) {
         throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
       }
-      logger.dbError('fetch design for auto version', designError, { designId, userId: user.id });
-      throw { status: 500, message: 'Erreur lors de la récupération du design' };
-    }
-
-    // Optimisation: Vérifier la dernière version auto ET obtenir le max version_number en une seule requête
-    const { data: recentVersionData, error: recentVersionError } = await supabase
-      .from('design_versions')
-      .select('created_at, version_number, metadata')
-      .eq('design_id', designId)
-      .eq('metadata->>auto_save', 'true')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    // Éviter de créer une version si une auto-save a été créée il y a moins de 10 secondes
-    if (recentVersionData && !recentVersionError) {
-      const lastVersionTime = new Date(recentVersionData.created_at).getTime();
-      const now = Date.now();
-      const timeSinceLastVersion = now - lastVersionTime;
-      
-      if (timeSinceLastVersion < 10000) { // 10 secondes
-        logger.info('Auto version skipped (recent version exists)', {
-          designId,
-          userId: user.id,
-          timeSinceLastVersion,
-        });
-        return {
-          skipped: true,
-          reason: 'Version automatique récente existe déjà',
-          last_version_age_seconds: Math.floor(timeSinceLastVersion / 1000),
-        };
-      }
-    }
-
-    // Optimisation: Utiliser MAX pour éviter les race conditions sur version_number
-    const { data: maxVersionData } = await supabase
-      .from('design_versions')
-      .select('version_number')
-      .eq('design_id', designId)
-      .order('version_number', { ascending: false })
-      .limit(1)
-      .single();
-
-    const nextVersionNumber = (maxVersionData?.version_number || 0) + 1;
-
-    // Créer la version automatique
-    const versionData = {
-      design_id: designId,
-      version_number: nextVersionNumber,
-      name: `Version ${nextVersionNumber} - ${new Date().toLocaleString('fr-FR')}`,
-      description: 'Sauvegarde automatique',
-      design_data: design.design_data || design,
-      metadata: {
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-        auto_save: auto_save,
-        trigger: 'before_update',
-      },
-    };
-
-    const { data: version, error: versionError } = await supabase
-      .from('design_versions')
-      .insert(versionData)
-      .select()
-      .single();
-
-    if (versionError) {
-      logger.dbError('create auto design version', versionError, { 
-        designId, 
-        userId: user.id 
-      });
-      // Ne pas bloquer l'update si le versioning échoue
-      // Retourner un warning au lieu d'une erreur
-      logger.warn('Auto versioning failed, but update can continue', {
+      const errorText = await backendResponse.text();
+      logger.error('Failed to create auto version', {
         designId,
         userId: user.id,
-        error: versionError.message,
+        status: backendResponse.status,
+        error: errorText,
       });
+      // Ne pas bloquer l'update si le versioning échoue
       return {
         skipped: true,
         warning: true,
@@ -164,19 +95,15 @@ export async function POST(
       };
     }
 
+    const result = await backendResponse.json();
     logger.info('Auto design version created', {
       designId,
-      versionId: version.id,
-      versionNumber: version.version_number,
+      versionId: result.version_id,
+      versionNumber: result.version_number,
       userId: user.id,
     });
 
-    return {
-      version,
-      version_id: version.id,
-      version_number: version.version_number,
-      message: 'Version automatique créée avec succès',
-    };
+    return result;
   }, '/api/designs/[id]/versions/auto', 'POST');
 }
 

@@ -5,6 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 export function useSecuritySettings() {
@@ -16,34 +17,22 @@ export function useSecuritySettings() {
     async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
       try {
         setIsChangingPassword(true);
-
-        const response = await fetch('/api/settings/password', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            current_password: currentPassword,
-            new_password: newPassword,
-            confirm_password: newPassword,
-          }),
+        await api.put('/api/v1/auth/change-password', {
+          currentPassword,
+          newPassword,
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors du changement de mot de passe');
-        }
-
         toast({ title: 'Succès', description: 'Mot de passe mis à jour avec succès' });
         router.refresh();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erreur lors du changement de mot de passe';
         logger.error('Error changing password', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors du changement de mot de passe',
+          description: message,
           variant: 'destructive',
         });
-        return { success: false, error: error.message };
+        return { success: false, error: message };
       } finally {
         setIsChangingPassword(false);
       }

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -202,29 +203,25 @@ function ProductCustomizerComponent({
       const thumbnail = exporter.exportThumbnail();
       
       // Save to API
-      const response = await fetch('/api/designs/save-custom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await api.post<{ success?: boolean; data?: unknown; error?: string }>(
+        '/api/v1/designs/save-custom',
+        {
           productId,
           designData: designJSON,
           printReadyFile: printReadyPNG,
           thumbnailFile: thumbnail,
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
+        }
+      );
+
+      if (data?.success) {
         setSaveSuccess(true);
-        onSave?.(data.data);
-        
-        // Auto-close after 2s
+        onSave?.(data.data as any);
+
         setTimeout(() => {
           onClose?.();
         }, 2000);
       } else {
-        setSaveError(data.error || 'Erreur lors de la sauvegarde');
+        setSaveError((data as { error?: string })?.error || 'Erreur lors de la sauvegarde');
       }
     } catch (error: any) {
       logger.error('Save error', {

@@ -1,3 +1,4 @@
+-- NOTE: Duplicate of migration 20260118161635. Both are kept for migration history integrity.
 -- Add stripeSubscriptionId column to Brand table if it doesn't exist
 DO $$ 
 BEGIN

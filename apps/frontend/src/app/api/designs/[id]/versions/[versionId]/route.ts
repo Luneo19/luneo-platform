@@ -1,10 +1,12 @@
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { idSchema } from '@/lib/validation/zod-schemas';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { apiRateLimit } from '@/lib/rate-limit';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
  * GET /api/designs/[id]/versions/[versionId]
@@ -16,10 +18,9 @@ export async function GET(
 ) {
   return ApiResponseBuilder.handle(async () => {
     const { id: designId, versionId } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getUserFromRequest(request);
 
-    if (authError || !user) {
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -34,26 +35,27 @@ export async function GET(
       throw { status: 400, message: 'ID de version invalide (format UUID requis)', code: 'INVALID_UUID' };
     }
 
-    // Requête optimisée : vérifier ownership ET récupérer la version en une seule requête
-    const { data: version, error: versionError } = await supabase
-      .from('design_versions')
-      .select(`
-        *,
-        custom_designs!inner(id, user_id)
-      `)
-      .eq('id', versionId)
-      .eq('design_id', designId)
-      .eq('custom_designs.user_id', user.id)
-      .single();
+    // Forward to backend API
+    const backendResponse = await fetch(`${API_URL}/api/v1/designs/${designId}/versions/${versionId}`, {
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
 
-    if (versionError || !version) {
-      if (versionError?.code === 'PGRST116') {
+    if (!backendResponse.ok) {
+      if (backendResponse.status === 404) {
         throw { status: 404, message: 'Version non trouvée', code: 'VERSION_NOT_FOUND' };
       }
-      logger.dbError('fetch design version', versionError, { designId, versionId, userId: user.id });
+      logger.error('Failed to fetch design version', {
+        designId,
+        versionId,
+        userId: user.id,
+        status: backendResponse.status,
+      });
       throw { status: 500, message: 'Erreur lors de la récupération de la version' };
     }
 
+    const { version } = await backendResponse.json();
     logger.info('Design version fetched', {
       designId,
       versionId,
@@ -74,10 +76,9 @@ export async function POST(
 ) {
   return ApiResponseBuilder.handle(async () => {
     const { id: designId, versionId } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getUserFromRequest(request);
 
-    if (authError || !user) {
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -108,129 +109,36 @@ export async function POST(
       throw { status: 400, message: 'ID de version invalide (format UUID requis)', code: 'INVALID_UUID' };
     }
 
-    // Vérifier que le design appartient à l'utilisateur et récupérer le design
-    const { data: design, error: designError } = await supabase
-      .from('custom_designs')
-      .select('*')
-      .eq('id', designId)
-      .eq('user_id', user.id)
-      .single();
+    // Forward to backend API
+    const backendResponse = await fetch(`${API_URL}/api/v1/designs/${designId}/versions/${versionId}/restore`, {
+      method: 'POST',
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
 
-    if (designError || !design) {
-      if (designError?.code === 'PGRST116') {
-        throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
-      }
-      logger.dbError('fetch design for restore', designError, { designId, userId: user.id });
-      throw { status: 500, message: 'Erreur lors de la récupération du design' };
-    }
-
-    // Récupérer la version à restaurer
-    const { data: versionToRestore, error: versionError } = await supabase
-      .from('design_versions')
-      .select('*')
-      .eq('id', versionId)
-      .eq('design_id', designId)
-      .single();
-
-    if (versionError || !versionToRestore) {
-      if (versionError?.code === 'PGRST116') {
+    if (!backendResponse.ok) {
+      if (backendResponse.status === 404) {
         throw { status: 404, message: 'Version non trouvée', code: 'VERSION_NOT_FOUND' };
       }
-      logger.dbError('fetch version to restore', versionError, { designId, versionId });
-      throw { status: 500, message: 'Erreur lors de la récupération de la version' };
+      logger.error('Failed to restore design version', {
+        designId,
+        versionId,
+        userId: user.id,
+        status: backendResponse.status,
+      });
+      throw { status: 500, message: 'Erreur lors de la restauration de la version' };
     }
 
-    // Optimisation: Utiliser MAX pour éviter les race conditions sur version_number
-    const { data: maxVersion } = await supabase
-      .from('design_versions')
-      .select('version_number')
-      .eq('design_id', designId)
-      .order('version_number', { ascending: false })
-      .limit(1)
-      .single();
-
-    const nextVersionNumber = (maxVersion?.version_number || 0) + 1;
-    const restoreVersionNumber = nextVersionNumber + 1;
-
-    // Créer une sauvegarde de la version actuelle avant restauration (transaction implicite)
-    const backupVersionData = {
-      design_id: designId,
-      version_number: nextVersionNumber,
-      name: `Sauvegarde avant restauration v${versionToRestore.version_number}`,
-      description: 'Sauvegarde automatique avant restauration',
-      design_data: design.design_data || design,
-      metadata: {
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-        auto_save: true,
-        before_restore: true,
-      },
-    };
-
-    const { error: backupError } = await supabase
-      .from('design_versions')
-      .insert(backupVersionData);
-
-    if (backupError) {
-      logger.dbError('create backup version before restore', backupError, { designId, versionId });
-      throw { status: 500, message: 'Erreur lors de la création de la sauvegarde' };
-    }
-
-    // Restaurer le design avec les données de la version
-    const { error: updateError } = await supabase
-      .from('custom_designs')
-      .update({
-        design_data: versionToRestore.design_data,
-        updated_at: new Date().toISOString(),
-        metadata: {
-          ...(design.metadata || {}),
-          restored_from_version: versionId,
-          restored_at: new Date().toISOString(),
-        },
-      })
-      .eq('id', designId);
-
-    if (updateError) {
-      logger.dbError('restore design version', updateError, { designId, versionId });
-      throw { status: 500, message: 'Erreur lors de la restauration du design' };
-    }
-
-    // Créer une nouvelle version avec les données restaurées
-    const { data: newVersion, error: newVersionError } = await supabase
-      .from('design_versions')
-      .insert({
-        design_id: designId,
-        version_number: restoreVersionNumber,
-        name: `Restauration de v${versionToRestore.version_number}`,
-        description: `Design restauré depuis la version ${versionToRestore.version_number}`,
-        design_data: versionToRestore.design_data,
-        metadata: {
-          created_by: user.id,
-          created_at: new Date().toISOString(),
-          restored: true,
-          restored_from: versionId,
-        },
-      })
-      .select()
-      .single();
-
-    if (newVersionError) {
-      logger.dbError('create restored version', newVersionError, { designId, versionId });
-      throw { status: 500, message: 'Erreur lors de la création de la version restaurée' };
-    }
-
+    const result = await backendResponse.json();
     logger.info('Design version restored', {
       designId,
       versionId,
-      restoredVersionId: newVersion.id,
+      restoredVersionId: result.version?.id,
       userId: user.id,
     });
 
-    return {
-      restored: true,
-      version: newVersion,
-      message: 'Version restaurée avec succès',
-    };
+    return result;
   }, '/api/designs/[id]/versions/[versionId]/restore', 'POST');
 }
 
@@ -244,10 +152,9 @@ export async function DELETE(
 ) {
   return ApiResponseBuilder.handle(async () => {
     const { id: designId, versionId } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getUserFromRequest(request);
 
-    if (authError || !user) {
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -278,61 +185,35 @@ export async function DELETE(
       throw { status: 400, message: 'ID de version invalide (format UUID requis)', code: 'INVALID_UUID' };
     }
 
-    // Vérifier que le design appartient à l'utilisateur
-    const { data: design, error: designError } = await supabase
-      .from('custom_designs')
-      .select('id')
-      .eq('id', designId)
-      .eq('user_id', user.id)
-      .single();
+    // Forward to backend API
+    const backendResponse = await fetch(`${API_URL}/api/v1/designs/${designId}/versions/${versionId}`, {
+      method: 'DELETE',
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
 
-    if (designError || !design) {
-      if (designError?.code === 'PGRST116') {
-        throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
-      }
-      logger.dbError('fetch design for version deletion', designError, { designId, userId: user.id });
-      throw { status: 500, message: 'Erreur lors de la vérification du design' };
-    }
-
-    // Vérifier que la version existe avant suppression
-    const { data: version, error: versionCheckError } = await supabase
-      .from('design_versions')
-      .select('id, version_number')
-      .eq('id', versionId)
-      .eq('design_id', designId)
-      .single();
-
-    if (versionCheckError || !version) {
-      if (versionCheckError?.code === 'PGRST116') {
+    if (!backendResponse.ok) {
+      if (backendResponse.status === 404) {
         throw { status: 404, message: 'Version non trouvée', code: 'VERSION_NOT_FOUND' };
       }
-      logger.dbError('check version before deletion', versionCheckError, { designId, versionId });
-      throw { status: 500, message: 'Erreur lors de la vérification de la version' };
-    }
-
-    // Supprimer la version
-    const { error: deleteError } = await supabase
-      .from('design_versions')
-      .delete()
-      .eq('id', versionId)
-      .eq('design_id', designId);
-
-    if (deleteError) {
-      logger.dbError('delete design version', deleteError, { designId, versionId, userId: user.id });
+      logger.error('Failed to delete design version', {
+        designId,
+        versionId,
+        userId: user.id,
+        status: backendResponse.status,
+      });
       throw { status: 500, message: 'Erreur lors de la suppression de la version' };
     }
 
+    const result = await backendResponse.json();
     logger.info('Design version deleted', {
       designId,
       versionId,
-      versionNumber: version.version_number,
       userId: user.id,
     });
 
-    return {
-      deleted: true,
-      message: 'Version supprimée avec succès',
-    };
+    return result;
   }, '/api/designs/[id]/versions/[versionId]', 'DELETE');
 }
 

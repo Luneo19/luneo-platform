@@ -4,9 +4,24 @@
  */
 
 import { getServerUser } from '@/lib/auth/get-user';
-import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { serverLogger } from '@/lib/logger-server';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+async function fetchAuthMe(cookie: string | null): Promise<{ id: string; email: string; role: string; brandId?: string | null; isActive?: boolean } | null> {
+  if (!cookie) return null;
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+      headers: { Cookie: cookie },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
 
 export interface AdminUser {
   id: string;
@@ -27,22 +42,14 @@ export async function checkAdminAccess(): Promise<boolean> {
       return false;
     }
 
-    // Vérifier le rôle dans la base de données
-    const dbUser = await db.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        isActive: true,
-      },
-    });
+    const { headers } = await import('next/headers');
+    const cookie = (await headers()).get('cookie');
+    const dbUser = await fetchAuthMe(cookie);
 
-    if (!dbUser || !dbUser.isActive) {
+    if (!dbUser || (dbUser as any).isActive === false) {
       return false;
     }
 
-    // Vérifier si l'utilisateur a le rôle PLATFORM_ADMIN
     return dbUser.role === 'PLATFORM_ADMIN';
   } catch (error) {
     serverLogger.error('[Admin Permissions] Error checking admin access', error);
@@ -83,37 +90,29 @@ export async function requireAdminAccess(): Promise<AdminUser> {
     };
   }
 
-  // Fallback : Vérifier dans la DB (pour double vérification)
-  const dbUser = await db.user.findUnique({
-    where: { id: user.id },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      brandId: true,
-      isActive: true,
-    },
-  });
+  const { headers } = await import('next/headers');
+  const cookie = (await headers()).get('cookie');
+  const dbUser = await fetchAuthMe(cookie);
 
-  serverLogger.debug('[Admin Permissions] DB user check', {
+  serverLogger.debug('[Admin Permissions] API user check', {
     found: !!dbUser,
     role: dbUser?.role,
     isActive: dbUser?.isActive,
     isPlatformAdmin: dbUser?.role === 'PLATFORM_ADMIN',
   });
 
-  if (!dbUser || !dbUser.isActive || dbUser.role !== 'PLATFORM_ADMIN') {
+  if (!dbUser || (dbUser as any).isActive === false || dbUser.role !== 'PLATFORM_ADMIN') {
     serverLogger.debug('[Admin Permissions] Access denied, redirecting');
     redirect('/dashboard?error=unauthorized');
   }
 
   serverLogger.debug('[Admin Permissions] Access granted');
-  
+
   return {
     id: dbUser.id,
     email: dbUser.email,
     role: dbUser.role,
-    brandId: dbUser.brandId,
+    brandId: dbUser.brandId ?? null,
   };
 }
 
@@ -129,18 +128,11 @@ export async function getAdminUser(): Promise<AdminUser | null> {
       return null;
     }
 
-    const dbUser = await db.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        brandId: true,
-        isActive: true,
-      },
-    });
+    const { headers } = await import('next/headers');
+    const cookie = (await headers()).get('cookie');
+    const dbUser = await fetchAuthMe(cookie);
 
-    if (!dbUser || !dbUser.isActive || dbUser.role !== 'PLATFORM_ADMIN') {
+    if (!dbUser || (dbUser as any).isActive === false || dbUser.role !== 'PLATFORM_ADMIN') {
       return null;
     }
 
@@ -148,7 +140,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
       id: dbUser.id,
       email: dbUser.email,
       role: dbUser.role,
-      brandId: dbUser.brandId,
+      brandId: dbUser.brandId ?? null,
     };
   } catch (error) {
     serverLogger.error('[Admin Permissions] Error getting admin user', error);

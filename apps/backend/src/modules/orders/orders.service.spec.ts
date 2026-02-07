@@ -1,220 +1,331 @@
 /**
- * OrdersService - Tests unitaires
- * Tests pour la gestion des commandes
+ * OrdersService unit tests
  */
-
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { ConfigService } from '@nestjs/config';
-import { createTestingModule, testFixtures, testHelpers } from '@/common/test/test-setup';
-import { UserRole, OrderStatus } from '@prisma/client';
+import { DiscountService } from './services/discount.service';
+import { CommissionService } from '@/modules/billing/services/commission.service';
+import { OrderStatus, PaymentStatus, UserRole } from '@prisma/client';
+import { CurrentUser } from '@/common/types/user.types';
 
 describe('OrdersService', () => {
   let service: OrdersService;
-  let prismaService: jest.Mocked<PrismaService>;
-  let configService: jest.Mocked<ConfigService>;
+  const mockPrisma = {
+    order: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      count: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    product: { findMany: jest.fn() },
+    design: { findMany: jest.fn(), findUnique: jest.fn() },
+    discountUsage: { findFirst: jest.fn(), delete: jest.fn() },
+    discount: { update: jest.fn() },
+    commission: { findMany: jest.fn(), updateMany: jest.fn() },
+  };
+
+  const mockConfigService = {
+    get: jest.fn((key: string) => {
+      const map: Record<string, string> = {
+        'app.frontendUrl': 'https://app.test.com',
+        'referral.commissionPercent': '10',
+      };
+      return map[key];
+    }),
+  };
+
+  const mockDiscountService = {
+    validateAndApplyDiscount: jest.fn(),
+    recordDiscountUsage: jest.fn(),
+  };
+
+  const mockCommissionService = {
+    getCommissionPercent: jest.fn().mockResolvedValue(10),
+    calculateCommissionCents: jest.fn((amount: number, pct: number) =>
+      Math.round((amount * pct) / 100),
+    ),
+  };
+
+  const platformAdmin: CurrentUser = {
+    id: 'admin-1',
+    email: 'admin@test.com',
+    role: UserRole.PLATFORM_ADMIN,
+    brandId: null,
+  };
+
+  const brandUser: CurrentUser = {
+    id: 'user-1',
+    email: 'user@brand.com',
+    role: UserRole.BRAND_ADMIN,
+    brandId: 'brand-1',
+  };
 
   beforeEach(async () => {
-    const module: TestingModule = await createTestingModule([
-      OrdersService,
-    ]);
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        OrdersService,
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: DiscountService, useValue: mockDiscountService },
+        { provide: CommissionService, useValue: mockCommissionService },
+      ],
+    }).compile();
 
     service = module.get<OrdersService>(OrdersService);
-    prismaService = module.get(PrismaService);
-    configService = module.get(ConfigService);
+  });
 
-    // Mock Stripe to avoid real API calls
-    const mockStripe = {
-      checkout: {
-        sessions: {
-          create: jest.fn().mockResolvedValue({
-            id: 'cs_test_123',
-            url: 'https://checkout.stripe.com/test',
-          }),
+  afterEach(() => jest.clearAllMocks());
+
+  describe('findAll', () => {
+    it('should return orders for platform admin', async () => {
+      const orders = [
+        {
+          id: 'ord-1',
+          orderNumber: 'ORD-1',
+          customerEmail: 'c@test.com',
+          status: OrderStatus.PAID,
+          brandId: 'brand-1',
+          items: [],
         },
-      },
-    };
+      ];
+      mockPrisma.order.findMany.mockResolvedValue(orders);
+      mockPrisma.order.count.mockResolvedValue(1);
 
-    // Mock getStripe method
-    jest.spyOn(service as any, 'getStripe').mockResolvedValue(mockStripe);
+      const result = await service.findAll(platformAdmin, { page: 1, limit: 20 });
+
+      expect(result.orders).toHaveLength(1);
+      expect(result.pagination.total).toBe(1);
+      expect(result.pagination.page).toBe(1);
+      expect(mockPrisma.order.findMany).toHaveBeenCalled();
+    });
+
+    it('should return empty list when non-admin has no brandId', async () => {
+      const result = await service.findAll(
+        { ...brandUser, brandId: undefined },
+        {},
+      );
+
+      expect(result.orders).toEqual([]);
+      expect(result.pagination.total).toBe(0);
+      expect(mockPrisma.order.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should filter by brandId for non-admin', async () => {
+      mockPrisma.order.findMany.mockResolvedValue([]);
+      mockPrisma.order.count.mockResolvedValue(0);
+
+      await service.findAll(brandUser, { page: 1, limit: 20 });
+
+      expect(mockPrisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ brandId: 'brand-1' }),
+        }),
+      );
+    });
   });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  // Note: findAll method doesn't exist in OrdersService
-  // These tests are commented out until the method is implemented
-  // describe('findAll', () => {
-  //   it('should return paginated orders', async () => {
-  //     // Arrange
-  //     const mockOrders = [testFixtures.order];
-  //     (prismaService.order.findMany as any).mockResolvedValue(mockOrders as any);
-  //     (prismaService.order.count as any).mockResolvedValue(1);
-
-  //     // Act
-  //     const result = await service.findAll({}, { page: 1, limit: 10 });
-
-  //     // Assert
-  //     expect(result).toBeDefined();
-  //     expect(result.data).toHaveLength(1);
-  //     expect(result.pagination.total).toBe(1);
-  //     expect(prismaService.order.findMany).toHaveBeenCalled();
-  //   });
-  // });
 
   describe('findOne', () => {
-    it('should return order by id', async () => {
-      // Arrange
-      (prismaService.order.findUnique as any).mockResolvedValue({
-        ...testFixtures.order,
-        product: testFixtures.product,
-        design: testFixtures.design,
-        brand: testFixtures.brand,
-        user: testFixtures.user,
-      } as any);
-
-      // Act
-      const result = await service.findOne('order_123', testFixtures.currentUser);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.id).toBe('order_123');
-      expect(prismaService.order.findUnique).toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException if order not found', async () => {
-      // Arrange
-      (prismaService.order.findUnique as any).mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(service.findOne('invalid_id', testFixtures.currentUser)).rejects.toThrow(NotFoundException);
-    });
-
-    it('should use select for optimization', async () => {
-      // Arrange
-      (prismaService.order.findUnique as any).mockResolvedValue({
-        ...testFixtures.order,
-        product: testFixtures.product,
-        design: testFixtures.design,
-        brand: testFixtures.brand,
-        user: testFixtures.user,
-      } as any);
-
-      // Act
-      await service.findOne('order_123', testFixtures.currentUser);
-
-      // Assert
-      const callArgs = (prismaService.order.findUnique as any).mock.calls[0][0];
-      expect(callArgs.select).toBeDefined();
-      expect(callArgs.include).toBeUndefined();
-    });
-  });
-
-  describe('create', () => {
-    const createDto = {
-      productId: 'prod_123',
-      designId: 'design_123',
-      customerEmail: 'customer@example.com',
-      totalCents: 2999,
-    };
-
-    it('should create order successfully', async () => {
-      // Arrange
-      const mockOrderWithItems = {
-        ...testFixtures.order,
-        ...createDto,
-        id: 'order_123',
-        items: [
-          {
-            id: 'item_1',
-            productId: 'product_123',
-            designId: 'design_123',
-            quantity: 1,
-            priceCents: 2999,
-            totalCents: 2999,
-            product: testFixtures.product,
-            design: testFixtures.design,
-          },
-        ],
-        brand: testFixtures.brand,
+    it('should return order when found and user has access', async () => {
+      const order = {
+        id: 'ord-1',
+        orderNumber: 'ORD-1',
+        brandId: 'brand-1',
+        userId: 'user-1',
+        items: [],
+        brand: {},
+        user: {},
       };
+      mockPrisma.order.findUnique.mockResolvedValue(order);
 
-      (prismaService.design.findUnique as any).mockResolvedValue({
-        ...testFixtures.design,
-        product: testFixtures.product,
-        brand: testFixtures.brand,
-        user: testFixtures.user,
-      } as any);
-      (prismaService.order.create as any).mockResolvedValue(mockOrderWithItems as any);
-      (prismaService.order.update as any).mockResolvedValue({
-        ...mockOrderWithItems,
-        stripeSessionId: 'cs_test_123',
-      } as any);
-      (configService.get as jest.Mock).mockImplementation((key: string) => {
-        if (key === 'stripe.secretKey') return 'sk_test_mock';
-        if (key === 'app.frontendUrl') return 'https://app.luneo.app';
-        return undefined;
+      const result = await service.findOne('ord-1', brandUser);
+
+      expect(result).toEqual(order);
+      expect(mockPrisma.order.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'ord-1' } }),
+      );
+    });
+
+    it('should throw NotFoundException when order not found', async () => {
+      mockPrisma.order.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOne('nonexistent', platformAdmin)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.findOne('nonexistent', platformAdmin)).rejects.toThrow(
+        'Order not found',
+      );
+    });
+
+    it('should throw ForbiddenException when user has no access', async () => {
+      mockPrisma.order.findUnique.mockResolvedValue({
+        id: 'ord-1',
+        brandId: 'other-brand',
+        userId: 'other-user',
+        items: [],
+        brand: {},
+        user: {},
       });
-      
-      // Mock Stripe for this test
-      const mockStripeSession = {
-        id: 'cs_test_123',
-        url: 'https://checkout.stripe.com/test',
-      };
-      (service as any).stripeInstance = {
-        checkout: {
-          sessions: {
-            create: jest.fn().mockResolvedValue(mockStripeSession),
-          },
-        },
-      };
 
-      // Act
-      const result = await service.create(createDto as any, testFixtures.currentUser);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.checkoutUrl).toBeDefined();
-      expect(prismaService.order.create).toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException if design not found', async () => {
-      // Arrange
-      (prismaService.design.findUnique as any).mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(service.create(createDto as any, testFixtures.currentUser)).rejects.toThrow(NotFoundException);
-      expect(prismaService.order.create).not.toHaveBeenCalled();
+      await expect(service.findOne('ord-1', brandUser)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.findOne('ord-1', brandUser)).rejects.toThrow(
+        'Access denied to this order',
+      );
     });
   });
 
-  // Note: updateStatus method doesn't exist in OrdersService
-  // These tests are commented out until the method is implemented
-  // describe('updateStatus', () => {
-  //   it('should update order status successfully', async () => {
-  //     // Arrange
-  //     (prismaService.order.findUnique as any).mockResolvedValue(testFixtures.order as any);
-  //     (prismaService.order.update as any).mockResolvedValue({
-  //       ...testFixtures.order,
-  //       status: OrderStatus.DELIVERED,
-  //     } as any);
+  describe('update', () => {
+    it('should update order with valid status transition', async () => {
+      const existingOrder = {
+        id: 'ord-1',
+        orderNumber: 'ORD-1',
+        status: OrderStatus.PAID,
+        brandId: 'brand-1',
+        userId: 'user-1',
+        items: [],
+        brand: {},
+        user: {},
+      };
+      mockPrisma.order.findUnique.mockResolvedValue(existingOrder);
+      mockPrisma.order.update.mockResolvedValue({
+        id: 'ord-1',
+        orderNumber: 'ORD-1',
+        status: OrderStatus.PROCESSING,
+        trackingNumber: null,
+        notes: null,
+        updatedAt: new Date(),
+      });
 
-  //     // Act
-  //     const result = await service.updateStatus('order_123', OrderStatus.DELIVERED);
+      const result = await service.update(
+        'ord-1',
+        { status: OrderStatus.PROCESSING },
+        brandUser,
+      );
 
-  //     // Assert
-  //     expect(result).toBeDefined();
-  //     expect(result.status).toBe(OrderStatus.DELIVERED);
-  //     expect(prismaService.order.update).toHaveBeenCalledWith(
-  //       expect.objectContaining({
-  //         where: { id: 'order_123' },
-  //         data: { status: OrderStatus.DELIVERED },
-  //       }),
-  //     );
-  //   });
-  // });
+      expect(result.status).toBe(OrderStatus.PROCESSING);
+      expect(mockPrisma.order.update).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException for invalid status transition', async () => {
+      const existingOrder = {
+        id: 'ord-1',
+        orderNumber: 'ORD-1',
+        status: OrderStatus.PAID,
+        brandId: 'brand-1',
+        userId: 'user-1',
+        items: [],
+        brand: {},
+        user: {},
+      };
+      mockPrisma.order.findUnique.mockResolvedValue(existingOrder);
+
+      await expect(
+        service.update('ord-1', { status: OrderStatus.DELIVERED }, brandUser),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.update('ord-1', { status: OrderStatus.DELIVERED }, brandUser),
+      ).rejects.toThrow(/Cannot transition/);
+      expect(mockPrisma.order.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cancel', () => {
+    it('should cancel order in CREATED status', async () => {
+      const order = {
+        id: 'ord-1',
+        status: OrderStatus.CREATED,
+        paymentStatus: PaymentStatus.PENDING,
+        brandId: 'brand-1',
+        userId: 'user-1',
+        items: [],
+        brand: {},
+        user: {},
+      };
+      mockPrisma.order.findUnique.mockResolvedValue(order);
+      mockPrisma.discountUsage.findFirst.mockResolvedValue(null);
+      mockPrisma.order.update.mockResolvedValue({
+        id: 'ord-1',
+        status: OrderStatus.CANCELLED,
+        paymentStatus: PaymentStatus.CANCELLED,
+      });
+
+      const result = await service.cancel('ord-1', brandUser);
+
+      expect(result.status).toBe(OrderStatus.CANCELLED);
+      expect(mockPrisma.order.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ord-1' },
+          data: expect.objectContaining({
+            status: OrderStatus.CANCELLED,
+            paymentStatus: PaymentStatus.CANCELLED,
+          }),
+        }),
+      );
+    });
+
+    it('should throw ForbiddenException when order cannot be cancelled', async () => {
+      const order = {
+        id: 'ord-1',
+        status: OrderStatus.SHIPPED,
+        paymentStatus: PaymentStatus.SUCCEEDED,
+        brandId: 'brand-1',
+        userId: 'user-1',
+        items: [],
+        brand: {},
+        user: {},
+      };
+      mockPrisma.order.findUnique.mockResolvedValue(order);
+
+      await expect(service.cancel('ord-1', brandUser)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.cancel('ord-1', brandUser)).rejects.toThrow(
+        /only be cancelled when in CREATED or PENDING_PAYMENT/,
+      );
+    });
+  });
+
+  describe('getTracking', () => {
+    it('should return tracking info when order found', async () => {
+      mockPrisma.order.findFirst.mockResolvedValue({
+        id: 'ord-1',
+        status: OrderStatus.SHIPPED,
+        trackingNumber: 'TRK123',
+        trackingCarrier: 'DHL',
+        trackingUrl: 'https://track.example/TRK123',
+        shippedAt: new Date(),
+        deliveredAt: null,
+        estimatedDelivery: null,
+      });
+
+      const result = await service.getTracking('ord-1', brandUser);
+
+      expect(result.orderId).toBe('ord-1');
+      expect(result.tracking).toBeDefined();
+      expect(result.tracking?.number).toBe('TRK123');
+      expect(result.tracking?.carrier).toBe('DHL');
+    });
+
+    it('should throw NotFoundException when order not found', async () => {
+      mockPrisma.order.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.getTracking('nonexistent', brandUser),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.getTracking('nonexistent', brandUser),
+      ).rejects.toThrow('Order not found');
+    });
+  });
 });
-

@@ -13,6 +13,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 import type {
   AnalyticsEvent,
   TrackedEvent,
@@ -417,15 +418,7 @@ class AnalyticsService {
     this.eventQueue = [];
 
     try {
-      const response = await fetch('/api/analytics/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send events');
-      }
+      await api.post('/api/v1/analytics/events', { events });
 
       if (this.config.debug) {
         logger.debug('Events flushed', { count: events.length });

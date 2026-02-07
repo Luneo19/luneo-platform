@@ -57,12 +57,9 @@ function SecuritySettingsPageContent() {
     try {
       setIsSettingUp(true);
       setError('');
-      const response = await endpoints.auth.setup2FA?.() || await fetch('/api/v1/auth/2fa/setup', {
-        method: 'POST',
-        credentials: 'include',
-      }).then(r => r.json());
+      const response = await endpoints.auth.setup2FA();
 
-      setQrCodeUrl(response.qrCodeUrl);
+      setQrCodeUrl(response.qrCodeUrl ?? (response as { qrCode?: string }).qrCode);
       setSecret(response.secret);
       setBackupCodes(response.backupCodes || []);
     } catch (err) {
@@ -82,12 +79,7 @@ function SecuritySettingsPageContent() {
     try {
       setIsVerifying(true);
       setError('');
-      const response = await endpoints.auth.verify2FA?.(verificationToken) || await fetch('/api/v1/auth/2fa/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ token: verificationToken }),
-      }).then(r => r.json());
+      const response = await endpoints.auth.verify2FA(verificationToken);
 
       setSuccess('2FA activée avec succès !');
       setIs2FAEnabled(true);
@@ -112,10 +104,7 @@ function SecuritySettingsPageContent() {
     try {
       setIsLoading(true);
       setError('');
-      await endpoints.auth.disable2FA?.() || await fetch('/api/v1/auth/2fa/disable', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await endpoints.auth.disable2FA();
 
       setSuccess('2FA désactivée avec succès');
       setIs2FAEnabled(false);

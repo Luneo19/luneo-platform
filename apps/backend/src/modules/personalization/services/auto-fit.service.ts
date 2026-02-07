@@ -51,12 +51,10 @@ export class AutoFitService {
   }
 
   /**
-   * Estimer la largeur moyenne d'un caractère (approximation)
-   * TODO: Utiliser une mesure réelle avec Canvas ou une librairie
+   * Estimer la largeur moyenne d'un caractère (approximation).
+   * estimatedWidth ≈ text.length * fontSize * 0.6 (average character width ratio).
    */
   private estimateCharWidth(fontFamily: string, fontSize: number): number {
-    // Approximation basique : 0.6 * fontSize pour la plupart des polices
-    // Les polices monospace sont plus larges (0.7)
     const isMonospace = ['Courier', 'Courier New', 'Monaco', 'Consolas'].includes(fontFamily);
     return fontSize * (isMonospace ? 0.7 : 0.6);
   }

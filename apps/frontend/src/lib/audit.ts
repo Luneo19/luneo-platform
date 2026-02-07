@@ -4,6 +4,7 @@
  * Usage: await auditLog.create('order', orderId, 'Commande créée');
  */
 
+import { api } from '@/lib/api/client';
 import { logger } from './logger';
 
 export type AuditAction = 
@@ -40,20 +41,12 @@ export interface AuditLogData {
 }
 
 /**
- * Log une action dans les audit logs
+ * Log une action dans les audit logs (NestJS backend)
  */
 export async function logAudit(data: AuditLogData): Promise<boolean> {
   try {
-    const response = await fetch('/api/audit/logs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-
-    const result = await response.json();
-    return result.success;
+    const result = await api.post<{ success?: boolean }>('/api/v1/security/audit-log', data);
+    return (result as { success?: boolean })?.success ?? false;
   } catch (error) {
     logger.error('Erreur audit log', {
       error,

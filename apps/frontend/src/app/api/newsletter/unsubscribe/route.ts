@@ -85,26 +85,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Mettre à jour dans Supabase
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-
-        await supabase
-          .from('newsletter_subscribers')
-          .update({
-            status: 'unsubscribed',
-            unsubscribe_reason: reason,
-            unsubscribed_at: new Date().toISOString(),
-          })
-          .eq('email', email);
-      } catch (dbError) {
-        logger.warn('Database update failed', { error: dbError });
-      }
+    // Update subscription status via backend API
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    try {
+      await fetch(`${backendUrl}/api/v1/newsletter/unsubscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, reason }),
+      });
+    } catch (dbError) {
+      logger.warn('Backend unsubscribe update failed', { error: dbError });
     }
 
     return {

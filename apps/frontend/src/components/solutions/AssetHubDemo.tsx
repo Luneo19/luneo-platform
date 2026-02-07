@@ -671,40 +671,31 @@ function AssetHubDemo({
           API Integration:
         </h4>
         <div className="bg-black/50 rounded-lg p-4 font-mono text-xs text-gray-300 overflow-x-auto">
-          <pre>{`// Upload asset
+          <pre>{`// Upload asset (use api client from @/lib/api/client)
+import { api } from '@/lib/api/client';
+
 const formData = new FormData();
 formData.append('file', file);
 
-const upload = await fetch('/api/assets/upload', {
-  method: 'POST',
-  body: formData
+const { assetId } = await api.post('/api/v1/assets/upload', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
 });
 
-const { assetId } = await upload.json();
-
 // Optimize
-const optimize = await fetch('/api/assets/optimize', {
-  method: 'POST',
-  body: JSON.stringify({
-    assetId,
-    options: {
-      meshReduction: ${optimizationLevel},
-      lodLevels: ${lodLevels},
-      textureCompression: 'webp'
-    }
-  })
+await api.post('/api/v1/assets/optimize', {
+  assetId,
+  options: {
+    meshReduction: ${optimizationLevel},
+    lodLevels: ${lodLevels},
+    textureCompression: 'webp'
+  }
 });
 
 // Convert & download
-const convert = await fetch('/api/assets/convert', {
-  method: 'POST',
-  body: JSON.stringify({
-    assetId,
-    format: '${selectedFormat}'
-  })
+const blob = await api.post('/api/v1/assets/convert', {
+  assetId,
+  format: '${selectedFormat}'
 });
-
-const blob = await convert.blob();
 // Download or deploy to CDN`}</pre>
         </div>
       </Card>

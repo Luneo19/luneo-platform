@@ -3,6 +3,8 @@
  * Generate JSON-LD structured data for SEO
  */
 
+import { SEO_BASE_URL } from './constants';
+
 export interface OrganizationSchema {
   name: string;
   url: string;
@@ -207,8 +209,8 @@ export function generateFAQSchema(faqs: Array<{ question: string; answer: string
  * Default Luneo Organization schema
  */
 export function getDefaultOrganizationSchema(): string {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
-  
+  const siteUrl = SEO_BASE_URL;
+
   return generateOrganizationSchema({
     name: 'Luneo',
     url: siteUrl,
@@ -229,8 +231,8 @@ export function getDefaultOrganizationSchema(): string {
  * Default Luneo Website schema
  */
 export function getDefaultWebSiteSchema(): string {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
-  
+  const siteUrl = SEO_BASE_URL;
+
   return generateWebSiteSchema({
     name: 'Luneo Platform',
     url: siteUrl,

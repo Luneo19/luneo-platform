@@ -6,9 +6,124 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
-import { db } from '@/lib/db';
+import { api, endpoints } from '@/lib/api/client';
 
 const ExperimentStatusSchema = z.enum(['draft', 'running', 'paused', 'completed']);
+
+const MIN_VISITORS_FOR_WINNER = 100;
+const MIN_CONFIDENCE_FOR_WINNER = 95;
+
+type VariantStat = {
+  visitors: number;
+  conversions: number;
+  revenue: number;
+  conversionRate: number;
+};
+
+/**
+ * Z-test for proportions: returns approximate confidence level (0–99) that the
+ * difference between two conversion rates is statistically significant.
+ */
+function calculateConfidence(
+  conversionsA: number,
+  visitorsA: number,
+  conversionsB: number,
+  visitorsB: number
+): number {
+  if (visitorsA === 0 || visitorsB === 0) return 0;
+
+  const pA = conversionsA / visitorsA;
+  const pB = conversionsB / visitorsB;
+  const pPool = (conversionsA + conversionsB) / (visitorsA + visitorsB);
+  const se = Math.sqrt(pPool * (1 - pPool) * (1 / visitorsA + 1 / visitorsB));
+
+  if (se === 0) return 0;
+
+  const z = Math.abs(pA - pB) / se;
+
+  if (z >= 2.576) return 99;
+  if (z >= 1.96) return 95;
+  if (z >= 1.645) return 90;
+  if (z >= 1.282) return 80;
+  return Math.min(Math.round(z * 40), 79);
+}
+
+/**
+ * Fetch per-variant stats (visitors, conversions, revenue, conversionRate) for an experiment.
+ */
+async function getVariantStats(
+  experimentId: string,
+  variantIds: string[]
+): Promise<Map<string, VariantStat>> {
+  const result = new Map<string, VariantStat>();
+
+  if (variantIds.length === 0) return result;
+
+  const statsRes = await api.get<{ variants?: Record<string, { visitors: number; conversions: number; revenue: number }> }>(
+    `/api/v1/analytics/experiments/${experimentId}/variant-stats`,
+    { params: { variantIds: variantIds.join(',') } }
+  ).catch(() => ({}));
+
+  const variantsData = (statsRes as any).variants ?? (statsRes as any).data ?? {};
+
+  for (const variantId of variantIds) {
+    const v = variantsData[variantId] ?? {};
+    const visitors = v.visitors ?? 0;
+    const conversions = v.conversions ?? 0;
+    const revenue = v.revenue ?? 0;
+    const conversionRate = visitors === 0 ? 0 : conversions / visitors;
+    result.set(variantId, { visitors, conversions, revenue, conversionRate });
+  }
+
+  return result;
+}
+
+/**
+ * Determine winner: variant with highest conversion rate, confidence >= 95%, and at least 100 visitors per variant.
+ */
+function getWinner(
+  variants: Array<{ id: string; name: string; traffic: number; isControl: boolean }>,
+  stats: Map<string, VariantStat>
+): { winnerId: string | null; confidence: number } {
+  if (variants.length === 0) return { winnerId: null, confidence: 0 };
+  if (variants.length === 1) return { winnerId: null, confidence: 0 };
+
+  const withStats = variants
+    .map((v) => ({ variant: v, stat: stats.get(v.id) }))
+    .filter((x): x is { variant: (typeof variants)[0]; stat: VariantStat } => Boolean(x.stat));
+
+  if (withStats.length < 2) return { winnerId: null, confidence: 0 };
+
+  const sorted = [...withStats].sort((a, b) => b.stat.conversionRate - a.stat.conversionRate);
+  const best = sorted[0];
+  const control = withStats.find((x) => x.variant.isControl);
+  const baseline = control ?? sorted[1];
+  const confidence = calculateConfidence(
+    best.stat.conversions,
+    best.stat.visitors,
+    baseline.stat.conversions,
+    baseline.stat.visitors
+  );
+
+  const allVariantsHaveEnough = withStats.every((x) => x.stat.visitors >= MIN_VISITORS_FOR_WINNER);
+  const isWinner =
+    allVariantsHaveEnough && confidence >= MIN_CONFIDENCE_FOR_WINNER;
+  return {
+    winnerId: isWinner ? best.variant.id : null,
+    confidence,
+  };
+}
+
+/**
+ * Experiment metric: prefer stored value or fallback to 'conversions'.
+ */
+function getExperimentMetric(experiment: { type?: string; variants?: unknown }): 'conversions' | 'revenue' | 'engagement' | 'clicks' {
+  const exp = experiment as { type?: string; metric?: string };
+  if (exp.metric && ['conversions', 'revenue', 'engagement', 'clicks'].includes(exp.metric)) {
+    return exp.metric as 'conversions' | 'revenue' | 'engagement' | 'clicks';
+  }
+  return 'conversions';
+}
 
 const CreateExperimentSchema = z.object({
   name: z.string().min(1).max(200),
@@ -59,38 +174,36 @@ export const abTestingRouter = router({
           where.status = input.status;
         }
 
-        const [experiments, total] = await Promise.all([
-          db.experiment.findMany({
-            where,
-            skip: input.offset,
-            take: input.limit,
-            orderBy: { createdAt: 'desc' },
-            include: {
-              assignments: {
-                select: { variantId: true },
-              },
-            },
-          }),
-          db.experiment.count({ where }),
-        ]);
+        const listRes = await api.get<any>('/api/v1/analytics/experiments', {
+          params: { brandId: user.brandId, status: input.status, offset: input.offset, limit: input.limit },
+        }).catch(() => ({ experiments: [], total: 0 }));
+        const experiments = (listRes as any).experiments ?? (listRes as any).data ?? [];
+        const total = (listRes as any).total ?? (listRes as any).pagination?.total ?? experiments.length;
 
-        // Transformer en format attendu
-        return {
-          experiments: experiments.map((exp: any) => {
+        // Transformer en format attendu avec stats réelles
+        const experimentsWithStats = await Promise.all(
+          experiments.map(async (exp: any) => {
             const variants = (exp.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
-            
-            // Calculer les stats par variant
+            const variantIds = variants.map((v) => v.id);
+            const stats = await getVariantStats(exp.id, variantIds);
+            const { winnerId, confidence } = getWinner(variants, stats);
+
             const variantsWithStats = variants.map((variant) => {
-              const variantAssignments = exp.assignments.filter((a: { variantId: string }) => a.variantId === variant.id);
+              const stat = stats.get(variant.id) ?? {
+                visitors: 0,
+                conversions: 0,
+                revenue: 0,
+                conversionRate: 0,
+              };
               return {
                 id: variant.id,
                 name: variant.name,
                 traffic: variant.traffic,
-                conversions: 0, // TODO: Calculer depuis Conversion
-                visitors: variantAssignments.length,
-                revenue: 0, // TODO: Calculer depuis Conversion
+                conversions: stat.conversions,
+                visitors: stat.visitors,
+                revenue: stat.revenue,
                 isControl: variant.isControl || false,
-                isWinner: false, // TODO: Calculer depuis résultats
+                isWinner: winnerId === variant.id,
               };
             });
 
@@ -99,13 +212,17 @@ export const abTestingRouter = router({
               name: exp.name,
               description: exp.description || '',
               status: exp.status as 'draft' | 'running' | 'paused' | 'completed',
-              metric: 'conversions' as const, // TODO: Extraire depuis type
-              confidence: 0, // TODO: Calculer depuis résultats
+              metric: getExperimentMetric(exp),
+              confidence,
               startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
               endDate: exp.endDate ? new Date(exp.endDate) : undefined,
               variants: variantsWithStats,
             };
-          }),
+          })
+        );
+
+        return {
+          experiments: experimentsWithStats,
           total,
           hasMore: input.offset + input.limit < total,
         };
@@ -136,22 +253,18 @@ export const abTestingRouter = router({
       try {
         // Créer l'expérience dans Prisma
         // Note: Experiment n'a pas de brandId direct, utiliser targetAudience
-        const experiment = await db.experiment.create({
-          data: {
-            name: input.name,
-            description: input.description || '',
-            type: 'variants', // Par défaut
-            variants: input.variants.map((v, i) => ({
-              id: `v${i + 1}`,
-              name: v.name,
-              traffic: v.traffic,
-              isControl: v.isControl,
-            })) as unknown,
-            status: 'draft',
-            targetAudience: {
-              brands: [user.brandId],
-            } as unknown,
-          },
+        const experiment = await api.post<any>('/api/v1/analytics/experiments', {
+          name: input.name,
+          description: input.description || '',
+          type: 'variants',
+          variants: input.variants.map((v, i) => ({
+            id: `v${i + 1}`,
+            name: v.name,
+            traffic: v.traffic,
+            isControl: v.isControl,
+          })),
+          status: 'draft',
+          targetAudience: { brands: [user.brandId] },
         });
 
         logger.info('AB test created', { experimentId: experiment.id, userId: user.id });
@@ -217,9 +330,7 @@ export const abTestingRouter = router({
 
       try {
         // Récupérer l'expérience
-        const experiment = await db.experiment.findUnique({
-          where: { id: input.id },
-        });
+        const experiment = await api.get<any>(`/api/v1/analytics/experiments/${input.id}`).catch(() => null);
 
         if (!experiment) {
           throw new TRPCError({
@@ -228,56 +339,50 @@ export const abTestingRouter = router({
           });
         }
 
-        // Mettre à jour l'expérience
         const updateData: Record<string, unknown> = {};
         if (input.status) {
           updateData.status = input.status;
         }
-
         if (input.variants) {
-          // Mettre à jour les variants
-          const currentVariants = (experiment.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
-          const updatedVariants = currentVariants.map((v) => {
+          const currentVariants = (experiment as any).variants ?? [];
+          updateData.variants = currentVariants.map((v: any) => {
             const update = input.variants?.find((u) => u.id === v.id);
-            if (update) {
-              return {
-                ...v,
-                // Les conversions/visitors/revenue sont calculés depuis Conversion, pas stockés dans variants
-              };
-            }
-            return v;
+            return update ? { ...v } : v;
           });
-          updateData.variants = updatedVariants;
         }
 
-        const updated = await db.experiment.update({
-          where: { id: input.id },
-          data: updateData,
-        });
+        const updated = await api.put<any>(`/api/v1/analytics/experiments/${input.id}`, updateData);
 
         logger.info('AB test updated', { experimentId: input.id, userId: user.id });
 
-        // Transformer en format attendu
+        // Transformer en format attendu avec stats réelles
         const variants = (updated.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
+        const variantIds = variants.map((v) => v.id);
+        const stats = await getVariantStats(updated.id, variantIds);
+        const { winnerId, confidence } = getWinner(variants, stats);
+
         return {
           id: updated.id,
           name: updated.name,
           description: updated.description || '',
           status: updated.status as 'draft' | 'running' | 'paused' | 'completed',
-          metric: 'conversions' as const,
-          confidence: 0, // TODO: Calculer depuis résultats
+          metric: getExperimentMetric(updated),
+          confidence,
           startDate: updated.startDate ? new Date(updated.startDate) : new Date(),
           endDate: updated.endDate ? new Date(updated.endDate) : undefined,
-          variants: variants.map((v) => ({
-            id: v.id,
-            name: v.name,
-            traffic: v.traffic,
-            conversions: 0, // TODO: Calculer depuis Conversion
-            visitors: 0, // TODO: Calculer depuis ExperimentAssignment
-            revenue: 0, // TODO: Calculer depuis Conversion
-            isControl: v.isControl || false,
-            isWinner: false, // TODO: Calculer depuis résultats
-          })),
+          variants: variants.map((v) => {
+            const stat = stats.get(v.id) ?? { visitors: 0, conversions: 0, revenue: 0, conversionRate: 0 };
+            return {
+              id: v.id,
+              name: v.name,
+              traffic: v.traffic,
+              conversions: stat.conversions,
+              visitors: stat.visitors,
+              revenue: stat.revenue,
+              isControl: v.isControl || false,
+              isWinner: winnerId === v.id,
+            };
+          }),
         };
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;

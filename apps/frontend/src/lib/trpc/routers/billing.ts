@@ -12,7 +12,6 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { billingService } from '@/lib/services/BillingService';
-import { db } from '@/lib/db';
 
 // ========================================
 // SCHEMAS

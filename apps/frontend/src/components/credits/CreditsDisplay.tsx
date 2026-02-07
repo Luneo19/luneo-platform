@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 interface CreditsDisplayProps {
   userId: string;
@@ -34,12 +35,8 @@ export function CreditsDisplay({
   const fetchCredits = async () => {
     try {
       setError(null);
-      const res = await fetch('/api/credits/balance');
-      if (!res.ok) {
-        throw new Error('Failed to fetch credits');
-      }
-      const data = await res.json();
-      setCredits(data);
+      const data = await endpoints.credits.balance();
+      setCredits(data as CreditsData);
     } catch (err) {
       logger.error('Failed to fetch credits', err instanceof Error ? err : new Error(String(err)), {
         component: 'CreditsDisplay',

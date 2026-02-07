@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Save, RefreshCw } from 'lucide-react';
-import { trpc } from '@/lib/trpc/client';
 import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
 import type { NotificationPreference } from '../../types';
 
 interface NotificationsTabProps {
@@ -40,29 +40,25 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
     }
   );
 
-  // TODO: Créer updateNotificationPreferences dans le router profile
-  // Pour l'instant, on utilise une mutation temporaire
-  const updateMutation = trpc.profile.update.useMutation({
-    onSuccess: () => {
-      toast({ title: 'Succès', description: 'Préférences mises à jour' });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Erreur lors de la mise à jour',
-        variant: 'destructive',
-      });
-    },
-  });
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
-    // TODO: Implémenter updateNotificationPreferences dans le router
-    // Pour l'instant, on sauvegarde dans les métadonnées du profil
-    await updateMutation.mutateAsync({
-      metadata: {
-        notificationPreferences: preferences,
-      },
-    } as any);
+    setIsSaving(true);
+    try {
+      await endpoints.settings.notifications(preferences as unknown as Record<string, unknown>);
+      toast({ title: 'Succès', description: 'Préférences mises à jour' });
+    } catch (error: unknown) {
+      const message = error && typeof error === 'object' && 'message' in error
+        ? String((error as { message: string }).message)
+        : 'Erreur lors de la mise à jour';
+      toast({
+        title: 'Erreur',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -196,10 +192,10 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
       <div className="flex justify-end">
         <Button
           onClick={handleSave}
-          disabled={updateMutation.isPending}
+          disabled={isSaving}
           className="bg-gradient-to-r from-cyan-600 to-blue-600"
         >
-          {updateMutation.isPending ? (
+          {isSaving ? (
             <>
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
               Enregistrement...

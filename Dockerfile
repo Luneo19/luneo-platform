@@ -109,11 +109,11 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 # Copier package.json et pnpm-lock.yaml (nécessaires pour pnpm)
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/backend/package.json ./apps/backend/
+COPY --chown=nestjs:nodejs package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=nestjs:nodejs apps/backend/package.json ./apps/backend/
 
 # Copier les packages nécessaires AVANT de copier node_modules
-COPY packages ./packages/
+COPY --chown=nestjs:nodejs packages ./packages/
 
 # Installer les dépendances de production + prisma (nécessaire pour générer Prisma Client)
 # Cela garantit que la structure pnpm est correcte et que les modules sont accessibles
@@ -125,7 +125,7 @@ RUN pnpm install --no-frozen-lockfile --include-workspace-root --prod --fetch-ti
     (echo "Retry 2..." && sleep 10 && pnpm install --no-frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000)
 
 # Copier le schéma Prisma depuis le builder
-COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/prisma ./apps/backend/prisma
 
 # Copier le Prisma Client généré depuis le builder via tar
 # Le tar a été créé avec succès dans le builder (7.8M), donc on l'utilise directement
@@ -147,7 +147,7 @@ RUN echo "Extracting Prisma Client from builder..." && \
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
 
 # Copier uniquement les fichiers nécessaires depuis le builder
-COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/dist ./apps/backend/dist
 
 # Créer le script de démarrage
 # Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
@@ -165,6 +165,19 @@ RUN rm -rf /app/node_modules/.cache \
     && find /app/node_modules -type d -empty ! -path "*/node_modules/.prisma/*" -delete 2>/dev/null || true \
     && echo "Verifying Prisma Client after cleanup..." && \
     ls -la /app/node_modules/.prisma/client 2>/dev/null | head -3 || echo "WARNING: Prisma Client not found after cleanup"
+
+# Security: run as non-root user (Alpine: -S = system, -g/-u = gid/uid)
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S -u 1001 -G nodejs nestjs
+
+# Ensure app files are owned by non-root user (pnpm/tar run as root)
+RUN chown -R nestjs:nodejs /app
+
+USER nestjs
+
+# Health check for container orchestrators (Railway, Docker Compose, K8s)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD node -e "const http=require('http');const r=http.get('http://localhost:'+(process.env.PORT||3000)+'/health',(res)=>{process.exit(res.statusCode===200?0:1)});r.on('error',()=>process.exit(1))"
 
 # Exposer le port
 EXPOSE ${PORT:-3000}

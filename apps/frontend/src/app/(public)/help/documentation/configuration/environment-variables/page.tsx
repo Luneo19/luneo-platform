@@ -19,10 +19,8 @@ function EnvironmentVariablesPageContent() {
 # FRONTEND ENVIRONMENT VARIABLES
 # ============================================
 
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://obrijgptqztacolemsbk.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+# Backend API (NestJS)
+NEXT_PUBLIC_API_URL=https://api.luneo.app
 
 # Stripe Configuration
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxx
@@ -104,43 +102,16 @@ NEXT_PUBLIC_VERCEL_ANALYTICS_ID=your_analytics_id`, []);
             <Card className="bg-gray-800/50 border-gray-700 p-6">
               <h3 className="text-xl font-bold mb-3 flex items-center">
                 <Shield className="w-5 h-5 mr-2 text-blue-400" />
-                NEXT_PUBLIC_SUPABASE_URL
+                NEXT_PUBLIC_API_URL
               </h3>
               <p className="text-gray-300 mb-2">
                 <strong>Obligatoire:</strong> Oui<br />
                 <strong>Type:</strong> URL publique<br />
-                <strong>Description:</strong> URL de votre projet Supabase
+                <strong>Description:</strong> URL de l&apos;API backend NestJS (ex: https://api.luneo.app)
               </p>
               <p className="text-sm text-gray-400">
-                Trouvez cette valeur dans : Supabase Dashboard → Settings → API → Project URL
+                En local : <code className="bg-gray-700 px-1">http://localhost:3001</code>. En production : l&apos;URL de votre API déployée.
               </p>
-            </Card>
-
-            <Card className="bg-gray-800/50 border-gray-700 p-6">
-              <h3 className="text-xl font-bold mb-3">NEXT_PUBLIC_SUPABASE_ANON_KEY</h3>
-              <p className="text-gray-300 mb-2">
-                <strong>Obligatoire:</strong> Oui<br />
-                <strong>Type:</strong> Clé publique<br />
-                <strong>Description:</strong> Clé anonyme Supabase (safe pour le frontend)
-              </p>
-              <p className="text-sm text-gray-400">
-                Trouvez cette valeur dans : Supabase Dashboard → Settings → API → anon public
-              </p>
-            </Card>
-
-            <Card className="bg-gray-800/50 border-gray-700 p-6">
-              <h3 className="text-xl font-bold mb-3">SUPABASE_SERVICE_ROLE_KEY</h3>
-              <p className="text-gray-300 mb-2">
-                <strong>Obligatoire:</strong> Oui<br />
-                <strong>Type:</strong> Clé secrète<br />
-                <strong>Description:</strong> Clé service role (accès admin, backend only)
-              </p>
-              <div className="mt-2 p-3 bg-red-900/20 border border-red-500/30 rounded">
-                <p className="text-sm text-red-300 flex items-start">
-                  <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
-                  <strong>⚠️ Ne JAMAIS exposer cette clé côté client !</strong>
-                </p>
-              </div>
             </Card>
 
             <Card className="bg-gray-800/50 border-gray-700 p-6">
@@ -255,12 +226,12 @@ NEXT_PUBLIC_VERCEL_ANALYTICS_ID=your_analytics_id`, []);
             </Card>
 
             <Card className="bg-gray-800/50 border-gray-700 p-6">
-              <h3 className="font-bold text-lg mb-2">❌"Invalid Supabase credentials"</h3>
+              <h3 className="font-bold text-lg mb-2">❌ &quot;API unreachable&quot; ou erreurs réseau</h3>
               <p className="text-gray-300 mb-2"><strong>Solution:</strong></p>
               <ol className="list-decimal list-inside text-sm text-gray-400 space-y-1">
-                <li>Vérifiez que l'URL Supabase est correcte (format: https://xxxxx.supabase.co)</li>
-                <li>Vérifiez que la clé anon correspond au bon projet</li>
-                <li>Allez dans Supabase Dashboard → Settings → API pour copier les bonnes valeurs</li>
+                <li>Vérifiez que NEXT_PUBLIC_API_URL pointe vers votre backend (ex: https://api.luneo.app)</li>
+                <li>En local, assurez-vous que le backend NestJS tourne sur le port configuré (ex: 3001)</li>
+                <li>Vérifiez CORS et que le backend autorise l&apos;origine du frontend</li>
               </ol>
             </Card>
           </div>

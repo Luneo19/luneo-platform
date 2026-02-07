@@ -1,68 +1,36 @@
 /**
- * @fileoverview Configuration des limites par plan
+ * @fileoverview Configuration des limites par plan pour les agents AI.
  * @module LimitsConfigService
  *
  * RÈGLES RESPECTÉES:
  * - ✅ Types explicites (zéro 'any')
- * - ✅ Configuration centralisée
+ * - ✅ Configuration centralisée via @/libs/plans (SINGLE SOURCE OF TRUTH)
  * - ✅ Validation des limites
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  PLAN_CONFIGS,
+  normalizePlanTier,
+  isUnlimited as checkUnlimited,
+  type AgentLimits,
+  PlanTier,
+} from '@/libs/plans';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface PlanLimits {
-  monthlyTokens: number; // -1 = illimité
-  monthlyRequests: number; // -1 = illimité
-  rateLimit: {
-    requests: number; // Requêtes par fenêtre
-    windowMs: number; // Fenêtre en millisecondes
-  };
-}
-
+// Re-export AgentLimits as PlanLimits for backward compatibility
+export type PlanLimits = AgentLimits;
 export type PlanId = 'free' | 'starter' | 'professional' | 'enterprise';
 
-// ============================================================================
-// CONFIGURATION DES LIMITES PAR PLAN
-// ============================================================================
-
+/**
+ * Agent limits derived from the centralized plan config.
+ * Source: @/libs/plans/plan-config.ts (SINGLE SOURCE OF TRUTH)
+ */
 const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
-  free: {
-    monthlyTokens: 50000,
-    monthlyRequests: 100,
-    rateLimit: {
-      requests: 10,
-      windowMs: 60000, // 1 minute
-    },
-  },
-  starter: {
-    monthlyTokens: 500000,
-    monthlyRequests: 1000,
-    rateLimit: {
-      requests: 30,
-      windowMs: 60000, // 1 minute
-    },
-  },
-  professional: {
-    monthlyTokens: 2000000,
-    monthlyRequests: 5000,
-    rateLimit: {
-      requests: 60,
-      windowMs: 60000, // 1 minute
-    },
-  },
-  enterprise: {
-    monthlyTokens: -1, // Illimité
-    monthlyRequests: -1, // Illimité
-    rateLimit: {
-      requests: 120,
-      windowMs: 60000, // 1 minute
-    },
-  },
+  free: PLAN_CONFIGS[PlanTier.FREE].agentLimits,
+  starter: PLAN_CONFIGS[PlanTier.STARTER].agentLimits,
+  professional: PLAN_CONFIGS[PlanTier.PROFESSIONAL].agentLimits,
+  enterprise: PLAN_CONFIGS[PlanTier.ENTERPRISE].agentLimits,
 };
 
 // ============================================================================
@@ -96,37 +64,24 @@ export class LimitsConfigService {
    * Vérifie si une limite est illimitée
    */
   isUnlimited(value: number): boolean {
-    return value === -1;
+    return checkUnlimited(value);
   }
 
   /**
-   * Normalise un planId en PlanId valide
+   * Normalise un planId en PlanId valide.
+   * Delegue a normalizePlanTier (source unique) et mappe vers PlanId.
    */
   private normalizePlanId(planId: string | null | undefined): PlanId {
-    if (!planId) {
-      return 'free';
-    }
-
-    const normalized = planId.toLowerCase().trim();
-
-    if (normalized === 'pro' || normalized === 'professional') {
-      return 'professional';
-    }
-
-    if (normalized === 'starter' || normalized === 'start') {
-      return 'starter';
-    }
-
-    if (normalized === 'enterprise' || normalized === 'ent') {
-      return 'enterprise';
-    }
-
-    if (normalized === 'free' || normalized === 'trial') {
-      return 'free';
-    }
-
-    // Par défaut, free
-    return 'free';
+    const tier = normalizePlanTier(planId);
+    // Map PlanTier -> PlanId (PlanId n'a pas 'business', on fallback sur 'professional')
+    const tierToPlanId: Record<string, PlanId> = {
+      [PlanTier.FREE]: 'free',
+      [PlanTier.STARTER]: 'starter',
+      [PlanTier.PROFESSIONAL]: 'professional',
+      [PlanTier.BUSINESS]: 'professional',
+      [PlanTier.ENTERPRISE]: 'enterprise',
+    };
+    return tierToPlanId[tier] ?? 'free';
   }
 
   /**

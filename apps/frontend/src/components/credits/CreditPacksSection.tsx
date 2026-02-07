@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Check, Gift, Loader2, Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -38,10 +39,8 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
   const fetchPacks = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/credits/packs');
-      if (!res.ok) throw new Error('Failed to fetch packs');
-      const data = await res.json();
-      setPacks(data.packs || []);
+      const data = await endpoints.credits.packs();
+      setPacks(Array.isArray(data) ? data : ((data as { packs?: Pack[] }).packs || []));
     } catch (error) {
       logger.error('Failed to fetch packs', error instanceof Error ? error : new Error(String(error)), {
         component: 'CreditPacksSection',
@@ -69,20 +68,9 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
 
     setPurchasing(pack.id);
     try {
-      const res = await fetch('/api/credits/buy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packSize: pack.credits }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Erreur lors de l\'achat');
-      }
-
-      const data = await res.json();
+      const data = await endpoints.credits.buy({ packSize: pack.credits });
       
-      if (data.url) {
+      if (data?.url) {
         window.location.href = data.url;
       } else {
         throw new Error('URL de paiement non reçue');

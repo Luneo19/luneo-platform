@@ -24,17 +24,12 @@ const response = await fetch('https://api.luneo.app/v1/products', {
   }
 });`, []);
 
-  const oauthExample = `// OAuth 2.0 Flow
-const { createClient } = require('@supabase/supabase-js');
+  const oauthExample = `// OAuth 2.0 (Google, GitHub) via backend NestJS
+// Le frontend redirige vers le backend qui gère le flow OAuth et les cookies JWT
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
-
-const { data, error } = await supabase.auth.signInWithOAuth({
-  provider: 'google'
-});`;
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const res = await fetch(apiUrl + '/api/v1/auth/google', { redirect: 'follow' });
+// Backend renvoie Set-Cookie (accessToken, refreshToken) et redirection`;
 
   const jwtExample = `// JWT Verification
 const jwt = require('jsonwebtoken');

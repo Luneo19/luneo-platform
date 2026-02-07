@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SEO_BASE_URL } from '@/lib/seo/constants';
 
 export const metadata: Metadata = {
   title: 'Tarifs & Plans | Luneo - Personnalisation Produit',
@@ -8,11 +9,11 @@ export const metadata: Metadata = {
     title: 'Tarifs & Plans | Luneo',
     description: 'Découvrez nos plans tarifaires flexibles. De Starter à Enterprise, trouvez la solution adaptée à vos besoins.',
     type: 'website',
-    url: 'https://luneo.app/pricing',
+    url: `${SEO_BASE_URL}/pricing`,
     siteName: 'Luneo',
     images: [
       {
-        url: 'https://luneo.app/og-pricing.png',
+        url: `${SEO_BASE_URL}/og-pricing.png`,
         width: 1200,
         height: 630,
         alt: 'Luneo Pricing Plans',
@@ -25,12 +26,21 @@ export const metadata: Metadata = {
     description: 'Découvrez nos plans tarifaires flexibles pour la personnalisation produit avec IA.',
   },
   alternates: {
-    canonical: 'https://luneo.app/pricing',
+    canonical: `${SEO_BASE_URL}/pricing`,
     languages: {
-      'fr': 'https://luneo.app/tarifs',
-      'en': 'https://luneo.app/pricing',
+      fr: `${SEO_BASE_URL}/tarifs`,
+      en: `${SEO_BASE_URL}/pricing`,
     },
   },
+};
+
+const softwareApplicationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Luneo',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
 };
 
 export default function PricingLayout({
@@ -38,5 +48,13 @@ export default function PricingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
+      />
+      {children}
+    </>
+  );
 }

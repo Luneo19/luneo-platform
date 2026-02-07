@@ -7,9 +7,11 @@
  * - Une API Key valide doit exister dans la base de données
  */
 
+import { Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+const logger = new Logger('TestGenerationAPI');
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 
 interface ApiResponse<T> {
@@ -20,17 +22,17 @@ interface ApiResponse<T> {
 }
 
 async function testGenerationAPI() {
-  console.log('🧪 Test de l\'API Generation\n');
-  console.log(`📍 API URL: ${API_BASE_URL}\n`);
+  logger.log('🧪 Test de l\'API Generation\n');
+  logger.log(`📍 API URL: ${API_BASE_URL}\n`);
 
   try {
     // 1. Récupérer un Brand et créer une API Key de test
-    console.log('1️⃣ Préparation des données de test...');
+    logger.log('1️⃣ Préparation des données de test...');
     const brand = await prisma.brand.findFirst();
     if (!brand) {
       throw new Error('Aucun Brand trouvé dans la base de données');
     }
-    console.log('✅ Brand trouvé:', brand.id);
+    logger.log('✅ Brand trouvé:', brand.id);
 
     // Vérifier ou créer une API Key
     let apiKey = await prisma.apiKey.findFirst({
@@ -51,10 +53,10 @@ async function testGenerationAPI() {
           isActive: true,
         },
       });
-      console.log('✅ API Key créée:', apiKey.id);
-      console.log(`   ⚠️  Key value: ${keyValue} (à utiliser pour les tests)`);
+      logger.log('✅ API Key créée:', apiKey.id);
+      logger.log(`   ⚠️  Key value: ${keyValue} (à utiliser pour les tests)`);
     } else {
-      console.log('✅ API Key trouvée:', apiKey.id);
+      logger.log('✅ API Key trouvée:', apiKey.id);
     }
 
     // 2. Récupérer un Product
@@ -66,7 +68,7 @@ async function testGenerationAPI() {
     if (!product) {
       throw new Error('Aucun Product trouvé');
     }
-    console.log('✅ Product trouvé:', product.id);
+    logger.log('✅ Product trouvé:', product.id);
 
     // 3. Préparer les customizations
     const customizations = product.customizationZones.reduce((acc, zone) => {
@@ -85,7 +87,7 @@ async function testGenerationAPI() {
     }, {} as Record<string, any>);
 
     if (Object.keys(customizations).length === 0) {
-      console.log('⚠️  Aucune zone de personnalisation trouvée, création d\'une zone de test...');
+      logger.log('⚠️  Aucune zone de personnalisation trouvée, création d\'une zone de test...');
       const zone = await prisma.customizationZone.create({
         data: {
           productId: product.id,
@@ -105,7 +107,7 @@ async function testGenerationAPI() {
     }
 
     // 4. Test de création d'une génération via API
-    console.log('\n2️⃣ Test POST /generation/create...');
+    logger.log('\n2️⃣ Test POST /generation/create...');
     const createResponse = await fetch(`${API_BASE_URL}/generation/create`, {
       method: 'POST',
       headers: {
@@ -136,15 +138,15 @@ async function testGenerationAPI() {
       throw new Error('Réponse API invalide: ' + JSON.stringify(createResult));
     }
 
-    console.log('✅ Génération créée via API');
-    console.log('   - Public ID:', createResult.data.id);
-    console.log('   - Status:', createResult.data.status);
-    console.log('   - Estimated Time:', createResult.data.estimatedTime, 's');
+    logger.log('✅ Génération créée via API');
+    logger.log('   - Public ID:', createResult.data.id);
+    logger.log('   - Status:', createResult.data.status);
+    logger.log('   - Estimated Time:', createResult.data.estimatedTime, 's');
 
     const generationPublicId = createResult.data.id;
 
     // 5. Test de récupération du statut
-    console.log('\n3️⃣ Test GET /generation/:publicId/status...');
+    logger.log('\n3️⃣ Test GET /generation/:publicId/status...');
     await new Promise(resolve => setTimeout(resolve, 2000)); // Attendre 2s
 
     const statusResponse = await fetch(`${API_BASE_URL}/generation/${generationPublicId}/status`);
@@ -161,14 +163,14 @@ async function testGenerationAPI() {
       error?: string;
     }>;
 
-    console.log('✅ Statut récupéré');
-    console.log('   - Status:', statusResult.data?.status);
+    logger.log('✅ Statut récupéré');
+    logger.log('   - Status:', statusResult.data?.status);
     if (statusResult.data?.progress) {
-      console.log('   - Progress:', statusResult.data.progress, '%');
+      logger.log('   - Progress:', statusResult.data.progress, '%');
     }
 
     // 6. Test de récupération complète
-    console.log('\n4️⃣ Test GET /generation/:publicId...');
+    logger.log('\n4️⃣ Test GET /generation/:publicId...');
     const getResponse = await fetch(`${API_BASE_URL}/generation/${generationPublicId}`);
     
     if (!getResponse.ok) {
@@ -184,22 +186,22 @@ async function testGenerationAPI() {
       result?: any;
     }>;
 
-    console.log('✅ Génération complète récupérée');
-    console.log('   - ID:', getResult.data?.id);
-    console.log('   - Status:', getResult.data?.status);
-    console.log('   - Product:', getResult.data?.product?.name);
+    logger.log('✅ Génération complète récupérée');
+    logger.log('   - ID:', getResult.data?.id);
+    logger.log('   - Status:', getResult.data?.status);
+    logger.log('   - Product:', getResult.data?.product?.name);
 
-    console.log('\n✅ Tous les tests de l\'API Generation sont passés !');
-    console.log('\n📝 Résumé:');
-    console.log(`   - Brand ID: ${brand.id}`);
-    console.log(`   - Product ID: ${product.id}`);
-    console.log(`   - Generation Public ID: ${generationPublicId}`);
-    console.log(`   - API Key ID: ${apiKey.id}`);
+    logger.log('\n✅ Tous les tests de l\'API Generation sont passés !');
+    logger.log('\n📝 Résumé:');
+    logger.log(`   - Brand ID: ${brand.id}`);
+    logger.log(`   - Product ID: ${product.id}`);
+    logger.log(`   - Generation Public ID: ${generationPublicId}`);
+    logger.log(`   - API Key ID: ${apiKey.id}`);
 
   } catch (error: any) {
-    console.error('\n❌ Erreur lors des tests API:', error.message);
+    logger.error('\n❌ Erreur lors des tests API:', error.message);
     if (error.stack) {
-      console.error('Stack:', error.stack);
+      logger.error('Stack:', error.stack);
     }
     throw error;
   } finally {
@@ -221,18 +223,18 @@ async function checkServer() {
 checkServer()
   .then((isUp) => {
     if (!isUp) {
-      console.error(`❌ Le serveur backend n'est pas accessible à ${API_BASE_URL}`);
-      console.error('   Veuillez démarrer le serveur avec: npm run start:dev');
+      logger.error(`❌ Le serveur backend n'est pas accessible à ${API_BASE_URL}`);
+      logger.error('   Veuillez démarrer le serveur avec: npm run start:dev');
       process.exit(1);
     }
     return testGenerationAPI();
   })
   .then(() => {
-    console.log('\n🎉 Tests API terminés avec succès !');
+    logger.log('\n🎉 Tests API terminés avec succès !');
     process.exit(0);
   })
   .catch((error) => {
-    console.error('\n💥 Erreur fatale:', error);
+    logger.error('\n💥 Erreur fatale:', error);
     process.exit(1);
   });
 

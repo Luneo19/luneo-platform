@@ -1,22 +1,20 @@
-import { NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
-import { WebhookService } from '@/lib/services/webhook.service';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { webhookNotificationSchema } from '@/lib/validation/zod-schemas';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
  * POST /api/webhooks/notifications
  * Déclenche l'envoi de notifications vers des webhooks externes
+ * Forward to backend
  */
 export async function POST(request: Request) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
+    const user = await getUserFromRequest(request);
 
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -33,69 +31,35 @@ export async function POST(request: Request) {
       };
     }
 
-    const { event, data, resource_type, resource_id } = validation.data;
-
-    // Récupérer les webhooks configurés pour cet utilisateur
-    const { data: webhooks, error: webhooksError } = await supabase
-      .from('webhooks')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('active', true);
-
-    if (webhooksError) {
-      logger.dbError('fetch user webhooks', webhooksError, { userId: user.id });
-      throw { status: 500, message: 'Erreur lors de la récupération des webhooks' };
-    }
-
-    if (!webhooks || webhooks.length === 0) {
-      return {
-        message: 'Aucun webhook configuré',
-        sent: 0,
-        total: 0,
-      };
-    }
-
-    // Préparer le payload
-    const payload = {
-      event,
-      timestamp: new Date().toISOString(),
-      data,
-      user_id: user.id,
-      resource_type,
-      resource_id,
-    };
-
-    // Convertir les webhooks en format WebhookConfig
-    const webhookConfigs = webhooks.map((wh: any) => ({
-      url: wh.url,
-      secret: wh.secret || undefined,
-      events: wh.events || ['*'],
-      active: wh.active,
-    }));
-
-    // Envoyer vers tous les webhooks
-    const results = await WebhookService.sendToMultipleWebhooks(webhookConfigs, payload);
-
-    const successCount = results.filter((r: any) => r.result.success).length;
-    const failedCount = results.length - successCount;
-
-    logger.info('Webhooks notifications sent', {
-      userId: user.id,
-      event,
-      total: results.length,
-      success: successCount,
-      failed: failedCount,
+    // Forward to backend
+    const backendResponse = await fetch(`${API_URL}/api/v1/webhooks/notifications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: request.headers.get('cookie') || '',
+      },
+      body: JSON.stringify(validation.data),
     });
 
-    return {
-      sent: successCount,
-      failed: failedCount,
-      total: results.length,
-      results: results.map((r: any) => ({
-        url: r.config.url,
-        success: r.result.success,
-        error: r.result.error,
-      })),
-    };
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text();
+      logger.error('Failed to send webhook notifications', {
+        userId: user.id,
+        status: backendResponse.status,
+        error: errorText,
+      });
+      throw { status: 500, message: 'Erreur lors de l\'envoi des notifications webhook' };
+    }
+
+    const result = await backendResponse.json();
+    logger.info('Webhooks notifications sent', {
+      userId: user.id,
+      event: validation.data.event,
+      total: result.total,
+      success: result.sent,
+      failed: result.failed,
+    });
+
+    return result;
   }, '/api/webhooks/notifications', 'POST');
 }

@@ -70,12 +70,15 @@ export class ReportsController {
       throw new NotFoundException('Brand not found');
     }
 
-    // TODO: Implémenter la récupération des rapports
+    const reports = [
+      { id: 'sales', type: 'sales', name: 'Rapport de ventes', description: 'Ventes et designs par période' },
+      { id: 'products', type: 'products', name: 'Rapport produits', description: 'Catalogue et produits' },
+      { id: 'customers', type: 'customers', name: 'Rapport clients', description: 'Données clients (à venir)' },
+      { id: 'custom', type: 'custom', name: 'Rapport personnalisé', description: 'Analytics et KPIs' },
+    ];
     return {
       success: true,
-      data: {
-        reports: [],
-      },
+      data: { reports },
     };
   }
 
@@ -114,27 +117,34 @@ export class ReportsController {
   }
 
   /**
-   * Télécharge un rapport
+   * Télécharge un rapport (retourne les données en JSON ; CSV/PDF à venir)
    */
   @Get(':id')
   @ApiOperation({ summary: 'Télécharger un rapport' })
   async downloadReport(
     @Param('id') id: string,
-    @CurrentBrand() brand: { id: string } | null,
+    @Query('start') startQuery?: string,
+    @Query('end') endQuery?: string,
+    @CurrentBrand() brand?: { id: string } | null,
   ) {
     if (!brand) {
       throw new NotFoundException('Brand not found');
     }
 
-    z.string().uuid().parse(id);
+    const validTypes = ['sales', 'products', 'customers', 'custom', 'analytics'];
+    const reportType = validTypes.includes(id) ? id : 'analytics';
+    const end = endQuery ? new Date(endQuery) : new Date();
+    const start = startQuery ? new Date(startQuery) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // TODO: Implémenter le téléchargement
+    const reportData = await this.reportsService.getReportDataForDownload(
+      brand.id,
+      { start, end },
+      reportType === 'customers' || reportType === 'custom' ? 'analytics' : (reportType as 'sales' | 'products' | 'analytics'),
+    );
+
     return {
       success: true,
-      data: {
-        id,
-        url: `https://example.com/reports/${id}`,
-      },
+      data: { id, type: reportType, period: { start: start.toISOString(), end: end.toISOString() }, report: reportData },
     };
   }
 }

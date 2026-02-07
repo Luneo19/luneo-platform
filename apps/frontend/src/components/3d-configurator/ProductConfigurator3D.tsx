@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Download, Camera, Maximize2, RotateCcw, Palette, Box, Type } from 'lucide-react';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -133,18 +134,11 @@ function ProductConfigurator3D({
       }
 
       // Save to API
-      const response = await fetch('/api/3d-configurations/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(configuration),
+      await api.post('/api/v1/configurator-3d/configurations', configuration);
+      logger.info('Configuration saved', {
+        productId,
+        configurationKeys: Object.keys(configuration),
       });
-
-      if (response.ok) {
-        logger.info('Configuration saved', {
-          productId,
-          configurationKeys: Object.keys(configuration),
-        });
-      }
     } catch (error) {
       logger.error('Error saving configuration', {
         error,

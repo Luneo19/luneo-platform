@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
 import type { TimeRange, FunnelStep, CohortData, Segment, GeographicData, BehavioralEvent } from '../types';
@@ -27,40 +28,19 @@ export function useAdvancedAnalytics(timeRange: TimeRange) {
   const fetchAdvancedData = async () => {
     setIsLoading(true);
     try {
-      // Fetch funnel data
-      const funnelResponse = await fetch(`/api/analytics/funnel?timeRange=${timeRange}`);
-      if (funnelResponse.ok) {
-        const funnel = await funnelResponse.json();
-        setFunnelData(funnel.data || funnel.steps || []);
-      }
-
-      // Fetch cohort data
-      const cohortResponse = await fetch(`/api/analytics/cohorts?timeRange=${timeRange}`);
-      if (cohortResponse.ok) {
-        const cohort = await cohortResponse.json();
-        setCohortData(cohort.data || cohort.cohorts || []);
-      }
-
-      // Fetch segments
-      const segmentsResponse = await fetch('/api/analytics/segments');
-      if (segmentsResponse.ok) {
-        const segs = await segmentsResponse.json();
-        setSegments(segs.data || segs.segments || []);
-      }
-
-      // Fetch geographic data
-      const geoResponse = await fetch(`/api/analytics/geographic?timeRange=${timeRange}`);
-      if (geoResponse.ok) {
-        const geo = await geoResponse.json();
-        setGeographicData(geo.data || geo.countries || []);
-      }
-
-      // Fetch behavioral events
-      const eventsResponse = await fetch(`/api/analytics/events?timeRange=${timeRange}`);
-      if (eventsResponse.ok) {
-        const events = await eventsResponse.json();
-        setBehavioralEvents(events.data || events.events || []);
-      }
+      const params = { timeRange };
+      const [funnel, cohort, segs, geo, events] = await Promise.all([
+        api.get<{ data?: FunnelStep[]; steps?: FunnelStep[] }>('/api/v1/analytics/funnel', { params }).then((d) => d?.data ?? d?.steps ?? []),
+        api.get<{ data?: CohortData[]; cohorts?: CohortData[] }>('/api/v1/analytics/cohorts', { params }).then((d) => d?.data ?? d?.cohorts ?? []),
+        api.get<{ data?: Segment[]; segments?: Segment[] }>('/api/v1/analytics/segments').then((d) => d?.data ?? d?.segments ?? []),
+        api.get<{ data?: GeographicData[]; countries?: GeographicData[] }>('/api/v1/analytics/geographic', { params }).then((d) => d?.data ?? d?.countries ?? []),
+        api.get<{ data?: BehavioralEvent[]; events?: BehavioralEvent[] }>('/api/v1/analytics/events', { params }).then((d) => d?.data ?? d?.events ?? []),
+      ]);
+      setFunnelData(funnel);
+      setCohortData(cohort);
+      setSegments(segs);
+      setGeographicData(geo);
+      setBehavioralEvents(events);
     } catch (error) {
       logger.error('Failed to fetch advanced analytics', { error });
     } finally {

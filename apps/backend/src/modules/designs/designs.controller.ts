@@ -226,4 +226,36 @@ export class DesignsController {
       req.user,
     );
   }
+
+  @Post(':id/share')
+  @ApiOperation({ summary: 'Create share link for a design' })
+  @ApiParam({ name: 'id', description: 'Design ID' })
+  @ApiResponse({ status: 201, description: 'Share link created' })
+  async createShare(
+    @Param('id') id: string,
+    @Body() body: { expires_in_days?: number; password?: string },
+    @Request() req,
+  ) {
+    const result = await this.designsService.share(
+      id,
+      { expiresInDays: body.expires_in_days ?? 30 },
+      req.user,
+    );
+    return {
+      share: {
+        token: result.shareToken,
+        shareUrl: result.shareUrl,
+        expires_at: result.expiresAt,
+        created_at: new Date().toISOString(),
+      },
+    };
+  }
+
+  @Get(':id/share')
+  @ApiOperation({ summary: 'Get share status for a design' })
+  @ApiParam({ name: 'id', description: 'Design ID' })
+  @ApiResponse({ status: 200, description: 'Share status' })
+  async getShareStatus(@Param('id') id: string, @Request() req) {
+    return this.designsService.getShareStatus(id, req.user);
+  }
 }

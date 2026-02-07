@@ -1,19 +1,20 @@
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { onboardingSchema } from '@/lib/validation/zod-schemas';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 /**
  * POST /api/auth/onboarding
  * Complète le processus d'onboarding d'un utilisateur
+ * Forwards to backend API /api/v1/auth/onboarding
  */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -30,104 +31,34 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const { step, data } = validation.data;
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/auth/onboarding`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+      body: JSON.stringify(validation.data),
+    });
 
-    // Vérifier le profil existant
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError && profileError.code !== 'PGRST116') {
-      logger.dbError('fetch profile for onboarding', profileError, { userId: user.id });
-      throw { status: 500, message: 'Erreur lors de la récupération du profil' };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la mise à jour du profil' }));
+      throw {
+        status: response.status,
+        message: errorData.message || 'Erreur lors de la mise à jour du profil',
+        code: 'ONBOARDING_ERROR',
+      };
     }
 
-    // Traiter selon l'étape
-    let updateData: Record<string, any> = {};
-    let onboardingStatus = profile?.onboarding_status || {};
-
-    switch (step) {
-      case 'welcome':
-        onboardingStatus = { ...onboardingStatus, welcome_completed: true };
-        break;
-
-      case 'profile':
-        if (!data.name || !data.company) {
-          throw {
-            status: 400,
-            message: 'Le nom et l\'entreprise sont requis',
-            code: 'VALIDATION_ERROR',
-          };
-        }
-        updateData = {
-          name: data.name,
-          company: data.company,
-          role: data.role,
-          phone: data.phone,
-        };
-        onboardingStatus = { ...onboardingStatus, profile_completed: true };
-        break;
-
-      case 'preferences':
-        updateData = {
-          preferences: data.preferences || {},
-        };
-        onboardingStatus = { ...onboardingStatus, preferences_completed: true };
-        break;
-
-      case 'complete':
-        onboardingStatus = {
-          ...onboardingStatus,
-          completed: true,
-          completed_at: new Date().toISOString(),
-        };
-        break;
-
-      default:
-        throw {
-          status: 400,
-          message: `Étape invalide: ${step}`,
-          code: 'VALIDATION_ERROR',
-        };
-    }
-
-    // Mettre à jour le profil
-    const { data: updatedProfile, error: updateError } = await supabase
-      .from('profiles')
-      .upsert(
-        {
-          id: user.id,
-          email: user.email,
-          ...updateData,
-          onboarding_status: onboardingStatus,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'id' }
-      )
-      .select()
-      .single();
-
-    if (updateError) {
-      logger.dbError('update profile onboarding', updateError, {
-        userId: user.id,
-        step,
-      });
-      throw { status: 500, message: 'Erreur lors de la mise à jour du profil' };
-    }
+    const result = await response.json();
 
     logger.info('Onboarding step completed', {
       userId: user.id,
-      step,
-      completed: onboardingStatus.completed || false,
+      step: validation.data.step,
     });
 
-    return ApiResponseBuilder.success({
-      profile: updatedProfile,
-      onboardingStatus,
-      completed: onboardingStatus.completed || false,
-    });
+    return ApiResponseBuilder.success(result);
   }, '/api/auth/onboarding', 'POST');
 }
 
@@ -137,39 +68,30 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('onboarding_status, name, company')
-      .eq('id', user.id)
-      .single();
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/auth/onboarding`, {
+      method: 'GET',
+      headers: {
+        Cookie: cookieHeader,
+      },
+    });
 
-    if (profileError && profileError.code !== 'PGRST116') {
-      logger.dbError('fetch onboarding status', profileError, { userId: user.id });
-      throw { status: 500, message: 'Erreur lors de la récupération du statut' };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la récupération du statut' }));
+      throw {
+        status: response.status,
+        message: errorData.message || 'Erreur lors de la récupération du statut',
+        code: 'ONBOARDING_ERROR',
+      };
     }
 
-    const onboardingStatus = profile?.onboarding_status || {};
-    const isCompleted = onboardingStatus.completed || false;
-
-    return ApiResponseBuilder.success({
-      onboardingStatus,
-      completed: isCompleted,
-      currentStep: isCompleted
-        ? 'complete'
-        : onboardingStatus.preferences_completed
-          ? 'complete'
-          : onboardingStatus.profile_completed
-            ? 'preferences'
-            : onboardingStatus.welcome_completed
-              ? 'profile'
-              : 'welcome',
-    });
+    const result = await response.json();
+    return ApiResponseBuilder.success(result);
   }, '/api/auth/onboarding', 'GET');
 }

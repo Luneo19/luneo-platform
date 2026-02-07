@@ -6,8 +6,7 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
-
-import { db as prismaDb } from '@/lib/db';
+import { api, endpoints } from '@/lib/api/client';
 
 export const designRouter = router({
   listVersions: protectedProcedure
@@ -15,12 +14,7 @@ export const designRouter = router({
     .query(async ({ ctx, input }) => {
       const { user } = ctx;
 
-      // Vérifier que le design appartient à l'utilisateur
-      const design = await prismaDb.design.findUnique({
-        where: { id: input.designId },
-        select: { userId: true },
-      });
-
+      const design = await endpoints.designs.get(input.designId).catch(() => null);
       if (!design) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -28,7 +22,8 @@ export const designRouter = router({
         });
       }
 
-      if (design.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
+      const d = design as any;
+      if (d.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Vous n\'avez pas accès à ce design',
@@ -36,40 +31,19 @@ export const designRouter = router({
       }
 
       try {
-        // Récupérer les versions depuis les designs liés (via parentId ou versioning)
-        const versions = await prismaDb.design.findMany({
-          where: {
-            OR: [
-              { id: input.designId },
-              { parentId: input.designId },
-            ],
-          },
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            name: true,
-            previewUrl: true,
-            renderUrl: true,
-            highResUrl: true,
-            createdAt: true,
-            updatedAt: true,
-            metadata: true,
-          },
-        });
+        const versions = await api.get<any[]>(`/api/v1/designs/${input.designId}/versions`).catch(() => []);
 
-        const formattedVersions = versions.map((version: any, index: number) => ({
+        const formattedVersions = (Array.isArray(versions) ? versions : []).map((version: any, index: number) => ({
           id: version.id,
           version: index + 1,
           name: version.name || `Version ${index + 1}`,
           thumbnail: version.previewUrl || version.renderUrl || '/placeholder-design.jpg',
-          createdAt: version.createdAt.toISOString(),
-          updatedAt: version.updatedAt.toISOString(),
-          metadata: version.metadata as any,
+          createdAt: version.createdAt ? (version.createdAt instanceof Date ? version.createdAt.toISOString() : String(version.createdAt)) : '',
+          updatedAt: version.updatedAt ? (version.updatedAt instanceof Date ? version.updatedAt.toISOString() : String(version.updatedAt)) : '',
+          metadata: version.metadata ?? {},
         }));
 
-        return {
-          versions: formattedVersions,
-        };
+        return { versions: formattedVersions };
       } catch (error: any) {
         logger.error('Error listing design versions', { error, input, userId: user.id });
         throw new TRPCError({
@@ -90,11 +64,7 @@ export const designRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { user } = ctx;
 
-      const design = await prismaDb.design.findUnique({
-        where: { id: input.designId },
-        select: { userId: true, productId: true, brandId: true },
-      });
-
+      const design = await endpoints.designs.get(input.designId).catch(() => null);
       if (!design) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -102,7 +72,8 @@ export const designRouter = router({
         });
       }
 
-      if (design.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
+      const d = design as any;
+      if (d.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Vous n\'avez pas accès à ce design',
@@ -110,22 +81,16 @@ export const designRouter = router({
       }
 
       try {
-        const version = await prismaDb.design.create({
-          data: {
-            name: input.name || `Version ${new Date().toISOString()}`,
-            userId: user.id,
-            productId: design.productId,
-            brandId: design.brandId,
-            parentId: input.designId,
-            metadata: input.metadata as any,
-          },
+        const version = await api.post<any>(`/api/v1/designs/${input.designId}/versions`, {
+          name: input.name || `Version ${new Date().toISOString()}`,
+          metadata: input.metadata,
         });
 
         logger.info('Design version created', { versionId: version.id, designId: input.designId });
         return {
           id: version.id,
           name: version.name,
-          createdAt: version.createdAt.toISOString(),
+          createdAt: version.createdAt ? (version.createdAt instanceof Date ? version.createdAt.toISOString() : String(version.createdAt)) : new Date().toISOString(),
         };
       } catch (error: any) {
         logger.error('Error creating design version', { error, input, userId: user.id });

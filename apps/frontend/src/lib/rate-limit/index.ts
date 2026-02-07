@@ -6,6 +6,7 @@
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { logger } from '@/lib/logger';
 
 // Initialize Redis client (Upstash)
 const redis = new Redis({
@@ -111,7 +112,7 @@ export async function checkRateLimit(
 
   // If Redis is not configured in production, log warning but allow
   if (!process.env.UPSTASH_REDIS_REST_URL) {
-    console.warn('Rate limiting disabled: UPSTASH_REDIS_REST_URL not configured');
+    logger.warn('Rate limiting disabled: UPSTASH_REDIS_REST_URL not configured');
     return {
       success: true,
       remaining: config.limit,

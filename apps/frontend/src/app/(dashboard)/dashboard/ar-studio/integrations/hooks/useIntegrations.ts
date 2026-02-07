@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { Integration, IntegrationCategory, SyncLog } from '../types';
 
@@ -20,15 +21,8 @@ export function useIntegrations() {
 
   const fetchIntegrations = async () => {
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/ar-studio/integrations');
-      if (response.ok) {
-        const data = await response.json();
-        setIntegrations(data.data || data.integrations || []);
-      } else {
-        // Fallback to empty array
-        setIntegrations([]);
-      }
+      const data = await api.get<{ data?: Integration[]; integrations?: Integration[] }>('/api/v1/ar-studio/integrations');
+      setIntegrations(data?.data ?? data?.integrations ?? []);
     } catch (error) {
       logger.error('Failed to fetch integrations', { error });
       setIntegrations([]);
@@ -39,11 +33,8 @@ export function useIntegrations() {
 
   const fetchSyncLogs = async () => {
     try {
-      const response = await fetch('/api/ar-studio/integrations/sync-logs');
-      if (response.ok) {
-        const data = await response.json();
-        setSyncLogs(data.data || data.logs || []);
-      }
+      const data = await api.get<{ data?: SyncLog[]; logs?: SyncLog[] }>('/api/v1/ar-studio/integrations/sync-logs');
+      setSyncLogs(data?.data ?? data?.logs ?? []);
     } catch (error) {
       logger.error('Failed to fetch sync logs', { error });
     }
@@ -77,19 +68,11 @@ export function useIntegrations() {
 
   const toggleIntegration = async (integrationId: string, enabled: boolean) => {
     try {
-      const response = await fetch(`/api/ar-studio/integrations/${integrationId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled }),
-      });
-
-      if (response.ok) {
-        setIntegrations((prev) =>
-          prev.map((i) => (i.id === integrationId ? { ...i, enabled } : i))
-        );
-        return { success: true };
-      }
-      return { success: false, error: 'Failed to update integration' };
+      await api.patch(`/api/v1/ar-studio/integrations/${integrationId}`, { enabled });
+      setIntegrations((prev) =>
+        prev.map((i) => (i.id === integrationId ? { ...i, enabled } : i))
+      );
+      return { success: true };
     } catch (error) {
       logger.error('Failed to toggle integration', { error, integrationId });
       return { success: false, error: 'Network error' };
@@ -98,15 +81,8 @@ export function useIntegrations() {
 
   const testConnection = async (integrationId: string) => {
     try {
-      const response = await fetch(`/api/ar-studio/integrations/${integrationId}/test`, {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return { success: true, health: data.health };
-      }
-      return { success: false, error: 'Connection test failed' };
+      const data = await api.post<{ health?: unknown }>(`/api/v1/ar-studio/integrations/${integrationId}/test`);
+      return { success: true, health: data?.health };
     } catch (error) {
       logger.error('Failed to test connection', { error, integrationId });
       return { success: false, error: 'Network error' };

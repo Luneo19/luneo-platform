@@ -18,24 +18,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+          cache: 'pnpm'
 
       # Backend Security Scan
-      - name: Run npm audit (Backend)
+      - name: Run pnpm audit (Backend)
         run: |
           cd apps/backend
           pnpm audit --audit-level=moderate || true
         continue-on-error: true
 
-      - name: Run npm audit (Frontend)
+      - name: Run pnpm audit (Frontend)
         run: |
           cd apps/frontend
           pnpm audit --audit-level=moderate || true

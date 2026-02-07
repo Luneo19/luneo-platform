@@ -201,8 +201,9 @@ export class AssetFileService {
   async remove(id: string, organizationId: string) {
     const file = await this.findOne(id, organizationId);
 
-    // TODO: Supprimer du storage (Cloudinary)
-    // await this.storageService.deleteFile(file.storageKey);
+    if (file?.storageKey) {
+      await this.storageService.deleteFile(file.storageKey);
+    }
 
     await this.prisma.assetFile.delete({
       where: { id },

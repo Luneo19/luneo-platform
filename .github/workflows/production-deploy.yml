@@ -39,16 +39,16 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-
-      - name: 📦 Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -58,7 +58,7 @@ jobs:
           cd apps/frontend
           pnpm run lint:check || true
           cd ../backend
-          npm run lint || true
+          pnpm run lint || true
 
       - name: ✅ Type check
         run: |
@@ -83,16 +83,16 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-
-      - name: 📦 Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -100,12 +100,12 @@ jobs:
       - name: 🔧 Generate Prisma Client
         run: |
           cd apps/backend
-          npx prisma generate
+          pnpm exec prisma generate
 
       - name: 🔨 Build Backend
         run: |
           cd apps/backend
-          npm run build
+          pnpm run build
 
       - name: 🔨 Build Frontend
         run: |

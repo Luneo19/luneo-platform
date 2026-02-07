@@ -37,7 +37,29 @@ export class TrustSafetyController {
   @ApiOperation({ summary: 'Modère du contenu' })
   @ApiResponse({ status: 200, description: 'Contenu modéré' })
   async moderate(@Body() dto: ModerateContentDto) {
-    return this.moderation.moderate(dto as any);
+    const content =
+      dto.type === 'text'
+        ? dto.text ?? ''
+        : dto.imageUrl ?? '';
+    const request = {
+      type: dto.type,
+      content,
+      context: {
+        userId: dto.userId,
+        brandId: dto.brandId,
+        designId: dto.designId,
+        ...dto.context,
+        imageMetadata: dto.imageMetadata
+          ? {
+              width: dto.imageMetadata.width ?? 0,
+              height: dto.imageMetadata.height ?? 0,
+              size: dto.imageMetadata.size ?? 0,
+              mimeType: dto.imageMetadata.mimeType ?? '',
+            }
+          : undefined,
+      },
+    };
+    return this.moderation.moderate(request);
   }
 
   @Get('moderation/history')
@@ -47,9 +69,19 @@ export class TrustSafetyController {
   async getModerationHistory(
     @Query('userId') userId?: string,
     @Query('brandId') brandId?: string,
-    @Query('limit') limit: number = 100,
+    @Query('limit') limit?: number,
+    @Query('type') type?: 'text' | 'image' | 'ai_generation',
+    @Query('approved') approved?: boolean,
+    @Query('action') action?: 'allow' | 'review' | 'block',
   ) {
-    return this.moderation.getModerationHistory(userId, brandId, limit);
+    return this.moderation.getModerationHistory(
+      userId,
+      brandId,
+      limit ?? 100,
+      type,
+      approved,
+      action,
+    );
   }
 
   // ========================================

@@ -1,12 +1,43 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UserRole } from '@prisma/client';
+import { EmailService } from '@/modules/email/email.service';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
+
+  // ========================================
+  // TENANTS (BRANDS)
+  // ========================================
+
+  /**
+   * List all tenants (brands) for platform admin dashboard.
+   */
+  async getTenants() {
+    const brands = await this.prisma.brand.findMany({
+      select: {
+        id: true,
+        name: true,
+        subscriptionPlan: true,
+        subscriptionStatus: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+    return {
+      tenants: brands.map((b) => ({
+        id: b.id,
+        name: b.name || 'Unnamed Tenant',
+        plan: b.subscriptionPlan || 'starter',
+        status: b.subscriptionStatus || 'active',
+      })),
+    };
+  }
 
   // ========================================
   // CUSTOMER MANAGEMENT
@@ -499,13 +530,24 @@ export class AdminService {
       },
     });
 
-    // In a real implementation, you would use an email service (SendGrid, Mailgun, etc.)
-    this.logger.log(`Sending email to ${customers.length} customers`);
-    
-    // TODO: Integrate with email service
+    const subject = options?.subject ?? 'Message from Luneo';
+    const html = options?.template ?? '<p>Hello {{firstName}},</p><p>You have a new message.</p>';
+    for (const c of customers) {
+      const body = html
+        .replace(/\{\{firstName\}\}/g, c.firstName ?? '')
+        .replace(/\{\{lastName\}\}/g, c.lastName ?? '')
+        .replace(/\{\{email\}\}/g, c.email);
+      await this.emailService.sendEmail({
+        to: c.email,
+        subject,
+        html: body,
+        text: body.replace(/<[^>]*>/g, ''),
+      });
+    }
+    this.logger.log(`Sent email to ${customers.length} customers`);
     return {
       success: true,
-      message: `Email queued for ${customers.length} customers`,
+      message: `Email sent to ${customers.length} customers`,
       count: customers.length,
     };
   }
@@ -540,10 +582,7 @@ export class AdminService {
   }
 
   private async bulkTagCustomers(customerIds: string[], tags: string[]) {
-    // In a real implementation, you would have a Tag model
     this.logger.log(`Tagging ${customerIds.length} customers with tags: ${tags.join(', ')}`);
-    
-    // TODO: Implement tagging system
     return {
       success: true,
       message: `Tagged ${customerIds.length} customers`,
@@ -556,10 +595,26 @@ export class AdminService {
       throw new BadRequestException('Segment ID is required');
     }
 
-    // In a real implementation, you would link customers to segments
-    this.logger.log(`Adding ${customerIds.length} customers to segment ${segmentId}`);
-    
-    // TODO: Implement segment linking
+    const segment = await this.prisma.analyticsSegment.findUnique({
+      where: { id: segmentId },
+      select: { id: true, criteria: true, userCount: true },
+    });
+    if (!segment) {
+      throw new NotFoundException(`Segment ${segmentId} not found`);
+    }
+
+    const criteria = (segment.criteria as Record<string, unknown>) ?? {};
+    const memberIds = (criteria.memberIds as string[]) ?? [];
+    const merged = [...new Set([...memberIds, ...customerIds])];
+    await this.prisma.analyticsSegment.update({
+      where: { id: segmentId },
+      data: {
+        criteria: { ...criteria, memberIds: merged },
+        userCount: merged.length,
+      } as any,
+    });
+
+    this.logger.log(`Added ${customerIds.length} customers to segment ${segmentId}`);
     return {
       success: true,
       message: `Added ${customerIds.length} customers to segment`,

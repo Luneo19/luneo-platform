@@ -8,6 +8,7 @@
  * - Database query monitoring
  */
 
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 // ========================================
@@ -135,16 +136,10 @@ export class PerformanceMonitorService {
   private trackWebVital(metric: WebVitals): void {
     logger.info('Web Vital', metric);
 
-    // Send to analytics service (async, non-blocking)
-    if (typeof window !== 'undefined') {
-      fetch('/api/analytics/web-vitals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(metric),
-      }).catch((error) => {
-        logger.error('Error sending web vital to analytics', { error, metric });
-      });
-    }
+    if (typeof window === 'undefined') return;
+    api.post('/api/v1/analytics/web-vitals', metric).catch(() => {
+      // Silent failure for background telemetry
+    });
   }
 
   // ========================================
@@ -209,15 +204,9 @@ export class PerformanceMonitorService {
         });
       }
 
-      // Also send to our API for aggregation
+      // Also send to our API for aggregation (silent failure)
       if (error.severity === 'critical' || error.severity === 'high') {
-        fetch('/api/monitoring/errors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(error),
-        }).catch((err) => {
-          logger.error('Error sending error to monitoring API', { err, error });
-        });
+        api.post('/api/v1/monitoring/errors', error).catch(() => {});
       }
     }
   }
@@ -287,17 +276,10 @@ export class PerformanceMonitorService {
       logger.warn('Slow API request', metric);
     }
 
-    // Send to analytics service (async, non-blocking, batched)
+    // Send to analytics service (async, non-blocking, batched); silent failure
     if (typeof window !== 'undefined' && this.metrics.length % 10 === 0) {
-      // Batch send every 10 metrics
       const recentMetrics = this.metrics.slice(-10);
-      fetch('/api/analytics/api-metrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metrics: recentMetrics }),
-      }).catch((error) => {
-        logger.error('Error sending API metrics to analytics', { error });
-      });
+      api.post('/api/v1/analytics/api-metrics', { metrics: recentMetrics }).catch(() => {});
     }
   }
 

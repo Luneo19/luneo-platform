@@ -27,9 +27,52 @@ export interface SLOResult {
   timestamp: Date;
 }
 
+/** Formal SLO/SLI target definition for compliance reporting */
+export interface FormalSLOTarget {
+  target: number;
+  metric: string;
+  window: string;
+}
+
+export interface SLOStatusResponse {
+  slos: Record<string, FormalSLOTarget>;
+  current: Record<string, number>;
+  compliant: boolean;
+  lastUpdated: string;
+}
+
 @Injectable()
 export class SLOService {
   private readonly logger = new Logger(SLOService.name);
+
+  /** Formal SLO targets for compliance (availability %, latency ms, error %) */
+  private readonly FORMAL_SLO_TARGETS: Record<string, FormalSLOTarget> = {
+    availability: {
+      target: 99.9,
+      metric: 'successful_requests / total_requests * 100',
+      window: '30d',
+    },
+    latency_p95: {
+      target: 200,
+      metric: 'response_time_p95_ms',
+      window: '30d',
+    },
+    latency_p99: {
+      target: 500,
+      metric: 'response_time_p99_ms',
+      window: '30d',
+    },
+    error_rate: {
+      target: 1,
+      metric: 'error_requests / total_requests * 100',
+      window: '24h',
+    },
+    page_load_p95: {
+      target: 3000,
+      metric: 'page_load_time_p95_ms',
+      window: '7d',
+    },
+  };
 
   // Définition des SLO par service
   private readonly SLO_TARGETS: SLOTarget[] = [
@@ -131,12 +174,23 @@ export class SLOService {
   }
 
   /**
-   * Récupère la métrique actuelle
+   * Récupère la métrique actuelle (Prometheus si configuré, sinon MonitoringMetric ou fallback)
    */
   private async getCurrentMetric(target: SLOTarget): Promise<number> {
-    // TODO: Récupérer depuis Prometheus ou métriques stockées
-    // Pour l'instant, simulation basée sur des données factices
-    
+    const metricKey = `${target.service}_${target.metric}_${target.window}`;
+    const stored = await this.prisma.monitoringMetric.findMany({
+      where: {
+        service: target.service,
+        metric: metricKey,
+        timestamp: { gte: this.getWindowStart(target.window) },
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 1,
+    });
+    if (stored.length > 0 && stored[0].value != null) {
+      return stored[0].value;
+    }
+
     switch (target.metric) {
       case 'latency':
         return this.getLatencyMetric(target.service, target.window);
@@ -151,6 +205,16 @@ export class SLOService {
     }
   }
 
+  private getWindowStart(window: string): Date {
+    const now = new Date();
+    const d = new Date(now);
+    if (window === '1h') d.setHours(d.getHours() - 1);
+    else if (window === '24h') d.setDate(d.getDate() - 1);
+    else if (window === '7d') d.setDate(d.getDate() - 7);
+    else if (window === '30d') d.setDate(d.getDate() - 30);
+    return d;
+  }
+
   /**
    * Récupère la latence (p95)
    */
@@ -159,7 +223,7 @@ export class SLOService {
       try {
         return await this.prometheus.queryLatencyP95(service, window);
       } catch (error) {
-        this.logger.warn(`Failed to query Prometheus for latency: ${error.message}`);
+        this.logger.warn(`Failed to query Prometheus for latency: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     
@@ -181,7 +245,7 @@ export class SLOService {
       try {
         return await this.prometheus.queryErrorRate(service, window);
       } catch (error) {
-        this.logger.warn(`Failed to query Prometheus for error rate: ${error.message}`);
+        this.logger.warn(`Failed to query Prometheus for error rate: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     
@@ -203,7 +267,7 @@ export class SLOService {
       try {
         return await this.prometheus.queryAvailability(service, window);
       } catch (error) {
-        this.logger.warn(`Failed to query Prometheus for availability: ${error.message}`);
+        this.logger.warn(`Failed to query Prometheus for availability: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     
@@ -219,7 +283,7 @@ export class SLOService {
       try {
         return await this.prometheus.queryThroughput(service, window);
       } catch (error) {
-        this.logger.warn(`Failed to query Prometheus for throughput: ${error.message}`);
+        this.logger.warn(`Failed to query Prometheus for throughput: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     
@@ -271,12 +335,25 @@ export class SLOService {
   }
 
   /**
-   * Sauvegarde les résultats SLO
+   * Sauvegarde les résultats SLO (dans MonitoringMetric; SLARecord est dédié work orders/artisans)
    */
   async saveSLOResults(results: SLOResult[]): Promise<void> {
-    // TODO: Sauvegarder dans une table SLORecord
-    // Pour l'instant, log
+    const now = new Date();
     for (const result of results) {
+      await this.prisma.monitoringMetric.create({
+        data: {
+          service: result.service,
+          metric: `slo_${result.metric}`,
+          value: result.current,
+          unit: result.metric === 'latency' ? 'ms' : result.metric === 'availability' ? '%' : null,
+          labels: {
+            target: result.target,
+            status: result.status,
+            window: result.window,
+          } as object,
+          timestamp: now,
+        },
+      });
       if (result.status === 'breach') {
         this.logger.error(
           `SLO BREACH: ${result.service}.${result.metric} = ${result.current} (target: ${result.target})`,
@@ -290,11 +367,110 @@ export class SLOService {
   }
 
   /**
-   * Récupère l'historique SLO
+   * Récupère l'historique SLO depuis MonitoringMetric (métriques slo_*)
    */
   async getSLOHistory(service: string, metric: string, days: number = 7): Promise<SLOResult[]> {
-    // TODO: Récupérer depuis la table SLORecord
-    return [];
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const rows = await this.prisma.monitoringMetric.findMany({
+      where: {
+        service,
+        metric: `slo_${metric}`,
+        timestamp: { gte: since },
+      },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    return rows.map((r) => {
+      const labels = (r.labels as { target?: number; status?: SLOResult['status']; window?: string }) || {};
+      return {
+        service: r.service,
+        metric,
+        target: labels.target ?? 0,
+        current: r.value,
+        status: (labels.status as SLOResult['status']) ?? 'met',
+        window: labels.window ?? '24h',
+        timestamp: r.timestamp,
+      };
+    });
+  }
+
+  /**
+   * Calculate current metrics for formal SLOs (for status endpoint).
+   */
+  async calculateCurrentMetrics(): Promise<Record<string, number>> {
+    const [availability, latencyP95, latencyP99, errorRate] = await Promise.all([
+      this.getAvailabilityMetric('api', '30d'),
+      this.getLatencyMetric('api', '30d'),
+      this.getLatencyP99Metric('api', '30d'),
+      this.getErrorRateMetric('api', '24h'),
+    ]);
+    const pageLoadP95 = await this.getPageLoadP95Metric('7d');
+    return {
+      availability,
+      latency_p95: latencyP95,
+      latency_p99: latencyP99,
+      error_rate: errorRate,
+      page_load_p95: pageLoadP95,
+    };
+  }
+
+  private async getLatencyP99Metric(service: string, window: string): Promise<number> {
+    if (this.prometheus) {
+      try {
+        return await this.prometheus.queryLatencyP99(service, window);
+      } catch (error) {
+        this.logger.warn(`Failed to query Prometheus for latency P99: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    const p95 = await this.getLatencyMetric(service, window);
+    return Math.round(p95 * 1.3);
+  }
+
+  private async getPageLoadP95Metric(window: string): Promise<number> {
+    const stored = await this.prisma.monitoringMetric.findFirst({
+      where: {
+        service: 'frontend',
+        metric: 'page_load_time_p95_ms',
+        timestamp: { gte: this.getWindowStart(window) },
+      },
+      orderBy: { timestamp: 'desc' },
+    });
+    if (stored?.value != null) return stored.value;
+    return 0;
+  }
+
+  /**
+   * Check if all formal SLOs are currently met.
+   */
+  async checkCompliance(): Promise<boolean> {
+    const current = await this.calculateCurrentMetrics();
+    for (const [key, def] of Object.entries(this.FORMAL_SLO_TARGETS)) {
+      const value = current[key] ?? 0;
+      if (key === 'availability') {
+        if (value < def.target) return false;
+      } else {
+        if (value > def.target) return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Get SLO status for the compliance endpoint (targets, current values, compliant, lastUpdated).
+   */
+  async getSLOStatus(): Promise<SLOStatusResponse> {
+    const [current, compliant] = await Promise.all([
+      this.calculateCurrentMetrics(),
+      this.checkCompliance(),
+    ]);
+    return {
+      slos: { ...this.FORMAL_SLO_TARGETS },
+      current,
+      compliant,
+      lastUpdated: new Date().toISOString(),
+    };
   }
 }
 

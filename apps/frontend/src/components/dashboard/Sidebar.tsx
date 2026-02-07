@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
@@ -40,9 +40,39 @@ import {
   Edit,
   Video,
   Shield,
-  Webhook
+  Webhook,
+  Gem,
+  Glasses,
+  Shirt,
+  Printer,
+  Sofa,
+  Sparkles,
+  Gift,
+  Trophy,
+  LayoutGrid
 } from 'lucide-react';
 import { useFeatureFlag } from '@/contexts/FeatureFlagContext';
+import { useIndustryStore, type IndustryModuleConfig } from '@/store/industry.store';
+import { useDashboardStore } from '@/store/dashboard.store';
+
+// Map industry icon names to Lucide components
+const INDUSTRY_ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  gem: Gem, glasses: Glasses, shirt: Shirt, printer: Printer,
+  sofa: Sofa, sparkles: Sparkles, gift: Gift, trophy: Trophy,
+  'layout-grid': LayoutGrid,
+};
+
+// Map module slugs to their navigation config
+const MODULE_NAV_MAP: Record<string, { section: string; itemName: string }> = {
+  'ai-studio': { section: 'Création', itemName: 'AI Studio' },
+  'ar-studio': { section: 'Création', itemName: 'AR Studio' },
+  'editor-2d': { section: 'Création', itemName: 'Éditeur' },
+  'configurator-3d': { section: 'Création', itemName: 'Configurateur 3D' },
+  'products': { section: 'Gestion', itemName: 'Produits' },
+  'orders': { section: 'Gestion', itemName: 'Commandes' },
+  'analytics': { section: 'Gestion', itemName: 'Analytics' },
+  'marketplace': { section: 'Gestion', itemName: 'Seller' },
+};
 
 interface NavItem {
   name: string;
@@ -51,6 +81,9 @@ interface NavItem {
   description: string;
   badge?: string;
   children?: NavItem[];
+  moduleSlug?: string;
+  priority?: 'PRIMARY' | 'SECONDARY' | 'AVAILABLE' | 'HIDDEN';
+  sortOrder?: number;
 }
 
 const navigationSections: Array<{ title: string; items: NavItem[] }> = [
@@ -69,6 +102,7 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         icon: Palette,
         description: 'Création avec IA',
         badge: 'Pro',
+        moduleSlug: 'ai-studio',
         children: [
           { name: 'Générateur 2D', href: '/dashboard/ai-studio/2d', icon: Palette, description: 'Designs 2D' },
           { name: 'Modèles 3D', href: '/dashboard/ai-studio/3d', icon: Box, description: 'Objets 3D' },
@@ -82,6 +116,7 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         icon: Globe,
         description: 'Réalité augmentée',
         badge: 'Enterprise',
+        moduleSlug: 'ar-studio',
         children: [
           { name: 'Prévisualisation AR', href: '/dashboard/ar-studio/preview', icon: Eye, description: 'Voir en AR' },
           { name: 'Collaboration AR', href: '/dashboard/ar-studio/collaboration', icon: Users, description: 'Travail d\'équipe' },
@@ -94,14 +129,16 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         href: '/dashboard/editor',
         icon: Edit,
         description: 'Éditeur de design',
-        badge: 'Pro'
+        badge: 'Pro',
+        moduleSlug: 'editor-2d',
       },
       {
         name: 'Configurateur 3D',
         href: '/dashboard/configurator-3d',
         icon: Box,
         description: 'Personnalisation 3D',
-        badge: 'Pro'
+        badge: 'Pro',
+        moduleSlug: 'configurator-3d',
       },
       {
         name: 'Bibliothèque',
@@ -123,19 +160,22 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         name: 'Produits',
         href: '/dashboard/products',
         icon: Package,
-        description: 'Catalogue produits'
+        description: 'Catalogue produits',
+        moduleSlug: 'products',
       },
       {
         name: 'Commandes',
         href: '/dashboard/orders',
         icon: FileText,
-        description: 'Gestion des commandes'
+        description: 'Gestion des commandes',
+        moduleSlug: 'orders',
       },
       {
         name: 'Analytics',
         href: '/dashboard/analytics',
         icon: BarChart3,
         description: 'Métriques et statistiques',
+        moduleSlug: 'analytics',
         children: [
           { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, description: 'Métriques principales' },
           { name: 'Analytics Avancées', href: '/dashboard/analytics-advanced', icon: TrendingUp, description: 'Analyses approfondies' },
@@ -153,7 +193,8 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         href: '/dashboard/seller',
         icon: Store,
         description: 'Dashboard vendeur',
-        badge: 'Pro'
+        badge: 'Pro',
+        moduleSlug: 'marketplace',
       },
       {
         name: 'Monitoring temps réel',
@@ -241,11 +282,104 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
   }
 ];
 
+/**
+ * Hook that sorts and filters navigation items based on industry module config.
+ * PRIMARY modules are shown first, then SECONDARY, then AVAILABLE.
+ * HIDDEN modules are filtered out.
+ */
+function useAdaptiveSections() {
+  const { industryConfig, currentIndustry } = useIndustryStore();
+  const { userPreferences } = useDashboardStore();
+
+  return useMemo(() => {
+    if (!industryConfig?.modules || industryConfig.modules.length === 0) {
+      // No industry config — return default navigation
+      return navigationSections;
+    }
+
+    // Create a map of moduleSlug -> config for quick lookup
+    const moduleMap = new Map<string, IndustryModuleConfig>();
+    for (const m of industryConfig.modules) {
+      moduleMap.set(m.moduleSlug, m);
+    }
+
+    // Apply user sidebar order override if available
+    const userSidebarOrder = userPreferences?.sidebarOrder ?? null;
+
+    return navigationSections.map((section) => {
+      const sortedItems = section.items
+        .map((item) => {
+          if (!item.moduleSlug) return { ...item, priority: 'PRIMARY' as const, sortOrder: -1 };
+          const config = moduleMap.get(item.moduleSlug);
+          if (!config) return { ...item, priority: 'AVAILABLE' as const, sortOrder: 999 };
+          return {
+            ...item,
+            priority: config.priority,
+            sortOrder: config.sortOrder,
+          };
+        })
+        .filter((item) => item.priority !== 'HIDDEN')
+        .sort((a, b) => {
+          // User override takes top priority
+          if (userSidebarOrder) {
+            const aIdx = userSidebarOrder.indexOf(a.moduleSlug ?? a.name);
+            const bIdx = userSidebarOrder.indexOf(b.moduleSlug ?? b.name);
+            if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+            if (aIdx !== -1) return -1;
+            if (bIdx !== -1) return 1;
+          }
+          // Then by priority: PRIMARY < SECONDARY < AVAILABLE
+          const priorityOrder = { PRIMARY: 0, SECONDARY: 1, AVAILABLE: 2, HIDDEN: 3 };
+          const pA = priorityOrder[a.priority ?? 'AVAILABLE'];
+          const pB = priorityOrder[b.priority ?? 'AVAILABLE'];
+          if (pA !== pB) return pA - pB;
+          return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+        });
+
+      return { ...section, items: sortedItems };
+    });
+  }, [industryConfig, userPreferences]);
+}
+
+function SidebarIndustryBadge({ isCollapsed }: { isCollapsed: boolean }) {
+  const { currentIndustry } = useIndustryStore();
+
+  if (!currentIndustry) return null;
+
+  const IconComponent = INDUSTRY_ICON_MAP[currentIndustry.icon] || LayoutGrid;
+
+  if (isCollapsed) {
+    return (
+      <div className="flex justify-center py-2">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: `${currentIndustry.accentColor}25` }}
+        >
+          <IconComponent className="w-4 h-4" style={{ color: currentIndustry.accentColor }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mx-4 mb-2 px-3 py-2 rounded-lg flex items-center gap-2"
+      style={{ backgroundColor: `${currentIndustry.accentColor}12` }}
+    >
+      <IconComponent className="w-4 h-4" style={{ color: currentIndustry.accentColor }} />
+      <span className="text-xs font-medium" style={{ color: currentIndustry.accentColor }}>
+        {currentIndustry.labelFr}
+      </span>
+    </div>
+  );
+}
+
 function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
   const monitoringEnabled = useFeatureFlag('realtime_monitoring', true);
+  const adaptiveSections = useAdaptiveSections();
 
   const toggleExpanded = useCallback((itemName: string) => {
     setExpandedItems(prev => 
@@ -320,9 +454,12 @@ function Sidebar() {
         </div>
       )}
 
+      {/* Industry Badge */}
+      <SidebarIndustryBadge isCollapsed={isCollapsed} />
+
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-4">
-        {navigationSections.map((section) => (
+        {adaptiveSections.map((section) => (
           <div key={section.title} className="mb-6">
             {!isCollapsed && (
               <h3 className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">

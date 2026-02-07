@@ -7,6 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 import type {
   Template,
   TemplateCategory,
@@ -64,24 +65,28 @@ export function useMarketplace() {
       if (filters.freeOnly) params.set('freeOnly', 'true');
       if (filters.creatorId) params.set('creatorId', filters.creatorId);
 
-      const response = await fetch(`/api/marketplace/templates?${params}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch templates');
-      }
+      const data = await api.get<{ items?: Template[]; total?: number; page?: number; hasMore?: boolean }>(
+        '/api/v1/marketplace/templates',
+        { params: Object.fromEntries(params) }
+      );
 
-      const data = await response.json();
-
+      const items = data?.items ?? [];
       setState((prev) => ({
         ...prev,
-        templates: page === 1 ? data.items : [...prev.templates, ...data.items],
-        total: data.total,
-        page: data.page,
-        hasMore: data.hasMore,
+        templates: page === 1 ? items : [...prev.templates, ...items],
+        total: data?.total ?? 0,
+        page: data?.page ?? page,
+        hasMore: data?.hasMore ?? false,
         isLoading: false,
       }));
 
-      return data;
+      return {
+        items,
+        total: data?.total ?? 0,
+        page: data?.page ?? page,
+        pageSize,
+        hasMore: data?.hasMore ?? false,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       setState((prev) => ({ ...prev, isLoading: false, error: message }));
@@ -95,13 +100,7 @@ export function useMarketplace() {
    */
   const getTemplate = useCallback(async (idOrSlug: string): Promise<Template | null> => {
     try {
-      const response = await fetch(`/api/marketplace/templates/${idOrSlug}`);
-      
-      if (!response.ok) {
-        throw new Error('Template not found');
-      }
-
-      return await response.json();
+      return await api.get<Template>(`/api/v1/marketplace/templates/${idOrSlug}`);
     } catch (error) {
       logger.error('Failed to get template', { error, idOrSlug });
       return null;
@@ -113,14 +112,10 @@ export function useMarketplace() {
    */
   const getFeaturedTemplates = useCallback(async (limit: number = 8): Promise<Template[]> => {
     try {
-      const response = await fetch(`/api/marketplace/templates/featured?limit=${limit}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch featured templates');
-      }
-
-      const data = await response.json();
-      return data.items || [];
+      const data = await api.get<{ items?: Template[] }>('/api/v1/marketplace/templates/featured', {
+        params: { limit },
+      });
+      return data?.items ?? [];
     } catch (error) {
       logger.error('Failed to get featured templates', { error });
       return [];
@@ -135,15 +130,10 @@ export function useMarketplace() {
     page: number = 1
   ): Promise<PaginatedResponse<Review>> => {
     try {
-      const response = await fetch(
-        `/api/marketplace/templates/${templateId}/reviews?page=${page}`
+      return await api.get<PaginatedResponse<Review>>(
+        `/api/v1/marketplace/templates/${templateId}/reviews`,
+        { params: { page } }
       );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch reviews');
-      }
-
-      return await response.json();
     } catch (error) {
       logger.error('Failed to get reviews', { error, templateId });
       return { items: [], total: 0, page: 1, pageSize: 10, hasMore: false };
@@ -160,17 +150,11 @@ export function useMarketplace() {
     content: string
   ): Promise<Review | null> => {
     try {
-      const response = await fetch(`/api/marketplace/templates/${templateId}/reviews`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, title, content }),
+      return await api.post<Review>(`/api/v1/marketplace/templates/${templateId}/reviews`, {
+        rating,
+        title,
+        content,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to add review');
-      }
-
-      return await response.json();
     } catch (error) {
       logger.error('Failed to add review', { error, templateId });
       return null;
@@ -182,13 +166,7 @@ export function useMarketplace() {
    */
   const getCreator = useCallback(async (username: string): Promise<CreatorProfile | null> => {
     try {
-      const response = await fetch(`/api/marketplace/creators/${username}`);
-      
-      if (!response.ok) {
-        throw new Error('Creator not found');
-      }
-
-      return await response.json();
+      return await api.get<CreatorProfile>(`/api/v1/marketplace/creators/${username}`);
     } catch (error) {
       logger.error('Failed to get creator', { error, username });
       return null;
@@ -202,15 +180,9 @@ export function useMarketplace() {
     templateId: string
   ): Promise<{ checkoutUrl: string } | null> => {
     try {
-      const response = await fetch(`/api/marketplace/templates/${templateId}/purchase`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to initiate purchase');
-      }
-
-      return await response.json();
+      return await api.post<{ checkoutUrl: string }>(
+        `/api/v1/marketplace/templates/${templateId}/purchase`
+      );
     } catch (error) {
       logger.error('Failed to purchase template', { error, templateId });
       return null;
@@ -222,14 +194,10 @@ export function useMarketplace() {
    */
   const downloadTemplate = useCallback(async (templateId: string): Promise<string | null> => {
     try {
-      const response = await fetch(`/api/marketplace/templates/${templateId}/download`);
-
-      if (!response.ok) {
-        throw new Error('Failed to download template');
-      }
-
-      const data = await response.json();
-      return data.downloadUrl;
+      const data = await api.get<{ downloadUrl?: string }>(
+        `/api/v1/marketplace/templates/${templateId}/download`
+      );
+      return data?.downloadUrl ?? null;
     } catch (error) {
       logger.error('Failed to download template', { error, templateId });
       return null;
@@ -241,11 +209,8 @@ export function useMarketplace() {
    */
   const likeTemplate = useCallback(async (templateId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/marketplace/templates/${templateId}/like`, {
-        method: 'POST',
-      });
-
-      return response.ok;
+      await api.post(`/api/v1/marketplace/templates/${templateId}/like`);
+      return true;
     } catch (error) {
       logger.error('Failed to like template', { error, templateId });
       return false;
@@ -257,11 +222,8 @@ export function useMarketplace() {
    */
   const followCreator = useCallback(async (creatorId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/marketplace/creators/${creatorId}/follow`, {
-        method: 'POST',
-      });
-
-      return response.ok;
+      await api.post(`/api/v1/marketplace/creators/${creatorId}/follow`);
+      return true;
     } catch (error) {
       logger.error('Failed to follow creator', { error, creatorId });
       return false;
@@ -273,15 +235,10 @@ export function useMarketplace() {
    */
   const getCollections = useCallback(async (featured: boolean = false): Promise<Collection[]> => {
     try {
-      const params = featured ? '?featured=true' : '';
-      const response = await fetch(`/api/marketplace/collections${params}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch collections');
-      }
-
-      const data = await response.json();
-      return data.items || [];
+      const data = await api.get<{ items?: Collection[] }>('/api/v1/marketplace/collections', {
+        params: featured ? { featured: true } : undefined,
+      });
+      return data?.items ?? [];
     } catch (error) {
       logger.error('Failed to get collections', { error });
       return [];

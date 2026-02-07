@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 import type {
   UserPresence,
   CollaborationRoom,
@@ -60,23 +61,13 @@ export function useCollaboration(options: UseCollaborationOptions) {
    */
   const joinRoom = useCallback(async (targetRoomId: string) => {
     try {
-      const response = await fetch(`/api/collaboration/rooms/${targetRoomId}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          userName,
-          userAvatar,
-          color: userColor,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to join room');
-
-      const data = await response.json();
-      setRoom(data.room);
-      setParticipants(data.participants);
-      setComments(data.comments || []);
+      const data = await api.post<{ room?: CollaborationRoom; participants?: UserPresence[]; comments?: Comment[] }>(
+        `/api/v1/collaboration/rooms/${targetRoomId}/join`,
+        { userId, userName, userAvatar, color: userColor }
+      );
+      setRoom(data?.room ?? null);
+      setParticipants(data?.participants ?? []);
+      setComments(data?.comments ?? []);
       setSyncState((prev) => ({ ...prev, isConnected: true }));
 
       // Add activity
@@ -101,11 +92,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
     if (!room) return;
 
     try {
-      await fetch(`/api/collaboration/rooms/${room.id}/leave`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
+      await api.post(`/api/v1/collaboration/rooms/${room.id}/leave`, { userId });
 
       addActivity({
         action: 'left',
@@ -139,11 +126,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
       if (!pos) return;
 
       try {
-        await fetch(`/api/collaboration/rooms/${room.id}/cursor`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, cursor: pos }),
-        });
+        await api.post(`/api/v1/collaboration/rooms/${room.id}/cursor`, { userId, cursor: pos });
       } catch (error) {
         // Silent fail for cursor updates
       }
@@ -184,13 +167,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
     setComments((prev) => [comment, ...prev]);
 
     try {
-      const response = await fetch(`/api/collaboration/rooms/${room.id}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(comment),
-      });
-
-      if (!response.ok) throw new Error('Failed to add comment');
+      await api.post(`/api/v1/collaboration/rooms/${room.id}/comments`, comment);
 
       addActivity({
         action: 'comment_add',
@@ -233,11 +210,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
     );
 
     try {
-      await fetch(`/api/collaboration/rooms/${room.id}/comments/${commentId}/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
+      await api.post(`/api/v1/collaboration/rooms/${room.id}/comments/${commentId}/resolve`, { userId });
 
       addActivity({
         action: 'comment_resolve',
@@ -274,11 +247,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
     );
 
     try {
-      await fetch(`/api/collaboration/rooms/${room.id}/comments/${commentId}/reactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reaction),
-      });
+      await api.post(`/api/v1/collaboration/rooms/${room.id}/comments/${commentId}/reactions`, reaction);
     } catch (error) {
       // Rollback
       setComments((prev) =>
@@ -301,20 +270,12 @@ export function useCollaboration(options: UseCollaborationOptions) {
     if (!room) return null;
 
     try {
-      const response = await fetch(`/api/collaboration/rooms/${room.id}/share`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          permission,
-          expiresIn: options.expiresIn,
-          maxUses: options.maxUses,
-          createdBy: userId,
-        }),
+      return await api.post<ShareLink>(`/api/v1/collaboration/rooms/${room.id}/share`, {
+        permission,
+        expiresIn: options.expiresIn,
+        maxUses: options.maxUses,
+        createdBy: userId,
       });
-
-      if (!response.ok) throw new Error('Failed to create share link');
-
-      return await response.json();
     } catch (error) {
       logger.error('Failed to create share link', { error });
       return null;
@@ -332,19 +293,13 @@ export function useCollaboration(options: UseCollaborationOptions) {
     if (!room) return null;
 
     try {
-      const response = await fetch(`/api/collaboration/rooms/${room.id}/approvals`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requesterId: userId,
-          requesterName: userName,
-          reviewerIds,
-          title,
-          description,
-        }),
+      const result = await api.post<ApprovalRequest>(`/api/v1/collaboration/rooms/${room.id}/approvals`, {
+        requesterId: userId,
+        requesterName: userName,
+        reviewerIds,
+        title,
+        description,
       });
-
-      if (!response.ok) throw new Error('Failed to request approval');
 
       addActivity({
         action: 'approval_request',
@@ -354,7 +309,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
         details: { reviewerIds, title },
       });
 
-      return await response.json();
+      return result;
     } catch (error) {
       logger.error('Failed to request approval', { error });
       return null;

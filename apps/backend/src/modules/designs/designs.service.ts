@@ -1140,4 +1140,39 @@ export class DesignsService {
       isShared: true,
     };
   }
+
+  /**
+   * Get share status for a design (for owner): existing share token and expiry.
+   */
+  async getShareStatus(designId: string, currentUser: CurrentUser) {
+    const design = await this.findOne(designId, currentUser);
+    const meta = (design.metadata as Record<string, unknown>) || {};
+    const shareToken = meta.shareToken as string | undefined;
+    const expiresAt = meta.shareTokenExpiresAt as string | undefined;
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.luneo.app';
+    const shares = shareToken
+      ? [
+          {
+            token: shareToken,
+            shareUrl: `${appUrl}/share/${shareToken}`,
+            expires_at: expiresAt ?? null,
+            isExpired: expiresAt ? new Date(expiresAt) < new Date() : false,
+            created_at: (meta.sharedAt as string) ?? null,
+          },
+        ]
+      : [];
+    return { shares };
+  }
+
+  /**
+   * Record an action on a shared design (download, ar_launch, share). Used for analytics.
+   */
+  async recordShareAction(token: string, actionType: string) {
+    const validActions = ['download', 'ar_launch', 'share'];
+    if (!validActions.includes(actionType)) {
+      throw new BadRequestException(`Invalid action_type. Allowed: ${validActions.join(', ')}`);
+    }
+    this.logger.log(`Share action recorded: token=${token.slice(0, 8)}... action=${actionType}`);
+    return { message: 'Action enregistrée avec succès' };
+  }
 }

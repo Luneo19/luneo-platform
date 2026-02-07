@@ -5,6 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 export interface Ticket {
   id: string;
@@ -62,13 +63,8 @@ export function useSupport() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/support/tickets');
-      const data = await response.json();
-      if (response.ok) {
-        setTickets(data.tickets || []);
-      } else {
-        setError(data.message || 'Erreur lors de la récupération des tickets');
-      }
+      const data = await api.get<{ tickets?: Ticket[] }>('/api/v1/support/tickets');
+      setTickets(data?.tickets ?? []);
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la récupération des tickets');
     } finally {
@@ -80,13 +76,8 @@ export function useSupport() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/support/tickets/${ticketId}`);
-      const data = await response.json();
-      if (response.ok) {
-        setSelectedTicket(data.ticket);
-      } else {
-        setError(data.message || 'Erreur lors de la récupération du ticket');
-      }
+      const data = await api.get<{ ticket?: Ticket }>(`/api/v1/support/tickets/${ticketId}`);
+      setSelectedTicket(data?.ticket ?? (data as unknown as Ticket));
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la récupération du ticket');
     } finally {
@@ -98,21 +89,12 @@ export function useSupport() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/support/tickets/${ticketId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, ...updates } : t));
-        if (selectedTicket?.id === ticketId) {
-          setSelectedTicket({ ...selectedTicket, ...updates });
-        }
-        toast({ title: 'Succès', description: 'Ticket mis à jour' });
-      } else {
-        setError(data.message || 'Erreur lors de la mise à jour du ticket');
+      await api.patch(`/api/v1/support/tickets/${ticketId}`, updates);
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, ...updates } : t));
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket({ ...selectedTicket, ...updates });
       }
+      toast({ title: 'Succès', description: 'Ticket mis à jour' });
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la mise à jour du ticket');
     } finally {
@@ -124,23 +106,14 @@ export function useSupport() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/support/tickets/${ticketId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: message }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        if (selectedTicket?.id === ticketId) {
-          setSelectedTicket({
-            ...selectedTicket,
-            messages: [...selectedTicket.messages, data.message],
-          });
-        }
-        toast({ title: 'Succès', description: 'Message ajouté' });
-      } else {
-        setError(data.message || 'Erreur lors de l\'ajout du message');
+      const data = await api.post<{ message?: TicketMessage }>(`/api/v1/support/tickets/${ticketId}/messages`, { content: message });
+      if (selectedTicket?.id === ticketId && data?.message) {
+        setSelectedTicket({
+          ...selectedTicket,
+          messages: [...selectedTicket.messages, data.message],
+        });
       }
+      toast({ title: 'Succès', description: 'Message ajouté' });
     } catch (err: any) {
       setError(err.message || 'Erreur lors de l\'ajout du message');
     } finally {
@@ -156,20 +129,10 @@ export function useSupport() {
     async (data: CreateTicketDto): Promise<{ success: boolean; ticketId?: string }> => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/support/tickets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.message || 'Erreur lors de la création du ticket');
-        }
-
+        const result = await api.post<{ ticketId?: string; id?: string }>('/api/v1/support/tickets', data);
+        const ticketId = result?.ticketId ?? result?.id;
         toast({ title: 'Succès', description: 'Ticket créé avec succès' });
-        return { success: true, ticketId: result.ticketId };
+        return { success: true, ticketId };
       } catch (error: any) {
         logger.error('Error creating ticket', { error });
         toast({

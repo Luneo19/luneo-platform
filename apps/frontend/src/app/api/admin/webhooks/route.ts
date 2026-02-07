@@ -1,13 +1,23 @@
 /**
  * ★★★ ADMIN WEBHOOKS API ★★★
- * API route pour gérer les webhooks
+ * Forwards to NestJS backend.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
-import { db } from '@/lib/db';
-import crypto from 'crypto';
 import { serverLogger } from '@/lib/logger-server';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+function forwardHeaders(request: NextRequest): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    Cookie: request.headers.get('cookie') || '',
+  };
+  const auth = request.headers.get('authorization');
+  if (auth) headers['Authorization'] = auth;
+  return headers;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,24 +27,15 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const eventType = searchParams.get('eventType');
+    const url = new URL(`${API_URL}/api/v1/admin/webhooks`);
+    searchParams.forEach((v, k) => url.searchParams.set(k, v));
 
-    const where: any = {};
-    if (status) where.status = status;
-    if (eventType) where.eventTypes = { has: eventType };
-
-    const webhooks = await db.webhook.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { logs: true },
-        },
-      },
-    });
-
-    return NextResponse.json({ webhooks });
+    const res = await fetch(url.toString(), { headers: forwardHeaders(request) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.json(data.error ?? { error: 'Failed to fetch webhooks' }, { status: res.status });
+    }
+    return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/webhooks', 'GET', error, 500);
     return NextResponse.json({ error: 'Failed to fetch webhooks' }, { status: 500 });
@@ -49,29 +50,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { url, eventTypes, secret, description } = body;
-
-    if (!url || !eventTypes || !Array.isArray(eventTypes) || eventTypes.length === 0) {
-      return NextResponse.json(
-        { error: 'Missing required fields: url, eventTypes' },
-        { status: 400 }
-      );
-    }
-
-    // Générer un secret si non fourni
-    const webhookSecret = secret || crypto.randomBytes(32).toString('hex');
-
-    const webhook = await db.webhook.create({
-      data: {
-        url,
-        eventTypes,
-        secret: webhookSecret,
-        description: description || null,
-        status: 'active',
-      },
+    const res = await fetch(`${API_URL}/api/v1/admin/webhooks`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(body),
     });
-
-    return NextResponse.json(webhook, { status: 201 });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.json(data.error ?? { error: 'Failed to create webhook' }, { status: res.status });
+    }
+    return NextResponse.json(data, { status: res.status === 201 ? 201 : 200 });
   } catch (error) {
     serverLogger.apiError('/api/admin/webhooks', 'POST', error, 500);
     return NextResponse.json({ error: 'Failed to create webhook' }, { status: 500 });

@@ -5,7 +5,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import * as bcrypt from 'bcryptjs';
 import { AppModule } from '@/app.module';
+import { PrismaService } from '@/libs/prisma/prisma.service';
+import { BrandStatus, UserRole } from '@prisma/client';
+
+const E2E_TEST_EMAIL = 'e2e-agents@luneo.test';
+const E2E_TEST_PASSWORD = 'TestPassword123!';
 
 describe('Agents E2E', () => {
   let app: INestApplication;
@@ -21,10 +27,42 @@ describe('Agents E2E', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    // TODO: Créer utilisateur de test et obtenir token
-    // authToken = await createTestUser();
-    // brandId = 'test-brand-id';
-    // userId = 'test-user-id';
+    const prisma = moduleFixture.get<PrismaService>(PrismaService);
+    const hashedPassword = await bcrypt.hash(E2E_TEST_PASSWORD, 13);
+    let brand = await prisma.brand.findFirst({ where: { name: 'E2E Agents Test Brand' } });
+    if (!brand) {
+      brand = await prisma.brand.create({
+        data: { name: 'E2E Agents Test Brand', slug: 'e2e-agents-test-brand', status: BrandStatus.ACTIVE },
+      });
+    }
+    let user = await prisma.user.findFirst({
+      where: { email: E2E_TEST_EMAIL },
+      include: { brand: true },
+    });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: E2E_TEST_EMAIL,
+          password: hashedPassword,
+          firstName: 'E2E',
+          lastName: 'Agents',
+          role: UserRole.BRAND_ADMIN,
+          emailVerified: true,
+          brandId: brand.id,
+        },
+        include: { brand: true },
+      });
+    } else if (!user.brandId) {
+      await prisma.user.update({ where: { id: user.id }, data: { brandId: brand.id } });
+      user.brandId = brand.id;
+    }
+    brandId = user.brandId ?? brand.id;
+    userId = user.id;
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: E2E_TEST_EMAIL, password: E2E_TEST_PASSWORD });
+    authToken = loginRes.body?.data?.accessToken ?? loginRes.body?.accessToken ?? '';
   });
 
   afterAll(async () => {

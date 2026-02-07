@@ -1,7 +1,0 @@
-# Ce fichier n'est pas utilisé par Vercel, mais sert de documentation
-# Pour ignorer les commits Dependabot dans Vercel :
-# 1. Aller sur https://vercel.com/luneos-projects/frontend/settings/git
-# 2. Dans "Ignored Build Step", ajouter :
-#    git log -1 --pretty=format:'%an' | grep -q 'dependabot' && exit 1 || exit 0
-# 3. Ou utiliser cette commande pour ignorer les commits Dependabot :
-#    git log -1 --pretty=format:'%an' | grep -v 'dependabot'

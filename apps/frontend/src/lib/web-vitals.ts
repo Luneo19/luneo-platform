@@ -5,6 +5,7 @@
 
 import { onCLS, onFID, onFCP, onLCP, onTTFB, Metric } from 'web-vitals';
 import { logger } from './logger';
+import { api } from '@/lib/api/client';
 
 // Fonction pour envoyer les métriques
 function sendToAnalytics(metric: Metric) {
@@ -24,18 +25,14 @@ function sendToAnalytics(metric: Metric) {
 
   // Envoyer à notre API pour stockage et dashboard
   if (typeof window !== 'undefined') {
-    fetch('/api/analytics/web-vitals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: metric.name,
-        value: metric.value,
-        rating: metric.rating,
-        delta: metric.delta,
-        id: metric.id,
-        url: window.location.pathname,
-        timestamp: Date.now(),
-      }),
+    api.post('/api/v1/analytics/web-vitals', {
+      name: metric.name,
+      value: metric.value,
+      rating: metric.rating,
+      delta: metric.delta,
+      id: metric.id,
+      url: window.location.pathname,
+      timestamp: Date.now(),
     }).catch((error) => {
       // Ne pas bloquer si l'API échoue
       if (process.env.NODE_ENV === 'development') {

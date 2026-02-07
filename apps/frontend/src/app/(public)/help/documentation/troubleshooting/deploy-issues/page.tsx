@@ -16,7 +16,7 @@ function DeployIssuesPageContent() {
     { 
       emoji: '🚨', 
       title: '500 Error', 
-      solution: 'Check logs Vercel + Supabase connection',
+      solution: 'Check logs Vercel + backend/database connection',
       color: 'text-orange-400'
     },
   ], []);

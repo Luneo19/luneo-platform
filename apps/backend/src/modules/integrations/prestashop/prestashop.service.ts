@@ -118,21 +118,31 @@ export class PrestaShopService {
   }
 
   /**
-   * Valide les credentials PrestaShop
+   * Valide les credentials PrestaShop via appel API
    */
   private async validateCredentials(shopUrl: string, apiKey: string): Promise<boolean> {
-    // ✅ TODO: Implémenter validation via API PrestaShop
-    // Pour l'instant, validation basique
     if (!shopUrl || !apiKey) {
       return false;
     }
 
-    // ✅ Vérifier que l'URL est accessible
+    const baseUrl = shopUrl.replace(/\/$/, '');
+    const apiUrl = `${baseUrl}/api/products?output_format=JSON&limit=1`;
+
     try {
-      // TODO: Faire un appel API PrestaShop pour valider
-      // const response = await fetch(`${shopUrl}/api`, { headers: { Authorization: `Basic ${apiKey}` } });
-      // return response.ok;
-      return true; // Placeholder
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Basic ${Buffer.from(apiKey + ':').toString('base64')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        this.logger.warn(`PrestaShop API returned ${response.status}`);
+        return false;
+      }
+
+      return true;
     } catch (error) {
       this.logger.error(`PrestaShop credentials validation failed: ${error instanceof Error ? error.message : 'Unknown'}`);
       return false;

@@ -1,13 +1,9 @@
-import { CreditsService } from '@/libs/credits/credits.service';
+import { PLAN_CONFIGS, normalizePlanTier, PlanTier } from '@/libs/plans';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { CircuitBreakerService } from '@/libs/resilience/circuit-breaker.service';
-import { RetryService } from '@/libs/resilience/retry.service';
 import { CurrencyUtils } from '@/config/currency.config';
-import { EmailService } from '@/modules/email/email.service';
 import {
   Injectable,
   Logger,
-  OnModuleInit,
   BadRequestException,
   InternalServerErrorException,
   NotFoundException,
@@ -15,212 +11,48 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type Stripe from 'stripe';
+import { StripeClientService } from './services/stripe-client.service';
+import { StripeWebhookService } from './services/stripe-webhook.service';
 
-// Map des Price IDs validés au démarrage
-interface ValidatedPriceIds {
-  starter: { monthly: string; yearly: string };
-  professional: { monthly: string; yearly: string };
-  business: { monthly: string; yearly: string };
-  enterprise: { monthly: string; yearly: string };
-}
-
-// Nom du service pour le circuit breaker
-const STRIPE_SERVICE = 'stripe-api';
-
+/**
+ * BillingService — Façade for all billing operations.
+ *
+ * Delegates Stripe SDK / resilience to StripeClientService,
+ * and webhook processing to StripeWebhookService.
+ * Keeps checkout, payment-method, subscription, and invoice logic.
+ */
 @Injectable()
-export class BillingService implements OnModuleInit {
+export class BillingService {
   private readonly logger = new Logger(BillingService.name);
-  private stripeInstance: Stripe | null = null;
-  private stripeModule: typeof import('stripe') | null = null;
-  private validatedPriceIds: ValidatedPriceIds | null = null;
-  private stripeConfigValid = false;
 
   constructor(
     private configService: ConfigService,
-    private creditsService: CreditsService,
     private prisma: PrismaService,
-    private circuitBreaker: CircuitBreakerService,
-    private retryService: RetryService,
-    private emailService: EmailService,
-  ) {
-    // Configurer le circuit breaker pour Stripe
-    this.circuitBreaker.configure(STRIPE_SERVICE, {
-      failureThreshold: 5,      // 5 échecs avant ouverture
-      recoveryTimeout: 30000,   // 30 secondes avant test
-      monitoringWindow: 60000,  // 1 minute
-      halfOpenMaxCalls: 3,      // 3 appels test
-    });
-  }
+    private stripeClient: StripeClientService,
+    private webhookService: StripeWebhookService,
+  ) {}
 
-  /**
-   * Valide la configuration Stripe au démarrage
-   * HOTFIX-004: Validation obligatoire des Price IDs
-   */
-  async onModuleInit() {
-    const nodeEnv = this.configService.get<string>('app.nodeEnv') || 'development';
-    
-    this.logger.log('🔧 Validating Stripe configuration...');
-    
-    try {
-      // Vérifier que STRIPE_SECRET_KEY est configuré
-      const secretKey = this.configService.get<string>('stripe.secretKey');
-        if (!secretKey) {
-          if (nodeEnv === 'production') {
-            this.logger.error('❌ STRIPE_SECRET_KEY is required in production');
-            throw new InternalServerErrorException('STRIPE_SECRET_KEY is required');
-          }
-        this.logger.warn('⚠️ STRIPE_SECRET_KEY not configured - Stripe features disabled');
-        return;
-      }
+  // ──────────────────────────────────────────────────────────────
+  // Delegated accessors (backward-compatible public surface)
+  // ──────────────────────────────────────────────────────────────
 
-      // Récupérer les Price IDs depuis la configuration
-      const priceIds = {
-        starter: {
-          monthly: this.configService.get<string>('stripe.priceStarterMonthly'),
-          yearly: this.configService.get<string>('stripe.priceStarterYearly'),
-        },
-        professional: {
-          monthly: this.configService.get<string>('stripe.priceProMonthly'),
-          yearly: this.configService.get<string>('stripe.priceProYearly'),
-        },
-        business: {
-          monthly: this.configService.get<string>('stripe.priceBusinessMonthly'),
-          yearly: this.configService.get<string>('stripe.priceBusinessYearly'),
-        },
-        enterprise: {
-          monthly: this.configService.get<string>('stripe.priceEnterpriseMonthly'),
-          yearly: this.configService.get<string>('stripe.priceEnterpriseYearly'),
-        },
-      };
-
-      // Vérifier que tous les Price IDs sont configurés
-      const missingIds: string[] = [];
-      for (const [plan, intervals] of Object.entries(priceIds)) {
-        if (!intervals.monthly) missingIds.push(`stripe.price${plan.charAt(0).toUpperCase() + plan.slice(1)}Monthly`);
-        if (!intervals.yearly) missingIds.push(`stripe.price${plan.charAt(0).toUpperCase() + plan.slice(1)}Yearly`);
-      }
-
-      if (missingIds.length > 0) {
-        if (nodeEnv === 'production') {
-          this.logger.error(`❌ Missing Stripe Price IDs: ${missingIds.join(', ')}`);
-          throw new InternalServerErrorException(`Missing Stripe Price IDs: ${missingIds.join(', ')}`);
-        }
-        this.logger.warn(`⚠️ Missing Stripe Price IDs (using test fallbacks): ${missingIds.join(', ')}`);
-      }
-
-      // En production, valider que les Price IDs existent dans Stripe
-      if (nodeEnv === 'production') {
-        // Initialiser à true, sera mis à false si une erreur survient
-        let validationSuccessful = true;
-        
-        try {
-          const stripe = await this.getStripe();
-          
-          for (const [plan, intervals] of Object.entries(priceIds)) {
-            for (const [interval, priceId] of Object.entries(intervals)) {
-              if (priceId) {
-                try {
-                  const price = await stripe.prices.retrieve(priceId);
-                  if (!price.active) {
-                    this.logger.warn(`⚠️ Stripe Price ID ${priceId} (${plan}/${interval}) is inactive`);
-                  }
-                  this.logger.debug(`✓ Validated ${plan}/${interval}: ${priceId}`);
-                } catch (error: any) {
-                  this.logger.error(`❌ Invalid Stripe Price ID: ${priceId} (${plan}/${interval}) - ${error.message}`);
-                  // Continue validation, don't throw - allows app to start in degraded mode
-                  validationSuccessful = false;
-                }
-              }
-            }
-          }
-          
-          if (validationSuccessful) {
-            this.validatedPriceIds = priceIds as ValidatedPriceIds;
-            this.logger.log('✅ All Stripe Price IDs validated successfully');
-            this.stripeConfigValid = true;
-          } else {
-            this.logger.warn('⚠️ Some Stripe Price IDs are invalid - billing features may be limited');
-            // Still allow app to start but mark config as partially valid
-            this.stripeConfigValid = false;
-          }
-        } catch (stripeError: any) {
-          this.logger.error(`❌ Stripe API error during validation: ${stripeError.message}`);
-          this.logger.warn('⚠️ App starting in degraded mode - billing features unavailable');
-          this.stripeConfigValid = false;
-        }
-      } else {
-        this.stripeConfigValid = true;
-        this.logger.log('✅ Stripe configuration validated (non-production mode)');
-      }
-    } catch (error: any) {
-      this.logger.error(`❌ Stripe configuration validation failed: ${error.message}`);
-      this.logger.warn('⚠️ App starting in degraded mode - billing features unavailable');
-      this.stripeConfigValid = false;
-    }
-  }
-
-  /**
-   * Lazy load Stripe module to reduce cold start time
-   * Public method to allow access from controller
-   */
+  /** Lazy-loaded Stripe SDK instance (delegated to StripeClientService) */
   async getStripe(): Promise<Stripe> {
-    if (!this.stripeInstance) {
-      if (!this.stripeModule) {
-        this.stripeModule = await import('stripe');
-      }
-      const secretKey = this.configService.get<string>('stripe.secretKey');
-      if (!secretKey) {
-        throw new InternalServerErrorException('STRIPE_SECRET_KEY is not configured');
-      }
-      this.stripeInstance = new this.stripeModule.default(secretKey, {
-        apiVersion: '2023-10-16',
-      });
-    }
-    return this.stripeInstance;
+    return this.stripeClient.getStripe();
   }
 
-  /**
-   * Exécute une opération Stripe avec résilience (circuit breaker + retry)
-   * PHASE 2: Protection des appels API externes
-   */
+  /** Circuit-breaker status for monitoring */
+  getStripeCircuitStatus() {
+    return this.stripeClient.getCircuitStatus();
+  }
+
+  /** Execute Stripe operation with resilience (circuit breaker + retry) */
   private async executeWithResilience<T>(
     operation: () => Promise<T>,
     operationName: string,
-    options?: {
-      maxRetries?: number;
-      skipCircuitBreaker?: boolean;
-    },
+    options?: { maxRetries?: number; skipCircuitBreaker?: boolean },
   ): Promise<T> {
-    const executeWithRetry = () =>
-      this.retryService.execute(
-        operation,
-        {
-          maxAttempts: options?.maxRetries ?? 3,
-          baseDelayMs: 1000,
-          maxDelayMs: 10000,
-          exponentialBackoff: true,
-          retryableErrors: RetryService.isRetryableStripeError,
-        },
-        operationName,
-      );
-
-    if (options?.skipCircuitBreaker) {
-      return executeWithRetry();
-    }
-
-    return this.circuitBreaker.execute(
-      STRIPE_SERVICE,
-      executeWithRetry,
-      // Fallback: log et rethrow (pas de fallback silencieux pour Stripe)
-      undefined,
-    );
-  }
-
-  /**
-   * Retourne le statut du circuit breaker Stripe (pour monitoring)
-   */
-  getStripeCircuitStatus() {
-    return this.circuitBreaker.getStatus(STRIPE_SERVICE);
+    return this.stripeClient.executeWithResilience(operation, operationName, options);
   }
 
   /**
@@ -238,7 +70,7 @@ export class BillingService implements OnModuleInit {
   ) {
     // ✅ Vérifier que Stripe est configuré
     const nodeEnv = this.configService.get<string>('app.nodeEnv') || 'development';
-    if (!this.stripeConfigValid && nodeEnv === 'production') {
+    if (!this.stripeClient.stripeConfigValid && nodeEnv === 'production') {
       throw new ServiceUnavailableException('Stripe is not properly configured. Please contact support.');
     }
 
@@ -260,9 +92,9 @@ export class BillingService implements OnModuleInit {
     // ✅ Utiliser les Price IDs validés en production, sinon fallback pour dev/test
     let planPriceIds: Record<string, { monthly: string | null; yearly: string | null }>;
     
-    if (this.validatedPriceIds) {
+    if (this.stripeClient.validatedPriceIds) {
       // En production: utiliser les IDs validés au démarrage
-      planPriceIds = this.validatedPriceIds as unknown as Record<string, { monthly: string; yearly: string }>;
+      planPriceIds = this.stripeClient.validatedPriceIds as unknown as Record<string, { monthly: string; yearly: string }>;
     } else {
       // En dev/test: utiliser les IDs de configuration avec fallbacks de test
       // NOTE: Les fallbacks sont uniquement pour le développement local
@@ -677,60 +509,10 @@ export class BillingService implements OnModuleInit {
         }
       }
 
-      // ✅ Définir les limites selon le plan (utiliser PlansService ou définir ici)
-      const planLimitsMap: Record<string, {
-        designsPerMonth: number | -1;
-        teamMembers: number | -1;
-        storageGB: number | -1;
-        apiAccess: boolean;
-        advancedAnalytics: boolean;
-        prioritySupport: boolean;
-        customExport: boolean;
-        whiteLabel: boolean;
-      }> = {
-        starter: {
-          designsPerMonth: 50,
-          teamMembers: 3,
-          storageGB: 5,
-          apiAccess: false,
-          advancedAnalytics: false,
-          prioritySupport: false,
-          customExport: false,
-          whiteLabel: false,
-        },
-        professional: {
-          designsPerMonth: 200,
-          teamMembers: 10,
-          storageGB: 25,
-          apiAccess: true,
-          advancedAnalytics: false,
-          prioritySupport: true,
-          customExport: false,
-          whiteLabel: true,
-        },
-        business: {
-          designsPerMonth: 1000,
-          teamMembers: 50,
-          storageGB: 100,
-          apiAccess: true,
-          advancedAnalytics: true,
-          prioritySupport: true,
-          customExport: true,
-          whiteLabel: true,
-        },
-        enterprise: {
-          designsPerMonth: -1, // Illimité
-          teamMembers: -1,
-          storageGB: -1,
-          apiAccess: true,
-          advancedAnalytics: true,
-          prioritySupport: true,
-          customExport: true,
-          whiteLabel: true,
-        },
-      };
-
-      const limits = planLimitsMap[plan] || planLimitsMap.starter;
+      // ✅ Limites selon le plan - Source: @/libs/plans (SINGLE SOURCE OF TRUTH)
+      const planTier = normalizePlanTier(plan);
+      const planConfig = PLAN_CONFIGS[planTier];
+      const limits = planConfig.limits;
 
       // ✅ Calculer l'usage actuel (simplifié - peut être amélioré avec UsageMeteringService)
       const now = new Date();
@@ -750,13 +532,31 @@ export class BillingService implements OnModuleInit {
         }),
       ]);
 
-      // TODO: Récupérer l'usage réel depuis UsageMeteringService
+      // Usage reel depuis les tables de tracking
+      const [renders3DCount, storageBytesResult, apiCallsResult] = await Promise.all([
+        // Renders 3D: count from UsageRecord for current month
+        this.prisma.usageRecord.aggregate({
+          where: { brandId: brand.id, type: 'renders_3d', recordedAt: { gte: startOfMonth } },
+          _sum: { count: true },
+        }),
+        // Storage: sum of asset file sizes for the brand
+        this.prisma.assetFile.aggregate({
+          where: { brandId: brand.id },
+          _sum: { sizeBytes: true },
+        }),
+        // API calls: count from UsageRecord for current month
+        this.prisma.usageRecord.aggregate({
+          where: { brandId: brand.id, type: 'api_calls', recordedAt: { gte: startOfMonth } },
+          _sum: { count: true },
+        }),
+      ]);
+
       const currentUsage = {
         designs: designsCount,
-        renders2D: brand.monthlyGenerations || 0, // Approximation
-        renders3D: 0, // TODO: Calculer depuis usage_tracking
-        storageGB: 0, // TODO: Calculer depuis storage
-        apiCalls: 0, // TODO: Calculer depuis usage_tracking
+        renders2D: brand.monthlyGenerations || 0,
+        renders3D: renders3DCount._sum.count || 0,
+        storageGB: Math.round(((storageBytesResult._sum.sizeBytes || 0) / (1024 * 1024 * 1024)) * 100) / 100,
+        apiCalls: apiCallsResult._sum.count || 0,
         teamMembers: teamMembersCount,
       };
 
@@ -1224,45 +1024,28 @@ export class BillingService implements OnModuleInit {
       throw new NotFoundException('User brand not found');
     }
 
-    // Définir les limites par plan
-    const planLimits: Record<string, { 
-      designsPerMonth: number; 
-      teamMembers: number; 
-      products: number; 
-      storage: number;
-      features: string[];
-    }> = {
-      starter: { 
-        designsPerMonth: 50, 
-        teamMembers: 3, 
-        products: 10, 
-        storage: 5,
-        features: ['basic_analytics', 'email_support'],
-      },
-      professional: { 
-        designsPerMonth: 200, 
-        teamMembers: 10, 
-        products: 50, 
-        storage: 25,
-        features: ['api_access', 'ar_enabled', 'white_label', 'priority_support'],
-      },
-      business: { 
-        designsPerMonth: 1000, 
-        teamMembers: 50, 
-        products: 500, 
-        storage: 100,
-        features: ['advanced_analytics', 'custom_export', 'api_access', 'ar_enabled', 'white_label', 'priority_support'],
-      },
-      enterprise: { 
-        designsPerMonth: -1, 
-        teamMembers: -1, 
-        products: -1, 
-        storage: -1,
-        features: ['all'],
-      },
+    // Limites par plan - Source: @/libs/plans (SINGLE SOURCE OF TRUTH)
+    const getDowngradeLimits = (planId: string) => {
+      const tier = normalizePlanTier(planId);
+      const config = PLAN_CONFIGS[tier];
+      const featureKeys: string[] = [];
+      if (config.limits.apiAccess) featureKeys.push('api_access');
+      if (config.limits.arEnabled) featureKeys.push('ar_enabled');
+      if (config.limits.whiteLabel) featureKeys.push('white_label');
+      if (config.limits.advancedAnalytics) featureKeys.push('advanced_analytics');
+      if (config.limits.customExport) featureKeys.push('custom_export');
+      if (config.limits.prioritySupport) featureKeys.push('priority_support');
+      if (tier === PlanTier.ENTERPRISE) return { ...config.limits, products: config.limits.maxProducts, storage: config.limits.storageGB, features: ['all'] };
+      return {
+        designsPerMonth: config.limits.designsPerMonth,
+        teamMembers: config.limits.teamMembers,
+        products: config.limits.maxProducts,
+        storage: config.limits.storageGB,
+        features: featureKeys.length > 0 ? featureKeys : ['basic_analytics', 'email_support'],
+      };
     };
 
-    const newLimits = planLimits[newPlanId] || planLimits.starter;
+    const newLimits = getDowngradeLimits(newPlanId);
     const impactedResources: Array<{
       resource: string;
       current: number;
@@ -1330,7 +1113,7 @@ export class BillingService implements OnModuleInit {
 
     // Déterminer les fonctionnalités perdues
     const currentPlanName = (user.brand.plan || user.brand.subscriptionPlan || 'starter').toLowerCase();
-    const currentLimits = planLimits[currentPlanName] || planLimits.starter;
+    const currentLimits = getDowngradeLimits(currentPlanName);
     
     const lostFeatures = currentLimits.features.filter(
       f => f !== 'all' && !newLimits.features.includes(f) && !newLimits.features.includes('all')
@@ -1641,1175 +1424,31 @@ export class BillingService implements OnModuleInit {
    * Handle Stripe webhook events with idempotency protection
    */
   async handleStripeWebhook(event: Stripe.Event): Promise<{ processed: boolean; result?: any }> {
-    this.logger.log(`Processing Stripe webhook: ${event.type}`, { eventId: event.id });
-
-    // BIL-07: Vérifier l'idempotence via la table ProcessedWebhookEvent
-    try {
-      const existingEvent = await this.prisma.processedWebhookEvent.findUnique({
-        where: { eventId: event.id },
-      });
-
-      if (existingEvent?.processed) {
-        this.logger.debug(`Webhook event already processed: ${event.id}`);
-        return { processed: true, result: existingEvent.result as any };
-      }
-
-      // Enregistrer l'événement comme en cours de traitement
-      await this.prisma.processedWebhookEvent.upsert({
-        where: { eventId: event.id },
-        create: {
-          eventId: event.id,
-          eventType: event.type,
-          processed: false,
-          attempts: 1,
-        },
-        update: {
-          attempts: { increment: 1 },
-        },
-      });
-    } catch (error: any) {
-      this.logger.warn(`Failed to check/create webhook event record: ${error.message}`);
-      // Continue anyway - better to risk duplicate than to miss event
-    }
-
-    try {
-      let result: { processed: boolean; result?: any };
-
-      switch (event.type) {
-        case 'checkout.session.completed':
-          result = await this.handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
-          break;
-
-        case 'customer.subscription.created':
-        case 'customer.subscription.updated':
-          result = await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
-          break;
-
-        case 'customer.subscription.deleted':
-          result = await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-          break;
-
-        case 'customer.subscription.trial_will_end':
-          result = await this.handleTrialWillEnd(event.data.object as Stripe.Subscription);
-          break;
-
-        case 'customer.subscription.paused':
-          result = await this.handleSubscriptionPaused(event.data.object as Stripe.Subscription);
-          break;
-
-        case 'customer.subscription.resumed':
-          result = await this.handleSubscriptionResumed(event.data.object as Stripe.Subscription);
-          break;
-
-        case 'invoice.payment_succeeded':
-          result = await this.handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
-          break;
-
-        case 'invoice.payment_failed':
-          result = await this.handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
-          break;
-
-        case 'invoice.upcoming':
-          result = await this.handleInvoiceUpcoming(event.data.object as Stripe.Invoice);
-          break;
-
-        case 'invoice.finalized':
-          result = await this.handleInvoiceFinalized(event.data.object as Stripe.Invoice);
-          break;
-
-        case 'charge.refunded':
-          result = await this.handleChargeRefunded(event.data.object as Stripe.Charge);
-          break;
-
-        case 'customer.updated':
-          result = await this.handleCustomerUpdated(event.data.object as Stripe.Customer);
-          break;
-
-        case 'payment_method.attached':
-          result = await this.handlePaymentMethodAttached(event.data.object as Stripe.PaymentMethod);
-          break;
-
-        case 'payment_method.detached':
-          result = await this.handlePaymentMethodDetached(event.data.object as Stripe.PaymentMethod);
-          break;
-
-        default:
-          this.logger.debug(`Unhandled Stripe webhook event type: ${event.type}`, { eventId: event.id });
-          result = { processed: false };
-      }
-
-      // Marquer l'événement comme traité
-      try {
-        await this.prisma.processedWebhookEvent.update({
-          where: { eventId: event.id },
-          data: {
-            processed: true,
-            result: result.result ? result.result : undefined,
-            processedAt: new Date(),
-          },
-        });
-      } catch (error: any) {
-        this.logger.warn(`Failed to mark webhook event as processed: ${error.message}`);
-      }
-
-      return result;
-    } catch (error: any) {
-      // Enregistrer l'erreur
-      try {
-        await this.prisma.processedWebhookEvent.update({
-          where: { eventId: event.id },
-          data: {
-            error: error.message,
-          },
-        });
-      } catch (updateError: any) {
-        this.logger.warn(`Failed to update webhook event error: ${updateError.message}`);
-      }
-
-      this.logger.error(`Error processing Stripe webhook ${event.type}`, error, { eventId: event.id });
-      throw error;
-    }
+    return this.webhookService.handleStripeWebhook(event);
   }
 
-  /**
-   * Handle checkout.session.completed event
-   * This is triggered when a customer completes a payment (including credit purchases)
-   */
-  private async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session): Promise<{ processed: boolean; result?: any }> {
-    this.logger.log('Processing checkout.session.completed', { sessionId: session.id });
-
-    // Check if this is a credit purchase
-    if (session.metadata?.type === 'credits_purchase' && session.metadata?.userId) {
-      const userId = session.metadata.userId;
-      const credits = parseInt(session.metadata.credits || session.metadata.packSize || '0', 10);
-
-      if (credits > 0) {
-        try {
-          // Fetch the session with expanded line items to get price ID
-          const stripe = await this.getStripe();
-          const expandedSession = await stripe.checkout.sessions.retrieve(session.id, {
-            expand: ['line_items.data.price'],
-          });
-
-          // Find the pack by Stripe price ID
-          const priceId = expandedSession.line_items?.data[0]?.price?.id;
-          const pack = priceId
-            ? await this.prisma.creditPack.findFirst({
-                where: { stripePriceId: priceId },
-              })
-            : null;
-
-          const result = await this.creditsService.addCredits(
-            userId,
-            credits,
-            pack?.id,
-            session.id,
-            session.payment_intent as string,
-          );
-
-          this.logger.log('Credits added successfully', {
-            userId,
-            credits,
-            newBalance: result.newBalance,
-            sessionId: session.id,
-          });
-
-          return {
-            processed: true,
-            result: {
-              type: 'credits_purchase',
-              userId,
-              credits,
-              newBalance: result.newBalance,
-            },
-          };
-        } catch (error) {
-          this.logger.error('Failed to add credits from checkout session', error, {
-            sessionId: session.id,
-            userId,
-            credits,
-          });
-          throw error;
-        }
-      }
-    }
-
-    // Handle subscription checkout
-    if (session.mode === 'subscription' && session.customer) {
-      const customerId = typeof session.customer === 'string' ? session.customer : session.customer.id;
-      const subscriptionId = typeof session.subscription === 'string' 
-        ? session.subscription 
-        : (session.subscription as any)?.id;
-      
-      // ✅ FIX CRITICAL: Mettre à jour Brand avec TOUS les détails de la subscription
-      // (pas seulement le customerId)
-      if (session.metadata?.userId) {
-        const user = await this.prisma.user.findUnique({
-          where: { id: session.metadata.userId },
-          include: { brand: true },
-        });
-
-        if (user?.brandId) {
-          // Extraire le plan depuis les métadonnées de la session
-          const planId = session.metadata?.planId || 'starter';
-          
-          // Récupérer les détails de la subscription pour le statut et trial
-          let subscriptionStatus = 'ACTIVE';
-          let trialEndsAt: Date | null = null;
-          let currentPeriodEnd: Date | null = null;
-          
-          if (subscriptionId) {
-            try {
-              const stripe = await this.getStripe();
-              const sub = await stripe.subscriptions.retrieve(subscriptionId);
-              subscriptionStatus = this.mapStripeStatusToAppStatus(sub.status);
-              trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
-              currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
-            } catch (err: any) {
-              this.logger.warn(`Could not retrieve subscription ${subscriptionId}: ${err.message}`);
-            }
-          }
-
-          await this.prisma.brand.update({
-            where: { id: user.brandId },
-            data: {
-              stripeCustomerId: customerId,
-              stripeSubscriptionId: subscriptionId || undefined,
-              plan: planId,
-              subscriptionStatus: subscriptionStatus as any,
-              trialEndsAt,
-              planExpiresAt: currentPeriodEnd,
-            },
-          });
-          
-          this.logger.log(`Brand ${user.brandId} updated with subscription ${subscriptionId}, plan: ${planId}, status: ${subscriptionStatus}`);
-        }
-      }
-
-      return {
-        processed: true,
-        result: {
-          type: 'subscription_created',
-          customerId,
-          subscriptionId,
-          sessionId: session.id,
-        },
-      };
-    }
-
-    // ✅ FIX: Handle order payment completion
-    // Trouver la commande associée à cette session Stripe et mettre à jour son statut
-    if (session.mode === 'payment') {
-      const orderId = session.metadata?.orderId;
-      if (orderId) {
-        try {
-          const order = await this.prisma.order.findUnique({
-            where: { id: orderId },
-            select: { id: true, status: true, orderNumber: true, paymentStatus: true },
-          });
-
-          if (order && order.paymentStatus !== 'SUCCEEDED') {
-            await this.prisma.order.update({
-              where: { id: orderId },
-              data: {
-                status: 'PAID',
-                paymentStatus: 'SUCCEEDED',
-                stripePaymentId: typeof session.payment_intent === 'string' 
-                  ? session.payment_intent 
-                  : session.payment_intent?.id || null,
-              },
-            });
-            this.logger.log(`Order ${order.orderNumber} marked as PAID (session ${session.id})`);
-
-            return {
-              processed: true,
-              result: {
-                type: 'order_payment',
-                orderId,
-                orderNumber: order.orderNumber,
-              },
-            };
-          }
-        } catch (error: any) {
-          this.logger.error(`Failed to update order ${orderId} payment status: ${error.message}`);
-        }
-      }
-
-      // Fallback: chercher par stripeSessionId si pas de metadata orderId
-      try {
-        const order = await this.prisma.order.findFirst({
-          where: { stripeSessionId: session.id },
-          select: { id: true, status: true, orderNumber: true, paymentStatus: true },
-        });
-
-        if (order && order.paymentStatus !== 'SUCCEEDED') {
-          await this.prisma.order.update({
-            where: { id: order.id },
-            data: {
-              status: 'PAID',
-              paymentStatus: 'SUCCEEDED',
-              stripePaymentId: typeof session.payment_intent === 'string' 
-                ? session.payment_intent 
-                : session.payment_intent?.id || null,
-            },
-          });
-          this.logger.log(`Order ${order.orderNumber} marked as PAID via session lookup (session ${session.id})`);
-
-          return {
-            processed: true,
-            result: {
-              type: 'order_payment',
-              orderId: order.id,
-              orderNumber: order.orderNumber,
-            },
-          };
-        }
-      } catch (error: any) {
-        this.logger.error(`Failed to find/update order by session ${session.id}: ${error.message}`);
-      }
-    }
-
-    return { processed: false };
-  }
-
-  /**
-   * Handle subscription.created and subscription.updated events
-   */
-  /**
-   * Mappe le statut Stripe vers le statut de l'application
-   * BIL-05: Synchronisation statuts subscription DB↔Stripe
-   */
-  private mapStripeStatusToAppStatus(stripeStatus: Stripe.Subscription.Status): 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'TRIALING' {
-    switch (stripeStatus) {
-      case 'trialing':
-        return 'TRIALING';
-      case 'active':
-        return 'ACTIVE';
-      case 'past_due':
-      case 'unpaid':
-        return 'PAST_DUE';
-      case 'canceled':
-      case 'incomplete_expired':
-        return 'CANCELED';
-      case 'incomplete':
-      case 'paused':
-        // incomplete et paused sont traités comme PAST_DUE pour bloquer l'accès
-        return 'PAST_DUE';
-      default:
-        this.logger.warn(`Unknown Stripe subscription status: ${stripeStatus}, defaulting to ACTIVE`);
-        return 'ACTIVE';
-    }
-  }
+  // NOTE: All webhook handling methods have been extracted to StripeWebhookService.
+  // See: apps/backend/src/modules/billing/services/stripe-webhook.service.ts
 
   /**
    * BIL-10: Get trial period days for a specific plan
    * Each plan can have a different trial period
    */
   private getTrialDaysForPlan(planId: string): number {
-    // Configuration par défaut depuis l'environnement
     const defaultTrialDays = this.configService.get<number>('stripe.trialPeriodDays') || 14;
-    
-    // Trial configurable par plan
     const trialDaysByPlan: Record<string, number> = {
-      starter: 14,           // Plan starter: 14 jours d'essai
-      professional: 14,      // Plan pro: 14 jours d'essai
-      business: 14,          // Plan business: 14 jours d'essai
-      enterprise: 30,        // Plan enterprise: 30 jours d'essai (VIP)
+      starter: 14,
+      professional: 14,
+      business: 14,
+      enterprise: 30,
     };
-    
-    // Permettre la surcharge via variables d'environnement
     const envKey = `STRIPE_TRIAL_DAYS_${planId.toUpperCase()}`;
     const envTrialDays = process.env[envKey];
     if (envTrialDays) {
       const parsed = parseInt(envTrialDays, 10);
-      if (!isNaN(parsed) && parsed >= 0) {
-        return parsed;
-      }
+      if (!isNaN(parsed) && parsed >= 0) return parsed;
     }
-    
     return trialDaysByPlan[planId.toLowerCase()] ?? defaultTrialDays;
-  }
-
-  private async handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-    
-    this.logger.log('Processing subscription update', {
-      subscriptionId: subscription.id,
-      customerId,
-      status: subscription.status,
-    });
-
-    // Find brand by Stripe customer ID
-    const brand = await this.prisma.brand.findFirst({
-      where: { stripeCustomerId: customerId },
-      include: { users: true },
-    });
-
-    if (brand) {
-      // BIL-05: Mapper et synchroniser le statut
-      const appStatus = this.mapStripeStatusToAppStatus(subscription.status);
-      const previousStatus = brand.subscriptionStatus;
-      
-      // Dates importantes de la subscription
-      const currentPeriodEnd = subscription.current_period_end 
-        ? new Date(subscription.current_period_end * 1000) 
-        : null;
-      const trialEnd = subscription.trial_end 
-        ? new Date(subscription.trial_end * 1000) 
-        : null;
-
-      // ✅ Identifier le plan principal parmi les items (exclure les add-ons)
-      // Les add-ons ont des metadata 'addon' ou sont dans la config addons
-      const addonsConfig = this.configService.get<Record<string, any>>('stripe.addons') || {};
-      const addonPriceIdSet = new Set<string>();
-      const addonPriceIdToType: Record<string, string> = {};
-      
-      for (const [addonKey, addonConf] of Object.entries(addonsConfig)) {
-        const conf = addonConf as any;
-        if (conf?.monthly) { addonPriceIdSet.add(conf.monthly); addonPriceIdToType[conf.monthly] = addonKey; }
-        if (conf?.yearly) { addonPriceIdSet.add(conf.yearly); addonPriceIdToType[conf.yearly] = addonKey; }
-      }
-
-      // Le plan principal = premier item qui n'est PAS un add-on
-      const planItem = subscription.items.data.find(item => !addonPriceIdSet.has(item.price.id));
-      const planName = planItem?.price?.nickname 
-        || subscription.metadata?.planId 
-        || brand.plan 
-        || 'starter';
-
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: {
-          stripeSubscriptionId: subscription.id,
-          subscriptionStatus: appStatus,
-          plan: planName,
-          planExpiresAt: currentPeriodEnd,
-          trialEndsAt: trialEnd,
-        },
-      });
-
-      // ✅ Synchroniser les add-ons actifs dans la DB (via PlansService ou directement)
-      const activeAddons: Array<{ type: string; quantity: number; stripePriceId: string }> = [];
-      for (const item of subscription.items.data) {
-        const addonType = addonPriceIdToType[item.price.id];
-        if (addonType) {
-          // Convertir camelCase (extraDesigns) en snake_case (extra_designs)
-          const snakeType = addonType.replace(/([A-Z])/g, '_$1').toLowerCase();
-          activeAddons.push({
-            type: snakeType,
-            quantity: item.quantity || 1,
-            stripePriceId: item.price.id,
-          });
-        }
-      }
-
-      // Persister les add-ons dans le champ limits JSON de la brand
-      const currentLimits = (brand.limits as Record<string, any>) || {};
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: {
-          limits: {
-            ...currentLimits,
-            activeAddons,
-            addonsUpdatedAt: new Date().toISOString(),
-          },
-        },
-      });
-
-      if (activeAddons.length > 0) {
-        this.logger.log(`Synced ${activeAddons.length} add-ons for brand ${brand.id}: ${activeAddons.map(a => `${a.type} x${a.quantity}`).join(', ')}`);
-      }
-
-      // Log le changement de statut
-      if (previousStatus !== appStatus) {
-        this.logger.log(`Subscription status changed for brand ${brand.id}: ${previousStatus} -> ${appStatus}`);
-        
-        // Notifier en cas de dégradation du statut
-        if (appStatus === 'PAST_DUE' || appStatus === 'CANCELED') {
-          const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
-          if (owner?.email) {
-            try {
-              await this.emailService.sendEmail({
-                to: owner.email,
-                subject: appStatus === 'PAST_DUE' 
-                  ? 'Action requise : Problème avec votre abonnement Luneo'
-                  : 'Votre abonnement Luneo a été annulé',
-                html: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h1 style="color: #333;">${appStatus === 'PAST_DUE' ? 'Paiement en attente' : 'Abonnement annulé'}</h1>
-                    <p>Bonjour ${owner.firstName || ''},</p>
-                    ${appStatus === 'PAST_DUE' 
-                      ? `<p>Nous n'avons pas pu traiter votre dernier paiement. Veuillez mettre à jour vos informations de paiement pour continuer à utiliser Luneo.</p>`
-                      : `<p>Votre abonnement Luneo a été annulé. Vous pouvez vous réabonner à tout moment.</p>`
-                    }
-                    <div style="margin: 30px 0;">
-                      <a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" 
-                         style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                        ${appStatus === 'PAST_DUE' ? 'Mettre à jour le paiement' : 'Se réabonner'}
-                      </a>
-                    </div>
-                    <p>L'équipe Luneo</p>
-                  </div>
-                `,
-              });
-            } catch (emailError: any) {
-              this.logger.warn(`Failed to send subscription status email: ${emailError.message}`);
-            }
-          }
-        }
-      }
-
-      return {
-        processed: true,
-        result: {
-          type: 'subscription_updated',
-          brandId: brand.id,
-          subscriptionId: subscription.id,
-          previousStatus,
-          newStatus: appStatus,
-          stripeStatus: subscription.status,
-        },
-      };
-    }
-
-    return { processed: false };
-  }
-
-  /**
-   * Handle subscription.deleted event
-   * BIL-05: Synchronisation complète lors de la suppression
-   */
-  private async handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-    
-    this.logger.log('Processing subscription deletion', {
-      subscriptionId: subscription.id,
-      customerId,
-    });
-
-    const brand = await this.prisma.brand.findFirst({
-      where: { stripeCustomerId: customerId },
-      include: { users: true },
-    });
-
-    if (brand) {
-      // ✅ FIX: Reset plan, add-ons et limites lors de l'annulation
-      const currentLimits = (brand.limits as Record<string, any>) || {};
-      
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: {
-          plan: 'starter', // Revenir au plan gratuit
-          subscriptionStatus: 'CANCELED',
-          stripeSubscriptionId: null, // Supprimer la référence
-          planExpiresAt: null,
-          limits: {
-            ...currentLimits,
-            activeAddons: [],  // ✅ Reset les add-ons
-            addonsUpdatedAt: new Date().toISOString(),
-            canceledAt: new Date().toISOString(),
-          } as any,
-        },
-      });
-
-      this.logger.log(`Brand ${brand.id} downgraded to starter plan, add-ons cleared`);
-
-      // Notifier l'utilisateur
-      const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
-      if (owner?.email) {
-        try {
-          await this.emailService.sendEmail({
-            to: owner.email,
-            subject: 'Votre abonnement Luneo a pris fin',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h1 style="color: #333;">Abonnement terminé</h1>
-                <p>Bonjour ${owner.firstName || ''},</p>
-                <p>Votre abonnement Luneo a pris fin. Vous êtes maintenant sur le plan Starter (gratuit).</p>
-                <p>Certaines fonctionnalités ne sont plus accessibles avec ce plan.</p>
-                <div style="margin: 30px 0;">
-                  <a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" 
-                     style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                    Voir les offres
-                  </a>
-                </div>
-                <p>L'équipe Luneo</p>
-              </div>
-            `,
-          });
-        } catch (emailError: any) {
-          this.logger.warn(`Failed to send subscription deleted email: ${emailError.message}`);
-        }
-      }
-
-      return {
-        processed: true,
-        result: {
-          type: 'subscription_deleted',
-          brandId: brand.id,
-          subscriptionId: subscription.id,
-        },
-      };
-    }
-
-    return { processed: false };
-  }
-
-  /**
-   * Handle invoice.payment_succeeded event
-   */
-  private async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
-    
-    this.logger.log('Processing invoice payment succeeded', {
-      invoiceId: invoice.id,
-      customerId,
-    });
-
-    // ✅ FIX: Mettre à jour le statut de la Brand à ACTIVE après paiement réussi
-    // Critique pour la reprise après un paiement échoué (PAST_DUE -> ACTIVE)
-    if (customerId) {
-      try {
-        const brand = await this.prisma.brand.findFirst({
-          where: { stripeCustomerId: customerId },
-          select: { id: true, subscriptionStatus: true },
-        });
-
-        if (brand && brand.subscriptionStatus !== 'ACTIVE') {
-          await this.prisma.brand.update({
-            where: { id: brand.id },
-            data: {
-              subscriptionStatus: 'ACTIVE',
-            },
-          });
-          this.logger.log(`Brand ${brand.id} status updated to ACTIVE after successful payment`);
-        }
-      } catch (error: any) {
-        this.logger.error(`Failed to update brand status after payment success: ${error.message}`);
-      }
-    }
-
-    return {
-      processed: true,
-      result: {
-        type: 'invoice_payment_succeeded',
-        invoiceId: invoice.id,
-        customerId,
-      },
-    };
-  }
-
-  /**
-   * Handle invoice.payment_failed event
-   */
-  /**
-   * Handle invoice.payment_failed event
-   * BIL-06: Notification d'échec de paiement
-   */
-  private async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
-    
-    this.logger.warn('Processing invoice payment failed', {
-      invoiceId: invoice.id,
-      customerId,
-    });
-
-    let emailSent = false;
-
-    // Trouver le brand et mettre à jour le statut
-    if (customerId) {
-      const brand = await this.prisma.brand.findFirst({
-        where: { stripeCustomerId: customerId },
-        include: { users: true },
-      });
-
-      if (brand) {
-        // Mettre à jour le statut de l'abonnement
-        await this.prisma.brand.update({
-          where: { id: brand.id },
-          data: {
-            subscriptionStatus: 'PAST_DUE',
-          },
-        });
-
-        // BIL-06: Envoyer un email de notification d'échec de paiement
-        const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
-        if (owner?.email) {
-          const amountDue = CurrencyUtils.formatCents(invoice.amount_due || 0, invoice.currency || CurrencyUtils.getDefaultCurrency());
-          const currency = CurrencyUtils.normalize(invoice.currency || CurrencyUtils.getDefaultCurrency());
-          const attemptCount = invoice.attempt_count || 1;
-          const nextAttempt = invoice.next_payment_attempt 
-            ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-              })
-            : null;
-
-          try {
-            await this.emailService.sendEmail({
-              to: owner.email,
-              subject: `⚠️ Échec de paiement - Action requise pour votre compte Luneo`,
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h1 style="color: #dc2626;">Échec de paiement</h1>
-                  <p>Bonjour ${owner.firstName || ''},</p>
-                  <p>Nous n'avons pas pu traiter votre paiement de <strong>${amountDue}</strong>.</p>
-                  
-                  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
-                    <p style="margin: 0; color: #dc2626;">
-                      <strong>Tentative ${attemptCount}</strong> - 
-                      ${nextAttempt 
-                        ? `Prochaine tentative automatique le ${nextAttempt}`
-                        : 'Aucune tentative automatique prévue'
-                      }
-                    </p>
-                  </div>
-
-                  <p><strong>Que faire ?</strong></p>
-                  <ul>
-                    <li>Vérifiez que votre carte est valide et dispose de fonds suffisants</li>
-                    <li>Mettez à jour vos informations de paiement si nécessaire</li>
-                    <li>Contactez votre banque si le problème persiste</li>
-                  </ul>
-
-                  <div style="margin: 30px 0;">
-                    <a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" 
-                       style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                      Mettre à jour mes informations de paiement
-                    </a>
-                  </div>
-
-                  <p style="color: #666; font-size: 14px;">
-                    Sans action de votre part, votre accès aux fonctionnalités premium sera suspendu.
-                  </p>
-
-                  <p>L'équipe Luneo</p>
-                </div>
-              `,
-            });
-            emailSent = true;
-            this.logger.log(`Payment failure notification sent to ${owner.email}`);
-          } catch (emailError: any) {
-            this.logger.warn(`Failed to send payment failure email: ${emailError.message}`);
-          }
-        }
-
-        this.logger.warn(`Brand ${brand.id} subscription marked as PAST_DUE due to payment failure`);
-      }
-    }
-
-    return {
-      processed: true,
-      result: {
-        type: 'invoice_payment_failed',
-        invoiceId: invoice.id,
-        customerId,
-        emailSent,
-      },
-    };
-  }
-
-  /**
-   * Handle customer.subscription.trial_will_end event
-   * Triggered 3 days before trial ends
-   */
-  private async handleTrialWillEnd(subscription: Stripe.Subscription): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-    
-    this.logger.log('Processing trial_will_end', {
-      subscriptionId: subscription.id,
-      customerId,
-      trialEnd: subscription.trial_end,
-    });
-
-    const brand = await this.prisma.brand.findFirst({
-      where: { stripeCustomerId: customerId },
-      include: { users: true },
-    });
-
-    if (brand) {
-      const trialEndDate = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
-      
-      // Mettre à jour la date de fin d'essai
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: {
-          trialEndsAt: trialEndDate,
-        },
-      });
-
-      // BIL-02: Envoyer un email de rappel de fin d'essai
-      const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
-      if (owner?.email) {
-        const daysLeft = trialEndDate 
-          ? Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) 
-          : 0;
-        const formattedDate = trialEndDate?.toLocaleDateString('fr-FR', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        });
-
-        try {
-          await this.emailService.sendEmail({
-            to: owner.email,
-            subject: `Votre période d'essai se termine dans ${daysLeft} jours`,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h1 style="color: #333;">Votre période d'essai touche à sa fin</h1>
-                <p>Bonjour ${owner.firstName || ''},</p>
-                <p>Votre période d'essai gratuite de Luneo se terminera le <strong>${formattedDate}</strong>.</p>
-                <p>Pour continuer à profiter de toutes les fonctionnalités, vous pouvez passer à un abonnement payant dès maintenant.</p>
-                <div style="margin: 30px 0;">
-                  <a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" 
-                     style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                    Voir les offres
-                  </a>
-                </div>
-                <p style="color: #666;">Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-                <p>L'équipe Luneo</p>
-              </div>
-            `,
-          });
-          this.logger.log(`Trial reminder email sent to ${owner.email}`);
-        } catch (emailError: any) {
-          this.logger.warn(`Failed to send trial reminder email: ${emailError.message}`);
-          // Ne pas faire échouer le webhook si l'email échoue
-        }
-      }
-
-      this.logger.log(`Trial will end for brand ${brand.id} on ${trialEndDate}`);
-
-      return {
-        processed: true,
-        result: {
-          type: 'trial_will_end',
-          brandId: brand.id,
-          trialEndDate,
-          emailSent: !!owner?.email,
-        },
-      };
-    }
-
-    return { processed: false };
-  }
-
-  /**
-   * Handle customer.subscription.paused event
-   */
-  private async handleSubscriptionPaused(subscription: Stripe.Subscription): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-    
-    this.logger.log('Processing subscription paused', {
-      subscriptionId: subscription.id,
-      customerId,
-    });
-
-    const brand = await this.prisma.brand.findFirst({
-      where: { stripeCustomerId: customerId },
-    });
-
-    if (brand) {
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: {
-          subscriptionStatus: 'PAST_DUE', // Using PAST_DUE as proxy for paused
-        },
-      });
-
-      return {
-        processed: true,
-        result: {
-          type: 'subscription_paused',
-          brandId: brand.id,
-          subscriptionId: subscription.id,
-        },
-      };
-    }
-
-    return { processed: false };
-  }
-
-  /**
-   * Handle customer.subscription.resumed event
-   */
-  private async handleSubscriptionResumed(subscription: Stripe.Subscription): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-    
-    this.logger.log('Processing subscription resumed', {
-      subscriptionId: subscription.id,
-      customerId,
-    });
-
-    const brand = await this.prisma.brand.findFirst({
-      where: { stripeCustomerId: customerId },
-    });
-
-    if (brand) {
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: {
-          subscriptionStatus: 'ACTIVE',
-        },
-      });
-
-      return {
-        processed: true,
-        result: {
-          type: 'subscription_resumed',
-          brandId: brand.id,
-          subscriptionId: subscription.id,
-        },
-      };
-    }
-
-    return { processed: false };
-  }
-
-  /**
-   * Handle invoice.upcoming event
-   * Triggered a few days before invoice is created
-   * BIL-04: Envoyer un email de rappel de facturation à venir
-   */
-  private async handleInvoiceUpcoming(invoice: Stripe.Invoice): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
-    
-    this.logger.log('Processing invoice upcoming', {
-      customerId,
-      amountDue: invoice.amount_due,
-      dueDate: invoice.due_date,
-    });
-
-    if (!customerId) {
-      return { processed: false };
-    }
-
-    // Trouver le brand associé
-    const brand = await this.prisma.brand.findFirst({
-      where: { stripeCustomerId: customerId },
-      include: { users: true },
-    });
-
-    if (brand) {
-      const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
-      
-      if (owner?.email) {
-        const amountFormatted = CurrencyUtils.formatCents(invoice.amount_due || 0, invoice.currency || CurrencyUtils.getDefaultCurrency());
-        const dueDate = invoice.due_date 
-          ? new Date(invoice.due_date * 1000).toLocaleDateString('fr-FR', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })
-          : 'prochainement';
-
-        try {
-          await this.emailService.sendEmail({
-            to: owner.email,
-            subject: `Prochaine facturation Luneo - ${amountFormatted}`,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h1 style="color: #333;">Prochaine facturation</h1>
-                <p>Bonjour ${owner.firstName || ''},</p>
-                <p>Nous vous informons que votre prochaine facture sera émise ${dueDate}.</p>
-                <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                  <p style="margin: 0; font-size: 24px; font-weight: bold; color: #333;">
-                    ${amountFormatted}
-                  </p>
-                  <p style="margin: 5px 0 0 0; color: #666;">Montant estimé TTC</p>
-                </div>
-                <p>Le paiement sera prélevé automatiquement sur votre moyen de paiement enregistré.</p>
-                <div style="margin: 30px 0;">
-                  <a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" 
-                     style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                    Gérer mon abonnement
-                  </a>
-                </div>
-                <p style="color: #666;">Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-                <p>L'équipe Luneo</p>
-              </div>
-            `,
-          });
-          this.logger.log(`Invoice upcoming email sent to ${owner.email}`);
-        } catch (emailError: any) {
-          this.logger.warn(`Failed to send invoice upcoming email: ${emailError.message}`);
-        }
-      }
-    }
-
-    return {
-      processed: true,
-      result: {
-        type: 'invoice_upcoming',
-        customerId,
-        amountDue: invoice.amount_due,
-        brandId: brand?.id,
-      },
-    };
-  }
-
-  /**
-   * Handle invoice.finalized event
-   */
-  private async handleInvoiceFinalized(invoice: Stripe.Invoice): Promise<{ processed: boolean; result?: any }> {
-    this.logger.log('Processing invoice finalized', {
-      invoiceId: invoice.id,
-      customerId: typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id,
-      total: invoice.total,
-    });
-
-    return {
-      processed: true,
-      result: {
-        type: 'invoice_finalized',
-        invoiceId: invoice.id,
-        total: invoice.total,
-      },
-    };
-  }
-
-  /**
-   * Handle charge.refunded event
-   */
-  private async handleChargeRefunded(charge: Stripe.Charge): Promise<{ processed: boolean; result?: any }> {
-    this.logger.log('Processing charge refunded', {
-      chargeId: charge.id,
-      amount: charge.amount,
-      amountRefunded: charge.amount_refunded,
-    });
-
-    const refund = charge.refunds?.data[0];
-    if (!refund) {
-      return { processed: true, result: { type: 'charge_refunded', chargeId: charge.id } };
-    }
-
-    // Trouver la commande associée au payment intent
-    const paymentIntentId = typeof charge.payment_intent === 'string' 
-      ? charge.payment_intent 
-      : charge.payment_intent?.id;
-
-    if (paymentIntentId) {
-      const order = await this.prisma.order.findFirst({
-        where: { stripePaymentId: paymentIntentId },
-        include: { commissions: true },
-      });
-
-      if (order) {
-        const isFullRefund = charge.amount_refunded === charge.amount;
-        
-        // Mettre à jour le statut de la commande
-        await this.prisma.order.update({
-          where: { id: order.id },
-          data: {
-            status: isFullRefund ? 'REFUNDED' : 'CANCELLED',
-          },
-        });
-
-        // BIL-09: Annuler les commissions non payées lors du remboursement
-        for (const commission of order.commissions) {
-          if (commission.status !== 'PAID') {
-            await this.prisma.commission.update({
-              where: { id: commission.id },
-              data: { status: 'CANCELLED' },
-            });
-          }
-        }
-
-        this.logger.log(`Order ${order.id} marked as ${isFullRefund ? 'REFUNDED' : 'CANCELLED'}`);
-
-        return {
-          processed: true,
-          result: {
-            type: 'charge_refunded',
-            orderId: order.id,
-            isFullRefund,
-            amountRefunded: charge.amount_refunded,
-          },
-        };
-      }
-    }
-
-    return {
-      processed: true,
-      result: {
-        type: 'charge_refunded',
-        chargeId: charge.id,
-        amountRefunded: charge.amount_refunded,
-      },
-    };
-  }
-
-  /**
-   * Handle customer.updated event
-   */
-  private async handleCustomerUpdated(customer: Stripe.Customer): Promise<{ processed: boolean; result?: any }> {
-    this.logger.log('Processing customer updated', {
-      customerId: customer.id,
-      email: customer.email,
-    });
-
-    const brand = await this.prisma.brand.findFirst({
-      where: { stripeCustomerId: customer.id },
-    });
-
-    if (brand) {
-      // Mettre à jour les informations de facturation si nécessaire
-      // On pourrait stocker l'email de facturation séparément si différent
-      this.logger.debug(`Customer ${customer.id} updated for brand ${brand.id}`);
-    }
-
-    return {
-      processed: true,
-      result: {
-        type: 'customer_updated',
-        customerId: customer.id,
-      },
-    };
-  }
-
-  /**
-   * Handle payment_method.attached event
-   */
-  private async handlePaymentMethodAttached(paymentMethod: Stripe.PaymentMethod): Promise<{ processed: boolean; result?: any }> {
-    const customerId = typeof paymentMethod.customer === 'string' 
-      ? paymentMethod.customer 
-      : paymentMethod.customer?.id;
-
-    this.logger.log('Processing payment method attached', {
-      paymentMethodId: paymentMethod.id,
-      customerId,
-      type: paymentMethod.type,
-    });
-
-    return {
-      processed: true,
-      result: {
-        type: 'payment_method_attached',
-        paymentMethodId: paymentMethod.id,
-        customerId,
-      },
-    };
-  }
-
-  /**
-   * Handle payment_method.detached event
-   */
-  private async handlePaymentMethodDetached(paymentMethod: Stripe.PaymentMethod): Promise<{ processed: boolean; result?: any }> {
-    this.logger.log('Processing payment method detached', {
-      paymentMethodId: paymentMethod.id,
-      type: paymentMethod.type,
-    });
-
-    return {
-      processed: true,
-      result: {
-        type: 'payment_method_detached',
-        paymentMethodId: paymentMethod.id,
-      },
-    };
   }
 
   /**

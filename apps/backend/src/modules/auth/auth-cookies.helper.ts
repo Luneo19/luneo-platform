@@ -28,13 +28,13 @@ export class AuthCookiesHelper {
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
 
-    // Refresh Token cookie (7 days)
+    // Refresh Token cookie (7 days) - path restricted so it's only sent to /api/v1/auth (e.g. refresh)
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction, // HTTPS only en production
       sameSite: 'lax', // Protection CSRF
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
-      path: '/',
+      path: '/api/v1/auth',
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
   }
@@ -61,7 +61,7 @@ export class AuthCookiesHelper {
       httpOnly: true,
       secure: configService.get('app.nodeEnv') === 'production',
       sameSite: 'lax',
-      path: '/',
+      path: '/api/v1/auth',
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
   }

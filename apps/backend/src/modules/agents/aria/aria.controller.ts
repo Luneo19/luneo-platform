@@ -26,8 +26,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { z } from 'zod';
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RateLimit, RateLimitPresets } from '@/libs/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '@/libs/rate-limit/rate-limit.guard';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AriaService, AriaMessage } from './aria.service';
 
 // ============================================================================
@@ -72,11 +74,14 @@ const ImproveRequestSchema = z.object({
 
 @ApiTags('Agents - Aria (B2C)')
 @Controller('agents/aria')
-@UseGuards(RateLimitGuard) // Rate limiting global
+@UseGuards(JwtAuthGuard, RateLimitGuard)
 export class AriaController {
   private readonly logger = new Logger(AriaController.name);
 
-  constructor(private readonly ariaService: AriaService) {}
+  constructor(
+    private readonly ariaService: AriaService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * Chat avec Aria
@@ -133,10 +138,13 @@ export class AriaController {
   async improveText(@Body() body: unknown) {
     const validated = ImproveRequestSchema.parse(body);
 
-    // Récupérer brandId depuis productId si disponible
     let brandId = validated.brandId;
     if (!brandId && validated.productId) {
-      // TODO: Récupérer depuis product (pour l'instant optionnel)
+      const product = await this.prisma.product.findUnique({
+        where: { id: validated.productId },
+        select: { brandId: true },
+      });
+      if (product?.brandId) brandId = product.brandId;
     }
 
     const result = await this.ariaService.improveText(

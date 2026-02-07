@@ -122,8 +122,8 @@ class MonitoringService {
   }
 
   /**
-   * Check database health via backend API (Prisma/PostgreSQL)
-   * Plus de Supabase : on s'appuie sur le health check du backend NestJS.
+   * Check database health via backend API (Prisma/PostgreSQL).
+   * On s'appuie sur le health check du backend NestJS.
    */
   private async checkDatabase(): Promise<ServiceHealth> {
     const start = Date.now();

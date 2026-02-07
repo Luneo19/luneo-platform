@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UnicodeNormalizerService } from './unicode-normalizer.service';
 
 export interface ValidationResult {
@@ -10,7 +11,10 @@ export interface ValidationResult {
 
 @Injectable()
 export class TextValidatorService {
-  constructor(private unicodeNormalizer: UnicodeNormalizerService) {}
+  constructor(
+    private unicodeNormalizer: UnicodeNormalizerService,
+    private prisma: PrismaService,
+  ) {}
 
   /**
    * Valider un texte selon les contraintes d'une zone
@@ -88,18 +92,33 @@ export class TextValidatorService {
   async validateForZone(
     text: string,
     zoneId: string,
-    productId: string,
+    _productId: string,
   ): Promise<ValidationResult> {
-    // Récupérer les contraintes de la zone depuis la DB
-    // Pour l'instant, validation basique
-    // TODO: Récupérer depuis Prisma
-
-    return this.validate(text, {
-      maxChars: 50, // Par défaut
-      minChars: 1,
-      required: false,
-      allowNonAscii: true,
+    const zone = await this.prisma.zone.findUnique({
+      where: { id: zoneId },
+      select: {
+        maxChars: true,
+        isRequired: true,
+        allowedFonts: true,
+        allowedColors: true,
+      },
     });
+
+    const constraints = zone
+      ? {
+          maxChars: zone.maxChars ?? 50,
+          minChars: 1,
+          required: zone.isRequired ?? false,
+          allowNonAscii: true,
+        }
+      : {
+          maxChars: 50,
+          minChars: 1,
+          required: false,
+          allowNonAscii: true,
+        };
+
+    return this.validate(text, constraints);
   }
 }
 

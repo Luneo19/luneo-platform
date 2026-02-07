@@ -47,7 +47,43 @@
 
 ---
 
+## ⚠️ PRE-REQUIS: Phase 12.5 - Corriger Routes API Cassées
+
+**AVANT de commencer le refactoring**, ces fichiers appellent des routes `/api/products` supprimées et doivent être migrés :
+
+- `apps/frontend/src/lib/hooks/useProducts.ts` : `/api/products` → `endpoints.products.list(params)`
+- `apps/frontend/src/app/(dashboard)/customize/[productId]/page.tsx` : `/api/products/*` → `endpoints.products.get(id)`
+
+**Pattern de migration** :
+```typescript
+// ❌ AVANT (route Next.js supprimée)
+const res = await fetch('/api/products');
+const data = await res.json();
+
+// ✅ APRÈS (backend NestJS via client API)
+import { endpoints } from '@/lib/api/client';
+const data = await endpoints.products.list(params);
+```
+
+**Endpoints disponibles** :
+```
+endpoints.products.list(params)   // GET /api/v1/products
+endpoints.products.get(id)        // GET /api/v1/products/:id
+endpoints.products.create(data)   // POST /api/v1/products
+endpoints.products.update(id, d)  // PUT /api/v1/products/:id
+endpoints.products.delete(id)     // DELETE /api/v1/products/:id
+```
+
+---
+
 ## ✅ TÂCHES
+
+### Phase 0: Fix Broken API Routes (0.5 jour) [Phase 12.5]
+
+- [ ] Migrer `useProducts.ts` → `endpoints.products.list(params)`
+- [ ] Migrer `customize/[productId]/page.tsx` → `endpoints.products.get(id)`
+- [ ] Supprimer tout `fetch('/api/products')` résiduel
+- [ ] Vérifier 0 import `@/lib/supabase` dans les fichiers products
 
 ### Phase 1: Refactoring Page Principale (2 jours)
 

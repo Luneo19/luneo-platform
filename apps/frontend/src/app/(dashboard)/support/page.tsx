@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -68,11 +69,12 @@ function SupportPageContent() {
   const loadTickets = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/support/tickets');
-      const data = await response.json();
-
-      if (data.success) {
-        setTickets(data.data.tickets || []);
+      const data = await api.get<{ success?: boolean; data?: { tickets?: Ticket[] }; tickets?: Ticket[] }>('/api/v1/support/tickets');
+      const ticketsList = data?.data?.tickets ?? data?.tickets ?? [];
+      if (data && 'success' in data && data.success) {
+        setTickets(ticketsList);
+      } else {
+        setTickets(ticketsList);
       }
     } catch (error) {
       logger.error('Error loading tickets', { error });
@@ -86,16 +88,10 @@ function SupportPageContent() {
     setSubmitting(true);
 
     try {
-      const response = await fetch('/api/support/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTicket),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setTickets([data.data.ticket, ...tickets]);
+      const data = await api.post<{ success?: boolean; data?: { ticket?: Ticket }; ticket?: Ticket }>('/api/v1/support/tickets', newTicket);
+      const ticket = data?.data?.ticket ?? data?.ticket;
+      if (ticket) {
+        setTickets([ticket, ...tickets]);
         setShowNewTicket(false);
         setNewTicket({
           subject: '',

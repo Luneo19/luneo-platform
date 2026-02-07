@@ -2,7 +2,7 @@
  * Loading State pour le Dashboard
  */
 
-import { DashboardSkeleton } from './components/DashboardSkeleton';
+import { DashboardSkeleton } from '@/components/ui/dashboard-skeleton';
 
 export default function Loading() {
   return <DashboardSkeleton />;

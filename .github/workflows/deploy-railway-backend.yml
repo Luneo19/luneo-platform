@@ -1,11 +1,7 @@
+# DEPRECATED: Use deploy-production.yml instead. This workflow is kept for reference but should not be triggered automatically.
 name: Deploy Backend to Railway
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/backend/**'
-      - '.github/workflows/deploy-railway-backend.yml'
   workflow_dispatch:
 
 jobs:
@@ -16,12 +12,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: 'apps/backend/package-lock.json'
+        node-version: '22'
+        cache: 'pnpm'
         
     - name: Install Railway CLI
       run: npm install -g @railway/cli@latest

@@ -15,10 +15,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 const nextConfig = {
   // Production optimizations
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // Note: 'standalone' output is not recommended for Vercel deployments
   // Only use standalone for Docker/Railway deployments
@@ -370,6 +370,31 @@ const nextConfig = {
       {
         source: '/signin',
         destination: '/login',
+        permanent: true,
+      },
+      {
+        source: '/analytics',
+        destination: '/dashboard/analytics',
+        permanent: true,
+      },
+      {
+        source: '/billing',
+        destination: '/dashboard/billing',
+        permanent: true,
+      },
+      {
+        source: '/integrations',
+        destination: '/dashboard/integrations',
+        permanent: true,
+      },
+      {
+        source: '/ai-studio',
+        destination: '/dashboard/ai-studio',
+        permanent: true,
+      },
+      {
+        source: '/ar-studio',
+        destination: '/dashboard/ar-studio',
         permanent: true,
       },
     ];

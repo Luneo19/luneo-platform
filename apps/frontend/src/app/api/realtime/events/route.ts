@@ -45,8 +45,9 @@ async function fetchRealEvents(channels: string[], since?: number): Promise<Real
       const data = await response.json();
       return data.events || [];
     }
+    logger.warn('Backend events stream returned non-OK', { status: response.status, channels });
   } catch (error) {
-    logger.debug('Failed to fetch events from backend, using fallback', { error });
+    logger.error('Failed to fetch events from backend', { error, channels });
   }
 
   return [];
@@ -82,8 +83,8 @@ async function fetchRealtimeMetrics(): Promise<RealtimeEvent | null> {
         channel: 'metrics',
       };
     }
-  } catch {
-    // Silently fail - metrics are optional
+  } catch (error) {
+    logger.warn('Failed to fetch realtime metrics from backend (optional)', { error });
   }
 
   return null;
@@ -188,7 +189,7 @@ async function fetchRecentActivity(channels: string[]): Promise<RealtimeEvent[]>
       }
     }
   } catch (error) {
-    logger.debug('Failed to fetch recent activity', { error });
+    logger.warn('Failed to fetch recent activity from backend', { error, channels });
   }
 
   return events;
@@ -247,7 +248,7 @@ export async function GET(request: NextRequest) {
             }
           }
         } catch (error) {
-          logger.debug('Error fetching real events', { error });
+          logger.warn('Error fetching real events during SSE poll', { error });
         }
       };
 
@@ -256,8 +257,8 @@ export async function GET(request: NextRequest) {
 
       // Poll for real events every 10 seconds
       const interval = setInterval(() => {
-        fetchAndSendEvents().catch(() => {
-          // Silently handle errors during polling
+        fetchAndSendEvents().catch((err) => {
+          logger.warn('SSE polling error', { error: err, connectionId });
         });
       }, 10000);
 

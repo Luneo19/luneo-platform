@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { generateNonce, buildCSPWithNonce } from '@/lib/security/csp-nonce';
+import { logger } from '@/lib/logger';
 
 // Rate limiting store (in production, use Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -46,6 +47,7 @@ const config = {
     '/billing',
     '/team',
     '/ai-studio',
+    '/onboarding',
     '/api/designs',
     '/api/billing',
     '/api/team',
@@ -53,6 +55,12 @@ const config = {
     '/api/settings',
     '/api/notifications',
     '/api/ai',
+  ],
+  // Routes that require completed onboarding (redirect to /onboarding if not done)
+  onboardingRequiredRoutes: [
+    '/dashboard',
+    '/overview',
+    '/ai-studio',
   ],
   // Public API routes (no auth required)
   publicApiRoutes: [
@@ -113,6 +121,39 @@ export async function middleware(request: NextRequest) {
     return handleBot(request, pathname);
   }
 
+  // 6. Auth Protection for dashboard routes (server-side cookie check)
+  // Prevents flash of unauthenticated content. Full validation happens client-side.
+  const isProtectedRoute = config.protectedRoutes.some(
+    (route) => pathname.startsWith(route) && !pathname.startsWith('/api/')
+  );
+
+  if (isProtectedRoute) {
+    const accessToken = request.cookies.get('accessToken')?.value;
+    const refreshToken = request.cookies.get('refreshToken')?.value;
+
+    if (!accessToken && !refreshToken) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // 7. Onboarding check — redirect to /onboarding if not completed
+  // This is a lightweight cookie-based check. Full validation is in the dashboard layout.
+  const requiresOnboarding = config.onboardingRequiredRoutes.some(
+    (route) => pathname.startsWith(route) && !pathname.startsWith('/api/')
+  );
+
+  if (requiresOnboarding) {
+    const onboardingCompleted = request.cookies.get('onboarding_completed')?.value;
+    // Only redirect if we have a definitive "false" signal
+    // (cookie set by the app after auth/me check)
+    if (onboardingCompleted === 'false' && pathname !== '/onboarding') {
+      const onboardingUrl = new URL('/onboarding', request.url);
+      return NextResponse.redirect(onboardingUrl);
+    }
+  }
+
   return response;
 }
 
@@ -145,7 +186,7 @@ function setSecurityHeaders(response: NextResponse, nonce?: string): void {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: http:",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "connect-src 'self' https://api.stripe.com https://*.supabase.co https://*.sentry.io wss://*.supabase.co https://www.google-analytics.com https://vitals.vercel-insights.com",
+      "connect-src 'self' https://api.stripe.com https://*.sentry.io https://www.google-analytics.com https://vitals.vercel-insights.com",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "frame-ancestors 'self'",
       "base-uri 'self'",
@@ -290,7 +331,7 @@ async function handleRateLimit(
     return null; // Continue to next middleware
   } catch (error) {
     // If rate limiting fails, log but allow request (fail open)
-    console.error('Rate limiting error:', error);
+    logger.error('Rate limiting error', error instanceof Error ? error : undefined);
     return null;
   }
 }

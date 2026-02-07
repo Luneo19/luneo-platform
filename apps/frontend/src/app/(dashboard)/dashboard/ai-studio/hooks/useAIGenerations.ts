@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
 import type { Generation, GenerationType, GenerationStatus } from '../types';
@@ -63,8 +64,7 @@ export function useAIGenerations(
 
   const handleDelete = async (generationId: string) => {
     try {
-      // TODO: Implement deletion via API or tRPC
-      logger.info('Delete generation', { generationId });
+      await api.delete(`/api/v1/ai-studio/generations/${generationId}`);
       toast({ title: 'Succès', description: 'Génération supprimée' });
       generationsQuery.refetch();
     } catch (error: any) {

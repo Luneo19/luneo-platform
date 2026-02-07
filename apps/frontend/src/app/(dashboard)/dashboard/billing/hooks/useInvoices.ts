@@ -5,6 +5,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 import type { Invoice } from '../types';
 
 export function useInvoices() {
@@ -15,24 +16,22 @@ export function useInvoices() {
   const fetchInvoices = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/billing/invoices');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de la récupération des factures');
-      }
-
+      const data = await endpoints.billing.invoices();
+      const raw = data as { invoices?: Array<Record<string, unknown>> };
+      const statusMap = ['open', 'paid', 'void', 'uncollectible'] as const;
+      const mapStatus = (s: string): Invoice['status'] =>
+        statusMap.includes(s as Invoice['status']) ? (s as Invoice['status']) : 'open';
       setInvoices(
-        (data.invoices || []).map((inv: any) => ({
-          id: inv.id,
-          number: inv.number || inv.id,
-          amount: inv.amount / 100, // Stripe amount is in cents
-          currency: inv.currency || 'eur',
-          status: inv.status,
-          date: inv.date || inv.created,
-          periodStart: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : undefined,
-          periodEnd: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : undefined,
-          pdfUrl: inv.invoice_pdf,
+        (raw.invoices || []).map((inv: Record<string, unknown>) => ({
+          id: String(inv.id ?? ''),
+          number: String(inv.number ?? inv.id ?? ''),
+          amount: Number(inv.amount ?? 0) / 100, // Stripe amount is in cents
+          currency: String(inv.currency ?? 'eur'),
+          status: mapStatus(String(inv.status ?? '')),
+          date: String(inv.date ?? inv.created ?? ''),
+          periodStart: inv.period_start ? new Date(Number(inv.period_start) * 1000).toISOString() : undefined,
+          periodEnd: inv.period_end ? new Date(Number(inv.period_end) * 1000).toISOString() : undefined,
+          pdfUrl: inv.invoice_pdf as string | undefined,
         }))
       );
     } catch (error: any) {

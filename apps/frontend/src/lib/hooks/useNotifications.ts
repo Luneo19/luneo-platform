@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 export interface Notification {
@@ -20,28 +21,22 @@ export function useNotifications(limit: number = 10) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/dashboard/notifications?limit=${limit}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await endpoints.notifications.list({ limit });
       
       // Gérer le format ApiResponseBuilder
-      const data = result.success === true ? result.data : result;
+      const data = (result as any).success === true ? (result as any).data : result;
       
-      if (data?.notifications && Array.isArray(data.notifications)) {
-        setNotifications(data.notifications);
-      } else {
-        // Si pas de notifications, retourner un tableau vide
-        setNotifications([]);
-      }
+      const list = data?.notifications && Array.isArray(data.notifications) ? data.notifications : [];
+      setNotifications(
+        list.map((n: Record<string, unknown>) => ({
+          id: String(n.id ?? ''),
+          type: (n.type as Notification['type']) ?? 'info',
+          title: String(n.title ?? ''),
+          message: String(n.message ?? ''),
+          time: n.created_at ? new Date(n.created_at as string).toLocaleString('fr-FR') : String(n.time ?? ''),
+          read: Boolean(n.is_read ?? n.read),
+        }))
+      );
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement notifications', {

@@ -62,7 +62,7 @@ export class ArCollaborationController {
       throw new BadRequestException('User must be associated with a brand');
     }
 
-    return this.arCollaborationService.getProject(id, user.brandId);
+    return this.arCollaborationService.getProject(id, user.brandId, user.id);
   }
 
   @Post('projects')

@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { GeneratedAnimation, AnimationStyle, AnimationTemplate } from '../types';
 
@@ -27,13 +28,8 @@ export function useAnimations(
   const fetchAnimations = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/ai-studio/animations');
-      if (response.ok) {
-        const data = await response.json();
-        setAnimations(data.animations || data.data || []);
-      } else {
-        setAnimations([]);
-      }
+      const data = await api.get<{ animations?: GeneratedAnimation[]; data?: GeneratedAnimation[] }>('/api/v1/ai-studio/animations');
+      setAnimations(data?.animations ?? data?.data ?? []);
     } catch (error) {
       logger.error('Failed to fetch animations', { error });
       setAnimations([]);
@@ -44,13 +40,8 @@ export function useAnimations(
 
   const fetchTemplates = async () => {
     try {
-      const response = await fetch('/api/ai-studio/animations/templates');
-      if (response.ok) {
-        const data = await response.json();
-        setTemplates(data.templates || data.data || []);
-      } else {
-        setTemplates([]);
-      }
+      const data = await api.get<{ templates?: AnimationTemplate[]; data?: AnimationTemplate[] }>('/api/v1/ai-studio/animations/templates');
+      setTemplates(data?.templates ?? data?.data ?? []);
     } catch (error) {
       logger.error('Failed to fetch templates', { error });
       setTemplates([]);
@@ -94,24 +85,18 @@ export function useAnimations(
         });
       }, 1000);
 
-      const response = await fetch('/api/ai-studio/animations/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          duration,
-          style,
-          fps,
-          resolution,
-        }),
+      const data = await api.post<{ url?: string; videoUrl?: string; thumbnail?: string }>('/api/v1/ai-studio/animations/generate', {
+        prompt,
+        duration,
+        style,
+        fps,
+        resolution,
       });
 
       clearInterval(progressInterval);
       setGenerationProgress(100);
 
-      if (response.ok) {
-        const data = await response.json();
-        const newAnimation: GeneratedAnimation = {
+      const newAnimation: GeneratedAnimation = {
           id: `anim-${Date.now()}`,
           prompt,
           duration,
@@ -119,8 +104,8 @@ export function useAnimations(
           fps,
           resolution,
           status: 'completed',
-          url: data.url || data.videoUrl,
-          thumbnail: data.thumbnail,
+          url: data?.url ?? data?.videoUrl,
+          thumbnail: data?.thumbnail,
           credits: duration * 10, // Example: 10 credits per second
           createdAt: Date.now(),
           isFavorite: false,
@@ -128,16 +113,14 @@ export function useAnimations(
         setAnimations((prev) => [newAnimation, ...prev]);
         toast({ title: 'Succès', description: 'Animation générée avec succès' });
         return { success: true, animation: newAnimation };
-      }
-      throw new Error('Failed to generate animation');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to generate animation', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la génération',
+        description: error instanceof Error ? error.message : 'Erreur lors de la génération',
         variant: 'destructive',
       });
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : 'Erreur' };
     } finally {
       setIsGenerating(false);
       setGenerationProgress(0);
@@ -146,47 +129,39 @@ export function useAnimations(
 
   const toggleFavorite = async (animationId: string) => {
     try {
-      const response = await fetch(`/api/ai-studio/animations/${animationId}/favorite`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        setAnimations((prev) =>
-          prev.map((a) => (a.id === animationId ? { ...a, isFavorite: !a.isFavorite } : a))
-        );
-        toast({ title: 'Succès', description: 'Favori mis à jour' });
-        return { success: true };
-      }
-      throw new Error('Failed to toggle favorite');
-    } catch (error: any) {
+      await api.post(`/api/v1/ai-studio/animations/${animationId}/favorite`);
+      setAnimations((prev) =>
+        prev.map((a) => (a.id === animationId ? { ...a, isFavorite: !a.isFavorite } : a))
+      );
+      toast({ title: 'Succès', description: 'Favori mis à jour' });
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de la mise à jour';
       logger.error('Failed to toggle favorite', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la mise à jour',
+        description: message,
         variant: 'destructive',
       });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   };
 
   const deleteAnimation = async (animationId: string) => {
     try {
-      const response = await fetch(`/api/ai-studio/animations/${animationId}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        setAnimations((prev) => prev.filter((a) => a.id !== animationId));
-        toast({ title: 'Succès', description: 'Animation supprimée' });
-        return { success: true };
-      }
-      throw new Error('Failed to delete animation');
-    } catch (error: any) {
+      await api.delete(`/api/v1/ai-studio/animations/${animationId}`);
+      setAnimations((prev) => prev.filter((a) => a.id !== animationId));
+      toast({ title: 'Succès', description: 'Animation supprimée' });
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de la suppression';
       logger.error('Failed to delete animation', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la suppression',
+        description: message,
         variant: 'destructive',
       });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   };
 

@@ -7,6 +7,7 @@
  * - User targeting
  */
 
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
 
@@ -78,13 +79,11 @@ export class FeatureFlagsService {
 
       // Load from API
       try {
-        const response = await fetch('/api/feature-flags');
-        if (response.ok) {
-          const flags = await response.json();
+        const flags = await api.get<FeatureFlag[]>('/api/v1/features');
+        if (Array.isArray(flags)) {
           flags.forEach((flag: FeatureFlag) => {
             this.flags.set(flag.key, flag);
           });
-          // Cache for 5 minutes
           cacheService.set('feature-flags:all', flags, { ttl: 5 * 60 * 1000 });
           logger.info('Feature flags loaded from API', { count: this.flags.size });
           return;
@@ -125,9 +124,8 @@ export class FeatureFlagsService {
 
     // Load from API
     try {
-      const response = await fetch(`/api/feature-flags/${key}`);
-      if (response.ok) {
-        const flag = await response.json();
+      const flag = await api.get<FeatureFlag>(`/api/v1/features/${key}`);
+      if (flag) {
         this.flags.set(key, flag);
         cacheService.set(`feature-flag:${key}`, flag, { ttl: 5 * 60 * 1000 });
         return flag;
@@ -199,15 +197,7 @@ export class FeatureFlagsService {
 
     // Save to API
     try {
-      const response = await fetch('/api/feature-flags', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(flag),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update feature flag: ${response.statusText}`);
-      }
+      await api.put('/api/v1/features', flag);
 
       // Invalidate cache
       await cacheService.delete(`feature-flag:${flag.key}`);

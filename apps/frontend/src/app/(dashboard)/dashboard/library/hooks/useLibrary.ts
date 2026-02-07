@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { trpc } from '@/lib/trpc/client';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { Template, SortOption } from '../types';
 
@@ -65,19 +66,10 @@ export function useLibrary(
   const toggleFavorite = useCallback(
     async (templateId: string, isFavorite: boolean): Promise<{ success: boolean }> => {
       try {
-        const response = await fetch(
-          isFavorite ? `/api/library/favorites?templateId=${templateId}` : '/api/library/favorites',
-          {
-            method: isFavorite ? 'DELETE' : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: isFavorite ? undefined : JSON.stringify({ templateId }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors de la mise à jour des favoris');
+        if (isFavorite) {
+          await api.delete('/api/v1/library/favorites', { params: { templateId } });
+        } else {
+          await api.post('/api/v1/library/favorites', { templateId });
         }
 
         setTemplates((prev) =>
@@ -90,11 +82,12 @@ export function useLibrary(
         });
 
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || (error as Error)?.message || 'Erreur lors de la mise à jour des favoris';
         logger.error('Error toggling favorite', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors de la mise à jour des favoris',
+          description: message,
           variant: 'destructive',
         });
         return { success: false };
@@ -106,25 +99,18 @@ export function useLibrary(
   const deleteTemplate = useCallback(
     async (templateId: string): Promise<{ success: boolean }> => {
       try {
-        const response = await fetch(`/api/library/templates?id=${templateId}`, {
-          method: 'DELETE',
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors de la suppression');
-        }
+        await api.delete('/api/v1/library/templates', { params: { id: templateId } });
 
         setTemplates((prev) => prev.filter((t) => t.id !== templateId));
         toast({ title: 'Succès', description: 'Template supprimé' });
         router.refresh();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || (error as Error)?.message || 'Erreur lors de la suppression';
         logger.error('Error deleting template', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors de la suppression',
+          description: message,
           variant: 'destructive',
         });
         return { success: false };

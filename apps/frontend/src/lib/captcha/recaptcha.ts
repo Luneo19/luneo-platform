@@ -3,6 +3,8 @@
  * Inspired by Stripe's approach to bot protection
  */
 
+import { logger } from '@/lib/logger';
+
 declare global {
   interface Window {
     grecaptcha: {
@@ -103,7 +105,7 @@ export async function executeRecaptcha(action: string): Promise<string> {
 export function initRecaptcha(): void {
   if (typeof window !== 'undefined' && SITE_KEY) {
     loadRecaptchaScript().catch((error) => {
-      console.error('Failed to load reCAPTCHA:', error);
+      logger.error('Failed to load reCAPTCHA', error instanceof Error ? error : new Error(String(error)));
     });
   }
 }

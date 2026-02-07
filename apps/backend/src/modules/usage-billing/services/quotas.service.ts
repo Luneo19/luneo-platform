@@ -2,8 +2,8 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { UsageMeteringService } from './usage-metering.service';
+import { PLAN_CONFIGS, normalizePlanTier, PlanTier } from '@/libs/plans';
 import {
-  UsageQuota,
   PlanLimits,
   UsageMetricType,
   UsageSummary,
@@ -12,255 +12,36 @@ import {
 /**
  * Service de gestion des quotas
  * Vérifie les limites par plan et gère les overages
+ *
+ * Les données de quotas proviennent de @/libs/plans (SINGLE SOURCE OF TRUTH).
  */
 @Injectable()
 export class QuotasService {
   private readonly logger = new Logger(QuotasService.name);
 
-  // Définition des plans et leurs limites
-  private readonly planLimits: Record<string, PlanLimits> = {
-    starter: {
-      plan: 'starter',
-      basePrice: 2900, // 29€ / mois
-      quotas: [
-        {
-          metric: 'designs_created',
-          limit: 50,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 50, // 0.50€ par design supplémentaire
-        },
-        {
-          metric: 'renders_2d',
-          limit: 100,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 20, // 0.20€ par rendu
-        },
-        {
-          metric: 'renders_3d',
-          limit: 10,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 100, // 1€ par rendu 3D
-        },
-        {
-          metric: 'ai_generations',
-          limit: 20,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 75, // 0.75€ par génération IA
-        },
-        {
-          metric: 'storage_gb',
-          limit: 5,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 50, // 0.50€ par GB
-        },
-        {
-          metric: 'api_calls',
-          limit: 10000,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 1, // 0.01€ par 100 appels
-        },
-        {
-          metric: 'team_members',
-          limit: 2,
-          period: 'month',
-          overage: 'block',
-        },
-      ],
-      features: ['Basic support', 'Email notifications', '2 team members'],
-    },
-    professional: {
-      plan: 'professional',
-      basePrice: 9900, // 99€ / mois
-      quotas: [
-        {
-          metric: 'designs_created',
-          limit: 200,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 40, // 0.40€
-        },
-        {
-          metric: 'renders_2d',
-          limit: 500,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 15, // 0.15€
-        },
-        {
-          metric: 'renders_3d',
-          limit: 50,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 80, // 0.80€
-        },
-        {
-          metric: 'ai_generations',
-          limit: 100,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 60, // 0.60€
-        },
-        {
-          metric: 'storage_gb',
-          limit: 25,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 40, // 0.40€ par GB
-        },
-        {
-          metric: 'api_calls',
-          limit: 50000,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 1,
-        },
-        {
-          metric: 'team_members',
-          limit: 10,
-          period: 'month',
-          overage: 'block',
-        },
-      ],
-      features: [
-        'Priority support',
-        'Advanced analytics',
-        '10 team members',
-        'Custom branding',
-      ],
-    },
-    business: {
-      plan: 'business',
-      basePrice: 29900, // 299€ / mois
-      quotas: [
-        {
-          metric: 'designs_created',
-          limit: 1000,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 30, // 0.30€
-        },
-        {
-          metric: 'renders_2d',
-          limit: 2000,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 10, // 0.10€
-        },
-        {
-          metric: 'renders_3d',
-          limit: 200,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 60, // 0.60€
-        },
-        {
-          metric: 'ai_generations',
-          limit: 500,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 50, // 0.50€
-        },
-        {
-          metric: 'storage_gb',
-          limit: 100,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 30, // 0.30€ par GB
-        },
-        {
-          metric: 'api_calls',
-          limit: 200000,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 1,
-        },
-        {
-          metric: 'team_members',
-          limit: 50,
-          period: 'month',
-          overage: 'block',
-        },
-      ],
-      features: [
-        'Dedicated support',
-        'Advanced analytics',
-        '50 team members',
-        'Custom branding',
-        'API access',
-        'Webhooks',
-      ],
-    },
-    enterprise: {
-      plan: 'enterprise',
-      basePrice: 99900, // 999€ / mois
-      quotas: [
-        {
-          metric: 'designs_created',
-          limit: 99999,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 20, // 0.20€
-        },
-        {
-          metric: 'renders_2d',
-          limit: 99999,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 5, // 0.05€
-        },
-        {
-          metric: 'renders_3d',
-          limit: 99999,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 40, // 0.40€
-        },
-        {
-          metric: 'ai_generations',
-          limit: 99999,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 40, // 0.40€
-        },
-        {
-          metric: 'storage_gb',
-          limit: 500,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 20, // 0.20€ par GB
-        },
-        {
-          metric: 'api_calls',
-          limit: 9999999,
-          period: 'month',
-          overage: 'charge',
-          overageRate: 1,
-        },
-        {
-          metric: 'team_members',
-          limit: 999,
-          period: 'month',
-          overage: 'block',
-        },
-      ],
-      features: [
-        'White glove support',
-        'Custom analytics',
-        'Unlimited team members',
-        'Full customization',
-        'API access',
-        'Webhooks',
-        'SLA 99.9%',
-        'Dedicated infrastructure',
-      ],
-    },
-  };
+  /**
+   * Plan limits derived from centralized config.
+   * Source: @/libs/plans/plan-config.ts (SINGLE SOURCE OF TRUTH)
+   */
+  private readonly planLimits: Record<string, PlanLimits> = (() => {
+    const result: Record<string, PlanLimits> = {};
+    for (const tier of [PlanTier.STARTER, PlanTier.PROFESSIONAL, PlanTier.BUSINESS, PlanTier.ENTERPRISE]) {
+      const config = PLAN_CONFIGS[tier];
+      result[tier] = {
+        plan: tier as PlanLimits['plan'],
+        basePrice: config.pricing.basePriceCents,
+        quotas: config.quotas.map((q) => ({
+          metric: q.metric as UsageMetricType,
+          limit: q.limit,
+          period: q.period as 'month' | 'day',
+          overage: q.overage,
+          overageRate: q.overageRate,
+        })),
+        features: config.info.features,
+      };
+    }
+    return result;
+  })();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -486,7 +267,10 @@ export class QuotasService {
    * Récupérer les limites d'un plan
    */
   getPlanLimits(plan: string): PlanLimits {
-    return this.planLimits[plan] || this.planLimits.starter;
+    const tier = normalizePlanTier(plan);
+    // Free tier uses starter quotas (free has no usage-billing quotas)
+    const effectiveTier = tier === PlanTier.FREE ? PlanTier.STARTER : tier;
+    return this.planLimits[effectiveTier] || this.planLimits.starter;
   }
 
   /**

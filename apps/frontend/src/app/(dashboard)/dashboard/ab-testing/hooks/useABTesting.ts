@@ -15,7 +15,7 @@ export function useABTesting(
   const { toast } = useToast();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
 
-  const experimentsQuery = (trpc.abTesting as any)?.listExperiments?.useQuery?.() || {
+  const experimentsQuery = (trpc.abTesting as any)?.list?.useQuery?.() || {
     data: { experiments: [] },
     isLoading: false,
     error: null,

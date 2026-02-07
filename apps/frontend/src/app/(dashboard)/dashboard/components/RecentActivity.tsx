@@ -11,6 +11,7 @@ import { Activity, Package, ShoppingCart } from 'lucide-react';
 import { trpc } from '@/lib/trpc/client';
 import { formatRelativeDate } from '@/lib/utils/formatters';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 interface RecentActivityProps {
   period: '7d' | '30d' | '90d';
@@ -26,18 +27,16 @@ function RecentActivityContent({ period }: RecentActivityProps) {
   const isLoading = productsQuery.isLoading;
   const recentProducts = productsQuery.data?.products || [];
   
-  // Fetch recent orders from Supabase via API
+  // Fetch recent orders via backend API
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   useEffect(() => {
     async function fetchOrders() {
       try {
-        const response = await fetch('/api/orders?limit=5&offset=0');
-        if (response.ok) {
-          const data = await response.json();
-          setRecentOrders(data.data?.orders || data.orders || []);
-        }
+        const result = await endpoints.orders.list({ limit: 5 });
+        const raw = result as { data?: { orders?: any[] }; orders?: any[] };
+        setRecentOrders(raw?.data?.orders || raw?.orders || []);
       } catch (error) {
         logger.error('[RecentActivity] Error fetching orders', {
           error: error instanceof Error ? error.message : String(error),

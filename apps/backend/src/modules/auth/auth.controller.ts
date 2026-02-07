@@ -8,8 +8,6 @@ import {
   Request,
   Get,
   Res,
-  Response,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { Response as ExpressResponse } from 'express';
 import {
@@ -28,12 +26,15 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Setup2FADto } from './dto/setup-2fa.dto';
 import { Verify2FADto } from './dto/verify-2fa.dto';
 import { Login2FADto } from './dto/login-2fa.dto';
+import { OnboardingDto } from './dto/onboarding.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { AuthCookiesHelper } from './auth-cookies.helper';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
+import { RBACService } from '@/modules/security/services/rbac.service';
+import { Permission } from '@/modules/security/interfaces/rbac.interface';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -41,9 +42,11 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly rbacService: RBACService,
   ) {}
 
   @Post('signup')
+  /** @Public: user registration — no auth yet */
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
@@ -135,6 +138,7 @@ export class AuthController {
   }
 
   @Post('login')
+  /** @Public: login — returns tokens/cookies */
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute max
   @HttpCode(HttpStatus.OK)
@@ -400,39 +404,89 @@ export class AuthController {
     return res.status(HttpStatus.OK).json(result);
   }
 
+  @Post('onboarding')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete onboarding step (company, industry, profile)' })
+  @ApiResponse({ status: 200, description: 'Onboarding step saved' })
+  @ApiResponse({ status: 400, description: 'Invalid step or missing data' })
+  async onboarding(@Request() req: any, @Body() dto: OnboardingDto) {
+    return this.authService.completeOnboardingStep(req.user.id, dto.step, dto.data);
+  }
+
+  @Get('onboarding')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get onboarding status for current user' })
+  @ApiResponse({ status: 200, description: 'Onboarding status and current step' })
+  async getOnboarding(@Request() req: any) {
+    return this.authService.getOnboardingStatus(req.user.id);
+  }
+
+  @Post('check-permission')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Check if current user has a permission' })
+  @ApiResponse({ status: 200, description: 'Returns { allowed: boolean }' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async checkPermission(
+    @Request() req: { user: { id: string } },
+    @Body() body: { permission: string; resource?: string; resourceId?: string },
+  ) {
+    const permissionStr = body?.permission;
+    if (!permissionStr || typeof permissionStr !== 'string') {
+      return { allowed: false };
+    }
+    const validPermission = Object.values(Permission).includes(permissionStr as Permission);
+    const allowed = validPermission
+      ? await this.rbacService.userHasPermission(req.user.id, permissionStr as Permission)
+      : false;
+    return { allowed };
+  }
+
+  @Get('permissions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user permissions' })
+  @ApiResponse({ status: 200, description: 'Returns { permissions: string[] }' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getPermissions(@Request() req: { user: { id: string } }) {
+    const permissions = await this.rbacService.getUserPermissions(req.user.id);
+    return { permissions: permissions as string[] };
+  }
+
   @Get('me')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtenir les informations de l\'utilisateur connecté' })
   @ApiResponse({
     status: 200,
-    description: 'Informations utilisateur',
+    description: 'Informations utilisateur avec organization, industry et onboardingCompleted',
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        data: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            email: { type: 'string' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            role: { type: 'string' },
-            brandId: { type: 'string' },
-            brand: { type: 'object' },
-          },
-        },
-        timestamp: { type: 'string' },
+        id: { type: 'string' },
+        email: { type: 'string' },
+        firstName: { type: 'string' },
+        lastName: { type: 'string' },
+        role: { type: 'string' },
+        brandId: { type: 'string' },
+        brand: { type: 'object' },
+        organization: { type: 'object' },
+        industry: { type: 'object' },
+        onboardingCompleted: { type: 'boolean' },
       },
     },
   })
   @ApiResponse({ status: 401, description: 'Non autorisé' })
-  async getProfile(@Request() req) {
-    return req.user;
+  async getProfile(@Request() req: { user: { id: string } }) {
+    return this.authService.getMe(req.user.id);
   }
 
   @Post('forgot-password')
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 requests per minute max (prevent email enumeration/spam)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Demander la réinitialisation du mot de passe' })
   @ApiResponse({
@@ -448,13 +502,12 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Données invalides' })
   @ApiResponse({ status: 429, description: 'Too many requests' })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    // ✅ Note: Rate limiting should be applied at middleware level
-    // Rate limit: 3 requests per hour per IP/email
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('reset-password')
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute max (prevent brute-force token guessing)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Réinitialiser le mot de passe avec un token' })
   @ApiResponse({
@@ -470,9 +523,6 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Token invalide ou expiré / Password does not meet requirements' })
   @ApiResponse({ status: 429, description: 'Too many requests' })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    // ✅ Note: Rate limiting should be applied at middleware level
-    // Rate limit: 5 requests per hour per IP/token
-    // ✅ Password strength validation included in service
     return this.authService.resetPassword(resetPasswordDto);
   }
 
@@ -552,6 +602,7 @@ export class AuthController {
   }
 
   @Get('github/callback')
+  /** @Public: OAuth callback — receives redirect from GitHub */
   @Public()
   @UseGuards(AuthGuard('github'))
   @ApiOperation({ summary: 'GitHub OAuth callback' })
@@ -588,6 +639,7 @@ export class AuthController {
   // ========================================
 
   @Get('saml')
+  /** @Public: SAML SSO entry — redirects to IdP */
   @Public()
   @UseGuards(AuthGuard('saml'))
   @ApiOperation({ summary: 'Initiate SAML SSO login' })
@@ -598,6 +650,7 @@ export class AuthController {
 
   @Post('saml/callback')
   @Get('saml/callback')
+  /** @Public: SAML callback — receives POST/GET from IdP */
   @Public()
   @UseGuards(AuthGuard('saml'))
   @ApiOperation({ summary: 'SAML SSO callback (supports both POST and GET)' })
@@ -630,6 +683,7 @@ export class AuthController {
   }
 
   @Get('oidc')
+  /** @Public: OIDC SSO entry — redirects to IdP */
   @Public()
   @UseGuards(AuthGuard('oidc'))
   @ApiOperation({ summary: 'Initiate OIDC SSO login' })
@@ -639,6 +693,7 @@ export class AuthController {
   }
 
   @Get('oidc/callback')
+  /** @Public: OIDC callback — receives redirect from IdP */
   @Public()
   @UseGuards(AuthGuard('oidc'))
   @ApiOperation({ summary: 'OIDC SSO callback' })

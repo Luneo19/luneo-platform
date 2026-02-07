@@ -176,9 +176,35 @@ export class PrometheusService implements OnModuleInit {
    */
   async getMetrics(): Promise<string> {
     if (!this.registry) {
-      return '# prom-client not installed. Install with: npm install prom-client\n';
+      return '# prom-client not installed. Install with: prom-client\n';
     }
     return this.registry.metrics();
+  }
+
+  /**
+   * Get basic request count and latency for health endpoint (from prom-client registry).
+   */
+  async getRequestStats(): Promise<{ requestCountTotal: number; latencyP95Ms: number | null }> {
+    if (!this.registry || typeof this.registry.getMetricsAsJSON !== 'function') {
+      return { requestCountTotal: 0, latencyP95Ms: null };
+    }
+    const metrics = this.registry.getMetricsAsJSON() as Array<{ name: string; values?: Array<{ value?: number; labels?: Record<string, string> }> }>;
+    let requestCountTotal = 0;
+    let latencyP95Ms: number | null = null;
+    for (const m of metrics) {
+      if (m.name === 'http_requests_total' && m.values?.length) {
+        requestCountTotal += m.values.reduce((s, v) => s + (Number(v.value) || 0), 0);
+      }
+      if (m.name === 'http_request_duration_seconds_bucket' && m.values?.length) {
+        const withLe = m.values.filter((v) => v.labels?.le != null).sort((a, b) => (parseFloat(a.labels!.le) || 0) - (parseFloat(b.labels!.le) || 0));
+        if (withLe.length > 0) {
+          const p95Bucket = withLe[Math.min(Math.ceil(withLe.length * 0.95) - 1, withLe.length - 1)];
+          const le = p95Bucket?.labels?.le ? parseFloat(p95Bucket.labels.le) : 0;
+          latencyP95Ms = Math.round(le * 1000);
+        }
+      }
+    }
+    return { requestCountTotal, latencyP95Ms };
   }
 
   /**

@@ -5,6 +5,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { TwoFactorStatus } from '../types';
 
@@ -19,25 +20,20 @@ export function useTwoFactor() {
   const fetchStatus = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/2fa');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de la récupération du statut 2FA');
-      }
-
+      const user = await endpoints.auth.me();
       setStatus({
-        enabled: data.data?.enabled || false,
-        verified_at: data.data?.verified_at,
-        created_at: data.data?.created_at,
+        enabled: (user as { twoFactorEnabled?: boolean })?.twoFactorEnabled ?? false,
+        verified_at: (user as { twoFactorVerifiedAt?: string })?.twoFactorVerifiedAt,
+        created_at: (user as { twoFactorCreatedAt?: string })?.twoFactorCreatedAt,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching 2FA status', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la récupération du statut 2FA',
+        description: error instanceof Error ? error.message : 'Erreur lors de la récupération du statut 2FA',
         variant: 'destructive',
       });
+      setStatus({ enabled: false });
     } finally {
       setIsLoading(false);
     }
@@ -52,41 +48,26 @@ export function useTwoFactor() {
       try {
         setIsEnabling(true);
 
-        const response = await fetch('/api/settings/2fa', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'enable',
-            token,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors de l\'activation de la 2FA');
-        }
-
-        if (data.data?.qrCode) {
-          // Première étape : génération du QR code
+        if (!token) {
+          const data = await endpoints.auth.setup2FA();
           setStatus({
             enabled: false,
-            qrCode: data.data.qrCode,
-            backupCodes: data.data.backupCodes,
+            qrCode: data.qrCodeUrl ?? (data as { qrCode?: string }).qrCode,
+            backupCodes: data.backupCodes ?? [],
           });
-          return { success: true, data: data.data };
-        } else {
-          // Deuxième étape : activation confirmée
-          setStatus({ enabled: true });
-          toast({ title: 'Succès', description: '2FA activée avec succès' });
-          router.refresh();
-          return { success: true };
+          return { success: true, data: { qrCode: data.qrCodeUrl, backupCodes: data.backupCodes } as TwoFactorStatus };
         }
-      } catch (error: any) {
+
+        await endpoints.auth.verify2FA(token);
+        setStatus({ enabled: true });
+        toast({ title: 'Succès', description: '2FA activée avec succès' });
+        router.refresh();
+        return { success: true };
+      } catch (error: unknown) {
         logger.error('Error enabling 2FA', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors de l\'activation de la 2FA',
+          description: error instanceof Error ? error.message : "Erreur lors de l'activation de la 2FA",
           variant: 'destructive',
         });
         return { success: false };
@@ -101,29 +82,18 @@ export function useTwoFactor() {
     try {
       setIsDisabling(true);
 
-      const response = await fetch('/api/settings/2fa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'disable',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de la désactivation de la 2FA');
-      }
+      await endpoints.auth.disable2FA();
 
       setStatus({ enabled: false });
       toast({ title: 'Succès', description: '2FA désactivée avec succès' });
       router.refresh();
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erreur lors de la désactivation de la 2FA";
       logger.error('Error disabling 2FA', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la désactivation de la 2FA',
+        description: message,
         variant: 'destructive',
       });
       return { success: false };

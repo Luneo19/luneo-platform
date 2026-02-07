@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api/client';
 
 interface Clipart {
   id: string;
@@ -77,31 +78,25 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
   const loadCliparts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '24',
+      const params: Record<string, string | number> = {
+        page,
+        limit: 24,
         sort_by: sortBy,
         sort_order: 'desc',
-      });
-
+      };
       if (selectedCategory !== 'all') {
-        params.append('category', selectedCategory);
+        params.category = selectedCategory;
       }
-
-      const response = await fetch(`/api/cliparts?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setCliparts(data.cliparts || []);
-        setTotalPages(data.pagination?.totalPages || 1);
-        
-        // Extract unique categories
-        const uniqueCategories = Array.from(
-          new Set((data.cliparts || []).map((c: Clipart) => c.category).filter(Boolean))
-        ) as string[];
-        setCategories(uniqueCategories);
-      } else {
-        throw new Error('Failed to load cliparts');
-      }
+      const data = await api.get<{ cliparts?: Clipart[]; pagination?: { totalPages?: number } }>(
+        '/api/v1/cliparts',
+        { params }
+      );
+      setCliparts(data?.cliparts || []);
+      setTotalPages(data?.pagination?.totalPages || 1);
+      const uniqueCategories = Array.from(
+        new Set((data?.cliparts || []).map((c: Clipart) => c.category).filter(Boolean))
+      ) as string[];
+      setCategories(uniqueCategories);
     } catch (error) {
       logger.error('Failed to load cliparts', { error });
       toast({
@@ -140,26 +135,17 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
         
-        const response = await fetch('/api/cliparts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: file.name.replace(/\.[^/.]+$/, ''),
-            image_url: base64,
-            category: 'uploaded',
-            tags: [],
-          }),
+        await api.post('/api/v1/cliparts', {
+          name: file.name.replace(/\.[^/.]+$/, ''),
+          image_url: base64,
+          category: 'uploaded',
+          tags: [],
         });
-
-        if (response.ok) {
-          toast({
-            title: 'Clipart uploadé',
-            description: 'Votre clipart a été ajouté avec succès',
-          });
-          loadCliparts();
-        } else {
-          throw new Error('Upload failed');
-        }
+        toast({
+          title: 'Clipart uploadé',
+          description: 'Votre clipart a été ajouté avec succès',
+        });
+        loadCliparts();
       };
       reader.readAsDataURL(file);
     } catch (error) {
@@ -184,17 +170,12 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
 
   const handleDelete = async (clipartId: string) => {
     try {
-      const response = await fetch(`/api/cliparts?id=${clipartId}`, {
-        method: 'DELETE',
+      await api.delete(`/api/v1/cliparts/${clipartId}`);
+      setCliparts(cliparts.filter((c) => c.id !== clipartId));
+      toast({
+        title: 'Supprimé',
+        description: 'Clipart supprimé avec succès',
       });
-
-      if (response.ok) {
-        setCliparts(cliparts.filter((c) => c.id !== clipartId));
-        toast({
-          title: 'Supprimé',
-          description: 'Clipart supprimé avec succès',
-        });
-      }
     } catch (error) {
       logger.error('Delete error', { error, clipartId });
       toast({

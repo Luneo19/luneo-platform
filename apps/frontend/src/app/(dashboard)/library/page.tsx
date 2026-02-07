@@ -28,6 +28,7 @@ import {
   Play,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -151,21 +152,10 @@ function LibraryPageContent() {
       const template = templates.find(t => t.id === templateId);
       const isFavorite = template?.isFavorite;
 
-      const response = await fetch(
-        isFavorite 
-          ? `/api/library/favorites?templateId=${templateId}` 
-          : '/api/library/favorites',
-        {
-          method: isFavorite ? 'DELETE' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: isFavorite ? undefined : JSON.stringify({ templateId })
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to toggle favorite');
+      if (isFavorite) {
+        await api.delete(`/api/v1/library/favorites?templateId=${templateId}`);
+      } else {
+        await api.post('/api/v1/library/favorites', { templateId });
       }
 
       setTemplates(templates.map(t => 
@@ -217,15 +207,7 @@ function LibraryPageContent() {
     }
 
     try {
-      const response = await fetch(`/api/library/templates?id=${templateId}`, {
-        method: 'DELETE'
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to delete template');
-      }
+      await api.delete('/api/v1/library/templates', { params: { id: templateId } });
 
       setTemplates(templates.filter(t => t.id !== templateId));
 

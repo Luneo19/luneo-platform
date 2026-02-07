@@ -15,8 +15,8 @@ function StorageConfigPageContent() {
         </div>
 
         <Card className="p-6 bg-gray-800/50 border-gray-700">
-          <h2 className="text-2xl font-bold text-white mb-4">Supabase Storage</h2>
-          <p className="text-gray-300">Images, designs, exports stockés sur Supabase Storage</p>
+          <h2 className="text-2xl font-bold text-white mb-4">Cloudinary</h2>
+          <p className="text-gray-300">Images, designs et exports sont stockés sur <strong>Cloudinary</strong>, avec CDN et optimisation automatique. Configurez les variables d&apos;environnement backend (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) pour activer le stockage.</p>
         </Card>
       </div>
     </div>
@@ -32,4 +32,3 @@ export default function StorageConfigPage() {
     </ErrorBoundary>
   );
 }
-

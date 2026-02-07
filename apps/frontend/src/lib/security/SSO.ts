@@ -6,7 +6,7 @@
  * - OAuth 2.0
  */
 
-import { db } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
 
@@ -62,11 +62,8 @@ export class SSOService {
    */
   async getConfig(brandId: string): Promise<SSOConfig | null> {
     try {
-      // Fetch from database (stored in Brand.settings or separate SSOConfig table)
-      const brand = await db.brand.findUnique({
-        where: { id: brandId },
-        select: { settings: true },
-      });
+      const { api } = await import('@/lib/api/client');
+      const brand = await (api as any).get(`/api/v1/brands/${brandId}`).catch(() => null) as { settings?: any } | null;
 
       if (brand?.settings) {
         const settings = brand.settings as any;
@@ -89,21 +86,13 @@ export class SSOService {
     try {
       logger.info('Updating SSO config', { brandId, provider: config.provider });
 
-      // Get current settings
-      const brand = await db.brand.findUnique({
-        where: { id: brandId },
-        select: { settings: true },
-      });
-
+      const { api } = await import('@/lib/api/client');
+      const brand = await (api as any).get(`/api/v1/brands/${brandId}`).catch(() => null);
       const currentSettings = (brand?.settings as any) || {};
       currentSettings.sso = config;
 
-      // Update in database
-      await db.brand.update({
-        where: { id: brandId },
-        data: {
-          settings: currentSettings as any,
-        },
+      await (api as any).patch(`/api/v1/brands/${brandId}`, {
+        settings: currentSettings,
       });
 
       logger.info('SSO config updated', { brandId });

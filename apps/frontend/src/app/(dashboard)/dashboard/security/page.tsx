@@ -1,19 +1,17 @@
 /**
  * ★★★ PAGE - SECURITY ★★★
  * Page Server Component pour la gestion de la sécurité
- * 
- * Architecture:
- * - Server Component qui vérifie l'authentification
- * - Client Component pour les interactions
- * - Composants < 300 lignes
- * - Types stricts (pas de any)
+ * Cookie-based auth with NestJS backend.
  */
 
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SecurityPageClient } from './SecurityPageClient';
 import { SecuritySkeleton } from './components/SecuritySkeleton';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export const metadata = {
   title: 'Sécurité | Luneo',
@@ -24,20 +22,16 @@ export const metadata = {
  * Server Component - Vérifie l'authentification
  */
 export default async function SecurityPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('accessToken')?.value;
+  if (!accessToken) redirect('/login');
 
-  // Vérifier l'authentification
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return (
-      <ErrorBoundary level="page" componentName="SecurityPage">
-        <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
-        </div>
-      </ErrorBoundary>
-    );
-  }
+  const userRes = await fetch(`${API_URL}/api/v1/auth/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: 'no-store',
+  });
+  const user = userRes.ok ? await userRes.json() : null;
+  if (!user) redirect('/login');
 
   return (
     <ErrorBoundary level="page" componentName="SecurityPage">

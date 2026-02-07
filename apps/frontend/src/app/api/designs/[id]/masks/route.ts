@@ -1,14 +1,14 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { v2 as cloudinary } from 'cloudinary';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type DesignMaskRouteContext = {
   params: Promise<{ id: string }>;
 };
 
-// Configuration Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -17,38 +17,34 @@ cloudinary.config({
 
 /**
  * POST /api/designs/[id]/masks
- * Upload a UV mask PNG and metadata for a design
+ * Upload a UV mask PNG and metadata for a design. Cookie-based auth.
  */
 export async function POST(request: Request, { params }: DesignMaskRouteContext) {
   return ApiResponseBuilder.handle(async () => {
     const { id: designId } = await params;
-    const supabase = await createClient();
-
-    // Validate JWT authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
-    // Verify design exists and user has access
-    const { data: design, error: designError } = await supabase
-      .from('designs')
-      .select('id, user_id, metadata')
-      .eq('id', designId)
-      .single();
+    // Forward to backend: verify design exists and user has access
+    const designResponse = await fetch(`${API_URL}/api/v1/designs/${designId}`, {
+      headers: { Cookie: request.headers.get('cookie') || '' },
+    });
 
-    if (designError || !design) {
-      if (designError?.code === 'PGRST116') {
+    if (!designResponse.ok) {
+      if (designResponse.status === 404) {
         throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
       }
-      logger.dbError('fetch design for mask', designError, {
+      logger.error('Failed to fetch design for mask', {
         designId,
         userId: user.id,
+        status: designResponse.status,
       });
       throw { status: 500, message: 'Erreur lors de la récupération du design' };
     }
 
+    const design = await designResponse.json();
     if (design.user_id !== user.id) {
       logger.warn('Unauthorized mask upload attempt', {
         designId,
@@ -142,39 +138,33 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
       };
     }
 
-    // Store mask metadata in design metadata
+    // Forward to backend: store mask metadata in design
     const existingMetadata = (design.metadata as Record<string, unknown>) || {};
     const existingMasks = Array.isArray(existingMetadata.masks) ? existingMetadata.masks : [];
 
-    const { data: updatedDesign, error: updateError } = await supabase
-      .from('designs')
-      .update({
+    const updateResponse = await fetch(`${API_URL}/api/v1/designs/${designId}/masks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: request.headers.get('cookie') || '',
+      },
+      body: JSON.stringify({
+        maskUrl,
         metadata: {
-          ...existingMetadata,
-          masks: [
-            ...existingMasks,
-            {
-              url: maskUrl,
-              uploadedAt: new Date().toISOString(),
-              metadata: {
-                uvBBox: metadata.uvBBox,
-                selectedFaceIndices: metadata.selectedFaceIndices,
-                textureWidth: metadata.textureWidth,
-                textureHeight: metadata.textureHeight,
-              },
-            },
-          ],
+          uvBBox: metadata.uvBBox,
+          selectedFaceIndices: metadata.selectedFaceIndices,
+          textureWidth: metadata.textureWidth,
+          textureHeight: metadata.textureHeight,
         },
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', designId)
-      .select()
-      .single();
+        existingMasks,
+      }),
+    });
 
-    if (updateError) {
-      logger.dbError('update design with mask', updateError, {
+    if (!updateResponse.ok) {
+      logger.error('Failed to update design with mask', {
         designId,
         userId: user.id,
+        status: updateResponse.status,
       });
       throw { status: 500, message: 'Erreur lors de la sauvegarde des métadonnées du masque' };
     }

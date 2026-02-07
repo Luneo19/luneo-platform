@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { CurrencyUtils } from '@/config/currency.config';
+import { PLAN_CONFIGS, normalizePlanTier } from '@/libs/plans';
 import { AnalyticsDashboard, AnalyticsMetrics } from '../interfaces/analytics.interface';
 
 // ============================================================================
@@ -676,17 +677,58 @@ export class AnalyticsService {
     try {
       this.logger.log(`Getting usage analytics for brand: ${brandId}`);
 
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        select: { plan: true },
+      });
+      const tier = normalizePlanTier(brand?.plan);
+      const planConfig = PLAN_CONFIGS[tier];
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const designsLimit = planConfig.limits.designsPerMonth < 0 ? 99_999 : planConfig.limits.designsPerMonth;
+      const rendersQuota = planConfig.quotas.find((q) => q.metric === 'renders_2d');
+      const rendersLimit = rendersQuota ? (rendersQuota.limit < 0 ? 99_999 : rendersQuota.limit) : 100;
+      const storageLimit = planConfig.limits.storageGB < 0 ? 999 : planConfig.limits.storageGB;
+      const apiCallsQuota = planConfig.quotas.find((q) => q.metric === 'api_calls');
+      const apiCallsLimit = apiCallsQuota ? (apiCallsQuota.limit < 0 ? 99_999_999 : apiCallsQuota.limit) : 0;
+
+      const [designsUsed, rendersUsed, storageAgg, apiCallsUsed] = await Promise.all([
+        this.prisma.design.count({
+          where: { brandId, createdAt: { gte: startOfMonth } },
+        }),
+        this.prisma.generation.count({
+          where: { brandId, createdAt: { gte: startOfMonth } },
+        }),
+        this.prisma.assetFile.aggregate({
+          where: { brandId },
+          _sum: { size: true },
+        }),
+        this.prisma.usageRecord.aggregate({
+          where: {
+            brandId,
+            recordedAt: { gte: startOfMonth },
+          },
+          _sum: { count: true },
+        }),
+      ]);
+
+      const storageBytes = storageAgg._sum.size ?? 0;
+      const storageUsedGb = Math.round((storageBytes / (1024 * 1024 * 1024)) * 100) / 100;
+      const apiCalls = apiCallsUsed._sum.count ?? 0;
+
       return {
         success: true,
         usage: {
-          designs: { used: 45, limit: 100, unit: 'designs' },
-          renders: { used: 120, limit: 500, unit: 'renders' },
-          storage: { used: 2.5, limit: 10, unit: 'GB' },
-          apiCalls: { used: 15000, limit: 100000, unit: 'calls' }
-        }
+          designs: { used: designsUsed, limit: designsLimit, unit: 'designs' },
+          renders: { used: rendersUsed, limit: rendersLimit, unit: 'renders' },
+          storage: { used: storageUsedGb, limit: storageLimit, unit: 'GB' },
+          apiCalls: { used: apiCalls, limit: apiCallsLimit, unit: 'calls' },
+        },
       };
     } catch (error) {
-      this.logger.error(`Failed to get usage analytics: ${error.message}`);
+      this.logger.error(`Failed to get usage analytics: ${error instanceof Error ? error.message : 'Unknown'}`);
       throw error;
     }
   }

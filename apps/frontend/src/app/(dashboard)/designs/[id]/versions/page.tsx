@@ -42,6 +42,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-states/EmptyState';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
+import { api } from '@/lib/api/client';
 
 interface DesignVersion {
   id: string;
@@ -105,16 +106,7 @@ function DesignVersionsPageContent() {
 
     setRestoring(true);
     try {
-      const response = await fetch(
-        `/api/designs/${designId}/versions/${selectedVersion.id}/restore`,
-        { method: 'POST' }
-      );
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la restauration');
-      }
+      await api.post(`/api/v1/designs/${designId}/versions/${selectedVersion.id}/restore`);
 
       toast({
         title: 'Version restaurée',
@@ -145,16 +137,7 @@ function DesignVersionsPageContent() {
 
     setDeleting(true);
     try {
-      const response = await fetch(
-        `/api/designs/${designId}/versions/${versionToDelete}`,
-        { method: 'DELETE' }
-      );
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la suppression');
-      }
+      await api.delete(`/api/v1/designs/${designId}/versions/${versionToDelete}`);
 
       toast({
         title: 'Version supprimée',
@@ -177,19 +160,9 @@ function DesignVersionsPageContent() {
 
   const handleCreateVersion = async () => {
     try {
-      const response = await fetch(`/api/designs/${designId}/versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `Version manuelle - ${new Date().toLocaleString('fr-FR')}`,
-        }),
+      await api.post(`/api/v1/designs/${designId}/versions`, {
+        name: `Version manuelle - ${new Date().toLocaleString('fr-FR')}`,
       });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la création');
-      }
 
       toast({
         title: 'Version créée',

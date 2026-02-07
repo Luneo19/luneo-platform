@@ -95,10 +95,8 @@ export class BodyTracker {
 
       // Créer Pose (dynamic import to avoid build errors)
       // @ts-ignore - @mediapipe/pose may not be installed, handled at runtime
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const PoseClass = require('@mediapipe/pose').Pose;
       // @ts-ignore - Pose constructor type not available at build time
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
       this.pose = new PoseClass({
         locateFile: (file: string) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
@@ -115,7 +113,6 @@ export class BodyTracker {
 
       // Setup callback
       // @ts-ignore - MediaPipe types not available at build time
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       this.pose.onResults((results: PoseResultsType) => this.onResults(results));
 
       // Créer Camera si videoElement fourni
@@ -200,7 +197,6 @@ export class BodyTracker {
    */
   private onResults(results: PoseResultsType): void {
     // @ts-ignore - MediaPipe types not available at build time
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (!results.poseLandmarks || results.poseLandmarks.length === 0) {
       this.lastResult = null;
       return;
@@ -208,7 +204,6 @@ export class BodyTracker {
 
     // Convertir landmarks en format TrackingData
     // @ts-ignore - MediaPipe types not available at build time
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const landmarks = (results.poseLandmarks || []).map((lm: { x: number; y: number; z?: number }) => [lm.x, lm.y, lm.z || 0]);
 
     // Calculer bounding box
@@ -220,13 +215,11 @@ export class BodyTracker {
     const maxY = Math.max(...ys);
 
     // @ts-ignore - MediaPipe types not available at build time
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     const firstLandmark = results.poseLandmarks?.[0];
     this.lastResult = {
       type: 'body',
       landmarks,
       // @ts-ignore - MediaPipe types not available at build time
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       confidence: firstLandmark?.visibility || 0.5,
       boundingBox: {
         x: minX,

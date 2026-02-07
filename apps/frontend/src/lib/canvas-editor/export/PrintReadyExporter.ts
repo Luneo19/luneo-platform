@@ -97,7 +97,7 @@ export class PrintReadyExporter {
    * BUNDLE-01: Type any car jsPDF est importé dynamiquement
    */
   private addCropMarks(
-    pdf: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    pdf: any,
     widthMM: number,
     heightMM: number,
     bleed: number

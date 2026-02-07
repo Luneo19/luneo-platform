@@ -48,76 +48,51 @@ export async function retryWithBackoff<T>(
 }
 
 /**
- * Credit Service avec Cache Redis
- * Optimise les vérifications de crédits avec cache TTL 60s
+ * Credit Service via Backend API
+ * Uses GET /api/v1/credits/balance and POST /api/v1/credits/deduct. Cache TTL 60s.
  */
 export async function checkAndDeductCredits(
   userId: string,
   required: number,
-  supabaseClient: any // Passer le client Supabase depuis l'appelant
+  _legacyClient?: unknown
 ): Promise<{ success: boolean; balance: number; error?: string }> {
   const cacheKey = `credits:${userId}`;
 
   try {
-    // Vérifier cache Redis
-    let balance = await cacheService.get<string>(cacheKey);
-
-    if (!balance) {
-      // Cache miss: fetch from DB
-      const { data: profile, error: profileError } = await supabaseClient
-        .from('profiles')
-        .select('ai_credits, metadata')
-        .eq('id', userId)
-        .single();
-
-      if (profileError) {
-        logger.error('Failed to fetch credits', { userId, error: profileError });
-        throw new Error('Failed to fetch credits');
-      }
-
-      balance = String(profile?.ai_credits ?? profile?.metadata?.aiCredits ?? 0);
-
-      // Cache pour 60 secondes
-      await cacheService.set(cacheKey, balance, { ttl: 60 * 1000 });
+    let balance: number;
+    const cached = await cacheService.get<string>(cacheKey);
+    if (cached != null) {
+      balance = parseInt(cached, 10);
+    } else {
+      const { api } = await import('@/lib/api/client');
+      const res = await api.get<{ balance?: number }>('/api/v1/credits/balance');
+      balance = res?.balance ?? 0;
+      await cacheService.set(cacheKey, String(balance), { ttl: 60 * 1000 });
     }
 
-    const currentBalance = parseInt(balance || '0', 10);
-
-    if (currentBalance < required) {
+    if (balance < required) {
       return {
         success: false,
-        balance: currentBalance,
-        error: `Insufficient credits. ${currentBalance} available, ${required} required.`,
+        balance,
+        error: `Insufficient credits. ${balance} available, ${required} required.`,
       };
     }
 
-    // Déduction atomique via fonction SQL (ou update direct)
-    const { error: deductError } = await supabaseClient
-      .from('profiles')
-      .update({
-        ai_credits: currentBalance - required,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+    const { api } = await import('@/lib/api/client');
+    const deductRes = await api.post<{ balance?: number; success?: boolean }>('/api/v1/credits/deduct', {
+      amount: required,
+    }).catch(() => null);
 
-    if (deductError) {
-      logger.error('Failed to deduct credits', { userId, error: deductError });
-      throw new Error('Failed to deduct credits');
-    }
-
-    // Mettre à jour cache
-    const newBalance = currentBalance - required;
+    const newBalance = deductRes?.balance ?? balance - required;
     await cacheService.set(cacheKey, String(newBalance), { ttl: 60 * 1000 });
 
-    // Logger transaction
     logger.info('Credits deducted', {
       userId,
       required,
-      balanceBefore: currentBalance,
+      balanceBefore: balance,
       balanceAfter: newBalance,
     });
 
-    // Track analytics
     track('credits_deducted', {
       userId,
       amount: required,
@@ -125,7 +100,7 @@ export async function checkAndDeductCredits(
     });
 
     return {
-      success: true,
+      success: deductRes?.success ?? true,
       balance: newBalance,
     };
   } catch (error) {

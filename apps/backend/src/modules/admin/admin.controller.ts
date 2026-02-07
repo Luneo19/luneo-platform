@@ -34,6 +34,18 @@ export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   // ========================================
+  // TENANTS (BRANDS) - Platform admin view
+  // ========================================
+
+  @Get('tenants')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all tenants (brands) for platform admin' })
+  @ApiResponse({ status: 200, description: 'List of tenants' })
+  async getTenants() {
+    return this.adminService.getTenants();
+  }
+
+  // ========================================
   // CUSTOMER MANAGEMENT
   // ========================================
 
@@ -107,6 +119,7 @@ export class AdminController {
   }
 
   @Post('create-admin')
+  /** @Public: setup endpoint; protected by X-Setup-Key secret */
   @Public()
   @ApiOperation({ summary: 'Créer l\'admin (endpoint de setup - sécurisé avec clé secrète)' })
   @ApiHeader({ name: 'X-Setup-Key', description: 'Clé secrète pour créer l\'admin' })

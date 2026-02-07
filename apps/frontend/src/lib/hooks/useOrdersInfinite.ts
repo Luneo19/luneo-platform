@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useInfinitePagination } from './useInfiniteScroll';
-import { createClient } from '@/lib/supabase/client';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 interface Order {
@@ -12,66 +12,57 @@ interface Order {
   status: string;
   payment_status: string;
   created_at: string;
-  order_items: any[];
+  order_items: unknown[];
+}
+
+// Map backend order to hook shape
+function mapOrder(o: Record<string, unknown>): Order {
+  return {
+    id: (o.id as string) ?? '',
+    order_number: ((o as any).orderNumber ?? (o as any).order_number) as string,
+    customer_email: ((o as any).customerEmail ?? (o as any).customer_email) as string,
+    total_amount: Number((o as any).totalAmount ?? (o as any).total_amount ?? 0),
+    currency: ((o as any).currency as string) ?? 'EUR',
+    status: (o.status as string) ?? 'pending',
+    payment_status: ((o as any).paymentStatus ?? (o as any).payment_status) as string,
+    created_at: (o.createdAt ?? (o as any).created_at) as string,
+    order_items: ((o as any).orderItems ?? (o as any).order_items) ?? [],
+  };
 }
 
 /**
- * Hook pour charger les commandes avec infinite scroll
+ * Hook pour charger les commandes avec infinite scroll via le backend NestJS
  */
 export function useOrdersInfinite(filters?: { status?: string; search?: string }) {
-  const fetchOrders = useCallback(async (page: number, limit: number) => {
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('Not authenticated');
+  const fetchOrders = useCallback(
+    async (page: number, limit: number) => {
+      try {
+        const res = await endpoints.orders.list({
+          page,
+          limit,
+          status: filters?.status,
+          search: filters?.search,
+        });
+        const raw = res as { orders?: unknown[]; data?: unknown[]; pagination?: { hasNext?: boolean; total?: number } };
+        const list = raw.orders ?? raw.data ?? (Array.isArray(res) ? res : []);
+        const pagination = raw.pagination;
+        const total = pagination?.total ?? (list as unknown[]).length;
+        const hasMore = pagination?.hasNext ?? (page * limit < total);
+        const data = (list as Record<string, unknown>[]).map(mapOrder);
+        return { data, hasMore };
+      } catch (err: unknown) {
+        logger.error('Error fetching orders', {
+          error: err,
+          page,
+          limit,
+          filters,
+          message: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
       }
-
-      // Calculer l'offset
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-
-      // Construire la requête
-      let query = supabase
-        .from('orders')
-        .select('*', { count: 'exact' })
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      // Appliquer les filtres
-      if (filters?.status) {
-        query = query.eq('status', filters.status);
-      }
-
-      if (filters?.search) {
-        query = query.or(`order_number.ilike.%${filters.search}%,customer_email.ilike.%${filters.search}%`);
-      }
-
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
-      // Déterminer s'il y a plus de données
-      const hasMore = count ? (page * limit) < count : false;
-
-      return {
-        data: data || [],
-        hasMore,
-      };
-    } catch (err: any) {
-      logger.error('Error fetching orders', {
-        error: err,
-        page,
-        limit,
-        filters,
-        message: err.message,
-      });
-      throw err;
-    }
-  }, [filters?.status, filters?.search]);
+    },
+    [filters?.status, filters?.search]
+  );
 
   return useInfinitePagination<Order>(fetchOrders, 20);
 }
-

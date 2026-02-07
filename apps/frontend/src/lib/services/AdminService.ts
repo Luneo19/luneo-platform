@@ -9,9 +9,7 @@
 
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
-import { db } from '@/lib/db';
-// @ts-ignore - bcryptjs types not available
-import bcrypt from 'bcryptjs';
+import { api, endpoints } from '@/lib/api/client';
 
 // ========================================
 // TYPES
@@ -99,8 +97,22 @@ export class AdminService {
   // USERS
   // ========================================
 
+  private mapUser(raw: any): User {
+    return {
+      id: raw.id,
+      email: raw.email,
+      name: raw.name ?? ([raw.firstName, raw.lastName].filter(Boolean).join(' ').trim() || undefined),
+      role: raw.role,
+      brandId: raw.brandId ?? undefined,
+      isActive: raw.isActive ?? true,
+      emailVerified: raw.emailVerified,
+      lastLoginAt: raw.lastLoginAt ? new Date(raw.lastLoginAt) : undefined,
+      createdAt: new Date(raw.createdAt),
+    };
+  }
+
   /**
-   * Liste les utilisateurs
+   * Liste les utilisateurs (via backend API)
    */
   async listUsers(options?: {
     role?: string;
@@ -110,66 +122,21 @@ export class AdminService {
     offset?: number;
   }): Promise<{ users: User[]; total: number; hasMore: boolean }> {
     try {
-      const where: any = {};
-      if (options?.role) where.role = options.role;
-      if (options?.brandId) where.brandId = options.brandId;
-      if (options?.isActive !== undefined) where.isActive = options.isActive;
-
-      const limit = options?.limit || 20;
-      const offset = options?.offset || 0;
-
-      const [users, total] = await Promise.all([
-        db.user.findMany({
-          where,
-          take: limit,
-          skip: offset,
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            firstName: true,
-            lastName: true,
-            role: true,
-            brandId: true,
-            isActive: true,
-            emailVerified: true,
-            lastLoginAt: true,
-            createdAt: true,
-          },
-        }),
-        db.user.count({ where }),
-      ]);
-
-      // Convert to User type
-      const userList: User[] = users.map((user: {
-        id: string;
-        email: string;
-        name: string | null;
-        firstName: string | null;
-        lastName: string | null;
-        role: string;
-        brandId: string | null;
-        isActive: boolean;
-        emailVerified: Date | null;
-        lastLoginAt: Date | null;
-        createdAt: Date;
-      }) => ({
-        id: user.id,
-        email: user.email,
-        name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
-        role: user.role,
-        brandId: user.brandId || undefined,
-        isActive: user.isActive,
-        emailVerified: user.emailVerified,
-        lastLoginAt: user.lastLoginAt || undefined,
-        createdAt: user.createdAt,
-      }));
-
+      const res = await api.get<any>('/api/v1/admin/customers', {
+        params: {
+          page: options?.offset != null ? Math.floor(options.offset / (options?.limit ?? 20)) + 1 : 1,
+          limit: options?.limit ?? 20,
+          role: options?.role,
+          search: options?.brandId,
+        },
+      });
+      const list = res?.data ?? res?.customers ?? res?.users ?? [];
+      const total = res?.total ?? res?.pagination?.total ?? list.length;
+      const users = (list as any[]).map((u: any) => this.mapUser(u));
       return {
-        users: userList,
+        users,
         total,
-        hasMore: offset + limit < total,
+        hasMore: (options?.offset ?? 0) + (options?.limit ?? 20) < total,
       };
     } catch (error: any) {
       logger.error('Error listing users', { error, options });
@@ -178,42 +145,13 @@ export class AdminService {
   }
 
   /**
-   * Récupère un utilisateur par ID
+   * Récupère un utilisateur par ID (via backend API)
    */
   async getUserById(userId: string): Promise<User> {
     try {
-      const user = await db.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          brandId: true,
-          isActive: true,
-          emailVerified: true,
-          lastLoginAt: true,
-          createdAt: true,
-        },
-      });
-
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
-        role: user.role,
-        brandId: user.brandId || undefined,
-        isActive: user.isActive,
-        emailVerified: user.emailVerified,
-        lastLoginAt: user.lastLoginAt || undefined,
-        createdAt: user.createdAt,
-      };
+      const raw = await api.get<any>(`/api/v1/admin/customers/${userId}`);
+      if (!raw) throw new Error('User not found');
+      return this.mapUser(raw);
     } catch (error: any) {
       logger.error('Error fetching user', { error, userId });
       throw error;
@@ -221,62 +159,21 @@ export class AdminService {
   }
 
   /**
-   * Crée un utilisateur
+   * Crée un utilisateur (via backend API)
    */
   async createUser(request: CreateUserRequest): Promise<User> {
     try {
       logger.info('Creating user', { email: request.email, role: request.role });
-
-      // Hash password if provided
-      let hashedPassword: string | undefined;
-      if (request.password) {
-        hashedPassword = await bcrypt.hash(request.password, 10);
-      }
-
-      // Create user
-      const user = await db.user.create({
-        data: {
-          email: request.email,
-          name: request.name,
-          firstName: request.name?.split(' ')[0],
-          lastName: request.name?.split(' ').slice(1).join(' '),
-          role: request.role as any,
-          brandId: request.brandId,
-          password: hashedPassword,
-          isActive: true,
-          emailVerified: false,
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          brandId: true,
-          isActive: true,
-          emailVerified: true,
-          lastLoginAt: true,
-          createdAt: true,
-        },
+      const raw = await api.post<any>('/api/v1/admin/users', {
+        email: request.email,
+        name: request.name,
+        role: request.role,
+        brandId: request.brandId,
+        password: request.password,
       });
-
-      // Invalidate cache
       cacheService.clear();
-
-      logger.info('User created', { userId: user.id, email: user.email });
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
-        role: user.role,
-        brandId: user.brandId || undefined,
-        isActive: user.isActive,
-        emailVerified: user.emailVerified,
-        lastLoginAt: user.lastLoginAt || undefined,
-        createdAt: user.createdAt,
-      };
+      logger.info('User created', { userId: raw?.id, email: request.email });
+      return this.mapUser(raw);
     } catch (error: any) {
       logger.error('Error creating user', { error, request });
       throw error;
@@ -284,59 +181,20 @@ export class AdminService {
   }
 
   /**
-   * Met à jour un utilisateur
+   * Met à jour un utilisateur (via backend API)
    */
   async updateUser(request: UpdateUserRequest): Promise<User> {
     try {
       logger.info('Updating user', { userId: request.id });
-
-      // Prepare update data
-      const updateData: any = {};
-      if (request.name !== undefined) {
-        const nameParts = request.name.split(' ');
-        updateData.name = request.name;
-        updateData.firstName = nameParts[0];
-        updateData.lastName = nameParts.slice(1).join(' ');
-      }
-      if (request.role !== undefined) updateData.role = request.role as any;
-      if (request.brandId !== undefined) updateData.brandId = request.brandId;
-      if (request.isActive !== undefined) updateData.isActive = request.isActive;
-
-      // Update user
-      const user = await db.user.update({
-        where: { id: request.id },
-        data: updateData,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          brandId: true,
-          isActive: true,
-          emailVerified: true,
-          lastLoginAt: true,
-          createdAt: true,
-        },
+      const raw = await api.patch<any>(`/api/v1/admin/users/${request.id}`, {
+        name: request.name,
+        role: request.role,
+        brandId: request.brandId,
+        isActive: request.isActive,
       });
-
-      // Invalidate cache
       cacheService.clear();
-
-      logger.info('User updated', { userId: user.id });
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
-        role: user.role,
-        brandId: user.brandId || undefined,
-        isActive: user.isActive,
-        emailVerified: user.emailVerified,
-        lastLoginAt: user.lastLoginAt || undefined,
-        createdAt: user.createdAt,
-      };
+      logger.info('User updated', { userId: request.id });
+      return this.mapUser(raw);
     } catch (error: any) {
       logger.error('Error updating user', { error, request });
       throw error;
@@ -375,8 +233,20 @@ export class AdminService {
   // BRANDS
   // ========================================
 
+  private mapBrand(raw: any): Brand {
+    return {
+      id: raw.id,
+      name: raw.name,
+      slug: raw.slug,
+      status: raw.status ?? 'active',
+      plan: raw.plan ?? 'free',
+      stripeCustomerId: raw.stripeCustomerId ?? undefined,
+      createdAt: new Date(raw.createdAt),
+    };
+  }
+
   /**
-   * Liste les marques
+   * Liste les marques (via backend API)
    */
   async listBrands(options?: {
     status?: string;
@@ -385,47 +255,13 @@ export class AdminService {
     offset?: number;
   }): Promise<{ brands: Brand[]; total: number; hasMore: boolean }> {
     try {
-      const where: any = {};
-      if (options?.status) where.status = options.status;
-      if (options?.plan) where.plan = options.plan;
-
-      const limit = options?.limit || 20;
-      const offset = options?.offset || 0;
-
-      const [brands, total] = await Promise.all([
-        db.brand.findMany({
-          where,
-          take: limit,
-          skip: offset,
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            status: true,
-            plan: true,
-            stripeCustomerId: true,
-            createdAt: true,
-          },
-        }),
-        db.brand.count({ where }),
-      ]);
-
-      const brandList: Brand[] = brands.map((brand: { id: string; name: string; slug: string; status: string; plan: string; stripeCustomerId?: string | null; createdAt: Date }) => ({
-        id: brand.id,
-        name: brand.name,
-        slug: brand.slug,
-        status: brand.status,
-        plan: brand.plan,
-        stripeCustomerId: brand.stripeCustomerId || undefined,
-        createdAt: brand.createdAt,
-      }));
-
-      return {
-        brands: brandList,
-        total,
-        hasMore: offset + limit < total,
-      };
+      const res = await api.get<any>('/api/v1/admin/brands', {
+        params: { limit: options?.limit ?? 20, offset: options?.offset ?? 0, status: options?.status, plan: options?.plan },
+      });
+      const list = res?.brands ?? res?.data ?? [];
+      const total = res?.total ?? list.length;
+      const brands = (list as any[]).map((b: any) => this.mapBrand(b));
+      return { brands, total, hasMore: (options?.offset ?? 0) + (options?.limit ?? 20) < total };
     } catch (error: any) {
       logger.error('Error listing brands', { error, options });
       throw error;
@@ -433,36 +269,13 @@ export class AdminService {
   }
 
   /**
-   * Récupère une marque par ID
+   * Récupère une marque par ID (via backend API)
    */
   async getBrandById(brandId: string): Promise<Brand> {
     try {
-      const brand = await db.brand.findUnique({
-        where: { id: brandId },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          status: true,
-          plan: true,
-          stripeCustomerId: true,
-          createdAt: true,
-        },
-      });
-
-      if (!brand) {
-        throw new Error('Brand not found');
-      }
-
-      return {
-        id: brand.id,
-        name: brand.name,
-        slug: brand.slug,
-        status: brand.status,
-        plan: brand.plan,
-        stripeCustomerId: brand.stripeCustomerId || undefined,
-        createdAt: brand.createdAt,
-      };
+      const raw = await api.get<any>(`/api/v1/admin/brands/${brandId}`);
+      if (!raw) throw new Error('Brand not found');
+      return this.mapBrand(raw);
     } catch (error: any) {
       logger.error('Error fetching brand', { error, brandId });
       throw error;
@@ -470,48 +283,19 @@ export class AdminService {
   }
 
   /**
-   * Crée une marque
+   * Crée une marque (via backend API)
    */
   async createBrand(request: CreateBrandRequest): Promise<Brand> {
     try {
       logger.info('Creating brand', { name: request.name, slug: request.slug });
-
-      const brand = await db.brand.create({
-        data: {
-          name: request.name,
-          slug: request.slug,
-          status: 'PENDING_VERIFICATION',
-          plan: 'starter',
-        },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          status: true,
-          plan: true,
-          stripeCustomerId: true,
-          createdAt: true,
-        },
+      const raw = await api.post<any>('/api/v1/admin/brands', {
+        name: request.name,
+        slug: request.slug,
+        userId: request.userId,
       });
-
-      await db.user.update({
-        where: { id: request.userId },
-        data: { brandId: brand.id },
-      });
-
       cacheService.clear();
-
-      logger.info('Brand created', { brandId: brand.id });
-
-      return {
-        id: brand.id,
-        name: brand.name,
-        slug: brand.slug,
-        status: brand.status,
-        plan: brand.plan,
-        stripeCustomerId: brand.stripeCustomerId || undefined,
-        createdAt: brand.createdAt,
-      };
+      logger.info('Brand created', { brandId: raw?.id });
+      return this.mapBrand(raw);
     } catch (error: any) {
       logger.error('Error creating brand', { error, request });
       throw error;
@@ -519,44 +303,19 @@ export class AdminService {
   }
 
   /**
-   * Met à jour une marque
+   * Met à jour une marque (via backend API)
    */
   async updateBrand(request: UpdateBrandRequest): Promise<Brand> {
     try {
       logger.info('Updating brand', { brandId: request.id });
-
-      const updateData: any = {};
-      if (request.name !== undefined) updateData.name = request.name;
-      if (request.status !== undefined) updateData.status = request.status as any;
-      if (request.plan !== undefined) updateData.plan = request.plan;
-
-      const brand = await db.brand.update({
-        where: { id: request.id },
-        data: updateData,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          status: true,
-          plan: true,
-          stripeCustomerId: true,
-          createdAt: true,
-        },
+      const raw = await api.patch<any>(`/api/v1/admin/brands/${request.id}`, {
+        name: request.name,
+        status: request.status,
+        plan: request.plan,
       });
-
       cacheService.clear();
-
-      logger.info('Brand updated', { brandId: brand.id });
-
-      return {
-        id: brand.id,
-        name: brand.name,
-        slug: brand.slug,
-        status: brand.status,
-        plan: brand.plan,
-        stripeCustomerId: brand.stripeCustomerId || undefined,
-        createdAt: brand.createdAt,
-      };
+      logger.info('Brand updated', { brandId: request.id });
+      return this.mapBrand(raw);
     } catch (error: any) {
       logger.error('Error updating brand', { error, request });
       throw error;
@@ -582,13 +341,11 @@ export class AdminService {
   // ========================================
 
   /**
-   * Récupère les statistiques système
+   * Récupère les statistiques système (via backend API)
    */
   async getSystemStats(useCache: boolean = true): Promise<SystemStats> {
     try {
       const cacheKey = 'admin:system:stats';
-
-      // Check cache
       if (useCache) {
         const cached = cacheService.get<SystemStats>(cacheKey);
         if (cached) {
@@ -596,48 +353,19 @@ export class AdminService {
           return cached;
         }
       }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const [
-        totalUsers,
-        totalBrands,
-        totalProducts,
-        totalOrders,
-        activeUsers,
-        newUsersToday,
-        newBrandsToday,
-        allOrders,
-      ] = await Promise.all([
-        db.user.count(),
-        db.brand.count(),
-        db.product.count(),
-        db.order.count(),
-        db.user.count({ where: { isActive: true } }),
-        db.user.count({ where: { createdAt: { gte: today } } }),
-        db.brand.count({ where: { createdAt: { gte: today } } }),
-        db.order.findMany({ select: { totalCents: true } }),
-      ]);
-
-      const totalRevenue = allOrders.reduce((sum: number, order: { totalCents: number | null }) => {
-        return sum + Number(order.totalCents || 0) / 100;
-      }, 0);
-
+      const data = await endpoints.admin.metrics();
+      const m = (data as any) ?? {};
       const stats: SystemStats = {
-        totalUsers,
-        totalBrands,
-        totalProducts,
-        totalOrders,
-        totalRevenue,
-        activeUsers,
-        newUsersToday,
-        newBrandsToday,
+        totalUsers: m.totalUsers ?? m.totalCustomers ?? 0,
+        totalBrands: m.totalBrands ?? 0,
+        totalProducts: m.totalProducts ?? 0,
+        totalOrders: m.totalOrders ?? 0,
+        totalRevenue: m.totalRevenue ?? 0,
+        activeUsers: m.activeUsers ?? 0,
+        newUsersToday: m.newUsersToday ?? 0,
+        newBrandsToday: m.newBrandsToday ?? 0,
       };
-
-      // Cache for 5 minutes
       cacheService.set(cacheKey, stats, { ttl: 300 * 1000 });
-
       return stats;
     } catch (error: any) {
       logger.error('Error fetching system stats', { error });

@@ -21,9 +21,8 @@ function ConfigurationPageContent() {
 NEXT_PUBLIC_LUNEO_API_KEY=your_api_key_here
 NEXT_PUBLIC_LUNEO_PROJECT_ID=your_project_id
 
-# Supabase (Backend)
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+# Backend API (NestJS)
+NEXT_PUBLIC_API_URL=https://api.luneo.app
 
 # Stripe (Payments)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...

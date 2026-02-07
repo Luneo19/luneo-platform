@@ -2,8 +2,10 @@ import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { StorageService } from '@/libs/storage/storage.service';
 import { Render2DService } from '@/modules/render/services/render-2d.service';
 import * as Sentry from '@sentry/node';
+import sharp from 'sharp';
 
 interface RenderPreviewJob {
   renderId: string;
@@ -21,6 +23,7 @@ export class RenderPreviewProcessor {
   constructor(
     private prisma: PrismaService,
     private render2DService: Render2DService,
+    private storageService: StorageService,
   ) {}
 
   @Process('render')
@@ -122,25 +125,40 @@ export class RenderPreviewProcessor {
         };
       }
 
-      // 4. Appeler le service de rendu 2D
-      // TODO: Adapter selon votre implémentation Render2DService
-      const renderRequest = {
-        productId: snapshot?.spec.productId || design?.productId || customization?.productId,
-        designId: designId || undefined,
-        options: options || {},
-      };
+      const productId = snapshot?.spec?.productId || design?.productId || customization?.productId;
+      let previewUrl: string;
+      let thumbnailUrl: string;
 
-      // Pour l'instant, générer un placeholder
-      // TODO: Appeler render2DService.render2D(renderRequest)
-      const renderResult = {
-        imageUrl: 'https://via.placeholder.com/800x600',
-        thumbnailUrl: 'https://via.placeholder.com/200x200',
-      };
-
-      // 5. Upload vers storage (Cloudinary/S3)
-      // TODO: Upload réel des images générées
-      const previewUrl = renderResult.imageUrl;
-      const thumbnailUrl = renderResult.thumbnailUrl;
+      try {
+        const renderRequest = {
+          id: renderId,
+          type: '2d' as const,
+          productId: productId || '',
+          designId: designId || undefined,
+          options: { width: 800, height: 600, ...(options || {}) },
+        };
+        const result = await this.render2DService.render2D(renderRequest);
+        previewUrl = result.url;
+        thumbnailUrl = result.thumbnailUrl || previewUrl;
+      } catch (renderError) {
+        this.logger.warn(`Render2DService failed, using sharp fallback: ${renderError instanceof Error ? renderError.message : 'Unknown'}`);
+        const width = 800;
+        const height = 600;
+        const imageBuffer = await sharp({
+          create: {
+            width,
+            height,
+            channels: 3,
+            background: { r: 240, g: 240, b: 240 },
+          },
+        })
+          .png()
+          .toBuffer();
+        const thumbBuffer = await sharp(imageBuffer).resize(200, 200, { fit: 'cover' }).png().toBuffer();
+        const baseKey = `renders/preview/${renderId}`;
+        previewUrl = await this.storageService.uploadFile(`${baseKey}/preview.png`, imageBuffer, 'image/png');
+        thumbnailUrl = await this.storageService.uploadFile(`${baseKey}/thumb.png`, thumbBuffer, 'image/png');
+      }
 
       // 6. Mettre à jour RenderResult
       await this.prisma.renderResult.update({

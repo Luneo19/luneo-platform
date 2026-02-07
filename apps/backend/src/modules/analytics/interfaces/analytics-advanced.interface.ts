@@ -41,6 +41,24 @@ export interface FunnelData {
   dropoffPoint?: string;
 }
 
+/** Step conversion data from real AnalyticsEvent counts */
+export interface FunnelStepConversion {
+  name: string;
+  eventType: string;
+  count: number;
+  conversionRate: number;
+  dropoffRate: number;
+}
+
+/** Funnel with step-by-step conversion from Prisma/AnalyticsEvent */
+export interface FunnelWithConversionData {
+  id: string;
+  name: string;
+  isActive: boolean;
+  steps: FunnelStepConversion[];
+  overallConversion: number;
+}
+
 // ========================================
 // COHORTES
 // ========================================

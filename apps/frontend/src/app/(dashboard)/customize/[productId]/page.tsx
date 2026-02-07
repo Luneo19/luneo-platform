@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { endpoints } from '@/lib/api/client';
 
 // Lazy load ProductCustomizer
 const ProductCustomizer = dynamic(
@@ -34,11 +35,8 @@ function CustomizePageContent() {
   useEffect(() => {
     async function loadProduct() {
       try {
-        const response = await fetch(`/api/products/${productId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setProduct(data.data);
-        }
+        const data = await endpoints.products.get(productId);
+        setProduct((data as { data?: unknown })?.data ?? data);
       } catch (error) {
         logger.error('Error loading product', {
           error,

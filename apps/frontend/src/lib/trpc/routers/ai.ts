@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
-import { db as prismaDb } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 
 const GenerateImageSchema = z.object({
   prompt: z.string().min(1).max(1000),
@@ -66,32 +66,23 @@ export const aiRouter = router({
           });
         }
 
-        // Créer un design si productId fourni
         let designId: string | undefined;
         if (input.productId) {
-          const product = await prismaDb.product.findUnique({
-            where: { id: input.productId },
-            select: { brandId: true },
-          });
-
+          const product = await endpoints.products.get(input.productId).catch(() => null) as { brandId?: string } | null;
           if (product && product.brandId === user.brandId) {
-            const design = await prismaDb.design.create({
-              data: {
-                name: `AI Generated: ${input.prompt.substring(0, 50)}`,
-                userId: user.id,
-                productId: input.productId,
-                brandId: product.brandId,
-                previewUrl: imageUrl,
-                renderUrl: imageUrl,
-                metadata: {
-                  aiGenerated: true,
-                  prompt: input.prompt,
-                  style: input.style,
-                  generatedAt: new Date().toISOString(),
-                } as any,
+            const design = await endpoints.designs.create({
+              name: `AI Generated: ${input.prompt.substring(0, 50)}`,
+              productId: input.productId,
+              previewUrl: imageUrl,
+              renderUrl: imageUrl,
+              metadata: {
+                aiGenerated: true,
+                prompt: input.prompt,
+                style: input.style,
+                generatedAt: new Date().toISOString(),
               },
-            });
-            designId = design.id;
+            } as any);
+            designId = (design as any).id;
           }
         }
 
@@ -133,51 +124,36 @@ export const aiRouter = router({
       const { user } = ctx;
 
       try {
+        const result = await endpoints.designs.list({
+          page: input.page,
+          limit: input.limit,
+          search: undefined,
+        });
+
+        const data = result as { designs?: any[]; data?: any[]; pagination?: { total: number; hasNext?: boolean } };
+        const list = data.designs ?? data.data ?? [];
+        const designs = Array.isArray(list) ? list : [];
+        const total = (data.pagination as any)?.total ?? designs.length;
         const skip = (input.page - 1) * input.limit;
-        const where: any = {
-          userId: user.id,
-          metadata: {
-            path: ['aiGenerated'],
-            equals: true,
-          },
-        };
 
-        if (input.productId) {
-          where.productId = input.productId;
-        }
-
-        const [designs, total] = await Promise.all([
-          prismaDb.design.findMany({
-            where,
-            skip,
-            take: input.limit,
-            orderBy: { createdAt: 'desc' },
-            select: {
-              id: true,
-              name: true,
-              previewUrl: true,
-              renderUrl: true,
-              createdAt: true,
-              metadata: true,
-            },
-          }),
-          prismaDb.design.count({ where }),
-        ]);
+        const filtered = input.productId
+          ? designs.filter((d: any) => d.productId === input.productId)
+          : designs;
 
         return {
-          designs: designs.map((d: any) => ({
+          designs: filtered.map((d: any) => ({
             id: d.id,
             name: d.name,
             url: d.previewUrl || d.renderUrl || `https://picsum.photos/seed/${d.id}/800/600`,
             prompt: (d.metadata as any)?.prompt || '',
             style: (d.metadata as any)?.style || 'photorealistic',
-            createdAt: d.createdAt.toISOString(),
+            createdAt: d.createdAt ? (d.createdAt instanceof Date ? d.createdAt.toISOString() : String(d.createdAt)) : '',
           })),
           pagination: {
             page: input.page,
             limit: input.limit,
-            total,
-            totalPages: Math.ceil(total / input.limit),
+            total: input.productId ? filtered.length : total,
+            totalPages: Math.ceil((input.productId ? filtered.length : total) / input.limit),
             hasNext: skip + input.limit < total,
             hasPrev: input.page > 1,
           },

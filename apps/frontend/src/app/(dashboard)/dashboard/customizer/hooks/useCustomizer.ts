@@ -9,11 +9,12 @@
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
-import type { Product, ProductCategory } from '@/lib/types/product';
+import type { ProductCategory } from '@/lib/types/product';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { VIEW_MODES } from '../constants';
+import { VIEW_MODES, type ViewModeKey } from '../data';
 import type { Asset, CustomizerTab, DesignTemplate, Layer, ProductFilters } from '../types';
+import type { CustomizerProduct } from '../components/CustomizerCanvas';
 
 // ========================================
 // API HELPERS
@@ -41,7 +42,7 @@ export function useCustomizer() {
   const router = useRouter();
 
   // State - UI
-  const [viewMode, setViewMode] = useState<keyof typeof VIEW_MODES>('grid');
+  const [viewMode, setViewMode] = useState<ViewModeKey>('grid');
   const [filters, setFilters] = useState<ProductFilters>({
     search: '',
     category: 'all',
@@ -52,7 +53,7 @@ export function useCustomizer() {
     dateTo: null,
     isActive: null,
   });
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<CustomizerProduct | null>(null);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
@@ -94,7 +95,7 @@ export function useCustomizer() {
     offset: 0,
   });
 
-  const products = useMemo(() => {
+  const products = useMemo((): CustomizerProduct[] => {
     return (productsQuery.data?.products || []).map((p: any) => ({
       id: p.id,
       name: p.name,
@@ -110,6 +111,8 @@ export function useCustomizer() {
       status: p.status || 'ACTIVE',
       createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
       updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date(),
+      brandId: p.brandId ?? '',
+      createdBy: p.createdBy ?? '',
     }));
   }, [productsQuery.data]);
 
@@ -135,7 +138,7 @@ export function useCustomizer() {
 
   // Handlers
   const handleOpenCustomizer = useCallback(
-    (product: Product) => {
+    (product: CustomizerProduct) => {
       setSelectedProduct(product);
       setShowCustomizer(true);
     },

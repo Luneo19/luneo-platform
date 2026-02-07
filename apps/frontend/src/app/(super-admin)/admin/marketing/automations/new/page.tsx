@@ -15,6 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { AutomationBuilder } from '@/components/admin/marketing/automation-builder';
+import { api } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import type { AutomationStep } from '@/hooks/admin/use-automations';
 
 export default function NewAutomationPage() {
@@ -32,24 +34,15 @@ export default function NewAutomationPage() {
 
     setIsSaving(true);
     try {
-      const response = await fetch('/api/admin/marketing/automations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          trigger,
-          steps,
-          status: 'draft',
-        }),
+      await api.post('/api/v1/admin/marketing/automations', {
+        name,
+        trigger,
+        steps,
+        status: 'draft',
       });
-
-      if (response.ok) {
-        router.push('/admin/marketing/automations');
-      } else {
-        throw new Error('Failed to create automation');
-      }
+      router.push('/admin/marketing/automations');
     } catch (error) {
-      console.error('Error creating automation:', error);
+      logger.error('Error creating automation:', error);
       alert('Failed to create automation');
     } finally {
       setIsSaving(false);

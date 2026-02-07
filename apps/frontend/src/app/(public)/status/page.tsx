@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, memo } from 'react';
+import { api } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
@@ -36,7 +37,7 @@ interface Service {
 function StatusPageContent() {
   const [services, setServices] = useState<Service[]>([
     { name: 'Application', status: 'checking', icon: Globe, description: 'Frontend & API' },
-    { name: 'Base de données', status: 'checking', icon: Database, description: 'Supabase' },
+    { name: 'Base de données', status: 'checking', icon: Database, description: 'PostgreSQL' },
     { name: 'Paiements', status: 'checking', icon: CreditCard, description: 'Stripe' },
     { name: 'CDN & Assets', status: 'checking', icon: Cloud, description: 'Cloudinary' },
     { name: 'Serveur', status: 'checking', icon: Server, description: 'Vercel Edge' },
@@ -52,17 +53,17 @@ function StatusPageContent() {
 
     try {
       const start = Date.now();
-      const healthResponse = await fetch('/api/health', { cache: 'no-store' });
+      const healthData = await api.get<{ database?: { status?: string }; status?: string }>('/api/v1/health');
       const latency = Date.now() - start;
+      const ok = !!healthData;
       
       newServices[0] = {
         ...newServices[0],
-        status: healthResponse.ok ? 'operational' : 'degraded',
+        status: ok ? 'operational' : 'degraded',
         latency,
       };
 
-      if (healthResponse.ok) {
-        const healthData = await healthResponse.json();
+      if (ok) {
         
         // Database status
         newServices[1] = {

@@ -19,6 +19,8 @@ import {
 import { OrdersService } from './orders.service';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '@/common/guards/roles.guard';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -170,6 +172,16 @@ export class OrdersController {
     @Body() body: { reason: string },
     @Request() req,
   ) {
-    return this.ordersService.requestRefund(id, body.reason, req.user);
+    return this.ordersService.requestRefund(id, body.reason ?? '', req.user);
+  }
+
+  @Post(':id/refund/process')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Traiter un remboursement (admin)' })
+  @ApiParam({ name: 'id', description: 'ID de la commande' })
+  @ApiResponse({ status: 200, description: 'Remboursement traité' })
+  async processRefund(@Param('id') id: string, @Request() req) {
+    return this.ordersService.processRefund(id, req.user);
   }
 }

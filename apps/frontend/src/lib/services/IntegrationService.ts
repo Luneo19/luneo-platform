@@ -9,10 +9,7 @@
 
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
-import { verifyShopifyToken, getShopifyProducts } from '@/lib/integrations/shopify-client';
-import { verifyWooCommerceCredentials, getWooCommerceProducts } from '@/lib/integrations/woocommerce-client';
-
-import { db } from '@/lib/db';
+import { api, endpoints } from '@/lib/api/client';
 
 // ========================================
 // TYPES
@@ -78,8 +75,22 @@ export class IntegrationService {
   // CRUD
   // ========================================
 
+  private mapIntegration(raw: any): Integration {
+    return {
+      id: raw.id,
+      brandId: raw.brandId,
+      platform: (raw.platform ?? 'custom') as Integration['platform'],
+      shopDomain: raw.shopDomain ?? '',
+      status: (raw.status ?? 'inactive') as Integration['status'],
+      lastSyncAt: raw.lastSyncAt ? new Date(raw.lastSyncAt) : undefined,
+      config: raw.config ?? {},
+      createdAt: new Date(raw.createdAt),
+      updatedAt: new Date(raw.updatedAt),
+    };
+  }
+
   /**
-   * Liste les intégrations
+   * Liste les intégrations (via backend API)
    */
   async listIntegrations(
     brandId: string,
@@ -87,8 +98,6 @@ export class IntegrationService {
   ): Promise<Integration[]> {
     try {
       const cacheKey = `integrations:${brandId}`;
-
-      // Check cache
       if (useCache) {
         const cached = cacheService.get<Integration[]>(cacheKey);
         if (cached) {
@@ -97,37 +106,10 @@ export class IntegrationService {
         }
       }
 
-      // Fetch from database
-      const dbIntegrations = await db.ecommerceIntegration.findMany({
-        where: { brandId },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      const integrations: Integration[] = dbIntegrations.map((integration: {
-        id: string;
-        brandId: string;
-        platform: string;
-        shopDomain: string;
-        status: string;
-        lastSyncAt: Date | null;
-        config: unknown;
-        createdAt: Date;
-        updatedAt: Date;
-      }) => ({
-        id: integration.id,
-        brandId: integration.brandId,
-        platform: integration.platform as any,
-        shopDomain: integration.shopDomain,
-        status: integration.status as any,
-        lastSyncAt: integration.lastSyncAt || undefined,
-        config: integration.config as any,
-        createdAt: integration.createdAt,
-        updatedAt: integration.updatedAt,
-      }));
-
-      // Cache for 5 minutes
+      const data = await endpoints.integrations.list();
+      const list = Array.isArray(data) ? data : (data as any)?.integrations ?? (data as any)?.data ?? [];
+      const integrations = (list as any[]).map((i: any) => this.mapIntegration(i));
       cacheService.set(cacheKey, integrations, { ttl: 300 * 1000 });
-
       return integrations;
     } catch (error: any) {
       logger.error('Error listing integrations', { error, brandId });
@@ -136,29 +118,13 @@ export class IntegrationService {
   }
 
   /**
-   * Récupère une intégration par ID
+   * Récupère une intégration par ID (via backend API)
    */
   async getIntegrationById(integrationId: string): Promise<Integration> {
     try {
-      const integration = await db.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration) {
-        throw new Error('Integration not found');
-      }
-
-      return {
-        id: integration.id,
-        brandId: integration.brandId,
-        platform: integration.platform as any,
-        shopDomain: integration.shopDomain,
-        status: integration.status as any,
-        lastSyncAt: integration.lastSyncAt || undefined,
-        config: integration.config as any,
-        createdAt: integration.createdAt,
-        updatedAt: integration.updatedAt,
-      };
+      const raw = await api.get<any>(`/api/v1/integrations/${integrationId}`);
+      if (!raw) throw new Error('Integration not found');
+      return this.mapIntegration(raw);
     } catch (error: any) {
       logger.error('Error fetching integration', { error, integrationId });
       throw error;
@@ -170,7 +136,7 @@ export class IntegrationService {
   // ========================================
 
   /**
-   * Crée une intégration Shopify
+   * Crée une intégration Shopify (via backend API)
    */
   async createShopifyIntegration(
     request: CreateShopifyIntegrationRequest
@@ -180,53 +146,15 @@ export class IntegrationService {
         brandId: request.brandId,
         shopDomain: request.shopDomain,
       });
-
-      // 1. Verify access token and get shop info
-      const shopInfo = await verifyShopifyToken(request.shopDomain, request.accessToken);
-
-      // 2. Save to database
-      const integration = await db.ecommerceIntegration.create({
-        data: {
-          brandId: request.brandId,
-          platform: 'shopify',
-          shopDomain: request.shopDomain,
-          accessToken: request.accessToken, // Store encrypted in production
-          config: {
-            shopName: shopInfo.name,
-            shopEmail: shopInfo.email,
-            currency: shopInfo.currency,
-            timezone: shopInfo.timezone,
-          } as any,
-          status: 'active',
-        },
-      });
-
-      // 3. Setup webhooks (async, don't wait)
-      this.setupShopifyWebhooks(integration.id, request.shopDomain, request.accessToken).catch(
-        (error) => {
-          logger.error('Error setting up Shopify webhooks', { error, integrationId: integration.id });
-        }
-      );
-
-      // Invalidate cache
-      cacheService.delete(`integrations:${request.brandId}`);
-
-      logger.info('Shopify integration created', {
-        integrationId: integration.id,
+      const raw = await api.post<any>('/api/v1/ecommerce/integrations', {
+        platform: 'shopify',
         brandId: request.brandId,
+        shopDomain: request.shopDomain,
+        accessToken: request.accessToken,
       });
-
-      return {
-        id: integration.id,
-        brandId: integration.brandId,
-        platform: integration.platform as any,
-        shopDomain: integration.shopDomain,
-        status: integration.status as any,
-        lastSyncAt: integration.lastSyncAt || undefined,
-        config: integration.config as any,
-        createdAt: integration.createdAt,
-        updatedAt: integration.updatedAt,
-      };
+      cacheService.delete(`integrations:${request.brandId}`);
+      logger.info('Shopify integration created', { integrationId: raw?.id, brandId: request.brandId });
+      return this.mapIntegration(raw);
     } catch (error: any) {
       logger.error('Error creating Shopify integration', { error, request });
       throw error;
@@ -234,91 +162,7 @@ export class IntegrationService {
   }
 
   /**
-   * Configure les webhooks Shopify
-   */
-  private async setupShopifyWebhooks(
-    integrationId: string,
-    shopDomain: string,
-    accessToken: string
-  ): Promise<void> {
-    try {
-      logger.info('Setting up Shopify webhooks', { integrationId, shopDomain });
-
-      const webhookBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
-      const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET || '';
-
-      const webhooks = [
-        { topic: 'products/create', address: `${webhookBaseUrl}/api/integrations/shopify/webhook` },
-        { topic: 'products/update', address: `${webhookBaseUrl}/api/integrations/shopify/webhook` },
-        { topic: 'products/delete', address: `${webhookBaseUrl}/api/integrations/shopify/webhook` },
-        { topic: 'orders/create', address: `${webhookBaseUrl}/api/integrations/shopify/webhook` },
-        { topic: 'orders/updated', address: `${webhookBaseUrl}/api/integrations/shopify/webhook` },
-        { topic: 'orders/fulfilled', address: `${webhookBaseUrl}/api/integrations/shopify/webhook` },
-        { topic: 'inventory_levels/update', address: `${webhookBaseUrl}/api/integrations/shopify/webhook` },
-        { topic: 'app/uninstalled', address: `${webhookBaseUrl}/api/integrations/shopify/webhook` },
-      ];
-
-      // Create webhooks via Shopify Admin API
-      for (const webhook of webhooks) {
-        try {
-          const response = await fetch(`https://${shopDomain}/admin/api/2024-01/webhooks.json`, {
-            method: 'POST',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              webhook: {
-                topic: webhook.topic,
-                address: webhook.address,
-                format: 'json',
-              },
-            }),
-          });
-
-          if (!response.ok) {
-            const error = await response.text();
-            logger.warn('Failed to create Shopify webhook', {
-              topic: webhook.topic,
-              error,
-              status: response.status,
-            });
-          } else {
-            const data = await response.json();
-            logger.info('Shopify webhook created', {
-              topic: webhook.topic,
-              webhookId: data.webhook?.id,
-            });
-          }
-        } catch (error: any) {
-          logger.error('Error creating Shopify webhook', {
-            error,
-            topic: webhook.topic,
-          });
-        }
-      }
-
-      // Store webhook IDs in integration config
-      await db.ecommerceIntegration.update({
-        where: { id: integrationId },
-        data: {
-          config: {
-            ...((await db.ecommerceIntegration.findUnique({ where: { id: integrationId } }))?.config as any || {}),
-            webhooksConfigured: true,
-            webhookSecret,
-          } as any,
-        },
-      });
-
-      logger.info('Shopify webhooks setup completed', { integrationId });
-    } catch (error: any) {
-      logger.error('Error setting up Shopify webhooks', { error, integrationId, shopDomain });
-      // Don't throw - webhook setup failure shouldn't break integration creation
-    }
-  }
-
-  /**
-   * Synchronise avec Shopify
+   * Synchronise avec Shopify (via backend API)
    */
   async syncShopify(
     integrationId: string,
@@ -326,216 +170,24 @@ export class IntegrationService {
   ): Promise<SyncResult> {
     try {
       logger.info('Syncing Shopify', { integrationId, options });
-
-      const startTime = Date.now();
-
-      // 1. Get integration
-      const integration = await db.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration || integration.platform !== 'shopify') {
-        throw new Error('Shopify integration not found');
-      }
-
-      const accessToken = integration.accessToken || '';
-      const shopDomain = integration.shopDomain;
-      const errors: string[] = [];
-      let itemsProcessed = 0;
-      let itemsFailed = 0;
-
-      // 2. Sync products if requested
+      const results: SyncResult[] = [];
       if (options.products !== false) {
-        try {
-          const shopifyProducts = await getShopifyProducts(shopDomain, accessToken, 250);
-
-          for (const shopifyProduct of shopifyProducts) {
-            try {
-              // Check if product mapping exists
-              const existingMapping = await db.productMapping.findFirst({
-                where: {
-                  integrationId,
-                  externalProductId: shopifyProduct.id.toString(),
-                },
-              });
-
-              if (!existingMapping && options.direction !== 'export') {
-                // Create or find Luneo product from Shopify product
-                let luneoProductId = existingMapping?.luneoProductId;
-
-                if (!luneoProductId || luneoProductId.startsWith('temp_')) {
-                  // Create product in Luneo database
-                  const luneoProduct = await db.product.create({
-                    data: {
-                      brandId: integration.brandId,
-                      name: shopifyProduct.title,
-                      description:
-                        (shopifyProduct as any).description ??
-                        (shopifyProduct as any).body_html ??
-                        '',
-                      sku: shopifyProduct.variants[0]?.sku || shopifyProduct.handle,
-                      price: parseFloat(shopifyProduct.variants[0]?.price || '0'),
-                      currency: 'EUR',
-                      images: shopifyProduct.images?.map((img: any) => img.src) || [],
-                      imageUrl: shopifyProduct.images?.[0]?.src || null,
-                      isActive: shopifyProduct.status === 'active',
-                      isPublic: shopifyProduct.published_at ? true : false,
-                      metadata: {
-                        shopifyProductId: shopifyProduct.id,
-                        shopifyHandle: shopifyProduct.handle,
-                        shopifyVariants: shopifyProduct.variants,
-                        importedAt: new Date().toISOString(),
-                      } as any,
-                    },
-                  });
-
-                  luneoProductId = luneoProduct.id;
-                }
-
-                // Create or update product mapping
-                await db.productMapping.upsert({
-                  where: {
-                    integrationId_externalProductId: {
-                      integrationId,
-                      externalProductId: shopifyProduct.id.toString(),
-                    },
-                  },
-                  create: {
-                    integrationId,
-                    luneoProductId,
-                    externalProductId: shopifyProduct.id.toString(),
-                    externalSku: shopifyProduct.variants[0]?.sku || '',
-                    syncStatus: 'synced',
-                    metadata: {
-                      shopifyVariants: shopifyProduct.variants,
-                      lastSyncedAt: new Date().toISOString(),
-                    } as any,
-                  },
-                  update: {
-                    luneoProductId,
-                    externalSku: shopifyProduct.variants[0]?.sku || '',
-                    syncStatus: 'synced',
-                    lastSyncedAt: new Date(),
-                    metadata: {
-                      shopifyVariants: shopifyProduct.variants,
-                      lastSyncedAt: new Date().toISOString(),
-                    } as any,
-                  },
-                });
-              }
-
-              itemsProcessed++;
-            } catch (error: any) {
-              itemsFailed++;
-              errors.push(`Product ${shopifyProduct.id}: ${error.message}`);
-            }
-          }
-        } catch (error: any) {
-          itemsFailed++;
-          errors.push(`Products sync failed: ${error.message}`);
-        }
+        const r = await api.post<any>(`/api/v1/ecommerce/integrations/${integrationId}/sync/products`, options);
+        if (r) results.push(r);
       }
-
-      // 3. Sync orders if requested
       if (options.orders !== false) {
-        try {
-          const { getShopifyOrders } = await import('@/lib/integrations/shopify-client');
-          const shopifyOrders = await getShopifyOrders(shopDomain, accessToken, 100);
-
-          for (const shopifyOrder of shopifyOrders) {
-            try {
-              // Check if order mapping exists
-              const existingMapping = await db.productMapping.findFirst({
-                where: {
-                  integrationId,
-                  externalProductId: shopifyOrder.id.toString(),
-                  externalOrderId: shopifyOrder.id.toString(),
-                },
-              });
-
-              if (!existingMapping && options.direction !== 'export') {
-                // Create order in Luneo database
-                // Extract customization metadata from line items
-                const lineItems = shopifyOrder.line_items || [];
-                const customizedItems = lineItems.filter((item: any) => 
-                  item.properties?.some((prop: any) => prop.name === 'customization_id')
-                );
-
-                if (customizedItems.length > 0) {
-                  // Create order record
-                  const order = await db.order.create({
-                    data: {
-                      orderNumber: shopifyOrder.order_number?.toString() || shopifyOrder.name || `SHOP-${shopifyOrder.id}`,
-                      status: 'CREATED',
-                      customerEmail: shopifyOrder.email || '',
-                      customerName: `${shopifyOrder.shipping_address?.first_name || ''} ${shopifyOrder.shipping_address?.last_name || ''}`.trim(),
-                      shippingAddress: shopifyOrder.shipping_address as any,
-                      subtotalCents: Math.round((shopifyOrder.subtotal_price || 0) * 100),
-                      taxCents: Math.round((shopifyOrder.total_tax || 0) * 100),
-                      shippingCents: Math.round((shopifyOrder.total_shipping_price_set?.shop_money?.amount || 0) * 100),
-                      totalCents: Math.round((shopifyOrder.total_price || 0) * 100),
-                      currency: shopifyOrder.currency || 'USD',
-                      paymentStatus: shopifyOrder.financial_status === 'paid' ? 'SUCCEEDED' : 'PENDING',
-                      metadata: {
-                        shopifyOrderId: shopifyOrder.id,
-                        shopifyOrderName: shopifyOrder.name,
-                        lineItems: customizedItems,
-                      } as any,
-                      brandId: integration.brandId,
-                    },
-                  });
-
-                  // Create order mapping
-                  await db.productMapping.create({
-                    data: {
-                      integrationId,
-                      luneoProductId: order.id,
-                      externalProductId: customizedItems[0]?.product_id?.toString() || '',
-                      externalOrderId: shopifyOrder.id.toString(),
-                      externalSku: shopifyOrder.order_number?.toString() || '',
-                      syncStatus: 'synced',
-                    },
-                  });
-
-                  itemsProcessed++;
-                }
-              }
-            } catch (error: any) {
-              itemsFailed++;
-              errors.push(`Order ${shopifyOrder.id}: ${error.message}`);
-            }
-          }
-        } catch (error: any) {
-          itemsFailed++;
-          errors.push(`Orders sync failed: ${error.message}`);
-        }
+        const r = await api.post<any>(`/api/v1/ecommerce/integrations/${integrationId}/sync/orders`, options);
+        if (r) results.push(r);
       }
-
-      // 4. Update lastSyncAt
-      await db.ecommerceIntegration.update({
-        where: { id: integrationId },
-        data: {
-          lastSyncAt: new Date(),
-          status: itemsFailed > 0 ? 'error' : 'active',
-        },
-      });
-
-      const duration = Date.now() - startTime;
-
-      logger.info('Shopify sync completed', {
-        integrationId,
-        itemsProcessed,
-        itemsFailed,
-        duration,
-      });
-
-      return {
-        success: itemsFailed === 0,
-        itemsProcessed,
-        itemsFailed,
-        errors: errors.length > 0 ? errors : undefined,
-        duration: duration / 1000, // Convert to seconds
+      const combined: SyncResult = {
+        success: results.every((x) => x.success),
+        itemsProcessed: results.reduce((s, x) => s + (x.itemsProcessed ?? 0), 0),
+        itemsFailed: results.reduce((s, x) => s + (x.itemsFailed ?? 0), 0),
+        errors: results.flatMap((x) => x.errors ?? []),
+        duration: results.reduce((s, x) => s + (x.duration ?? 0), 0),
       };
+      logger.info('Shopify sync completed', { integrationId, ...combined });
+      return combined;
     } catch (error: any) {
       logger.error('Error syncing Shopify', { error, integrationId });
       throw error;
@@ -547,7 +199,7 @@ export class IntegrationService {
   // ========================================
 
   /**
-   * Crée une intégration WooCommerce
+   * Crée une intégration WooCommerce (via backend API)
    */
   async createWooCommerceIntegration(
     request: CreateWooCommerceIntegrationRequest
@@ -557,50 +209,16 @@ export class IntegrationService {
         brandId: request.brandId,
         shopDomain: request.shopDomain,
       });
-
-      // 1. Verify credentials and get shop info
-      const shopInfo = await verifyWooCommerceCredentials(
-        request.shopDomain,
-        request.consumerKey,
-        request.consumerSecret
-      );
-
-      // 2. Save to database
-      const integration = await db.ecommerceIntegration.create({
-        data: {
-          brandId: request.brandId,
-          platform: 'woocommerce',
-          shopDomain: request.shopDomain,
-          accessToken: `${request.consumerKey}:${request.consumerSecret}`, // Store encrypted in production
-          config: {
-            shopName: shopInfo.name,
-            currency: shopInfo.currency,
-            version: shopInfo.version,
-            consumerKey: request.consumerKey,
-          } as any,
-          status: 'active',
-        },
-      });
-
-      // Invalidate cache
-      cacheService.delete(`integrations:${request.brandId}`);
-
-      logger.info('WooCommerce integration created', {
-        integrationId: integration.id,
+      const raw = await api.post<any>('/api/v1/ecommerce/integrations', {
+        platform: 'woocommerce',
         brandId: request.brandId,
+        shopDomain: request.shopDomain,
+        consumerKey: request.consumerKey,
+        consumerSecret: request.consumerSecret,
       });
-
-      return {
-        id: integration.id,
-        brandId: integration.brandId,
-        platform: integration.platform as any,
-        shopDomain: integration.shopDomain,
-        status: integration.status as any,
-        lastSyncAt: integration.lastSyncAt || undefined,
-        config: integration.config as any,
-        createdAt: integration.createdAt,
-        updatedAt: integration.updatedAt,
-      };
+      cacheService.delete(`integrations:${request.brandId}`);
+      logger.info('WooCommerce integration created', { integrationId: raw?.id, brandId: request.brandId });
+      return this.mapIntegration(raw);
     } catch (error: any) {
       logger.error('Error creating WooCommerce integration', { error, request });
       throw error;
@@ -608,7 +226,7 @@ export class IntegrationService {
   }
 
   /**
-   * Synchronise avec WooCommerce
+   * Synchronise avec WooCommerce (via backend API)
    */
   async syncWooCommerce(
     integrationId: string,
@@ -616,224 +234,24 @@ export class IntegrationService {
   ): Promise<SyncResult> {
     try {
       logger.info('Syncing WooCommerce', { integrationId, options });
-
-      const startTime = Date.now();
-
-      // 1. Get integration
-      const integration = await db.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration || integration.platform !== 'woocommerce') {
-        throw new Error('WooCommerce integration not found');
-      }
-
-      const config = integration.config as any;
-      const [consumerKey, consumerSecret] = (integration.accessToken || '').split(':');
-      const shopDomain = integration.shopDomain;
-      const errors: string[] = [];
-      let itemsProcessed = 0;
-      let itemsFailed = 0;
-
-      // 2. Sync products if requested
+      const results: SyncResult[] = [];
       if (options.products !== false) {
-        try {
-          const wooProducts = await getWooCommerceProducts(
-            shopDomain,
-            consumerKey,
-            consumerSecret,
-            100
-          );
-
-          for (const wooProduct of wooProducts) {
-            try {
-              // Check if product mapping exists
-              const existingMapping = await db.productMapping.findFirst({
-                where: {
-                  integrationId,
-                  externalProductId: wooProduct.id.toString(),
-                },
-              });
-
-              if (!existingMapping && options.direction !== 'export') {
-                // Create or find Luneo product from WooCommerce product
-                let luneoProductId = existingMapping?.luneoProductId;
-
-                if (!luneoProductId || luneoProductId.startsWith('temp_')) {
-                  // Create product in Luneo database
-                  const luneoProduct = await db.product.create({
-                    data: {
-                      brandId: integration.brandId,
-                      name: wooProduct.name,
-                      description: (wooProduct as any).description || '',
-                      sku: wooProduct.sku || wooProduct.slug,
-                      price: parseFloat(wooProduct.price || '0'),
-                      currency: 'EUR',
-                      images: wooProduct.images?.map((img: any) => img.src) || [],
-                      imageUrl: wooProduct.images?.[0]?.src || null,
-                      isActive: wooProduct.status === 'publish',
-                      isPublic: true,
-                      metadata: {
-                        wooProductId: wooProduct.id,
-                        wooSlug: wooProduct.slug,
-                        wooPrice: wooProduct.price,
-                        importedAt: new Date().toISOString(),
-                      } as any,
-                    },
-                  });
-
-                  luneoProductId = luneoProduct.id;
-                }
-
-                // Create or update product mapping
-                await db.productMapping.upsert({
-                  where: {
-                    integrationId_externalProductId: {
-                      integrationId,
-                      externalProductId: wooProduct.id.toString(),
-                    },
-                  },
-                  create: {
-                    integrationId,
-                    luneoProductId,
-                    externalProductId: wooProduct.id.toString(),
-                    externalSku: wooProduct.sku || '',
-                    syncStatus: 'synced',
-                    metadata: {
-                      wooPrice: wooProduct.price,
-                      lastSyncedAt: new Date().toISOString(),
-                    } as any,
-                  },
-                  update: {
-                    luneoProductId,
-                    externalSku: wooProduct.sku || '',
-                    syncStatus: 'synced',
-                    lastSyncedAt: new Date(),
-                    metadata: {
-                      wooPrice: wooProduct.price,
-                      lastSyncedAt: new Date().toISOString(),
-                    } as any,
-                  },
-                });
-              }
-
-              itemsProcessed++;
-            } catch (error: any) {
-              itemsFailed++;
-              errors.push(`Product ${wooProduct.id}: ${error.message}`);
-            }
-          }
-        } catch (error: any) {
-          itemsFailed++;
-          errors.push(`Products sync failed: ${error.message}`);
-        }
+        const r = await api.post<any>(`/api/v1/ecommerce/integrations/${integrationId}/sync/products`, options);
+        if (r) results.push(r);
       }
-
-      // 3. Sync orders if requested
       if (options.orders !== false) {
-        try {
-          const { getWooCommerceOrders } = await import('@/lib/integrations/woocommerce-client');
-          const wooOrders = await getWooCommerceOrders(shopDomain, consumerKey, consumerSecret, 100);
-
-          for (const wooOrder of wooOrders) {
-            try {
-              // Check if order mapping exists
-              const existingMapping = await db.productMapping.findFirst({
-                where: {
-                  integrationId,
-                  externalOrderId: wooOrder.id.toString(),
-                },
-              });
-
-              if (!existingMapping && options.direction !== 'export') {
-                // Extract customization metadata from line items
-                const lineItems = wooOrder.line_items || [];
-                const customizedItems = lineItems.filter((item: any) => 
-                  item.meta_data?.some((meta: any) => meta.key === 'customization_id')
-                );
-
-                if (customizedItems.length > 0) {
-                  // Create order in Luneo database
-                  const order = await db.order.create({
-                    data: {
-                      orderNumber: wooOrder.number?.toString() || `WC-${wooOrder.id}`,
-                      status: wooOrder.status === 'completed' ? 'DELIVERED' : 'CREATED',
-                      customerEmail: wooOrder.billing?.email || '',
-                      customerName: `${wooOrder.billing?.first_name || ''} ${wooOrder.billing?.last_name || ''}`.trim(),
-                      shippingAddress: {
-                        name: `${wooOrder.shipping?.first_name || ''} ${wooOrder.shipping?.last_name || ''}`.trim(),
-                        street: wooOrder.shipping?.address_1 || '',
-                        city: wooOrder.shipping?.city || '',
-                        postalCode: wooOrder.shipping?.postcode || '',
-                        country: wooOrder.shipping?.country || '',
-                        phone: wooOrder.billing?.phone || '',
-                        state: wooOrder.shipping?.state || '',
-                      } as any,
-                      subtotalCents: Math.round((parseFloat(wooOrder.total || '0') - parseFloat(wooOrder.total_tax || '0') - parseFloat(wooOrder.shipping_total || '0')) * 100),
-                      taxCents: Math.round(parseFloat(wooOrder.total_tax || '0') * 100),
-                      shippingCents: Math.round(parseFloat(wooOrder.shipping_total || '0') * 100),
-                      totalCents: Math.round(parseFloat(wooOrder.total || '0') * 100),
-                      currency: wooOrder.currency || 'USD',
-                      paymentStatus: wooOrder.status === 'completed' ? 'SUCCEEDED' : 'PENDING',
-                      metadata: {
-                        wooOrderId: wooOrder.id,
-                        lineItems: customizedItems,
-                      } as any,
-                      brandId: integration.brandId,
-                    },
-                  });
-
-                  // Create order mapping
-                  await db.productMapping.create({
-                    data: {
-                      integrationId,
-                      luneoProductId: order.id,
-                      externalProductId: customizedItems[0]?.product_id?.toString() || '',
-                      externalOrderId: wooOrder.id.toString(),
-                      externalSku: wooOrder.number?.toString() || '',
-                      syncStatus: 'synced',
-                    },
-                  });
-
-                  itemsProcessed++;
-                }
-              }
-            } catch (error: any) {
-              itemsFailed++;
-              errors.push(`Order ${wooOrder.id}: ${error.message}`);
-            }
-          }
-        } catch (error: any) {
-          itemsFailed++;
-          errors.push(`Orders sync failed: ${error.message}`);
-        }
+        const r = await api.post<any>(`/api/v1/ecommerce/integrations/${integrationId}/sync/orders`, options);
+        if (r) results.push(r);
       }
-
-      // 4. Update lastSyncAt
-      await db.ecommerceIntegration.update({
-        where: { id: integrationId },
-        data: {
-          lastSyncAt: new Date(),
-          status: itemsFailed > 0 ? 'error' : 'active',
-        },
-      });
-
-      const duration = Date.now() - startTime;
-
-      logger.info('WooCommerce sync completed', {
-        integrationId,
-        itemsProcessed,
-        itemsFailed,
-        duration,
-      });
-
-      return {
-        success: itemsFailed === 0,
-        itemsProcessed,
-        itemsFailed,
-        errors: errors.length > 0 ? errors : undefined,
-        duration: duration / 1000, // Convert to seconds
+      const combined: SyncResult = {
+        success: results.every((x) => x.success),
+        itemsProcessed: results.reduce((s, x) => s + (x.itemsProcessed ?? 0), 0),
+        itemsFailed: results.reduce((s, x) => s + (x.itemsFailed ?? 0), 0),
+        errors: results.flatMap((x) => x.errors ?? []),
+        duration: results.reduce((s, x) => s + (x.duration ?? 0), 0),
       };
+      logger.info('WooCommerce sync completed', { integrationId, ...combined });
+      return combined;
     } catch (error: any) {
       logger.error('Error syncing WooCommerce', { error, integrationId });
       throw error;
@@ -869,90 +287,15 @@ export class IntegrationService {
   }
 
   /**
-   * Supprime une intégration
+   * Supprime une intégration (via backend API)
    */
   async deleteIntegration(integrationId: string, brandId: string): Promise<void> {
     try {
       logger.info('Deleting integration', { integrationId, brandId });
-
-      // Get integration details
-      const integration = await db.ecommerceIntegration.findUnique({
-        where: { id: integrationId },
-      });
-
-      if (!integration) {
-        throw new Error('Integration not found');
-      }
-
-      // Verify brand ownership
-      if (integration.brandId !== brandId) {
-        throw new Error('Integration does not belong to this brand');
-      }
-
-      // 1. Remove webhooks if Shopify
-      if (integration.platform === 'shopify') {
-        try {
-          const shopDomain = integration.shopDomain;
-          const accessToken = integration.accessToken;
-          
-          if (accessToken) {
-            // Get existing webhooks
-            const webhooksResponse = await fetch(`https://${shopDomain}/admin/api/2024-01/webhooks.json`, {
-              headers: {
-                'X-Shopify-Access-Token': accessToken,
-              },
-            });
-
-            if (webhooksResponse.ok) {
-              const webhooksData = await webhooksResponse.json();
-              const webhooks = webhooksData.webhooks || [];
-              const webhookBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
-
-              // Delete each webhook that belongs to this integration
-              for (const webhook of webhooks) {
-                if (webhook.address?.includes(webhookBaseUrl)) {
-                  await fetch(`https://${shopDomain}/admin/api/2024-01/webhooks/${webhook.id}.json`, {
-                    method: 'DELETE',
-                    headers: {
-                      'X-Shopify-Access-Token': accessToken,
-                    },
-                  });
-                  logger.info('Shopify webhook deleted', { webhookId: webhook.id, integrationId });
-                }
-              }
-            }
-          }
-        } catch (error: any) {
-          logger.warn('Error deleting Shopify webhooks', { error, integrationId });
-          // Don't throw - continue with deletion
-        }
-      }
-
-      // 2. Delete product mappings
-      await db.productMapping.deleteMany({
-        where: { integrationId },
-      });
-
-      // 3. Delete sync logs
-      await db.syncLog.deleteMany({
-        where: { integrationId },
-      });
-
-      // 4. Delete webhook logs
-      await db.webhookLog.deleteMany({
-        where: { integrationId },
-      });
-
-      // 5. Delete integration
-      await db.ecommerceIntegration.delete({
-        where: { id: integrationId },
-      });
-
-      // Invalidate cache
+      await api.delete(`/api/v1/ecommerce/integrations/${integrationId}`);
       cacheService.delete(`integrations:${brandId}`);
       cacheService.delete(`integration:${integrationId}`);
-
-      logger.info('Integration deleted successfully', { integrationId, platform: integration.platform });
+      logger.info('Integration deleted successfully', { integrationId });
     } catch (error: any) {
       logger.error('Error deleting integration', { error, integrationId });
       throw error;

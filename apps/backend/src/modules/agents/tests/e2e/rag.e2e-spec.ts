@@ -5,13 +5,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import * as bcrypt from 'bcryptjs';
 import { AppModule } from '@/app.module';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { BrandStatus, UserRole } from '@prisma/client';
+
+const E2E_TEST_EMAIL = 'e2e-rag@luneo.test';
+const E2E_TEST_PASSWORD = 'TestPassword123!';
 
 describe('RAG E2E', () => {
   let app: INestApplication;
   let authToken: string;
   let brandId: string;
+  let userId: string;
   let prisma: PrismaService;
 
   beforeAll(async () => {
@@ -24,21 +30,54 @@ describe('RAG E2E', () => {
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
-    // TODO: Créer utilisateur de test et obtenir token
-    // authToken = await createTestUser();
-    // brandId = 'test-brand-id';
+    const hashedPassword = await bcrypt.hash(E2E_TEST_PASSWORD, 13);
+    let brand = await prisma.brand.findFirst({ where: { name: 'E2E RAG Test Brand' } });
+    if (!brand) {
+      brand = await prisma.brand.create({
+        data: { name: 'E2E RAG Test Brand', slug: 'e2e-rag-test-brand', status: BrandStatus.ACTIVE },
+      });
+    }
+    let user = await prisma.user.findFirst({
+      where: { email: E2E_TEST_EMAIL },
+      include: { brand: true },
+    });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: E2E_TEST_EMAIL,
+          password: hashedPassword,
+          firstName: 'E2E',
+          lastName: 'RAG',
+          role: UserRole.BRAND_ADMIN,
+          emailVerified: true,
+          brandId: brand.id,
+        },
+        include: { brand: true },
+      });
+    } else if (!user.brandId) {
+      await prisma.user.update({ where: { id: user.id }, data: { brandId: brand.id } });
+      user.brandId = brand.id;
+    }
+    brandId = user.brandId ?? brand.id;
+    userId = user.id;
 
-    // Créer article de test pour RAG
-    await prisma.knowledgeBaseArticle.create({
-      data: {
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: E2E_TEST_EMAIL, password: E2E_TEST_PASSWORD });
+    authToken = loginRes.body?.data?.accessToken ?? loginRes.body?.accessToken ?? '';
+
+    await prisma.knowledgeBaseArticle.upsert({
+      where: { slug: 'configuration-produit' },
+      create: {
         title: 'Configuration Produit',
         slug: 'configuration-produit',
         content: 'Pour configurer un produit, allez dans les paramètres...',
         category: 'guide',
         tags: ['configuration', 'produit'],
         isPublished: true,
-        authorId: 'test-user-id',
+        authorId: userId,
       },
+      update: { authorId: userId },
     });
   });
 
@@ -58,7 +97,7 @@ describe('RAG E2E', () => {
         .send({
           message: 'How do I configure a product?',
           brandId,
-          userId: 'test-user-id',
+          userId,
         })
         .expect(200)
         .expect((res) => {
@@ -76,7 +115,7 @@ describe('RAG E2E', () => {
         .send({
           message: 'How do I configure a product?',
           brandId,
-          userId: 'test-user-id',
+          userId,
         })
         .expect(200);
 
@@ -88,7 +127,7 @@ describe('RAG E2E', () => {
         .send({
           message: 'How do I configure a product?',
           brandId,
-          userId: 'test-user-id',
+          userId,
         })
         .expect(200);
       const duration = Date.now() - startTime;

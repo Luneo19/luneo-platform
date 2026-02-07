@@ -34,26 +34,74 @@ export class Render3DService {
   }
 
   /**
-   * Récupère la configuration 3D d'un produit
-   * Note: Product3DConfiguration table not in schema yet - returns mock config
+   * Récupère la configuration 3D d'un produit depuis la DB.
+   * Fallback: si aucun enregistrement Product3DConfiguration, utilise Product.model3dUrl.
    */
   private async getConfiguration(configurationId: string): Promise<Product3DConfiguration | null> {
     try {
-      // Product3DConfiguration model doesn't exist yet
-      // Return a minimal configuration based on the ID
-      this.logger.debug(`Getting 3D configuration for ${configurationId} (mock mode)`);
-      return {
-        id: configurationId,
-        productId: configurationId,
-        modelUrl: undefined,
-        textureUrl: undefined,
-        materials: {},
-        settings: {},
-      };
+      const row = await this.prisma.product3DConfiguration.findUnique({
+        where: { productId: configurationId },
+      });
+
+      if (row) {
+        this.logger.debug(`Found 3D configuration for product ${configurationId}`);
+        return this.mapRowToConfiguration(row);
+      }
+
+      // Fallback: use Product.model3dUrl if no dedicated config row
+      const product = await this.prisma.product.findUnique({
+        where: { id: configurationId },
+        select: { id: true, model3dUrl: true },
+      });
+
+      if (product?.model3dUrl) {
+        this.logger.debug(`Using Product.model3dUrl fallback for product ${configurationId}`);
+        return {
+          id: configurationId,
+          productId: configurationId,
+          modelUrl: product.model3dUrl,
+          textureUrl: undefined,
+          materials: {},
+          settings: {},
+        };
+      }
+
+      return null;
     } catch (error) {
       this.logger.warn(`Could not fetch 3D configuration ${configurationId}: ${error}`);
       return null;
     }
+  }
+
+  private mapRowToConfiguration(row: {
+    id: string;
+    productId: string;
+    modelUrl: string | null;
+    textureUrl: string | null;
+    materialType: string;
+    environmentMap: string | null;
+    lightingPreset: string;
+    cameraPosition: unknown;
+    cameraTarget: unknown;
+    customZones: unknown;
+    renderSettings: unknown;
+  }): Product3DConfiguration {
+    return {
+      id: row.id,
+      productId: row.productId,
+      modelUrl: row.modelUrl ?? undefined,
+      textureUrl: row.textureUrl ?? undefined,
+      materials: {},
+      settings: {
+        materialType: row.materialType,
+        environmentMap: row.environmentMap ?? undefined,
+        lightingPreset: row.lightingPreset,
+        cameraPosition: row.cameraPosition,
+        cameraTarget: row.cameraTarget,
+        customZones: row.customZones,
+        renderSettings: row.renderSettings,
+      },
+    };
   }
 
   /**

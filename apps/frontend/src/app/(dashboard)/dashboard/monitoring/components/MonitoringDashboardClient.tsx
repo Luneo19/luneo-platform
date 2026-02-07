@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { api } from '@/lib/api/client';
 import { Activity, AlertTriangle, RefreshCw, Server, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -53,23 +54,16 @@ export function MonitoringDashboardClient({
     setError(null);
 
     try {
-      const response = await fetch('/api/monitoring/dashboard', {
-        cache: 'no-store',
-      });
+      const data = await api.get<{ success?: boolean; error?: string; data?: { metrics?: DashboardMetrics; alerts?: Alert[]; services?: ServiceHealth[] } }>('/api/v1/monitoring/dashboard');
 
-      if (!response.ok) {
-        throw new Error(`Failed to refresh: ${response.statusText}`);
+      if (data && (data as { success?: boolean }).success === false) {
+        throw new Error((data as { error?: string }).error || 'Erreur lors du rafraîchissement');
       }
 
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Erreur lors du rafraîchissement');
-      }
-
-      setMetrics(data.data.metrics || null);
-      setAlerts(data.data.alerts || []);
-      setServices(data.data.services || []);
+      const payload = (data as { data?: { metrics?: DashboardMetrics; alerts?: Alert[]; services?: ServiceHealth[] } })?.data ?? data as { metrics?: DashboardMetrics; alerts?: Alert[]; services?: ServiceHealth[] };
+      setMetrics(payload?.metrics ?? null);
+      setAlerts(payload?.alerts ?? []);
+      setServices(payload?.services ?? []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);

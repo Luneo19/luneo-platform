@@ -63,32 +63,32 @@ export class GenerationProcessor {
 
       await job.updateProgress(50);
 
-      // 4. Télécharger l'image générée
+      // 4. Download generated overlay image
       const generatedImageUrl = aiResult.images[0].url;
-      const imageResponse = await fetch(generatedImageUrl);
-      const generatedImageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      const generatedImageBuffer = await this.imageProcessor.downloadImage(generatedImageUrl);
 
-      // 5. Télécharger l'image de base du produit si disponible
+      // 5. Load base product image when available (required for multi-layer composition)
       let baseImageBuffer: Buffer | null = null;
       if (data.baseImage) {
         try {
-          const baseResponse = await fetch(data.baseImage);
-          baseImageBuffer = Buffer.from(await baseResponse.arrayBuffer());
+          baseImageBuffer = await this.imageProcessor.downloadImage(data.baseImage);
         } catch (error) {
-          this.logger.warn(`Failed to download base image: ${error.message}`);
+          this.logger.warn(`Failed to download base image: ${error instanceof Error ? error.message : 'Unknown'}`);
         }
       }
 
-      // 6. Composer l'image finale
-      const composedImage = baseImageBuffer
-        ? await this.imageProcessor.compose({
-            baseImage: baseImageBuffer,
-            generatedOverlay: generatedImageBuffer,
-            customizationZones: data.customizationZones,
-            customizations: data.customizations,
-            outputFormat: data.outputFormat,
-          })
-        : generatedImageBuffer;
+      // 6. Compose final image: base + overlay(s) per zone with effects (engrave, emboss, 3d_shadow)
+      const hasZones = Array.isArray(data.customizationZones) && data.customizationZones.length > 0;
+      const composedImage =
+        baseImageBuffer && hasZones
+          ? await this.imageProcessor.compose({
+              baseImage: baseImageBuffer,
+              generatedOverlay: generatedImageBuffer,
+              customizationZones: data.customizationZones,
+              customizations: data.customizations,
+              outputFormat: data.outputFormat,
+            })
+          : baseImageBuffer ?? generatedImageBuffer;
 
       await job.updateProgress(70);
 
@@ -126,9 +126,8 @@ export class GenerationProcessor {
       });
 
       if (product?.arEnabled && product?.model3dUrl) {
-        // Pour l'instant, on utilise le modèle 3D existant
-        // TODO: Générer un modèle AR avec la texture personnalisée
-        arModelUrl = product.model3dUrl;
+        // Use generated image URL as AR texture; full 3D model generation can be added later
+        arModelUrl = imageUrl;
       }
 
       await job.updateProgress(95);

@@ -11,7 +11,7 @@
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
 import type { ProductionJob } from '@/lib/types/order';
-import { db as prismaDb } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 
 // AI Engine URL
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.NEXT_PUBLIC_AI_ENGINE_URL || 'http://localhost:8000';
@@ -92,19 +92,13 @@ export class ProductionService {
         quality: options.quality,
       });
 
-      // Get order item to find design/customization
-      const order = await prismaDb.order.findUnique({
-        where: { id: orderId },
-        include: {
-          items: true,
-        },
-      });
+      const order = await endpoints.orders.get(orderId) as any;
 
       if (!order) {
         throw new Error('Order not found');
       }
 
-      const items = order.items as Array<{
+      const items = (order.items ?? []) as Array<{
         id: string;
         designId?: string | null;
         customizationId?: string | null;
@@ -120,15 +114,7 @@ export class ProductionService {
         throw new Error('Order item has no design');
       }
 
-      const design = await prismaDb.design.findUnique({
-        where: { id: designId },
-        select: {
-          highResUrl: true,
-          imageUrl: true,
-          renderUrl: true,
-          metadata: true,
-        },
-      });
+      const design = await endpoints.designs.get(designId) as any;
 
       if (!design) {
         throw new Error('Design not found');

@@ -42,6 +42,7 @@ export class WebhooksController {
   /**
    * Webhook Stripe pour les événements de paiement
    * URL: POST /webhooks/stripe
+   * @Public: Stripe webhook; verified by stripe-signature
    */
   @Public()
   @Post('stripe')

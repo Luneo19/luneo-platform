@@ -9,8 +9,6 @@
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
 
-// db importé depuis @/lib/db
-
 export interface ARSession {
   id: string;
   productId: string;

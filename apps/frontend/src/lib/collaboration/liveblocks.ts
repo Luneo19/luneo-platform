@@ -3,6 +3,8 @@
  * C-001: Intégration Liveblocks pour collaboration temps réel
  */
 
+import { api } from '@/lib/api/client';
+
 // Liveblocks integration - Optional dependency
 // If packages are not installed, the code will gracefully degrade
 // To enable: pnpm add @liveblocks/client @liveblocks/react
@@ -127,30 +129,17 @@ const client = createClient({
   
   // Custom authentication endpoint
   authEndpoint: async (room: any) => {
-    const response = await fetch('/api/liveblocks/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room }),
-    });
-    return response.json();
+    return api.post('/api/v1/liveblocks/auth', { room });
   },
 
   // Resolve users for mentions
   resolveUsers: async ({ userIds }: { userIds: string[] }) => {
-    const response = await fetch('/api/users/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userIds }),
-    });
-    const users = await response.json();
-    return users;
+    return api.post('/api/v1/users/batch', { userIds });
   },
 
   // Resolve mention suggestions
   resolveMentionSuggestions: async ({ text, roomId }: { text: string; roomId: string }) => {
-    const response = await fetch(`/api/users/search?q=${encodeURIComponent(text)}&room=${roomId}`);
-    const suggestions = await response.json();
-    return suggestions;
+    return api.get(`/api/v1/users/search`, { params: { q: text, room: roomId } });
   },
 });
 

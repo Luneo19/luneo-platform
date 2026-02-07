@@ -452,7 +452,7 @@ export class PODWebhookHandler {
    */
   private async updateOrderStatus(event: PODWebhookEvent): Promise<boolean> {
     try {
-      // This would typically update Supabase
+      // This would typically update the database via backend API
       // For now, we'll return true
       logger.info('Updating order status', {
         orderId: event.orderId,

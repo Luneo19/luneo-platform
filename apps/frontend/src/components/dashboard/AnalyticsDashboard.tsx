@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // Optimisé: Dynamic imports pour @nivo (packages lourds ~240KB)
 import { LazyResponsiveLine as ResponsiveLine, LazyResponsiveBar as ResponsiveBar, LazyResponsivePie as ResponsivePie } from '@/lib/performance/dynamic-charts';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -65,13 +66,10 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
   const loadAnalytics = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/analytics/dashboard?range=${dateRange}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMetrics(data.data || data);
-      } else {
-        throw new Error('Failed to load analytics');
-      }
+      const data = await api.get<Record<string, unknown>>('/api/v1/analytics/overview', {
+        params: { range: dateRange },
+      });
+      setMetrics(data ?? null);
     } catch (error) {
       logger.error('Failed to load analytics', { error });
       toast({

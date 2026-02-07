@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 interface Collection {
   id: string;
@@ -27,16 +28,9 @@ export function useCollections() {
 
   const fetchCollections = useCallback(async () => {
     try {
-      const response = await fetch('/api/collections');
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch collections');
-      }
-
-      // Gérer les deux formats de réponse possibles
-      const collectionsData = result.data?.collections || result.collections || [];
-      setCollections(collectionsData);
+      const result = await api.get<{ data?: { collections?: Collection[] }; collections?: Collection[] }>('/api/v1/collections');
+      const collectionsData = result?.data?.collections ?? result?.collections ?? [];
+      setCollections(Array.isArray(collectionsData) ? collectionsData : []);
     } catch (err: any) {
       logger.error('Error fetching collections', err, { userId: 'current' });
       setError(err.message);
@@ -57,22 +51,9 @@ export function useCollections() {
     tags?: string[];
   }) => {
     try {
-      const response = await fetch('/api/collections', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to create collection');
-      }
-
-      // Rafraîchir les collections
+      const result = await api.post<{ data?: { collection?: Collection }; collection?: Collection }>('/api/v1/collections', data);
       await fetchCollections();
-
-      return result.data?.collection || result.collection;
+      return result?.data?.collection ?? result?.collection;
     } catch (err: any) {
       logger.error('Error creating collection', err, { collectionName: data.name });
       throw err;
@@ -84,22 +65,9 @@ export function useCollections() {
     data: Partial<Collection>
   ) => {
     try {
-      const response = await fetch(`/api/collections/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to update collection');
-      }
-
-      // Rafraîchir les collections
+      const result = await api.put<{ data?: { collection?: Collection }; collection?: Collection }>(`/api/v1/collections/${id}`, data);
       await fetchCollections();
-
-      return result.data?.collection || result.collection;
+      return result?.data?.collection ?? result?.collection;
     } catch (err: any) {
       logger.error('Error updating collection', err, { collectionId: id });
       throw err;
@@ -108,17 +76,7 @@ export function useCollections() {
 
   const deleteCollection = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`/api/collections/${id}`, {
-        method: 'DELETE',
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to delete collection');
-      }
-
-      // Rafraîchir les collections
+      await api.delete(`/api/v1/collections/${id}`);
       await fetchCollections();
     } catch (err: any) {
       logger.error('Error deleting collection', err, { collectionId: id });
@@ -132,22 +90,9 @@ export function useCollections() {
     notes?: string
   ) => {
     try {
-      const response = await fetch(`/api/collections/${collectionId}/items`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ design_id: designId, notes }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to add design');
-      }
-
-      // Rafraîchir les collections
+      const result = await api.post<{ data?: { item?: unknown }; item?: unknown }>(`/api/v1/collections/${collectionId}/items`, { design_id: designId, notes });
       await fetchCollections();
-
-      return result.data?.item || result.item;
+      return result?.data?.item ?? result?.item;
     } catch (err: any) {
       logger.error('Error adding design to collection', err, { collectionId, designId });
       throw err;
@@ -159,18 +104,7 @@ export function useCollections() {
     designId: string
   ) => {
     try {
-      const response = await fetch(
-        `/api/collections/${collectionId}/items?design_id=${designId}`,
-        { method: 'DELETE' }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to remove design');
-      }
-
-      // Rafraîchir les collections
+      await api.delete(`/api/v1/collections/${collectionId}/items`, { params: { design_id: designId } });
       await fetchCollections();
     } catch (err: any) {
       logger.error('Error removing design from collection', err, { collectionId, designId });
@@ -207,20 +141,13 @@ export function useCollection(collectionId: string | null) {
 
     const fetchCollection = async () => {
       try {
-        const response = await fetch(`/api/collections/${collectionId}`);
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || result.message || 'Failed to fetch collection');
-        }
-
-        const collectionData = result.data?.collection || result.collection;
-        const designsData = result.data?.designs || result.designs || [];
-
+        const result = await api.get<{ data?: { collection?: CollectionWithDesigns; designs?: unknown[] }; collection?: CollectionWithDesigns; designs?: unknown[] }>(`/api/v1/collections/${collectionId}`);
+        const collectionData = result?.data?.collection ?? result?.collection;
+        const designsData = result?.data?.designs ?? result?.designs ?? [];
         setCollection({
           ...collectionData,
           designs: designsData,
-        });
+        } as CollectionWithDesigns);
       } catch (err: any) {
         logger.error('Error fetching collection', err, { collectionId });
         setError(err.message);

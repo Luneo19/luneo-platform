@@ -3,17 +3,23 @@
  * API route pour uploader des fichiers contextuels pour le chat/agent
  * - Support de multiples types de fichiers (PDF, TXT, DOCX, etc.)
  * - Validation des fichiers
+ * - Stockage via Cloudinary (raw)
  * - Retourne l'URL publique et les métadonnées
- * 
- * ⚠️ IMPORTANT: Créer le bucket Supabase "other-files" dans le dashboard Supabase
- *    si ce bucket n'existe pas encore. Le bucket doit être public ou configuré
- *    avec les bonnes politiques RLS (Row Level Security).
  */
 
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
+import { v2 as cloudinary } from 'cloudinary';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Types de fichiers autorisés pour le contexte
 const ALLOWED_FILE_TYPES = [
@@ -54,12 +60,9 @@ const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
  */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
+    const user = await getUserFromRequest(request);
     
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    if (!user) {
       throw {
         status: 401,
         message: 'Non authentifié',
@@ -147,19 +150,35 @@ export async function POST(request: NextRequest) {
       contextId,
     });
 
-    // Upload vers Supabase Storage
     const timestamp = Date.now();
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const storageFileName = `chat-context/${user.id}/${timestamp}-${sanitizedFileName}`;
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('other-files')
-      .upload(storageFileName, file, {
-        contentType: fileType || 'application/octet-stream',
-        upsert: false,
-      });
+    const publicId = `chat-context/${user.id}/${timestamp}-${sanitizedFileName}`;
 
-    if (uploadError) {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    let publicUrl: string;
+    let uploadPath: string;
+    try {
+      const uploadResult = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: `luneo/chat-context/${user.id}`,
+              public_id: `${timestamp}-${sanitizedFileName}`,
+              resource_type: 'raw',
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else if (result) resolve({ secure_url: result.secure_url, public_id: result.public_id ?? '' });
+              else reject(new Error('Upload returned no result'));
+            }
+          )
+          .end(buffer);
+      });
+      publicUrl = uploadResult.secure_url;
+      uploadPath = uploadResult.public_id;
+    } catch (uploadError) {
       logger.error('Error uploading context file', {
         error: uploadError,
         userId: user.id,
@@ -171,82 +190,33 @@ export async function POST(request: NextRequest) {
         message: 'Erreur lors de l\'upload du fichier',
         code: 'STORAGE_ERROR',
         metadata: {
-          storageError: uploadError.message,
+          storageError: uploadError instanceof Error ? uploadError.message : String(uploadError),
         },
       };
     }
 
-    // Obtenir l'URL publique
-    const { data: { publicUrl } } = supabase.storage
-      .from('other-files')
-      .getPublicUrl(storageFileName);
-
-    // Optionnel : Créer une entrée dans la base de données pour le suivi
-    // (Si vous avez une table pour les fichiers contextuels)
-    let dbRecord = null;
-    try {
-      // Vérifier si la table existe avant d'insérer
-      const { data: tableCheck } = await supabase
-        .from('context_files')
-        .select('id')
-        .limit(1);
-
-      if (tableCheck !== null) {
-        // La table existe, on peut insérer
-        const { data: insertedData, error: insertError } = await supabase
-          .from('context_files')
-          .insert({
-            user_id: user.id,
-            file_name: fileName,
-            file_url: publicUrl,
-            file_path: storageFileName,
-            file_size: file.size,
-            file_type: fileType || fileExtension,
-            context_id: contextId || null,
-            description: description || null,
-            uploaded_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          // Logger l'erreur mais ne pas faire échouer l'upload
-          logger.warn('Error creating context file database record', {
-            error: insertError,
-            userId: user.id,
-            fileName,
-          });
-        } else {
-          dbRecord = insertedData;
-        }
-      }
-    } catch (dbError) {
-      // La table n'existe peut-être pas, ce n'est pas grave
-      logger.warn('Context files table may not exist', {
-        error: dbError,
-        userId: user.id,
-      });
-    }
-
     logger.info('Fichier contextuel uploadé avec succès', {
-      fileName: uploadData.path,
+      fileName: uploadPath,
       userId: user.id,
       publicUrl,
       fileSize: file.size,
     });
 
-    return {
-      file: {
-        id: dbRecord?.id || null,
-        url: publicUrl,
-        path: uploadData.path,
-        fileName,
-        size: file.size,
-        type: fileType || fileExtension,
-        uploadedAt: new Date().toISOString(),
+    return ApiResponseBuilder.success(
+      {
+        file: {
+          id: null,
+          url: publicUrl,
+          path: uploadPath,
+          fileName,
+          size: file.size,
+          type: fileType || fileExtension,
+          uploadedAt: new Date().toISOString(),
+        },
+        message: 'Fichier contextuel uploadé avec succès',
       },
-      message: 'Fichier contextuel uploadé avec succès',
-    };
+      'Fichier contextuel uploadé avec succès'
+    );
   }, '/api/chat/other-files-context', 'POST');
 }
 
@@ -255,12 +225,9 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
+    const user = await getUserFromRequest(request);
     
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    if (!user) {
       throw {
         status: 401,
         message: 'Non authentifié',
@@ -271,58 +238,30 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const contextId = searchParams.get('contextId');
 
-    // Essayer de récupérer depuis la base de données
-    try {
-      const { data: tableCheck } = await supabase
-        .from('context_files')
-        .select('id')
-        .limit(1);
+    // Forward to backend API
+    const url = new URL(`${API_URL}/api/v1/chat/other-files-context`);
+    if (contextId) url.searchParams.set('contextId', contextId);
 
-      if (tableCheck !== null) {
-        // La table existe
-        let query = supabase
-          .from('context_files')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('uploaded_at', { ascending: false });
+    const backendResponse = await fetch(url.toString(), {
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
 
-        if (contextId) {
-          query = query.eq('context_id', contextId);
-        }
-
-        const { data: files, error: fetchError } = await query;
-
-        if (fetchError) {
-          logger.dbError('fetch context files', fetchError, {
-            userId: user.id,
-            contextId,
-          });
-          throw {
-            status: 500,
-            message: 'Erreur lors de la récupération des fichiers',
-            code: 'DATABASE_ERROR',
-          };
-        }
-
-        return {
-          files: files || [],
-          count: files?.length || 0,
-        };
-      }
-    } catch (dbError) {
-      // La table n'existe peut-être pas
-      logger.warn('Context files table may not exist', {
-        error: dbError,
+    if (!backendResponse.ok) {
+      logger.error('Failed to fetch context files', {
         userId: user.id,
+        contextId,
+        status: backendResponse.status,
       });
+      throw {
+        status: 500,
+        message: 'Erreur lors de la récupération des fichiers',
+        code: 'DATABASE_ERROR',
+      };
     }
 
-    // Si la table n'existe pas, retourner une liste vide
-    return {
-      files: [],
-      count: 0,
-      message: 'Aucun fichier contextuel trouvé',
-    };
+    return await backendResponse.json();
   }, '/api/chat/other-files-context', 'GET');
 }
 
@@ -331,12 +270,9 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
+    const user = await getUserFromRequest(request);
     
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    if (!user) {
       throw {
         status: 401,
         message: 'Non authentifié',
@@ -356,124 +292,46 @@ export async function DELETE(request: NextRequest) {
       };
     }
 
-    let filePath: string | null = null;
+    // Forward to backend API
+    const url = new URL(`${API_URL}/api/v1/chat/other-files-context`);
+    if (fileId) url.searchParams.set('id', fileId);
+    if (fileUrl) url.searchParams.set('url', fileUrl);
 
-    // Si on a un ID, récupérer depuis la base de données
-    if (fileId) {
-      try {
-        const { data: tableCheck } = await supabase
-          .from('context_files')
-          .select('id')
-          .limit(1);
+    const backendResponse = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
 
-        if (tableCheck !== null) {
-          const { data: file, error: fetchError } = await supabase
-            .from('context_files')
-            .select('file_path, file_url')
-            .eq('id', fileId)
-            .eq('user_id', user.id)
-            .single();
-
-          if (fetchError) {
-            if (fetchError.code === 'PGRST116') {
-              throw {
-                status: 404,
-                message: 'Fichier contextuel non trouvé',
-                code: 'FILE_NOT_FOUND',
-              };
-            }
-            logger.dbError('fetch context file for deletion', fetchError, {
-              userId: user.id,
-              fileId,
-            });
-            throw {
-              status: 500,
-              message: 'Erreur lors de la récupération du fichier',
-              code: 'DATABASE_ERROR',
-            };
-          }
-
-          filePath = file?.file_path || null;
-
-          // Supprimer de la base de données
-          const { error: deleteError } = await supabase
-            .from('context_files')
-            .delete()
-            .eq('id', fileId)
-            .eq('user_id', user.id);
-
-          if (deleteError) {
-            logger.dbError('delete context file', deleteError, {
-              userId: user.id,
-              fileId,
-            });
-            // Continuer avec la suppression du fichier même si la DB échoue
-          }
-        }
-      } catch (dbError: any) {
-        if (dbError.status === 404 || dbError.status === 500) {
-          throw dbError;
-        }
-        // La table n'existe peut-être pas, continuer avec la suppression du fichier
-        logger.warn('Context files table may not exist', {
-          error: dbError,
-          userId: user.id,
-        });
-      }
-    }
-
-    // Si on a une URL mais pas de filePath, extraire le chemin
-    if (!filePath && fileUrl) {
-      const urlObj = new URL(fileUrl);
-      const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/other-files\/(.+)/);
-      
-      if (pathMatch) {
-        filePath = pathMatch[1];
-      } else {
-        // Essayer un autre format d'URL
-        const altMatch = urlObj.pathname.match(/other-files\/(.+)/);
-        if (altMatch) {
-          filePath = altMatch[1];
-        }
-      }
-    }
-
-    // Supprimer le fichier du storage
-    if (filePath) {
-      const { error: deleteError } = await supabase.storage
-        .from('other-files')
-        .remove([filePath]);
-
-      if (deleteError) {
-        logger.error('Error deleting context file from storage', {
-          error: deleteError,
-          userId: user.id,
-          fileId,
-          filePath,
-        });
+    if (!backendResponse.ok) {
+      if (backendResponse.status === 404) {
         throw {
-          status: 500,
-          message: 'Erreur lors de la suppression du fichier',
-          code: 'STORAGE_ERROR',
+          status: 404,
+          message: 'Fichier contextuel non trouvé',
+          code: 'FILE_NOT_FOUND',
         };
       }
-    } else {
-      logger.warn('Could not determine file path for deletion', {
+      logger.error('Failed to delete context file', {
         userId: user.id,
         fileId,
         fileUrl,
+        status: backendResponse.status,
       });
+      throw {
+        status: 500,
+        message: 'Erreur lors de la suppression du fichier',
+        code: 'STORAGE_ERROR',
+      };
     }
 
+    const result = await backendResponse.json();
     logger.info('Fichier contextuel supprimé avec succès', {
-      filePath,
       userId: user.id,
       fileId,
     });
 
-    return {
-      message: 'Fichier contextuel supprimé avec succès',
-    };
+    return result;
   }, '/api/chat/other-files-context', 'DELETE');
 }
 

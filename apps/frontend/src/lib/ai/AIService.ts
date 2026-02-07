@@ -12,6 +12,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
+import { endpoints, api } from '@/lib/api/client';
 import type {
   AIOperation,
   AIOperationStatus,
@@ -58,22 +59,16 @@ class AIService {
     this.addToHistory(request);
 
     try {
-      const response = await fetch('/api/ai/background-removal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl, mode }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Background removal failed');
-      }
-
-      const result = await response.json();
+      const result = await api.post<{ outputUrl?: string; url?: string; maskUrl?: string }>(
+        '/api/v1/ai/background-removal',
+        { imageUrl, mode }
+      );
+      const outputUrl = result.outputUrl ?? result.url;
 
       request.status = 'completed';
       request.completedAt = Date.now();
       request.output = {
-        imageUrl: result.outputUrl,
+        imageUrl: outputUrl ?? '',
         maskUrl: result.maskUrl,
       };
 
@@ -114,24 +109,19 @@ class AIService {
     this.addToHistory(request);
 
     try {
-      const response = await fetch('/api/ai/upscale', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request.input),
-      });
-
-      if (!response.ok) {
-        throw new Error('Image upscaling failed');
-      }
-
-      const result = await response.json();
+      const result = await api.post<{
+        outputUrl?: string;
+        url?: string;
+        originalSize?: { width: number; height: number };
+        newSize?: { width: number; height: number };
+      }>('/api/v1/ai/upscale', request.input);
 
       request.status = 'completed';
       request.completedAt = Date.now();
       request.output = {
-        imageUrl: result.outputUrl,
-        originalSize: result.originalSize,
-        newSize: result.newSize,
+        imageUrl: result.outputUrl ?? result.url ?? '',
+        originalSize: result.originalSize ?? { width: 0, height: 0 },
+        newSize: result.newSize ?? { width: 0, height: 0 },
       };
 
       this.updateHistory(request);
@@ -166,28 +156,22 @@ class AIService {
     this.addToHistory(request);
 
     try {
-      const response = await fetch('/api/ai/extract-colors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request.input),
-      });
-
-      if (!response.ok) {
-        throw new Error('Color extraction failed');
-      }
-
-      const result = await response.json();
+      const result = await api.post<{
+        colors?: ExtractedColor[];
+        dominantColor?: string;
+        palette?: string[];
+      }>('/api/v1/ai/extract-colors', request.input);
 
       request.status = 'completed';
       request.completedAt = Date.now();
       request.output = {
-        colors: result.colors,
-        dominantColor: result.dominantColor,
-        palette: result.palette,
+        colors: result.colors ?? [],
+        dominantColor: result.dominantColor ?? '',
+        palette: result.palette ?? [],
       };
 
       this.updateHistory(request);
-      logger.info('Color extraction completed', { id: request.id, colorsFound: result.colors.length });
+      logger.info('Color extraction completed', { id: request.id, colorsFound: result.colors?.length ?? 0 });
 
       return request;
     } catch (error) {
@@ -228,24 +212,18 @@ class AIService {
     this.addToHistory(request);
 
     try {
-      const response = await fetch('/api/ai/text-to-design', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request.input),
-      });
-
-      if (!response.ok) {
-        throw new Error('Design generation failed');
-      }
-
-      const result = await response.json();
+      const result = await api.post<{
+        imageUrl?: string;
+        variations?: string[];
+        metadata?: Record<string, unknown>;
+      }>('/api/v1/ai/text-to-design', request.input);
 
       request.status = 'completed';
       request.completedAt = Date.now();
       request.output = {
-        imageUrl: result.imageUrl,
-        variations: result.variations,
-        metadata: result.metadata,
+        imageUrl: result.imageUrl ?? '',
+        variations: result.variations ?? [],
+        metadata: (result.metadata ?? { model: '', seed: 0, steps: 0 }) as { model: string; seed: number; steps: number },
       };
 
       this.updateHistory(request);
@@ -280,24 +258,20 @@ class AIService {
     this.addToHistory(request);
 
     try {
-      const response = await fetch('/api/ai/smart-crop', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request.input),
-      });
-
-      if (!response.ok) {
-        throw new Error('Smart crop failed');
-      }
-
-      const result = await response.json();
+      const result = await api.post<{
+        outputUrl?: string;
+        url?: string;
+        cropArea?: unknown;
+        detectedSubjects?: unknown;
+      }>('/api/v1/ai/smart-crop', request.input);
+      const outputUrl = result.outputUrl ?? result.url ?? '';
 
       request.status = 'completed';
       request.completedAt = Date.now();
       request.output = {
-        imageUrl: result.outputUrl,
-        cropArea: result.cropArea,
-        detectedSubjects: result.detectedSubjects,
+        imageUrl: outputUrl,
+        cropArea: (result.cropArea ?? { x: 0, y: 0, width: 0, height: 0 }) as { x: number; y: number; width: number; height: number },
+        detectedSubjects: (result.detectedSubjects ?? []) as { type: string; bbox: number[] }[],
       };
 
       this.updateHistory(request);
@@ -331,11 +305,7 @@ class AIService {
    */
   async getQuota(): Promise<AIQuota> {
     try {
-      const response = await fetch('/api/ai/quota');
-      if (!response.ok) {
-        throw new Error('Failed to fetch quota');
-      }
-      return await response.json();
+      return await api.get<AIQuota>('/api/v1/ai/quota');
     } catch (error) {
       logger.error('Failed to fetch AI quota', { error });
       // Return default quota on error

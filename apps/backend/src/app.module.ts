@@ -57,6 +57,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { SupportModule } from './modules/support/support.module';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
+import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 import { SpecsModule } from './modules/specs/specs.module';
 import { SnapshotsModule } from './modules/snapshots/snapshots.module';
 import { PersonalizationModule } from './modules/personalization/personalization.module';
@@ -73,6 +74,9 @@ import { ReferralModule } from './modules/referral/referral.module';
 import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
 import { CustomizationModule } from './modules/customization/customization.module';
 import { BraceletModule } from './modules/bracelet/bracelet.module';
+import { IndustryModule } from './modules/industry/industry.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 // Modules partiellement configurés - nécessitent alignement schéma/services
 import { ProjectsModule } from './modules/projects/projects.module'; // ✅ Réactivé
 import { TryOnModule } from './modules/try-on/try-on.module'; // ✅ Réactivé
@@ -245,7 +249,13 @@ import { CryptoModule } from './libs/crypto/crypto.module';
         PlansModule,
         PricingModule, // ✅ PHASE 6 - Pricing & Rentabilité IA
         ProductEngineModule,
-    // RenderModule, // Temporairement désactivé (canvas nécessite dépendances natives)
+    /**
+     * DISABLED: RenderModule
+     * Reason: Requires 'canvas' npm package which needs native OS dependencies (Cairo, Pango).
+     * Impact: Server-side image composition disabled; client-side rendering still works.
+     * Re-enable: After installing native deps in Docker (e.g. apt-get install libcairo2-dev libpango1.0-dev).
+     */
+    // RenderModule,
     EcommerceModule,
     UsageBillingModule,
     WidgetModule,
@@ -269,7 +279,11 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     CronJobsModule,
     CustomizationModule,
     BraceletModule,
+    IndustryModule,
+    OnboardingModule,
+    DashboardModule,
     CollaborationModule,
+    FeatureFlagsModule,
     ProjectsModule, // ✅ Réactivé
     TryOnModule, // ✅ Réactivé
     Configurator3DModule, // ✅ Réactivé
@@ -292,11 +306,20 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     I18nModule,
     TimezoneModule,
 
-    // Job processing (conditionnel pour serverless)
-    // JobsModule temporairement désactivé (RenderModule nécessite canvas)
+    /**
+     * DISABLED: JobsModule
+     * Reason: Depends on RenderModule (canvas) and can cause build/runtime issues when canvas native deps are missing.
+     * Impact: Background jobs processed by this module (e.g. server-side render jobs) are not run.
+     * Re-enable: After RenderModule is re-enabled and native deps are available.
+     */
     // ...(process.env.VERCEL ? [] : [JobsModule]),
 
-    // WebSocket for real-time collaboration (temporairement désactivé pour build)
+    /**
+     * DISABLED: WebSocketModule
+     * Reason: Build or runtime issues (e.g. native/optional deps, serverless incompatibility).
+     * Impact: No WebSocket support for real-time collaboration/notifications on this server.
+     * Re-enable: When build issues are resolved and deployment target supports persistent connections.
+     */
     // WebSocketModule,
 
     // Outbox & Budgets

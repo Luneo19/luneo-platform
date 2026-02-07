@@ -92,34 +92,79 @@ export class TracingService {
   }
 
   /**
-   * Récupère une trace complète
+   * Récupère une trace complète (tous les spans d'un traceId)
    */
   async getTrace(traceId: string): Promise<Trace[]> {
-    // TODO: Récupérer depuis la table Trace
-    // Pour l'instant, retourner vide
-    return [];
+    const rows = await this.prisma.trace.findMany({
+      where: { traceId },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((r) => this.rowToTrace(r));
   }
 
   /**
    * Récupère les traces d'un service
    */
   async getServiceTraces(service: string, limit: number = 100): Promise<Trace[]> {
-    // TODO: Récupérer depuis la table Trace
-    return [];
+    const rows = await this.prisma.trace.findMany({
+      where: { serviceName: service },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return rows.map((r) => this.rowToTrace(r));
   }
 
   /**
-   * Sauvegarde un span
+   * Sauvegarde un span dans la table Trace
    */
   private async saveSpan(span: Trace): Promise<void> {
-    // TODO: Sauvegarder dans une table Trace
-    // Pour l'instant, log seulement les erreurs
+    await this.prisma.trace.create({
+      data: {
+        traceId: span.traceId,
+        spanId: span.spanId,
+        parentSpanId: span.parentSpanId ?? null,
+        operationName: span.operation,
+        serviceName: span.service,
+        duration: span.duration ?? 0,
+        status: span.status === 'success' ? 'ok' : 'error',
+        metadata: span.tags || span.logs ? { tags: span.tags, logs: span.logs } : null,
+      },
+    });
     if (span.status === 'error') {
       this.logger.debug(`Trace error: ${span.traceId}/${span.spanId} - ${span.service}.${span.operation}`, {
         duration: span.duration,
         tags: span.tags,
       });
     }
+  }
+
+  /**
+   * Map Prisma Trace row to Trace interface
+   */
+  private rowToTrace(r: {
+    traceId: string;
+    spanId: string;
+    parentSpanId: string | null;
+    operationName: string;
+    serviceName: string;
+    duration: number;
+    status: string;
+    metadata: unknown;
+    createdAt: Date;
+  }): Trace {
+    const meta = (r.metadata as { tags?: Record<string, string>; logs?: Trace['logs'] }) || {};
+    return {
+      traceId: r.traceId,
+      spanId: r.spanId,
+      parentSpanId: r.parentSpanId ?? undefined,
+      service: r.serviceName,
+      operation: r.operationName,
+      startTime: r.createdAt,
+      duration: r.duration,
+      status: r.status === 'ok' ? 'success' : 'error',
+      tags: meta.tags,
+      logs: meta.logs,
+    };
   }
 
   /**
@@ -140,18 +185,22 @@ export class TracingService {
    * Crée un decorator pour tracer automatiquement les méthodes
    */
   static Trace(service: string, operation?: string) {
-    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-      const originalMethod = descriptor.value;
+    return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
+      const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
       const opName = operation || propertyKey;
 
-      descriptor.value = async function (...args: any[]) {
-        // TODO: Intégrer avec OpenTelemetry
-        // Pour l'instant, wrapper simple
+      descriptor.value = async function (this: TracingService, ...args: unknown[]) {
+        // OpenTelemetry: Deferred to future phase (microservices architecture)
+        // Current stack: Sentry (errors + performance) + custom DB tracing (spans in Trace table)
+        // Migrate to OpenTelemetry when:
+        // 1. Architecture splits into microservices (AI engine Python, etc.)
+        // 2. Need distributed tracing across services
+        // 3. Want vendor-neutral telemetry export (Jaeger, Datadog, etc.)
+        // Estimated effort: 15-20h for full setup
         const startTime = Date.now();
         try {
           const result = await originalMethod.apply(this, args);
           const duration = Date.now() - startTime;
-          // Log si durée > seuil
           if (duration > 1000) {
             this.logger.warn(`Slow operation detected: ${service}.${opName} took ${duration}ms`, {
               service,
@@ -174,6 +223,24 @@ export class TracingService {
       return descriptor;
     };
   }
+}
+
+// OpenTelemetry: Deferred to future phase (microservices architecture)
+// Current stack: Sentry (errors + performance) + custom DB tracing (spans in Trace table)
+// Migrate to OpenTelemetry when:
+// 1. Architecture splits into microservices (AI engine Python, etc.)
+// 2. Need distributed tracing across services
+// 3. Want vendor-neutral telemetry export (Jaeger, Datadog, etc.)
+// Estimated effort: 15-20h for full setup
+export interface OpenTelemetryTracer {
+  startSpan(name: string, attributes?: Record<string, string | number | boolean>): OpenTelemetrySpan;
+  getActiveSpan(): OpenTelemetrySpan | null;
+}
+
+export interface OpenTelemetrySpan {
+  end(): void;
+  setAttribute(key: string, value: string | number | boolean): void;
+  recordException(error: Error): void;
 }
 
 

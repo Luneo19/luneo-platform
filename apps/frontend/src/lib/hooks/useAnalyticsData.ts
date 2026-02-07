@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 interface AnalyticsData {
   views: { value: number; change: number };
@@ -100,18 +101,12 @@ export function useAnalyticsData(
           break;
       }
 
-      const response = await fetch(
-        `/api/analytics/overview?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+      const result = await api.get<AnalyticsResponse>(
+        '/api/v1/analytics/overview',
+        { params: { startDate: startDate.toISOString(), endDate: endDate.toISOString() } }
       );
-      const result = (await response.json()) as AnalyticsResponse;
-
-      if (!response.ok) {
-        throw new Error(
-          result.data?.toString() || 'Erreur lors du chargement des analytics'
-        );
-      }
-
-      const metrics = result.data.overview.metrics;
+      const metrics = (result as AnalyticsResponse)?.data?.overview?.metrics;
+      if (!metrics) throw new Error('Erreur lors du chargement des analytics');
 
       // Transformer les données
       setAnalytics({
@@ -171,13 +166,8 @@ export function useAnalyticsData(
 
       // Récupérer devices depuis l'API
       try {
-        const devicesResponse = await fetch(
-          `/api/analytics/devices?period=${timeRange}`,
-          { credentials: 'include' }
-        );
-        if (devicesResponse.ok) {
-          const devicesData = await devicesResponse.json();
-          const data = devicesData.success === true ? devicesData.data : devicesData;
+        const devicesData = await api.get(`/api/v1/analytics/dashboard?period=${timeRange}`);
+        const data = (devicesData as any).success === true ? (devicesData as any).data : devicesData;
           if (data?.devices && Array.isArray(data.devices)) {
             // Map API response to expected format
             const mappedDevices = data.devices.map((d: { name: string; count: number; percentage: number }) => ({
@@ -195,14 +185,6 @@ export function useAnalyticsData(
               { name: 'Tablet', percentage: 10, count: Math.round(metrics.downloads.count * 0.1), color: 'pink' },
             ]);
           }
-        } else {
-          // Fallback on API error
-          setDevices([
-            { name: 'Desktop', percentage: 58, count: Math.round(metrics.downloads.count * 0.58), color: 'blue' },
-            { name: 'Mobile', percentage: 32, count: Math.round(metrics.downloads.count * 0.32), color: 'purple' },
-            { name: 'Tablet', percentage: 10, count: Math.round(metrics.downloads.count * 0.1), color: 'pink' },
-          ]);
-        }
       } catch (err) {
         logger.warn('Erreur récupération devices', { error: err });
         // Fallback on exception
@@ -215,23 +197,13 @@ export function useAnalyticsData(
 
       // Récupérer top pages depuis l'API
       try {
-        const pagesResponse = await fetch(
-          `/api/analytics/top-pages?period=${timeRange}`,
-          {
-            credentials: 'include',
-          }
-        );
-        if (pagesResponse.ok) {
-          const pagesData = await pagesResponse.json();
-          const data = pagesData.success === true ? pagesData.data : pagesData;
+        const pagesData = await api.get(`/api/v1/analytics/pages?period=${timeRange}`);
+        const data = (pagesData as any).success === true ? (pagesData as any).data : pagesData;
           if (data?.pages && Array.isArray(data.pages)) {
             setTopPages(data.pages);
           } else {
             setTopPages([]);
           }
-        } else {
-          setTopPages([]);
-        }
       } catch (err) {
         logger.warn('Erreur récupération top pages', { error: err });
         setTopPages([]);
@@ -239,24 +211,13 @@ export function useAnalyticsData(
 
       // Récupérer top countries depuis l'API
       try {
-        const countriesResponse = await fetch(
-          `/api/analytics/top-countries?period=${timeRange}`,
-          {
-            credentials: 'include',
-          }
-        );
-        if (countriesResponse.ok) {
-          const countriesData = await countriesResponse.json();
-          const data =
-            countriesData.success === true ? countriesData.data : countriesData;
+        const countriesData = await api.get(`/api/v1/analytics/countries?period=${timeRange}`);
+        const data = (countriesData as any).success === true ? (countriesData as any).data : countriesData;
           if (data?.countries && Array.isArray(data.countries)) {
             setTopCountries(data.countries);
           } else {
             setTopCountries([]);
           }
-        } else {
-          setTopCountries([]);
-        }
       } catch (err) {
         logger.warn('Erreur récupération top countries', { error: err });
         setTopCountries([]);
@@ -264,21 +225,13 @@ export function useAnalyticsData(
 
       // Récupérer realtime users depuis l'API
       try {
-        const realtimeResponse = await fetch('/api/analytics/realtime-users', {
-          credentials: 'include',
-        });
-        if (realtimeResponse.ok) {
-          const realtimeData = await realtimeResponse.json();
-          const data =
-            realtimeData.success === true ? realtimeData.data : realtimeData;
+        const realtimeData = await api.get('/api/v1/analytics/realtime');
+        const data = (realtimeData as any).success === true ? (realtimeData as any).data : realtimeData;
           if (data?.users && Array.isArray(data.users)) {
             setRealtimeUsers(data.users);
           } else {
             setRealtimeUsers([]);
           }
-        } else {
-          setRealtimeUsers([]);
-        }
       } catch (err) {
         logger.warn('Erreur récupération realtime users', { error: err });
         setRealtimeUsers([]);

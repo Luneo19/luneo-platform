@@ -7,6 +7,7 @@ import { Mail, CheckCircle, Loader2, AlertCircle, Sparkles, Gift, Bell } from 'l
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 function NewsletterPageContent() {
@@ -21,15 +22,9 @@ function NewsletterPageContent() {
     setError(null);
 
     try {
-      const response = await fetch('/api/newsletter/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
+      const data = await api.post<{ success?: boolean; error?: string; message?: string }>('/api/v1/newsletter/subscribe', { email });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || data.message || 'Erreur lors de l\'inscription');
       }
 

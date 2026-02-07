@@ -38,8 +38,9 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
+  /** @Public: product catalog for storefront */
   @Public()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Liste des produits avec filtres avancés',
     description: 'Récupère une liste paginée de produits avec filtres optionnels (catégorie, prix, disponibilité, etc.). Route publique accessible sans authentification.',
   })
@@ -82,8 +83,9 @@ export class ProductsController {
   }
 
   @Get(':id')
+  /** @Public: product details for storefront */
   @Public()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Obtenir un produit par ID',
     description: 'Récupère les détails complets d\'un produit spécifique, incluant ses variantes, options de personnalisation, et métadonnées. Route publique.',
   })

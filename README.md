@@ -23,6 +23,32 @@ Le projet a été professionnalisé de **55-60%** à **85-90%** suivant un roadm
 
 ---
 
+## Architecture
+
+### Data Model
+- **Organization** — Top-level entity (1 org = N brands)
+- **Brand** — Business unit with products, orders, designs
+- **Industry** — Sector-specific configuration (jewelry, eyewear, fashion, etc.)
+- **User** — Individual accounts within a brand
+
+### Tech Stack
+- **Backend**: NestJS 10, Prisma 5, PostgreSQL, Redis, BullMQ
+- **Frontend**: Next.js 15, React 18, TypeScript, Tailwind, shadcn/ui
+- **Auth**: JWT + httpOnly cookies + OAuth (Google, GitHub)
+- **Payments**: Stripe (subscriptions, checkout, webhooks)
+- **AI**: OpenAI (design generation, smart features)
+- **Storage**: Cloudinary (media/assets)
+- **CI/CD**: GitHub Actions -> Railway (backend) + Vercel (frontend)
+
+### Key Features
+- Industry-adaptive dashboard with configurable widgets and KPIs
+- 6-step onboarding with industry selection
+- AR Studio, AI Studio, 3D Configurator, 2D Editor
+- Real-time analytics and ML predictions
+- Multi-platform integrations (Shopify, WooCommerce, Printful)
+
+---
+
 ## 🏆 ARCHITECTURE COMPLÈTE
 
 ### **✅ Backend (NestJS)** - 12 Modules

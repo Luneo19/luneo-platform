@@ -17,7 +17,7 @@ function ARQRCodesPageContent() {
     setTimeout(() => setCopied(''), 2000);
   }, []);
 
-  const qrCodeExample = useMemo(() => `const response = await fetch('/api/ar/qr-code', {
+  const qrCodeExample = useMemo(() => `const response = await fetch('/api/v1/ar/qr-code', {
   method: 'POST',
   body: JSON.stringify({
     productId: 'sneaker-pro',

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 interface ChartData {
@@ -25,24 +26,16 @@ export function useChartData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/dashboard/chart-data?period=${period}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
-      // Gérer le format ApiResponseBuilder
-      const data = result.success === true ? result.data : result;
-      
-      if (data && (data.designs || data.views || data.revenue)) {
-        setChartData(data);
+      const result = await api.get<ChartData & { data?: ChartData }>('/api/v1/dashboard/chart-data', { params: { period } });
+      const data = (result as { data?: ChartData })?.data ?? result;
+      if (data && (data.designs?.length || data.views?.length || data.revenue?.length)) {
+        setChartData({
+          designs: data.designs ?? [],
+          views: data.views ?? [],
+          revenue: data.revenue ?? [],
+          conversion: data.conversion ?? 0,
+          conversionChange: data.conversionChange ?? 0,
+        });
       } else {
         // Fallback avec données vides
         setChartData({

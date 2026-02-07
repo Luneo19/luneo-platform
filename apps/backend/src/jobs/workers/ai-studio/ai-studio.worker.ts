@@ -64,11 +64,17 @@ export class AIStudioWorker {
       let thumbnailUrl: string;
       let quality: number | null = null;
       let duration: number;
+      let tokensFromProvider: number | null = null;
 
       switch (type) {
-        case AIGenerationType.IMAGE_2D:
-          ({ resultUrl, thumbnailUrl, quality } = await this.generateImage2D(prompt, negativePrompt, model, parameters, brandId));
+        case AIGenerationType.IMAGE_2D: {
+          const out = await this.generateImage2D(prompt, negativePrompt, model, parameters, brandId);
+          resultUrl = out.resultUrl;
+          thumbnailUrl = out.thumbnailUrl;
+          quality = out.quality;
+          tokensFromProvider = out.tokens ?? null;
           break;
+        }
         case AIGenerationType.MODEL_3D:
           ({ resultUrl, thumbnailUrl, quality } = await this.generateModel3D(prompt, negativePrompt, model, parameters));
           break;
@@ -83,6 +89,11 @@ export class AIStudioWorker {
       }
 
       duration = Math.floor((Date.now() - startTime) / 1000);
+
+      // Tokens: from provider response when available, else estimate from input/output length (~4 chars per token)
+      const tokensUsed =
+        tokensFromProvider ??
+        Math.ceil((prompt.length + (typeof resultUrl === 'string' ? resultUrl.length : 0)) / 4);
 
       // Calculer le coût réel
       const actualCost = await this.calculateActualCost(type, model, parameters, duration);
@@ -104,9 +115,9 @@ export class AIStudioWorker {
       // Mettre à jour le quota utilisateur
       await this.aiService.updateUserQuota(userId, actualCost);
 
-      // Enregistrer le coût AI
+      // Enregistrer le coût AI (tokens from provider or estimated)
       await this.aiService.recordAICost(brandId, provider, model, actualCost, {
-        tokens: null, // TODO: Récupérer depuis le provider
+        tokens: tokensUsed,
         duration,
         type,
       });
@@ -150,7 +161,7 @@ export class AIStudioWorker {
     model: string,
     parameters: any,
     brandId: string,
-  ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
+  ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number; tokens?: number }> {
     // Utiliser l'orchestrator pour router vers le bon provider
     const strategy = {
       stage: (parameters.quality === 'ultra' ? 'final' : 'preview') as 'exploration' | 'final' | 'preview',
@@ -167,67 +178,66 @@ export class AIStudioWorker {
       brandId,
     );
 
+    const tokens = result.costs?.tokens ?? undefined;
+
     return {
       resultUrl: result.images[0]?.url || '',
       thumbnailUrl: result.images[0]?.url || '',
       quality: 85,
+      ...(tokens != null && { tokens }),
     };
   }
 
   /**
-   * Génère un modèle 3D
+   * Génère un modèle 3D — stub: crée des entrées placeholder pour traitement externe ultérieur
    */
   private async generateModel3D(
-    prompt: string,
-    negativePrompt: string | undefined,
-    model: string,
-    parameters: any,
+    _prompt: string,
+    _negativePrompt: string | undefined,
+    _model: string,
+    _parameters: any,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
-    // TODO: Implémenter génération 3D réelle
-    // Pour l'instant, simulation
     await this.simulateGeneration(5000);
-
+    const id = Date.now();
     return {
-      resultUrl: `https://storage.example.com/generations/3d/${Date.now()}.glb`,
-      thumbnailUrl: `https://storage.example.com/generations/3d/${Date.now()}_thumb.png`,
+      resultUrl: `https://storage.example.com/generations/3d/${id}.glb`,
+      thumbnailUrl: `https://storage.example.com/generations/3d/${id}_thumb.png`,
       quality: 90,
     };
   }
 
   /**
-   * Génère une animation
+   * Génère une animation — stub: placeholder pour traitement externe
    */
   private async generateAnimation(
-    prompt: string,
-    negativePrompt: string | undefined,
-    model: string,
-    parameters: any,
+    _prompt: string,
+    _negativePrompt: string | undefined,
+    _model: string,
+    _parameters: any,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
-    // TODO: Implémenter génération animation réelle
     await this.simulateGeneration(8000);
-
+    const id = Date.now();
     return {
-      resultUrl: `https://storage.example.com/generations/animations/${Date.now()}.mp4`,
-      thumbnailUrl: `https://storage.example.com/generations/animations/${Date.now()}_thumb.png`,
+      resultUrl: `https://storage.example.com/generations/animations/${id}.mp4`,
+      thumbnailUrl: `https://storage.example.com/generations/animations/${id}_thumb.png`,
       quality: 88,
     };
   }
 
   /**
-   * Génère un template
+   * Génère un template — stub: placeholder pour traitement externe
    */
   private async generateTemplate(
-    prompt: string,
-    negativePrompt: string | undefined,
-    model: string,
-    parameters: any,
+    _prompt: string,
+    _negativePrompt: string | undefined,
+    _model: string,
+    _parameters: any,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
-    // TODO: Implémenter génération template réelle
     await this.simulateGeneration(3000);
-
+    const id = Date.now();
     return {
-      resultUrl: `https://storage.example.com/generations/templates/${Date.now()}.json`,
-      thumbnailUrl: `https://storage.example.com/generations/templates/${Date.now()}_thumb.png`,
+      resultUrl: `https://storage.example.com/generations/templates/${id}.json`,
+      thumbnailUrl: `https://storage.example.com/generations/templates/${id}_thumb.png`,
       quality: 85,
     };
   }

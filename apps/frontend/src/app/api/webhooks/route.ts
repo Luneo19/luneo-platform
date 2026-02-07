@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { createWebhookSchema } from '@/lib/validation/zod-schemas';
 import crypto from 'crypto';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
  * POST /api/webhooks
  * Route générique pour recevoir des webhooks
+ * Forwards to backend API
  */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.validateWithZod(createWebhookSchema, request, async (validatedData) => {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -28,25 +29,33 @@ export async function POST(request: NextRequest) {
     // Générer un secret pour signer les webhooks (si non fourni)
     const webhookSecret = secret || crypto.randomBytes(32).toString('hex');
 
-    const { data: createdWebhook, error: createError } = await supabase
-      .from('webhook_endpoints')
-      .insert({
-        user_id: user.id,
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/webhooks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+      body: JSON.stringify({
         name: name.trim(),
         url: url.trim(),
         secret: webhookSecret,
         events,
-      })
-      .select()
-      .single();
+      }),
+    });
 
-    if (createError) {
-      logger.dbError('create webhook', createError, {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la création du webhook' }));
+      logger.error('Failed to create webhook via backend', {
         userId: user.id,
         webhookName: name,
+        status: response.status,
       });
-      throw { status: 500, message: 'Erreur lors de la création du webhook' };
+      throw { status: response.status, message: errorData.message || 'Erreur lors de la création du webhook' };
     }
+
+    const createdWebhook = await response.json();
 
     logger.info('Webhook created', {
       userId: user.id,

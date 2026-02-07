@@ -227,28 +227,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Option 2: Stocker dans Supabase si configuré
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-
-        await supabase.from('contact_messages').insert({
-          name,
-          email,
-          company,
-          subject,
-          message,
-          type,
-          created_at: new Date().toISOString(),
-        });
-      } catch (dbError) {
-        logger.warn('Database storage failed', { error: dbError });
-        // Continue anyway - message is logged
-      }
+    // Option 2: Store contact message via backend API
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    try {
+      await fetch(`${backendUrl}/api/v1/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, company, subject, message, type }),
+      });
+    } catch (dbError) {
+      logger.warn('Backend contact storage failed', { error: dbError });
+      // Continue anyway - message is logged and email was sent
     }
 
     return {

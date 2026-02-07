@@ -12,9 +12,8 @@ export const runtime = 'nodejs';
  */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    // Rate limiting désactivé temporairement pour les pages publiques
-    // (Upstash Redis a atteint sa limite)
-    // TODO: Réactiver avec un service de rate limiting alternatif
+    // Rate limiting: handled by backend middleware when requests are proxied to API.
+    // Local rate limiting was disabled for public pages (Upstash limit). Re-enable with alternative if needed.
     /*
     const identifier = getClientIdentifier(request);
     const { success, remaining, reset } = await checkRateLimit(identifier, getApiRateLimit());

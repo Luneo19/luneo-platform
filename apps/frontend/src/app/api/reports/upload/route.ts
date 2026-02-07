@@ -6,20 +6,18 @@
  * - Retourne l'URL publique
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
-import { deleteFileFromStorage } from '@/lib/storage/storage-service';
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
+    const user = await getUserFromRequest(request);
     
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    if (!user) {
       return ApiResponseBuilder.unauthorized('Non authentifié');
     }
 
@@ -53,42 +51,37 @@ export async function POST(request: NextRequest) {
       userId: user.id,
     });
 
-    // Upload vers Supabase Storage
-    const fileName = `reports/${user.id}/${Date.now()}-${file.name}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('reports')
-      .upload(fileName, file, {
-        contentType: fileType,
-        upsert: false,
-      });
+    // Forward to backend API
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', file);
 
-    if (uploadError) {
+    const backendResponse = await fetch(`${API_URL}/api/v1/reports/upload`, {
+      method: 'POST',
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+      body: uploadFormData,
+    });
+
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text();
       logger.error('Error uploading report', {
-        error: uploadError,
+        error: errorText,
         userId: user.id,
         fileName: file.name,
+        status: backendResponse.status,
       });
       return ApiResponseBuilder.internalError('Erreur lors de l\'upload du rapport');
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('reports')
-      .getPublicUrl(fileName);
-
+    const result = await backendResponse.json();
     logger.info('Rapport uploadé avec succès', {
-      fileName: uploadData.path,
+      fileName: result.fileName,
       userId: user.id,
-      publicUrl,
+      url: result.url,
     });
 
-    return {
-      url: publicUrl,
-      path: uploadData.path,
-      fileName: file.name,
-      size: file.size,
-      type: fileType,
-    };
+    return result;
   }, '/api/reports/upload', 'POST');
 }
 
@@ -97,12 +90,9 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
+    const user = await getUserFromRequest(request);
     
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    if (!user) {
       return ApiResponseBuilder.unauthorized('Non authentifié');
     }
 
@@ -113,36 +103,35 @@ export async function DELETE(request: NextRequest) {
       return ApiResponseBuilder.badRequest('URL du fichier manquante');
     }
 
-    // Extract path from URL
-    const urlObj = new URL(fileUrl);
-    const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/reports\/(.+)/);
-    
-    if (!pathMatch) {
-      return ApiResponseBuilder.badRequest('URL invalide');
-    }
+    // Forward to backend API
+    const url = new URL(`${API_URL}/api/v1/reports/upload`);
+    url.searchParams.set('url', fileUrl);
 
-    const filePath = pathMatch[1];
+    const backendResponse = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
 
-    // Delete from storage
-    const { error: deleteError } = await supabase.storage
-      .from('reports')
-      .remove([filePath]);
-
-    if (deleteError) {
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text();
       logger.error('Error deleting report', {
-        error: deleteError,
+        error: errorText,
         userId: user.id,
-        filePath,
+        fileUrl,
+        status: backendResponse.status,
       });
       return ApiResponseBuilder.internalError('Erreur lors de la suppression du rapport');
     }
 
+    const result = await backendResponse.json();
     logger.info('Rapport supprimé avec succès', {
-      filePath,
       userId: user.id,
+      fileUrl,
     });
 
-    return { success: true, message: 'Rapport supprimé avec succès' };
+    return result;
   }, '/api/reports/upload', 'DELETE');
 }
 

@@ -1,12 +1,15 @@
 /**
  * 🔐 RBAC (Role-Based Access Control) - Luneo Platform
- * 
- * Système de gestion des permissions et rôles utilisateur
- * Pour un SaaS professionnel et sécurisé
+ *
+ * Permission checks are forwarded to the backend API so that authorization
+ * is enforced server-side. The frontend uses these helpers for UI (e.g. hiding
+ * actions the user cannot perform); the backend must always enforce permissions
+ * on each request.
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/auth/get-user';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 export enum UserRole {
   USER = 'user',
@@ -32,42 +35,15 @@ export interface RBACResult {
  */
 export async function isAdmin(userId: string): Promise<boolean> {
   try {
-    const supabase = await createClient();
-    
-    // Vérifier dans user_metadata
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Get user from backend API
+    const user = await getServerUser();
+    if (!user || user.id !== userId) {
       return false;
     }
 
-    const userRole = user.user_metadata?.role || user.user_metadata?.is_admin;
-    
-    // Vérifier si admin dans metadata
-    if (userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN || user.user_metadata?.is_admin === true) {
-      return true;
-    }
-
-    // Vérifier dans table users si elle existe
-    const { data: userData, error: dbError } = await supabase
-      .from('users')
-      .select('role, is_admin')
-      .eq('id', userId)
-      .single();
-
-    if (dbError) {
-      // Table users n'existe peut-être pas, on utilise seulement metadata
-      logger.warn('Failed to check user role in database', {
-        userId,
-        error: dbError.message,
-      });
-      return false;
-    }
-
-    return (
-      userData?.role === UserRole.ADMIN ||
-      userData?.role === UserRole.SUPER_ADMIN ||
-      userData?.is_admin === true
-    );
+    // Check role from backend user data
+    const role = user.role?.toUpperCase();
+    return role === 'PLATFORM_ADMIN' || role === 'ADMIN' || role === 'SUPER_ADMIN';
   } catch (error) {
     logger.error('Error checking admin status', error instanceof Error ? error : new Error(String(error)), {
       userId,
@@ -81,31 +57,13 @@ export async function isAdmin(userId: string): Promise<boolean> {
  */
 export async function isSuperAdmin(userId: string): Promise<boolean> {
   try {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user || user.id !== userId) {
+    const user = await getServerUser();
+    if (!user || user.id !== userId) {
       return false;
     }
 
-    const userRole = user.user_metadata?.role;
-    
-    if (userRole === UserRole.SUPER_ADMIN) {
-      return true;
-    }
-
-    // Vérifier dans table users si elle existe
-    const { data: userData, error: dbError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', userId)
-      .single();
-
-    if (dbError) {
-      return false;
-    }
-
-    return userData?.role === UserRole.SUPER_ADMIN;
+    const role = user.role?.toUpperCase();
+    return role === 'SUPER_ADMIN' || role === 'PLATFORM_ADMIN';
   } catch (error) {
     logger.error('Error checking super admin status', error instanceof Error ? error : new Error(String(error)), {
       userId,
@@ -115,57 +73,55 @@ export async function isSuperAdmin(userId: string): Promise<boolean> {
 }
 
 /**
- * Vérifier si un utilisateur a accès à une ressource
+ * Check a single permission via the backend (current user from JWT/cookies).
+ * Use this for UI decisions; the backend enforces permissions on every request.
+ */
+export async function checkPermission(
+  permission: string,
+  resource?: string,
+  resourceId?: string,
+): Promise<boolean> {
+  try {
+    const data = await api.post<{ allowed: boolean }>('/api/v1/auth/check-permission', {
+      permission,
+      resource,
+      resourceId,
+    });
+    return data.allowed === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get the current user's permission list from the backend.
+ */
+export async function getUserPermissions(): Promise<string[]> {
+  try {
+    const data = await api.get<{ permissions: string[] }>('/api/v1/auth/permissions');
+    return data.permissions ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Vérifier si l'utilisateur courant a la permission (délégation au backend).
+ * Le backend utilise l'utilisateur authentifié (JWT/cookies) pour la vérification.
  */
 export async function hasPermission(
   userId: string,
-  permission: Permission
+  permission: Permission,
 ): Promise<RBACResult> {
   try {
-    const supabase = await createClient();
-    
-    // Vérifier si admin (admins ont tous les accès)
-    const adminStatus = await isAdmin(userId);
-    if (adminStatus) {
-      return {
-        hasAccess: true,
-        userRole: UserRole.ADMIN,
-      };
+    const permissionStr = `${permission.resource}:${permission.action}`;
+    const allowed = await checkPermission(permissionStr);
+    if (allowed) {
+      return { hasAccess: true };
     }
-
-    // Vérifier permissions spécifiques dans table permissions si elle existe
-    const { data: permissions, error: permError } = await supabase
-      .from('user_permissions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('resource', permission.resource)
-      .eq('action', permission.action)
-      .eq('is_active', true);
-
-    if (permError) {
-      // Table permissions n'existe peut-être pas, on utilise seulement admin
-      logger.warn('Failed to check user permissions in database', {
-        userId,
-        permission,
-        error: permError.message,
-      });
-      
-      // Par défaut, seul admin a accès
-      return {
-        hasAccess: false,
-        reason: 'Permission check failed - admin access required',
-      };
-    }
-
-    if (permissions && permissions.length > 0) {
-      return {
-        hasAccess: true,
-      };
-    }
-
     return {
       hasAccess: false,
-      reason: 'User does not have required permission',
+      reason: 'Permission denied by backend',
     };
   } catch (error) {
     logger.error('Error checking permission', error instanceof Error ? error : new Error(String(error)), {
@@ -180,40 +136,28 @@ export async function hasPermission(
 }
 
 /**
- * Vérifier si un utilisateur est propriétaire d'une ressource
+ * Vérifier si un utilisateur est propriétaire d'une ressource.
+ * Admins sont considérés propriétaires pour l'accès. Un endpoint backend dédié
+ * (ex. GET /api/v1/auth/check-ownership) pourrait être ajouté pour une vérification
+ * stricte par ressource.
  */
 export async function isResourceOwner(
   userId: string,
   resourceType: string,
-  resourceId: string
+  resourceId: string,
 ): Promise<boolean> {
   try {
-    const supabase = await createClient();
-    
-    // Admins peuvent accéder à tout
     const adminStatus = await isAdmin(userId);
     if (adminStatus) {
       return true;
     }
-
-    // Vérifier ownership dans la table correspondante
-    const { data, error } = await supabase
-      .from(resourceType)
-      .select('user_id, owner_id')
-      .eq('id', resourceId)
-      .single();
-
-    if (error) {
-      logger.warn('Failed to check resource ownership', {
-        userId,
-        resourceType,
-        resourceId,
-        error: error.message,
-      });
-      return false;
-    }
-
-    return data?.user_id === userId || data?.owner_id === userId;
+    // Ownership checks could be forwarded to a future backend endpoint
+    logger.warn('Resource ownership check not yet delegated to backend', {
+      userId,
+      resourceType,
+      resourceId,
+    });
+    return false;
   } catch (error) {
     logger.error('Error checking resource ownership', error instanceof Error ? error : new Error(String(error)), {
       userId,

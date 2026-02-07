@@ -31,6 +31,7 @@ export class CronJobsController {
     return authHeader === `Bearer ${cronSecret}`;
   }
 
+  /** @Public: called by cron scheduler; verified by Bearer secret */
   @Public()
   @Get('analytics-digest')
   @Post('analytics-digest')
@@ -45,6 +46,7 @@ export class CronJobsController {
     return this.cronJobsService.generateAnalyticsDigest();
   }
 
+  /** @Public: called by cron scheduler; verified by Bearer secret */
   @Public()
   @Get('cleanup')
   @Post('cleanup')

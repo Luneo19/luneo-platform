@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -39,22 +40,15 @@ function Configure3DPageContent() {
   useEffect(() => {
     async function loadProductAndConfig() {
       try {
-        // Fetch product
-        const productRes = await fetch(`/api/products/${productId}`);
-        if (!productRes.ok) throw new Error('Product not found');
-        const productData = await productRes.json();
-        setProduct(productData.data);
-
-        // Fetch 3D configuration
-        const configRes = await fetch(`/api/3d/config?productId=${productId}`);
-        if (configRes.ok) {
-          const configData = await configRes.json();
-          setConfig3D(configData.data);
-        }
-
+        const [productData, configData] = await Promise.all([
+          api.get<{ data?: unknown }>(`/api/v1/products/${productId}`),
+          api.get<{ data?: unknown }>('/api/v1/3d/config', { params: { productId } }).catch(() => ({ data: null })),
+        ]);
+        setProduct((productData as { data?: unknown })?.data ?? null);
+        setConfig3D((configData as { data?: unknown })?.data ?? null);
         setLoading(false);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load product');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load product');
         setLoading(false);
       }
     }
@@ -64,19 +58,12 @@ function Configure3DPageContent() {
 
   const handleSaveConfiguration = async (configuration: any) => {
     try {
-      const response = await fetch('/api/3d-configurations/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId,
-          configId: config3D?.id,
-          configuration,
-        }),
+      await api.post('/api/v1/3d-configurations/save', {
+        productId,
+        configId: config3D?.id,
+        configuration,
       });
-
-      if (response.ok) {
-        // Success feedback
-      }
+      // Success feedback
     } catch (error) {
       logger.error('Error saving 3D configuration', {
         error,
@@ -102,20 +89,14 @@ function Configure3DPageContent() {
         description: `Préparation du package ${platform === 'ios' ? 'USDZ' : 'GLB'}...`
       });
 
-      const response = await fetch('/api/3d/export-ar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          configurationId: config3D.id,
-          platform,
-          includeTextures: true
-        })
+      const result = await api.post<{ success?: boolean; error?: string; data?: { exportUrl?: string } }>('/api/v1/3d/export-ar', {
+        configurationId: config3D.id,
+        platform,
+        includeTextures: true,
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Export AR échoué');
+      if (!result?.success) {
+        throw new Error(result?.error || 'Export AR échoué');
       }
 
       toast({

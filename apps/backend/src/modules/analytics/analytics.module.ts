@@ -22,6 +22,7 @@ import { AnalyticsExportController } from './controllers/export.controller';
 import { PredictiveController } from './controllers/predictive.controller';
 import { ReportsController } from './controllers/reports.controller';
 import { WebVitalsController } from './controllers/web-vitals.controller';
+import { DownloadsController } from './controllers/downloads.controller';
 
 // Services
 import { AnalyticsService } from './services/analytics.service';
@@ -36,6 +37,7 @@ import { ReportsService } from './services/reports.service';
 import { MetricsService } from './services/metrics.service';
 import { WebVitalsService } from './services/web-vitals.service';
 import { MLPredictionService } from './services/ml-prediction.service';
+import { DownloadsService } from './services/downloads.service';
 
 // Infrastructure
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -81,6 +83,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     PredictiveController,
     ReportsController,
     WebVitalsController,
+    DownloadsController,
   ],
   providers: [
     AnalyticsService,
@@ -95,6 +98,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     MetricsService,
     WebVitalsService,
     MLPredictionService,
+    DownloadsService,
   ],
   exports: [
     AnalyticsService,

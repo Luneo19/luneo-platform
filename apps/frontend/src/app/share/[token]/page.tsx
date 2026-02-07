@@ -10,6 +10,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
@@ -48,9 +49,10 @@ function SharePageContent() {
 
   const loadShare = useCallback(async (pwd?: string) => {
     try {
-      const url = `/api/share/${token}${pwd ? `?password=${encodeURIComponent(pwd)}` : ''}`;
-      const response = await fetch(url);
-      const result = await response.json();
+      const result = await api.get<{ success: boolean; data?: SharedDesign; requires_password?: boolean; error?: string }>(
+        `/api/v1/share/${token}`,
+        pwd ? { params: { password: pwd } } : undefined
+      );
 
       if (!result.success) {
         if (result.requires_password) {
@@ -64,10 +66,10 @@ function SharePageContent() {
         return;
       }
 
-      setShare(result.data);
+      if (result.data) setShare(result.data);
       setRequiresPassword(false);
       setPasswordError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -89,12 +91,7 @@ function SharePageContent() {
     if (!share?.allow_download) return;
 
     try {
-      // Log action
-      await fetch(`/api/share/${token}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action_type: 'download' }),
-      });
+      await api.post(`/api/v1/share/${token}/action`, { action_type: 'download' });
 
       // Download image
       const link = document.createElement('a');
@@ -115,12 +112,7 @@ function SharePageContent() {
     if (!share?.allow_ar_view) return;
 
     try {
-      // Log action
-      await fetch(`/api/share/${token}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action_type: 'ar_launch' }),
-      });
+      await api.post(`/api/v1/share/${token}/action`, { action_type: 'ar_launch' });
 
       alert('Fonctionnalité AR bientôt disponible !');
     } catch (err) {

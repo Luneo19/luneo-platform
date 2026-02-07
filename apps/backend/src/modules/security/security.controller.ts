@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RBACService } from './services/rbac.service';
 import { AuditLogsService, AuditEventType } from './services/audit-logs.service';
@@ -9,8 +9,11 @@ import { RequirePermissions } from './decorators/require-permissions.decorator';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { ExportAuditLogsDto } from './dto/export-audit-logs.dto';
 import { DeleteUserDataDto } from './dto/delete-user-data.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { RecordConsentDto } from './dto/record-consent.dto';
 import { ScheduleDataRetentionDto } from './dto/schedule-data-retention.dto';
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { AuthService } from '@/modules/auth/auth.service';
 
 /**
  * Controller pour la sécurité et conformité
@@ -23,6 +26,7 @@ export class SecurityController {
     private readonly rbacService: RBACService,
     private readonly auditLogs: AuditLogsService,
     private readonly gdprService: GDPRService,
+    private readonly authService: AuthService,
   ) {}
 
   // ==================== RBAC ====================
@@ -173,11 +177,32 @@ export class SecurityController {
 
   // ==================== GDPR ====================
 
+  @Get('gdpr/export')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Export current user data (GDPR Right to Access)' })
+  @ApiResponse({ status: 200, description: 'User data exported' })
+  async exportMyData(@Request() req: any) {
+    return this.gdprService.exportUserData(req.user.id);
+  }
+
   @Get('gdpr/export/:userId')
-  @ApiOperation({ summary: 'Export all user data (GDPR Right to Access)' })
+  @ApiOperation({ summary: 'Export all user data by userId (admin / support)' })
   @ApiResponse({ status: 200, description: 'User data exported' })
   async exportUserData(@Param('userId') userId: string) {
     return this.gdprService.exportUserData(userId);
+  }
+
+  @Delete('gdpr/delete-account')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete current user account (GDPR Right to Erasure)' })
+  @ApiResponse({ status: 200, description: 'Account deleted' })
+  @ApiResponse({ status: 401, description: 'Invalid password' })
+  async deleteMyAccount(@Request() req: any, @Body() dto: DeleteAccountDto) {
+    const valid = await this.authService.verifyUserPassword(req.user.id, dto.password);
+    if (!valid) {
+      throw new UnauthorizedException('Invalid password');
+    }
+    return this.gdprService.deleteUserData(req.user.id, dto.reason);
   }
 
   @Delete('gdpr/delete/:userId')

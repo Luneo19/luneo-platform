@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
@@ -49,21 +50,11 @@ function AIDesignHubPageContent() {
     setError(null);
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          style,
-          count: variations,
-        }),
+      const data = await api.post<any>('/api/v1/ai/generate', {
+        prompt,
+        style,
+        count: variations,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
-        throw new Error(errorData.message || `Erreur HTTP ${response.status}`);
-      }
-      const data = await response.json();
       
       // Handle different response structures
       let urls: string[] = [];

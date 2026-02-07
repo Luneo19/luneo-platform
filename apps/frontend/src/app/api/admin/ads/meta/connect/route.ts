@@ -6,11 +6,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { getOAuthUrl } from '@/lib/admin/integrations/oauth-helpers';
+import { isMetaAdsConfigured } from '@/lib/admin/integrations/meta-ads';
 import { serverLogger } from '@/lib/logger-server';
 
 export async function GET(request: NextRequest) {
   try {
-    // Vérification admin
     const adminUser = await getAdminUser();
     if (!adminUser) {
       return NextResponse.json(
@@ -19,10 +19,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!isMetaAdsConfigured()) {
+      return NextResponse.json(
+        {
+          error: 'Meta Ads is not configured. Set META_APP_ID and META_APP_SECRET in the environment.',
+        },
+        { status: 503 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const redirectUri = searchParams.get('redirect_uri') || `${request.nextUrl.origin}/admin/ads/meta/callback`;
 
-    // Générer l'URL OAuth
     const oauthUrl = getOAuthUrl('meta', redirectUri);
 
     return NextResponse.json({

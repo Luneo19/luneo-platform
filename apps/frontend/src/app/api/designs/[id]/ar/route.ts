@@ -1,7 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type DesignARRouteContext = {
   params: Promise<{ id: string }>;
@@ -9,52 +11,34 @@ type DesignARRouteContext = {
 
 /**
  * GET /api/designs/[id]/ar
- * Récupère les informations AR pour un design
+ * Récupère les informations AR pour un design. Cookie-based auth, proxies to NestJS.
  */
-export async function GET(request: Request, { params }: DesignARRouteContext) {
+export async function GET(request: NextRequest, { params }: DesignARRouteContext) {
   return ApiResponseBuilder.handle(async () => {
     const { id: designId } = await params;
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('accessToken')?.value;
+    if (!accessToken) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
-    // Récupérer le design
-    const { data: design, error: designError } = await supabase
-      .from('designs')
-      .select('id, user_id, preview_url, metadata, ar_model_url, ar_preview_url')
-      .eq('id', designId)
-      .single();
-
-    if (designError || !design) {
-      if (designError?.code === 'PGRST116') {
-        throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
-      }
-      logger.dbError('fetch design for AR', designError, {
-        designId,
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la récupération du design' };
+    const res = await fetch(`${API_URL}/api/v1/designs/${designId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 404) throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
+      if (res.status === 403) throw { status: 403, message: 'Accès refusé', code: 'FORBIDDEN' };
+      throw { status: res.status, message: 'Erreur lors de la récupération du design', code: 'DESIGN_ERROR' };
     }
-
-    // Vérifier les permissions (propriétaire ou public)
-    if (design.user_id !== user.id && !design.metadata?.is_public) {
-      logger.warn('Unauthorized AR access attempt', {
-        designId,
-        userId: user.id,
-        designOwnerId: design.user_id,
-      });
-      throw { status: 403, message: 'Accès refusé', code: 'FORBIDDEN' };
-    }
-
+    const design = await res.json();
+    const meta = design.metadata || {};
     return {
       designId: design.id,
-      arModelUrl: design.ar_model_url,
-      arPreviewUrl: design.ar_preview_url,
-      previewUrl: design.preview_url,
-      metadata: design.metadata || {},
+      arModelUrl: design.arModelUrl ?? design.ar_model_url ?? meta.ar_model_url,
+      arPreviewUrl: design.arPreviewUrl ?? design.ar_preview_url ?? meta.ar_preview_url,
+      previewUrl: design.previewUrl ?? design.preview_url,
+      metadata: meta,
     };
   }, '/api/designs/[id]/ar', 'GET');
 }

@@ -112,11 +112,26 @@ export function OrdersPageClient({
         return;
       }
       if (action === 'updateStatus') {
-        // TODO: Implémenter modal de sélection de statut pour bulk
         setShowUpdateStatusModal(true);
       }
     },
     []
+  );
+
+  const handleUpdateStatusSubmit = useCallback(
+    async (orderId: string, status: OrderStatus, notes?: string) => {
+      if (orderId === 'bulk' && selectedOrders.size > 0) {
+        const result = await handleBulkUpdateStatus(Array.from(selectedOrders), status);
+        if (result.success) {
+          setSelectedOrders(new Set());
+          setShowUpdateStatusModal(false);
+          setUpdatingOrderId(null);
+        }
+        return result;
+      }
+      return handleUpdateOrderStatus(orderId, status, notes);
+    },
+    [selectedOrders, handleBulkUpdateStatus, handleUpdateOrderStatus]
   );
 
   const handleExport = useCallback(async () => {
@@ -185,18 +200,25 @@ export function OrdersPageClient({
         onCreate={handleCreateOrder}
       />
 
-      {updatingOrderId && (
+      {showUpdateStatusModal && (updatingOrderId || selectedOrders.size > 0) ? (
         <UpdateOrderStatusModal
           open={showUpdateStatusModal}
           onOpenChange={(open) => {
             setShowUpdateStatusModal(open);
-            if (!open) setUpdatingOrderId(null);
+            if (!open) {
+              setUpdatingOrderId(null);
+              if (selectedOrders.size > 0 && !updatingOrderId) setSelectedOrders(new Set());
+            }
           }}
-          currentStatus={orders.find((o) => o.id === updatingOrderId)?.status || 'pending'}
-          orderId={updatingOrderId}
-          onUpdate={handleUpdateOrderStatus}
+          currentStatus={
+            updatingOrderId && updatingOrderId !== 'bulk'
+              ? orders.find((o) => o.id === updatingOrderId)?.status || 'pending'
+              : 'pending'
+          }
+          orderId={updatingOrderId || (selectedOrders.size > 0 ? 'bulk' : '')}
+          onUpdate={handleUpdateStatusSubmit}
         />
-      )}
+      ) : null}
 
       <ExportOrdersModal
         open={showExportModal}

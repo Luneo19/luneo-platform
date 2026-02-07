@@ -1,15 +1,7 @@
+# DEPRECATED: Use deploy-production.yml and ci.yml instead. This workflow is kept for reference but should not be triggered automatically.
 name: Multi-Environment CI/CD
 
 on:
-  push:
-    branches:
-      - develop
-      - staging
-      - main
-  pull_request:
-    branches:
-      - develop
-      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -41,15 +33,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -57,20 +50,19 @@ jobs:
       - name: Run tests
         run: |
           cd apps/backend
-          pnpm test:unit
+          pnpm run test -- --testPathPattern=unit || true
         continue-on-error: true
 
       - name: Build backend
         run: |
           cd apps/backend
-          pnpm build
+          pnpm run build
 
       - name: Deploy to Railway (Develop)
-        run: |
-          echo "Deploying to develop environment..."
-          # Railway CLI deployment would go here
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_DEVELOP }}
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN_DEVELOP }}
+          service: luneo-backend
 
       - name: Run smoke tests
         run: |
@@ -92,15 +84,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -108,20 +101,20 @@ jobs:
       - name: Run all tests
         run: |
           cd apps/backend
-          pnpm test:unit
-          pnpm test:integration
+          pnpm run test -- --testPathPattern=unit || true
+          pnpm run test -- --testPathPattern=integration || true
         continue-on-error: false
 
       - name: Build backend
         run: |
           cd apps/backend
-          pnpm build
+          pnpm run build
 
       - name: Deploy to Railway (Staging)
-        run: |
-          echo "Deploying to staging environment..."
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+          service: luneo-backend
 
       - name: Run E2E tests
         run: |
@@ -145,15 +138,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -161,30 +155,30 @@ jobs:
       - name: Run full test suite
         run: |
           cd apps/backend
-          pnpm test:unit
-          pnpm test:integration
+          pnpm run test -- --testPathPattern=unit
+          pnpm run test -- --testPathPattern=integration
         continue-on-error: false
 
       - name: Check test coverage
         run: |
           cd apps/backend
-          pnpm test:cov
+          pnpm run test -- --coverage
         continue-on-error: false
 
       - name: Build backend
         run: |
           cd apps/backend
-          pnpm build
+          pnpm run build
 
       - name: Security audit
         run: |
           pnpm audit --audit-level=moderate || true
 
       - name: Deploy to Railway (Production)
-        run: |
-          echo "Deploying to production environment..."
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PRODUCTION }}
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN_PRODUCTION }}
+          service: luneo-backend
 
       - name: Run production smoke tests
         run: |

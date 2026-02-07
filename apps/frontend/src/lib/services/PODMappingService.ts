@@ -8,7 +8,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { db } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 
 export interface PODVariantMapping {
   provider: 'printful' | 'printify' | 'gelato';
@@ -53,13 +53,7 @@ export class PODMappingService {
    */
   async getProductPODConfig(productId: string): Promise<PODProductConfig> {
     try {
-      const product = await db.product.findUnique({
-        where: { id: productId },
-        select: {
-          metadata: true,
-          customizationOptions: true,
-        },
-      });
+      const product = await endpoints.products.get(productId).catch(() => null) as { metadata?: any } | null;
 
       if (!product) {
         return {};
@@ -82,19 +76,15 @@ export class PODMappingService {
     config: PODVariantMapping
   ): Promise<void> {
     try {
-      const product = await db.product.findUnique({
-        where: { id: productId },
-        select: { metadata: true },
-      });
+      const product = await endpoints.products.get(productId).catch(() => null) as { metadata?: any } | null;
 
       if (!product) {
         throw new Error('Product not found');
       }
 
-      const metadata = product.metadata as any || {};
+      const metadata = (product.metadata as any) || {};
       const podConfig = metadata.pod || {};
 
-      // Update provider-specific config
       podConfig[provider] = {
         variantId: config.variantId,
         productId: config.productId,
@@ -103,14 +93,10 @@ export class PODMappingService {
         defaultProductId: config.defaultProductId,
       };
 
-      // Update product metadata
-      await db.product.update({
-        where: { id: productId },
-        data: {
-          metadata: {
-            ...metadata,
-            pod: podConfig,
-          } as any,
+      await endpoints.products.update(productId, {
+        metadata: {
+          ...metadata,
+          pod: podConfig,
         },
       });
 

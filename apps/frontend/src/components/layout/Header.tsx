@@ -99,7 +99,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
           <LocaleSwitcher className="hidden lg:block" />
           <ThemeToggle />
 
-          {/* Notifications - Real-time avec Supabase */}
+          {/* Notifications - Real-time (WebSocket/backend) */}
           <NotificationBell variant="ghost" size="md" />
 
           {/* Profile Dropdown */}

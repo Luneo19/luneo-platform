@@ -19,6 +19,7 @@ import { WooCommerceWebhookService } from '../services/woocommerce-webhook.servi
 import { Public } from '@/common/decorators/public.decorator';
 import * as crypto from 'crypto';
 
+/** @Public: WooCommerce webhooks; verified by signature in handler */
 @ApiTags('ecommerce')
 @Controller('ecommerce/woocommerce/webhook')
 @Public()

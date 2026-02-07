@@ -6,7 +6,8 @@ import { Settings, Clock, Mail, Twitter, ArrowRight, Loader2 } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { logger } from '../../lib/logger';
+import { api } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function MaintenancePageContent() {
@@ -41,11 +42,7 @@ function MaintenancePageContent() {
 
     setLoading(true);
     try {
-      await fetch('/api/newsletter/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, source: 'maintenance' }),
-      });
+      await api.post('/api/v1/newsletter/subscribe', { email, source: 'maintenance' });
       setSubscribed(true);
       logger.info('Subscribed to maintenance updates', { email });
     } catch (error) {

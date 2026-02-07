@@ -29,7 +29,7 @@ interface ReportDateRange {
 /**
  * Données de rapport de ventes
  */
-interface SalesReportData {
+export interface SalesReportData {
   period: {
     start: string;
     end: string;
@@ -44,7 +44,7 @@ interface SalesReportData {
 /**
  * Données de rapport produits
  */
-interface ProductsReportData {
+export interface ProductsReportData {
   period: {
     start: string;
     end: string;
@@ -62,7 +62,7 @@ interface ProductsReportData {
 /**
  * Données de rapport analytics
  */
-interface AnalyticsReportData {
+export interface AnalyticsReportData {
   period: {
     start: string;
     end: string;
@@ -175,6 +175,17 @@ export class ReportsService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Récupère les données d'un rapport (public pour téléchargement / export).
+   */
+  async getReportDataForDownload(
+    brandId: string,
+    dateRange: ReportDateRange,
+    type: ReportType = 'analytics',
+  ): Promise<ReportData> {
+    return this.getReportData(brandId, dateRange, type);
   }
 
   /**

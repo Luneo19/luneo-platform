@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { SellerHeader } from './components/SellerHeader';
 import { SellerStats } from './components/SellerStats';
@@ -35,22 +36,17 @@ export function SellerPageClient() {
   const handleConnectStripe = async () => {
     setIsConnecting(true);
     try {
-      const response = await fetch('/api/marketplace/seller/connect', {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to connect Stripe');
-      }
-
-      const data = await response.json();
-
-      if (data.data?.onboardingUrl || data.onboardingUrl) {
-        window.location.href = data.data?.onboardingUrl || data.onboardingUrl;
+      const data = await api.post<{ data?: { onboardingUrl?: string }; onboardingUrl?: string }>(
+        '/api/v1/marketplace/seller/connect',
+        {}
+      );
+      const url = data?.data?.onboardingUrl ?? data?.onboardingUrl;
+      if (url) {
+        window.location.href = url;
       } else {
         throw new Error('No onboarding URL received');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to connect Stripe', { error });
       toast({
         title: 'Erreur',

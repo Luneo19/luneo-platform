@@ -8,6 +8,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Plus, Webhook, CheckCircle, XCircle, Clock, MoreVertical, Play, Trash2, Edit } from 'lucide-react';
+import { api } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,11 +52,10 @@ export default function WebhooksPage() {
   const loadWebhooks = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/admin/webhooks');
-      const data = await response.json();
-      setWebhooks(data.webhooks || []);
+      const data = await api.get<{ webhooks?: unknown[] }>('/api/v1/admin/webhooks');
+      setWebhooks((data?.webhooks ?? []) as Webhook[]);
     } catch (error) {
-      console.error('Error loading webhooks:', error);
+      logger.error('Error loading webhooks:', error);
     } finally {
       setIsLoading(false);
     }
@@ -62,20 +63,15 @@ export default function WebhooksPage() {
 
   const handleTest = async (webhookId: string) => {
     try {
-      const response = await fetch(`/api/admin/webhooks/${webhookId}/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const data = await response.json();
-      if (data.success) {
+      const data = await api.post<{ success?: boolean; response?: string }>(`/api/v1/admin/webhooks/${webhookId}/test`, {});
+      if (data?.success) {
         alert('Webhook test successful!');
       } else {
-        alert(`Webhook test failed: ${data.response}`);
+        alert(`Webhook test failed: ${(data as { response?: string })?.response ?? 'Unknown'}`);
       }
       loadWebhooks();
     } catch (error) {
-      console.error('Error testing webhook:', error);
+      logger.error('Error testing webhook:', error);
       alert('Failed to test webhook');
     }
   };
@@ -84,14 +80,10 @@ export default function WebhooksPage() {
     if (!confirm('Are you sure you want to delete this webhook?')) return;
 
     try {
-      const response = await fetch(`/api/admin/webhooks/${webhookId}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        loadWebhooks();
-      }
+      await api.delete(`/api/v1/admin/webhooks/${webhookId}`);
+      loadWebhooks();
     } catch (error) {
-      console.error('Error deleting webhook:', error);
+      logger.error('Error deleting webhook:', error);
     }
   };
 

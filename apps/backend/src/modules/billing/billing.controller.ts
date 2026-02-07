@@ -14,6 +14,7 @@ export class BillingController {
 
   constructor(private readonly billingService: BillingService) {}
 
+  /** @Public: checkout can be started without auth (email in body) */
   @Public()
   @Post('create-checkout-session')
   @ApiOperation({ summary: 'Créer une session de paiement Stripe avec support des add-ons' })
@@ -384,6 +385,7 @@ export class BillingController {
     return this.billingService.cancelSubscription(req.user.id, body?.immediate || false);
   }
 
+  /** @Public: Stripe webhook; verified by stripe-signature */
   @Public()
   @Post('webhook')
   @HttpCode(HttpStatus.OK)

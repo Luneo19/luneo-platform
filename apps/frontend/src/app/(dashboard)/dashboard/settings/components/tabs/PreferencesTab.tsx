@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, RefreshCw, Moon, Sun, Monitor } from 'lucide-react';
+import { api } from '@/lib/api/client';
 import { useProfileSettings } from '../../hooks/useProfileSettings';
 import type { UserPreferences } from '../../types';
 
@@ -25,7 +26,9 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
     await handleUpdateProfile({
       timezone: preferences.timezone,
     });
-    // TODO: Sauvegarder le thème et la langue dans les préférences utilisateur
+    await api.patch('/api/v1/auth/me', {
+      preferences: { theme: preferences.theme, locale: preferences.language },
+    });
   };
 
   return (

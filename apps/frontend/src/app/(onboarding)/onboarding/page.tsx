@@ -5,19 +5,18 @@
  * O-001: Flow d'onboarding interactif pour nouveaux utilisateurs
  */
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useCallback, memo, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import {
+  LazyMotionDiv as motion,
+  LazyAnimatePresence as AnimatePresence,
+} from '@/lib/performance/dynamic-motion';
 import { useRouter } from 'next/navigation';
 import {
   User,
   Building,
   Palette,
-  ShoppingBag,
   Box,
-  Shirt,
-  Coffee,
-  Gift,
   Camera,
   Sparkles,
   ArrowRight,
@@ -29,7 +28,6 @@ import {
   Crown,
   Globe,
   Plug,
-  Store,
   Image as ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,46 +35,45 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { logger } from '../../../lib/logger';
-
-// Types
-interface OnboardingData {
-  // Step 1: Profil
-  fullName: string;
-  company: string;
-  role: string;
-  teamSize: string;
-  // Step 2: Cas d'usage
-  useCase: string;
-  industry: string;
-  // Step 3: Objectifs
-  goals: string[];
-  // Step 4: Intégrations
-  integrations: string[];
-}
+import { logger } from '@/lib/logger';
+import { useOnboardingStore } from '@/store/onboarding.store';
+import { useIndustryStore } from '@/store/industry.store';
+import { Step2Industry } from './components/Step2Industry';
 
 const STEPS = [
   { id: 1, title: 'Profil', icon: User },
-  { id: 2, title: 'Cas d\'usage', icon: Target },
-  { id: 3, title: 'Objectifs', icon: Sparkles },
-  { id: 4, title: 'Intégrations', icon: Plug },
-  { id: 5, title: 'Terminé', icon: Rocket },
-];
-
-const INDUSTRIES = [
-  { id: 'fashion', name: 'Mode & Textile', icon: Shirt },
-  { id: 'ecommerce', name: 'E-commerce', icon: ShoppingBag },
-  { id: 'print', name: 'Impression', icon: ImageIcon },
-  { id: 'gifts', name: 'Cadeaux & Goodies', icon: Gift },
-  { id: 'promotional', name: 'Produits Promo', icon: Coffee },
-  { id: 'packaging', name: 'Packaging', icon: Box },
+  { id: 2, title: 'Secteur d\'activité', icon: Building },
+  { id: 3, title: 'Cas d\'usage', icon: Target },
+  { id: 4, title: 'Objectifs', icon: Sparkles },
+  { id: 5, title: 'Intégrations', icon: Plug },
+  { id: 6, title: 'Terminé', icon: Rocket },
 ];
 
 const USE_CASES = [
-  { id: 'product-customizer', name: 'Configurateur Produits', description: 'Permettre à vos clients de personnaliser vos produits', icon: Palette },
-  { id: '3d-viewer', name: 'Visualisation 3D', description: 'Afficher vos produits en 3D interactif', icon: Box },
-  { id: 'virtual-tryon', name: 'Virtual Try-On', description: 'Essayage virtuel avec AR', icon: Camera },
-  { id: 'print-ready', name: 'Export Print-Ready', description: 'Générer des fichiers prêts pour l\'impression', icon: ImageIcon },
+  {
+    id: 'product-customizer',
+    name: 'Configurateur Produits',
+    description: 'Permettre à vos clients de personnaliser vos produits',
+    icon: Palette,
+  },
+  {
+    id: '3d-viewer',
+    name: 'Visualisation 3D',
+    description: 'Afficher vos produits en 3D interactif',
+    icon: Box,
+  },
+  {
+    id: 'virtual-tryon',
+    name: 'Virtual Try-On',
+    description: 'Essayage virtuel avec AR',
+    icon: Camera,
+  },
+  {
+    id: 'print-ready',
+    name: 'Export Print-Ready',
+    description: "Générer des fichiers prêts pour l'impression",
+    icon: ImageIcon,
+  },
 ];
 
 const GOALS = [
@@ -84,7 +81,7 @@ const GOALS = [
   { id: 'reduce-returns', name: 'Réduire les retours', icon: ArrowLeft },
   { id: 'differentiate', name: 'Se différencier', icon: Crown },
   { id: 'automate', name: 'Automatiser', icon: Zap },
-  { id: 'scale', name: 'Passer à l\'échelle', icon: Rocket },
+  { id: 'scale', name: "Passer à l'échelle", icon: Rocket },
   { id: 'expand-global', name: 'Expansion internationale', icon: Globe },
 ];
 
@@ -99,79 +96,113 @@ const INTEGRATIONS = [
 
 function OnboardingPageContent() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [data, setData] = useState<OnboardingData>({
-    fullName: '',
-    company: '',
-    role: '',
-    teamSize: '',
-    useCase: '',
-    industry: '',
-    goals: [],
-    integrations: [],
-  });
+  const {
+    formData,
+    currentStep,
+    totalSteps,
+    isSubmitting,
+    selectedIndustry,
+    fetchProgress,
+    saveStep,
+    nextStep,
+    previousStep,
+    setStepData,
+    setSelectedIndustry,
+    completeOnboarding,
+    skipOnboarding,
+  } = useOnboardingStore();
+
+  const fetchAllIndustries = useIndustryStore((s) => s.fetchAllIndustries);
+
+  useEffect(() => {
+    fetchProgress();
+  }, [fetchProgress]);
+
+  useEffect(() => {
+    fetchAllIndustries();
+  }, [fetchAllIndustries]);
 
   const progress = (currentStep / STEPS.length) * 100;
 
-  const updateData = useCallback((updates: Partial<OnboardingData>) => {
-    setData(prev => ({ ...prev, ...updates }));
-  }, []);
+  const toggleUseCase = useCallback(
+    (id: string) => {
+      const useCases = formData.step3.useCases.includes(id)
+        ? formData.step3.useCases.filter((i) => i !== id)
+        : [...formData.step3.useCases, id];
+      setStepData('step3', { useCases });
+    },
+    [formData.step3.useCases, setStepData]
+  );
 
-  const toggleArrayItem = useCallback((field: 'goals' | 'integrations', item: string) => {
-    setData(prev => ({
-      ...prev,
-      [field]: prev[field].includes(item)
-        ? prev[field].filter(i => i !== item)
-        : [...prev[field], item],
-    }));
-  }, []);
+  const toggleGoal = useCallback(
+    (id: string) => {
+      const goals = formData.step4.goals.includes(id)
+        ? formData.step4.goals.filter((i) => i !== id)
+        : [...formData.step4.goals, id];
+      setStepData('step4', { goals });
+    },
+    [formData.step4.goals, setStepData]
+  );
+
+  const toggleIntegration = useCallback(
+    (id: string) => {
+      const integrations = formData.step5.integrations.includes(id)
+        ? formData.step5.integrations.filter((i) => i !== id)
+        : [...formData.step5.integrations, id];
+      setStepData('step5', { integrations });
+    },
+    [formData.step5.integrations, setStepData]
+  );
 
   const canProceed = useCallback(() => {
     switch (currentStep) {
       case 1:
-        return data.fullName.length >= 2;
+        return formData.step1.name.length >= 2;
       case 2:
-        return data.useCase !== '';
+        return formData.step2.industrySlug !== '';
       case 3:
-        return data.goals.length >= 1;
+        return true;
       case 4:
-        return data.integrations.length >= 1;
+        return formData.step4.goals.length >= 1;
+      case 5:
+        return formData.step5.integrations.length >= 1;
+      case 6:
+        return true;
       default:
         return true;
     }
-  }, [currentStep, data]);
+  }, [currentStep, formData]);
 
   const handleNext = useCallback(async () => {
-    if (currentStep < STEPS.length) {
-      setCurrentStep(prev => prev + 1);
-    } else {
-      // Finish onboarding
-      setIsSubmitting(true);
+    if (currentStep < totalSteps) {
       try {
-        await fetch('/api/auth/onboarding', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ step: 'complete', data }),
-        });
-        router.push('/overview?onboarding=complete');
-      } catch (error) {
-        logger.error('Onboarding error:', error);
-      } finally {
-        setIsSubmitting(false);
+        await saveStep(currentStep);
+        nextStep();
+      } catch {
+        // Error already handled in store
+      }
+    } else {
+      try {
+        await completeOnboarding();
+        router.push('/dashboard?onboarding=complete');
+      } catch (err) {
+        logger.error('Onboarding complete error:', err);
       }
     }
-  }, [currentStep, data, router]);
+  }, [currentStep, totalSteps, saveStep, nextStep, completeOnboarding, router]);
 
   const handlePrevious = useCallback(() => {
-    if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
-    }
-  }, [currentStep]);
+    previousStep();
+  }, [previousStep]);
 
-  const handleSkip = useCallback(() => {
-    router.push('/overview');
-  }, [router]);
+  const handleSkip = useCallback(async () => {
+    try {
+      await skipOnboarding();
+      router.push('/dashboard');
+    } catch (err) {
+      logger.error('Onboarding skip error:', err);
+    }
+  }, [skipOnboarding, router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-center p-4">
@@ -200,7 +231,7 @@ function OnboardingPageContent() {
                 </div>
                 {index < STEPS.length - 1 && (
                   <div
-                    className={`h-1 w-12 sm:w-20 mx-2 rounded ${
+                    className={`h-1 w-8 sm:w-12 mx-1 rounded ${
                       currentStep > step.id ? 'bg-blue-600' : 'bg-slate-800'
                     }`}
                   />
@@ -224,8 +255,12 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">Bienvenue sur Luneo ! 👋</h1>
-                  <p className="text-slate-400">Commençons par faire connaissance</p>
+                  <h1 className="text-3xl font-bold mb-2">
+                    Bienvenue sur Luneo ! 👋
+                  </h1>
+                  <p className="text-slate-400">
+                    Commençons par faire connaissance
+                  </p>
                 </div>
 
                 <div className="space-y-4">
@@ -233,8 +268,10 @@ function OnboardingPageContent() {
                     <Label>Votre nom complet</Label>
                     <Input
                       placeholder="Jean Dupont"
-                      value={data.fullName}
-                      onChange={(e) => updateData({ fullName: e.target.value })}
+                      value={formData.step1.name}
+                      onChange={(e) =>
+                        setStepData('step1', { name: e.target.value })
+                      }
                       className="bg-slate-800 border-slate-700 h-12"
                     />
                   </div>
@@ -242,8 +279,10 @@ function OnboardingPageContent() {
                     <Label>Nom de votre entreprise</Label>
                     <Input
                       placeholder="Ma Super Entreprise"
-                      value={data.company}
-                      onChange={(e) => updateData({ company: e.target.value })}
+                      value={formData.step1.company}
+                      onChange={(e) =>
+                        setStepData('step1', { company: e.target.value })
+                      }
                       className="bg-slate-800 border-slate-700 h-12"
                     />
                   </div>
@@ -252,17 +291,21 @@ function OnboardingPageContent() {
                       <Label>Votre rôle</Label>
                       <Input
                         placeholder="CEO, Marketing..."
-                        value={data.role}
-                        onChange={(e) => updateData({ role: e.target.value })}
+                        value={formData.step1.role}
+                        onChange={(e) =>
+                          setStepData('step1', { role: e.target.value })
+                        }
                         className="bg-slate-800 border-slate-700"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Taille d'équipe</Label>
+                      <Label>Taille d&apos;équipe</Label>
                       <Input
                         placeholder="1-10, 10-50..."
-                        value={data.teamSize}
-                        onChange={(e) => updateData({ teamSize: e.target.value })}
+                        value={formData.step1.teamSize}
+                        onChange={(e) =>
+                          setStepData('step1', { teamSize: e.target.value })
+                        }
                         className="bg-slate-800 border-slate-700"
                       />
                     </div>
@@ -271,65 +314,15 @@ function OnboardingPageContent() {
               </motion>
             )}
 
-            {/* Step 2: Use Case */}
+            {/* Step 2: Industry */}
             {currentStep === 2 && (
-              <motion
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">Que souhaitez-vous faire ? 🎯</h1>
-                  <p className="text-slate-400">Sélectionnez votre cas d'usage principal</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {USE_CASES.map((useCase) => (
-                    <motion
-                      key={useCase.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => updateData({ useCase: useCase.id })}
-                      className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                        data.useCase === useCase.id
-                          ? 'bg-blue-600/20 border-blue-500'
-                          : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
-                      }`}
-                    >
-                      <useCase.icon className={`w-8 h-8 mb-3 ${data.useCase === useCase.id ? 'text-blue-400' : 'text-slate-400'}`} />
-                      <h3 className="font-semibold mb-1">{useCase.name}</h3>
-                      <p className="text-sm text-slate-400">{useCase.description}</p>
-                    </motion>
-                  ))}
-                </div>
-
-                <div className="mt-6">
-                  <Label className="mb-3 block">Votre industrie</Label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {INDUSTRIES.map((industry) => (
-                      <motion
-                        key={industry.id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => updateData({ industry: industry.id })}
-                        className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
-                          data.industry === industry.id
-                            ? 'bg-blue-600/20 border-blue-500'
-                            : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
-                        }`}
-                      >
-                        <industry.icon className={`w-6 h-6 mx-auto mb-2 ${data.industry === industry.id ? 'text-blue-400' : 'text-slate-400'}`} />
-                        <span className="text-sm">{industry.name}</span>
-                      </motion>
-                    ))}
-                  </div>
-                </div>
-              </motion>
+              <Step2Industry
+                selectedIndustry={selectedIndustry}
+                onSelectIndustry={setSelectedIndustry}
+              />
             )}
 
-            {/* Step 3: Goals */}
+            {/* Step 3: Use Cases */}
             {currentStep === 3 && (
               <motion
                 key="step3"
@@ -339,37 +332,45 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">Vos objectifs ✨</h1>
-                  <p className="text-slate-400">Que voulez-vous accomplir avec Luneo ?</p>
+                  <h1 className="text-3xl font-bold mb-2">
+                    Que souhaitez-vous faire ? 🎯
+                  </h1>
+                  <p className="text-slate-400">
+                    Sélectionnez votre cas d&apos;usage principal
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {GOALS.map((goal) => (
+                  {USE_CASES.map((useCase) => (
                     <motion
-                      key={goal.id}
+                      key={useCase.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => toggleArrayItem('goals', goal.id)}
+                      onClick={() => toggleUseCase(useCase.id)}
                       className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                        data.goals.includes(goal.id)
-                          ? 'bg-green-600/20 border-green-500'
+                        formData.step3.useCases.includes(useCase.id)
+                          ? 'bg-blue-600/20 border-blue-500'
                           : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <goal.icon className={`w-6 h-6 ${data.goals.includes(goal.id) ? 'text-green-400' : 'text-slate-400'}`} />
-                        <span className="font-medium">{goal.name}</span>
-                        {data.goals.includes(goal.id) && (
-                          <Check className="w-5 h-5 text-green-400 ml-auto" />
-                        )}
-                      </div>
+                      <useCase.icon
+                        className={`w-8 h-8 mb-3 ${
+                          formData.step3.useCases.includes(useCase.id)
+                            ? 'text-blue-400'
+                            : 'text-slate-400'
+                        }`}
+                      />
+                      <h3 className="font-semibold mb-1">{useCase.name}</h3>
+                      <p className="text-sm text-slate-400">
+                        {useCase.description}
+                      </p>
                     </motion>
                   ))}
                 </div>
               </motion>
             )}
 
-            {/* Step 4: Integrations */}
+            {/* Step 4: Goals */}
             {currentStep === 4 && (
               <motion
                 key="step4"
@@ -379,8 +380,62 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">Vos intégrations 🔌</h1>
-                  <p className="text-slate-400">Quelle(s) plateforme(s) utilisez-vous ?</p>
+                  <h1 className="text-3xl font-bold mb-2">
+                    Vos objectifs ✨
+                  </h1>
+                  <p className="text-slate-400">
+                    Que voulez-vous accomplir avec Luneo ?
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {GOALS.map((goal) => (
+                    <motion
+                      key={goal.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => toggleGoal(goal.id)}
+                      className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                        formData.step4.goals.includes(goal.id)
+                          ? 'bg-green-600/20 border-green-500'
+                          : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <goal.icon
+                          className={`w-6 h-6 ${
+                            formData.step4.goals.includes(goal.id)
+                              ? 'text-green-400'
+                              : 'text-slate-400'
+                          }`}
+                        />
+                        <span className="font-medium">{goal.name}</span>
+                        {formData.step4.goals.includes(goal.id) && (
+                          <Check className="w-5 h-5 text-green-400 ml-auto" />
+                        )}
+                      </div>
+                    </motion>
+                  ))}
+                </div>
+              </motion>
+            )}
+
+            {/* Step 5: Integrations */}
+            {currentStep === 5 && (
+              <motion
+                key="step5"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold mb-2">
+                    Vos intégrations 🔌
+                  </h1>
+                  <p className="text-slate-400">
+                    Quelle(s) plateforme(s) utilisez-vous ?
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -389,16 +444,20 @@ function OnboardingPageContent() {
                       key={integration.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => toggleArrayItem('integrations', integration.id)}
+                      onClick={() => toggleIntegration(integration.id)}
                       className={`p-4 rounded-xl border text-center transition-all cursor-pointer ${
-                        data.integrations.includes(integration.id)
+                        formData.step5.integrations.includes(integration.id)
                           ? 'bg-purple-600/20 border-purple-500'
                           : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
                       }`}
                     >
-                      <span className="text-3xl mb-2 block">{integration.logo}</span>
-                      <span className="text-sm font-medium">{integration.name}</span>
-                      {data.integrations.includes(integration.id) && (
+                      <span className="text-3xl mb-2 block">
+                        {integration.logo}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {integration.name}
+                      </span>
+                      {formData.step5.integrations.includes(integration.id) && (
                         <Check className="w-4 h-4 text-purple-400 mx-auto mt-2" />
                       )}
                     </motion>
@@ -407,10 +466,10 @@ function OnboardingPageContent() {
               </motion>
             )}
 
-            {/* Step 5: Complete */}
-            {currentStep === 5 && (
+            {/* Step 6: Complete */}
+            {currentStep === 6 && (
               <motion
-                key="step5"
+                key="step6"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
@@ -424,15 +483,18 @@ function OnboardingPageContent() {
                 >
                   <Rocket className="w-12 h-12 text-white" />
                 </motion>
-                <h1 className="text-3xl font-bold mb-4">Vous êtes prêt ! 🎉</h1>
+                <h1 className="text-3xl font-bold mb-4">
+                  Vous êtes prêt ! 🎉
+                </h1>
                 <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                  Votre espace est configuré. Explorez Luneo et commencez à créer des expériences incroyables pour vos clients.
+                  Votre espace est configuré. Explorez Luneo et commencez à
+                  créer des expériences incroyables pour vos clients.
                 </p>
 
                 <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg mx-auto">
                   <div className="p-4 bg-slate-800/50 rounded-lg">
                     <p className="text-2xl font-bold text-blue-400">14</p>
-                    <p className="text-xs text-slate-400">jours d'essai</p>
+                    <p className="text-xs text-slate-400">jours d&apos;essai</p>
                   </div>
                   <div className="p-4 bg-slate-800/50 rounded-lg">
                     <p className="text-2xl font-bold text-green-400">∞</p>
@@ -450,7 +512,7 @@ function OnboardingPageContent() {
           {/* Navigation */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-800">
             <div>
-              {currentStep > 1 && currentStep < 5 && (
+              {currentStep > 1 && currentStep < 6 && (
                 <Button variant="ghost" onClick={handlePrevious}>
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Retour
@@ -458,8 +520,12 @@ function OnboardingPageContent() {
               )}
             </div>
             <div className="flex items-center gap-3">
-              {currentStep < 5 && (
-                <Button variant="ghost" onClick={handleSkip} className="text-slate-400">
+              {currentStep < 6 && (
+                <Button
+                  variant="ghost"
+                  onClick={handleSkip}
+                  className="text-slate-400"
+                >
                   Passer
                 </Button>
               )}
@@ -470,7 +536,7 @@ function OnboardingPageContent() {
               >
                 {isSubmitting ? (
                   'Chargement...'
-                ) : currentStep === 5 ? (
+                ) : currentStep === 6 ? (
                   <>
                     Accéder au dashboard
                     <ArrowRight className="w-4 h-4 ml-2" />

@@ -2,11 +2,12 @@
  * ★★★ SERVICE - EDITOR ★★★
  * Service NestJS pour l'éditeur de designs
  * Respecte la Bible Luneo : pas de any, types stricts, logging professionnel
+ * Projects are stored in Project table (type DESIGN), not in Brand.metadata.
  */
 
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ProjectType, ProjectStatus } from '@prisma/client';
 
 export interface EditorProject {
   id: string;
@@ -19,6 +20,18 @@ export interface EditorProject {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** Stored in Project.settings */
+interface EditorProjectSettings {
+  canvas?: EditorCanvas;
+  layers?: EditorLayer[];
+}
+
+/** Stored in Project.metadata for editor projects */
+interface EditorProjectMetadata {
+  userId?: string;
+  history?: EditorHistoryEntry[];
 }
 
 export interface EditorCanvas {
@@ -53,11 +66,46 @@ export interface EditorHistoryEntry {
   data: Record<string, unknown>;
 }
 
+const DEFAULT_CANVAS: EditorCanvas = {
+  width: 800,
+  height: 600,
+  units: 'px',
+};
+
 @Injectable()
 export class EditorService {
   private readonly logger = new Logger(EditorService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Maps a Prisma Project (type DESIGN) to EditorProject
+   */
+  private toEditorProject(p: {
+    id: string;
+    name: string;
+    description: string | null;
+    settings: unknown;
+    metadata: unknown;
+    brandId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): EditorProject {
+    const settings = (p.settings as EditorProjectSettings) || {};
+    const meta = (p.metadata as EditorProjectMetadata) || {};
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description ?? undefined,
+      canvas: settings.canvas ?? DEFAULT_CANVAS,
+      layers: settings.layers ?? [],
+      history: meta.history ?? [],
+      brandId: p.brandId,
+      userId: meta.userId ?? '',
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    };
+  }
 
   /**
    * Liste tous les projets d'édition d'une marque
@@ -66,25 +114,28 @@ export class EditorService {
     try {
       this.logger.log(`Listing editor projects for brand: ${brandId}`);
 
-      // Pour l'instant, utiliser la table Brand.metadata pour stocker les projets
-      // TODO: Créer une table dédiée EditorProject dans Prisma
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
       });
-
       if (!brand) {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.editorProjects as EditorProject[]) || [];
+      const projects = await this.prisma.project.findMany({
+        where: {
+          brandId,
+          type: ProjectType.DESIGN,
+          deletedAt: null,
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
 
-      // Filtrer par utilisateur si spécifié
+      const mapped = projects.map((p) => this.toEditorProject(p));
+
       if (userId) {
-        return projects.filter((p) => p.userId === userId);
+        return mapped.filter((p) => p.userId === userId);
       }
-
-      return projects;
+      return mapped;
     } catch (error) {
       this.logger.error(`Failed to list projects: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -98,14 +149,20 @@ export class EditorService {
     try {
       this.logger.log(`Getting editor project: ${id}`);
 
-      const projects = await this.listProjects(brandId);
-      const project = projects.find((p) => p.id === id);
+      const project = await this.prisma.project.findFirst({
+        where: {
+          id,
+          brandId,
+          type: ProjectType.DESIGN,
+          deletedAt: null,
+        },
+      });
 
       if (!project) {
         throw new NotFoundException(`Project ${id} not found`);
       }
 
-      return project;
+      return this.toEditorProject(project);
     } catch (error) {
       this.logger.error(`Failed to get project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -122,38 +179,31 @@ export class EditorService {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
       });
-
       if (!brand) {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.editorProjects as EditorProject[]) || [];
-
-      const newProject: EditorProject = {
-        id: `editor-project-${Date.now()}`,
-        ...data,
-        layers: data.layers || [],
-        history: [],
-        brandId,
-        userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      projects.push(newProject);
-
-      await this.prisma.brand.update({
-        where: { id: brandId },
+      const slug = `editor-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const project = await this.prisma.project.create({
         data: {
+          brandId,
+          name: data.name,
+          slug,
+          description: data.description ?? null,
+          type: ProjectType.DESIGN,
+          status: ProjectStatus.DRAFT,
+          settings: {
+            canvas: data.canvas ?? DEFAULT_CANVAS,
+            layers: data.layers ?? [],
+          } as object,
           metadata: {
-            ...metadata,
-            editorProjects: projects,
-          } as Record<string, unknown>,
-        } as unknown as Prisma.BrandUpdateInput,
+            userId,
+            history: [],
+          } as object,
+        },
       });
 
-      return newProject;
+      return this.toEditorProject(project);
     } catch (error) {
       this.logger.error(`Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -169,44 +219,29 @@ export class EditorService {
 
       const project = await this.getProject(id, brandId);
 
-      // Vérifier que l'utilisateur est le propriétaire
       if (project.userId !== userId) {
         throw new ForbiddenException('User is not the owner of this project');
       }
 
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId },
-      });
-
-      if (!brand) {
-        throw new NotFoundException(`Brand ${brandId} not found`);
-      }
-
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.editorProjects as EditorProject[]) || [];
-
-      const index = projects.findIndex((p) => p.id === id);
-      if (index === -1) {
-        throw new NotFoundException(`Project ${id} not found`);
-      }
-
-      projects[index] = {
-        ...projects[index],
-        ...data,
-        updatedAt: new Date(),
+      const settings: EditorProjectSettings = {
+        canvas: data.canvas ?? project.canvas,
+        layers: data.layers ?? project.layers,
       };
+      const updateData: {
+        name?: string;
+        description?: string | null;
+        settings?: object;
+      } = {};
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description ?? null;
+      updateData.settings = settings as object;
 
-      await this.prisma.brand.update({
-        where: { id: brandId },
-        data: {
-          metadata: {
-            ...metadata,
-            editorProjects: projects,
-          } as Record<string, unknown>,
-        } as unknown as Prisma.BrandUpdateInput,
+      const updated = await this.prisma.project.update({
+        where: { id },
+        data: updateData,
       });
 
-      return projects[index];
+      return this.toEditorProject(updated);
     } catch (error) {
       this.logger.error(`Failed to update project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -214,7 +249,7 @@ export class EditorService {
   }
 
   /**
-   * Supprime un projet
+   * Supprime un projet (soft delete)
    */
   async deleteProject(id: string, brandId: string, userId: string): Promise<void> {
     try {
@@ -222,36 +257,13 @@ export class EditorService {
 
       const project = await this.getProject(id, brandId);
 
-      // Vérifier que l'utilisateur est le propriétaire
       if (project.userId !== userId) {
         throw new ForbiddenException('User is not the owner of this project');
       }
 
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId },
-      });
-
-      if (!brand) {
-        throw new NotFoundException(`Brand ${brandId} not found`);
-      }
-
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.editorProjects as EditorProject[]) || [];
-
-      const filtered = projects.filter((p) => p.id !== id);
-
-      if (filtered.length === projects.length) {
-        throw new NotFoundException(`Project ${id} not found`);
-      }
-
-      await this.prisma.brand.update({
-        where: { id: brandId },
-        data: {
-          metadata: {
-            ...metadata,
-            editorProjects: filtered,
-          },
-        } as unknown as Prisma.BrandUpdateInput,
+      await this.prisma.project.update({
+        where: { id },
+        data: { deletedAt: new Date(), status: ProjectStatus.DELETED },
       });
     } catch (error) {
       this.logger.error(`Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
@@ -260,21 +272,27 @@ export class EditorService {
   }
 
   /**
-   * Exporte un projet dans un format spécifique
+   * Exporte un projet. Pour l'instant retourne le JSON du projet (téléchargeable).
+   * PDF/image (png, jpg, svg, pdf) pourront être ajoutés plus tard (rendering canvas, conversion, upload).
    */
-  async exportProject(id: string, brandId: string, format: 'png' | 'jpg' | 'svg' | 'pdf'): Promise<{ url: string; format: string }> {
+  async exportProject(
+    id: string,
+    brandId: string,
+    format: 'png' | 'jpg' | 'svg' | 'pdf',
+  ): Promise<{ format: string; data: EditorProject; filename: string }> {
     try {
       this.logger.log(`Exporting editor project: ${id} as ${format}`);
 
       const project = await this.getProject(id, brandId);
 
-      // TODO: Implémenter l'export réel (rendering canvas, conversion, upload)
-      // Pour l'instant, retourner une URL mockée
-      const exportUrl = `https://storage.example.com/exports/${project.id}.${format}`;
+      // Basic export: return project as JSON for download (PDF/image export can be added later)
+      const safeName = project.name.replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 80);
+      const filename = `${safeName}-export.json`;
 
       return {
-        url: exportUrl,
-        format,
+        format: 'json',
+        data: project,
+        filename,
       };
     } catch (error) {
       this.logger.error(`Failed to export project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
@@ -295,45 +313,25 @@ export class EditorService {
         throw new ForbiddenException('User is not the owner of this project');
       }
 
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId },
-      });
-
-      if (!brand) {
-        throw new NotFoundException(`Brand ${brandId} not found`);
-      }
-
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.editorProjects as EditorProject[]) || [];
-
-      const index = projects.findIndex((p) => p.id === id);
-      if (index === -1) {
-        throw new NotFoundException(`Project ${id} not found`);
-      }
-
       const newEntry: EditorHistoryEntry = {
         id: `history-${Date.now()}`,
         ...entry,
         timestamp: new Date(),
       };
 
-      // Limiter l'historique à 50 entrées
-      projects[index].history.push(newEntry);
-      if (projects[index].history.length > 50) {
-        projects[index].history = projects[index].history.slice(-50);
-      }
+      const history = [...project.history, newEntry].slice(-50);
 
-      await this.prisma.brand.update({
-        where: { id: brandId },
+      const updated = await this.prisma.project.update({
+        where: { id },
         data: {
           metadata: {
-            ...metadata,
-            editorProjects: projects,
-          } as Record<string, unknown>,
-        } as unknown as Prisma.BrandUpdateInput,
+            userId: project.userId,
+            history,
+          } as object,
+        },
       });
 
-      return projects[index];
+      return this.toEditorProject(updated);
     } catch (error) {
       this.logger.error(`Failed to add history entry: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;

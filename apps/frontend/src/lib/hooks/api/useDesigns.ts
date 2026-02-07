@@ -50,8 +50,16 @@ export function useDesigns(
             },
           };
         }
-        
-        return response as DesignsListResponse;
+        const r = response as { designs?: DesignSummary[]; pagination?: { page?: number; limit?: number; total?: number; pages?: number } };
+        return {
+          data: r.designs ?? [],
+          pagination: {
+            page: r.pagination?.page ?? params.page ?? 1,
+            limit: r.pagination?.limit ?? params.limit ?? 20,
+            total: r.pagination?.total ?? 0,
+            pages: r.pagination?.pages ?? 1,
+          },
+        } as DesignsListResponse;
       } catch (error) {
         logger.error('Failed to fetch designs', { error, params });
         throw error;

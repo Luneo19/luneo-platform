@@ -1,13 +1,47 @@
 /**
  * Grafana Controller
- * Provides endpoints for Grafana datasource integration
+ * Provides endpoints for Grafana datasource integration.
+ *
+ * All endpoints require a valid Grafana API key via the X-Grafana-Api-Key header.
+ * Configure GRAFANA_API_KEY in your environment variables.
+ * If GRAFANA_API_KEY is not set, endpoints fall back to JWT auth.
  */
 
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Query, Res, UseGuards, CanActivate, ExecutionContext, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Response, Request } from 'express';
 import { GrafanaDatasourceService } from './datasource.service';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { ConfigService } from '@nestjs/config';
+
+/**
+ * Guard that validates X-Grafana-Api-Key header against GRAFANA_API_KEY env var.
+ * If GRAFANA_API_KEY is not set, the guard passes (falls through to JwtAuthGuard).
+ */
+@Injectable()
+class GrafanaApiKeyGuard implements CanActivate {
+  private readonly logger = new Logger(GrafanaApiKeyGuard.name);
+
+  constructor(private readonly configService: ConfigService) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const expectedKey = this.configService.get<string>('GRAFANA_API_KEY');
+    if (!expectedKey) {
+      // No Grafana API key configured — skip this guard (JWT will still protect)
+      return true;
+    }
+
+    const request = context.switchToHttp().getRequest<Request>();
+    const providedKey = request.headers['x-grafana-api-key'] as string;
+
+    if (!providedKey || providedKey !== expectedKey) {
+      this.logger.warn('Grafana API key validation failed');
+      throw new UnauthorizedException('Invalid or missing Grafana API key');
+    }
+
+    return true;
+  }
+}
 
 @Controller('api/monitoring/grafana')
 @UseGuards(JwtAuthGuard)
@@ -19,8 +53,10 @@ export class GrafanaController {
   /**
    * Grafana datasource query endpoint
    * POST /api/monitoring/grafana/query
+   * @Public: Protected by GrafanaApiKeyGuard via X-Grafana-Api-Key header
    */
-  @Public() // Should be protected with Grafana API key in production
+  @Public()
+  @UseGuards(GrafanaApiKeyGuard)
   @Get('query')
   async query(
     @Query('target') target: string,
@@ -50,8 +86,10 @@ export class GrafanaController {
   /**
    * Grafana search endpoint
    * GET /api/monitoring/grafana/search
+   * @Public: Protected by GrafanaApiKeyGuard via X-Grafana-Api-Key header
    */
   @Public()
+  @UseGuards(GrafanaApiKeyGuard)
   @Get('search')
   async search(@Res() res: Response) {
     const metrics = [
@@ -69,8 +107,10 @@ export class GrafanaController {
   /**
    * Grafana table query endpoint
    * GET /api/monitoring/grafana/table
+   * @Public: Protected by GrafanaApiKeyGuard via X-Grafana-Api-Key header
    */
   @Public()
+  @UseGuards(GrafanaApiKeyGuard)
   @Get('table')
   async table(@Res() res: Response) {
     try {
@@ -87,8 +127,10 @@ export class GrafanaController {
   /**
    * Grafana annotations endpoint
    * GET /api/monitoring/grafana/annotations
+   * @Public: Protected by GrafanaApiKeyGuard via X-Grafana-Api-Key header
    */
   @Public()
+  @UseGuards(GrafanaApiKeyGuard)
   @Get('annotations')
   async annotations(@Res() res: Response) {
     // Return empty annotations for now

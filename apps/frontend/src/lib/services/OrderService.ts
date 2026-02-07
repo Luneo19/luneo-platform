@@ -10,6 +10,7 @@
 
 import { trpcVanilla } from '@/lib/trpc/vanilla-client';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 import { cacheService } from '@/lib/cache/CacheService';
 import { OrderStatus } from '@/lib/types/order';
 import type { Order, OrderItem } from '@/lib/types/order';
@@ -106,34 +107,35 @@ export class OrderService {
         metadata: request.metadata,
       });
 
-      // Convertir la réponse Prisma en type Order
+      // Convertir la réponse API en type Order
+      const raw = orderData as any;
       const order: Order = {
-        id: orderData.id,
-        userId: orderData.userId,
-        brandId: orderData.brandId || undefined,
-        orderNumber: orderData.orderNumber,
-        status: orderData.status as OrderStatus,
-        paymentStatus: orderData.paymentStatus as any,
-        shippingStatus: orderData.shippingStatus as any,
-        items: (orderData.metadata as any)?.items || [],
-        subtotal: orderData.subtotalCents / 100,
-        shippingCost: orderData.shippingCents / 100,
-        tax: orderData.taxCents / 100,
+        id: raw.id,
+        userId: raw.userId ?? '',
+        brandId: raw.brandId || undefined,
+        orderNumber: raw.orderNumber ?? '',
+        status: raw.status as OrderStatus,
+        paymentStatus: raw.paymentStatus as any,
+        shippingStatus: raw.shippingStatus as any,
+        items: raw.metadata?.items || [],
+        subtotal: (raw.subtotalCents ?? 0) / 100,
+        shippingCost: (raw.shippingCents ?? 0) / 100,
+        tax: (raw.taxCents ?? 0) / 100,
         discount: 0,
-        totalAmount: orderData.totalCents / 100,
-        currency: orderData.currency,
-        shippingAddress: orderData.shippingAddress as any,
-        billingAddress: (orderData.metadata as any)?.billingAddress,
+        totalAmount: (raw.totalCents ?? 0) / 100,
+        currency: raw.currency ?? 'EUR',
+        shippingAddress: raw.shippingAddress as any,
+        billingAddress: raw.metadata?.billingAddress,
         paymentMethodId: request.paymentMethodId,
-        customerNotes: orderData.notes || undefined,
-        internalNotes: orderData.internalNotes || undefined,
-        metadata: orderData.metadata as any,
-        createdAt: orderData.createdAt,
-        updatedAt: orderData.updatedAt,
-        confirmedAt: orderData.confirmedAt || undefined,
-        shippedAt: orderData.shippedAt || undefined,
-        deliveredAt: orderData.deliveredAt || undefined,
-        cancelledAt: orderData.cancelledAt || undefined,
+        customerNotes: raw.notes || undefined,
+        internalNotes: raw.internalNotes || undefined,
+        metadata: raw.metadata as any,
+        createdAt: raw.createdAt ? new Date(raw.createdAt) : new Date(),
+        updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : new Date(),
+        confirmedAt: raw.confirmedAt ? new Date(raw.confirmedAt) : undefined,
+        shippedAt: raw.shippedAt ? new Date(raw.shippedAt) : undefined,
+        deliveredAt: raw.deliveredAt ? new Date(raw.deliveredAt) : undefined,
+        cancelledAt: raw.cancelledAt ? new Date(raw.cancelledAt) : undefined,
       };
 
       // Invalidate cache
@@ -163,46 +165,46 @@ export class OrderService {
       }
 
       // Appel tRPC pour récupérer la commande
-      const orderData = await trpcVanilla.order.getById.query({ id: orderId });
+      const orderData = await trpcVanilla.order.getById.query({ id: orderId }) as any;
 
       // Convertir la réponse Prisma en type Order
       const order: Order = {
-        id: orderData.id,
-        userId: orderData.userId,
-        brandId: orderData.brandId || undefined,
-        orderNumber: orderData.orderNumber,
-        status: orderData.status as OrderStatus,
-        paymentStatus: orderData.paymentStatus as any,
-        shippingStatus: orderData.shippingStatus as any,
-        items: (orderData.items || []).map((item: any) => ({
-          id: item.id,
-          productId: item.productId,
-          productName: item.productName || '',
-          customizationId: item.customizationId || undefined,
-          designId: item.designId || undefined,
-          quantity: item.quantity,
-          price: item.priceCents / 100,
-          totalPrice: item.totalPriceCents / 100,
+        id: orderData.id ?? orderId,
+        userId: orderData.userId ?? '',
+        brandId: orderData.brandId ?? undefined,
+        orderNumber: orderData.orderNumber ?? '',
+        status: (orderData.status ?? OrderStatus.PENDING) as OrderStatus,
+        paymentStatus: (orderData.paymentStatus ?? 'PENDING') as any,
+        shippingStatus: (orderData.shippingStatus ?? 'PENDING') as any,
+        items: (orderData.items ?? []).map((item: any) => ({
+          id: item.id ?? '',
+          productId: item.productId ?? '',
+          productName: item.productName ?? '',
+          customizationId: item.customizationId ?? undefined,
+          designId: item.designId ?? undefined,
+          quantity: item.quantity ?? 0,
+          price: (item.priceCents ?? item.price ?? 0) / 100,
+          totalPrice: (item.totalPriceCents ?? item.totalPrice ?? 0) / 100,
           metadata: item.metadata as any,
         })),
-        subtotal: orderData.subtotalCents / 100,
-        shippingCost: orderData.shippingCents / 100,
-        tax: orderData.taxCents / 100,
+        subtotal: (orderData.subtotalCents ?? 0) / 100,
+        shippingCost: (orderData.shippingCents ?? 0) / 100,
+        tax: (orderData.taxCents ?? 0) / 100,
         discount: 0,
-        totalAmount: orderData.totalCents / 100,
-        currency: orderData.currency,
-        shippingAddress: orderData.shippingAddress as any,
+        totalAmount: (orderData.totalCents ?? 0) / 100,
+        currency: orderData.currency ?? 'EUR',
+        shippingAddress: (orderData.shippingAddress ?? {}) as any,
         billingAddress: (orderData.metadata as any)?.billingAddress,
-        paymentMethodId: orderData.paymentMethodId || undefined,
-        customerNotes: orderData.notes || undefined,
-        internalNotes: orderData.internalNotes || undefined,
+        paymentMethodId: orderData.paymentMethodId ?? undefined,
+        customerNotes: orderData.notes ?? undefined,
+        internalNotes: orderData.internalNotes ?? undefined,
         metadata: orderData.metadata as any,
-        createdAt: orderData.createdAt,
-        updatedAt: orderData.updatedAt,
-        confirmedAt: orderData.confirmedAt || undefined,
-        shippedAt: orderData.shippedAt || undefined,
-        deliveredAt: orderData.deliveredAt || undefined,
-        cancelledAt: orderData.cancelledAt || undefined,
+        createdAt: orderData.createdAt ? new Date(orderData.createdAt) : new Date(),
+        updatedAt: orderData.updatedAt ? new Date(orderData.updatedAt) : new Date(),
+        confirmedAt: orderData.confirmedAt != null ? new Date(orderData.confirmedAt) : undefined,
+        shippedAt: orderData.shippedAt != null ? new Date(orderData.shippedAt) : undefined,
+        deliveredAt: orderData.deliveredAt != null ? new Date(orderData.deliveredAt) : undefined,
+        cancelledAt: orderData.cancelledAt != null ? new Date(orderData.cancelledAt) : undefined,
       };
 
       // Cache for 5 minutes
@@ -517,25 +519,14 @@ export class OrderService {
     try {
       logger.info('Sending order to POD', { orderId, provider, options });
 
-      // Appel API route POD
-      const response = await fetch(`/api/pod/${provider}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await api.post<{ data?: { podOrderId?: string; status?: string; trackingUrl?: string } }>(
+        `/api/v1/pod/${provider}/submit`,
+        {
           orderId,
           autoFulfill: options?.autoFulfill || false,
           notifyCustomer: options?.notifyCustomer !== false,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `Failed to send to POD: ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
+        }
+      );
       
       // Vérifier que la réponse contient les données attendues
       if (!data.data || !data.data.podOrderId) {
@@ -549,9 +540,9 @@ export class OrderService {
       });
 
       return {
-        podOrderId: data.data.podOrderId,
-        status: data.data.status,
-        trackingUrl: data.data.trackingUrl,
+        podOrderId: data.data.podOrderId ?? '',
+        status: data.data.status ?? '',
+        trackingUrl: data.data.trackingUrl ?? '',
       };
     } catch (error: any) {
       logger.error('Error sending order to POD', { error, orderId, provider });

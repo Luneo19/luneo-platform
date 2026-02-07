@@ -28,9 +28,39 @@ const hpp = require('hpp');
 import { AppModule } from './app.module';
 import { validateEnv } from './config/configuration';
 
+function validateRequiredEnvVars() {
+  const required = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'JWT_REFRESH_SECRET',
+  ];
+
+  const productionRequired = [
+    'STRIPE_SECRET_KEY',
+    'STRIPE_WEBHOOK_SECRET',
+    'SENTRY_DSN',
+    'CLOUDINARY_CLOUD_NAME',
+    'CLOUDINARY_API_KEY',
+    'CLOUDINARY_API_SECRET',
+  ];
+
+  const missing = required.filter(key => !process.env[key]);
+
+  if (process.env.NODE_ENV === 'production') {
+    missing.push(...productionRequired.filter(key => !process.env[key]));
+  }
+
+  if (missing.length > 0) {
+    earlyLogger.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+}
+
 async function bootstrap() {
+  validateRequiredEnvVars();
+
   const logger = new Logger('Bootstrap');
-  
+
   // Log immédiatement pour confirmer que bootstrap() est appelé
   logger.log('🚀 Bootstrap function called');
   logger.log(`Environment: NODE_ENV=${process.env.NODE_ENV}, PORT=${process.env.PORT}`);
@@ -52,408 +82,27 @@ async function bootstrap() {
     }
   }
 
-  // Run database migrations before starting the application
-  let migrationsSuccess = false;
+  // Run database migrations and ensure critical columns (see migration-resolver.ts)
   try {
     logger.log('🔄 Running database migrations...');
-    const { execSync } = require('child_process');
-    const path = require('path');
-    const fs = require('fs');
-    // Utiliser le répertoire du backend pour Prisma
-    const backendDir = path.join(__dirname, '../..');
-    
-    // Chercher le binaire Prisma dans node_modules (utiliser la version installée, pas la dernière via npx)
-    // npx installe Prisma 7.x qui est incompatible avec notre schéma Prisma 5.22.0
-    const prismaBin = path.join(__dirname, '../../node_modules/.bin/prisma');
-    const prismaBinAlt = path.join(backendDir, 'node_modules/.bin/prisma');
-    const prismaBinRoot = '/app/node_modules/.bin/prisma';
-    
-    let prismaCmd = null;
-    
-    // Essayer d'utiliser le binaire Prisma directement (version installée, pas via npx)
-    if (fs.existsSync(prismaBinRoot)) {
-      prismaCmd = `${prismaBinRoot} migrate deploy`;
-      logger.log(`Using Prisma binary from: ${prismaBinRoot}`);
-    } else if (fs.existsSync(prismaBin)) {
-      prismaCmd = `${prismaBin} migrate deploy`;
-      logger.log(`Using Prisma binary from: ${prismaBin}`);
-    } else if (fs.existsSync(prismaBinAlt)) {
-      prismaCmd = `${prismaBinAlt} migrate deploy`;
-      logger.log(`Using Prisma binary from: ${prismaBinAlt}`);
-    } else {
-      // Fallback: utiliser npx avec version spécifique pour éviter d'installer Prisma 7.x
-      prismaCmd = 'npx --yes prisma@5.22.0 migrate deploy';
-      logger.warn(`Prisma binary not found, using npx with version 5.22.0 (may install package)`);
-    }
-    
-    logger.log(`Executing: ${prismaCmd} in ${backendDir}`);
-    try {
-      // Use pipe to capture output for error detection
-      const output = execSync(prismaCmd, { 
-        stdio: 'pipe',
-        env: { ...process.env, PATH: process.env.PATH },
-        cwd: backendDir,
-        encoding: 'utf8'
-      });
-      logger.log(output);
-      logger.log('✅ Database migrations completed successfully');
-      migrationsSuccess = true;
-    } catch (migrationError: any) {
-      // Capture the full error output
-      const errorOutput = migrationError.stderr?.toString() || migrationError.stdout?.toString() || migrationError.message || '';
-      
-      // Log the error for debugging
-      logger.warn(`Migration error output: ${errorOutput.substring(0, 500)}`);
-      
-      // Check if the error is P3015 (missing migration file)
-      if (errorOutput.includes('P3015') || errorOutput.includes('Could not find the migration file')) {
-        logger.warn('⚠️ P3015: Migration file missing');
-        logger.warn('Attempting to automatically resolve by marking migration as applied...');
-        
-        try {
-          // Extract migration name from error message
-          // Error format: "Could not find the migration file at prisma/migrations/xxx/migration.sql"
-          const migrationMatch = errorOutput.match(/migrations\/([^\/]+)\/migration\.sql/);
-          
-          if (migrationMatch && migrationMatch[1]) {
-            const missingMigration = migrationMatch[1];
-            logger.log(`Resolving missing migration: ${missingMigration}`);
-            
-            // Mark migration as applied (it's missing, so we assume it was already applied or is not needed)
-            const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
-            const resolveCmd = `${resolveCmdBase} ${missingMigration}`;
-            
-            logger.log(`Executing: ${resolveCmd}`);
-            try {
-              execSync(resolveCmd, { 
-                stdio: 'pipe',
-                env: { ...process.env, PATH: process.env.PATH },
-                cwd: backendDir,
-                encoding: 'utf8'
-              });
-              logger.log(`✅ Resolved missing migration: ${missingMigration}`);
-              
-              // Retry migrate deploy
-              logger.log('🔄 Retrying migrations after resolving missing migration...');
-              const retryOutput = execSync(prismaCmd, { 
-                stdio: 'pipe',
-                env: { ...process.env, PATH: process.env.PATH },
-                cwd: backendDir,
-                encoding: 'utf8'
-              });
-              logger.log(retryOutput);
-              logger.log('✅ Database migrations completed successfully after resolving missing migration');
-              migrationsSuccess = true;
-            } catch (resolveError: any) {
-              logger.warn(`⚠️ Could not resolve migration ${missingMigration}, continuing anyway`);
-              // Continue - columns will be created manually
-            }
-          } else {
-            logger.warn('⚠️ Could not extract migration name from P3015 error');
-          }
-        } catch (resolveError: any) {
-          logger.warn(`⚠️ Failed to auto-resolve P3015: ${resolveError.message?.substring(0, 100)}`);
-        }
-        // Continue execution even if P3015 resolution fails - columns will be created manually
-      }
-      // Check if the error is P3009 (failed migrations blocking new ones)
-      else if (errorOutput.includes('P3009') || errorOutput.includes('failed migrations in the target database')) {
-        logger.warn('⚠️ P3009: Failed migrations detected in database');
-        logger.warn('Attempting to automatically resolve failed migrations...');
-        
-        try {
-          // Extract migration name from error message
-          // Error format: "The `migration_name` migration started at ... failed"
-          const migrationMatch = errorOutput.match(/The `([^`]+)` migration/);
-          
-          if (migrationMatch && migrationMatch[1]) {
-            const failedMigration = migrationMatch[1];
-            logger.log(`Resolving failed migration: ${failedMigration}`);
-            
-            // Build resolve command using the same prisma binary
-            const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
-            const resolveCmd = `${resolveCmdBase} ${failedMigration}`;
-            
-            logger.log(`Executing: ${resolveCmd}`);
-            execSync(resolveCmd, { 
-              stdio: 'inherit',
-              env: { ...process.env, PATH: process.env.PATH },
-              cwd: backendDir
-            });
-            
-            logger.log(`✅ Resolved failed migration: ${failedMigration}`);
-          } else {
-            logger.warn('⚠️ Could not extract migration name from error');
-            throw migrationError;
-          }
-          
-          // After resolving first migration, retry migrate deploy - might have more failed migrations
-          logger.log('🔄 Retrying migrations after resolving failed migration...');
-          let retryAttempts = 0;
-          const maxRetries = 5; // Prevent infinite loops
-          
-          while (retryAttempts < maxRetries) {
-            try {
-              const retryOutput = execSync(prismaCmd, { 
-                stdio: 'pipe',
-                env: { ...process.env, PATH: process.env.PATH },
-                cwd: backendDir,
-                encoding: 'utf8'
-              });
-              logger.log(retryOutput);
-              logger.log('✅ Database migrations completed successfully after auto-resolution');
-              migrationsSuccess = true;
-              break; // Success, exit loop
-            } catch (retryError: any) {
-              const retryErrorOutput = retryError.stderr?.toString() || retryError.stdout?.toString() || retryError.message || '';
-              
-              // Check if there's another failed migration (P3009, P3018, or other migration errors)
-              if (retryErrorOutput.includes('P3009') || retryErrorOutput.includes('P3018') || 
-                  retryErrorOutput.includes('failed migrations') || retryErrorOutput.includes('failed to apply')) {
-                
-                // Extract migration name(s) - could be "Migration name: xxx" or "The `xxx` migration"
-                let nextFailedMigration = '';
-                
-                // Try "Migration name: xxx" format first (P3018)
-                const nameMatch1 = retryErrorOutput.match(/Migration name: ([^\n]+)/);
-                if (nameMatch1 && nameMatch1[1]) {
-                  nextFailedMigration = nameMatch1[1].trim();
-                }
-                
-                // Try "The `xxx` migration" format (P3009)
-                if (!nextFailedMigration) {
-                  const nameMatch2 = retryErrorOutput.match(/The `([^`]+)` migration/);
-                  if (nameMatch2 && nameMatch2[1]) {
-                    nextFailedMigration = nameMatch2[1];
-                  }
-                }
-                
-                if (nextFailedMigration) {
-                  retryAttempts++;
-                  logger.warn(`⚠️ Another failed migration detected: ${nextFailedMigration} (attempt ${retryAttempts}/${maxRetries})`);
-                  logger.log(`Resolving failed migration: ${nextFailedMigration}`);
-                  
-                  const resolveCmdBase = prismaCmd.replace(/migrate deploy.*$/, 'migrate resolve --applied');
-                  const resolveCmd = `${resolveCmdBase} ${nextFailedMigration}`;
-                  
-                  execSync(resolveCmd, { 
-                    stdio: 'inherit',
-                    env: { ...process.env, PATH: process.env.PATH },
-                    cwd: backendDir
-                  });
-                  
-                  logger.log(`✅ Resolved failed migration: ${nextFailedMigration}`);
-                  continue; // Retry loop
-                }
-              }
-              
-              // No more failed migrations detected, but still error - might be different error
-              throw retryError;
-            }
-          }
-          
-          if (retryAttempts >= maxRetries) {
-            logger.error(`❌ Reached maximum retry attempts (${maxRetries}). Manual intervention may be required.`);
-            throw migrationError;
-          }
-        } catch (resolveError: any) {
-          logger.error(`❌ Failed to auto-resolve migration: ${resolveError.message}`);
-          logger.error('⚠️ Manual intervention may be required to resolve failed migrations');
-          throw migrationError; // Throw original error
-        }
-      } else {
-        throw migrationError; // Re-throw if it's not a P3009 error
-      }
-    }
+    const { runDatabaseMigrations, ensureCriticalColumns } = require('./migration-resolver');
+    runDatabaseMigrations(logger);
   } catch (error: any) {
     logger.error(`❌ Database migration failed: ${error.message}`);
     logger.error(`Migration error stack: ${error.stack}`);
-    // Continue anyway - but log the error for debugging
-    // In production, we want to see migration failures clearly
     if (process.env.NODE_ENV === 'production') {
       logger.error('⚠️ Continuing despite migration failure (may cause runtime errors)');
     }
   }
 
-  // Ensure critical columns exist before seed/NestJS startup (ALWAYS, in case migrations were marked as applied but not executed)
-  // This is critical for CacheWarmingService and other services that need these columns
   try {
     logger.log('🔧 Verifying critical database columns...');
     const { PrismaClient } = require('@prisma/client');
     const tempPrisma = new PrismaClient();
-    
-    // Create all missing columns in a single transaction using DO block
-    // This is more efficient than executing each ALTER TABLE separately
-    const createColumnsQuery = `
-      DO $$
-      BEGIN
-        -- User 2FA columns
-        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false;
-        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT;
-        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT;
-        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[];
-        
-        -- User AI credits columns
-        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits" INTEGER NOT NULL DEFAULT 0;
-        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_purchased" INTEGER NOT NULL DEFAULT 0;
-        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_used" INTEGER NOT NULL DEFAULT 0;
-        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "last_credit_purchase" TIMESTAMP(3);
-        
-        -- Product columns
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImage" TEXT;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImageUrl" TEXT;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "thumbnailUrl" TEXT;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "promptTemplate" TEXT;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT 'openai';
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT 'standard';
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT 'png';
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputWidth" INTEGER NOT NULL DEFAULT 1024;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputHeight" INTEGER NOT NULL DEFAULT 1024;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arTrackingType" TEXT NOT NULL DEFAULT 'surface';
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arScale" DOUBLE PRECISION NOT NULL DEFAULT 1.0;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arOffset" JSONB;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "category" TEXT;
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "tags" TEXT[] DEFAULT ARRAY[]::TEXT[];
-        ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "publishedAt" TIMESTAMP(3);
-        
-        -- Brand columns
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB;
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "monthlyGenerations" INTEGER NOT NULL DEFAULT 0;
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100;
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5;
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false;
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false;
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);
-        ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3);
-        
-        -- WorkOrder columns
-        ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT;
-        
-        -- Design columns
-        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "promptHash" TEXT;
-        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
-        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "renderUrl" TEXT;
-        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasWidth" INTEGER;
-        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasHeight" INTEGER;
-        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasBackgroundColor" TEXT DEFAULT '#ffffff';
-        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "designData" JSONB;
-        ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "optionsJson" JSONB;
-      END $$;
-    `;
-    
-    // Create enums first (separate queries as they need special handling)
-    const enumQueries = [
-      // Create SubscriptionPlan enum if it doesn't exist
-      'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
-      // Create SubscriptionStatus enum if it doesn't exist
-      'DO $$ BEGIN CREATE TYPE "SubscriptionStatus" AS ENUM (\'ACTIVE\', \'PAST_DUE\', \'CANCELED\', \'TRIALING\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
-      // Create ProductStatus enum if it doesn't exist
-      'DO $$ BEGIN CREATE TYPE "ProductStatus" AS ENUM (\'DRAFT\', \'ACTIVE\', \'ARCHIVED\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
-      // Create DesignStatus enum if it doesn't exist
-      'DO $$ BEGIN CREATE TYPE "DesignStatus" AS ENUM (\'PENDING\', \'PROCESSING\', \'COMPLETED\', \'FAILED\', \'CANCELLED\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
-    ];
-    
-    // Execute column creation in a single transaction
-    try {
-      await tempPrisma.$executeRawUnsafe(createColumnsQuery);
-      logger.log('✅ All critical columns created in single transaction');
-    } catch (columnError: any) {
-      // Fallback: if DO block fails, try individual queries
-      logger.warn(`⚠️ Batch column creation failed, trying individual queries: ${columnError.message?.substring(0, 100)}`);
-      const columnQueries = [
-        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false',
-        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT',
-        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT',
-        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[]',
-        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits" INTEGER NOT NULL DEFAULT 0',
-        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_purchased" INTEGER NOT NULL DEFAULT 0',
-        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "ai_credits_used" INTEGER NOT NULL DEFAULT 0',
-        'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "last_credit_purchase" TIMESTAMP(3)',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseAssetUrl" TEXT',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImage" TEXT',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "baseImageUrl" TEXT',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "thumbnailUrl" TEXT',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "promptTemplate" TEXT',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT \'openai\'',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT \'standard\'',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT \'png\'',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputWidth" INTEGER NOT NULL DEFAULT 1024',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputHeight" INTEGER NOT NULL DEFAULT 1024',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arTrackingType" TEXT NOT NULL DEFAULT \'surface\'',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arScale" DOUBLE PRECISION NOT NULL DEFAULT 1.0',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arOffset" JSONB',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "category" TEXT',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "tags" TEXT[] DEFAULT ARRAY[]::TEXT[]',
-        'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "publishedAt" TIMESTAMP(3)',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "limits" JSONB',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "monthlyGenerations" INTEGER NOT NULL DEFAULT 0',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
-        'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
-        'ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT',
-        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "promptHash" TEXT',
-        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT',
-        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "renderUrl" TEXT',
-        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasWidth" INTEGER',
-        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasHeight" INTEGER',
-        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasBackgroundColor" TEXT DEFAULT \'#ffffff\'',
-        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "designData" JSONB',
-        'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "optionsJson" JSONB',
-      ];
-      
-      for (const query of columnQueries) {
-        try {
-          await tempPrisma.$executeRawUnsafe(query);
-        } catch (queryError: any) {
-          logger.debug(`Column check: ${queryError.message?.substring(0, 100)}`);
-        }
-      }
-    }
-    
-    // Create enums and enum columns
-    for (const query of enumQueries) {
-      try {
-        await tempPrisma.$executeRawUnsafe(query);
-      } catch (queryError: any) {
-        logger.debug(`Enum check: ${queryError.message?.substring(0, 100)}`);
-      }
-    }
-    
-    // Add enum columns after enums are created
-    const enumColumnQueries = [
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "status" "ProductStatus" NOT NULL DEFAULT \'DRAFT\'',
-      'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "status" "DesignStatus" NOT NULL DEFAULT \'PENDING\'',
-    ];
-    
-    for (const query of enumColumnQueries) {
-      try {
-        await tempPrisma.$executeRawUnsafe(query);
-      } catch (queryError: any) {
-        logger.debug(`Enum column check: ${queryError.message?.substring(0, 100)}`);
-      }
-    }
-    
-    await tempPrisma.$disconnect();
-    logger.log('✅ Critical columns verified/created');
-    
-    // Small delay to ensure columns are committed to database
+    const { ensureCriticalColumns } = require('./migration-resolver');
+    await ensureCriticalColumns(tempPrisma, logger);
     await new Promise(resolve => setTimeout(resolve, 500));
   } catch (columnError: any) {
-    // Non-critical - columns may already exist, but log for debugging
     logger.warn(`⚠️ Column verification (non-critical): ${columnError.message?.substring(0, 300)}`);
     logger.warn('⚠️ Some columns may be missing - CacheWarmingService may fail');
   }

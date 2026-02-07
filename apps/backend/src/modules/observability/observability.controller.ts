@@ -32,6 +32,14 @@ export class ObservabilityController {
   // SLO/SLI
   // ========================================
 
+  @Get('slo/status')
+  @Roles('PLATFORM_ADMIN')
+  @ApiOperation({ summary: 'SLO compliance status' })
+  @ApiResponse({ status: 200, description: 'Formal SLO targets, current metrics, and compliance' })
+  async getSLOStatus() {
+    return this.sloService.getSLOStatus();
+  }
+
   @Get('slo')
   @Roles('PLATFORM_ADMIN')
   @ApiOperation({ summary: 'Évalue tous les SLO' })

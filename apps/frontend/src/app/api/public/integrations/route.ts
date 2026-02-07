@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { cacheService, cacheTTL } from '@/lib/cache/redis';
-import { createClient } from '@/lib/supabase/server';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Types
 interface IntegrationFeature {
@@ -99,7 +100,7 @@ const FALLBACK_INTEGRATIONS: Record<string, IntegrationData> = {
 
 /**
  * GET /api/public/integrations
- * Récupère les données d'une intégration depuis Supabase avec fallback
+ * Récupère les données d'une intégration depuis le backend API avec fallback
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
@@ -126,75 +127,24 @@ export async function GET(request: NextRequest) {
     let data: IntegrationData | IntegrationData[] | null = null;
 
     try {
-      const supabase = await createClient();
+      // Forward to backend API (public route, no auth required)
+      const url = new URL(`${API_URL}/api/v1/public/integrations`);
+      if (integrationId) url.searchParams.set('id', integrationId);
+      if (category) url.searchParams.set('category', category);
 
-      if (integrationId) {
-        // Récupérer une intégration spécifique
-        const { data: integration, error } = await supabase
-          .from('platform_integrations')
-          .select('*')
-          .eq('id', integrationId)
-          .eq('is_published', true)
-          .single();
+      const backendResponse = await fetch(url.toString());
 
-        if (!error && integration) {
-          data = {
-            id: integration.id,
-            name: integration.name,
-            slug: integration.slug,
-            category: integration.category,
-            tagline: integration.tagline || '',
-            description: integration.description,
-            logo: integration.logo_url || `/logos/${integration.slug}.svg`,
-            icon: integration.icon || 'Plug',
-            website: integration.website || '',
-            docsUrl: integration.docs_url || `/docs/integrations/${integration.slug}`,
-            features: integration.features || [],
-            setupSteps: integration.setup_steps || [],
-            pricing: integration.pricing || { free: false, includedIn: [] },
-            status: integration.status || 'available',
-            popular: integration.is_popular || false,
-          };
-        }
+      if (!backendResponse.ok) {
+        logger.error('Error fetching integrations from backend', { error: backendResponse.status, integrationId });
       } else {
-        // Récupérer toutes les intégrations
-        let query = supabase
-          .from('platform_integrations')
-          .select('*')
-          .eq('is_published', true)
-          .order('display_order', { ascending: true });
-
-        if (category) {
-          query = query.ilike('category', category);
-        }
-
-        const { data: integrations, error } = await query;
-
-        if (!error && integrations?.length) {
-          data = integrations.map((integration: any) => ({
-            id: integration.id,
-            name: integration.name,
-            slug: integration.slug,
-            category: integration.category,
-            tagline: integration.tagline || '',
-            description: integration.description,
-            logo: integration.logo_url || `/logos/${integration.slug}.svg`,
-            icon: integration.icon || 'Plug',
-            website: integration.website || '',
-            docsUrl: integration.docs_url || `/docs/integrations/${integration.slug}`,
-            features: integration.features || [],
-            setupSteps: integration.setup_steps || [],
-            pricing: integration.pricing || { free: false, includedIn: [] },
-            status: integration.status || 'available',
-            popular: integration.is_popular || false,
-          }));
-        }
+        const result = await backendResponse.json();
+        data = result.data || null;
       }
     } catch (error) {
-      logger.error('Error fetching integrations from Supabase', { error, integrationId });
+      logger.error('Error fetching integrations from backend', { error, integrationId });
     }
 
-    // Fallback aux données statiques si Supabase échoue
+    // Fallback aux données statiques si le backend échoue
     if (!data) {
       if (integrationId) {
         data = FALLBACK_INTEGRATIONS[integrationId] || null;

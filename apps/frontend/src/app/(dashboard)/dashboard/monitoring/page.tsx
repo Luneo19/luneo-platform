@@ -1,18 +1,14 @@
 /**
  * Monitoring Dashboard Page
- * Server Component - Fetches monitoring data and renders dashboard
- * 
- * CURSOR RULES COMPLIANT:
- * - Server Component (no 'use client')
- * - Data fetching in Server Component
- * - Components < 300 lines
- * - Types explicit (no any)
+ * Server Component - Cookie-based auth, fetches monitoring data via BFF with Bearer token.
  */
 
+import { cookies } from 'next/headers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { createClient } from '@/lib/supabase/server';
 import { MonitoringDashboardClient } from './components/MonitoringDashboardClient';
 import type { DashboardMetrics, Alert, ServiceHealth } from '@/lib/monitoring/types';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface MonitoringPageProps {
   searchParams?: {
@@ -27,10 +23,10 @@ async function getMonitoringData(): Promise<{
   error: string | null;
 }> {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('accessToken')?.value;
 
-    if (authError || !user) {
+    if (!accessToken) {
       return {
         metrics: null,
         alerts: [],
@@ -39,11 +35,25 @@ async function getMonitoringData(): Promise<{
       };
     }
 
-    // Fetch monitoring data from API
+    const userRes = await fetch(`${API_URL}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    });
+    if (!userRes.ok) {
+      return {
+        metrics: null,
+        alerts: [],
+        services: [],
+        error: 'Non authentifié',
+      };
+    }
+
+    // Fetch monitoring data from BFF (forward cookie so BFF can use same token if needed)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/monitoring/dashboard`, {
       headers: {
-        Cookie: (await supabase.auth.getSession()).data.session?.access_token || '',
+        Authorization: `Bearer ${accessToken}`,
+        Cookie: `accessToken=${accessToken}`,
       },
       cache: 'no-store',
     });

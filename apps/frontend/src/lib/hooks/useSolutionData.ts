@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 // Types
 interface SolutionFeature {
@@ -60,14 +61,11 @@ export function useSolutionData(solutionId: string) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/public/solutions?id=${solutionId}`);
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement des données');
+      const result = await api.get<{ success?: boolean; data?: SolutionData; error?: string }>(`/api/v1/public/solutions`, { params: { id: solutionId } });
+      if (result && (result as { success?: boolean }).success === false) {
+        throw new Error((result as { error?: string }).error || 'Erreur lors du chargement des données');
       }
-
-      setData(result.data);
+      setData((result as { data?: SolutionData })?.data ?? (result as unknown as SolutionData));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement données solution', {
@@ -106,14 +104,11 @@ export function useAllSolutions() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/public/solutions');
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement des solutions');
+      const result = await api.get<{ success?: boolean; data?: SolutionData[]; error?: string }>('/api/v1/public/solutions');
+      if (result && (result as { success?: boolean }).success === false) {
+        throw new Error((result as { error?: string }).error || 'Erreur lors du chargement des solutions');
       }
-
-      setData(result.data);
+      setData((result as { data?: SolutionData[] })?.data ?? []);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement toutes les solutions', {

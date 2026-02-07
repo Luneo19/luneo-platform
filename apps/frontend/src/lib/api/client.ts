@@ -1,3 +1,14 @@
+/**
+ * REST API Client - Public & Auth API Layer
+ *
+ * ARCHITECTURE BOUNDARY:
+ * - REST is used for public API, auth flows, Stripe, and external integrations.
+ * - tRPC (@/lib/trpc/client.ts) is used for internal dashboard pages.
+ *
+ * RULE: Auth, billing, webhooks, and public API = REST.
+ *       Dashboard CRUD, AI studio, editor = tRPC.
+ *       Do NOT duplicate endpoints across both layers.
+ */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import type { LunaResponse, LunaAction, AriaResponse, AriaSuggestion, AgentConversation, NovaResponse } from '@/types/agents';
 import type { Design, DesignSummary, LoginCredentials, RegisterData, User } from '@/lib/types';
@@ -30,6 +41,16 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
   (process.env.NODE_ENV === 'production' 
     ? 'https://api.luneo.app' // Fallback for production
     : 'http://localhost:3001'); // Fallback for development
+
+// Fail fast in production if API URL is not configured
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production' && API_BASE_URL.includes('localhost')) {
+  // Use dynamic import to avoid circular dependency with logger at module level
+  import('@/lib/logger').then(({ logger }) => {
+    logger.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set — API calls will fail in production');
+  }).catch(() => {
+    // Logger not available at this point — this is an early initialization warning
+  });
+}
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -243,6 +264,12 @@ export const endpoints = {
     delete: (id: string) => api.delete(`/api/v1/users/${id}`),
   },
 
+  // Settings
+  settings: {
+    notifications: (preferences: Record<string, unknown>) =>
+      api.put<void>('/api/v1/settings/notifications', preferences),
+  },
+
   // Brands
   brands: {
     current: () => api.get('/api/v1/brands/current'),
@@ -263,8 +290,8 @@ export const endpoints = {
 
   // Designs
   designs: {
-    list: (params?: { page?: number; limit?: number; status?: string }) =>
-      api.get<DesignSummary[]>('/api/v1/designs', { params }),
+    list: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
+      api.get<DesignSummary[] | { designs: DesignSummary[]; pagination: { hasNext: boolean; total: number } }>('/api/v1/designs', { params }),
     get: (id: string) => api.get<Design>(`/api/v1/designs/${id}`),
     create: (data: Partial<Design>) => api.post<Design>('/api/v1/designs', data),
     delete: (id: string) => api.delete<void>(`/api/v1/designs/${id}`),
@@ -283,7 +310,7 @@ export const endpoints = {
 
   // Orders
   orders: {
-    list: (params?: { page?: number; limit?: number; status?: string }) => 
+    list: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
       api.get('/api/v1/orders', { params }),
     get: (id: string) => api.get(`/api/v1/orders/${id}`),
     create: (data: any) => api.post('/api/v1/orders', data),
@@ -313,12 +340,26 @@ export const endpoints = {
     },
   },
 
+  // Credits (AI credits balance, packs, buy)
+  credits: {
+    balance: () =>
+      api.get<{ balance: number; purchased?: number; used?: number }>('/api/v1/credits/balance'),
+    packs: () =>
+      api.get<{ packs?: Array<{ id: string; name: string; credits: number; price: number; priceCents?: number; stripePriceId?: string; badge?: string; savings?: number }> }>('/api/v1/credits/packs'),
+    buy: (data: { packId?: string; packSize?: number }) =>
+      api.post<{ success: boolean; url?: string; sessionId?: string; pack?: unknown }>('/api/v1/credits/buy', data),
+    transactions: (params?: { limit?: number; offset?: number }) =>
+      api.get('/api/v1/credits/transactions', { params }),
+  },
+
   // Billing
   billing: {
     subscription: () => api.get('/api/v1/billing/subscription'),
     plans: () => api.get('/api/v1/plans'),
     subscribe: (planId: string, email?: string) => api.post('/api/v1/billing/create-checkout-session', { planId, email }),
     cancel: () => api.post('/api/v1/billing/cancel-downgrade'),
+    cancelSubscription: (immediate?: boolean) =>
+      api.post<{ success: boolean; message?: string; cancelAt?: string }>('/api/v1/billing/cancel-subscription', { immediate: !!immediate }),
     invoices: () => api.get('/api/v1/billing/invoices'),
     paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
     addPaymentMethod: (paymentMethodId: string) => api.post('/api/v1/billing/payment-methods', { paymentMethodId }),
@@ -328,6 +369,26 @@ export const endpoints = {
     previewPlanChange: (planId: string, billingInterval?: string) => 
       api.get('/api/v1/billing/preview-plan-change', { params: { planId, billingInterval } }),
     scheduledChanges: () => api.get('/api/v1/billing/scheduled-changes'),
+  },
+
+  // Notifications (backend: GET list, POST :id/read, POST read-all, DELETE :id)
+  notifications: {
+    list: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) =>
+      api.get<{ notifications: unknown[]; pagination: { total: number } }>('/api/v1/notifications', { params }),
+    markAsRead: (id: string) => api.post(`/api/v1/notifications/${id}/read`, {}),
+    markAllAsRead: () => api.post('/api/v1/notifications/read-all', {}),
+    delete: (id: string) => api.delete(`/api/v1/notifications/${id}`),
+  },
+
+  // Security & GDPR
+  security: {
+    exportData: () => api.get<Blob | { url?: string; data?: unknown }>('/api/v1/security/gdpr/export'),
+    deleteAccount: (data: { password: string; reason?: string }) =>
+      api.delete<{ success: boolean; message?: string }>('/api/v1/security/gdpr/delete-account', { data }),
+    sessions: () =>
+      api.get<Array<{ id: string; device?: string; browser?: string; location?: string; ip?: string; lastActive?: string; current?: boolean }>>('/api/v1/security/sessions'),
+    revokeSession: (sessionId: string) =>
+      api.delete<void>(`/api/v1/security/sessions/${sessionId}`),
   },
 
   // Integrations

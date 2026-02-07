@@ -5,6 +5,7 @@
  */
 
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 // Types pour les données dashboard
@@ -46,6 +47,19 @@ interface DashboardStatsResponse {
   };
 }
 
+function getDateRange(period: '24h' | '7d' | '30d' | '90d') {
+  const endDate = new Date();
+  const startDate = new Date();
+  if (period === '24h') startDate.setDate(startDate.getDate() - 1);
+  else if (period === '7d') startDate.setDate(startDate.getDate() - 7);
+  else if (period === '30d') startDate.setDate(startDate.getDate() - 30);
+  else startDate.setDate(startDate.getDate() - 90);
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0],
+  };
+}
+
 /**
  * Hook pour récupérer les stats du dashboard
  * @param period - Période (24h, 7d, 30d, 90d)
@@ -58,32 +72,99 @@ export function useDashboardStats(
   return useQuery<DashboardStatsResponse>({
     queryKey: ['dashboard', 'stats', period],
     queryFn: async () => {
-      const response = await fetch(`/api/dashboard/stats?period=${period}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
+      const data = await endpoints.analytics.overview() as Record<string, unknown>;
+      const raw = (data as any)?.data ?? data;
+      const overview = (raw?.overview ?? raw) as Record<string, unknown>;
+      const periodData = (raw?.period ?? {}) as Record<string, unknown>;
+      const recent = (raw?.recent ?? { designs: [], orders: [] }) as { designs: DashboardRecentDesign[]; orders: DashboardRecentOrder[] };
+      const result: DashboardStatsResponse = {
+        overview: {
+          designs: Number(overview?.designs ?? overview?.totalDesigns ?? 0),
+          orders: Number(overview?.orders ?? overview?.totalOrders ?? 0),
+          products: Number(overview?.products ?? 0),
+          collections: Number(overview?.collections ?? 0),
         },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`Dashboard stats failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      
-      // Gérer le format ApiResponseBuilder ou réponse directe
-      const data = result.success === true ? result.data : result;
-      
-      // Validation structure minimale
-      if (!data || (!data.overview && !data.period && !data.recent)) {
+        period: {
+          designs: Number(periodData?.designs ?? 0),
+          orders: Number(periodData?.orders ?? 0),
+          revenue: Number(periodData?.revenue ?? 0),
+          period: String(periodData?.period ?? period),
+        },
+        recent: Array.isArray(recent?.designs) && Array.isArray(recent?.orders)
+          ? recent
+          : { designs: [], orders: [] },
+      };
+      if (!result.overview && !result.period && !result.recent) {
         logger.warn('Dashboard stats: Invalid response structure', { data });
         throw new Error('Invalid dashboard stats response structure');
       }
-
-      return data as DashboardStatsResponse;
+      return result;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1,
+    ...options,
+  });
+}
+
+/**
+ * Usage (views + downloads) from analytics/dashboard APIs
+ */
+export interface DashboardUsageResponse {
+  views: number;
+  viewsChange: string;
+  downloads: number;
+  downloadsChange: string;
+  designViews?: Record<string, number>;
+  designLikes?: Record<string, number>;
+}
+
+export function useDashboardUsage(
+  period: '24h' | '7d' | '30d' | '90d' = '7d',
+  options?: Omit<UseQueryOptions<DashboardUsageResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<DashboardUsageResponse>({
+    queryKey: ['dashboard', 'usage', period],
+    queryFn: async () => {
+      const { startDate, endDate } = getDateRange(period);
+      let views = 0;
+      let viewsChange = '+0%';
+      let downloads = 0;
+      let downloadsChange = '+0%';
+      const designViews: Record<string, number> = {};
+      const designLikes: Record<string, number> = {};
+
+      try {
+        const usageRes = await api.get<{ views?: number; totalViews?: number; viewsChange?: string; data?: unknown }>('/api/v1/analytics/usage', {
+          params: { startDate, endDate },
+        }).catch(() => ({}));
+        const usage = (usageRes as any)?.data ?? usageRes;
+        views = Number((usage as any)?.views ?? (usage as any)?.totalViews ?? 0);
+        viewsChange = typeof (usage as any)?.viewsChange === 'string' ? (usage as any).viewsChange : '+0%';
+      } catch {
+        // keep defaults
+      }
+
+      try {
+        const downloadsRes = await api.get<{ total?: number; pagination?: { total: number }; data?: { total?: number; pagination?: { total: number } } }>('/api/v1/downloads', {
+          params: { limit: 1, startDate, endDate },
+        }).catch(() => ({}));
+        const dlData = (downloadsRes as any)?.data ?? downloadsRes;
+        downloads = Number((dlData as any)?.pagination?.total ?? (dlData as any)?.total ?? 0);
+        downloadsChange = '+0%';
+      } catch {
+        // keep defaults
+      }
+
+      return {
+        views,
+        viewsChange,
+        downloads,
+        downloadsChange,
+        designViews,
+        designLikes,
+      };
+    },
+    staleTime: 1000 * 60 * 5,
     retry: 1,
     ...options,
   });
@@ -107,36 +188,24 @@ export function useDashboardChartData(
   return useQuery<ChartDataResponse>({
     queryKey: ['dashboard', 'chart-data', period],
     queryFn: async () => {
-      const response = await fetch(`/api/dashboard/chart-data?period=${period}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`Chart data failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      
-      // Gérer le format ApiResponseBuilder ou réponse directe
-      const data = result.success === true ? result.data : result;
-
-      // Validation structure minimale
-      if (!data || !Array.isArray(data.designs)) {
+      const { startDate, endDate } = getDateRange(period);
+      const data = await endpoints.analytics.revenue({ startDate, endDate }) as Record<string, unknown>;
+      const raw = (data as any)?.data ?? data;
+      const series = (raw?.series ?? raw?.revenueOverTime ?? raw?.designsOverTime ?? []) as Array<{ designs?: number; views?: number; revenue?: number }>;
+      const designs = Array.isArray(raw?.designs) ? raw.designs : series.map((p: any) => p?.designs ?? 0);
+      const views = Array.isArray(raw?.views) ? raw.views : series.map((p: any) => p?.views ?? 0);
+      const revenue = Array.isArray(raw?.revenue) ? raw.revenue : series.map((p: any) => p?.revenue ?? 0);
+      if (!Array.isArray(designs)) {
         logger.warn('Chart data: Invalid response structure', { data });
         throw new Error('Invalid chart data response structure');
       }
-
       return {
-        designs: data.designs || [],
-        views: data.views || [],
-        revenue: data.revenue || [],
-        conversion: data.conversion || 0,
-        conversionChange: data.conversionChange || 0,
-      } as ChartDataResponse;
+        designs: designs as number[],
+        views: (views as number[]) ?? [],
+        revenue: (revenue as number[]) ?? [],
+        conversion: Number(raw?.conversion ?? 0),
+        conversionChange: Number(raw?.conversionChange ?? 0),
+      };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 1,

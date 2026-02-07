@@ -5,6 +5,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { Configuration3D } from '../types';
 
@@ -23,23 +24,21 @@ export function useConfigurator3D(productId: string | null) {
     const loadConfiguration = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/3d/config?productId=${productId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setConfiguration(data.data || null);
-        } else {
-          // Créer une configuration par défaut
-          setConfiguration({
-            id: `config-${Date.now()}`,
-            productId,
-            material: 'leather',
-            color: '#000000',
-            timestamp: Date.now(),
-          });
-        }
-      } catch (error: any) {
-        logger.error('Error loading 3D configuration', { error });
-        // Créer une configuration par défaut en cas d'erreur
+        const data = await api.get<{ data?: Configuration3D | null } | Configuration3D>(`/api/v1/configurator-3d/config`, {
+          params: { productId },
+        });
+        const config = (data as { data?: Configuration3D | null })?.data ?? (data as Configuration3D) ?? null;
+        const defaultConfig = {
+          id: `config-${Date.now()}`,
+          productId,
+          material: 'leather',
+          color: '#000000',
+          timestamp: Date.now(),
+        };
+        setConfiguration(
+          config && typeof config === 'object' && 'productId' in config ? config : defaultConfig
+        );
+      } catch {
         setConfiguration({
           id: `config-${Date.now()}`,
           productId,
@@ -75,25 +74,16 @@ export function useConfigurator3D(productId: string | null) {
     }
 
     try {
-      const response = await fetch('/api/3d-configurations/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: configuration.productId,
-          configId: configuration.id,
-          configuration,
-        }),
+      await api.post('/api/v1/configurator-3d/configurations', {
+        productId: configuration.productId,
+        configId: configuration.id,
+        configuration,
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Erreur lors de la sauvegarde');
-      }
-
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de la sauvegarde';
       logger.error('Error saving 3D configuration', { error });
-      return { success: false, error: error.message || 'Erreur lors de la sauvegarde' };
+      return { success: false, error: message };
     }
   }, [configuration]);
 

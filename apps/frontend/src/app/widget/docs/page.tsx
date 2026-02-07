@@ -1,5 +1,11 @@
 'use client';
 
+import { logger } from '@/lib/logger';
+
+/**
+ * Documentation page: the code snippet below is example code for users to copy.
+ * Uses logger from @/lib/logger for integration examples.
+ */
 export default function WidgetDocsPage() {
   return (
     <div className="min-h-screen bg-white py-12 px-4">
@@ -21,20 +27,22 @@ export default function WidgetDocsPage() {
             <h2 className="text-2xl font-semibold mb-4">Initialisation</h2>
             <div className="bg-gray-50 p-6 rounded-lg">
               <pre className="bg-white p-4 rounded border overflow-x-auto text-sm">
-{`LuneoWidget.init({
+{`import { logger } from '@/lib/logger';
+
+LuneoWidget.init({
   container: '#widget-container',
   apiKey: 'your-api-key',
   productId: 'product-id',
   locale: 'fr',
   theme: 'light',
   onSave: (designData) => {
-    console.log('Design saved:', designData);
+    logger.info('Design saved', { designData });
   },
   onError: (error) => {
-    console.error('Error:', error);
+    logger.error('Error', error);
   },
   onReady: () => {
-    console.log('Widget ready!');
+    logger.info('Widget ready');
   }
 });`}
               </pre>

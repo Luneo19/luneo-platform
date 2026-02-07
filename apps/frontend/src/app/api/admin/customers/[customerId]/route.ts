@@ -1,175 +1,46 @@
 /**
  * ★★★ ADMIN CUSTOMER DETAIL API ★★★
- * API route pour récupérer les détails d'un customer
+ * Forwards to NestJS backend.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
-import { db } from '@/lib/db';
 import { serverLogger } from '@/lib/logger-server';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+function forwardHeaders(request: NextRequest): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    Cookie: request.headers.get('cookie') || '',
+  };
+  const auth = request.headers.get('authorization');
+  if (auth) headers['Authorization'] = auth;
+  return headers;
+}
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { customerId: string } }
+  { params }: { params: Promise<{ customerId: string }> | { customerId: string } }
 ) {
   try {
-    // Vérification admin
     const adminUser = await getAdminUser();
     if (!adminUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { customerId } = params;
+    const { customerId } = typeof (params as any).then === 'function' ? await (params as Promise<{ customerId: string }>) : (params as { customerId: string });
 
-    // Récupérer le customer avec toutes les relations
-    const customer = await db.customer.findUnique({
-      where: { id: customerId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            createdAt: true,
-          },
-          include: {
-            subscriptions: {
-              include: {
-                plan: true,
-              },
-              orderBy: {
-                createdAt: 'desc',
-              },
-            },
-          },
-        },
-        segments: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        activities: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 50,
-        },
-      },
+    const res = await fetch(`${API_URL}/api/v1/admin/customers/${customerId}`, {
+      headers: forwardHeaders(request),
     });
-
-    if (!customer) {
-      return NextResponse.json(
-        { error: 'Customer not found' },
-        { status: 404 }
-      );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.json(data.error ?? { error: 'Failed to fetch customer details' }, { status: res.status });
     }
-
-    // Récupérer l'historique de facturation (depuis les orders/payments)
-    const subscription = customer.user.subscriptions?.[0];
-    const billingHistory = subscription
-      ? await db.order.findMany({
-          where: {
-            userId: customer.userId,
-            status: 'completed',
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 20,
-          select: {
-            id: true,
-            totalAmount: true,
-            status: true,
-            createdAt: true,
-          },
-        })
-      : [];
-
-    // Récupérer l'historique des emails
-    const emailHistory = await db.emailLog.findMany({
-      where: {
-        customerId: customer.id,
-      },
-      orderBy: {
-        sentAt: 'desc',
-      },
-      take: 20,
-      select: {
-        id: true,
-        subject: true,
-        status: true,
-        sentAt: true,
-      },
-    });
-
-    // Calculer les métriques
-    const monthsActive = Math.max(
-      1,
-      Math.floor(
-        (new Date().getTime() - new Date(customer.user.createdAt).getTime()) /
-          (1000 * 60 * 60 * 24 * 30)
-      )
-    );
-    const avgMonthlyRevenue = monthsActive > 0 ? customer.totalRevenue / monthsActive : 0;
-    const predictedLtv = avgMonthlyRevenue > 0 ? avgMonthlyRevenue / 0.05 : 0; // Assuming 5% churn rate
-
-    const enrichedCustomer = {
-      id: customer.id,
-      userId: customer.userId,
-      name: customer.user.name || 'Unknown',
-      email: customer.user.email,
-      avatar: customer.user.image,
-      plan: subscription?.plan?.name || null,
-      planPrice: subscription?.plan?.price || 0,
-      status: subscription?.status || 'none',
-      ltv: customer.ltv,
-      predictedLtv,
-      engagementScore: customer.engagementScore,
-      churnRisk: customer.churnRisk as 'low' | 'medium' | 'high',
-      totalRevenue: customer.totalRevenue,
-      avgMonthlyRevenue,
-      monthsActive,
-      totalTimeSpent: customer.totalTimeSpent,
-      totalSessions: customer.totalSessions,
-      lastSeenAt: customer.lastSeenAt,
-      firstSeenAt: customer.firstSeenAt,
-      segments: customer.segments,
-      createdAt: customer.createdAt,
-      customerSince: customer.user.createdAt,
-    };
-
-    return NextResponse.json({
-      customer: enrichedCustomer,
-      activities: customer.activities.map((a: any) => ({
-        id: a.id,
-        type: a.type,
-        action: a.action,
-        metadata: a.metadata || {},
-        createdAt: a.createdAt,
-      })),
-      billingHistory: billingHistory.map((b: any) => ({
-        id: b.id,
-        amount: b.totalAmount,
-        status: b.status,
-        createdAt: b.createdAt,
-      })),
-      emailHistory: emailHistory.map((e: any) => ({
-        id: e.id,
-        subject: e.subject,
-        status: e.status,
-        sentAt: e.sentAt,
-      })),
-    });
+    return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/customers/[customerId]', 'GET', error, 500);
-    return NextResponse.json(
-      { error: 'Failed to fetch customer details' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch customer details' }, { status: 500 });
   }
 }

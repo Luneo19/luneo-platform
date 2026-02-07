@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcryptjs';
+import { hashPassword, verifyPassword } from '@/libs/crypto/password-hasher';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
@@ -18,6 +18,9 @@ import { UserRole } from '@prisma/client';
 import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
+import { TokenService } from './services/token.service';
+import { OAuthService } from './services/oauth.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +35,8 @@ export class AuthService {
     private bruteForceService: BruteForceService,
     private twoFactorService: TwoFactorService,
     private captchaService: CaptchaService,
+    private tokenService: TokenService,
+    private oauthService: OAuthService,
   ) {}
 
   /**
@@ -76,8 +81,8 @@ export class AuthService {
       throw new ConflictException('User already exists');
     }
 
-    // Hash password (13 rounds pour meilleure sécurité - OWASP recommandation)
-    const hashedPassword = await bcrypt.hash(password, 13);
+    // Hash password with Argon2id (OWASP 2025 recommended)
+    const hashedPassword = await hashPassword(password);
 
     // Create user
     const user = await this.prisma.user.create({
@@ -101,10 +106,10 @@ export class AuthService {
     });
 
     // Generate tokens
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.tokenService.generateTokens(user.id, user.email, user.role);
 
     // Save refresh token
-    await this.saveRefreshToken(user.id, tokens.refreshToken);
+    await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
 
     // ✅ Generate email verification token and send email
     // Skip email in test mode to avoid BullMQ blocking
@@ -180,12 +185,37 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // Check password (supports both bcrypt legacy and Argon2id)
+    const { isValid: isPasswordValid, needsRehash } = await verifyPassword(password, user.password);
     if (!isPasswordValid) {
       // Enregistrer tentative échouée (fail-safe)
       await this.bruteForceService.recordFailedAttempt(email, clientIp);
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Progressive migration: re-hash bcrypt passwords to Argon2id on successful login
+    if (needsRehash) {
+      const newHash = await hashPassword(password);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: newHash },
+      });
+      this.logger.log(`Migrated password hash to Argon2id for user ${user.id}`);
+    }
+
+    // Email verification enforcement (configurable via REQUIRE_EMAIL_VERIFICATION)
+    const requireEmailVerification = this.configService.get<string>('REQUIRE_EMAIL_VERIFICATION') !== 'false';
+    if (requireEmailVerification && !user.emailVerified) {
+      // Grace period: allow login if account created < 24h ago (gives time to verify)
+      const gracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
+      const accountAge = Date.now() - new Date(user.createdAt).getTime();
+      if (accountAge > gracePeriodMs) {
+        // Reset brute force counter since password was correct
+        await this.bruteForceService.resetAttempts(email, clientIp);
+        throw new UnauthorizedException(
+          'Email not verified. Please check your inbox and verify your email before logging in.',
+        );
+      }
     }
 
     // Si 2FA activé, retourner token temporaire
@@ -223,10 +253,10 @@ export class AuthService {
     });
 
     // Generate tokens
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.tokenService.generateTokens(user.id, user.email, user.role);
 
     // Save refresh token
-    await this.saveRefreshToken(user.id, tokens.refreshToken);
+    await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
 
     return {
       user: {
@@ -302,10 +332,10 @@ export class AuthService {
       });
 
       // Generate tokens
-      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      const tokens = await this.tokenService.generateTokens(user.id, user.email, user.role);
 
       // Save refresh token
-      await this.saveRefreshToken(user.id, tokens.refreshToken);
+      await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
 
       return {
         user: {
@@ -416,182 +446,177 @@ export class AuthService {
   }
 
   /**
-   * SEC-08: Rotation des refresh tokens avec détection de réutilisation
-   * 
-   * Implémente le pattern "Refresh Token Rotation" recommandé par l'OWASP:
-   * - Chaque refresh token ne peut être utilisé qu'une seule fois
-   * - Un nouveau token est généré à chaque utilisation
-   * - Si un token déjà utilisé est réutilisé, toute la famille est invalidée
-   *   (indique potentiellement un vol de token)
+   * Verify that the given password matches the user's password (for GDPR delete-account etc.).
    */
-  async refreshToken(refreshTokenDto: RefreshTokenDto) {
-    const { refreshToken } = refreshTokenDto;
-
-    try {
-      // Verify refresh token JWT signature
-      const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: this.configService.get('jwt.refreshSecret'),
-      });
-
-      // Check if token exists in database
-      const tokenRecord = await this.prisma.refreshToken.findUnique({
-        where: { token: refreshToken },
-        include: {
-          user: {
-            include: {
-              brand: true,
-            },
-          },
-        },
-      });
-
-      if (!tokenRecord) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      // SEC-08: Détection de réutilisation de token
-      // Si le token a déjà été utilisé, c'est une potentielle attaque
-      // Note: Temporary type assertions until Prisma client is regenerated with new fields
-      const tokenRecordAny = tokenRecord as any;
-      if (tokenRecordAny.usedAt || tokenRecordAny.revokedAt) {
-        this.logger.warn(
-          `Refresh token reuse detected for user ${tokenRecord.userId}. ` +
-          `Token family ${tokenRecordAny.family} will be invalidated. ` +
-          `Potential token theft attempt.`
-        );
-        
-        // Invalider toute la famille de tokens (sécurité)
-        await this.prisma.refreshToken.updateMany({
-          where: { family: tokenRecordAny.family } as any,
-          data: { revokedAt: new Date() } as any,
-        });
-        
-        throw new UnauthorizedException('Refresh token has been revoked. Please login again.');
-      }
-
-      // Vérifier expiration
-      if (tokenRecord.expiresAt < new Date()) {
-        throw new UnauthorizedException('Refresh token expired');
-      }
-
-      // Generate new tokens
-      const tokens = await this.generateTokens(
-        tokenRecord.user.id,
-        tokenRecord.user.email,
-        tokenRecord.user.role,
-      );
-
-      // SEC-08: Marquer l'ancien token comme utilisé (pas supprimer, pour détecter réutilisation)
-      // Note: Temporary type assertion until Prisma client is regenerated with new fields
-      await this.prisma.refreshToken.update({
-        where: { id: tokenRecord.id },
-        data: { usedAt: new Date() } as any,
-      });
-
-      // Save new refresh token with same family
-      await this.saveRefreshToken(
-        tokenRecord.user.id, 
-        tokens.refreshToken,
-        (tokenRecord as any).family, // Conserver la famille pour traçabilité
-      );
-
-      return {
-        user: {
-          id: tokenRecord.user.id,
-          email: tokenRecord.user.email,
-          firstName: tokenRecord.user.firstName,
-          lastName: tokenRecord.user.lastName,
-          role: tokenRecord.user.role,
-          brandId: tokenRecord.user.brandId,
-          brand: tokenRecord.user.brand,
-        },
-        ...tokens,
-      };
-    } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-  }
-
-  async logout(userId: string) {
-    // Delete all refresh tokens for user
-    await this.prisma.refreshToken.deleteMany({
-      where: { userId },
+  async verifyUserPassword(userId: string, password: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
     });
-
-    return { message: 'Logged out successfully' };
+    if (!user?.password) return false;
+    const { isValid } = await verifyPassword(password, user.password);
+    return isValid;
   }
 
-  async generateTokens(userId: string, email: string, role: UserRole) {
-    const payload = { sub: userId, email, role };
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get('jwt.secret'),
-        expiresIn: this.configService.get('jwt.expiresIn'),
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get('jwt.refreshSecret'),
-        expiresIn: this.configService.get('jwt.refreshExpiresIn'),
-      }),
-    ]);
+  /**
+   * Get onboarding status for the current user (from brand.settings or defaults).
+   */
+  async getOnboardingStatus(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { brand: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const settings = (user.brand?.settings as Record<string, unknown>) || {};
+    const onboardingStatus = (settings.onboardingStatus as Record<string, unknown>) || {};
+    const completed = onboardingStatus.completed === true;
+    const welcomeCompleted = onboardingStatus.welcome_completed === true;
+    const profileCompleted = onboardingStatus.profile_completed === true;
+    const preferencesCompleted = onboardingStatus.preferences_completed === true;
+    let currentStep: 'welcome' | 'profile' | 'preferences' | 'complete' = 'welcome';
+    if (completed) currentStep = 'complete';
+    else if (preferencesCompleted) currentStep = 'complete';
+    else if (profileCompleted) currentStep = 'preferences';
+    else if (welcomeCompleted) currentStep = 'profile';
 
     return {
-      accessToken,
-      refreshToken,
+      onboardingStatus,
+      completed,
+      currentStep,
     };
   }
 
   /**
+   * Complete an onboarding step and update user/brand and onboarding status.
+   */
+  async completeOnboardingStep(
+    userId: string,
+    step: 'welcome' | 'profile' | 'preferences' | 'complete',
+    data?: Record<string, unknown>,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { brand: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    let brandId = user.brandId;
+    let settings: Record<string, unknown> = (user.brand?.settings as Record<string, unknown>) || {};
+    let onboardingStatus: Record<string, unknown> = (settings.onboardingStatus as Record<string, unknown>) || {};
+
+    switch (step) {
+      case 'welcome':
+        onboardingStatus = { ...onboardingStatus, welcome_completed: true };
+        break;
+      case 'profile': {
+        const name = (data?.name as string) || '';
+        const company = (data?.company as string) || '';
+        if (!name.trim() || !company.trim()) {
+          throw new BadRequestException('Name and company are required for profile step');
+        }
+        const firstName = name.split(/\s+/)[0] || name;
+        const lastName = name.split(/\s+/).slice(1).join(' ') || undefined;
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { firstName, lastName },
+        });
+        const slugBase = company.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 50) || 'brand';
+        const slug = `${slugBase}-${crypto.randomBytes(4).toString('hex')}`;
+        if (!brandId) {
+          const brand = await this.prisma.brand.create({
+            data: {
+              name: company,
+              slug,
+              companyName: company,
+              users: { connect: { id: userId } },
+            },
+          });
+          brandId = brand.id;
+          await this.prisma.user.update({
+            where: { id: userId },
+            data: { brandId },
+          });
+          settings = {};
+        } else {
+          await this.prisma.brand.update({
+            where: { id: brandId },
+            data: {
+              name: company,
+              companyName: company,
+              ...(data?.phone && { phone: String(data.phone) }),
+            },
+          });
+        }
+        onboardingStatus = { ...onboardingStatus, profile_completed: true };
+        break;
+      }
+      case 'preferences':
+        onboardingStatus = { ...onboardingStatus, preferences_completed: true };
+        if (data && Object.keys(data).length > 0) {
+          settings = { ...settings, preferences: data };
+        }
+        break;
+      case 'complete':
+        onboardingStatus = {
+          ...onboardingStatus,
+          completed: true,
+          completed_at: new Date().toISOString(),
+        };
+        break;
+      default:
+        throw new BadRequestException(`Invalid onboarding step: ${step}`);
+    }
+
+    settings.onboardingStatus = onboardingStatus;
+
+    if (brandId) {
+      await this.prisma.brand.update({
+        where: { id: brandId },
+        data: { settings: settings as any },
+      });
+    }
+
+    return {
+      profile: { onboardingStatus, ...(brandId && { brandId }) },
+      onboardingStatus,
+      completed: onboardingStatus.completed === true,
+    };
+  }
+
+  /**
+   * SEC-08: Rotation des refresh tokens avec détection de réutilisation
+   * Delegates to TokenService
+   */
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    return this.tokenService.refreshToken(refreshTokenDto);
+  }
+
+  async logout(userId: string) {
+    return this.tokenService.logout(userId);
+  }
+
+  async generateTokens(userId: string, email: string, role: UserRole) {
+    return this.tokenService.generateTokens(userId, email, role);
+  }
+
+  /**
    * SEC-08: Sauvegarde du refresh token avec gestion de famille
-   * 
-   * @param userId - ID de l'utilisateur
-   * @param token - Le refresh token JWT
-   * @param family - Optionnel: famille de tokens pour rotation (nouvelle famille si non fourni)
+   * Delegates to TokenService
    */
   async saveRefreshToken(userId: string, token: string, family?: string) {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
-
-    await this.prisma.refreshToken.create({
-      data: {
-        userId,
-        token,
-        expiresAt,
-        // SEC-08: Si family fourni, utiliser la même famille (rotation)
-        // Sinon, Prisma génère un nouveau cuid() (nouvelle session)
-        ...(family && { family }),
-      },
-    });
+    return this.tokenService.saveRefreshToken(userId, token, family);
   }
 
   /**
    * SEC-08: Nettoie les tokens expirés et révoqués (à appeler périodiquement)
-   * Cette méthode peut être appelée par un cron job ou un scheduler
+   * Delegates to TokenService
    */
   async cleanupExpiredTokens() {
-    // Note: revokedAt and usedAt fields require Prisma client regeneration
-    // Using type assertion until the client is updated
-    const result = await this.prisma.refreshToken.deleteMany({
-      where: {
-        OR: [
-          { expiresAt: { lt: new Date() } },
-          { revokedAt: { not: null } } as any,
-          // Supprimer aussi les tokens utilisés de plus de 24h
-          // (garde une fenêtre pour détecter les réutilisations récentes)
-          {
-            usedAt: { 
-              lt: new Date(Date.now() - 24 * 60 * 60 * 1000) 
-            },
-          } as any,
-        ],
-      },
-    });
-    
-    this.logger.log(`Cleaned up ${result.count} expired/revoked refresh tokens`);
-    return result.count;
+    return this.tokenService.cleanupExpiredTokens();
   }
 
   /**
@@ -679,14 +704,14 @@ export class AuthService {
         );
       }
 
-      // ✅ Prevent reusing old password (optional but recommended)
-      const isSamePassword = await bcrypt.compare(password, user.password);
+      // Prevent reusing old password (supports both bcrypt and Argon2id)
+      const { isValid: isSamePassword } = await verifyPassword(password, user.password);
       if (isSamePassword) {
         throw new BadRequestException('New password must be different from the current password');
       }
 
-      // Hash new password (13 rounds pour meilleure sécurité - OWASP recommandation)
-      const hashedPassword = await bcrypt.hash(password, 13);
+      // Hash new password with Argon2id (OWASP 2025 recommended)
+      const hashedPassword = await hashPassword(password);
 
       // Update password
       await this.prisma.user.update({
@@ -793,6 +818,7 @@ export class AuthService {
 
   /**
    * Find or create OAuth user
+   * Delegates to OAuthService to avoid duplication
    */
   async findOrCreateOAuthUser(oauthData: {
     provider: string;
@@ -804,120 +830,80 @@ export class AuthService {
     accessToken: string;
     refreshToken?: string;
   }) {
-    const { provider, providerId, email, firstName, lastName, picture, accessToken, refreshToken } = oauthData;
+    // Map to OAuthUser interface expected by OAuthService
+    return this.oauthService.findOrCreateOAuthUser({
+      provider: oauthData.provider as 'google' | 'github' | 'saml' | 'oidc',
+      providerId: oauthData.providerId,
+      email: oauthData.email,
+      firstName: oauthData.firstName,
+      lastName: oauthData.lastName,
+      picture: oauthData.picture,
+      accessToken: oauthData.accessToken,
+      refreshToken: oauthData.refreshToken,
+    });
+  }
 
-    // Check if OAuth account exists
-    const existingOAuth = await this.prisma.oAuthAccount.findUnique({
-      where: {
-        provider_providerId: {
-          provider,
-          providerId,
-        },
-      },
+  /**
+   * Get current user profile with organization, industry, and onboarding status.
+   * Used by GET /auth/me.
+   */
+  async getMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
       include: {
-        user: {
+        brand: {
           include: {
-            brand: true,
+            organization: {
+              include: { industry: true },
+            },
           },
         },
       },
     });
-
-    if (existingOAuth) {
-      // Update tokens
-      // SEC-05: Chiffrer les tokens OAuth avant stockage
-      await this.prisma.oAuthAccount.update({
-        where: {
-          provider_providerId: {
-            provider,
-            providerId,
-          },
-        },
-        data: {
-          accessToken: this.encryptOAuthToken(accessToken),
-          refreshToken: this.encryptOAuthToken(refreshToken) || existingOAuth.refreshToken,
-        },
-      });
-
-      // Update user last login
-      await this.prisma.user.update({
-        where: { id: existingOAuth.userId },
-        data: { lastLoginAt: new Date() },
-      });
-
-      return existingOAuth.user;
-    }
-
-    // Check if user exists with this email
-    let user = await this.prisma.user.findUnique({
-      where: { email },
-      include: {
-        brand: true,
-      },
-    });
-
     if (!user) {
-      // Create new user
-      user = await this.prisma.user.create({
-        data: {
-          email,
-          firstName,
-          lastName,
-          avatar: picture,
-          emailVerified: true, // OAuth emails are pre-verified
-          role: UserRole.CONSUMER,
-        },
-        include: {
-          brand: true,
-        },
-      });
-
-      // Create user quota
-      await this.prisma.userQuota.create({
-        data: {
-          userId: user.id,
-        },
-      });
-    } else {
-      // Update user info if needed
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          firstName: firstName || user.firstName,
-          lastName: lastName || user.lastName,
-          avatar: picture || user.avatar,
-          emailVerified: true,
-          lastLoginAt: new Date(),
-        },
-        include: {
-          brand: true,
-        },
-      });
+      throw new NotFoundException('User not found');
     }
-
-    // Create OAuth account
-    // SEC-05: Chiffrer les tokens OAuth avant stockage
-    await this.prisma.oAuthAccount.upsert({
-      where: {
-        provider_providerId: {
-          provider,
-          providerId,
-        },
-      },
-      create: {
-        provider,
-        providerId,
-        userId: user.id,
-        accessToken: this.encryptOAuthToken(accessToken),
-        refreshToken: this.encryptOAuthToken(refreshToken),
-      },
-      update: {
-        accessToken: this.encryptOAuthToken(accessToken),
-        refreshToken: this.encryptOAuthToken(refreshToken) || undefined,
-      },
-    });
-
-    return user;
+    const org = user.brand?.organization;
+    const industry = org?.industry ?? null;
+    const onboardingCompleted = org?.onboardingCompletedAt != null;
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      brandId: user.brandId,
+      brand: user.brand
+        ? {
+            id: user.brand.id,
+            name: user.brand.name,
+            logo: user.brand.logo,
+            website: user.brand.website,
+          }
+        : null,
+      organization: org
+        ? {
+            id: org.id,
+            name: org.name,
+            slug: org.slug,
+            industryId: org.industryId,
+            onboardingCompletedAt: org.onboardingCompletedAt,
+            companySize: org.companySize,
+            primaryUseCase: org.primaryUseCase,
+          }
+        : null,
+      industry: industry
+        ? {
+            id: industry.id,
+            slug: industry.slug,
+            labelFr: industry.labelFr,
+            labelEn: industry.labelEn,
+            icon: industry.icon,
+            accentColor: industry.accentColor,
+          }
+        : null,
+      onboardingCompleted,
+    };
   }
 
   /**

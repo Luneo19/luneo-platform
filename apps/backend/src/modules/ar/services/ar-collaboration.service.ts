@@ -6,7 +6,7 @@
 
 import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import type { ARProject as PrismaARProject, ARProjectMember as PrismaARProjectMember, ARProjectComment as PrismaARProjectComment } from '@prisma/client';
 
 export interface ARProject {
   id: string;
@@ -46,6 +46,76 @@ export interface ARPermission {
   canComment: boolean;
 }
 
+type ProjectWithRelations = PrismaARProject & {
+  members: (PrismaARProjectMember & { user?: { id: string } })[];
+  comments?: (PrismaARProjectComment & { user?: { id: string } })[];
+  _count?: { comments: number };
+};
+
+function projectSettingsModelIds(settings: unknown): string[] {
+  if (settings && typeof settings === 'object' && Array.isArray((settings as { modelIds?: string[] }).modelIds)) {
+    return (settings as { modelIds: string[] }).modelIds;
+  }
+  return [];
+}
+
+function permissionsFromRole(role: string): ARPermission {
+  switch (role) {
+    case 'owner':
+      return { canEdit: true, canDelete: true, canInvite: true, canComment: true };
+    case 'editor':
+      return { canEdit: true, canDelete: false, canInvite: true, canComment: true };
+    case 'viewer':
+    default:
+      return { canEdit: false, canDelete: false, canInvite: false, canComment: true };
+  }
+}
+
+function mapToARProject(row: ProjectWithRelations, currentUserId?: string): ARProject {
+  const modelIds = projectSettingsModelIds(row.settings);
+  const memberList: ARProjectMember[] = row.members.map((m) => ({
+    userId: m.userId,
+    role: m.role as 'owner' | 'editor' | 'viewer',
+    joinedAt: m.joinedAt,
+  }));
+  const currentMember = currentUserId ? memberList.find((m) => m.userId === currentUserId) : undefined;
+  const permissions = currentMember ? permissionsFromRole(currentMember.role) : { canEdit: false, canDelete: false, canInvite: false, canComment: false };
+
+  const comments: ARComment[] = (row.comments ?? []).map((c) => ({
+    id: c.id,
+    projectId: c.projectId,
+    userId: c.userId,
+    content: c.content,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  }));
+
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? undefined,
+    modelIds,
+    members: memberList,
+    comments,
+    permissions,
+    brandId: row.brandId,
+    createdBy: row.ownerId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function mapToARComment(c: PrismaARProjectComment): ARComment {
+  return {
+    id: c.id,
+    projectId: c.projectId,
+    userId: c.userId,
+    content: c.content,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  };
+}
+
 @Injectable()
 export class ArCollaborationService {
   private readonly logger = new Logger(ArCollaborationService.name);
@@ -59,8 +129,6 @@ export class ArCollaborationService {
     try {
       this.logger.log(`Listing AR projects for brand: ${brandId}`);
 
-      // Pour l'instant, utiliser la table Brand.metadata pour stocker les projets
-      // TODO: Créer une table dédiée ARProject dans Prisma
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
       });
@@ -69,17 +137,20 @@ export class ArCollaborationService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.arProjects as ARProject[]) || [];
+      const where = userId
+        ? { brandId, members: { some: { userId } } }
+        : { brandId };
 
-      // Filtrer par utilisateur si spécifié
-      if (userId) {
-        return projects.filter((p) =>
-          p.members.some((m) => m.userId === userId),
-        );
-      }
+      const rows = await this.prisma.aRProject.findMany({
+        where,
+        include: {
+          members: { include: { user: { select: { id: true } } } },
+          comments: true,
+          _count: { select: { comments: true } },
+        },
+      });
 
-      return projects;
+      return rows.map((row) => mapToARProject(row as ProjectWithRelations, userId));
     } catch (error) {
       this.logger.error(`Failed to list projects: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -89,18 +160,24 @@ export class ArCollaborationService {
   /**
    * Récupère un projet par ID
    */
-  async getProject(id: string, brandId: string): Promise<ARProject> {
+  async getProject(id: string, brandId: string, userId?: string): Promise<ARProject> {
     try {
       this.logger.log(`Getting AR project: ${id}`);
 
-      const projects = await this.listProjects(brandId);
-      const project = projects.find((p) => p.id === id);
+      const row = await this.prisma.aRProject.findFirst({
+        where: { id, brandId },
+        include: {
+          members: { include: { user: { select: { id: true } } } },
+          comments: true,
+          _count: { select: { comments: true } },
+        },
+      });
 
-      if (!project) {
+      if (!row) {
         throw new NotFoundException(`Project ${id} not found`);
       }
 
-      return project;
+      return mapToARProject(row as ProjectWithRelations, userId);
     } catch (error) {
       this.logger.error(`Failed to get project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -110,7 +187,11 @@ export class ArCollaborationService {
   /**
    * Crée un nouveau projet
    */
-  async createProject(brandId: string, userId: string, data: Omit<ARProject, 'id' | 'brandId' | 'createdBy' | 'createdAt' | 'updatedAt' | 'members' | 'comments'>): Promise<ARProject> {
+  async createProject(
+    brandId: string,
+    userId: string,
+    data: Omit<ARProject, 'id' | 'brandId' | 'createdBy' | 'createdAt' | 'updatedAt' | 'members' | 'comments'>,
+  ): Promise<ARProject> {
     try {
       this.logger.log(`Creating AR project for brand: ${brandId}`);
 
@@ -122,39 +203,28 @@ export class ArCollaborationService {
         throw new NotFoundException(`Brand ${brandId} not found`);
       }
 
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.arProjects as ARProject[]) || [];
+      const settings = data.modelIds?.length ? { modelIds: data.modelIds } : undefined;
 
-      const newProject: ARProject = {
-        id: `project-${Date.now()}`,
-        ...data,
-        members: [
-          {
-            userId,
-            role: 'owner',
-            joinedAt: new Date(),
-          },
-        ],
-        comments: [],
-        brandId,
-        createdBy: userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      projects.push(newProject);
-
-      await this.prisma.brand.update({
-        where: { id: brandId },
+      const project = await this.prisma.aRProject.create({
         data: {
-          metadata: {
-            ...metadata,
-            arProjects: projects,
-          } as Record<string, unknown>,
-        } as unknown as Prisma.BrandUpdateInput,
+          name: data.name,
+          description: data.description ?? null,
+          brandId,
+          ownerId: userId,
+          status: 'active',
+          settings: settings ?? undefined,
+          members: {
+            create: { userId, role: 'owner' },
+          },
+        },
+        include: {
+          members: { include: { user: { select: { id: true } } } },
+          comments: true,
+          _count: { select: { comments: true } },
+        },
       });
 
-      return newProject;
+      return mapToARProject(project as ProjectWithRelations, userId);
     } catch (error) {
       this.logger.error(`Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -164,51 +234,34 @@ export class ArCollaborationService {
   /**
    * Met à jour un projet
    */
-  async updateProject(id: string, brandId: string, userId: string, data: Partial<Omit<ARProject, 'id' | 'brandId' | 'createdBy' | 'createdAt' | 'members' | 'comments'>>): Promise<ARProject> {
+  async updateProject(
+    id: string,
+    brandId: string,
+    userId: string,
+    data: Partial<Omit<ARProject, 'id' | 'brandId' | 'createdBy' | 'createdAt' | 'members' | 'comments'>>,
+  ): Promise<ARProject> {
     try {
       this.logger.log(`Updating AR project: ${id}`);
 
-      const project = await this.getProject(id, brandId);
+      const project = await this.getProject(id, brandId, userId);
 
-      // Vérifier les permissions
       const member = project.members.find((m) => m.userId === userId);
       if (!member || (member.role !== 'owner' && member.role !== 'editor')) {
         throw new ForbiddenException('Insufficient permissions');
       }
 
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId },
-      });
+      const settings = data.modelIds !== undefined ? { modelIds: data.modelIds } : undefined;
 
-      if (!brand) {
-        throw new NotFoundException(`Brand ${brandId} not found`);
-      }
-
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.arProjects as ARProject[]) || [];
-
-      const index = projects.findIndex((p) => p.id === id);
-      if (index === -1) {
-        throw new NotFoundException(`Project ${id} not found`);
-      }
-
-      projects[index] = {
-        ...projects[index],
-        ...data,
-        updatedAt: new Date(),
-      };
-
-      await this.prisma.brand.update({
-        where: { id: brandId },
+      await this.prisma.aRProject.update({
+        where: { id },
         data: {
-          metadata: {
-            ...metadata,
-            arProjects: projects,
-          } as Record<string, unknown>,
-        } as unknown as Prisma.BrandUpdateInput,
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.description !== undefined && { description: data.description ?? null }),
+          ...(settings !== undefined && { settings }),
+        },
       });
 
-      return projects[index];
+      return this.getProject(id, brandId, userId);
     } catch (error) {
       this.logger.error(`Failed to update project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -222,39 +275,15 @@ export class ArCollaborationService {
     try {
       this.logger.log(`Deleting AR project: ${id}`);
 
-      const project = await this.getProject(id, brandId);
+      const project = await this.getProject(id, brandId, userId);
 
-      // Vérifier les permissions (seul le owner peut supprimer)
       const member = project.members.find((m) => m.userId === userId);
       if (!member || member.role !== 'owner') {
         throw new ForbiddenException('Only project owner can delete the project');
       }
 
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId },
-      });
-
-      if (!brand) {
-        throw new NotFoundException(`Brand ${brandId} not found`);
-      }
-
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.arProjects as ARProject[]) || [];
-
-      const filtered = projects.filter((p) => p.id !== id);
-
-      if (filtered.length === projects.length) {
-        throw new NotFoundException(`Project ${id} not found`);
-      }
-
-      await this.prisma.brand.update({
-        where: { id: brandId },
-        data: {
-          metadata: {
-            ...metadata,
-            arProjects: filtered,
-          } as Record<string, unknown>,
-        } as unknown as Prisma.BrandUpdateInput,
+      await this.prisma.aRProject.delete({
+        where: { id },
       });
     } catch (error) {
       this.logger.error(`Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
@@ -269,51 +298,29 @@ export class ArCollaborationService {
     try {
       this.logger.log(`Adding member to project: ${projectId}`);
 
-      const project = await this.getProject(projectId, brandId);
+      const project = await this.getProject(projectId, brandId, userId);
 
-      // Vérifier les permissions (seul owner/editor peut inviter)
       const member = project.members.find((m) => m.userId === userId);
       if (!member || (member.role !== 'owner' && member.role !== 'editor')) {
         throw new ForbiddenException('Insufficient permissions to invite members');
       }
 
-      // Vérifier que le membre n'existe pas déjà
-      if (project.members.some((m) => m.userId === newMember.userId)) {
+      const existing = await this.prisma.aRProjectMember.findUnique({
+        where: { projectId_userId: { projectId, userId: newMember.userId } },
+      });
+      if (existing) {
         throw new BadRequestException('Member already exists in project');
       }
 
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId },
-      });
-
-      if (!brand) {
-        throw new NotFoundException(`Brand ${brandId} not found`);
-      }
-
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.arProjects as ARProject[]) || [];
-
-      const index = projects.findIndex((p) => p.id === projectId);
-      if (index === -1) {
-        throw new NotFoundException(`Project ${projectId} not found`);
-      }
-
-      projects[index].members.push({
-        ...newMember,
-        joinedAt: new Date(),
-      });
-
-      await this.prisma.brand.update({
-        where: { id: brandId },
+      await this.prisma.aRProjectMember.create({
         data: {
-          metadata: {
-            ...metadata,
-            arProjects: projects,
-          } as Record<string, unknown>,
-        } as unknown as Prisma.BrandUpdateInput,
+          projectId,
+          userId: newMember.userId,
+          role: newMember.role,
+        },
       });
 
-      return projects[index];
+      return this.getProject(projectId, brandId, userId);
     } catch (error) {
       this.logger.error(`Failed to add member: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
@@ -321,63 +328,98 @@ export class ArCollaborationService {
   }
 
   /**
+   * Retire un membre d'un projet
+   */
+  async removeMember(projectId: string, brandId: string, userId: string, memberUserId: string): Promise<ARProject> {
+    try {
+      this.logger.log(`Removing member from project: ${projectId}`);
+
+      const project = await this.getProject(projectId, brandId, userId);
+
+      const member = project.members.find((m) => m.userId === userId);
+      if (!member || (member.role !== 'owner' && member.role !== 'editor')) {
+        throw new ForbiddenException('Insufficient permissions to remove members');
+      }
+
+      const toRemove = project.members.find((m) => m.userId === memberUserId);
+      if (!toRemove) {
+        throw new NotFoundException('Member not found in project');
+      }
+      if (toRemove.role === 'owner') {
+        throw new ForbiddenException('Cannot remove project owner');
+      }
+
+      await this.prisma.aRProjectMember.delete({
+        where: { projectId_userId: { projectId, userId: memberUserId } },
+      });
+
+      return this.getProject(projectId, brandId, userId);
+    } catch (error) {
+      this.logger.error(`Failed to remove member: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * Liste les commentaires d'un projet
+   */
+  async getComments(projectId: string, brandId: string): Promise<ARComment[]> {
+    try {
+      this.logger.log(`Getting comments for project: ${projectId}`);
+
+      const project = await this.prisma.aRProject.findFirst({
+        where: { id: projectId, brandId },
+        select: { id: true },
+      });
+
+      if (!project) {
+        throw new NotFoundException(`Project ${projectId} not found`);
+      }
+
+      const comments = await this.prisma.aRProjectComment.findMany({
+        where: { projectId },
+        include: { user: { select: { id: true } } },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      return comments.map(mapToARComment);
+    } catch (error) {
+      this.logger.error(`Failed to get comments: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
+  }
+
+  /**
    * Ajoute un commentaire à un projet
    */
-  async addComment(projectId: string, brandId: string, userId: string, data: Omit<ARComment, 'id' | 'projectId' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<ARComment> {
+  async addComment(
+    projectId: string,
+    brandId: string,
+    userId: string,
+    data: Omit<ARComment, 'id' | 'projectId' | 'userId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<ARComment> {
     try {
       this.logger.log(`Adding comment to project: ${projectId}`);
 
-      const project = await this.getProject(projectId, brandId);
+      const project = await this.getProject(projectId, brandId, userId);
 
-      // Vérifier que l'utilisateur est membre
       const member = project.members.find((m) => m.userId === userId);
       if (!member) {
         throw new ForbiddenException('User is not a member of this project');
       }
 
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId },
-      });
-
-      if (!brand) {
-        throw new NotFoundException(`Brand ${brandId} not found`);
-      }
-
-      const metadata = ((brand as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
-      const projects = (metadata.arProjects as ARProject[]) || [];
-
-      const index = projects.findIndex((p) => p.id === projectId);
-      if (index === -1) {
-        throw new NotFoundException(`Project ${projectId} not found`);
-      }
-
-      const newComment: ARComment = {
-        id: `comment-${Date.now()}`,
-        projectId,
-        userId,
-        ...data,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      projects[index].comments.push(newComment);
-
-      await this.prisma.brand.update({
-        where: { id: brandId },
+      const comment = await this.prisma.aRProjectComment.create({
         data: {
-          metadata: {
-            ...metadata,
-            arProjects: projects,
-          } as Record<string, unknown>,
-        } as unknown as Prisma.BrandUpdateInput,
+          projectId,
+          userId,
+          content: data.content,
+        },
       });
 
-      return newComment;
+      return mapToARComment(comment);
     } catch (error) {
       this.logger.error(`Failed to add comment: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
       throw error;
     }
   }
 }
-
-

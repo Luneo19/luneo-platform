@@ -8,12 +8,27 @@
 
 ### Pour Commencer
 1. **[SETUP.md](../SETUP.md)** - Guide d'installation et configuration
-2. **[ARCHITECTURE.md](../ARCHITECTURE.md)** - Architecture du projet
-3. **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Guide de contribution
+2. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Architecture du projet
+3. **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Guide de contribution (si présent)
+4. **[ONBOARDING.md](./ONBOARDING.md)** - Developer onboarding (prerequisites, setup, commands, workflow)
 
 ### Développement
 - **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** - Guide de développement complet
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Guide de troubleshooting
+
+---
+
+## 🚨 Operational (Runbooks & Recovery)
+
+### Incidents — Runbooks
+- **[runbooks/](./runbooks/)** - Réponse aux incidents
+  - **[database-down.md](./runbooks/database-down.md)** - P1 : Base de données indisponible
+  - **[redis-down.md](./runbooks/redis-down.md)** - P2 : Redis indisponible
+  - **[stripe-down.md](./runbooks/stripe-down.md)** - P2 : Paiements / Stripe en échec
+  - **[deploy-failed.md](./runbooks/deploy-failed.md)** - P1 : Déploiement échoué
+
+### Recovery & DR
+- **[DISASTER_RECOVERY.md](./DISASTER_RECOVERY.md)** - Plan de reprise (RPO 6h, RTO 30 min), procédures de restauration, communication, tests trimestriels
 
 ---
 
@@ -66,15 +81,17 @@
 ## 🔍 Navigation Rapide
 
 ### Je veux...
-- **Installer le projet** → [SETUP.md](../SETUP.md)
-- **Comprendre l'architecture** → [ARCHITECTURE.md](../ARCHITECTURE.md)
+- **Installer le projet / onboarding** → [ONBOARDING.md](./ONBOARDING.md) ou [SETUP.md](../SETUP.md)
+- **Comprendre l'architecture** → [ARCHITECTURE.md](./ARCHITECTURE.md)
 - **Contribuer** → [CONTRIBUTING.md](../CONTRIBUTING.md)
 - **Développer** → [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)
 - **Utiliser l'API** → [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
 - **Résoudre un problème** → [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
-- **Écrire des tests** → [TESTING_GUIDE.md](../apps/frontend/tests/TESTING_GUIDE.md)
-- **Configurer CI/CD** → [CI_CD_GUIDE.md](../.github/workflows/CI_CD_GUIDE.md)
-- **Configurer monitoring** → [MONITORING_GUIDE.md](../MONITORING_GUIDE.md)
+- **Réagir à un incident** → [runbooks/](./runbooks/) (DB, Redis, Stripe, deploy)
+- **Restauration / catastrophe** → [DISASTER_RECOVERY.md](./DISASTER_RECOVERY.md)
+- **Écrire des tests** → [TESTING_GUIDE.md](../apps/frontend/tests/TESTING_GUIDE.md) ou [docs/TESTING_GUIDE.md](./TESTING_GUIDE.md)
+- **Configurer CI/CD** → [CI_CD_GUIDE.md](../.github/workflows/CI_CD_GUIDE.md) ou [MULTI_ENVIRONMENT_CI_CD.md](./MULTI_ENVIRONMENT_CI_CD.md)
+- **Configurer monitoring** → [MONITORING_GUIDE.md](../MONITORING_GUIDE.md) ou [PERFORMANCE_MONITORING.md](./PERFORMANCE_MONITORING.md)
 
 ---
 
@@ -88,9 +105,18 @@ luneo-platform/
 ├── CONTRIBUTING.md              # Guide de contribution
 ├── docs/
 │   ├── README.md                # Ce fichier (index)
+│   ├── ONBOARDING.md            # Developer onboarding
+│   ├── DISASTER_RECOVERY.md     # Plan de reprise (RPO/RTO, procédures, communication)
+│   ├── runbooks/                # Runbooks incidents
+│   │   ├── README.md            # Index runbooks
+│   │   ├── database-down.md     # P1 DB
+│   │   ├── redis-down.md        # P2 Redis
+│   │   ├── stripe-down.md       # P2 Stripe
+│   │   └── deploy-failed.md     # P1 Deploy
 │   ├── API_DOCUMENTATION.md     # Documentation API
 │   ├── DEVELOPMENT_GUIDE.md     # Guide de développement
-│   └── TROUBLESHOOTING.md       # Guide troubleshooting
+│   ├── TROUBLESHOOTING.md       # Guide troubleshooting
+│   └── ...                      # Autres guides (voir INDEX.md)
 ├── apps/frontend/tests/
 │   └── TESTING_GUIDE.md         # Guide de tests
 ├── .github/workflows/
@@ -112,4 +138,4 @@ luneo-platform/
 
 ---
 
-**Dernière mise à jour:** Décembre 2024
+**Dernière mise à jour:** Février 2025

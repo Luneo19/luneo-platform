@@ -153,36 +153,64 @@ export class RAGService {
     limit: number,
     threshold: number,
   ): Promise<Document[]> {
-    // Générer embedding pour la requête
-    const queryEmbedding = await this.generateEmbedding(query);
-
-    // Recherche vectorielle avec pgvector
-    // Note: Nécessite extension pgvector dans PostgreSQL et colonne embedding dans KnowledgeBaseArticle
-    // Pour l'instant, fallback vers recherche textuelle si pgvector non disponible
-    this.logger.warn('Vector store search not fully implemented, using textual search');
-    return this.searchTextual(query, brandId, limit);
-    
-    // TODO: Implémenter quand pgvector sera configuré
-    // const results = await this.prisma.$queryRaw<Array<{
-    //   id: string;
-    //   content: string;
-    //   metadata: unknown;
-    //   similarity: number;
-    // }>>`
-    //   SELECT 
-    //     id,
-    //     content,
-    //     metadata,
-    //     1 - (embedding <=> ${queryEmbedding}::vector) as similarity
-    //   FROM "KnowledgeBaseArticle"
-    //   WHERE is_published = true
-    //     AND 1 - (embedding <=> ${queryEmbedding}::vector) > ${threshold}
-    //   ORDER BY similarity DESC
-    //   LIMIT ${limit}
-    // `;
-
-    // Fallback vers recherche textuelle pour l'instant
-    return this.searchTextual(query, brandId, limit);
+    try {
+      // Générer embedding pour la requête
+      const queryEmbedding = await this.generateEmbedding(query);
+      // Recherche vectorielle avec pgvector (si extension et colonne embedding disponibles)
+      const results = await this.prisma.$queryRaw<Array<{
+        id: string;
+        content: string;
+        title: string;
+        metadata: unknown;
+        similarity: number;
+      }>>`
+        SELECT 
+          id,
+          content,
+          title,
+          (category || ' ' || COALESCE(array_to_string(tags, ' '), ''))::jsonb as metadata,
+          1 - (embedding <=> ${`[${queryEmbedding.join(',')}]`}::vector) as similarity
+        FROM "KnowledgeBaseArticle"
+        WHERE "isPublished" = true
+          AND 1 - (embedding <=> ${`[${queryEmbedding.join(',')}]`}::vector) > ${threshold}
+        ORDER BY similarity DESC
+        LIMIT ${limit}
+      `;
+      return results.map((row) => ({
+        id: row.id,
+        content: `${row.title ?? ''}\n\n${row.content ?? ''}`.trim(),
+        metadata: (row.metadata as DocumentMetadata) ?? undefined,
+        score: row.similarity,
+      }));
+    } catch {
+      // Fallback: simple text search with ILIKE when pgvector is not available
+      const pattern = `%${query.replace(/%/g, '\\%').replace(/_/g, '\\_')}%`;
+      const results = await this.prisma.$queryRaw<Array<{
+        id: string;
+        content: string;
+        title: string;
+        category: string;
+        tags: string[];
+        slug: string;
+      }>>`
+        SELECT id, content, title, category, tags, slug
+        FROM "KnowledgeBaseArticle"
+        WHERE "isPublished" = true
+          AND (content ILIKE ${pattern} OR title ILIKE ${pattern})
+        ORDER BY "updatedAt" DESC
+        LIMIT ${limit}
+      `;
+      return results.map((row) => ({
+        id: row.id,
+        content: `${row.title ?? ''}\n\n${row.content ?? ''}`.trim(),
+        metadata: {
+          category: row.category,
+          tags: row.tags,
+          slug: row.slug,
+        },
+        score: 0.8,
+      }));
+    }
   }
 
   /**

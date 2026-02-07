@@ -33,6 +33,7 @@ export class NotificationsController {
   // ========================================
 
   @Get('push/vapid-key')
+  /** @Public: VAPID key needed by client before auth to subscribe */
   @Public()
   @ApiOperation({ summary: 'Get VAPID public key for push subscription' })
   @ApiResponse({ status: 200, description: 'VAPID public key returned' })

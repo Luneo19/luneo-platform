@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole, BrandStatus, DesignStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { seedIndustries } from './seed/industry.seed';
 
 const prisma = new PrismaClient();
 
@@ -230,6 +231,10 @@ async function main() {
     console.log('⚠️ Sample data creation failed (non-critical):', sampleDataError.message?.substring(0, 200));
     console.log('✅ Admin user was created successfully - seed partially completed');
   }
+
+  // Seed industries and their configurations (idempotent)
+  await seedIndustries(prisma);
+  console.log('✅ Industries seeded');
 
   console.log('🎉 Database seed completed successfully!');
 }

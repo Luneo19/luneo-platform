@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-import { logger } from '../../../lib/logger';
+import { api } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 
 const benefits = [
   {
@@ -69,15 +70,8 @@ function ReferralPageContent() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/referral/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      
-      if (response.ok) {
-        setSubmitted(true);
-      }
+      await api.post('/api/v1/referral/join', { email });
+      setSubmitted(true);
     } catch (error) {
       logger.error('Error joining referral program', error);
     } finally {

@@ -6,33 +6,13 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 import type {
   CreditPack,
   CreditTransaction,
   CreditStats,
   CreditsTab,
 } from '../types';
-
-// API helpers
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-
-async function fetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(error.message || `API error: ${response.status}`);
-  }
-  
-  return response.json();
-}
 
 export function useCredits() {
   const { toast } = useToast();
@@ -74,25 +54,39 @@ export function useCredits() {
   // Fetch credit packs from API
   const fetchPacks = useCallback(async () => {
     try {
-      const packs = await fetchWithAuth<Array<{
+      const data = await endpoints.credits.packs();
+      const raw = data as { packs?: Array<{
         id: string;
         name: string;
         credits: number;
-        priceCents: number;
+        priceCents?: number;
+        price?: number;
         isActive?: boolean;
         isFeatured?: boolean;
         description?: string;
         features?: string[];
         savings?: number;
         badge?: string;
-      }>>('/credits/packs');
-      
+      }> } | Array<{
+        id: string;
+        name: string;
+        credits: number;
+        priceCents?: number;
+        price?: number;
+        isActive?: boolean;
+        isFeatured?: boolean;
+        description?: string;
+        features?: string[];
+        savings?: number;
+        badge?: string;
+      }>;
+      const packs = Array.isArray(raw) ? raw : (raw.packs || []);
       const formattedPacks: CreditPack[] = packs.map(p => ({
         id: p.id,
         name: p.name || `Pack ${p.credits}`,
         credits: p.credits,
-        priceCents: p.priceCents,
-        price: p.priceCents / 100,
+        priceCents: p.priceCents ?? (p.price != null ? Math.round(p.price * 100) : 0),
+        price: p.price ?? (p.priceCents != null ? p.priceCents / 100 : 0),
         isActive: p.isActive ?? true,
         isFeatured: p.isFeatured ?? false,
         description: p.description || '',
@@ -100,7 +94,6 @@ export function useCredits() {
         savings: p.savings,
         badge: p.badge,
       }));
-      
       setCreditPacks(formattedPacks);
     } catch (error) {
       logger.error('Failed to fetch credit packs:', error);
@@ -150,9 +143,10 @@ export function useCredits() {
   // Fetch balance from API
   const fetchBalance = useCallback(async () => {
     try {
-      const data = await fetchWithAuth<{ balance: number; userId: string }>('/credits/balance');
-      setBalance(data.balance);
-      return data.balance;
+      const data = await endpoints.credits.balance();
+      const bal = data?.balance ?? 0;
+      setBalance(bal);
+      return bal;
     } catch (error) {
       logger.error('Failed to fetch balance:', error);
       return 0;
@@ -162,8 +156,9 @@ export function useCredits() {
   // Fetch transactions from API
   const fetchTransactions = useCallback(async () => {
     try {
-      const data = await fetchWithAuth<{
-        transactions: Array<{
+      const data = await endpoints.credits.transactions({ limit: 100 });
+      const raw = data as {
+        transactions?: Array<{
           id: string;
           type: 'purchase' | 'usage' | 'refund' | 'bonus' | 'adjustment';
           amount: number;
@@ -175,10 +170,10 @@ export function useCredits() {
           metadata?: Record<string, unknown>;
           createdAt: string;
         }>;
-        total: number;
-      }>('/credits/transactions?limit=100');
-      
-      const formattedTransactions: CreditTransaction[] = data.transactions.map(t => ({
+        total?: number;
+      };
+      const list = raw.transactions || [];
+      const formattedTransactions: CreditTransaction[] = list.map(t => ({
         id: t.id,
         type: t.type,
         amount: t.amount,
@@ -321,18 +316,8 @@ export function useCredits() {
       return;
     }
     try {
-      const response = await fetch('/api/credits/buy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packSize: pack.credits }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(
-          data.message || 'Erreur lors de la création de la session de paiement'
-        );
-      }
-      if (data.url) {
+      const data = await endpoints.credits.buy({ packSize: pack.credits });
+      if (data?.url) {
         window.location.href = data.url;
       } else {
         toast({
@@ -341,11 +326,11 @@ export function useCredits() {
           variant: 'destructive',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erreur',
         description:
-          error.message ||
+          (error instanceof Error ? error.message : null) ||
           'Erreur lors de la création de la session de paiement',
         variant: 'destructive',
       });

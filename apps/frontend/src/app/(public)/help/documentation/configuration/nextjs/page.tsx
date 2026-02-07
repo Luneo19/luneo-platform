@@ -17,7 +17,9 @@ function NextJSConfigPageContent() {
   const configExample = useMemo(() => `// next.config.mjs
 export default {
   images: {
-    domains: ['obrijgptqztacolemsbk.supabase.co'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/**' }
+    ],
     formats: ['image/avif', 'image/webp']
   },
   experimental: {

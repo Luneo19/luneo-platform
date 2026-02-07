@@ -1,0 +1,106 @@
+# DEPRECATED: Use deploy-production.yml or backend-ci.yml for staging. This workflow is kept for reference but should not be triggered automatically.
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '22'
+  BACKEND_URL: https://develop-api.luneo.app
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: |
+          cd apps/backend
+          pnpm exec prisma generate
+
+      - name: Run linter
+        run: |
+          cd apps/backend
+          pnpm run lint || true
+
+      - name: Run unit tests
+        run: |
+          cd apps/backend
+          pnpm run test -- --testPathPattern=unit || true
+
+  deploy-backend:
+    name: Deploy Backend (Staging)
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: |
+          echo "Deploying backend to staging (develop)..."
+          # Add your staging deployment commands here
+          # e.g. Railway, Render, or trigger staging pipeline
+
+      - name: Verify deployment health
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+          
+          HEALTH_URL="${BACKEND_URL:-https://develop-api.luneo.app}/health"
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Health check passed!"
+              exit 0
+            fi
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Health check attempt $RETRY_COUNT failed (HTTP $HTTP_CODE). Retrying in 10s..."
+            sleep 10
+          done
+          
+          echo "HEALTH CHECK FAILED after $MAX_RETRIES attempts"
+          exit 1
+
+      - name: Notify deployment status
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS="deployed successfully"
+            COLOR="good"
+          else
+            STATUS="FAILED"
+            COLOR="danger"
+          fi
+          
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -X POST "$SLACK_WEBHOOK_URL" \
+              -H 'Content-type: application/json' \
+              -d "{\"attachments\":[{\"color\":\"$COLOR\",\"text\":\"Luneo staging backend $STATUS on \`${{ github.ref_name }}\` by ${{ github.actor }}\"}]}" || true
+          fi

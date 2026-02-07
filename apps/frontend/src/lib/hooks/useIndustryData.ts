@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 // Types
 interface IndustryFeature {
@@ -48,14 +49,11 @@ export function useIndustryData(industryId: string) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/public/industries?id=${industryId}`);
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement des données');
+      const result = await api.get<{ success?: boolean; data?: IndustryData; error?: string }>('/api/v1/public/industries', { params: { id: industryId } });
+      if (result && (result as { success?: boolean }).success === false) {
+        throw new Error((result as { error?: string }).error || 'Erreur lors du chargement des données');
       }
-
-      setData(result.data);
+      setData((result as { data?: IndustryData })?.data ?? (result as unknown as IndustryData));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement données industrie', {
@@ -94,14 +92,11 @@ export function useAllIndustries() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/public/industries');
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement des industries');
+      const result = await api.get<{ success?: boolean; data?: IndustryData[]; error?: string }>('/api/v1/public/industries');
+      if (result && (result as { success?: boolean }).success === false) {
+        throw new Error((result as { error?: string }).error || 'Erreur lors du chargement des industries');
       }
-
-      setData(result.data);
+      setData((result as { data?: IndustryData[] })?.data ?? []);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement toutes les industries', {

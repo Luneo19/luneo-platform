@@ -6,12 +6,14 @@ import { CloudinaryService } from '@/libs/storage/cloudinary.service';
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/terminus';
+import { HealthService, EnrichedHealthResponse } from './health.service';
 
 @ApiTags('Health')
 @Controller('health') // Will be /health (excluded from global prefix) OR /api/v1/health
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
+    private readonly healthService: HealthService,
     private readonly prometheus: PrometheusService,
     private readonly prisma: PrismaService,
     private readonly redis: RedisOptimizedService,
@@ -19,36 +21,63 @@ export class HealthController {
   ) {}
 
   @Get()
+  /** @Public: health for load balancers/monitoring */
   @Public()
-  @HealthCheck()
-  @ApiOperation({ 
-    summary: 'Health check endpoint',
-    description: 'Vérifie la santé de l\'application et de ses dépendances (database, Redis, mémoire). Retourne le statut de chaque service.',
+  @ApiOperation({
+    summary: 'Enriched health check endpoint',
+    description: 'Production-ready health with dependencies: database, redis, stripe config, email config.',
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Service is healthy',
+  @ApiResponse({
+    status: 200,
+    description: 'Health status with dependency checks',
     schema: {
       type: 'object',
       properties: {
         status: { type: 'string', example: 'ok' },
-        info: {
+        timestamp: { type: 'string', format: 'date-time' },
+        uptime: { type: 'number' },
+        service: { type: 'string', example: 'luneo-backend' },
+        version: { type: 'string', example: '1.0.0' },
+        dependencies: {
           type: 'object',
           properties: {
-            database: { type: 'object', properties: { status: { type: 'string' } } },
-            redis: { type: 'object', properties: { status: { type: 'string' } } },
-            memory: { type: 'object', properties: { status: { type: 'string' } } },
+            database: { type: 'object', properties: { status: { type: 'string' }, latencyMs: { type: 'number' } } },
+            redis: { type: 'object', properties: { status: { type: 'string' }, latencyMs: { type: 'number' } } },
+            stripe: { type: 'object', properties: { status: { type: 'string' } } },
+            email: { type: 'object', properties: { status: { type: 'string' } } },
           },
         },
-        error: { type: 'object' },
-        details: { type: 'object' },
+        metrics: {
+          type: 'object',
+          description: 'Prometheus-style request count and latency (when available)',
+          properties: {
+            requestCountTotal: { type: 'number' },
+            latencyP95Ms: { type: 'number', nullable: true },
+          },
+        },
       },
     },
   })
-  @ApiResponse({ 
-    status: 503, 
-    description: 'Service unhealthy - One or more dependencies are down',
+  async getEnriched(): Promise<EnrichedHealthResponse> {
+    const base = await this.healthService.getEnrichedHealth();
+    try {
+      const metrics = await this.prometheus.getRequestStats();
+      return { ...base, metrics };
+    } catch {
+      return base;
+    }
+  }
+
+  @Get('terminus')
+  /** @Public: Terminus health for orchestrators */
+  @Public()
+  @HealthCheck()
+  @ApiOperation({
+    summary: 'Terminus health check (legacy)',
+    description: 'Vérifie la santé (database, Redis, mémoire, Cloudinary) via Terminus.',
   })
+  @ApiResponse({ status: 200, description: 'Terminus health result' })
+  @ApiResponse({ status: 503, description: 'Service unhealthy' })
   async check(): Promise<HealthCheckResult> {
     return this.health.check([
       // Database health check
@@ -165,6 +194,7 @@ export class HealthController {
   }
 
   @Get('metrics')
+  /** @Public: Prometheus scrape endpoint */
   @Public()
   @ApiOperation({ 
     summary: 'Prometheus metrics endpoint',
@@ -184,6 +214,7 @@ export class HealthController {
   }
 
   @Get('detailed')
+  /** @Public: detailed health for ops */
   @Public()
   @ApiOperation({ 
     summary: 'Detailed health check',
@@ -212,14 +243,12 @@ export class HealthController {
     },
   })
   async getDetailed() {
-    const healthResult = await this.check();
-    
+    const enriched = await this.healthService.getEnrichedHealth();
+    const terminusResult = await this.check();
     return {
-      ...healthResult,
-      timestamp: new Date().toISOString(),
-      uptime: Math.floor(process.uptime()),
+      ...enriched,
+      terminus: terminusResult,
       environment: process.env.NODE_ENV || 'development',
-      version: process.env.npm_package_version || '1.0.0',
       nodeVersion: process.version,
       platform: process.platform,
     };

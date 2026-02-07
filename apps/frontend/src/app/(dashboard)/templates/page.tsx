@@ -1,15 +1,15 @@
 /**
  * ★★★ PAGE - TEMPLATES ★★★
  * Page Server Component pour les templates
- * 
+ *
  * Architecture:
- * - Server Component qui vérifie l'authentification
+ * - Server Component qui vérifie l'authentification via cookies (backend NestJS)
  * - Client Component pour les interactions
  * - Utilise le hook useTemplates pour les données
  */
 
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TemplatesPageClient } from './TemplatesPageClient';
 import { Loader2 } from 'lucide-react';
@@ -18,6 +18,8 @@ export const metadata = {
   title: 'Templates | Luneo',
   description: 'Choisissez parmi notre collection de templates professionnels',
 };
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function TemplatesSkeleton() {
   return (
@@ -31,15 +33,21 @@ function TemplatesSkeleton() {
 }
 
 /**
- * Server Component - Vérifie l'authentification
+ * Server Component - Vérifie l'authentification via cookies (backend)
  */
 export default async function TemplatesPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join('; ');
 
-  // Vérifier l'authentification
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const res = await fetch(`${API_URL}/api/v1/auth/me`, {
+    headers: cookieHeader ? { Cookie: cookieHeader } : {},
+    cache: 'no-store',
+  });
 
-  if (authError || !user) {
+  if (!res.ok) {
     return (
       <ErrorBoundary level="page" componentName="TemplatesPage">
         <div className="p-6">

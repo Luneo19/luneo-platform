@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 interface Subscription {
   tier: string;
@@ -33,14 +34,9 @@ export function useBilling() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/billing/subscription');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du chargement de l\'abonnement');
-      }
-
-      setSubscription(data.data.subscription);
+      const data = await endpoints.billing.subscription();
+      const raw = data as { data?: { subscription?: Subscription }; subscription?: Subscription };
+      setSubscription(raw.data?.subscription ?? raw.subscription ?? null);
     } catch (err: any) {
       logger.error('Erreur chargement abonnement', {
         error: err,
@@ -54,14 +50,9 @@ export function useBilling() {
 
   const loadInvoices = useCallback(async () => {
     try {
-      const response = await fetch('/api/billing/invoices');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du chargement des factures');
-      }
-
-      setInvoices(data.data.invoices);
+      const data = await endpoints.billing.invoices();
+      const raw = data as { data?: { invoices?: Invoice[] }; invoices?: Invoice[] };
+      setInvoices(raw.data?.invoices ?? raw.invoices ?? []);
     } catch (err: any) {
       logger.error('Erreur chargement factures', {
         error: err,

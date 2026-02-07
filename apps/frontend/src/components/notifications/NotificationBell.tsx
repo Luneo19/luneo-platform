@@ -2,20 +2,18 @@
 
 /**
  * NotificationBell Component - SaaS World-Class
- * 
+ *
  * Features:
- * - Real-time updates via Supabase Realtime
+ * - Data from NestJS backend /api/v1/notifications (cookie-based auth)
  * - Optimistic UI updates
- * - Infinite scroll
  * - Keyboard navigation
  * - Accessibility (WCAG AA)
- * - Performance optimized (virtual scrolling ready)
  */
 
-import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { Bell, Check, X, Loader2, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
-import { createClient } from '@/lib/supabase/client';
+import { endpoints } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -78,27 +76,16 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
   const [isLoading, setIsLoading] = useState(true);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/notifications?limit=50&unread_only=false');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
-      }
-
-      const data = await response.json();
-      if (data.success && data.data) {
-        setNotifications(data.data.notifications || []);
-        setUnreadCount(data.data.unread_count || 0);
-      } else if (data.data) {
-        // Fallback si structure différente
-        setNotifications(data.data.notifications || data.notifications || []);
-        setUnreadCount(data.data.unread_count || data.unread_count || 0);
-      }
+      const data = await endpoints.notifications.list({ limit: 50, unreadOnly: false });
+      const list = data?.notifications ?? [];
+      const listArr = Array.isArray(list) ? (list as Notification[]) : [];
+      setNotifications(listArr);
+      setUnreadCount(listArr.filter(n => !n.is_read).length);
     } catch (error) {
       logger.error('Error fetching notifications:', error);
       toast.error('Erreur lors du chargement des notifications');
@@ -118,17 +105,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
 
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_read: true }),
-      });
-
-      if (!response.ok) {
-        // Revert on error
-        fetchNotifications();
-        throw new Error('Failed to mark as read');
-      }
+      await endpoints.notifications.markAsRead(notificationId);
     } catch (error) {
       logger.error('Error marking notification as read:', error);
       toast.error('Erreur lors de la mise à jour');
@@ -140,22 +117,10 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
   const markAllAsRead = useCallback(async () => {
     try {
       setIsMarkingAllRead(true);
-      
-      // Optimistic update
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
 
-      const response = await fetch('/api/notifications', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mark_all_read: true }),
-      });
-
-      if (!response.ok) {
-        fetchNotifications();
-        throw new Error('Failed to mark all as read');
-      }
-
+      await endpoints.notifications.markAllAsRead();
       toast.success('Toutes les notifications ont été marquées comme lues');
     } catch (error) {
       logger.error('Error marking all as read:', error);
@@ -169,24 +134,14 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
   // Delete notification
   const deleteNotification = useCallback(async (notificationId: string) => {
     try {
-      // Optimistic update
       const notification = notifications.find(n => n.id === notificationId);
       const wasUnread = notification?.is_read === false;
-      
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       if (wasUnread) {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
 
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        fetchNotifications();
-        throw new Error('Failed to delete notification');
-      }
-
+      await endpoints.notifications.delete(notificationId);
       toast.success('Notification supprimée');
     } catch (error) {
       logger.error('Error deleting notification:', error);
@@ -207,70 +162,9 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
     }
   }, [markAsRead, router]);
 
-  // Setup Supabase Realtime subscription
   useEffect(() => {
     fetchNotifications();
-
-    // Get user ID for filter
-    supabase.auth.getUser().then(({ data: { user } }: { data: { user: { id: string } | null } }) => {
-      if (!user) return;
-
-      // Subscribe to new notifications
-      const channel = supabase
-        .channel(`notifications:${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload: { new: Notification }) => {
-            const newNotification = payload.new;
-            setNotifications(prev => [newNotification, ...prev]);
-            if (!newNotification.is_read) {
-              setUnreadCount(prev => prev + 1);
-            }
-            
-            // Show toast for high priority notifications
-            if (newNotification.priority === 'high' || newNotification.priority === 'urgent') {
-              toast.info(newNotification.title, {
-                description: newNotification.message,
-                duration: 5000,
-              });
-            }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload: { new: Notification }) => {
-            const updatedNotification = payload.new;
-            setNotifications(prev =>
-              prev.map(n =>
-                n.id === updatedNotification.id ? updatedNotification : n
-              )
-            );
-            
-            // Update unread count if status changed
-            if (updatedNotification.is_read && !notifications.find(n => n.id === updatedNotification.id)?.is_read) {
-              setUnreadCount(prev => Math.max(0, prev - 1));
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    });
-  }, [supabase, fetchNotifications, notifications]);
+  }, [fetchNotifications]);
 
   // Keyboard navigation
   useEffect(() => {

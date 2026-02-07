@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateCSRFFromRequest } from './csrf';
 import { logger } from './logger';
+import { api } from '@/lib/api/client';
 
 // Note: useCSRF hook nécessite React, donc importé dynamiquement
 
@@ -84,18 +85,8 @@ export async function csrfMiddleware(
  */
 export async function getCSRFToken(): Promise<string | null> {
   try {
-    const response = await fetch('/api/csrf/token', {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      logger.error('Failed to get CSRF token', new Error(`HTTP ${response.status}`));
-      return null;
-    }
-
-    const data = await response.json();
-    return data.token || null;
+    const data = await api.get<{ token?: string }>('/api/v1/csrf-token');
+    return data?.token ?? null;
   } catch (error) {
     logger.error('Error fetching CSRF token', error as Error);
     return null;

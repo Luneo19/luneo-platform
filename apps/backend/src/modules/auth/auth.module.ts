@@ -17,8 +17,10 @@ import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
 import { OAuthService } from './services/oauth.service';
 import { SSOEnterpriseService } from './services/sso-enterprise.service';
+import { TokenService } from './services/token.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 import { TokenCleanupScheduler } from './schedulers/token-cleanup.scheduler';
+import { RbacModule } from '@/modules/security/rbac.module';
 
 // Helper function to check if OAuth is configured
 function isOAuthConfigured(provider: 'google' | 'github'): boolean {
@@ -95,6 +97,7 @@ try {
 
 @Module({
   imports: [
+    RbacModule,
     PrismaModule,
     PassportModule,
     EmailModule,
@@ -124,6 +127,7 @@ try {
     CaptchaService,
     OAuthService,
     SSOEnterpriseService,
+    TokenService,
     RedisOptimizedService,
     TokenCleanupScheduler, // SEC-08: Nettoyage automatique des tokens
   ],

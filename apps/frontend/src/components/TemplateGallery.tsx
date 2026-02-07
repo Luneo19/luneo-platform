@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api/client';
 
 interface Template {
   id: string;
@@ -97,31 +98,25 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
   const loadTemplates = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '24',
+      const params: Record<string, string | number> = {
+        page,
+        limit: 24,
         sort_by: sortBy,
         sort_order: 'desc',
-      });
-
+      };
       if (selectedCategory !== 'all') {
-        params.append('category', selectedCategory);
+        params.category = selectedCategory;
       }
-
-      const response = await fetch(`/api/templates?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTemplates(data.templates || []);
-        setTotalPages(data.pagination?.totalPages || 1);
-        
-        // Extract unique categories
-        const uniqueCategories = Array.from(
-          new Set((data.templates || []).map((t: Template) => t.category).filter(Boolean))
-        ) as string[];
-        setCategories(uniqueCategories);
-      } else {
-        throw new Error('Failed to load templates');
-      }
+      const data = await api.get<{ templates?: Template[]; pagination?: { totalPages?: number } }>(
+        '/api/v1/templates',
+        { params }
+      );
+      setTemplates(data?.templates || []);
+      setTotalPages(data?.pagination?.totalPages || 1);
+      const uniqueCategories = Array.from(
+        new Set((data?.templates || []).map((t: Template) => t.category).filter(Boolean))
+      ) as string[];
+      setCategories(uniqueCategories);
     } catch (error) {
       logger.error('Failed to load templates', { error });
       toast({

@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
@@ -88,17 +89,12 @@ export default function BrandingPage() {
     setKitStatus('saving');
     setKitError(null);
     try {
-      const response = await fetch('/api/emails/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'brand@luneo.app',
-          brandName: logoName,
-          subject: `Brand kit ${scope}`,
-          customMessage: JSON.stringify({ palette, values, keywords, tagline }),
-        }),
+      await api.post('/api/v1/emails/send-welcome', {
+        email: 'brand@luneo.app',
+        brandName: logoName,
+        subject: `Brand kit ${scope}`,
+        customMessage: JSON.stringify({ palette, values, keywords, tagline }),
       });
-      if (!response.ok) throw new Error('save failed');
       setKitStatus('saved');
       setTimeout(() => setKitStatus('idle'), 3000);
     } catch (error) {

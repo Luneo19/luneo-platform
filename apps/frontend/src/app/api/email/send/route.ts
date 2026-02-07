@@ -1,19 +1,20 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { sendEmailSchema } from '@/lib/validation/zod-schemas';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
  * POST /api/email/send
  * Envoie un email via SendGrid
+ * Forward to backend
  */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.validateWithZod(sendEmailSchema, request, async (validatedData) => {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -63,64 +64,41 @@ export async function POST(request: NextRequest) {
       emailData.text = text;
     }
 
-    // Envoyer l'email via l'API backend ou directement via SendGrid
-    const backendUrl = process.env.INTERNAL_API_URL || process.env.LUNEO_API_URL;
-    
-    if (backendUrl) {
-      // Utiliser le backend pour envoyer l'email
-      try {
-        const response = await fetch(`${backendUrl}/api/emails/send`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-internal-token': process.env.INTERNAL_API_TOKEN || '',
-          },
-          body: JSON.stringify(emailData),
-        });
+    // Forward to backend
+    const backendResponse = await fetch(`${API_URL}/api/v1/emails/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: request.headers.get('cookie') || '',
+      },
+      body: JSON.stringify(emailData),
+    });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Backend email error: ${response.status} ${errorText}`);
-        }
-
-        const result = await response.json();
-        
-        logger.info('Email sent via backend', {
-          to,
-          subject,
-          template,
-          userId: user.id,
-        });
-
-        return ApiResponseBuilder.success({
-          messageId: result.messageId,
-        }, 'Email envoyé avec succès');
-      } catch (backendError: any) {
-        logger.error('Error sending email via backend', backendError, {
-          to,
-          subject,
-          userId: user.id,
-        });
-        throw {
-          status: 500,
-          message: 'Erreur lors de l\'envoi de l\'email',
-          code: 'EMAIL_SEND_ERROR',
-        };
-      }
-    } else {
-      // Fallback: envoyer directement via SendGrid (si configuré côté frontend)
-      // Note: En production, il est recommandé d'utiliser le backend
-      logger.warn('Sending email directly from frontend (not recommended)', {
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text();
+      logger.error('Error sending email via backend', new Error(errorText), {
         to,
         subject,
         userId: user.id,
+        status: backendResponse.status,
       });
-
       throw {
         status: 500,
-        message: 'Service d\'envoi d\'email non configuré',
-        code: 'EMAIL_SERVICE_NOT_CONFIGURED',
+        message: 'Erreur lors de l\'envoi de l\'email',
+        code: 'EMAIL_SEND_ERROR',
       };
     }
+
+    const result = await backendResponse.json();
+    logger.info('Email sent via backend', {
+      to,
+      subject,
+      template,
+      userId: user.id,
+    });
+
+    return ApiResponseBuilder.success({
+      messageId: result.messageId,
+    }, 'Email envoyé avec succès');
   });
 }

@@ -7,6 +7,7 @@ import { CheckCircle, Loader2, ArrowRight, Sparkles, Crown, Gift, Shield } from 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -37,11 +38,13 @@ function BillingSuccessPageContent() {
 
     const verifySession = async () => {
       try {
-        const response = await fetch(`/api/billing/verify-session?session_id=${sessionId}`);
-        const data = await response.json();
+        const data = await api.get<{ success?: boolean; error?: string; data?: SessionData }>(
+          '/api/v1/billing/verify-session',
+          { params: { session_id: sessionId } }
+        );
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Impossible de vérifier le paiement');
+        if (!data?.success || !data.data) {
+          throw new Error(data?.error || 'Impossible de vérifier le paiement');
         }
 
         setSessionData(data.data);

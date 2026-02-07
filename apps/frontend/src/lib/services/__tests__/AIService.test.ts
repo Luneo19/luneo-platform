@@ -25,6 +25,15 @@ vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
 }));
 
+const mockApiGet = vi.fn();
+const mockApiPost = vi.fn();
+vi.mock('@/lib/api/client', () => ({
+  api: {
+    get: (...args: unknown[]) => mockApiGet(...args),
+    post: (...args: unknown[]) => mockApiPost(...args),
+  },
+}));
+
 describe('AIService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,39 +89,18 @@ describe('AIService', () => {
   // ============================================
 
   describe('checkAndDeductCredits', () => {
-    const createMockSupabaseClient = () => {
-      const mockSingle = vi.fn();
-      const mockEqSelect = vi.fn(() => ({ single: mockSingle }));
-      const mockSelect = vi.fn(() => ({ eq: mockEqSelect }));
-
-      const mockEqUpdate = vi.fn();
-      const mockUpdate = vi.fn(() => ({ eq: mockEqUpdate }));
-
-      const fromMock = vi.fn(() => ({
-        select: mockSelect,
-        update: mockUpdate,
-      }));
-
-      return {
-        from: fromMock,
-        _mockSingle: mockSingle,
-        _mockEqUpdate: mockEqUpdate,
-      };
-    };
-
     beforeEach(() => {
       vi.clearAllMocks();
       (cacheService.get as vi.Mock).mockResolvedValue(null);
+      (cacheService.set as vi.Mock).mockResolvedValue(undefined);
+      mockApiGet.mockResolvedValue({ balance: 100 });
+      mockApiPost.mockResolvedValue({ balance: 90, success: true });
     });
 
     it('should deduct credits from cache', async () => {
       (cacheService.get as vi.Mock).mockResolvedValue('100');
-      (cacheService.set as vi.Mock).mockResolvedValue(undefined);
 
-      const mockClient = createMockSupabaseClient();
-      mockClient._mockEqUpdate.mockResolvedValue({ error: null });
-
-      const result = await checkAndDeductCredits('user-123', 10, mockClient as any);
+      const result = await checkAndDeductCredits('user-123', 10);
 
       expect(result.success).toBe(true);
       expect(result.balance).toBe(90);
@@ -124,29 +112,21 @@ describe('AIService', () => {
       });
     });
 
-    it('should fetch credits from DB on cache miss', async () => {
+    it('should fetch credits from API on cache miss', async () => {
       (cacheService.get as vi.Mock).mockResolvedValue(null);
-      (cacheService.set as vi.Mock).mockResolvedValue(undefined);
 
-      const mockClient = createMockSupabaseClient();
-      mockClient._mockSingle.mockResolvedValue({
-        data: { ai_credits: 100 },
-        error: null,
-      });
-      mockClient._mockEqUpdate.mockResolvedValue({ error: null });
-
-      const result = await checkAndDeductCredits('user-123', 10, mockClient as any);
+      const result = await checkAndDeductCredits('user-123', 10);
 
       expect(result.success).toBe(true);
       expect(result.balance).toBe(90);
+      expect(mockApiGet).toHaveBeenCalledWith('/api/v1/credits/balance');
       expect(cacheService.set).toHaveBeenCalledWith('credits:user-123', '100', { ttl: 60 * 1000 });
     });
 
     it('should reject if insufficient credits', async () => {
       (cacheService.get as vi.Mock).mockResolvedValue('5');
 
-      const mockClient = createMockSupabaseClient();
-      const result = await checkAndDeductCredits('user-123', 10, mockClient as any);
+      const result = await checkAndDeductCredits('user-123', 10);
 
       expect(result.success).toBe(false);
       expect(result.balance).toBe(5);
@@ -156,9 +136,8 @@ describe('AIService', () => {
     it('should handle errors and report to Sentry', async () => {
       (cacheService.get as vi.Mock).mockRejectedValue(new Error('Cache error'));
 
-      const mockClient = createMockSupabaseClient();
       await expect(
-        checkAndDeductCredits('user-123', 10, mockClient as any)
+        checkAndDeductCredits('user-123', 10)
       ).rejects.toThrow();
 
       expect(Sentry.captureException).toHaveBeenCalled();

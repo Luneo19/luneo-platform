@@ -10,6 +10,7 @@ import { AlertTriangle, RefreshCw, Home, Bug, ChevronDown, ChevronUp } from 'luc
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logger } from '../../lib/logger';
+import { api } from '@/lib/api/client';
 
 interface Props {
   children: ReactNode;
@@ -69,17 +70,13 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
     // Also send to our API
     try {
-      fetch('/api/errors/report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: error.message,
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
-          url: typeof window !== 'undefined' ? window.location.href : '',
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
-          timestamp: Date.now(),
-        }),
+      api.post('/api/v1/errors/report', {
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        url: typeof window !== 'undefined' ? window.location.href : '',
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        timestamp: Date.now(),
       }).catch(() => {
         // Silent fail for error reporting
       });
