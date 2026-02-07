@@ -275,6 +275,10 @@ export const endpoints = {
     generate: (data: { prompt: string; productId: string; options?: Record<string, unknown> }) =>
       api.post<GenerateDesignResponse>('/api/v1/ai/generate', data),
     status: (jobId: string) => api.get(`/api/v1/generation/${jobId}/status`),
+    upscale: (designId: string) => api.post(`/api/v1/ai/upscale`, { designId }),
+    removeBackground: (designId: string) => api.post(`/api/v1/ai/background-removal`, { designId }),
+    extractColors: (imageUrl: string) => api.post(`/api/v1/ai/extract-colors`, { imageUrl }),
+    smartCrop: (data: { imageUrl: string; aspectRatio: string }) => api.post(`/api/v1/ai/smart-crop`, data),
   },
 
   // Orders
@@ -284,6 +288,10 @@ export const endpoints = {
     get: (id: string) => api.get(`/api/v1/orders/${id}`),
     create: (data: any) => api.post('/api/v1/orders', data),
     update: (id: string, data: any) => api.put(`/api/v1/orders/${id}`, data),
+    cancel: (id: string) => api.post(`/api/v1/orders/${id}/cancel`),
+    updateStatus: (id: string, status: string) => api.put(`/api/v1/orders/${id}/status`, { status }),
+    tracking: (id: string) => api.get(`/api/v1/orders/${id}/tracking`),
+    refund: (id: string, reason: string) => api.post(`/api/v1/orders/${id}/refund`, { reason }),
   },
 
   // Analytics
@@ -313,6 +321,13 @@ export const endpoints = {
     cancel: () => api.post('/api/v1/billing/cancel-downgrade'),
     invoices: () => api.get('/api/v1/billing/invoices'),
     paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
+    addPaymentMethod: (paymentMethodId: string) => api.post('/api/v1/billing/payment-methods', { paymentMethodId }),
+    removePaymentMethod: () => api.delete('/api/v1/billing/payment-methods'),
+    customerPortal: () => api.get('/api/v1/billing/customer-portal'),
+    changePlan: (data: { planId: string; billingInterval?: string }) => api.post('/api/v1/billing/change-plan', data),
+    previewPlanChange: (planId: string, billingInterval?: string) => 
+      api.get('/api/v1/billing/preview-plan-change', { params: { planId, billingInterval } }),
+    scheduledChanges: () => api.get('/api/v1/billing/scheduled-changes'),
   },
 
   // Integrations
@@ -325,10 +340,13 @@ export const endpoints = {
 
   // Team
   team: {
-    members: () => api.get('/api/v1/team/members'),
+    members: () => api.get('/api/v1/team'),
     invite: (email: string, role: string) => api.post('/api/v1/team/invite', { email, role }),
-    remove: (userId: string) => api.delete(`/api/v1/team/members/${userId}`),
-    updateRole: (userId: string, role: string) => api.put(`/api/v1/team/members/${userId}/role`, { role }),
+    invites: () => api.get('/api/v1/team/invite'),
+    cancelInvite: (id: string) => api.delete(`/api/v1/team/invite/${id}`),
+    get: (id: string) => api.get(`/api/v1/team/${id}`),
+    update: (id: string, data: any) => api.put(`/api/v1/team/${id}`, data),
+    remove: (userId: string) => api.delete(`/api/v1/team/${userId}`),
   },
 
   // Public API

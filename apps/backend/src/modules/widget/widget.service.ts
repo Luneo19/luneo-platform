@@ -140,7 +140,7 @@ export class WidgetService {
         designData: designData as any,
         productId,
         userId: userId || null,
-        brandId: 'default', // TODO: Get from context
+        brandId: (await this.prisma.product.findUnique({ where: { id: productId }, select: { brandId: true } }))?.brandId || null,
       },
       update: {
         canvasWidth: designData.canvas.width,

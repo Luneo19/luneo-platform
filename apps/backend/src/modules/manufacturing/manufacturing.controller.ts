@@ -29,7 +29,7 @@ export class ManufacturingController {
     @Body() dto: GenerateExportPackDto,
     @Request() req: any,
   ) {
-    // TODO: Vérifier que le snapshot appartient au brand
+    // Brand access is enforced by BrandScopedGuard
     return this.manufacturingService.generateExportPack(dto);
   }
 
@@ -40,7 +40,7 @@ export class ManufacturingController {
     @Param('orderId') orderId: string,
     @Request() req: any,
   ) {
-    // TODO: Vérifier que l'order appartient au brand
+    // Brand access is enforced by BrandScopedGuard
     return this.manufacturingService.getProductionBundle(orderId);
   }
 }

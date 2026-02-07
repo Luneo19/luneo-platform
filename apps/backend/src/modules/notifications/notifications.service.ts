@@ -201,9 +201,33 @@ export class NotificationsService {
     }
 
     try {
-      // In production, implement actual web-push sending here
-      // For now, log the notification
-      this.logger.log('Push notification would be sent', {
+      // Envoyer la notification push via l'endpoint du navigateur
+      const pushPayload = JSON.stringify({
+        title: payload.title,
+        body: payload.body,
+        icon: payload.icon || '/icon-192x192.png',
+        badge: payload.badge || '/icon-192x192.png',
+        data: payload.data || {},
+        tag: `luneo-${Date.now()}`,
+      });
+
+      const response = await fetch(subscription.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'TTL': '86400',
+        },
+        body: pushPayload,
+      });
+
+      if (!response.ok && response.status !== 201) {
+        this.logger.warn(`Push notification failed with status ${response.status}`, {
+          endpoint: subscription.endpoint.substring(0, 50),
+        });
+        return { success: false, error: `HTTP ${response.status}` };
+      }
+
+      this.logger.log('Push notification sent successfully', {
         endpoint: subscription.endpoint.substring(0, 50),
         title: payload.title,
       });
