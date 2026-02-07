@@ -417,18 +417,33 @@ export class QuotasService {
       };
 
       // Générer des alertes
+      // ✅ FIX: Alertes à 75%, 80% et 90% (ajout du seuil 80%)
       const alerts = [];
       for (const metric of metrics) {
-        if (metric.percentage >= 90) {
+        if (metric.percentage >= 100) {
+          alerts.push({
+            severity: 'critical' as const,
+            message: `${metric.type} has exceeded quota (${metric.percentage.toFixed(0)}%)`,
+            metric: metric.type,
+            threshold: 100,
+          });
+        } else if (metric.percentage >= 90) {
           alerts.push({
             severity: 'critical' as const,
             message: `${metric.type} at ${metric.percentage.toFixed(0)}% of quota`,
             metric: metric.type,
             threshold: 90,
           });
-        } else if (metric.percentage >= 75) {
+        } else if (metric.percentage >= 80) {
           alerts.push({
             severity: 'warning' as const,
+            message: `${metric.type} at ${metric.percentage.toFixed(0)}% of quota - consider upgrading`,
+            metric: metric.type,
+            threshold: 80,
+          });
+        } else if (metric.percentage >= 75) {
+          alerts.push({
+            severity: 'info' as const,
             message: `${metric.type} at ${metric.percentage.toFixed(0)}% of quota`,
             metric: metric.type,
             threshold: 75,

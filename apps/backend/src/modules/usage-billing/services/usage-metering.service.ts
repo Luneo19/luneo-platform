@@ -46,13 +46,38 @@ export class UsageMeteringService {
         metadata,
       };
 
-      // Sauvegarder en DB (via queue pour async)
-      await this.usageQueue.add('record-usage', {
-        usageMetric,
-      });
+      // ✅ FIX CRITICAL: Persister directement en DB (pas seulement via queue)
+      // La queue n'avait pas de processor, donc les métriques n'étaient jamais sauvegardées
+      try {
+        await this.prisma.usageMetric.create({
+          data: {
+            brand: { connect: { id: brandId } },
+            metric,
+            value,
+            unit: usageMetric.unit,
+            timestamp: usageMetric.timestamp,
+            metadata: metadata || undefined,
+          },
+        });
+      } catch (dbError: any) {
+        this.logger.error(`Failed to persist usage metric to DB: ${dbError.message}`);
+        // Continue - don't block the operation
+      }
 
-      // Envoyer à Stripe si applicable
-      await this.reportToStripe(brandId, metric, value);
+      // Queue pour le reporting Stripe async (non-bloquant)
+      try {
+        await this.usageQueue.add('record-usage', {
+          usageMetric,
+        });
+      } catch (queueError: any) {
+        // Queue peut ne pas être disponible - log mais ne pas bloquer
+        this.logger.warn(`Queue unavailable for usage metric: ${queueError.message}`);
+      }
+
+      // Envoyer à Stripe si applicable (async, non-bloquant)
+      this.reportToStripe(brandId, metric, value).catch(err => {
+        this.logger.warn(`Stripe usage reporting failed (non-blocking): ${err.message}`);
+      });
 
       // Invalidate cache
       await this.cache.delSimple(`usage:${brandId}:current`);
