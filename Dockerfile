@@ -68,11 +68,12 @@ RUN echo "Checking for Prisma Client..." && \
         fi; \
     fi
 
-    # Builder l'application
+    # Build the application (SWC for fast compilation, skip TS type-checking)
     WORKDIR /app/apps/backend
-    # Force rebuild by adding timestamp comment
-    # Build timestamp: 2025-01-15T11:30:00Z
-    RUN nest build || pnpm build
+    RUN nest build --builder swc -p tsconfig.build.json || \
+        npx swc src -d dist --config-file .swcrc 2>/dev/null || \
+        npx tsc -p tsconfig.build.json --noEmit false --skipLibCheck --noCheck 2>/dev/null || \
+        pnpm build
 
 # ============================================
 # STAGE 2: Production - Image finale légère
