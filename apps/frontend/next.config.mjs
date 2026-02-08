@@ -1,4 +1,3 @@
-import bundleAnalyzer from '@next/bundle-analyzer';
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,9 +6,16 @@ import webpack from 'webpack';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
-});
+// Bundle analyzer is a devDependency - only import when ANALYZE is enabled
+let withBundleAnalyzer = (config) => config;
+if (process.env.ANALYZE === 'true') {
+  try {
+    const bundleAnalyzer = (await import('@next/bundle-analyzer')).default;
+    withBundleAnalyzer = bundleAnalyzer({ enabled: true });
+  } catch {
+    // @next/bundle-analyzer not available (production build without devDependencies)
+  }
+}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
