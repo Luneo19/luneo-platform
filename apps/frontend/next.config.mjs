@@ -273,9 +273,16 @@ const nextConfig = {
           },
         ],
       },
-      // Public assets - Medium cache
+      // Public assets - Medium cache (covers remaining static files)
       {
-        source: '/(?:.*\\.(?:jpg|jpeg|png|gif|webp|avif|svg|ico|woff|woff2|ttf|eot))',
+        source: '/:path*',
+        has: [
+          {
+            type: 'header',
+            key: 'accept',
+            value: '(.*image.*)',
+          },
+        ],
         headers: [
           {
             key: 'Cache-Control',
