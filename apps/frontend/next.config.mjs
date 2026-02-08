@@ -69,9 +69,8 @@ const nextConfig = {
         pathname: '/**',
       }].filter(p => p.hostname) : []),
     ],
-    // Use Cloudinary loader if configured
+    // Use Cloudinary custom loader if configured (loaderFile only, no built-in loader)
     ...(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && {
-      loader: 'cloudinary',
       loaderFile: './src/lib/cdn/cloudinary-loader.ts',
     }),
   },
