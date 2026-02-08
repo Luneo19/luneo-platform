@@ -1,98 +1,91 @@
 /**
  * ★★★ ADMIN WEBHOOK DETAIL API ★★★
- * API route pour gérer un webhook spécifique
+ * Forwards to NestJS backend.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
-import { db } from '@/lib/db';
 import { serverLogger } from '@/lib/logger-server';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { webhookId: string } }
-) {
+const API_URL = getBackendUrl();
+
+function forwardHeaders(request: NextRequest): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    Cookie: request.headers.get('cookie') || '',
+  };
+  const auth = request.headers.get('authorization');
+  if (auth) headers['Authorization'] = auth;
+  return headers;
+}
+
+async function getWebhookId(params: Promise<{ webhookId: string }> | { webhookId: string }): Promise<string> {
+  return params instanceof Promise ? (await params).webhookId : params.webhookId;
+}
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ webhookId: string }> | { webhookId: string } }) {
   try {
     const adminUser = await getAdminUser();
     if (!adminUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-
-    const { webhookId } = params;
-
-    const webhook = await db.webhook.findUnique({
-      where: { id: webhookId },
-      include: {
-        logs: {
-          orderBy: { createdAt: 'desc' },
-          take: 50,
-        },
-        _count: {
-          select: { logs: true },
-        },
-      },
-    });
-
-    if (!webhook) {
-      return NextResponse.json({ error: 'Webhook not found' }, { status: 404 });
+    const webhookId = await getWebhookId(params);
+    const res = await fetch(`${API_URL}/api/v1/admin/webhooks/${webhookId}`, { headers: forwardHeaders(request) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.json(data.error ?? { error: 'Failed to fetch webhook' }, { status: res.status });
     }
-
-    return NextResponse.json({ webhook });
+    return NextResponse.json(data);
   } catch (error) {
-    serverLogger.apiError(`/api/admin/webhooks/${params.webhookId}`, 'GET', error);
+    serverLogger.apiError('/api/admin/webhooks/[webhookId]', 'GET', error);
     return NextResponse.json({ error: 'Failed to fetch webhook' }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { webhookId: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ webhookId: string }> | { webhookId: string } }) {
   try {
     const adminUser = await getAdminUser();
     if (!adminUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-
-    const { webhookId } = params;
+    const webhookId = await getWebhookId(params);
     const body = await request.json();
-
-    const webhook = await db.webhook.update({
-      where: { id: webhookId },
-      data: {
-        url: body.url,
-        eventTypes: body.eventTypes,
-        status: body.status,
-        description: body.description,
-      },
+    const res = await fetch(`${API_URL}/api/v1/admin/webhooks/${webhookId}`, {
+      method: 'PATCH',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(body),
     });
-
-    return NextResponse.json({ webhook });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.json(data.error ?? { error: 'Failed to update webhook' }, { status: res.status });
+    }
+    return NextResponse.json(data);
   } catch (error) {
-    serverLogger.apiError(`/api/admin/webhooks/${params.webhookId}`, 'PATCH', error);
+    serverLogger.apiError('/api/admin/webhooks/[webhookId]', 'PATCH', error);
     return NextResponse.json({ error: 'Failed to update webhook' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { webhookId: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ webhookId: string }> | { webhookId: string } }) {
   try {
     const adminUser = await getAdminUser();
     if (!adminUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-
-    const { webhookId } = params;
-
-    await db.webhook.delete({
-      where: { id: webhookId },
+    const webhookId = await getWebhookId(params);
+    const res = await fetch(`${API_URL}/api/v1/admin/webhooks/${webhookId}`, {
+      method: 'DELETE',
+      headers: forwardHeaders(request),
     });
-
-    return NextResponse.json({ success: true });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return NextResponse.json(data.error ?? { error: 'Failed to delete webhook' }, { status: res.status });
+    }
+    const data = await res.json().catch(() => ({ success: true }));
+    return NextResponse.json(data);
   } catch (error) {
-    serverLogger.apiError(`/api/admin/webhooks/${params.webhookId}`, 'DELETE', error);
+    serverLogger.apiError('/api/admin/webhooks/[webhookId]', 'DELETE', error);
     return NextResponse.json({ error: 'Failed to delete webhook' }, { status: 500 });
   }
 }

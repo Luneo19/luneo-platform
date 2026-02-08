@@ -1,0 +1,51 @@
+# Build outputs - very large, causes Cursor memory crashes
+.next/
+apps/frontend/.next/
+apps/backend/dist/
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Package manager caches
+.pnpm-store/
+.turbo/
+
+# Coverage and test reports
+coverage/
+**/coverage/
+playwright-report/
+test-results/
+
+# Large binary files
+*.tar
+*.tar.gz
+*.woff2
+*.woff
+*.ttf
+*.eot
+*.mp4
+*.webm
+*.zip
+
+# OS files
+.DS_Store
+
+# Environment files (security)
+.env
+.env.local
+.env.production
+.env.production.real
+apps/backend/.env
+apps/backend/.env.production.real
+apps/frontend/.env.local
+
+# Prisma generated client
+apps/backend/node_modules/.prisma/
+
+# Git objects
+.git/objects/
+
+# Temporary files
+*.log
+*.tmp

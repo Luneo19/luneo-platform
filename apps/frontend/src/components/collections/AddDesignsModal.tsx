@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { api, endpoints } from '@/lib/api/client';
 import { Check, Image as ImageIcon, Plus, Search, X } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useEffect, useState, useMemo } from 'react';
@@ -47,15 +48,9 @@ function AddDesignsModalContent({
   const loadDesigns = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/designs?limit=100');
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Erreur lors du chargement des designs');
-      }
-
-      const designsData = result.data?.designs || result.designs || [];
-      setDesigns(designsData);
+      const result = await endpoints.designs.list({ limit: 100 });
+      const list = Array.isArray(result) ? result : (result as unknown as { designs?: Design[] })?.designs ?? [];
+      setDesigns(list as Design[]);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       logger.error('Error loading designs for collection', { error, collectionId: collection.id });
@@ -94,11 +89,7 @@ function AddDesignsModalContent({
     setAdding(true);
     try {
       const promises = Array.from(selectedDesigns).map((designId) =>
-        fetch(`/api/collections/${collection.id}/items`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ design_id: designId }),
-        })
+        api.post(`/api/v1/collections/${collection.id}/items`, { design_id: designId })
       );
 
       const results = await Promise.allSettled(promises);
@@ -106,8 +97,6 @@ function AddDesignsModalContent({
       const errors: string[] = [];
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          errors.push(`Design ${index + 1}`);
-        } else if (!result.value.ok) {
           errors.push(`Design ${index + 1}`);
         }
       });

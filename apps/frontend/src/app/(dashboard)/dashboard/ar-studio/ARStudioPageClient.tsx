@@ -8,6 +8,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradeRequiredPage } from '@/components/shared/UpgradeRequiredPage';
 import { ARStudioHeader } from './components/ARStudioHeader';
 import { ARStats } from './components/ARStats';
 import { ARFilters } from './components/ARFilters';
@@ -20,6 +22,24 @@ import { useARUpload } from './hooks/useARUpload';
 import type { ARModel } from './types';
 
 export function ARStudioPageClient() {
+  return (
+    <PlanGate
+      minimumPlan="professional"
+      showUpgradePrompt
+      fallback={
+        <UpgradeRequiredPage
+          feature="AR Studio"
+          requiredPlan="professional"
+          description="L'AR Studio et le Virtual Try-On sont disponibles a partir du plan Professional."
+        />
+      }
+    >
+      <ARStudioPageContent />
+    </PlanGate>
+  );
+}
+
+function ARStudioPageContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');

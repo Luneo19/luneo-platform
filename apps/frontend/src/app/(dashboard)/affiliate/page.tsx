@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -53,12 +54,11 @@ function ReferralDashboardContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/referral/stats');
-      const data = await response.json();
+      const data = await api.get<{ success?: boolean; data?: { stats?: ReferralStats; referrals?: Referral[] } }>('/api/v1/referral/stats');
 
-      if (data.success) {
-        setStats(data.data.stats);
-        setReferrals(data.data.referrals || []);
+      if (data?.success && data?.data) {
+        setStats(data.data.stats ?? null);
+        setReferrals(data.data.referrals ?? []);
       } else {
         // Données de démo
         setStats({
@@ -94,7 +94,7 @@ function ReferralDashboardContent() {
     if (!stats || stats.pendingCommissions < 50) return;
     setWithdrawing(true);
     try {
-      await fetch('/api/referral/withdraw', { method: 'POST' });
+      await api.post('/api/v1/referral/withdraw');
       // Simuler le retrait
       setStats((prev) => prev ? { ...prev, pendingCommissions: 0, paidCommissions: prev.paidCommissions + prev.pendingCommissions } : null);
     } catch (error) {

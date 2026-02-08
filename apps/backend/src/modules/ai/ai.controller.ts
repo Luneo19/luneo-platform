@@ -14,8 +14,13 @@ import {
 } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import { AIImageService } from './services/ai-image.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/types/user.types';
+import { GenerateImageDto } from './dto/generate-image.dto';
+import { UpscaleImageDto } from './dto/upscale-image.dto';
+import { RemoveBackgroundDto } from './dto/remove-background.dto';
+import { ExtractColorsDto } from './dto/extract-colors.dto';
+import { SmartCropDto } from './dto/smart-crop.dto';
 
 @ApiTags('ai')
 @Controller('ai')
@@ -66,12 +71,7 @@ export class AiController {
   @ApiOperation({ summary: 'Générer une image avec DALL-E 3' })
   @ApiResponse({ status: 200, description: 'Image générée avec succès' })
   async generate(
-    @Body() body: {
-      prompt: string;
-      size?: '1024x1024' | '1792x1024' | '1024x1792';
-      quality?: 'standard' | 'hd';
-      style?: 'vivid' | 'natural';
-    },
+    @Body() body: GenerateImageDto,
     @Request() req: { user: CurrentUser },
   ) {
     return this.aiImageService.generate(
@@ -87,11 +87,7 @@ export class AiController {
   @ApiOperation({ summary: 'Agrandir une image avec Real-ESRGAN' })
   @ApiResponse({ status: 200, description: 'Image agrandie avec succès' })
   async upscale(
-    @Body() body: {
-      imageUrl: string;
-      scale?: '2' | '4';
-      enhanceDetails?: boolean;
-    },
+    @Body() body: UpscaleImageDto,
     @Request() req: { user: CurrentUser },
   ) {
     return this.aiImageService.upscale(
@@ -106,10 +102,7 @@ export class AiController {
   @ApiOperation({ summary: 'Supprimer l\'arrière-plan d\'une image' })
   @ApiResponse({ status: 200, description: 'Arrière-plan supprimé avec succès' })
   async removeBackground(
-    @Body() body: {
-      imageUrl: string;
-      mode?: 'auto' | 'person' | 'product' | 'animal';
-    },
+    @Body() body: RemoveBackgroundDto,
     @Request() req: { user: CurrentUser },
   ) {
     return this.aiImageService.removeBackground(
@@ -123,11 +116,7 @@ export class AiController {
   @ApiOperation({ summary: 'Extraire les couleurs dominantes d\'une image' })
   @ApiResponse({ status: 200, description: 'Couleurs extraites avec succès' })
   async extractColors(
-    @Body() body: {
-      imageUrl: string;
-      maxColors?: number;
-      includeNeutral?: boolean;
-    },
+    @Body() body: ExtractColorsDto,
     @Request() req: { user: CurrentUser },
   ) {
     return this.aiImageService.extractColors(
@@ -142,11 +131,7 @@ export class AiController {
   @ApiOperation({ summary: 'Recadrage intelligent d\'une image' })
   @ApiResponse({ status: 200, description: 'Image recadrée avec succès' })
   async smartCrop(
-    @Body() body: {
-      imageUrl: string;
-      targetAspectRatio?: '1:1' | '16:9' | '9:16' | '4:3';
-      focusPoint?: 'auto' | 'face' | 'center' | 'product';
-    },
+    @Body() body: SmartCropDto,
     @Request() req: { user: CurrentUser },
   ) {
     return this.aiImageService.smartCrop(

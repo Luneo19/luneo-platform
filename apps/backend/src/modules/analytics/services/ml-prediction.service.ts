@@ -1,17 +1,20 @@
 /**
- * ★★★ ML PREDICTION SERVICE ★★★
- * Service pour les prédictions ML (churn, LTV, conversion, etc.)
- * Structure préparée pour intégration de modèles ML réels
- * 
- * TODO: Intégrer avec TensorFlow.js, PyTorch, ou API ML externe (AWS SageMaker, Google AI Platform)
+ * ML Prediction Service - Heuristic-based predictions
+ *
+ * Current: Statistical heuristics with improved coefficients (confidence 0.55–0.70)
+ * Future: Connect to dedicated ML API via ML_API_URL env variable when user base > 1000
+ *
+ * Predictions are cached in AnalyticsPrediction table for 24h
  */
 
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export interface MLPredictionRequest {
-  type: 'churn' | 'ltv' | 'conversion' | 'engagement' | 'revenue';
+  type: 'churn' | 'ltv' | 'conversion' | 'engagement' | 'revenue' | 'demand';
   brandId?: string;
   userId?: string;
   features?: Record<string, any>;
@@ -35,17 +38,25 @@ export class MLPredictionService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    // TODO: Configure ML API endpoint (TensorFlow Serving, SageMaker, etc.)
     this.mlApiUrl = this.configService.get<string>('ML_API_URL') || null;
   }
 
+  /** Build MLPredictionResult from a cached AnalyticsPrediction row. */
+  private fromCached(row: { type: string; value: number; confidence: number; period: string; metadata: unknown }): MLPredictionResult {
+    const meta = (row.metadata ?? {}) as Record<string, unknown>;
+    return {
+      type: row.type,
+      value: row.value,
+      confidence: row.confidence,
+      period: row.period,
+      factors: Array.isArray(meta.factors) ? (meta.factors as Array<{ name: string; impact: number }>) : [],
+      metadata: meta,
+    };
+  }
+
   /**
-   * Prédire le risque de churn pour un utilisateur
-   * 
-   * TODO: Implémenter avec modèle ML réel
-   * - Entraîner modèle sur données historiques
-   * - Features: engagement score, days since last login, plan, revenue, etc.
-   * - Utiliser TensorFlow.js ou API ML externe
+   * Prédire le risque de churn pour un utilisateur.
+   * Heuristic: users with no activity in last 30 days vs total → churn probability.
    */
   async predictChurn(request: MLPredictionRequest): Promise<MLPredictionResult> {
     this.logger.log(`Predicting churn for user: ${request.userId}`);
@@ -54,34 +65,54 @@ export class MLPredictionService {
       throw new BadRequestException('userId is required for churn prediction');
     }
 
-    // TODO: Récupérer features réelles depuis la DB
+    const user = await this.prisma.user.findUnique({
+      where: { id: request.userId },
+      select: { brandId: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    const brandId = user.brandId;
+    if (brandId) {
+      const cached = await this.prisma.analyticsPrediction.findFirst({
+        where: {
+          brandId,
+          type: 'churn',
+          createdAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+          metadata: { path: ['userId'], equals: request.userId },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (cached) return this.fromCached(cached);
+    }
+
     const features = await this.getChurnFeatures(request.userId);
-
-    // TODO: Appeler modèle ML réel
-    // const prediction = await this.callMLModel('churn', features);
-    
-    // Placeholder: Calcul basique basé sur heuristiques
     const churnRisk = this.calculateChurnRiskHeuristic(features);
-
-    return {
+    const result: MLPredictionResult = {
       type: 'churn',
       value: churnRisk.risk,
       confidence: churnRisk.confidence,
       period: '30d',
       factors: churnRisk.factors,
-      metadata: {
-        method: 'heuristic',
-        note: 'ML model not yet integrated - using heuristic calculation',
-      },
+      metadata: { method: 'heuristic', userId: request.userId },
     };
+
+    if (brandId) {
+      await this.prisma.analyticsPrediction.create({
+        data: {
+          brandId,
+          type: 'churn',
+          value: churnRisk.risk,
+          confidence: churnRisk.confidence,
+          period: '30d',
+          metadata: { factors: churnRisk.factors, userId: request.userId, ...result.metadata },
+        },
+      });
+    }
+    return result;
   }
 
   /**
-   * Prédire la Lifetime Value (LTV) d'un utilisateur
-   * 
-   * TODO: Implémenter avec modèle ML réel
-   * - Modèle de régression pour prédire revenus futurs
-   * - Features: historique de commandes, engagement, plan, etc.
+   * Prédire la Lifetime Value (LTV) d'un utilisateur.
+   * Heuristic: historical orders + plan multiplier.
    */
   async predictLTV(request: MLPredictionRequest): Promise<MLPredictionResult> {
     this.logger.log(`Predicting LTV for user: ${request.userId}`);
@@ -90,34 +121,54 @@ export class MLPredictionService {
       throw new BadRequestException('userId is required for LTV prediction');
     }
 
-    // TODO: Récupérer features réelles
+    const user = await this.prisma.user.findUnique({
+      where: { id: request.userId },
+      select: { brandId: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    const brandId = user.brandId;
+    if (brandId) {
+      const cached = await this.prisma.analyticsPrediction.findFirst({
+        where: {
+          brandId,
+          type: 'ltv',
+          createdAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+          metadata: { path: ['userId'], equals: request.userId },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (cached) return this.fromCached(cached);
+    }
+
     const features = await this.getLTVFeatures(request.userId);
-
-    // TODO: Appeler modèle ML réel
-    // const prediction = await this.callMLModel('ltv', features);
-    
-    // Placeholder: Calcul basique
     const ltv = this.calculateLTVHeuristic(features);
-
-    return {
+    const result: MLPredictionResult = {
       type: 'ltv',
       value: ltv.value,
       confidence: ltv.confidence,
       period: '12m',
       factors: ltv.factors,
-      metadata: {
-        method: 'heuristic',
-        note: 'ML model not yet integrated',
-      },
+      metadata: { method: 'heuristic', userId: request.userId },
     };
+
+    if (brandId) {
+      await this.prisma.analyticsPrediction.create({
+        data: {
+          brandId,
+          type: 'ltv',
+          value: ltv.value,
+          confidence: ltv.confidence,
+          period: '12m',
+          metadata: { factors: ltv.factors, userId: request.userId, ...result.metadata },
+        },
+      });
+    }
+    return result;
   }
 
   /**
-   * Prédire la probabilité de conversion
-   * 
-   * TODO: Implémenter avec modèle ML réel
-   * - Classification binaire (convertira ou non)
-   * - Features: comportement utilisateur, source d'acquisition, etc.
+   * Prédire la probabilité de conversion.
+   * Heuristic: conversion count / total sessions from analytics (subscription + orders).
    */
   async predictConversion(request: MLPredictionRequest): Promise<MLPredictionResult> {
     this.logger.log(`Predicting conversion for user: ${request.userId}`);
@@ -126,28 +177,54 @@ export class MLPredictionService {
       throw new BadRequestException('userId is required for conversion prediction');
     }
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: request.userId },
+      select: { brandId: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    const brandId = user.brandId;
+    if (brandId) {
+      const cached = await this.prisma.analyticsPrediction.findFirst({
+        where: {
+          brandId,
+          type: 'conversion',
+          createdAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+          metadata: { path: ['userId'], equals: request.userId },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (cached) return this.fromCached(cached);
+    }
+
     const features = await this.getConversionFeatures(request.userId);
     const conversion = this.calculateConversionHeuristic(features);
-
-    return {
+    const result: MLPredictionResult = {
       type: 'conversion',
       value: conversion.probability,
       confidence: conversion.confidence,
       period: '7d',
       factors: conversion.factors,
-      metadata: {
-        method: 'heuristic',
-        note: 'ML model not yet integrated',
-      },
+      metadata: { method: 'heuristic', userId: request.userId },
     };
+
+    if (brandId) {
+      await this.prisma.analyticsPrediction.create({
+        data: {
+          brandId,
+          type: 'conversion',
+          value: conversion.probability,
+          confidence: conversion.confidence,
+          period: '7d',
+          metadata: { factors: conversion.factors, userId: request.userId, ...result.metadata },
+        },
+      });
+    }
+    return result;
   }
 
   /**
-   * Prédire le revenu futur
-   * 
-   * TODO: Implémenter avec modèle ML réel
-   * - Time series forecasting (ARIMA, Prophet, LSTM)
-   * - Features: historique de revenus, saisonnalité, événements, etc.
+   * Prédire le revenu futur.
+   * Heuristic: average daily revenue from last 30 days of orders × 30 = forecast.
    */
   async predictRevenue(request: MLPredictionRequest): Promise<MLPredictionResult> {
     this.logger.log(`Predicting revenue for brand: ${request.brandId}`);
@@ -156,53 +233,102 @@ export class MLPredictionService {
       throw new BadRequestException('brandId is required for revenue prediction');
     }
 
+    const cached = await this.prisma.analyticsPrediction.findFirst({
+      where: {
+        brandId: request.brandId,
+        type: 'revenue',
+        createdAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (cached) return this.fromCached(cached);
+
     const features = await this.getRevenueFeatures(request.brandId);
     const revenue = this.calculateRevenueHeuristic(features);
-
-    return {
+    const result: MLPredictionResult = {
       type: 'revenue',
       value: revenue.value,
       confidence: revenue.confidence,
       period: '30d',
       factors: revenue.factors,
-      metadata: {
-        method: 'heuristic',
-        note: 'ML model not yet integrated',
-      },
+      metadata: { method: 'heuristic' },
     };
+
+    await this.prisma.analyticsPrediction.create({
+      data: {
+        brandId: request.brandId,
+        type: 'revenue',
+        value: revenue.value,
+        confidence: revenue.confidence,
+        period: '30d',
+        metadata: { factors: revenue.factors, ...result.metadata },
+      },
+    });
+    return result;
   }
 
   /**
-   * Appeler un modèle ML externe (placeholder)
-   * 
-   * TODO: Implémenter selon l'infrastructure ML choisie:
-   * - TensorFlow Serving: POST /v1/models/{model}:predict
-   * - AWS SageMaker: InvokeEndpoint
-   * - Google AI Platform: projects.predict
-   * - PyTorch Serve: POST /predictions/{model}
+   * Prédire la demande (designs/orders).
+   * Heuristic: count of designs/orders per day trend → extrapolate.
+   */
+  async predictDemand(request: MLPredictionRequest): Promise<MLPredictionResult> {
+    this.logger.log(`Predicting demand for brand: ${request.brandId}`);
+
+    if (!request.brandId) {
+      throw new BadRequestException('brandId is required for demand prediction');
+    }
+
+    const cached = await this.prisma.analyticsPrediction.findFirst({
+      where: {
+        brandId: request.brandId,
+        type: 'demand',
+        createdAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (cached) return this.fromCached(cached);
+
+    const result = await this.calculateDemandHeuristic(request.brandId);
+
+    await this.prisma.analyticsPrediction.create({
+      data: {
+        brandId: request.brandId,
+        type: 'demand',
+        value: result.value,
+        confidence: result.confidence,
+        period: result.period,
+        metadata: { factors: result.factors, method: 'heuristic' },
+      },
+    });
+    return result;
+  }
+
+  /**
+   * Call external ML API when ML_API_URL is set. Returns null on miss or error (caller uses heuristic).
+   * ML_API_URL: Configure for dedicated ML model in production (when user base > 1000)
    */
   private async callMLModel(
     modelType: string,
     features: Record<string, any>,
-  ): Promise<any> {
+  ): Promise<unknown> {
     if (!this.mlApiUrl) {
-      this.logger.warn('ML API URL not configured, using heuristic fallback');
       return null;
     }
 
     try {
-      // TODO: Implémenter appel réel à l'API ML
-      // const response = await fetch(`${this.mlApiUrl}/predict/${modelType}`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ features }),
-      // });
-      // return await response.json();
-
-      this.logger.warn(`ML API call not implemented for ${modelType}`);
-      return null;
+      const response = await fetch(`${this.mlApiUrl}/predict/${modelType}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ features }),
+      });
+      if (!response.ok) {
+        this.logger.warn(`ML API returned ${response.status} for ${modelType}`);
+        return null;
+      }
+      return response.json();
     } catch (error) {
-      this.logger.error(`ML API call failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`ML API call failed for ${modelType}: ${message}`);
       return null;
     }
   }
@@ -222,9 +348,11 @@ export class MLPredictionService {
           },
         },
         orders: {
-          take: 10,
+          take: 24,
           orderBy: { createdAt: 'desc' },
+          select: { createdAt: true, totalCents: true, paymentStatus: true },
         },
+        _count: { select: { tickets: true } },
       },
     });
 
@@ -237,12 +365,29 @@ export class MLPredictionService {
       (Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24),
     );
 
+    const now = Date.now();
+    const sixMonthsMs = 180 * 24 * 60 * 60 * 1000;
+    const recentOrders = user.orders.filter((o) => now - o.createdAt.getTime() < sixMonthsMs / 2);
+    const olderOrders = user.orders.filter(
+      (o) => o.createdAt.getTime() >= now - sixMonthsMs && now - o.createdAt.getTime() >= sixMonthsMs / 2,
+    );
+    const recentRate = recentOrders.length / 3;
+    const olderRate = olderOrders.length / 3;
+    const orderTrendDeclining = olderRate > 0 ? Math.max(0, (olderRate - recentRate) / olderRate) : 0;
+
+    const paymentFailureCount = user.orders.filter(
+      (o) => o.paymentStatus === 'FAILED' || o.paymentStatus === 'CANCELLED',
+    ).length;
+
     return {
       daysSinceLastLogin,
       totalOrders: user.orders.length,
       totalRevenue: user.orders.reduce((sum, o) => sum + (o.totalCents || 0), 0) / 100,
       currentPlan: user.brand?.subscriptionPlan || 'FREE',
       accountAge: Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
+      supportTicketCount: user._count.tickets,
+      orderTrendDeclining,
+      hasPaymentFailure: paymentFailureCount > 0,
     };
   }
 
@@ -277,7 +422,9 @@ export class MLPredictionService {
   private async getConversionFeatures(userId: string): Promise<Record<string, any>> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        brandId: true,
+        createdAt: true,
         brand: {
           select: {
             subscriptionPlan: true,
@@ -292,10 +439,37 @@ export class MLPredictionService {
       throw new NotFoundException('User not found');
     }
 
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const eventWhere: { userId: string; timestamp: { gte: Date }; eventType: { in: string[] }; brandId?: string } = {
+      userId,
+      timestamp: { gte: since },
+      eventType: { in: ['page_view', 'cart_add', 'cart_abandon', 'conversion'] },
+    };
+    if (user.brandId) eventWhere.brandId = user.brandId;
+    const events = await this.prisma.analyticsEvent.groupBy({
+      by: ['eventType'],
+      where: eventWhere,
+      _count: { eventType: true },
+    });
+    const eventCounts: Record<string, number> = {};
+    for (const e of events) {
+      eventCounts[e.eventType] = e._count.eventType;
+    }
+    const pageViews = eventCounts['page_view'] ?? 0;
+    const cartAdds = eventCounts['cart_add'] ?? 0;
+    const conversions = eventCounts['conversion'] ?? 0;
+    const pageViewsToCartRatio = pageViews > 0 ? cartAdds / pageViews : 0;
+    const cartAbandonmentRate = cartAdds > 0 ? 1 - conversions / cartAdds : 0;
+
     return {
       hasSubscription: user.brand?.subscriptionStatus === 'ACTIVE' || false,
       totalOrders: user.orders.length,
       accountAge: Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
+      pageViewsToCartRatio,
+      cartAbandonmentRate,
+      pageViews,
+      cartAdds,
+      conversions,
     };
   }
 
@@ -303,7 +477,7 @@ export class MLPredictionService {
     const orders = await this.prisma.order.findMany({
       where: { brandId },
       orderBy: { createdAt: 'desc' },
-      take: 90, // Last 90 days
+      take: 120,
     });
 
     const dailyRevenue = orders.reduce((acc, order) => {
@@ -311,11 +485,64 @@ export class MLPredictionService {
       acc[date] = (acc[date] || 0) + (order.totalCents || 0) / 100;
       return acc;
     }, {} as Record<string, number>);
+    const cutoff3m = new Date();
+    cutoff3m.setDate(cutoff3m.getDate() - 90);
+    const cutoff3mStr = cutoff3m.toISOString().split('T')[0];
+    const last3MonthsEntries = Object.entries(dailyRevenue)
+      .filter(([d]) => d >= cutoff3mStr)
+      .sort(([a], [b]) => a.localeCompare(b));
+    const last3MonthsValues = last3MonthsEntries.map(([, v]) => v);
+    const avgDaily3m = last3MonthsValues.length > 0
+      ? last3MonthsValues.reduce((a, b) => a + b, 0) / last3MonthsValues.length
+      : 0;
+    const trend = this.calculateTrend(last3MonthsValues.length ? last3MonthsValues : [0]);
+    const currentMonth = new Date().getMonth() + 1;
+    const seasonalFactor = currentMonth >= 10 && currentMonth <= 12 ? 1.15 : 1.0;
+
+    const allValues = Object.values(dailyRevenue);
+    return {
+      historicalRevenue: allValues,
+      avgDailyRevenue: allValues.length > 0 ? allValues.reduce((a, b) => a + b, 0) / allValues.length : 0,
+      avgDailyLast3Months: avgDaily3m,
+      trend,
+      seasonalFactor,
+      dataPointsCount: last3MonthsValues.length,
+    };
+  }
+
+  private async getDemandFeatures(brandId: string): Promise<{ designsPerDay: number[]; ordersPerDay: number[]; trend: number }> {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [designs, orders] = await Promise.all([
+      this.prisma.design.findMany({
+        where: { brandId, createdAt: { gte: since } },
+        select: { createdAt: true },
+      }),
+      this.prisma.order.findMany({
+        where: { brandId, createdAt: { gte: since } },
+        select: { createdAt: true },
+      }),
+    ]);
+
+    const dailyDesigns: Record<string, number> = {};
+    const dailyOrders: Record<string, number> = {};
+    for (const d of designs) {
+      const date = d.createdAt.toISOString().split('T')[0];
+      dailyDesigns[date] = (dailyDesigns[date] || 0) + 1;
+    }
+    for (const o of orders) {
+      const date = o.createdAt.toISOString().split('T')[0];
+      dailyOrders[date] = (dailyOrders[date] || 0) + 1;
+    }
+
+    const designsPerDay = Object.values(dailyDesigns);
+    const ordersPerDay = Object.values(dailyOrders);
+    const combined = designsPerDay.length ? designsPerDay : ordersPerDay;
+    const trend = this.calculateTrend(combined.length ? combined : [0]);
 
     return {
-      historicalRevenue: Object.values(dailyRevenue),
-      avgDailyRevenue: Object.values(dailyRevenue).reduce((a, b) => a + b, 0) / Object.keys(dailyRevenue).length || 0,
-      trend: this.calculateTrend(Object.values(dailyRevenue)),
+      designsPerDay,
+      ordersPerDay,
+      trend,
     };
   }
 
@@ -328,34 +555,29 @@ export class MLPredictionService {
     confidence: number;
     factors: Array<{ name: string; impact: number }>;
   } {
-    let risk = 0;
+    const days = features.daysSinceLastLogin ?? 0;
+    const lastLoginDecay = Math.exp(-days / 30);
+    const lastLoginRisk = (1 - lastLoginDecay) * 100;
+    const orderTrend = Math.min(1, features.orderTrendDeclining ?? 0) * 100;
+    const ticketCount = features.supportTicketCount ?? 0;
+    const ticketRisk = Math.min(100, ticketCount * 25);
+    const paymentFailure = features.hasPaymentFailure ? 100 : 0;
+
+    const risk =
+      lastLoginRisk * 0.4 + orderTrend * 0.3 + ticketRisk * 0.15 + paymentFailure * 0.15;
     const factors: Array<{ name: string; impact: number }> = [];
+    if (lastLoginRisk > 10) factors.push({ name: 'Inactivity (login decay)', impact: lastLoginRisk * 0.4 });
+    if (orderTrend > 5) factors.push({ name: 'Declining order frequency', impact: orderTrend * 0.3 });
+    if (ticketRisk > 0) factors.push({ name: 'Support tickets', impact: ticketRisk * 0.15 });
+    if (paymentFailure > 0) factors.push({ name: 'Payment failure(s)', impact: 15 });
 
-    // Days since last login
-    if (features.daysSinceLastLogin > 30) {
-      risk += 30;
-      factors.push({ name: 'Inactive for 30+ days', impact: 30 });
-    } else if (features.daysSinceLastLogin > 14) {
-      risk += 15;
-      factors.push({ name: 'Inactive for 14+ days', impact: 15 });
-    }
-
-    // No orders
-    if (features.totalOrders === 0) {
-      risk += 20;
-      factors.push({ name: 'No orders placed', impact: 20 });
-    }
-
-    // Free plan
-    if (features.currentPlan === 'free') {
-      risk += 10;
-      factors.push({ name: 'Free plan', impact: 10 });
-    }
+    const dataPoints = (features.totalOrders ?? 0) + ticketCount + (features.accountAge > 30 ? 1 : 0);
+    const confidence = dataPoints >= 3 ? 0.65 : 0.55;
 
     return {
-      risk: Math.min(risk, 100),
-      confidence: 0.6, // Low confidence for heuristic
-      factors,
+      risk: Math.min(Math.round(risk), 100),
+      confidence,
+      factors: factors.length ? factors : [{ name: 'Insufficient data', impact: 0 }],
     };
   }
 
@@ -364,15 +586,30 @@ export class MLPredictionService {
     confidence: number;
     factors: Array<{ name: string; impact: number }>;
   } {
-    const baseLTV = features.avgOrderValue * 12; // Assume 12 orders per year
-    const planMultiplier = features.currentPlan === 'pro' ? 1.5 : 1.0;
+    const avgOrderValue = features.avgOrderValue ?? 0;
+    const totalOrders = features.totalOrders ?? 0;
+    const accountAgeDays = features.accountAge ?? 0;
+    const accountAgeYears = accountAgeDays / 365;
+
+    const ordersPerMonth = accountAgeDays > 0 && totalOrders > 0
+      ? totalOrders / (accountAgeDays / 30)
+      : 1 / 12;
+    const predictedOrders12m = ordersPerMonth * 12;
+    const accountAgeMultiplier = Math.min(1, Math.max(0.2, accountAgeYears));
+    const planMultiplier = features.currentPlan === 'PROFESSIONAL' || features.currentPlan === 'ENTERPRISE' ? 1.5 : 1.0;
+
+    const value = avgOrderValue * predictedOrders12m * planMultiplier * accountAgeMultiplier;
+    const historyLength = totalOrders + (accountAgeDays > 90 ? 1 : 0);
+    const confidence = Math.min(0.7, 0.6 + historyLength * 0.02);
 
     return {
-      value: baseLTV * planMultiplier,
-      confidence: 0.5,
+      value: Math.round(value * 100) / 100,
+      confidence,
       factors: [
-        { name: 'Average order value', impact: features.avgOrderValue },
-        { name: 'Current plan', impact: planMultiplier },
+        { name: 'Average order value', impact: avgOrderValue },
+        { name: 'Predicted orders (12m)', impact: Math.round(predictedOrders12m * 10) / 10 },
+        { name: 'Account age multiplier', impact: accountAgeMultiplier },
+        { name: 'Plan', impact: planMultiplier },
       ],
     };
   }
@@ -383,24 +620,40 @@ export class MLPredictionService {
     factors: Array<{ name: string; impact: number }>;
   } {
     let probability = 0;
+    const factors: Array<{ name: string; impact: number }> = [];
 
     if (features.hasSubscription) {
-      probability = 100; // Already converted
+      probability = 100;
+      factors.push({ name: 'Has subscription', impact: 50 });
     } else if (features.totalOrders > 0) {
-      probability = 70; // Has made purchases
+      probability = 65 + Math.min(20, features.totalOrders * 2);
+      factors.push({ name: 'Total orders', impact: features.totalOrders * 10 });
     } else if (features.accountAge > 7) {
-      probability = 40; // Active account
+      probability = 35;
+      factors.push({ name: 'Account age', impact: 15 });
     } else {
-      probability = 20; // New account
+      probability = 20;
     }
 
+    const ratio = features.pageViewsToCartRatio ?? 0;
+    const abandonment = features.cartAbandonmentRate ?? 0;
+    if (ratio > 0) {
+      probability = Math.min(100, probability + ratio * 15);
+      factors.push({ name: 'Page-to-cart ratio', impact: ratio * 15 });
+    }
+    if (abandonment < 0.8) {
+      probability = Math.min(100, probability + (1 - abandonment) * 10);
+      factors.push({ name: 'Cart completion', impact: (1 - abandonment) * 10 });
+    }
+    if (factors.length === 0) factors.push({ name: 'Base score', impact: probability });
+
+    const dataPoints = (features.pageViews ?? 0) + (features.totalOrders ?? 0) + (features.accountAge > 0 ? 1 : 0);
+    const confidence = Math.min(0.7, 0.6 + dataPoints * 0.02);
+
     return {
-      probability,
-      confidence: 0.5,
-      factors: [
-        { name: 'Has subscription', impact: features.hasSubscription ? 50 : 0 },
-        { name: 'Total orders', impact: features.totalOrders * 10 },
-      ],
+      probability: Math.min(100, Math.round(probability)),
+      confidence,
+      factors,
     };
   }
 
@@ -409,16 +662,47 @@ export class MLPredictionService {
     confidence: number;
     factors: Array<{ name: string; impact: number }>;
   } {
-    const trend = features.trend || 0;
-    const predictedRevenue = features.avgDailyRevenue * 30 * (1 + trend / 100);
+    const avgDaily3m = features.avgDailyLast3Months ?? features.avgDailyRevenue ?? 0;
+    const trend = features.trend ?? 0;
+    const seasonal = features.seasonalFactor ?? 1.0;
+    const predictedRevenue = avgDaily3m * 30 * (1 + trend / 100) * seasonal;
+    const dataPoints = features.dataPointsCount ?? 0;
+    const confidence = Math.min(0.65, 0.55 + dataPoints * 0.002);
 
     return {
-      value: predictedRevenue,
-      confidence: 0.6,
+      value: Math.round(predictedRevenue * 100) / 100,
+      confidence,
       factors: [
-        { name: 'Average daily revenue', impact: features.avgDailyRevenue },
-        { name: 'Trend', impact: trend },
+        { name: 'Avg daily revenue (3m)', impact: avgDaily3m },
+        { name: 'Growth trend %', impact: trend },
+        { name: 'Seasonal (Q4)', impact: seasonal > 1 ? (seasonal - 1) * 100 : 0 },
       ],
+    };
+  }
+
+  private async calculateDemandHeuristic(brandId: string): Promise<MLPredictionResult> {
+    const { designsPerDay, ordersPerDay, trend } = await this.getDemandFeatures(brandId);
+    const avgDesignsPerDay = designsPerDay.length ? designsPerDay.reduce((a, b) => a + b, 0) / designsPerDay.length : 0;
+    const avgOrdersPerDay = ordersPerDay.length ? ordersPerDay.reduce((a, b) => a + b, 0) / ordersPerDay.length : 0;
+    const dailyVolume = avgDesignsPerDay + avgOrdersPerDay;
+    const currentMonth = new Date().getMonth() + 1;
+    const seasonalFactor = currentMonth >= 10 && currentMonth <= 12 ? 1.15 : 1.0;
+    const extrapolated = Math.max(0, dailyVolume * 30 * (1 + trend / 100) * seasonalFactor);
+    const dataPoints = designsPerDay.length + ordersPerDay.length;
+    const confidence = Math.min(0.65, dailyVolume > 0 ? 0.55 + dataPoints * 0.01 : 0.35);
+
+    return {
+      type: 'demand',
+      value: Math.round(extrapolated),
+      confidence,
+      period: '30d',
+      factors: [
+        { name: 'Designs per day (avg)', impact: avgDesignsPerDay },
+        { name: 'Orders per day (avg)', impact: avgOrdersPerDay },
+        { name: 'Trend %', impact: trend },
+        { name: 'Seasonal (Q4)', impact: seasonalFactor > 1 ? 15 : 0 },
+      ],
+      metadata: { method: 'heuristic' },
     };
   }
 

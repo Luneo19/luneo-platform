@@ -8,9 +8,9 @@
  * - Intégration POD
  */
 
-import { db } from '@/lib/db';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-import { OrderStatus, ShippingStatus } from '@/lib/types/order';
+import { OrderStatus } from '@/lib/types/order';
 import { z } from 'zod';
 import { protectedProcedure, router } from '../server';
 
@@ -78,82 +78,67 @@ export const orderRouter = router({
 
       logger.info('Creating order', { userId: user.id, itemsCount: input.items.length });
 
-      // Calculate totals (in cents)
-      const subtotalCents = Math.round(
-        input.items.reduce((sum, item) => sum + item.totalPrice * 100, 0)
-      );
+      // Get current user (brandId) from backend
+      const me = await endpoints.auth.me();
+      const brandId = (me as { brandId?: string }).brandId;
 
-      // Calculate shipping based on address
-      const { calculateShipping } = await import('@/lib/utils/shipping-calculator');
-      const items = input.items as Array<{ weight?: number }>;
-      const totalWeight = items.reduce(
-        (sum: number, item) => sum + (item.weight ?? 0.1),
-        0
-      ); // Default 100g per item
-      const shippingCost = calculateShipping(
-        input.shippingAddress,
-        {
-          weight: totalWeight,
-          carrier: (input.metadata as any)?.shippingMethod || 'standard',
-        }
-      );
-      const shippingCents = Math.round(shippingCost * 100);
-
-      // Calculate tax based on country
-      const { calculateTax, isTaxExempt } = await import('@/lib/utils/tax-calculator');
-      const subtotal = subtotalCents / 100;
-      const vatNumber = (input.metadata as any)?.vatNumber;
-      const taxExempt = isTaxExempt(input.shippingAddress, vatNumber);
-      const taxCost = taxExempt ? 0 : calculateTax(subtotal, input.shippingAddress);
-      const taxCents = Math.round(taxCost * 100);
-
-      const totalCents = subtotalCents + shippingCents + taxCents;
-
-      // Generate order number
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-
-      // Get brandId from user
-      const userWithBrand = await db.user.findUnique({
-        where: { id: user.id },
-        select: { brandId: true },
-      });
-
-      if (!userWithBrand?.brandId) {
+      if (!brandId) {
         throw new Error('User must be associated with a brand');
       }
 
-      // Get first item for design/product (simplified - in real app, handle multiple items)
-      const firstItem = input.items[0];
-
-      // Create order (matching Prisma schema)
-      const order = await db.order.create({
-        data: {
-          orderNumber,
-          status: 'CREATED',
-          customerEmail: user.email,
-          customerName: input.shippingAddress.name,
-          customerPhone: input.shippingAddress.phone,
-          shippingAddress: input.shippingAddress as any,
-          subtotalCents,
-          taxCents,
-          shippingCents,
-          totalCents,
-          currency: 'EUR',
-          paymentStatus: 'PENDING',
-          notes: input.customerNotes,
-          metadata: {
-            items: input.items,
-            billingAddress: input.billingAddress,
-            ...input.metadata,
-          } as any,
-          userId: user.id,
-          brandId: userWithBrand.brandId,
-          designId: firstItem.designId || '',
-          productId: firstItem.productId,
+      // Map frontend input to backend CreateOrderDto shape
+      const createBody = {
+        items: input.items.map((item: { productId: string; designId?: string; quantity: number; metadata?: Record<string, unknown> }) => ({
+          product_id: item.productId,
+          design_id: item.designId,
+          quantity: item.quantity,
+          customization: item.metadata,
+        })),
+        customerEmail: user.email,
+        customerName: input.shippingAddress.name,
+        customerPhone: input.shippingAddress.phone,
+        shippingAddress: {
+          line1: input.shippingAddress.street,
+          line2: undefined,
+          city: input.shippingAddress.city,
+          state: input.shippingAddress.state,
+          postalCode: input.shippingAddress.postalCode,
+          country: input.shippingAddress.country,
         },
-      });
+        shippingMethod: (input.metadata as Record<string, unknown>)?.shippingMethod as string | undefined || 'standard',
+        metadata: {
+          items: input.items,
+          billingAddress: input.billingAddress,
+          ...input.metadata,
+        },
+      };
 
-      logger.info('Order created', { orderId: order.id, orderNumber });
+      const order = await api.post<{
+        id: string;
+        orderNumber?: string;
+        status: string;
+        customerEmail?: string;
+        customerName?: string;
+        customerPhone?: string;
+        shippingAddress?: any;
+        subtotalCents?: number;
+        taxCents?: number;
+        shippingCents?: number;
+        totalCents?: number;
+        currency?: string;
+        paymentStatus?: string;
+        notes?: string;
+        metadata?: any;
+        userId?: string;
+        brandId?: string;
+        designId?: string;
+        productId?: string;
+        items?: any[];
+        createdAt?: string;
+        updatedAt?: string;
+      }>('/api/v1/orders', createBody);
+
+      logger.info('Order created', { orderId: order.id, orderNumber: order.orderNumber });
 
       return order;
     }),
@@ -165,27 +150,17 @@ export const orderRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
     .query(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user) {
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-      const userId = user.id;
 
-      const order = await db.order.findFirst({
-        where: {
-          id: input.id,
-          userId,
-        },
-        include: {
-          items: true,
-        },
-      });
+      const order = await endpoints.orders.get(input.id);
 
       if (!order) {
         throw new Error('Order not found');
       }
 
-      return order;
+      return order as Record<string, unknown>;
     }),
 
   list: protectedProcedure
@@ -199,44 +174,20 @@ export const orderRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user) {
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-      const userId = user.id;
 
-      const where: any = {
-        userId,
-      };
+      const page = Math.floor(input.offset / input.limit) + 1;
+      const result = await endpoints.orders.list({
+        page,
+        limit: input.limit,
+        status: input.status,
+      });
 
-      if (input.status) {
-        where.status = input.status;
-      }
-
-      if (input.startDate || input.endDate) {
-        where.createdAt = {};
-        if (input.startDate) {
-          where.createdAt.gte = input.startDate;
-        }
-        if (input.endDate) {
-          where.createdAt.lte = input.endDate;
-        }
-      }
-
-      const [orders, total] = await Promise.all([
-        db.order.findMany({
-          where,
-          include: {
-            items: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: input.limit,
-          skip: input.offset,
-        }),
-        db.order.count({ where }),
-      ]);
+      const data = result as { orders?: unknown[]; pagination?: { total: number } };
+      const orders = data.orders ?? (result as { data?: unknown[] }).data ?? [];
+      const total = data.pagination?.total ?? orders.length;
 
       return {
         orders,
@@ -252,50 +203,24 @@ export const orderRouter = router({
   update: protectedProcedure
     .input(UpdateOrderSchema)
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user) {
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-      const userId = user.id;
       const { id, ...data } = input;
 
-      // Verify ownership
-      const existingOrder = await db.order.findFirst({
-        where: {
-          id,
-          userId,
-        },
-      });
-
+      const existingOrder = await endpoints.orders.get(id);
       if (!existingOrder) {
         throw new Error('Order not found');
       }
 
-      // Update order
-      const order = await db.order.update({
-        where: { id },
-        data: {
-          ...data,
-          updatedAt: new Date(),
-          // Update timestamps based on status
-          ...(data.status === OrderStatus.CONFIRMED && !existingOrder.confirmedAt
-            ? { confirmedAt: new Date() }
-            : {}),
-          ...(data.status === OrderStatus.SHIPPED && !existingOrder.shippedAt
-            ? { shippedAt: new Date() }
-            : {}),
-          ...(data.status === OrderStatus.DELIVERED && !existingOrder.deliveredAt
-            ? { deliveredAt: new Date() }
-            : {}),
-          ...(data.status === OrderStatus.CANCELLED && !existingOrder.cancelledAt
-            ? { cancelledAt: new Date() }
-            : {}),
-        },
+      const order = await api.put(`/api/v1/orders/${id}`, {
+        ...data,
+        ...(data.status ? { status: data.status } : {}),
       });
 
       logger.info('Order updated', { orderId: id, status: data.status });
 
-      return order;
+      return order as Record<string, unknown>;
     }),
 
   // ========================================
@@ -310,44 +235,24 @@ export const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user) {
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-      const userId = user.id;
 
-      // Verify ownership
-      const existingOrder = await db.order.findFirst({
-        where: {
-          id: input.id,
-          userId,
-        },
-      });
-
+      const existingOrder = await endpoints.orders.get(input.id);
       if (!existingOrder) {
         throw new Error('Order not found');
       }
 
-      if (existingOrder.status === OrderStatus.DELIVERED) {
+      if ((existingOrder as { status?: string }).status === OrderStatus.DELIVERED) {
         throw new Error('Cannot cancel delivered order');
       }
 
-      // Cancel order
-      const order = await db.order.update({
-        where: { id: input.id },
-        data: {
-          status: OrderStatus.CANCELLED,
-          cancelledAt: new Date(),
-          internalNotes: input.reason
-            ? `Annulée: ${input.reason}`
-            : 'Commande annulée',
-          updatedAt: new Date(),
-        },
-      });
+      const order = await endpoints.orders.cancel(input.id);
 
       logger.info('Order cancelled', { orderId: input.id, reason: input.reason });
 
-      return order;
+      return order as Record<string, unknown>;
     }),
 
   // ========================================
@@ -364,50 +269,31 @@ export const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user) {
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-      const userId = user.id;
 
-      // Verify ownership
-      const order = await db.order.findFirst({
-        where: {
-          id: input.orderId,
-          userId,
-        },
-      });
-
-      if (!order) {
+      const orderWithItems = await endpoints.orders.get(input.orderId);
+      if (!orderWithItems) {
         throw new Error('Order not found');
       }
 
-      // Call production service
-      const { productionService } = await import('@/lib/services/ProductionService');
-
-      // Get order items
-      const orderWithItems = await db.order.findUnique({
-        where: { id: input.orderId },
-        include: {
-          items: true,
-        },
-      });
-
-      if (!orderWithItems || !orderWithItems.items || orderWithItems.items.length === 0) {
+      const items = (orderWithItems as { items?: { id: string }[] }).items ?? [];
+      if (!items.length) {
         throw new Error('Order has no items');
       }
 
-      // Prepare items for batch generation
-      const items = orderWithItems.items.map((item: any) => ({
+      const { productionService } = await import('@/lib/services/ProductionService');
+
+      const batchItems = items.map((item: { id: string }) => ({
         id: item.id,
         format: input.formats?.[0] || 'pdf',
         quality: input.quality || 'standard',
       }));
 
-      // Generate production files
       const result = await productionService.generateBatch(
         input.orderId,
-        items,
+        batchItems,
         {
           quality: input.quality || 'standard',
           cmyk: input.cmyk || false,
@@ -417,7 +303,7 @@ export const orderRouter = router({
       logger.info('Production files generation started', {
         orderId: input.orderId,
         jobId: result.jobId,
-        itemsCount: items.length,
+        itemsCount: batchItems.length,
       });
 
       return {
@@ -432,18 +318,16 @@ export const orderRouter = router({
   checkProductionStatus: protectedProcedure
     .input(z.object({ jobId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user) {
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-      const userId = user.id;
 
       // Check production job status from cache (or job queue in production)
       const { cacheService } = await import('@/lib/cache/CacheService');
       const jobStatus = cacheService.get<{
         status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
         progress: number;
-        files?: Array<{ itemId: string; format: string; url: string; size: number; metadata?: any }>;
+        files?: Array<{ itemId: string; format: string; url: string; size: number; metadata?: Record<string, unknown> }>;
         error?: string;
         orderId?: string;
       }>(`production:job:${input.jobId}`);
@@ -452,16 +336,13 @@ export const orderRouter = router({
         throw new Error('Production job not found');
       }
 
-      // Verify ownership if orderId is available
       if (jobStatus.orderId) {
-        const order = await db.order.findFirst({
-          where: {
-            id: jobStatus.orderId,
-            userId,
-          },
-        });
-
-        if (!order) {
+        try {
+          const order = await endpoints.orders.get(jobStatus.orderId);
+          if (!order) {
+            throw new Error('Order not found or access denied');
+          }
+        } catch {
           throw new Error('Order not found or access denied');
         }
       }
@@ -487,35 +368,19 @@ export const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user) {
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-      const userId = user.id;
 
-      // Verify ownership
-      const existingOrder = await db.order.findFirst({
-        where: {
-          id: input.orderId,
-          userId,
-        },
-      });
-
+      const existingOrder = await endpoints.orders.get(input.orderId);
       if (!existingOrder) {
         throw new Error('Order not found');
       }
 
-      // Update tracking
-      const order = await db.order.update({
-        where: { id: input.orderId },
-        data: {
-          trackingNumber: input.trackingNumber,
-          shippingProvider: input.shippingProvider,
-          status: OrderStatus.SHIPPED,
-          shippingStatus: ShippingStatus.SHIPPED,
-          shippedAt: new Date(),
-          updatedAt: new Date(),
-        },
+      const order = await api.put(`/api/v1/orders/${input.orderId}`, {
+        trackingNumber: input.trackingNumber,
+        shippingProvider: input.shippingProvider,
+        status: OrderStatus.SHIPPED,
       });
 
       logger.info('Order tracking updated', {
@@ -523,44 +388,26 @@ export const orderRouter = router({
         trackingNumber: input.trackingNumber,
       });
 
-      return order;
+      return order as Record<string, unknown>;
     }),
 
   markAsDelivered: protectedProcedure
     .input(z.object({ orderId: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user) {
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-      const userId = user.id;
 
-      // Verify ownership
-      const existingOrder = await db.order.findFirst({
-        where: {
-          id: input.orderId,
-          userId,
-        },
-      });
-
+      const existingOrder = await endpoints.orders.get(input.orderId);
       if (!existingOrder) {
         throw new Error('Order not found');
       }
 
-      // Mark as delivered
-      const order = await db.order.update({
-        where: { id: input.orderId },
-        data: {
-          status: OrderStatus.DELIVERED,
-          shippingStatus: ShippingStatus.DELIVERED,
-          deliveredAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
+      const order = await endpoints.orders.updateStatus(input.orderId, OrderStatus.DELIVERED);
 
       logger.info('Order marked as delivered', { orderId: input.orderId });
 
-      return order;
+      return order as Record<string, unknown>;
     }),
 });
 

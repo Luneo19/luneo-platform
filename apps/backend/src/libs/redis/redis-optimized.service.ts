@@ -18,12 +18,12 @@ interface CacheOptions {
 @Injectable()
 export class RedisOptimizedService {
   private readonly logger = new Logger(RedisOptimizedService.name);
-  private readonly redis: Redis;
+  private redis: Redis | null = null;
   
   /**
    * Get the underlying Redis client for advanced operations
    */
-  get client(): Redis {
+  get client(): Redis | null {
     return this.redis;
   }
   private readonly cacheConfigs: Record<string, CacheConfig> = {
@@ -55,7 +55,7 @@ export class RedisOptimizedService {
     if (!isValidRedisUrl(redisUrl)) {
       this.logger.warn(`Redis URL not configured or invalid (${redisUrl?.substring(0, 30)}...), running in degraded mode without cache`);
       // Créer un client Redis factice qui ne se connecte pas
-      this.redis = null as any;
+      this.redis = null;
       return;
     }
     
@@ -66,19 +66,16 @@ export class RedisOptimizedService {
       retryDelayOnFailover: 50,
       keepAlive: 30000,
       lazyConnect: true,
-      // Connection pooling optimisé
       family: 4,
-      connectTimeout: 10000, // Augmenté pour Upstash
-      commandTimeout: 5000, // Augmenté pour Upstash
-      maxRetriesPerRequest: isUpstash ? 3 : 1, // Plus de retries pour Upstash
-      enableOfflineQueue: false, // Ne pas mettre en queue si déconnecté
-      // Configuration TLS pour Upstash
+      connectTimeout: 10000,
+      maxRetriesPerRequest: isUpstash ? 3 : 1,
+      enableOfflineQueue: false,
       ...(isUpstash && {
         tls: {
-          rejectUnauthorized: true, // Upstash utilise des certificats valides
+          rejectUnauthorized: true,
         },
       }),
-    } as any);
+    });
 
     this.setupEventListeners();
     // Ne pas appeler initializeCacheConfigs() dans le constructeur pour éviter de bloquer
@@ -86,12 +83,13 @@ export class RedisOptimizedService {
     setTimeout(() => this.initializeCacheConfigs(), 0);
   }
 
-  private setupEventListeners() {
+  private setupEventListeners(): void {
+    if (!this.redis) return;
     this.redis.on('connect', () => {
       this.logger.log('Redis connected successfully');
     });
 
-    this.redis.on('error', (error: any) => {
+    this.redis.on('error', (error: Error) => {
       // Gérer spécifiquement les erreurs de limite Upstash
       if (error.message?.includes('max requests limit exceeded')) {
         this.logger.warn('Redis request limit exceeded. Cache will work in degraded mode.');
@@ -105,10 +103,10 @@ export class RedisOptimizedService {
     });
   }
 
-  private async initializeCacheConfigs() {
+  private async initializeCacheConfigs(): Promise<void> {
     try {
+      if (!this.redis) return;
       // Ne pas bloquer le démarrage si Redis n'est pas disponible
-      // Cette méthode est appelée de manière asynchrone et ne bloque pas le constructeur
       const isConnected = await this.redis.ping().catch(() => false);
       if (!isConnected) {
         this.logger.warn('Redis not available, cache will work in degraded mode');
@@ -123,8 +121,8 @@ export class RedisOptimizedService {
         });
         this.logger.log(`Cache config initialized for ${type}: TTL=${config.ttl}s, MaxMemory=${config.maxMemory}`);
       }
-    } catch (error) {
-      this.logger.warn('Redis cache config initialization failed, continuing without cache:', error.message);
+    } catch (error: unknown) {
+      this.logger.warn('Redis cache config initialization failed, continuing without cache:', error instanceof Error ? error.message : String(error));
       // Ne pas throw l'erreur pour ne pas bloquer le démarrage
     }
   }
@@ -326,14 +324,17 @@ export class RedisOptimizedService {
    * Get cache statistics
    */
   async getStats(): Promise<{
-    memory: any;
-    keyspace: any;
-    clients: any;
-    stats: any;
+    memory: unknown;
+    keyspace: unknown;
+    clients: unknown;
+    stats: unknown;
   }> {
     try {
+      if (!this.redis) {
+        return { memory: null, keyspace: null, clients: null, stats: null };
+      }
       const [memory, keyspace, clients, stats] = await Promise.all([
-        this.redis.memory('usage' as any),
+        (this.redis as unknown as { memory?: (arg: string) => Promise<unknown> }).memory?.('usage') ?? Promise.resolve(null),
         this.redis.info('keyspace'),
         this.redis.info('clients'),
         this.redis.info('stats'),
@@ -395,7 +396,7 @@ export class RedisOptimizedService {
   /**
    * Get Redis instance for advanced operations
    */
-  getRedis(): Redis {
+  getRedis(): Redis | null {
     return this.redis;
   }
 }

@@ -55,7 +55,7 @@ export class AgentMemoryService {
         context: {
           ...currentContext,
           ...context,
-        } as any,
+        } as Record<string, unknown>,
       },
     });
 

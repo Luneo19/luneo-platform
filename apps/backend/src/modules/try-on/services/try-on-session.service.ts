@@ -50,7 +50,7 @@ export class TryOnSessionService {
         configurationId,
         sessionId,
         visitorId,
-        deviceInfo: (deviceInfo || {}) as any,
+        deviceInfo: (deviceInfo || {}) as Record<string, unknown>,
         productsTried: [],
       },
       select: {

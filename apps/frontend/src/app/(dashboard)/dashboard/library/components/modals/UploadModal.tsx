@@ -143,7 +143,7 @@ export function UploadModal({
           )}
         </div>
         <div className="flex items-center justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Annuler
           </Button>
           <Button

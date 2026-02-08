@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 
@@ -9,10 +9,10 @@ const logger = new Logger('PrismaService');
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   // Access to all Prisma models including DesignDNA, PromptTemplate, OutboxEvent, Artisan, WorkOrder, Payout
   constructor(private configService: ConfigService) {
-    // Configuration optimisée pour Railway/PostgreSQL
-    // Ajouter des paramètres de pool dans DATABASE_URL si nécessaire
+    // Connection pool settings are applied via DATABASE_URL query params in production
+    // (e.g. connection_limit=10&pool_timeout=20&connect_timeout=10). See .env.example and PRODUCTION_CHECKLIST.md.
     const databaseUrl = configService.get('database.url');
-    
+
     super({
       datasources: {
         db: {
@@ -57,20 +57,24 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$disconnect();
   }
 
+  /**
+   * Cleans the database by truncating all public tables (test env only).
+   * Uses a whitelist from pg_tables and Prisma.sql/Prisma.raw to avoid SQL injection.
+   */
   async cleanDatabase() {
     if (this.configService.get('app.nodeEnv') === 'test') {
       const tablenames = await this.$queryRaw<Array<{ tablename: string }>>`
-        SELECT tablename FROM pg_tables WHERE schemaname='public'
+        SELECT tablename FROM pg_tables WHERE schemaname = 'public'
       `;
-
-      const tables = tablenames
+      const validTableNames = tablenames
         .map(({ tablename }) => tablename)
-        .filter((name) => name !== '_prisma_migrations')
-        .map((name) => `"public"."${name}"`)
-        .join(', ');
+        .filter((name) => name !== '_prisma_migrations');
 
       try {
-        await this.$executeRawUnsafe(`TRUNCATE TABLE ${tables} CASCADE;`);
+        for (const tablename of validTableNames) {
+          const qualifiedName = `"public"."${tablename}"`;
+          await this.$executeRaw(Prisma.sql`TRUNCATE TABLE ${Prisma.raw(qualifiedName)} CASCADE`);
+        }
       } catch (error) {
         logger.error('Error cleaning database', error);
       }

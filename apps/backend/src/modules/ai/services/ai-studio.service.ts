@@ -818,7 +818,7 @@ Only return the JSON array, no other text.`;
         throw new NotFoundException(`Template ${id} not found`);
       }
 
-      const params = (template.parameters as any) || {};
+      const params = (template.parameters as Record<string, unknown>) || {};
       return {
         id: template.id,
         name: params.name || 'Untitled Template',
@@ -877,7 +877,7 @@ Only return the JSON array, no other text.`;
         },
       });
 
-      const params = (template.parameters as any) || {};
+      const params = (template.parameters as Record<string, unknown>) || {};
       return {
         id: template.id,
         name: params.name,
@@ -919,7 +919,7 @@ Only return the JSON array, no other text.`;
         throw new NotFoundException(`Template ${id} not found`);
       }
 
-      const existingParams = (existing.parameters as any) || {};
+      const existingParams = (existing.parameters as Record<string, unknown>) || {};
       const updatedParams = {
         ...existingParams,
         ...(dto.name && { name: dto.name }),
@@ -941,7 +941,7 @@ Only return the JSON array, no other text.`;
         },
       });
 
-      const params = (template.parameters as any) || {};
+      const params = (template.parameters as Record<string, unknown>) || {};
       return {
         id: template.id,
         name: params.name,
@@ -1031,7 +1031,7 @@ Only return the JSON array, no other text.`;
       ]);
 
       const result = animations.map(a => {
-        const params = (a.parameters as any) || {};
+        const params = (a.parameters as Record<string, unknown>) || {};
         return {
           id: a.id,
           prompt: a.prompt,
@@ -1086,7 +1086,7 @@ Only return the JSON array, no other text.`;
         throw new NotFoundException(`Animation ${id} not found`);
       }
 
-      const params = (animation.parameters as any) || {};
+      const params = (animation.parameters as Record<string, unknown>) || {};
       return {
         id: animation.id,
         prompt: animation.prompt,
@@ -1166,7 +1166,7 @@ Only return the JSON array, no other text.`;
 
       this.logger.log(`Animation ${animation.id} queued for background processing`);
 
-      const params = (animation.parameters as any) || {};
+      const params = (animation.parameters as Record<string, unknown>) || {};
       return {
         id: animation.id,
         prompt: animation.prompt,

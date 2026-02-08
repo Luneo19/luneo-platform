@@ -8,7 +8,19 @@
  * - Database query monitoring
  */
 
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+
+// DOM Performance API types (Layout Shift / LCP / FID)
+interface LayoutShiftEntry extends PerformanceEntry {
+  value: number;
+  hadRecentInput: boolean;
+}
+
+interface LargestContentfulPaint extends PerformanceEntry {
+  renderTime?: number;
+  loadTime?: number;
+}
 
 // ========================================
 // TYPES
@@ -77,8 +89,9 @@ export class PerformanceMonitorService {
     let clsValue = 0;
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        if (!(entry as any).hadRecentInput) {
-          clsValue += (entry as any).value;
+        const layoutShift = entry as LayoutShiftEntry;
+        if (!layoutShift.hadRecentInput) {
+          clsValue += layoutShift.value;
         }
       }
       this.trackWebVital({
@@ -106,19 +119,21 @@ export class PerformanceMonitorService {
     // Track LCP (Largest Contentful Paint)
     new PerformanceObserver((list) => {
       const entries = list.getEntries();
-      const lastEntry = entries[entries.length - 1] as any;
+      const lastEntry = entries[entries.length - 1] as LargestContentfulPaint;
+      const renderTime = lastEntry.renderTime ?? lastEntry.loadTime ?? 0;
       this.trackWebVital({
         name: 'LCP',
-        value: lastEntry.renderTime || lastEntry.loadTime,
+        value: renderTime,
         id: `lcp-${Date.now()}`,
-        rating: lastEntry.renderTime < 2500 ? 'good' : lastEntry.renderTime < 4000 ? 'needs-improvement' : 'poor',
+        rating: renderTime < 2500 ? 'good' : renderTime < 4000 ? 'needs-improvement' : 'poor',
       });
     }).observe({ type: 'largest-contentful-paint', buffered: true });
 
     // Track FID (First Input Delay)
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        const fid = (entry as any).processingStart - entry.startTime;
+        const timingEntry = entry as PerformanceEventTiming;
+        const fid = (timingEntry.processingStart ?? timingEntry.startTime) - entry.startTime;
         this.trackWebVital({
           name: 'FID',
           value: fid,
@@ -135,16 +150,10 @@ export class PerformanceMonitorService {
   private trackWebVital(metric: WebVitals): void {
     logger.info('Web Vital', metric);
 
-    // Send to analytics service (async, non-blocking)
-    if (typeof window !== 'undefined') {
-      fetch('/api/analytics/web-vitals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(metric),
-      }).catch((error) => {
-        logger.error('Error sending web vital to analytics', { error, metric });
-      });
-    }
+    if (typeof window === 'undefined') return;
+    api.post('/api/v1/analytics/web-vitals', metric).catch(() => {
+      // Silent failure for background telemetry
+    });
   }
 
   // ========================================
@@ -194,8 +203,9 @@ export class PerformanceMonitorService {
     // Send to error tracking service (Sentry, etc.)
     if (typeof window !== 'undefined') {
       // Send to Sentry if available
-      if (typeof window !== 'undefined' && (window as any).Sentry) {
-        const Sentry = (window as any).Sentry;
+      const w = typeof window !== 'undefined' ? window : null;
+      const Sentry = w && 'Sentry' in w ? (w as Window & { Sentry?: { captureException: (err: Error, opts?: Record<string, unknown>) => void } }).Sentry : undefined;
+      if (Sentry?.captureException) {
         Sentry.captureException(new Error(error.message), {
           level: error.severity === 'critical' ? 'fatal' : error.severity === 'high' ? 'error' : 'warning',
           tags: {
@@ -209,15 +219,9 @@ export class PerformanceMonitorService {
         });
       }
 
-      // Also send to our API for aggregation
+      // Also send to our API for aggregation (silent failure)
       if (error.severity === 'critical' || error.severity === 'high') {
-        fetch('/api/monitoring/errors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(error),
-        }).catch((err) => {
-          logger.error('Error sending error to monitoring API', { err, error });
-        });
+        api.post('/api/v1/monitoring/errors', error).catch(() => {});
       }
     }
   }
@@ -259,7 +263,7 @@ export class PerformanceMonitorService {
         });
 
         return response;
-      } catch (error: any) {
+      } catch (error: unknown) {
         const duration = performance.now() - start;
         this.trackAPIMetric({
           endpoint: url,
@@ -287,17 +291,10 @@ export class PerformanceMonitorService {
       logger.warn('Slow API request', metric);
     }
 
-    // Send to analytics service (async, non-blocking, batched)
+    // Send to analytics service (async, non-blocking, batched); silent failure
     if (typeof window !== 'undefined' && this.metrics.length % 10 === 0) {
-      // Batch send every 10 metrics
       const recentMetrics = this.metrics.slice(-10);
-      fetch('/api/analytics/api-metrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metrics: recentMetrics }),
-      }).catch((error) => {
-        logger.error('Error sending API metrics to analytics', { error });
-      });
+      api.post('/api/v1/analytics/api-metrics', { metrics: recentMetrics }).catch(() => {});
     }
   }
 

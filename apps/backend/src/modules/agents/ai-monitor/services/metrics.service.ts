@@ -91,7 +91,7 @@ export class MetricsService {
       // Par défaut, 30 derniers jours
       const defaultStart = new Date();
       defaultStart.setDate(defaultStart.getDate() - 30);
-      where.createdAt = { gte: defaultStart } as any;
+      where.createdAt = { gte: defaultStart } as { gte: Date };
     }
 
     // Récupérer les logs

@@ -22,9 +22,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+
+// Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
+const APP_URL = 'https://luneo.app';
 
 export default function EcommercePage() {
   const [selectedPlatform, setSelectedPlatform] = useState('Shopify');
@@ -42,21 +46,14 @@ export default function EcommercePage() {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/emails/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: contact.email,
-          brandName: contact.brand,
-          subject: `Demande demo Luneo Ecommerce (${selectedPlatform})`,
-          customMessage:
-            contact.message ||
-            `Integrer Luneo avec ${selectedPlatform} (configurateur produits + sync commandes)`,
-        }),
+      await api.post('/api/v1/emails/send-welcome', {
+        email: contact.email,
+        brandName: contact.brand,
+        subject: `Demande demo Luneo Ecommerce (${selectedPlatform})`,
+        customMessage:
+          contact.message ||
+          `Integrer Luneo avec ${selectedPlatform} (configurateur produits + sync commandes)`,
       });
-      if (!response.ok) {
-        throw new Error('send-welcome failed');
-      }
       setSubmitted(true);
       setContact({ email: '', brand: '', message: '' });
     } catch (error) {
@@ -184,6 +181,31 @@ export default function EcommercePage() {
   return (
     <ErrorBoundary level="page" componentName="EcommercePage">
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Luneo E-commerce Integration',
+            description: 'Seamless product customization integration for Shopify, WooCommerce and PrestaShop',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            url: `${APP_URL}/solutions/ecommerce`,
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'EUR',
+              description: 'Free tier available',
+            },
+            provider: {
+              '@type': 'Organization',
+              name: 'Luneo',
+              url: APP_URL,
+            },
+          }),
+        }}
+      />
       <PageHero
         title="E-commerce"
         description="Connectez Luneo à votre boutique en ligne. Shopify, WooCommerce, Magento, PrestaShop - intégration native en 15 minutes. Augmentez vos conversions de 35%."

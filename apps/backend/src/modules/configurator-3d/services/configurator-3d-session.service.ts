@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Configurator3DSessionStatus } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
 import { randomBytes } from 'crypto';
 
@@ -52,8 +53,8 @@ export class Configurator3DSessionService {
         sessionId,
         visitorId,
         status: Configurator3DSessionStatus.ACTIVE,
-        state: {} as any,
-        deviceInfo: (deviceInfo || {}) as any,
+        state: {} as Prisma.InputJsonValue,
+        deviceInfo: (deviceInfo || {}) as Prisma.InputJsonValue,
       },
       select: {
         id: true,
@@ -100,7 +101,7 @@ export class Configurator3DSessionService {
     const updated = await this.prisma.configurator3DSession.update({
       where: { id: session.id },
       data: {
-        state: state as any,
+        state: state as Prisma.InputJsonValue,
         previewImageUrl,
       },
       select: {

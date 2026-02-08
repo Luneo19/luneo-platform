@@ -1,7 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { CacheInvalidate } from '@/libs/cache/cacheable.decorator';
+import sharp from 'sharp';
 
 @Injectable()
 export class TryOnScreenshotService {
@@ -57,8 +59,14 @@ export class TryOnScreenshotService {
     // Générer thumbnail si demandé
     let thumbnailUrl: string | undefined;
     if (options?.generateThumbnail) {
-      // TODO: Implémenter génération thumbnail avec sharp
-      thumbnailUrl = imageUrl; // Placeholder
+      const thumbBuffer = await sharp(imageData)
+        .resize(200, 200, { fit: 'cover' })
+        .toBuffer();
+      thumbnailUrl = await this.storageService.uploadFile(
+        `try-on/screenshots/${sessionId}/${Date.now()}_thumb.png`,
+        thumbBuffer,
+        'image/png',
+      );
     }
 
     // Créer le screenshot
@@ -178,8 +186,9 @@ export class TryOnScreenshotService {
   async generateSharedUrl(id: string) {
     const screenshot = await this.findOne(id);
 
-    // TODO: Générer URL partageable avec token unique
-    const sharedUrl = `${process.env.APP_URL}/share/try-on/${screenshot.id}`;
+    const token = randomBytes(32).toString('hex');
+    const baseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
+    const sharedUrl = `${baseUrl}/share/try-on/${screenshot.id}?token=${token}`;
 
     const updated = await this.prisma.tryOnScreenshot.update({
       where: { id },

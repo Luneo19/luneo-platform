@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 // Types
 interface IntegrationFeature {
@@ -45,14 +46,11 @@ export function useIntegrationData(integrationId: string) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/public/integrations?id=${integrationId}`);
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement des données');
+      const result = await api.get<{ success?: boolean; data?: IntegrationData; error?: string }>('/api/v1/public/integrations', { params: { id: integrationId } });
+      if (result && (result as { success?: boolean }).success === false) {
+        throw new Error((result as { error?: string }).error || 'Erreur lors du chargement des données');
       }
-
-      setData(result.data);
+      setData((result as { data?: IntegrationData })?.data ?? (result as unknown as IntegrationData));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement données intégration', {
@@ -93,20 +91,11 @@ export function useAllIntegrations(options?: { category?: string }) {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams();
-      if (category) {
-        params.set('category', category);
+      const result = await api.get<{ success?: boolean; data?: IntegrationData[]; error?: string }>('/api/v1/public/integrations', { params: category ? { category } : undefined });
+      if (result && (result as { success?: boolean }).success === false) {
+        throw new Error((result as { error?: string }).error || 'Erreur lors du chargement des intégrations');
       }
-
-      const url = `/api/public/integrations${params.toString() ? `?${params}` : ''}`;
-      const response = await fetch(url);
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement des intégrations');
-      }
-
-      setData(result.data);
+      setData((result as { data?: IntegrationData[] })?.data ?? []);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement toutes les intégrations', {

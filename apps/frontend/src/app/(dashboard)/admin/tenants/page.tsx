@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Search, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -41,13 +42,9 @@ function AdminTenantsPage() {
 
   const fetchTenants = async () => {
     try {
-      // In a real implementation, this would fetch from /api/admin/tenants
-      // For now, we'll use a mock or call the usage endpoint
-      const response = await fetch('/api/admin/tenants');
-      if (response.ok) {
-        const data = await response.json();
-        setTenants(data);
-      }
+      const data = await api.get<Tenant[] | { tenants?: Tenant[] }>('/api/v1/admin/tenants');
+      const list = Array.isArray(data) ? data : (data as { tenants?: Tenant[] })?.tenants ?? [];
+      setTenants(list);
     } catch (error) {
       logger.error('Failed to fetch tenants', {
         error,
@@ -60,13 +57,12 @@ function AdminTenantsPage() {
 
   const fetchTenantUsage = async (brandId: string) => {
     try {
-      const response = await fetch(`/api/usage-billing/tenant/${brandId}/usage?enforceSoftLimit=true`);
-      if (response.ok) {
-        const usage = await response.json();
-        setTenants((prev) =>
-          prev.map((t) => (t.id === brandId ? { ...t, usage } : t))
-        );
-      }
+      const usage = await api.get<TenantUsage>('/api/v1/usage-billing/tenant/' + brandId + '/usage', {
+        params: { enforceSoftLimit: 'true' },
+      });
+      setTenants((prev) =>
+        prev.map((t) => (t.id === brandId ? { ...t, usage } : t))
+      );
     } catch (error) {
       logger.error('Failed to fetch tenant usage', {
         error,
@@ -78,14 +74,8 @@ function AdminTenantsPage() {
 
   const toggleFeature = async (brandId: string, feature: string, enabled: boolean) => {
     try {
-      const response = await fetch(`/api/admin/tenants/${brandId}/features`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feature, enabled }),
-      });
-      if (response.ok) {
-        await fetchTenantUsage(brandId);
-      }
+      await api.patch(`/api/v1/admin/tenants/${brandId}/features`, { feature, enabled });
+      await fetchTenantUsage(brandId);
     } catch (error) {
       logger.error('Failed to toggle feature', {
         error,

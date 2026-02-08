@@ -17,15 +17,15 @@ export function PasswordSection() {
 
   return (
     <>
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-gray-900 flex items-center gap-2">
                 <Lock className="w-5 h-5 text-cyan-400" />
                 Mot de passe
               </CardTitle>
-              <CardDescription className="text-gray-400 mt-1">
+              <CardDescription className="text-gray-600 mt-1">
                 Changez votre mot de passe régulièrement pour maintenir la sécurité de votre compte
               </CardDescription>
             </div>
@@ -38,7 +38,7 @@ export function PasswordSection() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-gray-400">
+          <div className="space-y-2 text-sm text-gray-600">
             <p>• Votre mot de passe doit contenir au moins 8 caractères</p>
             <p>• Utilisez une combinaison de lettres, chiffres et symboles</p>
             <p>• Ne partagez jamais votre mot de passe</p>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { getBackendUrl } from '@/lib/api/server-url';
 
 // Validation schema
 const SubscribeSchema = z.object({
@@ -68,51 +69,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Option 2: Stocker dans Supabase
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-
-        // Vérifier si l'email existe déjà
-        const { data: existing } = await supabase
-          .from('newsletter_subscribers')
-          .select('id')
-          .eq('email', email)
-          .single();
-
-        if (existing) {
-          // Déjà inscrit - réactiver si désabonné
-          await supabase
-            .from('newsletter_subscribers')
-            .update({
-              status: 'active',
-              resubscribed_at: new Date().toISOString(),
-            })
-            .eq('email', email);
-
-          logger.info('Subscriber reactivated', { email: email.replace(/(.{2}).*@/, '$1***@') });
-        } else {
-          // Nouvel abonné
-          await supabase.from('newsletter_subscribers').insert({
-            email,
-            source,
-            status: 'active',
-            created_at: new Date().toISOString(),
-          });
-
-          logger.info('New subscriber added', { email: email.replace(/(.{2}).*@/, '$1***@') });
-        }
-      } catch (dbError: unknown) {
-        // Si la table n'existe pas, on ignore
-        const errorMessage = dbError instanceof Error ? dbError.message : '';
-        if (!errorMessage.includes('does not exist')) {
-          logger.error('Database error', { error: dbError });
-        }
-      }
+    // Option 2: Store subscription via backend API
+    const backendUrl = getBackendUrl();
+    try {
+      await fetch(`${backendUrl}/api/v1/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source }),
+      });
+      logger.info('Subscriber stored via backend', { email: email.replace(/(.{2}).*@/, '$1***@') });
+    } catch (dbError) {
+      logger.warn('Backend newsletter storage failed', { error: dbError });
     }
 
     // Envoyer email de confirmation
@@ -129,7 +96,7 @@ export async function POST(request: NextRequest) {
               to: [{ email }],
               subject: '✅ Bienvenue dans la newsletter Luneo !',
             }],
-            from: { email: 'noreply@luneo.app', name: 'Luneo' },
+            from: { email: process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app', name: 'Luneo' },
             content: [{
               type: 'text/html',
               value: `
@@ -162,7 +129,7 @@ export async function POST(request: NextRequest) {
                   </p>
                   
                   <div style="text-align: center; margin: 30px 0;">
-                    <a href="https://luneo.app/demo" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/demo" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
                       Voir les démos
                     </a>
                   </div>
@@ -171,7 +138,7 @@ export async function POST(request: NextRequest) {
                   
                   <p style="color: #9ca3af; font-size: 12px; text-align: center;">
                     Vous recevez cet email car vous vous êtes inscrit à la newsletter Luneo.<br>
-                    <a href="https://luneo.app/unsubscribe?email=${encodeURIComponent(email)}" style="color: #6b7280;">Se désabonner</a>
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/unsubscribe?email=${encodeURIComponent(email)}" style="color: #6b7280;">Se désabonner</a>
                   </p>
                 </div>
               `,

@@ -2,7 +2,7 @@
  * Types pour la page Billing
  */
 
-export type SubscriptionTier = 'free' | 'starter' | 'pro' | 'enterprise';
+export type SubscriptionTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
 export type SubscriptionStatus = 'active' | 'inactive' | 'cancelled' | 'past_due' | 'trialing';
 export type SubscriptionPeriod = 'monthly' | 'yearly';
 

@@ -26,7 +26,16 @@ import {
   Filter,
   Layers,
   GitBranch,
+  HelpCircle,
 } from 'lucide-react';
+import { trpc } from '@/lib/trpc/client';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { formatPrice } from '@/lib/utils/formatters';
 import type { TimeRange, AnalyticsView } from './types';
 
 export function AnalyticsAdvancedPageClient() {
@@ -43,6 +52,11 @@ export function AnalyticsAdvancedPageClient() {
     stats,
     isLoading,
   } = useAdvancedAnalytics(timeRange);
+
+  const { data: revenuePredictions, isLoading: predictionsLoading } =
+    trpc.analyticsAdvanced.getRevenuePredictions.useQuery(undefined, {
+      staleTime: 60_000,
+    });
 
   const handleExport = () => {
     toast({
@@ -142,6 +156,84 @@ export function AnalyticsAdvancedPageClient() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-6">
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                  Prédictions de revenus
+                  <span className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-500/20 dark:text-amber-400">
+                    Beta
+                  </span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex cursor-help text-gray-400 hover:text-gray-300">
+                          <HelpCircle className="w-4 h-4" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p>
+                          Prédictions basées sur des heuristiques statistiques. La précision
+                          s&apos;améliorera avec plus de données.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </CardTitle>
+              </div>
+              <CardDescription className="text-gray-400">
+                Prévisions sur les 30 prochains jours selon différents scénarios
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {predictionsLoading ? (
+                <div className="h-24 flex items-center justify-center text-gray-400 text-sm">
+                  Chargement des prédictions...
+                </div>
+              ) : revenuePredictions?.predictions?.length ? (
+                <ul className="space-y-3">
+                  {revenuePredictions.predictions.map(
+                    (
+                      p: {
+                        scenario: string;
+                        revenue: number;
+                        probability?: number;
+                        confidence?: number;
+                      },
+                      i: number
+                    ) => (
+                      <li
+                        key={i}
+                        className="flex items-center justify-between py-2 border-b border-gray-700/50 last:border-0"
+                      >
+                        <span className="text-sm text-gray-300 capitalize">
+                          {p.scenario === 'conservative'
+                            ? 'Conservateur'
+                            : p.scenario === 'optimistic'
+                              ? 'Optimiste'
+                              : 'Très optimiste'}
+                        </span>
+                        <span className="font-medium text-cyan-400">
+                          {formatPrice(p.revenue, 'EUR')}
+                        </span>
+                        {p.confidence != null && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            conf. {p.confidence.toFixed(0)}%
+                          </span>
+                        )}
+                      </li>
+                    )
+                  )}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  Aucune prédiction disponible. Les prédictions apparaîtront après accumulation de
+                  données.
+                </p>
+              )}
+            </CardContent>
+          </Card>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <FunnelAnalysis funnelData={funnelData.slice(0, 5)} />
             <CohortAnalysis cohortData={cohortData.slice(0, 5)} />

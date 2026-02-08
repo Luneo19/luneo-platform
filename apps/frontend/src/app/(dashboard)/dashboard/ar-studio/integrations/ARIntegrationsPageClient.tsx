@@ -90,7 +90,7 @@ export function ARIntegrationsPageClient() {
       <IntegrationsHeader onAddIntegration={() => toast({ title: 'Fonctionnalité à venir' })} />
       <IntegrationsStats {...stats} />
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
         <TabsList className="bg-gray-800 border-gray-700">
           <TabsTrigger value="integrations" className="data-[state=active]:bg-gray-700">
             Intégrations

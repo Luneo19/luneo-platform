@@ -18,10 +18,10 @@ const CustomizePageClient = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Chargement de la page de personnalisation...</p>
+          <p className="text-gray-600">Chargement de la page de personnalisation...</p>
         </div>
       </div>
     ),
@@ -33,10 +33,10 @@ export default function CustomizePage() {
     <ErrorBoundary componentName="CustomizePage">
       <Suspense
         fallback={
-          <div className="flex items-center justify-center min-h-screen bg-slate-900">
+          <div className="flex items-center justify-center min-h-screen bg-gray-50">
             <div className="text-center">
               <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mx-auto mb-4" />
-              <p className="text-slate-400">Chargement...</p>
+              <p className="text-gray-600">Chargement...</p>
             </div>
           </div>
         }

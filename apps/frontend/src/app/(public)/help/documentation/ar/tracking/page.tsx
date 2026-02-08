@@ -24,7 +24,7 @@ function ARTrackingPageContent() {
     { name: 'ar.add.to.cart', description: 'Ajout au panier depuis AR' }
   ], []);
 
-  const analyticsCode = useMemo(() => `const analytics = await fetch('/api/ar/analytics', {
+  const analyticsCode = useMemo(() => `const analytics = await fetch('/api/v1/ar-studio/models/:modelId/analytics', {
   headers: {
     'Authorization': 'Bearer TOKEN'
   }

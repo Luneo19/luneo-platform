@@ -107,8 +107,6 @@ export const securityConfig = {
       connectSrc: [
         "'self'",
         'https://api.stripe.com',
-        'https://*.supabase.co',
-        'wss://*.supabase.co',
         'https://*.sentry.io',
         'https://www.google-analytics.com',
         'https://vitals.vercel-insights.com',
@@ -136,8 +134,6 @@ export const securityConfig = {
       connectSrc: [
         "'self'",
         'https://api.stripe.com',
-        'https://*.supabase.co',
-        'wss://*.supabase.co',
         'https://*.sentry.io',
       ],
       frameSrc: ["'self'", 'https://js.stripe.com', 'https://hooks.stripe.com'],

@@ -33,7 +33,7 @@ await launchAR({ glbUrl: '/models/product.glb', usdzUrl: '/models/product.usdz',
 // → WebXR sur Web`,
   bulkGeneration: `// Bulk Generation 1000/h
 import { BulkProcessor } from '@luneo/bulk-generator'; const processor = new BulkProcessor({ redis: { host: 'localhost', port: 6379 }, concurrency: 10, rateLimitPerMinute: 100
-import { logger } from '../../../../lib/logger';
+import { logger } from '@/lib/logger';
 }); const jobId = await processor.createBulkJob({ basePrompt: 'Modern t-shirt design', variations: [...Array(1000).keys()].map(i => ({ id: \`v\${i}\`, modifiers: [\`color \${i % 10}\`, \`style \${i % 5}\`] }))
 }); processor.on('job:progress', (id, progress) => { logger.info(\`\${progress.toFixed(1)}%\`);
 });`,
@@ -67,9 +67,9 @@ function PlaygroundPageContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-purple-900">
       {' '}
       {/* Hero */}{' '}
-      <section className="border-b border-gray-800 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:py-10 sm:py-12 sm:py-12 sm:py-12 sm:py-12 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 md:px-12 md:px-3 md:px-4 md:px-4 md:px-4 md:px-4 md:px-4 md:px-8 md:py-12 md:py-12 md:py-12 md:py-16 md:py-16 md:py-20 md:py-4 md:py-6 md:py-6 md:py-6 lg:px-12 lg:py-12 lg:py-16 lg:py-16 lg:py-16 lg:py-6 lg:py-6 lg:py-8">
+      <section className="border-b border-gray-800 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16">
         {' '}
-        <div className="mx-auto max-w-7xl px-4 text-center min-[480px]:px-4 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 md:px-3 md:px-4 md:px-4 md:px-4 md:px-8 md:px-8 md:px-8 lg:px-4 lg:px-4">
+        <div className="mx-auto max-w-7xl px-4 text-center min-[480px]:px-4 sm:px-6 md:px-8 lg:px-4">
           {' '}
           <motion
             initial={{ opacity: 0, y: 20 }}
@@ -80,7 +80,7 @@ function PlaygroundPageContent() {
               {' '}
               🎮 Playground{' '}
             </span>{' '}
-            <h1 className="mb-6 text-5xl font-bold min-[480px]:text-2xl min-[480px]:text-2xl min-[480px]:text-3xl min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-3xl sm:text-3xl sm:text-3xl sm:text-4xl sm:text-4xl sm:text-4xl sm:text-4xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-3xl md:text-3xl md:text-3xl md:text-3xl md:text-3xl md:text-3xl md:text-4xl md:text-4xl md:text-4xl md:text-4xl md:text-5xl md:text-5xl md:text-base md:text-lg md:text-lg md:text-lg md:text-xl md:text-xl md:text-xl lg:text-2xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-4xl lg:text-4xl lg:text-4xl lg:text-5xl lg:text-5xl lg:text-6xl lg:text-base lg:text-base lg:text-lg lg:text-xl lg:text-xl xl:text-3xl xl:text-5xl xl:text-base xl:text-xl">
+            <h1 className="mb-6 text-5xl font-bold min-[480px]:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-5xl">
               {' '}
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                 {' '}
@@ -99,9 +99,9 @@ function PlaygroundPageContent() {
         </div>{' '}
       </section>{' '}
       {/* Playground */}{' '}
-      <section className="mx-auto max-w-7xl px-4 py-6 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:py-8 sm:py-8 md:px-3 md:px-4 md:px-4 md:px-4 md:px-8 md:px-8 md:px-8 md:py-12 md:py-4 lg:px-4 lg:px-4 lg:py-12">
+      <section className="mx-auto max-w-7xl px-4 py-6 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 lg:px-4 lg:py-12">
         {' '}
-        <div className="grid gap-2 min-[480px]:grid-cols-2 min-[480px]:gap-3 sm:grid-cols-2 sm:grid-cols-2 sm:grid-cols-2 sm:gap-3 sm:gap-4 sm:gap-4 sm:gap-4 sm:gap-4 md:grid-cols-2 md:grid-cols-2 md:gap-3 md:gap-4 md:gap-6 md:gap-6 md:gap-6 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-3 lg:gap-2 lg:gap-3 lg:gap-3">
+        <div className="grid gap-2 min-[480px]:grid-cols-2 min-[480px]:gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-3">
           {' '}
           {/* Sidebar - Sélection */}{' '}
           <div>
@@ -129,7 +129,7 @@ function PlaygroundPageContent() {
                 ].map(example => (
                   <button
                     key={example.id}
-                    onClick={() => setSelectedExample(example.id as any)}
+                    onClick={() => setSelectedExample(example.id as keyof typeof CODE_EXAMPLES)}
                     className={`w-full rounded-lg p-3 text-left transition-all ${selectedExample === example.id ? 'bg-purple-600 text-white' : 'bg-gray-900/50 text-gray-300 hover:bg-gray-900'}`}
                   >
                     {' '}
@@ -216,7 +216,7 @@ function PlaygroundPageContent() {
               </div>{' '}
               <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-900 p-6">
                 {' '}
-                <pre className="text-gray-300overflow-x-autooverflow-x-auto text-sm">
+                <pre className="overflow-x-auto text-sm text-gray-300">
                   {' '}
                   <code>{CODE_EXAMPLES[selectedExample]}</code>{' '}
                 </pre>{' '}
@@ -248,7 +248,7 @@ function PlaygroundPageContent() {
               </h3>{' '}
               <div className="rounded-lg border border-gray-700 bg-gray-900 p-4">
                 {' '}
-                <pre className="text-green-400overflow-x-autooverflow-x-auto text-sm">
+                <pre className="overflow-x-auto text-sm text-green-400">
                   {' '}
                   <code>{`npm install @luneo/virtual-try-on
 # npm install @luneo/ar-export
@@ -267,11 +267,11 @@ npm install @luneo/bulk-generator`}</code>{' '}
         </div>{' '}
       </section>{' '}
       {/* CTA */}{' '}
-      <section className="bg-gradient-to-r from-purple-900 to-pink-900 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:py-10 sm:py-12 sm:py-12 sm:py-12 sm:py-12 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 md:px-12 md:px-3 md:px-4 md:px-4 md:px-4 md:px-4 md:px-4 md:px-8 md:py-12 md:py-12 md:py-12 md:py-16 md:py-16 md:py-20 md:py-4 md:py-6 md:py-6 md:py-6 lg:px-12 lg:py-12 lg:py-16 lg:py-16 lg:py-16 lg:py-6 lg:py-6 lg:py-8">
+      <section className="bg-gradient-to-r from-purple-900 to-pink-900 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16">
         {' '}
         <div className="mx-auto max-w-4xl px-4 text-center">
           {' '}
-          <h2 className="mb-6 text-2xl font-bold text-white min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-3xl md:text-3xl md:text-base md:text-base md:text-lg md:text-lg md:text-lg md:text-xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-4xl lg:text-base lg:text-xl lg:text-xl xl:text-xl">
+          <h2 className="mb-6 text-2xl font-bold text-white min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-xl">
             {' '}
             Accédez au code complet{' '}
           </h2>{' '}
@@ -279,7 +279,7 @@ npm install @luneo/bulk-generator`}</code>{' '}
             {' '}
             6000+ lignes disponibles dans votre compte{' '}
           </p>{' '}
-          <div className="flex flex-col justify-center gap-3 min-[480px]:gap-3 sm:flex-row sm:gap-2 sm:gap-4 sm:gap-4 sm:gap-4 md:gap-3 md:gap-3 md:gap-6 lg:gap-4">
+          <div className="flex flex-col justify-center gap-3 min-[480px]:gap-3 sm:flex-row sm:gap-4 md:gap-6 lg:gap-4">
             {' '}
             <Link href="/register">
               {' '}

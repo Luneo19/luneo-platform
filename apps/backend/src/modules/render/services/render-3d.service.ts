@@ -5,6 +5,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { TIMEOUTS, RENDER_DEFAULTS } from '@/common/constants/app.constants';
 import { RenderRequest, RenderResult } from '../interfaces/render.interface';
 
 interface Product3DConfiguration {
@@ -21,6 +22,7 @@ export class Render3DService {
   private readonly logger = new Logger(Render3DService.name);
   private readonly renderServiceUrl: string;
   private readonly replicateApiKey: string;
+  private readonly replicateApiBase: string;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -31,29 +33,79 @@ export class Render3DService {
   ) {
     this.renderServiceUrl = this.configService.get<string>('RENDER_3D_SERVICE_URL') || '';
     this.replicateApiKey = this.configService.get<string>('REPLICATE_API_KEY') || '';
+    this.replicateApiBase =
+      process.env.REPLICATE_API_URL || this.configService.get<string>('REPLICATE_API_URL') || 'https://api.replicate.com/v1';
   }
 
   /**
-   * Récupère la configuration 3D d'un produit
-   * Note: Product3DConfiguration table not in schema yet - returns mock config
+   * Récupère la configuration 3D d'un produit depuis la DB.
+   * Fallback: si aucun enregistrement Product3DConfiguration, utilise Product.model3dUrl.
    */
   private async getConfiguration(configurationId: string): Promise<Product3DConfiguration | null> {
     try {
-      // Product3DConfiguration model doesn't exist yet
-      // Return a minimal configuration based on the ID
-      this.logger.debug(`Getting 3D configuration for ${configurationId} (mock mode)`);
-      return {
-        id: configurationId,
-        productId: configurationId,
-        modelUrl: undefined,
-        textureUrl: undefined,
-        materials: {},
-        settings: {},
-      };
+      const row = await this.prisma.product3DConfiguration.findUnique({
+        where: { productId: configurationId },
+      });
+
+      if (row) {
+        this.logger.debug(`Found 3D configuration for product ${configurationId}`);
+        return this.mapRowToConfiguration(row);
+      }
+
+      // Fallback: use Product.model3dUrl if no dedicated config row
+      const product = await this.prisma.product.findUnique({
+        where: { id: configurationId },
+        select: { id: true, model3dUrl: true },
+      });
+
+      if (product?.model3dUrl) {
+        this.logger.debug(`Using Product.model3dUrl fallback for product ${configurationId}`);
+        return {
+          id: configurationId,
+          productId: configurationId,
+          modelUrl: product.model3dUrl,
+          textureUrl: undefined,
+          materials: {},
+          settings: {},
+        };
+      }
+
+      return null;
     } catch (error) {
       this.logger.warn(`Could not fetch 3D configuration ${configurationId}: ${error}`);
       return null;
     }
+  }
+
+  private mapRowToConfiguration(row: {
+    id: string;
+    productId: string;
+    modelUrl: string | null;
+    textureUrl: string | null;
+    materialType: string;
+    environmentMap: string | null;
+    lightingPreset: string;
+    cameraPosition: unknown;
+    cameraTarget: unknown;
+    customZones: unknown;
+    renderSettings: unknown;
+  }): Product3DConfiguration {
+    return {
+      id: row.id,
+      productId: row.productId,
+      modelUrl: row.modelUrl ?? undefined,
+      textureUrl: row.textureUrl ?? undefined,
+      materials: {},
+      settings: {
+        materialType: row.materialType,
+        environmentMap: row.environmentMap ?? undefined,
+        lightingPreset: row.lightingPreset,
+        cameraPosition: row.cameraPosition,
+        cameraTarget: row.cameraTarget,
+        customZones: row.customZones,
+        renderSettings: row.renderSettings,
+      },
+    };
   }
 
   /**
@@ -324,10 +376,10 @@ export class Render3DService {
 
       // Polling pour le résultat (max 2 minutes)
       for (let i = 0; i < 24; i++) {
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, TIMEOUTS.POLLING_INTERVAL));
         
         const statusRes = await firstValueFrom(
-          this.httpService.get(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+          this.httpService.get(`${this.replicateApiBase}/predictions/${predictionId}`, {
             headers: { Authorization: `Token ${this.replicateApiKey}` },
           }),
         );
@@ -382,7 +434,7 @@ export class Render3DService {
       const formatConfig = this.getARFormatConfig(body.platform);
       const exportId = `ar-export-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
-      let exportUrl: string;
+      let exportUrl = '';
       let fileSize = 0;
 
       // Si le modèle source existe, essayer de le convertir
@@ -501,7 +553,7 @@ export class Render3DService {
     exportUrl: string,
     primaryPlatform: 'ios' | 'android' | 'web',
   ): { ios?: string; android?: string; web?: string } {
-    const baseUrl = this.configService.get<string>('APP_URL') || 'https://luneo.app';
+    const baseUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
     
     return {
       ios: primaryPlatform === 'ios' ? `${baseUrl}/ar/view/${exportId}?platform=ios` : undefined,

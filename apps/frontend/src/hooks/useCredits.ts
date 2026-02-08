@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 interface CreditsData {
   balance: number;
@@ -27,12 +28,8 @@ export function useCredits(): UseCreditsReturn {
   const fetchCredits = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch('/api/credits/balance');
-      if (!res.ok) {
-        throw new Error('Failed to fetch credits');
-      }
-      const data = await res.json();
-      setCredits(data);
+      const data = await endpoints.credits.balance();
+      setCredits(data as CreditsData);
     } catch (err) {
       logger.error('Failed to fetch credits', err instanceof Error ? err : new Error(String(err)), {
         hook: 'useCredits',

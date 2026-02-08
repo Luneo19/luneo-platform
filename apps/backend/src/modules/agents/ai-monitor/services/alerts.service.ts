@@ -10,10 +10,11 @@
  * - ✅ Notifications email/Slack
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { LimitsConfigService } from '../../usage-guardian/services/limits-config.service';
+import { EmailService } from '@/modules/email/email.service';
 
 // ============================================================================
 // TYPES
@@ -43,6 +44,7 @@ export class AlertsService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly limitsConfig: LimitsConfigService,
+    @Optional() private readonly emailService: EmailService | null,
   ) {
     this.alertsEnabled = this.configService.get<boolean>('AI_ALERTS_ENABLED') ?? true;
     this.alertEmail = this.configService.get<string>('AI_ALERTS_EMAIL');
@@ -309,14 +311,24 @@ export class AlertsService {
   async sendAlert(alert: Alert): Promise<void> {
     this.logger.warn(`Alert: ${alert.type} - ${alert.message}`, alert.metadata);
 
-    // TODO: Implémenter l'envoi d'email
-    if (this.alertEmail) {
-      // await this.sendEmailAlert(alert);
+    if (this.alertEmail && this.emailService) {
+      this.emailService
+        .sendEmail({
+          to: this.alertEmail,
+          subject: `[Luneo Alert] ${alert.type} - ${alert.severity}`,
+          text: `${alert.message}${alert.metadata ? `\n\nMetadata: ${JSON.stringify(alert.metadata)}` : ''}`,
+        })
+        .catch((err) => this.logger.warn('Alert email failed', err));
     }
 
-    // TODO: Implémenter l'envoi Slack
     if (this.alertSlackWebhook) {
-      // await this.sendSlackAlert(alert);
+      fetch(this.alertSlackWebhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: `[${alert.severity}] *${alert.type}*: ${alert.message}`,
+        }),
+      }).catch((err) => this.logger.warn('Slack alert failed', err));
     }
   }
 }

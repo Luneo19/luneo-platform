@@ -27,10 +27,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install k6
         run: |
@@ -41,28 +47,27 @@ jobs:
           sudo apt-get install k6
 
       - name: Install Artillery
-        run: npm install -g artillery
+        run: pnpm add -g artillery
 
       - name: Run k6 Load Tests
+        if: ${{ secrets.PERF_TEST_EMAIL != '' }}
         run: |
           cd tests/performance
           k6 run --out json=results-k6.json k6-load-test.js
         env:
-          BASE_URL: ${{ github.event.inputs.environment == 'production' && 'https://api.luneo.com' || 'https://staging-api.luneo.com' }}
+          BASE_URL: ${{ github.event.inputs.environment == 'production' && 'https://api.luneo.app' || 'https://staging-api.luneo.app' }}
           TEST_EMAIL: ${{ secrets.PERF_TEST_EMAIL }}
           TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD }}
-        continue-on-error: true
 
       - name: Run Artillery Stress Tests
         run: |
           cd tests/performance
           artillery run --output results-artillery.json artillery-config.yml
         env:
-          BASE_URL: ${{ github.event.inputs.environment == 'production' && 'https://api.luneo.com' || 'https://staging-api.luneo.com' }}
-        continue-on-error: true
+          BASE_URL: ${{ github.event.inputs.environment == 'production' && 'https://api.luneo.app' || 'https://staging-api.luneo.app' }}
 
       - name: Upload Test Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: performance-test-results
@@ -80,6 +85,7 @@ jobs:
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Artillery Results" >> $GITHUB_STEP_SUMMARY
+          # Report generation is non-critical - || true so step does not fail if report fails
           if [ -f tests/performance/results-artillery.json ]; then
             artillery report tests/performance/results-artillery.json >> $GITHUB_STEP_SUMMARY || true
           fi

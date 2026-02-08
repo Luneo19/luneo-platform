@@ -99,7 +99,7 @@ function ShapeElement({
   if (element.shapeType === 'rectangle') {
     return (
       <>
-        <Rect ref={shapeRef as any} {...commonProps} />
+        <Rect ref={shapeRef as React.RefObject<Konva.Rect>} {...commonProps} />
         {isSelected && (
           <Transformer
             boundBoxFunc={(oldBox, newBox) => {
@@ -108,7 +108,7 @@ function ShapeElement({
               }
               return newBox;
             }}
-            nodes={[shapeRef.current as any].filter(Boolean)}
+            nodes={shapeRef.current ? [shapeRef.current] : []}
           />
         )}
       </>
@@ -119,7 +119,7 @@ function ShapeElement({
     return (
       <>
         <KonvaCircle
-          ref={shapeRef as any}
+          ref={shapeRef as React.RefObject<Konva.Circle>}
           {...commonProps}
           radius={element.width ? element.width / 2 : 50}
         />
@@ -131,7 +131,7 @@ function ShapeElement({
               }
               return newBox;
             }}
-            nodes={[shapeRef.current as any].filter(Boolean)}
+            nodes={shapeRef.current ? [shapeRef.current] : []}
           />
         )}
       </>
@@ -142,7 +142,7 @@ function ShapeElement({
     return (
       <>
         <KonvaStar
-          ref={shapeRef as any}
+          ref={shapeRef as React.RefObject<Konva.Star>}
           {...commonProps}
           numPoints={5}
           innerRadius={element.width ? element.width / 4 : 25}
@@ -156,7 +156,7 @@ function ShapeElement({
               }
               return newBox;
             }}
-            nodes={[shapeRef.current as any].filter(Boolean)}
+            nodes={shapeRef.current ? [shapeRef.current] : []}
           />
         )}
       </>
@@ -230,7 +230,7 @@ function TextElement({
             }
             return newBox;
           }}
-          nodes={[textRef.current as any].filter(Boolean)}
+          nodes={textRef.current ? [textRef.current] : []}
         />
       )}
     </>
@@ -600,7 +600,7 @@ function CustomizerDemo({
                 width={width}
                 height={height}
                 onClick={handleStageClick}
-                onTap={(e) => handleStageClick(e as any)}
+                onTap={(e) => handleStageClick(e as Konva.KonvaEventObject<MouseEvent>)}
                 scaleX={canvasZoom}
                 scaleY={canvasZoom}
               >

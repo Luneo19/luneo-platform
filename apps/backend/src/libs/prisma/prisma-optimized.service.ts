@@ -202,7 +202,7 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
     fn: (tx: Omit<PrismaClient, '$on' | '$connect' | '$disconnect' | '$use' | '$transaction' | '$extends'>) => Promise<T>,
     invalidatePatterns: string[] = []
   ): Promise<T> {
-    const result = await this.$transaction(fn as any);
+    const result = await this.$transaction(fn as unknown as Parameters<this['$transaction']>[0]);
 
     // Invalider le cache après la transaction
     for (const pattern of invalidatePatterns) {

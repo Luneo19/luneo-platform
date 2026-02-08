@@ -138,7 +138,7 @@ export class ProductSyncService {
       },
     });
 
-    const productData = this.transformLuneoProductToExternal(product as any, integration.platform);
+    const productData = this.transformLuneoProductToExternal(product as Record<string, JsonValue>, integration.platform);
 
     switch (integration.platform) {
       case 'shopify':
@@ -286,7 +286,7 @@ export class ProductSyncService {
       {
         repeat: {
           pattern: cronExpression,
-        } as any, // Type assertion pour compatibilité avec @nestjs/bull
+        } as Parameters<Queue['add']>[2],
       }
     );
 

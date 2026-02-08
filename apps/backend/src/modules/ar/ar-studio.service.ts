@@ -5,9 +5,12 @@
  */
 
 import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '@/libs/storage/storage.service';
+import { CACHE_DURATIONS, TIMEOUTS } from '@/common/constants/app.constants';
+import { AR_STUDIO_CONFIG } from './ar-studio.constants';
 
 export interface ARModel {
   id: string;
@@ -171,16 +174,16 @@ export class ArStudioService {
       }
 
       // URL de preview AR (à configurer selon votre domaine)
-      const baseUrl = process.env.FRONTEND_URL || 'https://luneo.app';
+      const baseUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
       const previewUrl = `${baseUrl}/ar/preview/${modelId}`;
 
       // Generate QR code using external API service
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(previewUrl)}`;
+      const qrCodeUrl = `${AR_STUDIO_CONFIG.QR_CODE_API}?size=300x300&data=${encodeURIComponent(previewUrl)}`;
 
       return {
         url: previewUrl,
         qrCodeUrl,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
+        expiresAt: new Date(Date.now() + CACHE_DURATIONS.LONG * 1000),
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -213,7 +216,7 @@ export class ArStudioService {
           properties: {
             path: ['modelId'],
             equals: modelId,
-          },
+          } as Prisma.JsonFilter,
         },
         select: {
           eventType: true,
@@ -267,7 +270,7 @@ export class ArStudioService {
       }
 
       // Initier la conversion avec Meshy.ai
-      const meshyResponse = await fetch('https://api.meshy.ai/v2/image-to-3d', {
+      const meshyResponse = await fetch(`${AR_STUDIO_CONFIG.MESHY_API_BASE}/image-to-3d`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${meshyApiKey}`,
@@ -304,7 +307,7 @@ export class ArStudioService {
             source: 'meshy_ai',
             conversion_started_at: new Date().toISOString(),
             designId,
-          } as any,
+          } as Prisma.InputJsonValue,
         },
       });
 
@@ -337,7 +340,7 @@ export class ArStudioService {
       }
 
       // Vérifier le statut sur Meshy.ai
-      const statusResponse = await fetch(`https://api.meshy.ai/v2/image-to-3d/${taskId}`, {
+      const statusResponse = await fetch(`${AR_STUDIO_CONFIG.MESHY_API_BASE}/image-to-3d/${taskId}`, {
         headers: {
           'Authorization': `Bearer ${meshyApiKey}`,
         },
@@ -356,12 +359,12 @@ export class ArStudioService {
           where: { brandId },
         });
         const product = products.find((p) => {
-          const config = p.modelConfig as any;
+          const config = p.modelConfig as Record<string, unknown> | null;
           return config?.meshy_task_id === taskId;
         });
 
         if (product) {
-          const currentConfig = (product.modelConfig as any) || {};
+          const currentConfig = (product.modelConfig as Record<string, unknown>) || {};
           await this.prisma.product.update({
             where: { id: product.id },
             data: {
@@ -372,7 +375,7 @@ export class ArStudioService {
                 meshy_task_id: taskId,
                 source: 'meshy_ai',
                 conversion_completed_at: new Date().toISOString(),
-              } as any,
+              } as Prisma.InputJsonValue,
             },
           });
         }
@@ -462,7 +465,7 @@ export class ArStudioService {
 
       // Générer URL signée avec expiration si stockage privé
       let signedUrl = finalUrl;
-      const expiresIn = 24 * 60 * 60; // 24 heures en secondes
+      const expiresIn = CACHE_DURATIONS.MEDIUM;
       
       // Vérifier si le modèle est privé (basé sur les permissions ou la configuration)
       // Un modèle est privé si le produit n'est pas public
@@ -498,7 +501,7 @@ export class ArStudioService {
         downloadUrl: signedUrl,
         fileSize,
         format,
-        expiresAt: new Date(Date.now() + expiresIn * 1000), // 24h
+        expiresAt: new Date(Date.now() + expiresIn * 1000),
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -540,12 +543,12 @@ export class ArStudioService {
         });
 
         if (product) {
-          const config = (product.modelConfig as any) || {};
+          const config = (product.modelConfig as Record<string, unknown>) || {};
           if (config.usdzUrl) {
             this.logger.log('USDZ already exists (cached)', { arModelId: options.arModelId });
             return {
-              usdzUrl: config.usdzUrl,
-              fileSize: config.usdzFileSize || 0,
+              usdzUrl: config.usdzUrl as string,
+              fileSize: (config.usdzFileSize as number) || 0,
               conversionTime: Date.now() - startTime,
               cached: true,
             };
@@ -559,7 +562,7 @@ export class ArStudioService {
 
       if (cloudConvertKey) {
         // Conversion via CloudConvert
-        const convertResponse = await fetch('https://api.cloudconvert.com/v2/convert', {
+        const convertResponse = await fetch(`${AR_STUDIO_CONFIG.CLOUDCONVERT_API_BASE}/convert`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${cloudConvertKey}`,
@@ -584,7 +587,7 @@ export class ArStudioService {
         usdzUrl = convertData.output.url;
       } else {
         // Fallback: utiliser service interne ou API externe
-        const conversionApiUrl = this.configService.get<string>('USDZ_CONVERSION_API_URL') || 'https://api.luneo.app/ar/convert-usdz';
+        const conversionApiUrl = this.configService.get<string>('USDZ_CONVERSION_API_URL') || AR_STUDIO_CONFIG.USDZ_CONVERSION_API;
         
         const response = await fetch(conversionApiUrl, {
           method: 'POST',
@@ -628,7 +631,7 @@ export class ArStudioService {
         });
 
         if (product) {
-          const currentConfig = ((product.modelConfig as any) || {}) as Record<string, unknown>;
+          const currentConfig = (product.modelConfig as Record<string, unknown>) || {};
           await this.prisma.product.update({
             where: { id: options.arModelId },
             data: {
@@ -637,7 +640,7 @@ export class ArStudioService {
                 usdzUrl,
                 usdzFileSize,
                 usdzConvertedAt: new Date().toISOString(),
-              } as any,
+              } as Prisma.InputJsonValue,
             },
           });
         }
@@ -684,7 +687,7 @@ export class ArStudioService {
 
       // Pour GLB, utiliser l'optimisation GLTF
       if (format === 'glb') {
-        const optimizeResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
+        const optimizeResponse = await fetch(`${AR_STUDIO_CONFIG.CLOUDCONVERT_API_BASE}/jobs`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${cloudConvertKey}`,
@@ -728,9 +731,9 @@ export class ArStudioService {
         const maxAttempts = 60; // 5 minutes max
 
         while (attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 5000)); // Attendre 5 secondes
+          await new Promise((resolve) => setTimeout(resolve, TIMEOUTS.POLLING_INTERVAL));
 
-          const statusResponse = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobId}`, {
+          const statusResponse = await fetch(`${AR_STUDIO_CONFIG.CLOUDCONVERT_API_BASE}/jobs/${jobId}`, {
             headers: {
               'Authorization': `Bearer ${cloudConvertKey}`,
             },
@@ -776,7 +779,7 @@ export class ArStudioService {
           properties: {
             path: ['productId'],
             equals: productId,
-          } as any, // Prisma JSON filter
+          } as Prisma.JsonFilter,
         },
       });
       return count;
@@ -801,7 +804,7 @@ export class ArStudioService {
           properties: {
             path: ['productId'],
             equals: productId,
-          } as any, // Prisma JSON filter
+          } as Prisma.JsonFilter,
         },
       });
       return count;

@@ -117,7 +117,8 @@ const baseEnvSchema = z.object({
   FRONTEND_URL: z.string().url().optional(),
   
   // Security
-  CORS_ORIGIN: z.string().default('*'),
+  ENCRYPTION_KEY: z.string().optional(), // 64 hex chars for AES-256-GCM, required in production
+  CORS_ORIGIN: z.string().default('http://localhost:3000'),
   RATE_LIMIT_TTL: z.string().transform(Number).default('60'),
   RATE_LIMIT_LIMIT: z.string().transform(Number).default('100'),
   
@@ -133,7 +134,7 @@ const baseEnvSchema = z.object({
 export type EnvConfig = z.infer<typeof baseEnvSchema>;
 
 /**
- * Variables critiques qui DOIVENT être présentes en production
+ * Variables critiques (tous environnements)
  */
 const CRITICAL_VARS = {
   DATABASE_URL: 'Connexion base de données PostgreSQL',
@@ -142,49 +143,99 @@ const CRITICAL_VARS = {
 } as const;
 
 /**
- * Variables recommandées pour la production (warning si absentes)
+ * Variables obligatoires en production uniquement
  */
-const RECOMMENDED_PRODUCTION_VARS = {
-  STRIPE_SECRET_KEY: 'Paiements Stripe (billing désactivé si absent)',
-  STRIPE_WEBHOOK_SECRET: 'Webhook Stripe (events non vérifiés si absent)',
-  SENTRY_DSN: 'Monitoring Sentry (erreurs non trackées si absent)',
-  FRONTEND_URL: 'URL frontend pour CORS et redirections',
-  SENDGRID_API_KEY: 'Emails transactionnels (notifications désactivées si absent)',
+const REQUIRED_PRODUCTION_VARS = {
+  STRIPE_SECRET_KEY: 'Paiements Stripe',
+  STRIPE_WEBHOOK_SECRET: 'Webhook Stripe (vérification des events)',
+  ENCRYPTION_KEY: 'Clé de chiffrement (64 caractères hex pour AES-256-GCM)',
+  SENTRY_DSN: 'Monitoring Sentry (DSN requis en production)',
 } as const;
 
 /**
- * Vérifie la présence des variables critiques
+ * Variables optionnelles recommandées (warning si absentes en production)
+ */
+const RECOMMENDED_OPTIONAL_VARS = {
+  CLOUDINARY_CLOUD_NAME: 'Stockage Cloudinary (médias)',
+  OPENAI_API_KEY: 'OpenAI (fonctionnalités IA)',
+  REDIS_URL: 'Redis (rate limiting, cache)',
+} as const;
+
+/**
+ * Vérifie les variables critiques (tous environnements)
  */
 function checkCriticalVars(): { missing: string[]; details: string[] } {
   const missing: string[] = [];
   const details: string[] = [];
-  
   for (const [key, description] of Object.entries(CRITICAL_VARS)) {
     if (!process.env[key]) {
       missing.push(key);
       details.push(`  ❌ ${key}: ${description}`);
     }
   }
-  
   return { missing, details };
 }
 
 /**
- * Vérifie les variables recommandées en production
+ * Vérifie les variables obligatoires en production (FRONTEND_URL/CORS et email sont vérifiés à part)
  */
-function checkRecommendedVars(): { missing: string[]; details: string[] } {
+function checkRequiredProductionVars(): { missing: string[]; details: string[] } {
   if (!isProduction) return { missing: [], details: [] };
-  
   const missing: string[] = [];
   const details: string[] = [];
-  
-  for (const [key, description] of Object.entries(RECOMMENDED_PRODUCTION_VARS)) {
+  for (const [key, description] of Object.entries(REQUIRED_PRODUCTION_VARS)) {
+    const val = process.env[key];
+    if (!val || (key === 'ENCRYPTION_KEY' && val.length < 32)) {
+      missing.push(key);
+      details.push(`  ❌ ${key}: ${description}`);
+    }
+  }
+  return { missing, details };
+}
+
+/**
+ * Vérifie FRONTEND_URL ou CORS configuré pour la production
+ */
+function checkFrontendOrCors(): { missing: string[]; details: string[] } {
+  if (!isProduction) return { missing: [], details: [] };
+  const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL;
+  const corsOrigin = process.env.CORS_ORIGIN;
+  if (frontendUrl && frontendUrl.length > 0) return { missing: [], details: [] };
+  if (corsOrigin && corsOrigin !== '*') return { missing: [], details: [] };
+  return {
+    missing: ['FRONTEND_URL or CORS_ORIGIN'],
+    details: ['  ❌ FRONTEND_URL or CORS_ORIGIN: Set FRONTEND_URL or restrict CORS_ORIGIN in production'],
+  };
+}
+
+/**
+ * Vérifie qu'au moins un fournisseur email est configuré en production
+ */
+function checkEmailProvider(): { missing: string[]; details: string[] } {
+  if (!isProduction) return { missing: [], details: [] };
+  const sendgrid = process.env.SENDGRID_API_KEY;
+  const mailgun = process.env.MAILGUN_API_KEY;
+  const smtp = process.env.SMTP_HOST && (process.env.SMTP_FROM || process.env.FROM_EMAIL);
+  if (sendgrid || mailgun || smtp) return { missing: [], details: [] };
+  return {
+    missing: ['Email provider'],
+    details: ['  ❌ Email: Configure SENDGRID_API_KEY, MAILGUN (API key + domain), or SMTP (SMTP_HOST + SMTP_FROM/FROM_EMAIL)'],
+  };
+}
+
+/**
+ * Vérifie les variables optionnelles recommandées (warning seulement)
+ */
+function checkRecommendedOptionalVars(): { missing: string[]; details: string[] } {
+  if (!isProduction) return { missing: [], details: [] };
+  const missing: string[] = [];
+  const details: string[] = [];
+  for (const [key, description] of Object.entries(RECOMMENDED_OPTIONAL_VARS)) {
     if (!process.env[key]) {
       missing.push(key);
       details.push(`  ⚠️  ${key}: ${description}`);
     }
   }
-  
   return { missing, details };
 }
 
@@ -198,38 +249,62 @@ export const validateEnv = (): EnvConfig => {
   logger.log(`   Environnement: ${process.env.NODE_ENV || 'development'}`);
   logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
-  // 1. Vérifier les variables critiques
+  // 1. Variables critiques (tous environnements)
   const critical = checkCriticalVars();
   if (critical.missing.length > 0) {
     logger.error('❌ Variables d\'environnement CRITIQUES manquantes:');
     critical.details.forEach(detail => logger.error(detail));
-    
     if (isProduction) {
       logger.error('');
       logger.error('🚨 ARRÊT: Variables critiques manquantes en PRODUCTION');
-      logger.error('   L\'application ne peut pas démarrer sans ces variables.');
-      logger.error('');
       throw new Error(
         `Variables critiques manquantes: ${critical.missing.join(', ')}. ` +
-        'Définissez ces variables d\'environnement avant de démarrer en production.'
+        'Définissez ces variables avant de démarrer en production.'
       );
-    } else {
-      logger.warn('⚠️  Mode développement: poursuite malgré les variables manquantes');
     }
+    logger.warn('⚠️  Mode développement: poursuite malgré les variables manquantes');
   } else {
     logger.log('✅ Toutes les variables critiques sont présentes');
   }
-  
-  // 2. Vérifier les variables recommandées (warning seulement)
-  const recommended = checkRecommendedVars();
+
+  // 2. En production: variables obligatoires supplémentaires
+  if (isProduction) {
+    const requiredProd = checkRequiredProductionVars();
+    const frontendCors = checkFrontendOrCors();
+    const email = checkEmailProvider();
+    const allMissing = [
+      ...requiredProd.missing,
+      ...frontendCors.missing,
+      ...email.missing,
+    ];
+    const allDetails = [
+      ...requiredProd.details,
+      ...frontendCors.details,
+      ...email.details,
+    ];
+    if (allMissing.length > 0) {
+      logger.error('❌ Variables obligatoires en PRODUCTION manquantes:');
+      allDetails.forEach(detail => logger.error(detail));
+      logger.error('');
+      logger.error('🚨 ARRÊT: Configurez toutes les variables requises pour la production.');
+      throw new Error(
+        `Variables requises en production manquantes: ${allMissing.join(', ')}. ` +
+        'Consultez la documentation ou PRODUCTION_CHECKLIST.md.'
+      );
+    }
+    logger.log('✅ Toutes les variables requises pour la production sont présentes');
+  }
+
+  // 3. Variables optionnelles recommandées (warning seulement)
+  const recommended = checkRecommendedOptionalVars();
   if (recommended.missing.length > 0) {
     logger.warn('');
-    logger.warn('⚠️  Variables recommandées manquantes en production:');
+    logger.warn('⚠️  Variables optionnelles recommandées manquantes:');
     recommended.details.forEach(detail => logger.warn(detail));
-    logger.warn('   Certaines fonctionnalités seront désactivées.');
+    logger.warn('   Certaines fonctionnalités peuvent être désactivées.');
   }
   
-  // 3. Valider avec Zod (format et types)
+  // 4. Valider avec Zod (format et types)
   try {
     const config = baseEnvSchema.parse(process.env);
     
@@ -365,8 +440,8 @@ export const stripeConfig = registerAs('stripe', () => ({
     },
   },
   // URLs
-  successUrl: process.env.STRIPE_SUCCESS_URL || 'https://app.luneo.app/dashboard/billing/success',
-  cancelUrl: process.env.STRIPE_CANCEL_URL || 'https://app.luneo.app/dashboard/billing/cancel',
+  successUrl: process.env.STRIPE_SUCCESS_URL || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/billing/success`,
+  cancelUrl: process.env.STRIPE_CANCEL_URL || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/billing/cancel`,
   // Trial period (configurable)
   trialPeriodDays: parseInt(process.env.STRIPE_TRIAL_PERIOD_DAYS || '14', 10),
 }));
@@ -433,7 +508,7 @@ export const appConfig = registerAs('app', () => {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || process.env.$PORT || '3000', 10),
     apiPrefix: apiPrefix,
-    frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.luneo.app',
+    frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     corsOrigin: process.env.CORS_ORIGIN || '*',
     rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
     rateLimitLimit: parseInt(process.env.RATE_LIMIT_LIMIT || '100', 10),

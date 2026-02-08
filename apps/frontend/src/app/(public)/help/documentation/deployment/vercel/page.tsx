@@ -31,8 +31,7 @@ function DeploymentVercelPageContent() {
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key"
+    "NEXT_PUBLIC_API_URL": "@api-url"
   },
   "headers": [
     {

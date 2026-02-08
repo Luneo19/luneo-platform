@@ -8,9 +8,10 @@ import {
   Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { ValidateSpecDto } from './dto/validate-spec.dto';
 import { SpecsService } from './specs.service';
 import { CreateSpecDto } from './dto/create-spec.dto';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandScopedGuard } from '@/common/guards/brand-scoped.guard';
 import { BrandScoped } from '@/common/decorators/brand-scoped.decorator';
 import { IdempotencyKey } from '@/common/decorators/idempotency-key.decorator';
@@ -19,7 +20,7 @@ import { IdempotencyInterceptor } from '@/common/interceptors/idempotency.interc
 import { UseInterceptors } from '@nestjs/common';
 
 @ApiTags('specs')
-@Controller('v1/specs')
+@Controller('specs')
 @UseGuards(JwtAuthGuard, BrandScopedGuard, IdempotencyGuard)
 @UseInterceptors(IdempotencyInterceptor)
 @ApiBearerAuth()
@@ -51,8 +52,8 @@ export class SpecsController {
   @Post('validate')
   @ApiOperation({ summary: 'Valider un spec JSON' })
   @ApiResponse({ status: 200, description: 'Validation result' })
-  async validate(@Body() body: { spec: any }) {
-    return this.specsService.validate(body.spec);
+  async validate(@Body() dto: ValidateSpecDto) {
+    return this.specsService.validate(dto.spec);
   }
 }
 

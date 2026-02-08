@@ -83,7 +83,7 @@ export class AnalyticsService {
       where.brandId = brandId;
     }
 
-    // Récupérer les logs du jour
+    // Récupérer les logs du jour (avec metadata pour intents)
     const logs = await this.prisma.aIUsageLog.findMany({
       where,
       select: {
@@ -93,6 +93,7 @@ export class AnalyticsService {
         latencyMs: true,
         success: true,
         operation: true,
+        metadata: true,
       },
     });
 
@@ -136,9 +137,15 @@ export class AnalyticsService {
       byAgent[agentId].costCents += Number(log.costCents);
     }
 
-    // Breakdown par intent (depuis metadata si disponible)
+    // Breakdown par intent (depuis metadata des logs si stocké)
     const byIntent: Record<string, number> = {};
-    // TODO: Extraire les intents depuis les logs si stockés
+    for (const log of logs) {
+      const metadata = log.metadata as Record<string, unknown> | null;
+      if (metadata?.intent) {
+        const intent = String(metadata.intent);
+        byIntent[intent] = (byIntent[intent] || 0) + 1;
+      }
+    }
 
     const analytics: DailyAnalytics = {
       date: dateStr,
@@ -181,16 +188,57 @@ export class AnalyticsService {
       date.setDate(date.getDate() - i);
 
       const daily = await this.aggregateDaily(brandId, date);
+      const satisfaction = await this.getSatisfactionForDate(brandId, date);
 
       trends.push({
         date: daily.date,
         conversations: daily.conversationCount,
-        satisfaction: 0, // TODO: Calculer depuis ratings
+        satisfaction,
         costCents: daily.totalCostCents,
       });
     }
 
     return trends;
+  }
+
+  /**
+   * Calcule la satisfaction moyenne pour une date (depuis ratings des conversations/messages si disponibles)
+   */
+  private async getSatisfactionForDate(brandId: string | undefined, date: Date): Promise<number> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const where: { createdAt: { gte: Date; lte: Date }; conversation?: { brandId: string | null } } = {
+      createdAt: { gte: startOfDay, lte: endOfDay },
+    };
+
+    if (brandId) {
+      where.conversation = { brandId };
+    }
+
+    const messagesWithRating = await this.prisma.agentMessage.findMany({
+      where: {
+        ...where,
+        metadata: { not: undefined },
+      },
+      select: { metadata: true },
+    });
+
+    const ratings: number[] = [];
+    for (const msg of messagesWithRating) {
+      const meta = msg.metadata as Record<string, unknown> | null;
+      if (meta && typeof meta.rating === 'number' && meta.rating >= 0 && meta.rating <= 5) {
+        ratings.push(meta.rating as number);
+      }
+      if (meta && typeof meta.satisfaction === 'number' && meta.satisfaction >= 0 && meta.satisfaction <= 1) {
+        ratings.push((meta.satisfaction as number) * 5);
+      }
+    }
+
+    if (ratings.length === 0) return 0;
+    return Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 100) / 100;
   }
 
   /**
@@ -224,11 +272,11 @@ export class AnalyticsService {
       where.createdAt = {
         gte: startDate || undefined,
         lte: endDate || undefined,
-      } as any;
+      };
     } else {
       const defaultStart = new Date();
       defaultStart.setDate(defaultStart.getDate() - 30);
-      where.createdAt = { gte: defaultStart } as any;
+      where.createdAt = { gte: defaultStart };
     }
 
     const logs = await this.prisma.aIUsageLog.findMany({

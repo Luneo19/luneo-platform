@@ -216,8 +216,8 @@ export function handleError(error: unknown, context?: string): AppError {
   // Report to error tracking service (Sentry, etc.)
   if (process.env.NODE_ENV === 'production') {
     // Integrate with Sentry if available
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      const Sentry = (window as any).Sentry;
+    if (typeof window !== 'undefined' && (window as Window & { Sentry?: { captureException: (error: unknown, options?: object) => void } }).Sentry) {
+      const Sentry = (window as Window & { Sentry: { captureException: (error: unknown, options?: object) => void } }).Sentry;
       Sentry.captureException(error, {
         level: appError.severity === 'critical' ? 'fatal' : appError.severity === 'high' ? 'error' : 'warning',
         tags: {
@@ -230,7 +230,7 @@ export function handleError(error: unknown, context?: string): AppError {
           metadata: appError.metadata,
         },
       });
-    } else if (typeof process !== 'undefined' && (process as any).env?.SENTRY_DSN) {
+    } else if (typeof process !== 'undefined' && (process as NodeJS.Process).env?.SENTRY_DSN) {
       // Server-side Sentry
       try {
         const Sentry = require('@sentry/nextjs');

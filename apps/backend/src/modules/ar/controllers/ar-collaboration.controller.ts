@@ -25,7 +25,7 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ArCollaborationService } from '../services/ar-collaboration.service';
 import { CurrentUser } from '@/common/types/user.types';
 import { User } from '@/common/decorators/user.decorator';
@@ -62,7 +62,7 @@ export class ArCollaborationController {
       throw new BadRequestException('User must be associated with a brand');
     }
 
-    return this.arCollaborationService.getProject(id, user.brandId);
+    return this.arCollaborationService.getProject(id, user.brandId, user.id);
   }
 
   @Post('projects')

@@ -5,7 +5,7 @@ import { StorageService } from '@/libs/storage/storage.service';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
 import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
-import { DesignStatus, UserRole } from '@prisma/client';
+import { DesignStatus, Prisma, UserRole } from '@prisma/client';
 import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import * as sharp from 'sharp';
@@ -63,7 +63,7 @@ export class DesignsService {
     const design = await this.prisma.design.create({
       data: {
         prompt,
-        options: options as any,
+        options: (options ?? {}) as Prisma.InputJsonValue,
         status: DesignStatus.PENDING,
         userId: currentUser.id,
         brandId: product.brandId,
@@ -146,7 +146,7 @@ export class DesignsService {
     const limit = Math.min(options?.limit || 50, 100);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.DesignWhereInput = {};
 
     // Filter by brand if user is not platform admin
     if (currentUser.role !== UserRole.PLATFORM_ADMIN) {
@@ -338,7 +338,7 @@ export class DesignsService {
     const limit = Math.min(options?.limit || 50, 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { designId };
+    const where: Prisma.DesignVersionWhereInput = { designId };
     if (options?.autoOnly) {
       where.isAutoSave = true;
     }
@@ -441,13 +441,13 @@ export class DesignsService {
         name: data.name,
         description: data.description,
         prompt: design.prompt,
-        options: design.options as any,
+        options: design.options as Prisma.InputJsonValue,
         previewUrl: design.previewUrl || null,
         highResUrl: design.highResUrl || null,
         imageUrl: design.imageUrl || null,
         renderUrl: design.renderUrl || null,
-        metadata: design.metadata as any,
-        designData: design.designData as any || null,
+        metadata: design.metadata as Prisma.InputJsonValue,
+        designData: (design.designData ?? null) as Prisma.InputJsonValue,
         isAutoSave: false,
         snapshot: {
           name: design.name,
@@ -464,7 +464,7 @@ export class DesignsService {
           canvasWidth: design.canvasWidth,
           canvasHeight: design.canvasHeight,
           canvasBackgroundColor: design.canvasBackgroundColor,
-        } as any,
+        } as Prisma.InputJsonValue,
         createdBy: currentUser.id,
       },
       select: {
@@ -500,7 +500,7 @@ export class DesignsService {
       return [`design:${designId}`, 'designs:list'];
     },
   })
-  async update(id: string, data: { name?: string; description?: string; status?: DesignStatus; designData?: any }, currentUser: CurrentUser) {
+  async update(id: string, data: { name?: string; description?: string; status?: DesignStatus; designData?: Record<string, unknown> }, currentUser: CurrentUser) {
     const design = await this.findOne(id, currentUser);
     this.assertDesignNotBlocked(design);
 
@@ -597,13 +597,13 @@ export class DesignsService {
         designId,
         versionNumber: nextVersionNumber,
         prompt: fullDesign.prompt,
-        options: fullDesign.options as any,
+        options: fullDesign.options as Prisma.InputJsonValue,
         previewUrl: fullDesign.previewUrl || null,
         highResUrl: fullDesign.highResUrl || null,
         imageUrl: fullDesign.imageUrl || null,
         renderUrl: fullDesign.renderUrl || null,
-        metadata: fullDesign.metadata as any,
-        designData: fullDesign.designData as any || null,
+        metadata: fullDesign.metadata as Prisma.InputJsonValue,
+        designData: (fullDesign.designData ?? null) as Prisma.InputJsonValue,
         isAutoSave: true,
         snapshot: {
           name: fullDesign.name,
@@ -620,7 +620,7 @@ export class DesignsService {
           canvasWidth: fullDesign.canvasWidth,
           canvasHeight: fullDesign.canvasHeight,
           canvasBackgroundColor: fullDesign.canvasBackgroundColor,
-        } as any,
+        } as Prisma.InputJsonValue,
         createdBy: currentUser.id,
       },
       select: {
@@ -696,7 +696,7 @@ export class DesignsService {
       quality?: 'low' | 'medium' | 'high' | 'ultra';
       dimensions?: { width: number; height: number };
       imageUrl?: string;
-      designData?: any;
+      designData?: Record<string, unknown>;
     },
     currentUser: CurrentUser,
   ): Promise<{ fileUrl: string; fileSize: number }> {
@@ -706,8 +706,8 @@ export class DesignsService {
     const format = options.format || 'pdf';
     const quality = options.quality || 'high';
     const dimensions = options.dimensions || {
-      width: (design as any).canvasWidth || 1920,
-      height: (design as any).canvasHeight || 1080,
+      width: design.canvasWidth ?? 1920,
+      height: design.canvasHeight ?? 1080,
     };
 
     // Récupérer l'URL de l'image ou générer depuis designData
@@ -983,7 +983,7 @@ export class DesignsService {
         name: `${fullDesign.name || 'Design'} (Copy)`,
         description: fullDesign.description,
         prompt: fullDesign.prompt,
-        options: fullDesign.options as any,
+        options: fullDesign.options as Prisma.InputJsonValue,
         productId: fullDesign.productId,
         brandId: fullDesign.brandId,
         userId: currentUser.id,
@@ -991,8 +991,8 @@ export class DesignsService {
         highResUrl: fullDesign.highResUrl,
         imageUrl: fullDesign.imageUrl,
         renderUrl: fullDesign.renderUrl,
-        metadata: fullDesign.metadata as any,
-        designData: fullDesign.designData as any,
+        metadata: fullDesign.metadata as Prisma.InputJsonValue,
+        designData: fullDesign.designData as Prisma.InputJsonValue,
         canvasWidth: fullDesign.canvasWidth,
         canvasHeight: fullDesign.canvasHeight,
         canvasBackgroundColor: fullDesign.canvasBackgroundColor,
@@ -1039,11 +1039,11 @@ export class DesignsService {
       where: { id: designId },
       data: {
         metadata: {
-          ...((design.metadata as any) || {}),
+          ...((design.metadata as Record<string, unknown>) || {}),
           shareToken,
           shareTokenExpiresAt: expiresAt.toISOString(),
           sharedAt: new Date().toISOString(),
-        } as any,
+        } as Prisma.InputJsonValue,
       },
       select: {
         id: true,
@@ -1052,7 +1052,7 @@ export class DesignsService {
       },
     });
 
-    const appUrl = process.env.APP_URL || 'https://www.luneo.app';
+    const appUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
     const shareUrl = `${appUrl}/designs/shared/${shareToken}`;
 
     this.logger.log(`Design shared: ${designId} with token ${shareToken}`);
@@ -1110,14 +1110,14 @@ export class DesignsService {
 
     // Filtrer en mémoire pour trouver le design avec le bon token
     const design = allDesigns.find((d) => {
-      const metadata = d.metadata as any;
+      const metadata = d.metadata as Record<string, unknown> | null;
       return metadata?.shareToken === shareToken;
     });
 
     if (!design) {
       throw new NotFoundException('Shared design not found');
     }
-    const metadata = design.metadata as any;
+    const metadata = design.metadata as Record<string, unknown> | null;
 
     // Vérifier l'expiration
     if (metadata?.shareTokenExpiresAt) {
@@ -1139,5 +1139,40 @@ export class DesignsService {
       createdAt: design.createdAt,
       isShared: true,
     };
+  }
+
+  /**
+   * Get share status for a design (for owner): existing share token and expiry.
+   */
+  async getShareStatus(designId: string, currentUser: CurrentUser) {
+    const design = await this.findOne(designId, currentUser);
+    const meta = (design.metadata as Record<string, unknown>) || {};
+    const shareToken = meta.shareToken as string | undefined;
+    const expiresAt = meta.shareTokenExpiresAt as string | undefined;
+    const appUrl = process.env.FRONTEND_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const shares = shareToken
+      ? [
+          {
+            token: shareToken,
+            shareUrl: `${appUrl}/share/${shareToken}`,
+            expires_at: expiresAt ?? null,
+            isExpired: expiresAt ? new Date(expiresAt) < new Date() : false,
+            created_at: (meta.sharedAt as string) ?? null,
+          },
+        ]
+      : [];
+    return { shares };
+  }
+
+  /**
+   * Record an action on a shared design (download, ar_launch, share). Used for analytics.
+   */
+  async recordShareAction(token: string, actionType: string) {
+    const validActions = ['download', 'ar_launch', 'share'];
+    if (!validActions.includes(actionType)) {
+      throw new BadRequestException(`Invalid action_type. Allowed: ${validActions.join(', ')}`);
+    }
+    this.logger.log(`Share action recorded: token=${token.slice(0, 8)}... action=${actionType}`);
+    return { message: 'Action enregistrée avec succès' };
   }
 }

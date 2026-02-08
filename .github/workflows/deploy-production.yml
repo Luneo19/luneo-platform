@@ -1,128 +1,136 @@
+# ==============================================
+# Production deployment: Backend → Railway (Docker), Frontend → Vercel
+# ==============================================
+#
+# Single production workflow. Runs on push to main or workflow_dispatch.
+# - test: backend lint, unit tests, coverage
+# - build-and-push: Docker image build & push to Docker Hub
+# - deploy-backend: deploy to Railway via CLI (pulls from Docker Hub or triggers deploy)
+# - deploy-frontend: build and deploy frontend to Vercel (--prod)
+# - smoke-tests: health + auth checks; Slack notification on success/failure
+# ==============================================
+
 name: Deploy to Production
 
-# DÉSACTIVÉ: Déploiement automatique désactivé pour économiser les crédits Vercel
 on:
-  # push:
-  #   branches: [main]
-  workflow_dispatch: # Seulement déploiement manuel
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '22'
 
 jobs:
+  # Backend lint, unit tests, upload coverage
   test:
     name: Run Tests
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: apps/backend/package-lock.json
+          cache: 'pnpm'
       
       - name: Install dependencies
-        run: |
-          cd apps/backend
-          npm ci
+        run: pnpm install --frozen-lockfile
       
       - name: Generate Prisma Client
         run: |
           cd apps/backend
-          npx prisma generate
+          pnpm exec prisma generate
       
       - name: Run linter
         run: |
           cd apps/backend
-          npm run lint || true
+          pnpm run lint
       
       - name: Run unit tests
         run: |
           cd apps/backend
-          npm test -- --testPathPattern=unit --coverage
+          pnpm run test -- --testPathPattern=unit --coverage
       
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./apps/backend/coverage/lcov.info
           flags: backend
           name: backend-coverage
 
-  build-and-push:
-    name: Build and Push Docker Image
-    needs: test
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: luneo/backend
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-      
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: ./apps/backend
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
+  # Deploy backend to Railway (builds from source via Nixpacks/Dockerfile)
   deploy-backend:
     name: Deploy Backend
-    needs: build-and-push
+    needs: test
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    env:
+      BACKEND_URL: https://api.luneo.app
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
-      - name: Deploy to production
-        run: |
-          echo "Deploying backend to production..."
-          # Add your deployment commands here
-          # Examples:
-          # - SSH to server and pull latest image
-          # - Update ECS/Fargate task definition
-          # - Trigger Railway/Render deployment
-          # - Update Kubernetes deployment
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
       
-      - name: Wait for health check
+      - name: Deploy to Railway
+        run: railway up --service backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Verify deployment health
         run: |
-          echo "Waiting for backend to be healthy..."
-          for i in {1..30}; do
-            if curl -f https://api.luneo.app/health; then
-              echo "Backend is healthy!"
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+          
+          HEALTH_URL="${BACKEND_URL}/health"
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Health check passed!"
               exit 0
             fi
-            echo "Attempt $i/30: Backend not ready yet..."
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Health check attempt $RETRY_COUNT failed (HTTP $HTTP_CODE). Retrying in 10s..."
             sleep 10
           done
-          echo "Backend health check failed!"
+          
+          echo "HEALTH CHECK FAILED after $MAX_RETRIES attempts"
           exit 1
+      
+      - name: Notify deployment status
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS="deployed successfully"
+            COLOR="good"
+          else
+            STATUS="FAILED"
+            COLOR="danger"
+          fi
+          
+          # Slack notification - || true so notification failures do not block deployment
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -X POST "$SLACK_WEBHOOK_URL" \
+              -H 'Content-type: application/json' \
+              -d "{\"attachments\":[{\"color\":\"$COLOR\",\"text\":\"Luneo backend $STATUS on \`${{ github.ref_name }}\` by ${{ github.actor }}\"}]}" || true
+          fi
 
+  # Build and deploy frontend to Vercel (production)
   deploy-frontend:
     name: Deploy Frontend
     needs: test
@@ -130,28 +138,30 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: apps/frontend/package-lock.json
+          cache: 'pnpm'
       
       - name: Install dependencies
-        run: |
-          cd apps/frontend
-          npm ci
+        run: pnpm install --frozen-lockfile
       
       - name: Build frontend
         run: |
           cd apps/frontend
-          npm run build
+          pnpm run build
         env:
           NEXT_PUBLIC_API_URL: https://api.luneo.app
       
-      - name: Deploy to Vercel
+      - name: Deploy Frontend to Vercel
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
@@ -160,6 +170,7 @@ jobs:
           vercel-args: '--prod'
           working-directory: ./apps/frontend
 
+  # Post-deploy health and auth checks
   smoke-tests:
     name: Smoke Tests
     needs: [deploy-backend, deploy-frontend]

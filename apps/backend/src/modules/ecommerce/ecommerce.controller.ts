@@ -1,5 +1,5 @@
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import {
     Body,
     Controller,
@@ -23,6 +23,14 @@ import { MagentoConnector } from '@/modules/ecommerce/connectors/magento/magento
 import { ShopifyConnector } from '@/modules/ecommerce/connectors/shopify/shopify.connector';
 import { WooCommerceConnector } from '@/modules/ecommerce/connectors/woocommerce/woocommerce.connector';
 import { SyncOrdersDto, SyncProductsDto, UpdateIntegrationDto } from '@/modules/ecommerce/dto/shopify-webhook.dto';
+import {
+  ShopifyInstallDto,
+  WooCommerceConnectDto,
+  MagentoConnectDto,
+  CreateProductMappingDto,
+  QueueSyncJobDto,
+  ScheduleRecurringSyncDto,
+} from '@/modules/ecommerce/dto/ecommerce.dto';
 import type {
     EcommerceIntegration,
     ProductMapping,
@@ -31,6 +39,7 @@ import type {
     SyncStats,
     WebhookHistory
 } from '@/modules/ecommerce/interfaces/ecommerce.interface';
+import { Prisma } from '@prisma/client';
 import { OrderSyncService } from '@/modules/ecommerce/services/order-sync.service';
 import { ProductSyncService } from '@/modules/ecommerce/services/product-sync.service';
 import { WebhookHandlerService } from '@/modules/ecommerce/services/webhook-handler.service';
@@ -60,7 +69,7 @@ export class EcommerceController {
   @ApiOperation({ summary: 'Génère l\'URL d\'installation Shopify' })
   @ApiResponse({ status: 200, description: 'URL générée avec succès' })
   async shopifyInstall(
-    @Body() body: { shop: string; brandId: string },
+    @Body() body: ShopifyInstallDto,
   ): Promise<{ installUrl: string }> {
     const installUrl = this.shopifyConnector.generateInstallUrl(body.shop, body.brandId);
     return { installUrl };
@@ -185,12 +194,7 @@ export class EcommerceController {
   @ApiOperation({ summary: 'Connecte une boutique WooCommerce' })
   @ApiResponse({ status: 201, description: 'Connexion réussie' })
   async woocommerceConnect(
-    @Body() body: {
-      brandId: string;
-      siteUrl: string;
-      consumerKey: string;
-      consumerSecret: string;
-    },
+    @Body() body: WooCommerceConnectDto,
   ): Promise<{ id: string; status: string; shopUrl: string }> {
     const integration = await this.woocommerceConnector.connect(
       body.brandId,
@@ -256,21 +260,16 @@ export class EcommerceController {
   @ApiOperation({ summary: 'Connecte une boutique Magento' })
   @ApiResponse({ status: 201, description: 'Connexion réussie' })
   async magentoConnect(
-    @Body() body: {
-      brandId: string;
-      storeUrl: string;
-      apiToken: string;
-    },
+    @Body() body: MagentoConnectDto,
   ): Promise<{ id: string; status: string; storeUrl: string }> {
     const result = await this.magentoConnector.connect(
       body.brandId,
       body.storeUrl,
       body.apiToken,
     );
-    // Adapter le résultat
     return {
-      id: (result as any).id || '',
-      status: (result as any).status || 'active',
+      id: result.id ?? '',
+      status: result.status ?? 'active',
       storeUrl: body.storeUrl,
     };
   }
@@ -487,11 +486,7 @@ export class EcommerceController {
   @ApiResponse({ status: 201, description: 'Mapping créé' })
   async createProductMapping(
     @Param('integrationId') integrationId: string,
-    @Body() body: {
-      luneoProductId: string;
-      externalProductId: string;
-      externalSku: string;
-    },
+    @Body() body: CreateProductMappingDto,
   ): Promise<ProductMapping> {
     const mapping = await this.prisma.productMapping.create({
       data: {
@@ -544,6 +539,7 @@ export class EcommerceController {
     });
     if (!integration) return null;
     // Adapter Prisma EcommerceIntegration vers interface EcommerceIntegration
+    const config = integration.config as EcommerceIntegration['config'] | null;
     return {
       id: integration.id,
       brandId: integration.brandId,
@@ -551,7 +547,7 @@ export class EcommerceController {
       shopDomain: integration.shopDomain,
       accessToken: integration.accessToken || undefined,
       refreshToken: integration.refreshToken || undefined,
-      config: (integration.config as any) || {},
+      config: config ?? {},
       status: integration.status as 'active' | 'inactive' | 'error' | 'pending',
       lastSyncAt: integration.lastSyncAt || undefined,
       createdAt: integration.createdAt,
@@ -572,7 +568,7 @@ export class EcommerceController {
       where: { id: integrationId },
       data: {
         status: body.status,
-        config: body.config as any, // Prisma JsonValue type
+        config: (body.config ?? {}) as Prisma.InputJsonValue,
       },
     });
     return {
@@ -604,15 +600,7 @@ export class EcommerceController {
   @ApiOperation({ summary: 'Ajoute un job de sync dans la queue BullMQ' })
   @ApiResponse({ status: 201, description: 'Job ajouté à la queue' })
   async queueSyncJob(
-    @Body() body: {
-      integrationId: string;
-      type: 'product' | 'order' | 'inventory' | 'full';
-      direction?: 'import' | 'export' | 'bidirectional';
-      productIds?: string[];
-      orderIds?: string[];
-      priority?: number;
-      delay?: number;
-    },
+    @Body() body: QueueSyncJobDto,
   ): Promise<{ jobId: string; status: string }> {
     const jobId = await this.syncEngine.queueSyncJob({
       integrationId: body.integrationId,
@@ -633,12 +621,7 @@ export class EcommerceController {
   @ApiOperation({ summary: 'Programme un job de sync récurrent' })
   @ApiResponse({ status: 201, description: 'Job récurrent programmé' })
   async scheduleRecurringSync(
-    @Body() body: {
-      integrationId: string;
-      type: 'product' | 'order' | 'inventory' | 'full';
-      interval: 'hourly' | 'daily' | 'weekly';
-      direction?: 'import' | 'export' | 'bidirectional';
-    },
+    @Body() body: ScheduleRecurringSyncDto,
   ): Promise<{ jobId: string; status: string }> {
     const jobId = await this.syncEngine.scheduleRecurringSync(
       body.integrationId,

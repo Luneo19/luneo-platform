@@ -15,10 +15,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 const nextConfig = {
   // Production optimizations
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // Note: 'standalone' output is not recommended for Vercel deployments
   // Only use standalone for Docker/Railway deployments
@@ -49,6 +49,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: '**.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
         pathname: '/**',
       },
       // Cloudflare R2 / Custom CDN
@@ -198,7 +203,8 @@ const nextConfig = {
     return config;
   },
 
-  // Headers for security, performance, and CDN optimization
+  // Headers for performance and CDN optimization.
+  // Security headers are managed in middleware.ts for dynamic control (nonces, env vars).
   async headers() {
     return [
       {
@@ -207,26 +213,6 @@ const nextConfig = {
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
           },
         ],
       },
@@ -370,6 +356,31 @@ const nextConfig = {
       {
         source: '/signin',
         destination: '/login',
+        permanent: true,
+      },
+      {
+        source: '/analytics',
+        destination: '/dashboard/analytics',
+        permanent: true,
+      },
+      {
+        source: '/billing',
+        destination: '/dashboard/billing',
+        permanent: true,
+      },
+      {
+        source: '/integrations',
+        destination: '/dashboard/integrations',
+        permanent: true,
+      },
+      {
+        source: '/ai-studio',
+        destination: '/dashboard/ai-studio',
+        permanent: true,
+      },
+      {
+        source: '/ar-studio',
+        destination: '/dashboard/ar-studio',
         permanent: true,
       },
     ];

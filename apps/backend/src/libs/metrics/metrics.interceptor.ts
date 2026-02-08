@@ -27,7 +27,7 @@ export class MetricsInterceptor implements NestInterceptor {
     // Extract route (remove query params)
     const route = request.route?.path || request.path;
     const method = request.method;
-    const brandId = (request.user as any)?.brandId || 'unknown';
+    const brandId = (request.user as { brandId?: string } | undefined)?.brandId || 'unknown';
 
     // Track request size
     const requestSize = this.getRequestSize(request);

@@ -10,6 +10,7 @@ import {
   Trash2, Download, Eye, EyeOff
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { trpc } from '@/lib/trpc/client';
@@ -184,31 +185,25 @@ function SettingsPageContent() {
   const handleToggle2FA = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/settings/2fa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: security.twoFactorEnabled ? 'disable' : 'enable'
-        })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to toggle 2FA');
+      if (security.twoFactorEnabled) {
+        await endpoints.auth.disable2FA();
+        setSecurity({ ...security, twoFactorEnabled: false });
+        toast({
+          title: "2FA désactivée",
+          description: "L'authentification à deux facteurs a été désactivée.",
+        });
+      } else {
+        await endpoints.auth.setup2FA();
+        setSecurity({ ...security, twoFactorEnabled: true });
+        toast({
+          title: "2FA activée",
+          description: "Scannez le QR code avec votre application (prochaine étape à compléter dans les paramètres sécurité).",
+        });
       }
-      
-      setSecurity({ ...security, twoFactorEnabled: !security.twoFactorEnabled });
-      toast({
-        title: security.twoFactorEnabled ? "2FA désactivée" : "2FA activée",
-        description: security.twoFactorEnabled 
-          ? "L'authentification à deux facteurs a été désactivée."
-          : "L'authentification à deux facteurs a été activée.",
-      });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de modifier les paramètres de sécurité.",
+        description: error instanceof Error ? error.message : "Impossible de modifier les paramètres de sécurité.",
         variant: "destructive",
       });
     } finally {
@@ -219,8 +214,7 @@ function SettingsPageContent() {
   const handleSaveNotifications = async () => {
     setSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await endpoints.settings.notifications(notifications as unknown as Record<string, unknown>);
       toast({
         title: "Notifications enregistrées",
         description: "Vos préférences de notification ont été mises à jour.",

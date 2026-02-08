@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { OrderSummary } from '@/lib/types';
+import type { OrderItem, ShippingAddress, BillingAddress } from '@/lib/types/order';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
+
 type Order = OrderSummary;
 
 /**
@@ -29,28 +32,35 @@ export function useOrders(params?: {
       setLoading(true);
       setError(null);
 
-      const queryParams = new URLSearchParams();
-      if (params?.page) queryParams.set('page', params.page.toString());
-      if (params?.limit) queryParams.set('limit', params.limit.toString());
-      if (params?.status) queryParams.set('status', params.status);
-      if (params?.search) queryParams.set('search', params.search);
+      const result = await endpoints.orders.list({
+        page: params?.page,
+        limit: params?.limit,
+        status: params?.status,
+        search: params?.search,
+      });
 
-      const response = await fetch(`/api/orders?${queryParams.toString()}`);
-      const result = await response.json();
+      // Handle different response formats
+      const raw = result as { data?: { orders?: Order[]; pagination?: typeof pagination }; orders?: Order[]; pagination?: typeof pagination };
+      const ordersList = raw?.data?.orders ?? raw?.orders ?? [];
+      const pag = raw?.data?.pagination ?? raw?.pagination ?? {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      };
 
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement des commandes');
-      }
-
-      setOrders(result.data.orders);
-      setPagination(result.data.pagination);
-    } catch (err: any) {
+      setOrders(Array.isArray(ordersList) ? ordersList : []);
+      setPagination(pag);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       logger.error('Erreur chargement orders', {
         error: err,
         params,
-        message: err.message,
+        message,
       });
-      setError(err.message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -84,21 +94,18 @@ export function useOrder(id: string) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/orders/${id}`);
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors du chargement de la commande');
-      }
-
-      setOrder(result.data.order);
-    } catch (err: any) {
+      const result = await endpoints.orders.get(id);
+      const raw = result as { data?: { order?: Order }; order?: Order };
+      const orderData = raw?.data?.order ?? raw?.order ?? result;
+      setOrder(orderData as Order);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       logger.error('Erreur chargement order', {
         error: err,
         orderId: id,
-        message: err.message,
+        message,
       });
-      setError(err.message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -124,9 +131,9 @@ export function useCreateOrder() {
   const [error, setError] = useState<string | null>(null);
 
   const createOrder = async (data: {
-    items: any[];
-    shipping_address: any;
-    billing_address?: any;
+    items: OrderItem[] | Array<Record<string, unknown>>;
+    shipping_address: ShippingAddress;
+    billing_address?: BillingAddress;
     payment_method?: string;
     customer_notes?: string;
     shipping_method?: string;
@@ -136,26 +143,17 @@ export function useCreateOrder() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la création de la commande');
-      }
-
-      return result.data.order;
-    } catch (err: any) {
+      const result = await endpoints.orders.create(data);
+      const raw = result as { data?: { order?: Order }; order?: Order };
+      return raw?.data?.order ?? raw?.order ?? result;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       logger.error('Erreur création order', {
         error: err,
         orderData: data,
-        message: err.message,
+        message,
       });
-      setError(err.message);
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -186,27 +184,18 @@ export function useUpdateOrder() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/orders/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la mise à jour');
-      }
-
-      return result.data.order;
-    } catch (err: any) {
+      const result = await endpoints.orders.update(id, data);
+      const raw = result as { data?: { order?: Order }; order?: Order };
+      return raw?.data?.order ?? raw?.order ?? result;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       logger.error('Erreur mise à jour order', {
         error: err,
         orderId: id,
         updateData: data,
-        message: err.message,
+        message,
       });
-      setError(err.message);
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -218,24 +207,16 @@ export function useUpdateOrder() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/orders/${id}`, {
-        method: 'DELETE'
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de l\'annulation');
-      }
-
+      const result = await endpoints.orders.cancel(id);
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       logger.error('Erreur annulation order', {
         error: err,
         orderId: id,
-        message: err.message,
+        message,
       });
-      setError(err.message);
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

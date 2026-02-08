@@ -19,7 +19,8 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ClipartsService } from './cliparts.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { CreateClipartDto, UpdateClipartDto } from './dto/cliparts.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('cliparts')
 @Controller('cliparts')
@@ -64,7 +65,7 @@ export class ClipartsController {
   @Post()
   @ApiOperation({ summary: 'Créer un nouveau clipart' })
   @ApiResponse({ status: 201, description: 'Clipart créé' })
-  async create(@Body() createDto: any, @Request() req) {
+  async create(@Body() createDto: CreateClipartDto, @Request() req) {
     return this.clipartsService.create(createDto, req.user.id, req.user.brandId || null);
   }
 
@@ -72,7 +73,7 @@ export class ClipartsController {
   @ApiOperation({ summary: 'Mettre à jour un clipart' })
   @ApiParam({ name: 'id', description: 'ID du clipart' })
   @ApiResponse({ status: 200, description: 'Clipart mis à jour' })
-  async update(@Param('id') id: string, @Body() updateDto: any, @Request() req) {
+  async update(@Param('id') id: string, @Body() updateDto: UpdateClipartDto, @Request() req) {
     return this.clipartsService.update(id, updateDto, req.user.id, req.user.brandId || null);
   }
 

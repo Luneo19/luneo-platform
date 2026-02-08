@@ -14,13 +14,17 @@ import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
-import { createTestingModule, testFixtures, testHelpers } from '@/common/test/test-setup';
+import { testFixtures } from '@/common/test/test-setup';
 import { UserRole } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
+import * as passwordHasher from '@/libs/crypto/password-hasher';
 
-// Mock bcrypt
-jest.mock('bcryptjs');
-const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
+// Mock password-hasher (Argon2id + bcrypt migration)
+jest.mock('@/libs/crypto/password-hasher', () => ({
+  hashPassword: jest.fn().mockResolvedValue('hashed_password'),
+  verifyPassword: jest.fn().mockResolvedValue({ isValid: true, needsRehash: false }),
+}));
+const mockedHashPassword = passwordHasher.hashPassword as jest.MockedFunction<typeof passwordHasher.hashPassword>;
+const mockedVerifyPassword = passwordHasher.verifyPassword as jest.MockedFunction<typeof passwordHasher.verifyPassword>;
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -36,8 +40,8 @@ describe('AuthService', () => {
     const mockEmailService = {
       sendConfirmationEmail: jest.fn().mockResolvedValue(undefined),
       sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
-      queueConfirmationEmail: jest.fn(),
-      queuePasswordResetEmail: jest.fn(),
+      queueConfirmationEmail: jest.fn().mockResolvedValue({ jobId: 'job_1' }),
+      queuePasswordResetEmail: jest.fn().mockResolvedValue({ jobId: 'job_1' }),
     };
 
     const mockBruteForceService = {
@@ -77,6 +81,8 @@ describe('AuthService', () => {
             refreshToken: {
               create: jest.fn(),
               findUnique: jest.fn(),
+              update: jest.fn(),
+              updateMany: jest.fn(),
               delete: jest.fn(),
               deleteMany: jest.fn(),
             },
@@ -147,10 +153,10 @@ describe('AuthService', () => {
     captchaService = module.get(CaptchaService);
 
     // Setup default mocks
-    mockedBcrypt.hash.mockResolvedValue('hashed_password' as never);
-    mockedBcrypt.compare.mockResolvedValue(true as never);
+    mockedHashPassword.mockResolvedValue('hashed_password');
+    mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
     jwtService.sign.mockReturnValue('mock_token');
-    (jwtService.signAsync as jest.Mock) = jest.fn().mockResolvedValue('mock_token');
+    (jwtService.signAsync as jest.Mock).mockResolvedValue('mock_token');
   });
 
   afterEach(() => {
@@ -186,7 +192,7 @@ describe('AuthService', () => {
       expect(result).toBeDefined();
       expect(result.user.email).toBe(signupDto.email);
       expect(result.user.firstName).toBe(signupDto.firstName);
-      expect(mockedBcrypt.hash).toHaveBeenCalledWith(signupDto.password, 13);
+      expect(mockedHashPassword).toHaveBeenCalledWith(signupDto.password);
       expect(prismaService.user.create).toHaveBeenCalled();
       expect(prismaService.userQuota.create).toHaveBeenCalled();
     });
@@ -273,7 +279,7 @@ describe('AuthService', () => {
       await service.signup(signupDto);
 
       // Assert
-      expect(mockedBcrypt.hash).toHaveBeenCalledWith(signupDto.password, 13);
+      expect(mockedHashPassword).toHaveBeenCalledWith(signupDto.password);
       expect(prismaService.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -352,7 +358,7 @@ describe('AuthService', () => {
       } as any);
       (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
       (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
-      mockedBcrypt.compare.mockResolvedValue(true as never);
+      mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
 
       // Act
@@ -361,7 +367,7 @@ describe('AuthService', () => {
       // Assert
       expect(result).toBeDefined();
       expect(result.user.email).toBe(loginDto.email);
-      expect(mockedBcrypt.compare).toHaveBeenCalledWith(loginDto.password, 'hashed_password');
+      expect(mockedVerifyPassword).toHaveBeenCalledWith(loginDto.password, 'hashed_password');
       expect(bruteForceService.checkAndThrow).toHaveBeenCalledWith(loginDto.email, clientIp);
       expect(bruteForceService.resetAttempts).toHaveBeenCalledWith(loginDto.email, clientIp);
       expect(prismaService.user.update).toHaveBeenCalledWith(
@@ -382,7 +388,7 @@ describe('AuthService', () => {
       } as any);
       (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
       (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
-      mockedBcrypt.compare.mockResolvedValue(true as never);
+      mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockRejectedValue(new UnauthorizedException('Too many attempts'));
 
       // Act & Assert
@@ -407,7 +413,7 @@ describe('AuthService', () => {
 
       // Act & Assert
       await expect(service.login(loginDto, clientIp)).rejects.toThrow(UnauthorizedException);
-      expect(mockedBcrypt.compare).not.toHaveBeenCalled();
+      expect(mockedVerifyPassword).not.toHaveBeenCalled();
       expect(bruteForceService.recordFailedAttempt).toHaveBeenCalled();
     });
 
@@ -417,12 +423,12 @@ describe('AuthService', () => {
         ...testFixtures.user,
         password: 'hashed_password',
       } as any);
-      mockedBcrypt.compare.mockResolvedValue(false as never);
+      mockedVerifyPassword.mockResolvedValue({ isValid: false, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
 
       // Act & Assert
       await expect(service.login(loginDto, clientIp)).rejects.toThrow(UnauthorizedException);
-      expect(mockedBcrypt.compare).toHaveBeenCalled();
+      expect(mockedVerifyPassword).toHaveBeenCalled();
       expect(bruteForceService.recordFailedAttempt).toHaveBeenCalled();
     });
 
@@ -434,7 +440,7 @@ describe('AuthService', () => {
         brand: testFixtures.brand,
         is2FAEnabled: true,
       } as any);
-      mockedBcrypt.compare.mockResolvedValue(true as never);
+      mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
       (jwtService.signAsync as jest.Mock).mockResolvedValue('temp-2fa-token');
 
@@ -457,7 +463,7 @@ describe('AuthService', () => {
       } as any);
       (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
       (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
-      mockedBcrypt.compare.mockResolvedValue(true as never);
+      mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
 
       // Act
@@ -471,6 +477,61 @@ describe('AuthService', () => {
         }),
       );
     });
+
+    it('should block login when email not verified after 24h grace period', async () => {
+      const oldCreatedAt = new Date(Date.now() - (25 * 60 * 60 * 1000)); // 25 hours ago
+      (prismaService.user.findUnique as any).mockResolvedValue({
+        ...testFixtures.user,
+        password: 'hashed_password',
+        brand: testFixtures.brand,
+        is2FAEnabled: false,
+        emailVerified: false,
+        createdAt: oldCreatedAt,
+      } as any);
+      mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
+      bruteForceService.checkAndThrow.mockResolvedValue(undefined);
+      (configService.get as jest.Mock).mockImplementation((key: string) =>
+        key === 'REQUIRE_EMAIL_VERIFICATION' ? 'true' : undefined,
+      );
+
+      await expect(service.login(loginDto, clientIp)).rejects.toThrow(UnauthorizedException);
+      expect(bruteForceService.resetAttempts).toHaveBeenCalledWith(loginDto.email, clientIp);
+      expect(prismaService.refreshToken.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should generate reset token and queue email when user exists', async () => {
+      (prismaService.user.findUnique as any).mockResolvedValue({
+        ...testFixtures.user,
+        email: 'user@example.com',
+      } as any);
+      (jwtService.signAsync as jest.Mock).mockResolvedValue('reset-token-123');
+
+      const result = await service.forgotPassword({ email: 'user@example.com' });
+
+      expect(result.message).toContain('If an account with that email exists');
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ sub: testFixtures.user.id, type: 'password-reset' }),
+        expect.any(Object),
+      );
+      expect(emailService.queuePasswordResetEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        'reset-token-123',
+        expect.stringContaining('reset-password?token=reset-token-123'),
+        expect.any(Object),
+      );
+    });
+
+    it('should return same message when user does not exist (no email enumeration)', async () => {
+      (prismaService.user.findUnique as any).mockResolvedValue(null);
+
+      const result = await service.forgotPassword({ email: 'nonexistent@example.com' });
+
+      expect(result.message).toContain('If an account with that email exists');
+      expect(jwtService.signAsync).not.toHaveBeenCalled();
+      expect(emailService.queuePasswordResetEmail).not.toHaveBeenCalled();
+    });
   });
 
   describe('refreshToken', () => {
@@ -478,14 +539,12 @@ describe('AuthService', () => {
       refreshToken: 'valid_refresh_token',
     };
 
-    // Skip: Mock injection issue with JwtService.verifyAsync in NestJS context
-    it.skip('should refresh tokens with valid refresh token', async () => {
-      // Arrange
+    it('should refresh tokens with valid refresh token (rotation)', async () => {
       const mockTokenRecord = {
         id: 'token_123',
         token: 'valid_refresh_token',
         userId: testFixtures.user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         usedAt: null,
         revokedAt: null,
         family: 'family_123',
@@ -495,23 +554,34 @@ describe('AuthService', () => {
         },
       };
 
-      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({ 
-        sub: testFixtures.user.id, 
-        email: testFixtures.user.email 
+      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+        sub: testFixtures.user.id,
+        email: testFixtures.user.email,
       });
-      (prismaService.refreshToken.findUnique as any).mockResolvedValue(mockTokenRecord as any);
-      (jwtService.signAsync as jest.Mock).mockResolvedValue('new_access_token');
-      (prismaService.refreshToken.delete as any).mockResolvedValue({} as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
-      (prismaService.refreshToken.deleteMany as any).mockResolvedValue({} as any);
+      (prismaService.refreshToken.findUnique as any).mockResolvedValue(mockTokenRecord);
+      (jwtService.signAsync as jest.Mock)
+        .mockResolvedValueOnce('new_access_token')
+        .mockResolvedValueOnce('new_refresh_token');
+      (prismaService.refreshToken.update as any).mockResolvedValue({});
+      (prismaService.refreshToken.create as any).mockResolvedValue({});
 
-      // Act
       const result = await service.refreshToken(refreshTokenDto);
 
-      // Assert
       expect(result).toBeDefined();
       expect(result.accessToken).toBeDefined();
-      expect(jwtService.verifyAsync).toHaveBeenCalled();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.user.email).toBe(testFixtures.user.email);
+      expect(jwtService.verifyAsync).toHaveBeenCalledWith(
+        refreshTokenDto.refreshToken,
+        expect.objectContaining({ secret: 'test-refresh-secret' }),
+      );
+      expect(prismaService.refreshToken.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'token_123' },
+          data: expect.objectContaining({ usedAt: expect.any(Date) }),
+        }),
+      );
+      expect(prismaService.refreshToken.create).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if refresh token is invalid', async () => {
@@ -534,22 +604,46 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException if token is expired', async () => {
-      // Arrange
       const expiredTokenRecord = {
         id: 'token_123',
         token: 'expired_refresh_token',
         userId: testFixtures.user.id,
-        expiresAt: new Date(Date.now() - 1000), // Expired
+        expiresAt: new Date(Date.now() - 1000),
         user: testFixtures.user,
       };
 
-      jwtService.verifyAsync = jest.fn().mockResolvedValue({ 
-        sub: testFixtures.user.id 
-      });
-      (prismaService.refreshToken.findUnique as any).mockResolvedValue(expiredTokenRecord as any);
+      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({ sub: testFixtures.user.id });
+      (prismaService.refreshToken.findUnique as any).mockResolvedValue(expiredTokenRecord);
 
-      // Act & Assert
       await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should revoke token family and throw when refresh token reuse detected', async () => {
+      const reusedTokenRecord = {
+        id: 'token_123',
+        token: 'valid_refresh_token',
+        userId: testFixtures.user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        usedAt: new Date(), // Already used
+        revokedAt: null,
+        family: 'family_123',
+        user: { ...testFixtures.user, brand: testFixtures.brand },
+      };
+
+      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+        sub: testFixtures.user.id,
+        email: testFixtures.user.email,
+      });
+      (prismaService.refreshToken.findUnique as any).mockResolvedValue(reusedTokenRecord);
+      (prismaService.refreshToken.updateMany as any).mockResolvedValue({ count: 1 });
+
+      await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
+      expect(prismaService.refreshToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.anything(),
+          data: expect.objectContaining({ revokedAt: expect.any(Date) }),
+        }),
+      );
     });
   });
 
@@ -627,8 +721,8 @@ describe('AuthService', () => {
         ...testFixtures.user,
         password: 'old_hashed_password',
       } as any);
-      mockedBcrypt.compare.mockResolvedValue(false as never); // New password different
-      mockedBcrypt.hash.mockResolvedValue('new_hashed_password' as never);
+      mockedVerifyPassword.mockResolvedValue({ isValid: false, needsRehash: false }); // New password different
+      mockedHashPassword.mockResolvedValue('new_hashed_password');
       (prismaService.user.update as any).mockResolvedValue({
         ...testFixtures.user,
         password: 'new_hashed_password',
@@ -641,7 +735,7 @@ describe('AuthService', () => {
       // Assert
       expect(result).toBeDefined();
       expect(result.message).toBe('Password reset successfully');
-      expect(mockedBcrypt.hash).toHaveBeenCalledWith(resetPasswordDto.password, 13);
+      expect(mockedHashPassword).toHaveBeenCalledWith(resetPasswordDto.password);
       expect(prismaService.user.update).toHaveBeenCalled();
       expect(prismaService.refreshToken.deleteMany).toHaveBeenCalled();
     });
@@ -657,11 +751,11 @@ describe('AuthService', () => {
         ...testFixtures.user,
         password: 'old_hashed_password',
       } as any);
-      mockedBcrypt.compare.mockResolvedValue(true as never); // Same password
+      mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false }); // Same password
 
       // Act & Assert
       await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(BadRequestException);
-      expect(mockedBcrypt.hash).not.toHaveBeenCalled();
+      expect(mockedHashPassword).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException for weak password', async () => {
@@ -692,8 +786,8 @@ describe('AuthService', () => {
         ...testFixtures.user,
         password: 'old_hashed_password',
       } as any);
-      mockedBcrypt.compare.mockResolvedValue(false as never);
-      mockedBcrypt.hash.mockResolvedValue('new_hashed_password' as never);
+      mockedVerifyPassword.mockResolvedValue({ isValid: false, needsRehash: false });
+      mockedHashPassword.mockResolvedValue('new_hashed_password');
       (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
       (prismaService.refreshToken.deleteMany as any).mockResolvedValue({} as any);
 

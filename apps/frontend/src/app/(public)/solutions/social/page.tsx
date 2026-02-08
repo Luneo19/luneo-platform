@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
@@ -201,17 +202,12 @@ ${platformGuidelines.hook}
     setApprovalError(null);
     setApprovalStatus('sending');
     try {
-      const response = await fetch('/api/emails/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'marketing@luneo.app',
-          brandName: selectedPlatform.name,
-          subject: `Approval ${selectedPlatform.name} (${goal})`,
-          customMessage: captionDraft,
-        }),
+      await api.post('/api/v1/emails/send-welcome', {
+        email: 'marketing@luneo.app',
+        brandName: selectedPlatform.name,
+        subject: `Approval ${selectedPlatform.name} (${goal})`,
+        customMessage: captionDraft,
       });
-      if (!response.ok) throw new Error('send failed');
       setApprovalStatus('sent');
       setTimeout(() => setApprovalStatus('idle'), 4000);
     } catch (error) {
@@ -241,17 +237,12 @@ ${platformGuidelines.hook}
     setCalendarStatus('syncing');
     setCalendarError(null);
     try {
-      const response = await fetch('/api/emails/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'scheduler@luneo.app',
-          brandName: 'SocialOps',
-          subject: 'Sync calendrier social',
-          customMessage: calendar.map((slot) => `${slot.day} ${slot.time} - ${slot.platform} (${slot.status})`).join('\n'),
-        }),
+      await api.post('/api/v1/emails/send-welcome', {
+        email: 'scheduler@luneo.app',
+        brandName: 'SocialOps',
+        subject: 'Sync calendrier social',
+        customMessage: calendar.map((slot) => `${slot.day} ${slot.time} - ${slot.platform} (${slot.status})`).join('\n'),
       });
-      if (!response.ok) throw new Error('sync failed');
       setCalendarStatus('synced');
       setTimeout(() => setCalendarStatus('idle'), 4000);
     } catch (error) {

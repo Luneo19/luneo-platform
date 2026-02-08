@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 // Types from widget (will be imported from shared package later)
 export interface ProductConfig {
   productId: string;
@@ -84,7 +85,7 @@ export class WidgetService {
         minHeight: area.minHeight,
         maxHeight: area.maxHeight,
         aspectRatio: area.aspectRatio,
-        allowedLayerTypes: area.allowedLayerTypes as any[],
+        allowedLayerTypes: (area.allowedLayerTypes as string[]) ?? [],
         maxTextLength: area.maxTextLength,
         allowedFonts: area.allowedFonts,
         defaultFont: area.defaultFont,
@@ -107,7 +108,7 @@ export class WidgetService {
       productName: product.name,
       customizableAreas: areas,
       options: {
-        colors: product.customizationOptions as any,
+        colors: (product.customizationOptions as unknown[]) ?? [],
         sizes: [],
         materials: [],
       },
@@ -137,7 +138,7 @@ export class WidgetService {
         canvasWidth: designData.canvas.width,
         canvasHeight: designData.canvas.height,
         canvasBackgroundColor: designData.canvas.backgroundColor,
-        designData: designData as any,
+        designData: designData as Prisma.InputJsonValue,
         productId,
         userId: userId || null,
         brandId: (await this.prisma.product.findUnique({ where: { id: productId }, select: { brandId: true } }))?.brandId || null,
@@ -146,7 +147,7 @@ export class WidgetService {
         canvasWidth: designData.canvas.width,
         canvasHeight: designData.canvas.height,
         canvasBackgroundColor: designData.canvas.backgroundColor,
-        designData: designData as any,
+        designData: designData as Prisma.InputJsonValue,
         updatedAt: new Date(),
       },
     });
@@ -168,7 +169,7 @@ export class WidgetService {
         opacity: layer.opacity,
         visible: layer.visible,
         locked: layer.locked,
-        data: layer.data as any,
+        data: layer.data as unknown as import('@prisma/client').Prisma.InputJsonValue,
         zIndex: index,
       })),
     });
@@ -209,14 +210,14 @@ export class WidgetService {
       },
       layers: design.layers.map((layer) => ({
         id: layer.id,
-        type: layer.type as any,
+        type: layer.type,
         position: { x: layer.x, y: layer.y },
         rotation: layer.rotation,
         scale: { x: layer.scaleX, y: layer.scaleY },
         opacity: layer.opacity,
         visible: layer.visible,
         locked: layer.locked,
-        data: layer.data as any,
+        data: layer.data as unknown as import('@prisma/client').Prisma.InputJsonValue,
       })),
       metadata: {
         createdAt: design.createdAt.toISOString(),

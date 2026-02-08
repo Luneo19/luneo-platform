@@ -39,10 +39,10 @@ export function ExportAnalyticsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>Exporter les analytics</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-600">
             Choisissez le format d'export pour vos données analytics
           </DialogDescription>
         </DialogHeader>
@@ -58,11 +58,11 @@ export function ExportAnalyticsModal({
                     'p-4 border-2 rounded-lg transition-all',
                     exportFormat === format.value
                       ? 'border-cyan-500 bg-cyan-500/10'
-                      : 'border-gray-700 bg-gray-900/50 hover:border-gray-600'
+                      : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                   )}
                 >
-                  <Icon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-white font-medium">{format.label}</p>
+                  <Icon className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                  <p className="text-gray-900 font-medium">{format.label}</p>
                 </button>
               );
             })}
@@ -72,7 +72,7 @@ export function ExportAnalyticsModal({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-gray-600"
+            className="border-gray-200"
           >
             Annuler
           </Button>

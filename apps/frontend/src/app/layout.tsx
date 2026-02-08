@@ -28,11 +28,12 @@ if (typeof window !== 'undefined') {
 
 import { loadI18nConfig, type SupportedLocale, type TranslationMessages } from "@/i18n/server";
 import { loadFeatureFlags } from "@/lib/feature-flags/loadFeatureFlags";
-import { getDefaultOrganizationSchema, getDefaultWebSiteSchema } from "@/lib/seo/schema";
+import { getDefaultOrganizationSchema, getDefaultWebSiteSchema } from '@/lib/seo/schema';
+import { SEO_BASE_URL } from '@/lib/seo/constants';
 import { serverLogger } from "@/lib/logger-server";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://luneo.app'),
+  metadataBase: new URL(SEO_BASE_URL),
   title: {
     default: 'Luneo - Plateforme de Personnalisation Produits | Design 2D/3D, AR & Print-Ready',
     template: '%s | Luneo Platform',
@@ -64,7 +65,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app',
+    url: SEO_BASE_URL,
     siteName: 'Luneo Platform',
     title: 'Luneo - Plateforme de Personnalisation Produits',
     description: 'Personnalisez vos produits avec notre éditeur 2D/3D, Virtual Try-On AR, et export print-ready professionnel.',
@@ -96,7 +97,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'google-site-verification-code', // À remplacer si vous avez un code
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
   },
   icons: {
     icon: [

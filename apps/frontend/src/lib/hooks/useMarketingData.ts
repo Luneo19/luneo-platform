@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { useCallback, useEffect, useState } from 'react';
+import { api } from '@/lib/api/client';
 
 interface Testimonial {
   id: string;
@@ -92,37 +93,25 @@ export function useMarketingData() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/public/marketing');
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP ${response.status}`);
-      }
+      const result = await api.get<{ success?: boolean; data?: MarketingData; stats?: unknown; testimonials?: Testimonial[]; integrations?: Integration[]; industries?: Industry[] }>('/api/v1/public/marketing');
 
-      const result = await response.json();
-
-      if (!result.success) {
-        // En cas d'erreur, utiliser des données par défaut
-        setData({
-          testimonials: [],
-          stats: [],
-          integrations: [],
-          industries: [],
-        });
+      if (result && (result as { success?: boolean }).success === false) {
+        setData({ testimonials: [], stats: [], integrations: [], industries: [] });
         return;
       }
 
-      // Normaliser les données de l'API
-      const apiData = result.data || result;
+      const apiData = (result as { data?: MarketingData })?.data ?? result;
       
       // S'assurer que stats est toujours un array
       let statsArray = [];
       if (Array.isArray(apiData.stats)) {
         statsArray = apiData.stats;
       } else if (apiData.stats && typeof apiData.stats === 'object') {
+        const st = apiData.stats as Record<string, unknown>;
         // Convertir l'objet stats en array si nécessaire
         statsArray = [
-          { value: String(apiData.stats.users || apiData.stats.totalBrands || 10000), label: 'Créateurs actifs', description: 'Créateurs actifs' },
-          { value: String(apiData.stats.designs || apiData.stats.totalProducts || 500000000), label: 'Designs générés', description: 'Designs générés' },
+          { value: String(st.users ?? st.totalBrands ?? 10000), label: 'Créateurs actifs', description: 'Créateurs actifs' },
+          { value: String(st.designs ?? st.totalProducts ?? 500000000), label: 'Designs générés', description: 'Designs générés' },
           { value: '3.2s', label: 'Temps moyen génération', description: 'Temps moyen génération' },
           { value: '150+', label: 'Pays', description: 'Pays' },
         ];
@@ -190,34 +179,14 @@ export function usePricingPlans(options?: { currency?: string; interval?: 'month
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams({ currency, interval });
-      const response = await fetch(`/api/public/plans?${params}`);
+      const result = await api.get<{ success?: boolean; data?: PlansData; plans?: PricingPlan[]; currency?: string; interval?: string; stripeEnabled?: boolean }>('/api/v1/public/plans', { params: { currency, interval } });
 
-      if (!response.ok) {
-        // En cas d'erreur, utiliser des données par défaut
-        setData({
-          plans: [],
-          currency,
-          interval,
-          stripeEnabled: false,
-        });
+      if (result && (result as { success?: boolean }).success === false) {
+        setData({ plans: [], currency, interval, stripeEnabled: false });
         return;
       }
 
-      const result = await response.json();
-
-      if (!result.success) {
-        // En cas d'erreur, utiliser des données par défaut
-        setData({
-          plans: [],
-          currency,
-          interval,
-          stripeEnabled: false,
-        });
-        return;
-      }
-
-      const apiData = result.data || result;
+      const apiData = (result as { data?: PlansData })?.data ?? result;
       
       // Normaliser les plans
       const plans = Array.isArray(apiData.plans) ? apiData.plans : [];

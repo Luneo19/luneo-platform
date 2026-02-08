@@ -35,7 +35,7 @@ export function useOrderActions() {
       try {
         await updateMutation.mutateAsync({
           id: orderId,
-          status: STATUS_MAPPING[status] as any,
+          status: STATUS_MAPPING[status],
           notes,
         });
         toast({
@@ -44,11 +44,11 @@ export function useOrderActions() {
         });
         router.refresh();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error updating order status', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors de la mise à jour',
+          description: error instanceof Error ? error.message : 'Erreur lors de la mise à jour',
           variant: 'destructive',
         });
         return { success: false };
@@ -67,11 +67,11 @@ export function useOrderActions() {
         });
         router.refresh();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error cancelling order', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors de l\'annulation',
+          description: error instanceof Error ? error.message : 'Erreur lors de l\'annulation',
           variant: 'destructive',
         });
         return { success: false };
@@ -90,7 +90,7 @@ export function useOrderActions() {
           orderIds.map((id) =>
             updateMutation.mutateAsync({
               id,
-              status: STATUS_MAPPING[status] as any,
+              status: STATUS_MAPPING[status],
             })
           )
         );
@@ -100,7 +100,7 @@ export function useOrderActions() {
         });
         router.refresh();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error bulk updating orders', { error });
         toast({
           title: 'Erreur',

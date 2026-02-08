@@ -65,10 +65,10 @@ export const AnalyticsCharts = React.memo(function AnalyticsCharts({ chartData, 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2].map((i) => (
-          <Card key={i} className="bg-gray-800/50 border-gray-700">
+          <Card key={i} className="bg-white border-gray-200">
             <CardHeader>
-              <div className="h-6 bg-gray-700 rounded animate-pulse mb-2 w-1/3" />
-              <div className="h-4 bg-gray-700 rounded animate-pulse w-1/2" />
+              <div className="h-6 bg-gray-200 rounded animate-pulse mb-2 w-1/3" />
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
             </CardHeader>
             <CardContent>
               <div className="h-64 flex items-center justify-center">
@@ -83,15 +83,15 @@ export const AnalyticsCharts = React.memo(function AnalyticsCharts({ chartData, 
 
   if (!chartData.labels.length || !chartData.datasets.length) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Évolution des métriques</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Évolution des métriques</CardTitle>
+          <CardDescription className="text-gray-600">
             Graphiques interactifs des performances
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-64 flex items-center justify-center text-gray-400">
+          <div className="h-64 flex items-center justify-center text-gray-600">
             <div className="text-center">
               <p className="mb-2">Aucune donnée disponible</p>
               <p className="text-sm">Sélectionnez une période pour voir les données</p>
@@ -106,12 +106,12 @@ export const AnalyticsCharts = React.memo(function AnalyticsCharts({ chartData, 
   const hasMultipleDatasets = chartData.datasets.length > 1;
   const primaryDataset = chartData.datasets[0];
 
-  // Tooltip personnalisé pour le thème dark
+  // Tooltip personnalisé pour le thème light
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 shadow-lg">
-          <p className="text-white font-semibold mb-2">{label}</p>
+        <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+          <p className="text-gray-900 font-semibold mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {entry.value.toLocaleString('fr-FR')}
@@ -127,10 +127,10 @@ export const AnalyticsCharts = React.memo(function AnalyticsCharts({ chartData, 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Graphique principal - Area Chart pour tendances */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Évolution des revenus</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Évolution des revenus</CardTitle>
+          <CardDescription className="text-gray-600">
             Tendance sur la période sélectionnée
           </CardDescription>
         </CardHeader>
@@ -176,10 +176,10 @@ export const AnalyticsCharts = React.memo(function AnalyticsCharts({ chartData, 
 
       {/* Graphique secondaire - Bar Chart pour comparaisons */}
       {hasMultipleDatasets && (
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="text-white">Comparaison des métriques</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-gray-900">Comparaison des métriques</CardTitle>
+            <CardDescription className="text-gray-600">
               Vue comparative sur la période
             </CardDescription>
           </CardHeader>
@@ -227,10 +227,10 @@ export const AnalyticsCharts = React.memo(function AnalyticsCharts({ chartData, 
 
       {/* Graphique de tendance - Line Chart si plusieurs datasets */}
       {hasMultipleDatasets && chartData.datasets.length > 1 && (
-        <Card className="bg-gray-800/50 border-gray-700 lg:col-span-2">
+        <Card className="bg-white border-gray-200 lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white">Tendances multiples</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-gray-900">Tendances multiples</CardTitle>
+            <CardDescription className="text-gray-600">
               Évolution de toutes les métriques
             </CardDescription>
           </CardHeader>

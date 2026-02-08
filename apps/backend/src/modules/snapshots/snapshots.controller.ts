@@ -10,7 +10,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { SnapshotsService } from './snapshots.service';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandScopedGuard } from '@/common/guards/brand-scoped.guard';
 import { BrandScoped } from '@/common/decorators/brand-scoped.decorator';
 import { IdempotencyKey } from '@/common/decorators/idempotency-key.decorator';
@@ -19,7 +19,7 @@ import { IdempotencyInterceptor } from '@/common/interceptors/idempotency.interc
 import { UseInterceptors } from '@nestjs/common';
 
 @ApiTags('snapshots')
-@Controller('v1/snapshots')
+@Controller('snapshots')
 @UseGuards(JwtAuthGuard, BrandScopedGuard, IdempotencyGuard)
 @UseInterceptors(IdempotencyInterceptor)
 @ApiBearerAuth()

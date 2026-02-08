@@ -8,10 +8,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
 import { ContentModerationService } from './services/content-moderation.service';
-import { IPClaimsService } from './services/ip-claims.service';
+import { IPClaimsService, type IPClaim } from './services/ip-claims.service';
 import { AntiFraudeService } from './services/anti-fraude.service';
 import { ModerateContentDto } from './dto/moderate-content.dto';
 import { CreateIPClaimDto } from './dto/create-ip-claim.dto';
@@ -37,7 +37,29 @@ export class TrustSafetyController {
   @ApiOperation({ summary: 'Modère du contenu' })
   @ApiResponse({ status: 200, description: 'Contenu modéré' })
   async moderate(@Body() dto: ModerateContentDto) {
-    return this.moderation.moderate(dto as any);
+    const content =
+      dto.type === 'text'
+        ? dto.text ?? ''
+        : dto.imageUrl ?? '';
+    const request = {
+      type: dto.type,
+      content,
+      context: {
+        userId: dto.userId,
+        brandId: dto.brandId,
+        designId: dto.designId,
+        ...dto.context,
+        imageMetadata: dto.imageMetadata
+          ? {
+              width: dto.imageMetadata.width ?? 0,
+              height: dto.imageMetadata.height ?? 0,
+              size: dto.imageMetadata.size ?? 0,
+              mimeType: dto.imageMetadata.mimeType ?? '',
+            }
+          : undefined,
+      },
+    };
+    return this.moderation.moderate(request);
   }
 
   @Get('moderation/history')
@@ -47,9 +69,19 @@ export class TrustSafetyController {
   async getModerationHistory(
     @Query('userId') userId?: string,
     @Query('brandId') brandId?: string,
-    @Query('limit') limit: number = 100,
+    @Query('limit') limit?: number,
+    @Query('type') type?: 'text' | 'image' | 'ai_generation',
+    @Query('approved') approved?: boolean,
+    @Query('action') action?: 'allow' | 'review' | 'block',
   ) {
-    return this.moderation.getModerationHistory(userId, brandId, limit);
+    return this.moderation.getModerationHistory(
+      userId,
+      brandId,
+      limit ?? 100,
+      type,
+      approved,
+      action,
+    );
   }
 
   // ========================================
@@ -60,7 +92,15 @@ export class TrustSafetyController {
   @ApiOperation({ summary: 'Crée une réclamation IP' })
   @ApiResponse({ status: 201, description: 'Réclamation créée' })
   async createClaim(@Body() dto: CreateIPClaimDto) {
-    return this.ipClaims.createClaim(dto as any);
+    const claim: Omit<IPClaim, 'id' | 'status'> = {
+      designId: dto.designId,
+      claimantName: dto.claimantName,
+      claimantEmail: dto.claimantEmail,
+      claimantType: 'other',
+      description: dto.description,
+      evidence: dto.supportingDocuments ?? [],
+    };
+    return this.ipClaims.createClaim(claim);
   }
 
   @Post('ip-claims/:claimId/review')
@@ -76,10 +116,10 @@ export class TrustSafetyController {
   @ApiOperation({ summary: 'Liste les réclamations IP' })
   @ApiResponse({ status: 200, description: 'Réclamations récupérées' })
   async listClaims(
-    @Query('status') status?: string,
+    @Query('status') status?: IPClaim['status'],
     @Query('limit') limit: number = 50,
   ) {
-    return this.ipClaims.listClaims(status as any, limit);
+    return this.ipClaims.listClaims(status, limit);
   }
 
   // ========================================
@@ -90,7 +130,10 @@ export class TrustSafetyController {
   @ApiOperation({ summary: 'Vérifie le risque de fraude' })
   @ApiResponse({ status: 200, description: 'Vérification effectuée' })
   async checkFraud(@Body() dto: CheckFraudDto) {
-    return this.antiFraude.checkFraud(dto as any);
+    return this.antiFraude.checkFraud({
+      ...dto,
+      action: dto.actionType,
+    });
   }
 }
 

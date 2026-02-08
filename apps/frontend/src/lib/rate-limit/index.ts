@@ -6,6 +6,7 @@
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { logger } from '@/lib/logger';
 
 // Initialize Redis client (Upstash)
 const redis = new Redis({
@@ -50,7 +51,8 @@ export const rateLimitConfigs = {
 function createRateLimiter(limit: number, window: string) {
   return new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(limit, window as any),
+    // Upstash Ratelimit accepts window as string e.g. '1 m', '1 h'
+    limiter: Ratelimit.slidingWindow(limit, window as '1 s' | '1 m' | '1 h' | '1 d'),
     analytics: true,
     prefix: '@luneo/rate-limit',
   });
@@ -111,7 +113,7 @@ export async function checkRateLimit(
 
   // If Redis is not configured in production, log warning but allow
   if (!process.env.UPSTASH_REDIS_REST_URL) {
-    console.warn('Rate limiting disabled: UPSTASH_REDIS_REST_URL not configured');
+    logger.warn('Rate limiting disabled: UPSTASH_REDIS_REST_URL not configured');
     return {
       success: true,
       remaining: config.limit,

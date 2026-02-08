@@ -4,10 +4,12 @@ import {
   Post,
   Param,
   Patch,
+  Put,
   Body,
   Request,
   Query,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { BrandsService } from './brands.service';
 import { CreateBrandDto, UpdateBrandDto, AddWebhookDto } from './dto/create-brand.dto';
+import { JsonValue } from '@/common/types/utility-types';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -29,6 +32,28 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 @ApiBearerAuth()
 export class BrandsController {
   constructor(private readonly brandsService: BrandsService) {}
+
+  @Get('settings')
+  @ApiOperation({ summary: 'Get brand settings for the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Brand settings' })
+  @ApiResponse({ status: 404, description: 'User has no brand' })
+  async getSettings(@Request() req) {
+    if (!req.user.brandId) {
+      throw new NotFoundException('No brand associated with this user');
+    }
+    return this.brandsService.findOne(req.user.brandId, req.user);
+  }
+
+  @Put('settings')
+  @ApiOperation({ summary: 'Update brand settings for the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Brand settings updated' })
+  @ApiResponse({ status: 404, description: 'User has no brand' })
+  async updateSettings(@Request() req, @Body() updateBrandDto: UpdateBrandDto) {
+    if (!req.user.brandId) {
+      throw new NotFoundException('No brand associated with this user');
+    }
+    return this.brandsService.update(req.user.brandId, updateBrandDto as Record<string, JsonValue>, req.user);
+  }
 
   @Get()
   @Roles(UserRole.PLATFORM_ADMIN)
@@ -46,7 +71,7 @@ export class BrandsController {
     return this.brandsService.findAll(
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
-      filters as any,
+      filters as Record<string, JsonValue>,
     );
   }
 
@@ -55,7 +80,7 @@ export class BrandsController {
   @ApiOperation({ summary: 'Créer une nouvelle marque' })
   @ApiResponse({ status: 201, description: 'Marque créée avec succès' })
   async create(@Body() createBrandDto: CreateBrandDto, @Request() req) {
-    return this.brandsService.create(createBrandDto as any, req.user.id);
+    return this.brandsService.create(createBrandDto as Record<string, JsonValue>, req.user.id);
   }
 
   @Get(':id')
@@ -79,7 +104,7 @@ export class BrandsController {
   @ApiParam({ name: 'id', description: 'ID de la marque' })
   @ApiResponse({ status: 200, description: 'Marque mise à jour' })
   async update(@Param('id') id: string, @Body() updateBrandDto: UpdateBrandDto, @Request() req) {
-    return this.brandsService.update(id, updateBrandDto as any, req.user);
+    return this.brandsService.update(id, updateBrandDto as Record<string, JsonValue>, req.user);
   }
 
   @Post(':id/webhooks')
@@ -87,6 +112,6 @@ export class BrandsController {
   @ApiParam({ name: 'id', description: 'ID de la marque' })
   @ApiResponse({ status: 201, description: 'Webhook ajouté' })
   async addWebhook(@Param('id') id: string, @Body() webhookData: AddWebhookDto, @Request() req) {
-    return this.brandsService.addWebhook(id, webhookData as any, req.user);
+    return this.brandsService.addWebhook(id, webhookData as Record<string, JsonValue>, req.user);
   }
 }

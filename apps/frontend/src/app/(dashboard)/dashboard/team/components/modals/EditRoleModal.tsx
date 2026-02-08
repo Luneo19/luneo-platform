@@ -57,7 +57,7 @@ export function EditRoleModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>Modifier le rôle</DialogTitle>
           <DialogDescription>
@@ -66,9 +66,9 @@ export function EditRoleModal({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
-            <Label className="text-gray-300">Rôle</Label>
+            <Label className="text-gray-700">Rôle</Label>
             <Select value={role} onValueChange={(value) => setRole(value as TeamRole)}>
-              <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-1">
+              <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -85,7 +85,7 @@ export function EditRoleModal({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-600"
+              className="border-gray-200"
             >
               Annuler
             </Button>

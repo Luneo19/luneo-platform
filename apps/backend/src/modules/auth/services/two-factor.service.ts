@@ -1,19 +1,17 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
-import * as bcrypt from 'bcrypt';
+import { hashBackupCode, verifyBackupCode } from '@/libs/crypto/password-hasher';
 import * as crypto from 'crypto';
 
 /**
  * Service pour l'authentification à deux facteurs (2FA)
  * Utilise TOTP (Time-based One-Time Password) avec speakeasy
- * SEC-07: Les backup codes sont hashés avec bcrypt
+ * SEC-07: Les backup codes sont hashés avec Argon2id (migration progressive depuis bcrypt)
  */
 @Injectable()
 export class TwoFactorService {
   private readonly logger = new Logger(TwoFactorService.name);
-  private readonly BACKUP_CODE_SALT_ROUNDS = 10;
-
   /**
    * Génère un secret 2FA pour un utilisateur
    */
@@ -93,8 +91,8 @@ export class TwoFactorService {
       
       plaintextCodes.push(code);
       
-      // Hasher le code pour stockage sécurisé
-      const hashedCode = await bcrypt.hash(code, this.BACKUP_CODE_SALT_ROUNDS);
+      // Hash backup code with Argon2id (progressive migration from bcrypt)
+      const hashedCode = await hashBackupCode(code);
       hashedCodes.push(hashedCode);
     }
 
@@ -120,9 +118,9 @@ export class TwoFactorService {
         return { isValid: true, matchedIndex: i };
       }
 
-      // Vérifier avec bcrypt pour les codes hashés
+      // Verify against hash (supports both bcrypt legacy and Argon2id)
       try {
-        const isMatch = await bcrypt.compare(normalizedCode, hashedCode);
+        const isMatch = await verifyBackupCode(normalizedCode, hashedCode);
         if (isMatch) {
           return { isValid: true, matchedIndex: i };
         }

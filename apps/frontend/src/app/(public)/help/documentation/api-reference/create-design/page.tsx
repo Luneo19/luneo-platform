@@ -6,7 +6,7 @@ import { Code, Copy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { logger } from '../../../../../../lib/logger';
+import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function CreateDesignPageContent() {

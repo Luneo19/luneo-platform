@@ -13,7 +13,7 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ProductRulesService } from './services/product-rules.service';
 import { ZonesService } from './services/zones.service';
 import { PricingEngine } from './services/pricing-engine.service';
@@ -26,6 +26,8 @@ import {
   PricingContext,
   ZoneValidationContext
 } from './interfaces/product-rules.interface';
+import { ValidateZoneCoordinatesDto } from './dto/validate-zone-coordinates.dto';
+import { ApplyZonePresetDto } from './dto/apply-zone-preset.dto';
 
 @ApiTags('Product Engine')
 @Controller('product-engine')
@@ -186,14 +188,10 @@ export class ProductEngineController {
   @ApiOperation({ summary: 'Valide les coordonnées d\'une zone' })
   @ApiResponse({ status: 200, description: 'Coordonnées validées avec succès' })
   async validateZoneCoordinates(
-    @Body() body: {
-      zone: Partial<ProductZone>;
-      canvasWidth: number;
-      canvasHeight: number;
-    }
+    @Body() body: ValidateZoneCoordinatesDto,
   ): Promise<any> {
     return this.zonesService.validateZoneCoordinates(
-      body.zone,
+      body.zone as Partial<ProductZone>,
       body.canvasWidth,
       body.canvasHeight
     );
@@ -246,10 +244,10 @@ export class ProductEngineController {
     @Param('productId') productId: string,
     @Query('period') period: 'day' | 'week' | 'month' | 'year' = 'month'
   ): Promise<any> {
-    // Combiner les statistiques des règles et des zones
+    const statsPeriod: 'day' | 'week' | 'month' = period === 'year' ? 'month' : period;
     const [rulesStats, zoneStats] = await Promise.all([
-      this.productRulesService.getRulesUsageStats(productId, period as any),
-      this.zonesService.getZoneUsageStats(productId, period as any),
+      this.productRulesService.getRulesUsageStats(productId, statsPeriod),
+      this.zonesService.getZoneUsageStats(productId, statsPeriod),
     ]);
 
     return {
@@ -369,18 +367,14 @@ export class ProductEngineController {
   @ApiResponse({ status: 201, description: 'Preset appliqué avec succès' })
   @ApiResponse({ status: 400, description: 'Preset invalide' })
   async applyZonePreset(
-    @Body() body: {
-      productId: string;
-      presetId: string;
-      position?: { x: number; y: number };
-    }
+    @Body() body: ApplyZonePresetDto,
   ): Promise<ProductZone> {
     const presets = await this.getZonePresets();
     
     // Trouver le preset
     let preset = null;
     for (const category of Object.values(presets)) {
-      const found = (category as any[]).find((p: any) => p.id === body.presetId);
+      const found = (category as ProductZone[]).find((p: ProductZone) => p.id === body.presetId);
       if (found) {
         preset = found;
         break;

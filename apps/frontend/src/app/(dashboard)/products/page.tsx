@@ -23,7 +23,7 @@ function ProductsPageContent() {
   // Query products from tRPC
   const productsQuery = trpc.product.list.useQuery({
     search: searchTerm || undefined,
-    category: categoryFilter !== 'all' ? (categoryFilter.toUpperCase() as any) : undefined,
+    category: categoryFilter !== 'all' ? (categoryFilter.toUpperCase() as string) : undefined,
     limit: 20,
     offset: (page - 1) * 20,
   });

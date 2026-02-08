@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type {
   CollaborationProject,
@@ -29,10 +30,10 @@ export function useCollaboration() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/ar-studio/collaboration/projects');
-      if (response.ok) {
-        const data = await response.json();
-        const transformed: CollaborationProject[] = (data.data || data.projects || []).map(
+      const data = await api.get<{ data?: unknown[]; projects?: unknown[] }>('/api/v1/ar-studio/collaboration/projects');
+      const raw = data?.data ?? data?.projects ?? [];
+      if (Array.isArray(raw) && raw.length > 0) {
+        const transformed: CollaborationProject[] = raw.map(
           (p: any) => ({
             id: p.id,
             name: p.name || 'Projet sans nom',
@@ -59,24 +60,20 @@ export function useCollaboration() {
 
   const fetchMembers = async () => {
     try {
-      const response = await fetch('/api/ar-studio/collaboration/members');
-      if (response.ok) {
-        const data = await response.json();
-        const transformed: CollaborationMember[] = (data.data || data.members || []).map(
-          (m: any) => ({
-            id: m.id,
-            userId: m.userId || m.user_id,
-            name: m.name || 'Utilisateur',
-            email: m.email || '',
-            avatar: m.avatar || m.avatarUrl,
-            role: (m.role || 'viewer') as any,
-            status: (m.status || 'active') as any,
-            joinedAt: m.joinedAt ? new Date(m.joinedAt) : new Date(),
-            lastActive: m.lastActive ? new Date(m.lastActive) : undefined,
-          })
-        );
-        setMembers(transformed);
-      }
+      const data = await api.get<{ data?: unknown[]; members?: unknown[] }>('/api/v1/ar-studio/collaboration/members');
+      const raw = (data?.data ?? data?.members ?? []) as Record<string, unknown>[];
+      const transformed: CollaborationMember[] = raw.map((m) => ({
+        id: m.id as string,
+        userId: (m.userId as string) || (m.user_id as string),
+        name: (m.name as string) || 'Utilisateur',
+        email: (m.email as string) || '',
+        avatar: (m.avatar as string) || (m.avatarUrl as string),
+        role: ((m.role as string) || 'viewer') as CollaborationMember['role'],
+        status: ((m.status as string) || 'active') as CollaborationMember['status'],
+        joinedAt: m.joinedAt ? new Date(m.joinedAt as string) : new Date(),
+        lastActive: m.lastActive ? new Date(m.lastActive as string) : undefined,
+      }));
+      setMembers(transformed);
     } catch (error) {
       logger.error('Failed to fetch members', { error });
     }
@@ -84,13 +81,11 @@ export function useCollaboration() {
 
   const fetchComments = async () => {
     try {
-      const response = await fetch(
-        `/api/ar-studio/collaboration/comments${selectedProject ? `?projectId=${selectedProject}` : ''}`
+      const data = await api.get<{ data?: CollaborationComment[]; comments?: CollaborationComment[] }>(
+        '/api/v1/ar-studio/collaboration/comments',
+        selectedProject ? { params: { projectId: selectedProject } } : {}
       );
-      if (response.ok) {
-        const data = await response.json();
-        setComments(data.data || data.comments || []);
-      }
+      setComments(data?.data ?? data?.comments ?? []);
     } catch (error) {
       logger.error('Failed to fetch comments', { error });
     }
@@ -98,13 +93,11 @@ export function useCollaboration() {
 
   const fetchActivities = async () => {
     try {
-      const response = await fetch(
-        `/api/ar-studio/collaboration/activities${selectedProject ? `?projectId=${selectedProject}` : ''}`
+      const data = await api.get<{ data?: CollaborationActivity[]; activities?: CollaborationActivity[] }>(
+        '/api/v1/ar-studio/collaboration/activities',
+        selectedProject ? { params: { projectId: selectedProject } } : {}
       );
-      if (response.ok) {
-        const data = await response.json();
-        setActivities(data.data || data.activities || []);
-      }
+      setActivities(data?.data ?? data?.activities ?? []);
     } catch (error) {
       logger.error('Failed to fetch activities', { error });
     }
@@ -122,17 +115,9 @@ export function useCollaboration() {
 
   const inviteMember = async (email: string, role: CollaborationRole) => {
     try {
-      const response = await fetch('/api/ar-studio/collaboration/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, role }),
-      });
-
-      if (response.ok) {
-        await fetchMembers();
-        return { success: true };
-      }
-      return { success: false, error: 'Failed to invite member' };
+      await api.post('/api/v1/ar-studio/collaboration/invite', { email, role });
+      await fetchMembers();
+      return { success: true };
     } catch (error) {
       logger.error('Failed to invite member', { error });
       return { success: false, error: 'Network error' };

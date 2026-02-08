@@ -47,7 +47,7 @@ export class AgentMetricsService implements OnModuleInit {
 
   constructor(private readonly prometheus: PrometheusService) {
     // Initialiser les métriques si prom-client est disponible
-    const registry = (prometheus as any).registry;
+    const registry = (prometheus as unknown as { registry?: unknown }).registry;
     if (registry) {
       this.initializeMetrics(registry);
     } else {
@@ -66,7 +66,7 @@ export class AgentMetricsService implements OnModuleInit {
   }
 
   onModuleInit() {
-    const registry = (this.prometheus as any).registry;
+    const registry = (this.prometheus as unknown as { registry?: unknown }).registry;
     if (registry) {
       this.logger.log('Agent metrics service initialized');
     }

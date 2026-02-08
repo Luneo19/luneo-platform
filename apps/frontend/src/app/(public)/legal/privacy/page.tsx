@@ -1,10 +1,24 @@
-'use client';
-
-import React, { memo } from 'react';
+import React from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+export const metadata: Metadata = {
+  title: 'Politique de confidentialité - Luneo',
+  description:
+    'Politique de confidentialité Luneo. Collecte, utilisation et protection de vos données. Conformité RGPD.',
+  openGraph: {
+    title: 'Politique de confidentialité - Luneo',
+    description: 'Comment Luneo collecte et protège vos données.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Politique de confidentialité - Luneo',
+    description: 'Politique de confidentialité Luneo.',
+  },
+};
 
 function PrivacyPageContent() {
   return (
@@ -53,12 +67,6 @@ function PrivacyPageContent() {
   );
 }
 
-const PrivacyPageMemo = memo(PrivacyPageContent);
-
 export default function PrivacyPage() {
-  return (
-    <ErrorBoundary componentName="PrivacyPage">
-      <PrivacyPageMemo />
-    </ErrorBoundary>
-  );
+  return <PrivacyPageContent />;
 }

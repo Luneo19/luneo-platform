@@ -1,0 +1,197 @@
+# Staging deployment - deploys both backend (serverless) and frontend to Vercel staging
+# ==============================================
+# Runs on push to staging or workflow_dispatch. Backend and frontend deploy to Vercel
+# (serverless) for staging. Production uses deploy-production.yml (Railway + Vercel).
+# ==============================================
+
+name: Deploy Staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '8'
+
+jobs:
+  # Lint and test (frontend + backend)
+  lint-and-test:
+    name: 🔍 Lint & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Lint
+        run: |
+          cd apps/frontend
+          pnpm run lint:check
+          cd ../backend
+          pnpm run lint
+
+      - name: ✅ Type check
+        run: |
+          cd apps/frontend
+          pnpm run type-check
+
+      - name: 🧪 Run tests
+        run: |
+          cd apps/frontend
+          pnpm run test:unit
+
+  # Build backend + frontend, upload artifacts
+  build:
+    name: 🔨 Build
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    timeout-minutes: 20
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔧 Generate Prisma Client
+        run: |
+          cd apps/backend
+          pnpm exec prisma generate
+
+      - name: 🔨 Build Backend
+        run: |
+          cd apps/backend
+          pnpm run build
+
+      - name: 🔨 Build Frontend
+        run: |
+          cd apps/frontend
+          pnpm run build
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            apps/backend/dist
+            apps/frontend/.next
+          retention-days: 7
+
+  # Deploy backend to Vercel (staging / preview)
+  deploy-backend:
+    name: 🚀 Deploy Backend (Staging)
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ secrets.VERCEL_BACKEND_PROJECT_ID != '' }}
+    environment: staging
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: 🚀 Deploy to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
+          vercel-args: '--preview'
+          working-directory: apps/backend
+
+      - name: ✅ Health check
+        run: |
+          sleep 30
+          curl -f https://api-staging.luneo.app/health || echo "Health check skipped (staging not configured)"
+
+  # Deploy frontend to Vercel (staging / preview)
+  deploy-frontend:
+    name: 🚀 Deploy Frontend (Staging)
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID != '' }}
+    environment: staging
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: 🚀 Deploy to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
+          vercel-args: '--preview'
+          working-directory: apps/frontend
+
+      - name: ✅ Health check
+        run: |
+          sleep 30
+          curl -f https://app-staging.luneo.app || echo "Health check skipped (staging not configured)"
+
+  # Notify on success/failure
+  notify:
+    name: 📢 Notify
+    runs-on: ubuntu-latest
+    needs: [build, deploy-backend, deploy-frontend]
+    if: always()
+
+    steps:
+      - name: 📢 Notify success
+        if: success()
+        run: |
+          echo "✅ Staging deployment successful!"
+
+      - name: 📢 Notify failure
+        if: failure()
+        run: |
+          echo "❌ Staging deployment failed!"

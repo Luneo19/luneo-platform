@@ -1,6 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
+/** Delegate for idempotencyKey model (use when Prisma client does not yet include the model) */
+interface IdempotencyKeyDelegate {
+  findUnique: (args: { where: { key: string } }) => Promise<{ key: string } | null>;
+  upsert: (args: { where: { key: string }; create: { key: string; result: string | null; expiresAt: Date }; update: { result: string | null; expiresAt: Date } }) => Promise<unknown>;
+  deleteMany: (args: { where: { expiresAt: { lt: Date } } }) => Promise<{ count: number }>;
+}
+
 /**
  * Service d'idempotence pour éviter le traitement en double des webhooks et opérations
  * Utilise une table de base de données pour stocker les clés d'idempotence
@@ -11,6 +18,10 @@ export class IdempotencyService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private get idempotencyKey(): IdempotencyKeyDelegate {
+    return (this.prisma as unknown as { idempotencyKey: IdempotencyKeyDelegate }).idempotencyKey;
+  }
+
   /**
    * Vérifie si une opération a déjà été traitée
    * @param key Clé unique d'idempotence (ex: webhook_event_id)
@@ -18,8 +29,7 @@ export class IdempotencyService {
    */
   async isProcessed(key: string): Promise<boolean> {
     try {
-      // Note: Temporary type assertion until Prisma client is regenerated
-      const existing = await (this.prisma as any).idempotencyKey.findUnique({
+      const existing = await this.idempotencyKey.findUnique({
         where: { key },
       });
       return !!existing;
@@ -36,12 +46,11 @@ export class IdempotencyService {
    * @param result Résultat de l'opération (optionnel)
    * @param ttlSeconds Durée de vie en secondes (par défaut 7 jours)
    */
-  async markAsProcessed(key: string, result?: any, ttlSeconds: number = 604800): Promise<void> {
+  async markAsProcessed(key: string, result?: unknown, ttlSeconds: number = 604800): Promise<void> {
     try {
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
       
-      // Note: Temporary type assertion until Prisma client is regenerated
-      await (this.prisma as any).idempotencyKey.upsert({
+      await this.idempotencyKey.upsert({
         where: { key },
         create: {
           key,
@@ -100,8 +109,7 @@ export class IdempotencyService {
    */
   async cleanupExpired(): Promise<number> {
     try {
-      // Note: Temporary type assertion until Prisma client is regenerated
-      const result = await (this.prisma as any).idempotencyKey.deleteMany({
+      const result = await this.idempotencyKey.deleteMany({
         where: {
           expiresAt: {
             lt: new Date(),

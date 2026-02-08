@@ -6,9 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { IntegrationService } from '../IntegrationService';
 import { cacheService } from '@/lib/cache/CacheService';
-import { verifyShopifyToken, getShopifyProducts } from '@/lib/integrations/shopify-client';
-import { verifyWooCommerceCredentials, getWooCommerceProducts } from '@/lib/integrations/woocommerce-client';
-// db will be imported after mock
+import { api, endpoints } from '@/lib/api/client';
 
 // Mocks
 vi.mock('@/lib/cache/CacheService', () => ({
@@ -19,38 +17,18 @@ vi.mock('@/lib/cache/CacheService', () => ({
   },
 }));
 
-// Mock the db module
-vi.mock('@/lib/db', () => ({
-  db: {
-    ecommerceIntegration: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    productMapping: {
-      deleteMany: vi.fn(),
-    },
-    syncLog: {
-      deleteMany: vi.fn(),
-    },
-    webhookLog: {
-      deleteMany: vi.fn(),
+vi.mock('@/lib/api/client', () => ({
+  api: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+  endpoints: {
+    integrations: {
+      list: vi.fn(),
     },
   },
-}));
-
-import { db } from '@/lib/db';
-
-vi.mock('@/lib/integrations/shopify-client', () => ({
-  verifyShopifyToken: vi.fn(),
-  getShopifyProducts: vi.fn(),
-}));
-
-vi.mock('@/lib/integrations/woocommerce-client', () => ({
-  verifyWooCommerceCredentials: vi.fn(),
-  getWooCommerceProducts: vi.fn(),
 }));
 
 describe('IntegrationService', () => {
@@ -98,13 +76,13 @@ describe('IntegrationService', () => {
 
       expect(result).toEqual(mockIntegrations);
       expect(cacheService.get).toHaveBeenCalledWith('integrations:brand-123');
-      expect(db.ecommerceIntegration.findMany).not.toHaveBeenCalled();
+      expect(endpoints.integrations.list).not.toHaveBeenCalled();
     });
 
-    it('should fetch integrations from database if cache miss', async () => {
+    it('should fetch integrations from API if cache miss', async () => {
       (cacheService.get as vi.Mock).mockReturnValue(null);
 
-      const mockDbIntegrations = [
+      const mockApiIntegrations = [
         {
           id: 'integration-123',
           brandId: 'brand-123',
@@ -113,22 +91,19 @@ describe('IntegrationService', () => {
           status: 'active',
           lastSyncAt: null,
           config: {},
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       ];
 
-      (db.ecommerceIntegration.findMany as vi.Mock).mockResolvedValue(mockDbIntegrations);
+      (endpoints.integrations.list as vi.Mock).mockResolvedValue(mockApiIntegrations);
 
       const result = await integrationService.listIntegrations('brand-123', true);
 
       expect(result).toBeDefined();
       expect(result.length).toBe(1);
       expect(result[0].id).toBe('integration-123');
-      expect(db.ecommerceIntegration.findMany).toHaveBeenCalledWith({
-        where: { brandId: 'brand-123' },
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(endpoints.integrations.list).toHaveBeenCalled();
       expect(cacheService.set).toHaveBeenCalled();
     });
   });
@@ -147,23 +122,21 @@ describe('IntegrationService', () => {
         status: 'active',
         lastSyncAt: null,
         config: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
-      (db.ecommerceIntegration.findUnique as vi.Mock).mockResolvedValue(mockIntegration);
+      (api.get as vi.Mock).mockResolvedValue(mockIntegration);
 
       const result = await integrationService.getIntegrationById('integration-123');
 
       expect(result).toBeDefined();
       expect(result.id).toBe('integration-123');
-      expect(db.ecommerceIntegration.findUnique).toHaveBeenCalledWith({
-        where: { id: 'integration-123' },
-      });
+      expect(api.get).toHaveBeenCalledWith('/api/v1/integrations/integration-123');
     });
 
     it('should throw error if integration not found', async () => {
-      (db.ecommerceIntegration.findUnique as vi.Mock).mockResolvedValue(null);
+      (api.get as vi.Mock).mockRejectedValue(new Error('Integration not found'));
 
       await expect(
         integrationService.getIntegrationById('integration-123')
@@ -176,16 +149,7 @@ describe('IntegrationService', () => {
   // ============================================
 
   describe('createShopifyIntegration', () => {
-    it('should create a Shopify integration', async () => {
-      const mockShopInfo = {
-        name: 'Test Shop',
-        email: 'test@example.com',
-        currency: 'EUR',
-        timezone: 'Europe/Paris',
-      };
-
-      (verifyShopifyToken as vi.Mock).mockResolvedValue(mockShopInfo);
-
+    it('should create a Shopify integration via API', async () => {
       const mockIntegration = {
         id: 'integration-123',
         brandId: 'brand-123',
@@ -194,11 +158,11 @@ describe('IntegrationService', () => {
         status: 'active',
         lastSyncAt: null,
         config: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
-      (db.ecommerceIntegration.create as vi.Mock).mockResolvedValue(mockIntegration);
+      (api.post as vi.Mock).mockResolvedValue(mockIntegration);
 
       const request = {
         brandId: 'brand-123',
@@ -209,15 +173,17 @@ describe('IntegrationService', () => {
       const result = await integrationService.createShopifyIntegration(request);
 
       expect(result).toBeDefined();
-      expect(verifyShopifyToken).toHaveBeenCalledWith(
-        'test.myshopify.com',
-        'token-123'
-      );
-      expect(db.ecommerceIntegration.create).toHaveBeenCalled();
+      expect(api.post).toHaveBeenCalledWith('/api/v1/ecommerce/integrations', {
+        platform: 'shopify',
+        brandId: 'brand-123',
+        shopDomain: 'test.myshopify.com',
+        accessToken: 'token-123',
+      });
+      expect(result.id).toBe('integration-123');
     });
 
     it('should handle errors when creating Shopify integration', async () => {
-      (verifyShopifyToken as vi.Mock).mockRejectedValue(new Error('Invalid token'));
+      (api.post as vi.Mock).mockRejectedValue(new Error('Invalid token'));
 
       await expect(
         integrationService.createShopifyIntegration({
@@ -234,9 +200,7 @@ describe('IntegrationService', () => {
   // ============================================
 
   describe('createWooCommerceIntegration', () => {
-    it('should create a WooCommerce integration', async () => {
-      (verifyWooCommerceCredentials as vi.Mock).mockResolvedValue({ success: true });
-
+    it('should create a WooCommerce integration via API', async () => {
       const mockIntegration = {
         id: 'integration-123',
         brandId: 'brand-123',
@@ -245,11 +209,11 @@ describe('IntegrationService', () => {
         status: 'active',
         lastSyncAt: null,
         config: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
-      (db.ecommerceIntegration.create as vi.Mock).mockResolvedValue(mockIntegration);
+      (api.post as vi.Mock).mockResolvedValue(mockIntegration);
 
       const request = {
         brandId: 'brand-123',
@@ -261,12 +225,14 @@ describe('IntegrationService', () => {
       const result = await integrationService.createWooCommerceIntegration(request);
 
       expect(result).toBeDefined();
-      expect(verifyWooCommerceCredentials).toHaveBeenCalledWith(
-        'test.com',
-        'key-123',
-        'secret-123'
-      );
-      expect(db.ecommerceIntegration.create).toHaveBeenCalled();
+      expect(api.post).toHaveBeenCalledWith('/api/v1/ecommerce/integrations', {
+        platform: 'woocommerce',
+        brandId: 'brand-123',
+        shopDomain: 'test.com',
+        consumerKey: 'key-123',
+        consumerSecret: 'secret-123',
+      });
+      expect(result.id).toBe('integration-123');
     });
   });
 
@@ -275,29 +241,18 @@ describe('IntegrationService', () => {
   // ============================================
 
   describe('syncProducts', () => {
-    it('should sync products from Shopify', async () => {
-      const mockIntegration = {
+    it('should sync products from Shopify via API', async () => {
+      (api.get as vi.Mock).mockResolvedValue({
         id: 'integration-123',
         brandId: 'brand-123',
         platform: 'shopify',
         shopDomain: 'test.myshopify.com',
         status: 'active',
-        accessToken: 'token-123',
         config: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock getIntegrationById which is called by syncIntegration
-      vi.spyOn(integrationService, 'getIntegrationById' as any).mockResolvedValue({
-        ...mockIntegration,
-        platform: 'shopify' as const,
-        status: 'active' as const,
-        lastSyncAt: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
-
-      // Mock syncShopify internal method
-      vi.spyOn(integrationService, 'syncShopify' as any).mockResolvedValue({
+      (api.post as vi.Mock).mockResolvedValue({
         success: true,
         itemsProcessed: 1,
         itemsFailed: 0,
@@ -313,31 +268,18 @@ describe('IntegrationService', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should sync products from WooCommerce', async () => {
-      const mockIntegration = {
+    it('should sync products from WooCommerce via API', async () => {
+      (api.get as vi.Mock).mockResolvedValue({
         id: 'integration-123',
         brandId: 'brand-123',
         platform: 'woocommerce',
         shopDomain: 'test.com',
         status: 'active',
-        config: {
-          consumerKey: 'key-123',
-          consumerSecret: 'secret-123',
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock getIntegrationById which is called by syncIntegration
-      vi.spyOn(integrationService, 'getIntegrationById' as any).mockResolvedValue({
-        ...mockIntegration,
-        platform: 'woocommerce' as const,
-        status: 'active' as const,
-        lastSyncAt: null,
+        config: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
-
-      // Mock syncWooCommerce internal method
-      vi.spyOn(integrationService, 'syncWooCommerce' as any).mockResolvedValue({
+      (api.post as vi.Mock).mockResolvedValue({
         success: true,
         itemsProcessed: 1,
         itemsFailed: 0,
@@ -359,40 +301,22 @@ describe('IntegrationService', () => {
   // ============================================
 
   describe('deleteIntegration', () => {
-    it('should delete an integration', async () => {
-      const mockIntegration = {
-        id: 'integration-123',
-        brandId: 'brand-123',
-        platform: 'shopify',
-        shopDomain: 'test.myshopify.com',
-        status: 'active',
-        config: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      (db.ecommerceIntegration.findUnique as vi.Mock).mockResolvedValue(mockIntegration);
-      (db.productMapping.deleteMany as vi.Mock).mockResolvedValue({ count: 0 });
-      (db.syncLog.deleteMany as vi.Mock).mockResolvedValue({ count: 0 });
-      (db.webhookLog.deleteMany as vi.Mock).mockResolvedValue({ count: 0 });
-      (db.ecommerceIntegration.delete as vi.Mock).mockResolvedValue(mockIntegration);
+    it('should delete an integration via API', async () => {
+      (api.delete as vi.Mock).mockResolvedValue(undefined);
 
       await integrationService.deleteIntegration('integration-123', 'brand-123');
 
-      expect(db.ecommerceIntegration.delete).toHaveBeenCalledWith({
-        where: { id: 'integration-123' },
-      });
+      expect(api.delete).toHaveBeenCalledWith('/api/v1/ecommerce/integrations/integration-123');
       expect(cacheService.delete).toHaveBeenCalledWith('integrations:brand-123');
       expect(cacheService.delete).toHaveBeenCalledWith('integration:integration-123');
     });
 
     it('should handle errors when deleting integration', async () => {
-      (db.ecommerceIntegration.findUnique as vi.Mock).mockResolvedValue(null);
+      (api.delete as vi.Mock).mockRejectedValue(new Error('Integration not found'));
 
       await expect(
         integrationService.deleteIntegration('integration-123', 'brand-123')
-      ).rejects.toThrow('Integration not found');
+      ).rejects.toThrow();
     });
   });
 });
-

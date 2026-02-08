@@ -12,16 +12,14 @@ export function useCurrentUser() {
   return useQuery<User>({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
-      // ✅ FIX: Vérifier la présence d'un token AVANT d'appeler /auth/me
-      // Évite les requêtes 401 inutiles quand personne n'est connecté
+      // Auth tokens are in httpOnly cookies — sent automatically via withCredentials
+      // We check for the presence of any auth cookie before hitting /auth/me
       if (typeof window !== 'undefined') {
-        const hasToken = 
-          localStorage.getItem('accessToken') ||
-          localStorage.getItem('token') ||
+        const hasCookie =
           document.cookie.includes('accessToken') ||
           document.cookie.includes('refreshToken');
-        if (!hasToken) {
-          throw new Error('No auth token found');
+        if (!hasCookie) {
+          throw new Error('No auth cookie found');
         }
       }
       try {
@@ -31,13 +29,12 @@ export function useCurrentUser() {
         throw error;
       }
     },
-    retry: false, // Ne pas retry sur 401 pour éviter les boucles
+    retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true, // Refetch quand la fenêtre redevient active
-    enabled: typeof window !== 'undefined' && Boolean(
-      (typeof localStorage !== 'undefined' && (localStorage.getItem('accessToken') || localStorage.getItem('token'))) ||
-      (typeof document !== 'undefined' && (document.cookie.includes('accessToken') || document.cookie.includes('refreshToken')))
-    ),
+    refetchOnWindowFocus: true,
+    enabled: typeof window !== 'undefined' &&
+      typeof document !== 'undefined' &&
+      (document.cookie.includes('accessToken') || document.cookie.includes('refreshToken')),
   });
 }
 
@@ -61,10 +58,6 @@ export function useLogin() {
         queryClient.setQueryData(['auth', 'me'], data.user);
       }
 
-      // Cleanup any old localStorage tokens (migration from old system)
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-
       // Redirect to overview
       router.push('/overview');
     },
@@ -79,7 +72,7 @@ export function useLogin() {
 
 /**
  * Hook for register mutation
- * ✅ Uses httpOnly cookies - no localStorage needed
+ * Uses httpOnly cookies - no localStorage needed
  */
 export function useRegister() {
   const router = useRouter();
@@ -88,18 +81,10 @@ export function useRegister() {
   return useMutation<AuthSessionResponse, Error, RegisterData>({
     mutationFn: (data: RegisterData) => endpoints.auth.register(data),
     onSuccess: (data) => {
-      // ✅ Tokens are in httpOnly cookies (set by backend)
-      // Cookies are automatically sent with each request via withCredentials: true
-      // No need to store in localStorage - backend handles auth via cookies
-      
-      // Store user data in React Query cache only
+      // Tokens are in httpOnly cookies (set by backend)
       if (data.user) {
         queryClient.setQueryData(['auth', 'me'], data.user);
       }
-
-      // Cleanup any old localStorage tokens (migration from old system)
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
 
       // Redirect to overview
       router.push('/overview');
@@ -123,15 +108,8 @@ export function useLogout() {
   return useMutation<void, Error, void>({
     mutationFn: () => endpoints.auth.logout(),
     onSuccess: () => {
-      // Clear local storage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('brandId');
-
-      // Clear all queries
+      // Cookies are cleared by backend on logout
       queryClient.clear();
-
-      // Redirect to home
       router.push('/');
     },
     onError: (error: any) => {
@@ -139,10 +117,7 @@ export function useLogout() {
         error,
         message: error.message,
       });
-      
-      // Force logout even if request fails
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
+      // Force logout even if request fails — cookies may already be expired
       queryClient.clear();
       router.push('/');
     },

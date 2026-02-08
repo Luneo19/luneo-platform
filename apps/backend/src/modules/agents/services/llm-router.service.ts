@@ -401,7 +401,7 @@ export class LLMRouterService {
               // Note: agentType n'est pas disponible ici, on utilise 'unknown'
               this.metrics.recordRetry(
                 {
-                  agent: 'unknown' as any,
+                  agent: 'unknown' as 'luna' | 'aria' | 'nova',
                   provider,
                 },
                 attempt,

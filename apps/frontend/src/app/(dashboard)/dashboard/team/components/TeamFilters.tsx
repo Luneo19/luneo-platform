@@ -23,22 +23,22 @@ export function TeamFilters({
   onRoleFilterChange,
 }: TeamFiltersProps) {
   return (
-    <Card className="p-4 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
             <Input
               placeholder="Rechercher par nom ou email..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="bg-gray-900 border-gray-600 text-white pl-10"
+              className="bg-white border-gray-200 text-gray-900 pl-10"
             />
           </div>
         </div>
         <div className="w-full md:w-48">
           <Select value={roleFilter} onValueChange={onRoleFilterChange}>
-            <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="bg-white border-gray-200 text-gray-900">
               <SelectValue placeholder="Tous les rôles" />
             </SelectTrigger>
             <SelectContent>

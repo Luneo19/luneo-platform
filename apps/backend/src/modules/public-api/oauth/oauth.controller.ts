@@ -5,11 +5,10 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 /**
  * OAuth Controller
- * API-04: Suppression du hack (global as any).currentBrandId
- * brandId est maintenant extrait du user authentifié via JWT
+ * brandId is read from the authenticated user (JWT); the user must be associated with a brand.
  */
 @ApiTags('OAuth')
-@Controller('oauth')
+@Controller('public-api/oauth')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class OAuthController {

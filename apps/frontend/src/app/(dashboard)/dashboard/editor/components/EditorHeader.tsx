@@ -39,9 +39,9 @@ export function EditorHeader({
   onToggleRulers,
 }: EditorHeaderProps) {
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700">
+    <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold text-white">Éditeur de Design</h1>
+        <h1 className="text-xl font-bold text-gray-900">Éditeur de Design</h1>
       </div>
       <div className="flex items-center gap-2">
         <Button
@@ -49,7 +49,7 @@ export function EditorHeader({
           size="sm"
           onClick={onUndo}
           disabled={!canUndo}
-          className="text-gray-300"
+          className="text-gray-700"
         >
           <Undo2 className="w-4 h-4" />
         </Button>
@@ -58,7 +58,7 @@ export function EditorHeader({
           size="sm"
           onClick={onRedo}
           disabled={!canRedo}
-          className="text-gray-300"
+          className="text-gray-700"
         >
           <Redo2 className="w-4 h-4" />
         </Button>
@@ -67,7 +67,7 @@ export function EditorHeader({
           variant="ghost"
           size="sm"
           onClick={onToggleGrid}
-          className={cn('text-gray-300', showGrid && 'bg-gray-700')}
+          className={cn('text-gray-700', showGrid && 'bg-gray-100')}
         >
           <Grid className="w-4 h-4" />
         </Button>
@@ -75,7 +75,7 @@ export function EditorHeader({
           variant="ghost"
           size="sm"
           onClick={onToggleGuides}
-          className={cn('text-gray-300', showGuides && 'bg-gray-700')}
+          className={cn('text-gray-700', showGuides && 'bg-gray-100')}
         >
           <Eye className="w-4 h-4" />
         </Button>
@@ -83,7 +83,7 @@ export function EditorHeader({
           variant="ghost"
           size="sm"
           onClick={onToggleRulers}
-          className={cn('text-gray-300', showRulers && 'bg-gray-700')}
+          className={cn('text-gray-700', showRulers && 'bg-gray-100')}
         >
           <Ruler className="w-4 h-4" />
         </Button>
@@ -92,7 +92,7 @@ export function EditorHeader({
           variant="outline"
           size="sm"
           onClick={onSave}
-          className="border-gray-600 text-gray-300"
+          className="border-gray-200 text-gray-700"
         >
           <Save className="w-4 h-4 mr-2" />
           Enregistrer

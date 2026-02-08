@@ -1,15 +1,16 @@
 /**
  * ★★★ PAGE - TEMPLATES ★★★
  * Page Server Component pour les templates
- * 
+ *
  * Architecture:
- * - Server Component qui vérifie l'authentification
+ * - Server Component qui vérifie l'authentification via cookies (backend NestJS)
  * - Client Component pour les interactions
  * - Utilise le hook useTemplates pour les données
  */
 
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TemplatesPageClient } from './TemplatesPageClient';
 import { Loader2 } from 'lucide-react';
@@ -31,15 +32,21 @@ function TemplatesSkeleton() {
 }
 
 /**
- * Server Component - Vérifie l'authentification
+ * Server Component - Vérifie l'authentification via cookies (backend)
  */
 export default async function TemplatesPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join('; ');
 
-  // Vérifier l'authentification
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const res = await fetch(`${getBackendUrl()}/api/v1/auth/me`, {
+    headers: cookieHeader ? { Cookie: cookieHeader } : {},
+    cache: 'no-store',
+  });
 
-  if (authError || !user) {
+  if (!res.ok) {
     return (
       <ErrorBoundary level="page" componentName="TemplatesPage">
         <div className="p-6">

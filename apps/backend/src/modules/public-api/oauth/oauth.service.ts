@@ -26,7 +26,7 @@ export class OAuthService {
     }), 600); // 10 minutes TTL
 
     // In a real implementation, this would generate the actual OAuth URL
-    const authUrl = `${process.env.OAUTH_BASE_URL || 'https://oauth.luneo.app'}/authorize?` +
+    const authUrl = `${process.env.OAUTH_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3000'}/authorize?` +
       `client_id=${process.env.OAUTH_CLIENT_ID}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `scope=${scopes.join(' ')}&` +
@@ -138,8 +138,7 @@ export class OAuthService {
     return {
       clientId: process.env.OAUTH_CLIENT_ID || 'luneo-client',
       redirectUris: [
-        'https://app.luneo.app/auth/callback',
-        'http://localhost:3000/auth/callback',
+        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/callback`,
       ],
       scopes: [
         'designs:read',

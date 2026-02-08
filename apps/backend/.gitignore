@@ -1,2 +1,5 @@
 .vercel
 .env*.local
+
+# Prefer pnpm lockfile; ignore npm lockfile
+package-lock.json

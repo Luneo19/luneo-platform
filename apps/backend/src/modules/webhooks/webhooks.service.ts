@@ -1,5 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 
 @Injectable()
@@ -11,7 +12,7 @@ export class WebhooksService {
   /**
    * Génère une clé d'idempotency à partir du payload
    */
-  generateIdempotencyKey(payload: any, brandId: string): string {
+  generateIdempotencyKey(payload: Record<string, unknown>, brandId: string): string {
     const payloadStr = JSON.stringify(payload);
     const hash = createHash('sha256').update(`${brandId}:${payloadStr}`).digest('hex');
     return hash.substring(0, 32);
@@ -24,12 +25,12 @@ export class WebhooksService {
     idempotencyKey: string,
     timestamp: number,
     maxAgeMinutes: number = 5,
-  ): Promise<{ isValid: boolean; existing?: any }> {
+  ): Promise<{ isValid: boolean; existing?: { id: string; event: string; payload: unknown; statusCode: number | null; createdAt: Date } }> {
     // Vérifier si déjà traité (utiliser WebhookLog au lieu de Webhook)
     // Note: Le modèle Webhook n'a pas idempotencyKey, on utilise une approche alternative
     const existing = await this.prisma.webhookLog.findFirst({
       where: { 
-        payload: { path: ['idempotencyKey'], equals: idempotencyKey } as any,
+        payload: { path: ['idempotencyKey'], equals: idempotencyKey } as Prisma.JsonFilter,
       },
     });
 
@@ -58,10 +59,10 @@ export class WebhooksService {
   async processWebhook(
     brandId: string,
     event: string,
-    payload: any,
+    payload: Record<string, unknown>,
     idempotencyKey?: string,
     timestamp?: number,
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Générer idempotency key si non fourni
     const key = idempotencyKey || this.generateIdempotencyKey(payload, brandId);
     const ts = timestamp || Date.now();
@@ -90,7 +91,7 @@ export class WebhooksService {
         data: {
           webhookId: webhookId || undefined,
           event: 'webhook_processed',
-          payload: { ...payload, idempotencyKey: key, originalEvent: event } as any,
+          payload: { ...payload, idempotencyKey: key, originalEvent: event } as Prisma.InputJsonValue,
           statusCode: 200,
           response: JSON.stringify(result),
         },
@@ -110,9 +111,9 @@ export class WebhooksService {
         data: {
           webhookId: webhookId || undefined,
           event: 'webhook_processed',
-          payload: { ...payload, idempotencyKey: key, originalEvent: event } as any,
+          payload: { ...payload, idempotencyKey: key, originalEvent: event } as Prisma.InputJsonValue,
           statusCode: null,
-          error: (error as Error).message,
+          error: error instanceof Error ? error.message : String(error),
         },
       });
 
@@ -120,7 +121,7 @@ export class WebhooksService {
     }
   }
 
-  async processSendGridEvent(event: any) {
+  async processSendGridEvent(event: Record<string, unknown>) {
     this.logger.log(`Traitement de l'événement SendGrid: ${event.event} pour ${event.email}`);
     
     // Ici vous pouvez ajouter votre logique métier
@@ -129,7 +130,7 @@ export class WebhooksService {
     return { success: true, event: event.event, email: event.email };
   }
 
-  async logWebhookEvent(event: any) {
+  async logWebhookEvent(event: Record<string, unknown>) {
     this.logger.debug('Événement webhook loggé:', JSON.stringify(event, null, 2));
   }
 }

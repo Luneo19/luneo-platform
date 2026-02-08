@@ -429,6 +429,27 @@ export class SLASupportService {
         ? (ticketsOnTime / totalCount) * 100
         : 100;
 
+      let uptimePercent = 100;
+      const apiHealth = await this.prisma.serviceHealth.findFirst({
+        where: { service: 'api' },
+        orderBy: { lastCheck: 'desc' },
+      });
+      if (apiHealth) {
+        switch (apiHealth.status) {
+          case 'HEALTHY':
+            uptimePercent = 100;
+            break;
+          case 'DEGRADED':
+            uptimePercent = 99;
+            break;
+          case 'UNHEALTHY':
+            uptimePercent = 0;
+            break;
+          default:
+            uptimePercent = 100;
+        }
+      }
+
       return {
         brandId: cleanBrandId,
         periodStart,
@@ -439,7 +460,7 @@ export class SLASupportService {
         ticketsBreached,
         averageResponseTimeHours,
         averageResolutionTimeHours,
-        uptimePercent: 100, // TODO: Calculer depuis les métriques de monitoring
+        uptimePercent,
         slaCompliancePercent,
       };
     } catch (error) {

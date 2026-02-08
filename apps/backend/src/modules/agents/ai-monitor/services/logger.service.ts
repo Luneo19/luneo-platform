@@ -66,10 +66,13 @@ export class LoggerService {
 
       this.logger.error(this.formatMessage(message, errorContext));
 
-      // Intégration Sentry pour erreurs critiques
-      if (this.configService.get<boolean>('SENTRY_ENABLED')) {
-        // TODO: Intégrer Sentry si disponible
-        // Sentry.captureException(error, { extra: errorContext });
+      if (this.configService.get<boolean>('SENTRY_ENABLED') && error) {
+        try {
+          const Sentry = require('@sentry/nestjs');
+          Sentry.captureException(error, { extra: errorContext });
+        } catch {
+          /* Sentry not installed */
+        }
       }
     }
   }

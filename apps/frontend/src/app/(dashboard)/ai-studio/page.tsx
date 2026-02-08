@@ -43,7 +43,7 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@/lib/supabase/client';
+import { endpoints, api } from '@/lib/api/client';
 import OptimizedImage from '@/components/optimized/OptimizedImage';
 import Image from 'next/image';
 // ✅ Feature gating
@@ -101,10 +101,18 @@ const AI_TOOLS = [
 
 function AIStudioPageContent() {
   const { toast } = useToast();
+  interface AIStudioResult {
+    output?: { imageUrl?: string };
+  }
+  interface ExtractedColor {
+    hex: string;
+    name?: string;
+    percentage?: number;
+  }
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
-  const [extractedColors, setExtractedColors] = useState<any[]>([]);
+  const [result, setResult] = useState<AIStudioResult | null>(null);
+  const [extractedColors, setExtractedColors] = useState<ExtractedColor[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,24 +125,14 @@ function AIStudioPageContent() {
   const [designStyle, setDesignStyle] = useState<'modern' | 'vintage' | 'minimal' | 'bold' | 'playful'>('modern');
   const [cropRatio, setCropRatio] = useState('1:1');
 
-  // Fetch user credits
+  // Fetch user credits from NestJS backend (auth via cookies)
   useEffect(() => {
     const fetchCredits = async () => {
       try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('ai_credits, metadata')
-            .eq('id', user.id)
-            .single();
-          
-          const balance = profile?.ai_credits ?? profile?.metadata?.aiCredits ?? 0;
-          setCredits(balance);
-        }
-      } catch (error) {
-        console.error('Failed to fetch credits', error);
+        const res = await endpoints.credits.balance();
+        setCredits(res?.balance ?? 0);
+      } catch {
+        setCredits(null);
       }
     };
     fetchCredits();
@@ -177,8 +175,8 @@ function AIStudioPageContent() {
     setIsProcessing(true);
 
     try {
-      let endpoint = '';
-      let body: any = {};
+      type AIApiResponse = { imageUrl?: string; outputUrl?: string; url?: string; design?: { preview_url?: string }; colors?: ExtractedColor[] };
+      let data: AIApiResponse;
 
       if (selectedTool === 'text_to_design') {
         if (!designPrompt.trim()) {
@@ -191,12 +189,11 @@ function AIStudioPageContent() {
           return;
         }
 
-        endpoint = '/api/ai/text-to-design';
-        body = {
+        data = await api.post('/api/v1/ai/text-to-design', {
           prompt: designPrompt,
           style: designStyle,
           aspectRatio: '1:1',
-        };
+        });
       } else {
         if (!uploadedImage) {
           toast({
@@ -210,34 +207,20 @@ function AIStudioPageContent() {
 
         switch (selectedTool) {
           case 'background_removal':
-            endpoint = '/api/ai/background-removal';
-            body = { imageUrl: uploadedImage, mode: bgRemovalMode };
+            data = await api.post('/api/v1/ai/background-removal', { imageUrl: uploadedImage, mode: bgRemovalMode });
             break;
           case 'upscale':
-            endpoint = '/api/ai/upscale';
-            body = { imageUrl: uploadedImage, scale: upscaleScale };
+            data = await api.post('/api/v1/ai/upscale', { imageUrl: uploadedImage, scale: upscaleScale });
             break;
           case 'color_extraction':
-            endpoint = '/api/ai/extract-colors';
-            body = { imageUrl: uploadedImage, maxColors, includeNeutral: false };
+            data = await api.post('/api/v1/ai/extract-colors', { imageUrl: uploadedImage, maxColors, includeNeutral: false });
             break;
           case 'smart_crop':
-            endpoint = '/api/ai/smart-crop';
-            body = { imageUrl: uploadedImage, targetAspectRatio: cropRatio, focusPoint: 'auto' };
+            data = await api.post('/api/v1/ai/smart-crop', { imageUrl: uploadedImage, targetAspectRatio: cropRatio, focusPoint: 'auto' });
             break;
+          default:
+            throw new Error('Outil non reconnu');
         }
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Erreur lors du traitement');
       }
 
       if (selectedTool === 'color_extraction') {
@@ -246,33 +229,28 @@ function AIStudioPageContent() {
       } else {
         setResult({
           output: {
-            imageUrl: data.imageUrl || data.outputUrl || data.design?.preview_url,
+            imageUrl: data.imageUrl || data.outputUrl || data.url || data.design?.preview_url,
           },
         });
       }
 
-      // Rafraîchir crédits
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('ai_credits, metadata')
-          .eq('id', user.id)
-          .single();
-        
-        const balance = profile?.ai_credits ?? profile?.metadata?.aiCredits ?? 0;
-        setCredits(balance);
+      // Rafraîchir crédits depuis le backend
+      try {
+        const res = await endpoints.credits.balance();
+        setCredits(res?.balance ?? 0);
+      } catch {
+        // keep current credits on refresh error
       }
 
       toast({
         title: 'Succès',
         description: 'Traitement terminé avec succès',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
       toast({
         title: 'Erreur',
-        description: error.message || 'Une erreur est survenue',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -411,7 +389,7 @@ function AIStudioPageContent() {
                   {selectedTool === 'background_removal' && (
                     <div className="space-y-2">
                       <Label>Mode de détection</Label>
-                      <Select value={bgRemovalMode} onValueChange={(v: any) => setBgRemovalMode(v)}>
+                      <Select value={bgRemovalMode} onValueChange={(v: 'auto' | 'person' | 'product' | 'animal') => setBgRemovalMode(v)}>
                         <SelectTrigger className="bg-slate-800 border-slate-700">
                           <SelectValue />
                         </SelectTrigger>
@@ -509,7 +487,7 @@ function AIStudioPageContent() {
                     <div className="flex gap-4">
                       <div className="flex-1">
                         <Label className="mb-2 block">Style</Label>
-                        <Select value={designStyle} onValueChange={(v: any) => setDesignStyle(v)}>
+                        <Select value={designStyle} onValueChange={(v: 'modern' | 'vintage' | 'minimal' | 'bold' | 'playful') => setDesignStyle(v)}>
                           <SelectTrigger className="bg-slate-800 border-slate-700">
                             <SelectValue />
                           </SelectTrigger>

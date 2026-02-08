@@ -30,7 +30,7 @@ export function EditorCanvas({
   return (
     <div
       ref={canvasRef}
-      className="flex-1 relative bg-gray-900 overflow-hidden"
+      className="flex-1 relative bg-white overflow-hidden"
       style={{ transform: `scale(${zoom / 100})` }}
       onClick={() => onSelectLayer(null)}
     >
@@ -61,7 +61,7 @@ export function EditorCanvas({
               'absolute border-2 transition-all',
               selectedLayer === layer.id
                 ? 'border-blue-500'
-                : 'border-transparent hover:border-gray-500'
+                : 'border-transparent hover:border-gray-300'
             )}
             style={{
               left: `${layer.x}px`,
@@ -75,12 +75,12 @@ export function EditorCanvas({
             }}
           >
             {layer.type === 'text' && (
-              <div className="w-full h-full flex items-center justify-center bg-white/10 text-white p-2">
+              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-900 p-2">
                 Texte
               </div>
             )}
             {layer.type === 'image' && (
-              <div className="w-full h-full bg-gray-700 flex items-center justify-center text-gray-400">
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-600">
                 Image
               </div>
             )}
@@ -88,8 +88,8 @@ export function EditorCanvas({
               <div
                 className="w-full h-full"
                 style={{
-                  backgroundColor: (layer.data as any).fill || '#3B82F6',
-                  borderRadius: `${(layer.data as any).borderRadius || 0}px`,
+                  backgroundColor: (layer.data && typeof layer.data === 'object' && 'fill' in layer.data ? String(layer.data.fill) : undefined) || '#3B82F6',
+                  borderRadius: `${(layer.data && typeof layer.data === 'object' && 'borderRadius' in layer.data ? Number(layer.data.borderRadius) : 0) || 0}px`,
                 }}
               />
             )}

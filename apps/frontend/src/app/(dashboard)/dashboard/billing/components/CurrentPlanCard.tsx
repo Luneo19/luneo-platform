@@ -19,12 +19,12 @@ export function CurrentPlanCard() {
 
   if (isLoading) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Plan actuel</CardTitle>
+          <CardTitle className="text-gray-900">Plan actuel</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">Chargement...</p>
+          <p className="text-gray-600">Chargement...</p>
         </CardContent>
       </Card>
     );
@@ -36,7 +36,8 @@ export function CurrentPlanCard() {
 
   const planName = subscription.tier === 'free' ? 'Gratuit' :
                    subscription.tier === 'starter' ? 'Starter' :
-                   subscription.tier === 'pro' ? 'Professional' :
+                   subscription.tier === 'professional' || subscription.tier === 'pro' ? 'Professional' :
+                   subscription.tier === 'business' ? 'Business' :
                    'Enterprise';
 
   const isActive = subscription.status === 'active';
@@ -44,15 +45,15 @@ export function CurrentPlanCard() {
 
   return (
     <>
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-gray-900 flex items-center gap-2">
                 <Package className="w-5 h-5 text-cyan-400" />
                 Plan actuel
               </CardTitle>
-              <CardDescription className="text-gray-400 mt-1">
+              <CardDescription className="text-gray-600 mt-1">
                 {planName} • {subscription.period === 'yearly' ? 'Annuel' : 'Mensuel'}
               </CardDescription>
             </div>
@@ -70,7 +71,7 @@ export function CurrentPlanCard() {
         </CardHeader>
         <CardContent className="space-y-4">
           {subscription.stripe?.currentPeriodEnd && (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar className="w-4 h-4" />
               <span>
                 Renouvellement le {formatDate(new Date(subscription.stripe.currentPeriodEnd))}

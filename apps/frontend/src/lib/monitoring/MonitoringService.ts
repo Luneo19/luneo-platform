@@ -5,6 +5,7 @@
  * ⚠️ SERVER-ONLY : Ce service utilise STRIPE_SECRET_KEY et ne peut pas être importé côté client
  */
 
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import 'server-only';
 import type {
@@ -122,14 +123,12 @@ class MonitoringService {
   }
 
   /**
-   * Check database health via backend API (Prisma/PostgreSQL)
-   * Plus de Supabase : on s'appuie sur le health check du backend NestJS.
+   * Check database health via backend API (Prisma/PostgreSQL).
+   * On s'appuie sur le health check du backend NestJS.
    */
   private async checkDatabase(): Promise<ServiceHealth> {
     const start = Date.now();
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      (process.env.NODE_ENV === 'production' ? 'https://api.luneo.app' : 'http://localhost:3001');
+    const apiUrl = getBackendUrl();
     try {
       const base = apiUrl.replace(/\/api\/?$/, '');
       const response = await fetch(`${base}/health`, { method: 'GET' });
@@ -333,7 +332,7 @@ class MonitoringService {
    */
   private async fetchUserMetrics(): Promise<{ activeUsers: number; uniqueVisitors24h: number }> {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || '';
+      const API_BASE = getBackendUrl();
       
       // Fetch from backend analytics endpoint
       const response = await fetch(`${API_BASE}/api/v1/analytics/realtime-metrics`, {

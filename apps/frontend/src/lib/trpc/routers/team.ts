@@ -4,46 +4,45 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-import { db as prismaDb } from '@/lib/db';
 import { TRPCError } from '@trpc/server';
 
 const RoleSchema = z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']);
 
 export const teamRouter = router({
   listMembers: protectedProcedure.query(async ({ ctx }) => {
-    const { user } = ctx;
-    if (!user?.brandId) {
+    if (!ctx.user?.brandId) {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'User must be associated with a brand' });
     }
 
-    const members = await prismaDb.user.findMany({
-      where: { brandId: user.brandId },
-      select: { id: true, email: true, name: true, role: true, imageUrl: true, createdAt: true, lastLoginAt: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [membersRes, invitesRes] = await Promise.all([
+      endpoints.team.members(),
+      endpoints.team.invites(),
+    ]);
 
-    const pendingInvites = await prismaDb.invitation.findMany({
-      where: { brandId: user.brandId, status: 'PENDING' },
-      select: { id: true, email: true, role: true, createdAt: true, expiresAt: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const membersRaw = membersRes as { members?: unknown[]; data?: unknown[] } | unknown[];
+    const members = Array.isArray(membersRes) ? membersRes : (membersRaw && typeof membersRaw === 'object' ? (membersRaw.members ?? membersRaw.data ?? []) : []);
+    const invitesRaw = invitesRes as { invites?: unknown[]; data?: unknown[] } | unknown[];
+    const pendingInvites = Array.isArray(invitesRes) ? invitesRes : (invitesRaw && typeof invitesRaw === 'object' ? (invitesRaw.invites ?? invitesRaw.data ?? []) : []);
 
+    type MemberLike = { id: string; email: string; name?: string; role?: string; imageUrl?: string; avatar?: string; createdAt?: unknown; joinedAt?: unknown; lastLoginAt?: unknown; lastActive?: unknown };
+    type InviteLike = { id: string; email: string; role?: string; createdAt?: unknown; invitedAt?: unknown; expiresAt?: unknown };
     return {
-      members: members.map((m: any) => ({
+      members: (Array.isArray(members) ? members : []).map((m: MemberLike) => ({
         id: m.id,
         email: m.email,
         name: m.name,
         role: m.role,
-        avatar: m.imageUrl,
-        joinedAt: m.createdAt,
-        lastActive: m.lastLoginAt,
+        avatar: m.imageUrl ?? m.avatar,
+        joinedAt: m.createdAt ?? m.joinedAt,
+        lastActive: m.lastLoginAt ?? m.lastActive,
       })),
-      pendingInvites: pendingInvites.map((i: any) => ({
+      pendingInvites: (Array.isArray(pendingInvites) ? pendingInvites : []).map((i: InviteLike) => ({
         id: i.id,
         email: i.email,
         role: i.role,
-        invitedAt: i.createdAt,
+        invitedAt: i.createdAt ?? i.invitedAt,
         expiresAt: i.expiresAt,
       })),
     };
@@ -52,83 +51,74 @@ export const teamRouter = router({
   inviteMember: protectedProcedure
     .input(z.object({ email: z.string().email(), role: RoleSchema, message: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user?.brandId) {
+      if (!ctx.user?.brandId) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'User must be associated with a brand' });
       }
 
-      const existingUser = await prismaDb.user.findUnique({ where: { email: input.email } });
-      if (existingUser && existingUser.brandId === user.brandId) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'Cet utilisateur est déjà membre' });
+      try {
+        const invitation = await endpoints.team.invite(input.email, input.role);
+        const inv = invitation as { id: string; email?: string; role?: string; createdAt?: unknown; invitedAt?: unknown; expiresAt?: unknown };
+        logger.info('Team member invited', { invitationId: inv.id, email: input.email });
+        return {
+          id: inv.id,
+          email: inv.email ?? input.email,
+          role: inv.role ?? input.role,
+          invitedAt: inv.createdAt ?? inv.invitedAt ?? new Date(),
+          expiresAt: inv.expiresAt,
+        };
+      } catch (error: unknown) {
+        const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+        const status = err?.response?.status;
+        const message = err?.response?.data?.message ?? err?.message;
+        if (status === 409 || message?.includes('déjà')) {
+          throw new TRPCError({ code: 'CONFLICT', message: message || 'Cet utilisateur est déjà membre ou invitation en attente' });
+        }
+        throw error;
       }
-
-      const existingInvite = await prismaDb.invitation.findFirst({
-        where: { email: input.email, brandId: user.brandId, status: 'PENDING' },
-      });
-      if (existingInvite) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'Invitation déjà en attente' });
-      }
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      const invitation = await prismaDb.invitation.create({
-        data: {
-          email: input.email,
-          brandId: user.brandId,
-          role: input.role,
-          invitedBy: user.id,
-          expiresAt,
-          message: input.message,
-          status: 'PENDING',
-        },
-      });
-
-      logger.info('Team member invited', { invitationId: invitation.id, email: input.email });
-      return { id: invitation.id, email: invitation.email, role: invitation.role, invitedAt: invitation.createdAt, expiresAt: invitation.expiresAt };
     }),
 
   updateMemberRole: protectedProcedure
     .input(z.object({ memberId: z.string().cuid(), role: RoleSchema }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user?.brandId) {
+      if (!ctx.user?.brandId) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'User must be associated with a brand' });
       }
 
-      const member = await prismaDb.user.findUnique({ where: { id: input.memberId } });
-      if (!member || member.brandId !== user.brandId) {
+      const member = await endpoints.team.get(input.memberId).catch(() => null);
+      if (!member) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Membre introuvable' });
       }
-      if (member.role === 'OWNER') {
+      const m = member as { role?: string; id?: string };
+      if (m.role === 'OWNER') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Impossible de modifier le rôle du propriétaire' });
       }
 
-      const updated = await prismaDb.user.update({ where: { id: input.memberId }, data: { role: input.role } });
+      const updated = await endpoints.team.update(input.memberId, { role: input.role });
       logger.info('Team member role updated', { memberId: input.memberId, newRole: input.role });
-      return { id: updated.id, email: updated.email, role: updated.role };
+      const u = updated as { id: string; email: string; role?: string };
+      return { id: u.id, email: u.email, role: u.role ?? input.role };
     }),
 
   removeMember: protectedProcedure
     .input(z.object({ memberId: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user?.brandId) {
+      if (!ctx.user?.brandId) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'User must be associated with a brand' });
       }
 
-      const member = await prismaDb.user.findUnique({ where: { id: input.memberId } });
-      if (!member || member.brandId !== user.brandId) {
+      const member = await endpoints.team.get(input.memberId).catch(() => null);
+      if (!member) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Membre introuvable' });
       }
-      if (member.role === 'OWNER') {
+      const m = member as { role?: string; id?: string };
+      if (m.role === 'OWNER') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Impossible de supprimer le propriétaire' });
       }
-      if (member.id === user.id) {
+      if (m.id === ctx.user.id) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Vous ne pouvez pas vous supprimer vous-même' });
       }
 
-      await prismaDb.user.update({ where: { id: input.memberId }, data: { brandId: null } });
+      await endpoints.team.remove(input.memberId);
       logger.info('Team member removed', { memberId: input.memberId });
       return { success: true };
     }),
@@ -136,17 +126,11 @@ export const teamRouter = router({
   cancelInvite: protectedProcedure
     .input(z.object({ inviteId: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
-      if (!user?.brandId) {
+      if (!ctx.user?.brandId) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'User must be associated with a brand' });
       }
 
-      const invitation = await prismaDb.invitation.findUnique({ where: { id: input.inviteId } });
-      if (!invitation || invitation.brandId !== user.brandId) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Invitation introuvable' });
-      }
-
-      await prismaDb.invitation.update({ where: { id: input.inviteId }, data: { status: 'CANCELLED' } });
+      await endpoints.team.cancelInvite(input.inviteId);
       logger.info('Invitation cancelled', { inviteId: input.inviteId });
       return { success: true };
     }),

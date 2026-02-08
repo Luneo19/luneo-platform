@@ -4,9 +4,9 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../server';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
-import { db } from '@/lib/db';
 
 export const libraryRouter = router({
   listTemplates: publicProcedure
@@ -21,58 +21,30 @@ export const libraryRouter = router({
     )
     .query(async ({ input }) => {
       try {
+        const response = await api.get<{
+          templates?: any[];
+          data?: any[];
+          pagination?: { total: number; totalPages: number };
+          total?: number;
+        }>('/api/v1/marketplace/templates', {
+          params: {
+            page: input.page,
+            limit: input.limit,
+            category: input.category !== 'all' ? input.category : undefined,
+            search: input.search,
+            sortBy: input.sortBy,
+          },
+        });
+
+        const templates = response.templates ?? response.data ?? [];
+        const total = response.pagination?.total ?? response.total ?? templates.length;
         const skip = (input.page - 1) * input.limit;
-        const where: any = {};
 
-        if (input.category && input.category !== 'all') {
-          where.category = input.category;
-        }
-
-        if (input.search) {
-          where.OR = [
-            { name: { contains: input.search, mode: 'insensitive' } },
-            { description: { contains: input.search, mode: 'insensitive' } },
-            { tags: { hasSome: [input.search] } },
-          ];
-        }
-
-        const orderBy: any = {};
-        if (input.sortBy === 'recent') {
-          orderBy.createdAt = 'desc';
-        } else if (input.sortBy === 'popular') {
-          orderBy.viewsCount = 'desc';
-        } else {
-          orderBy.name = 'asc';
-        }
-
-        const [templates, total] = await Promise.all([
-          db.template.findMany({
-            where,
-            skip,
-            take: input.limit,
-            orderBy,
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              category: true,
-              thumbnailUrl: true,
-              previewUrl: true,
-              isPremium: true,
-              viewsCount: true,
-              usesCount: true,
-              tags: true,
-              createdAt: true,
-            },
-          }),
-          db.template.count({ where }),
-        ]);
-
-        const formattedTemplates = templates.map((template: any) => ({
+        const formattedTemplates = (Array.isArray(templates) ? templates : []).map((template: any) => ({
           id: template.id,
           name: template.name,
           category: template.category || 'other',
-          thumbnail: template.thumbnailUrl || template.previewUrl || '/placeholder-template.jpg',
+          thumbnail: template.thumbnailUrl || template.previewUrl || '/placeholder-template.svg',
           isPremium: template.isPremium || false,
           isFavorite: false,
           downloads: template.usesCount || 0,
@@ -106,9 +78,7 @@ export const libraryRouter = router({
     .input(z.object({ id: z.string().cuid() }))
     .query(async ({ input }) => {
       try {
-        const template = await db.template.findUnique({
-          where: { id: input.id },
-        });
+        const template = await api.get<any>(`/api/v1/marketplace/templates/${input.id}`).catch(() => null);
 
         if (!template) {
           throw new TRPCError({
@@ -117,17 +87,21 @@ export const libraryRouter = router({
           });
         }
 
+        const createdAt = template.createdAt instanceof Date
+          ? template.createdAt.toISOString()
+          : (typeof template.createdAt === 'string' ? template.createdAt : new Date().toISOString());
+
         return {
           id: template.id,
           name: template.name,
           description: template.description,
           category: template.category || 'other',
-          thumbnail: template.thumbnailUrl || template.previewUrl || '/placeholder-template.jpg',
+          thumbnail: template.thumbnailUrl || template.previewUrl || template.thumbnail || '/placeholder-template.svg',
           isPremium: template.isPremium || false,
-          downloads: template.usesCount || 0,
-          views: template.viewsCount || 0,
+          downloads: template.usesCount ?? template.downloads ?? 0,
+          views: template.viewsCount ?? template.views ?? 0,
           tags: Array.isArray(template.tags) ? template.tags : [],
-          createdAt: template.createdAt.toISOString(),
+          createdAt,
           fileUrl: template.fileUrl,
         };
       } catch (error: any) {

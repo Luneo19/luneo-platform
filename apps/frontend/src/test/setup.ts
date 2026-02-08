@@ -153,25 +153,25 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock environment variables for tests
-process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co';
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key';// Mock Supabase client
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => ({
+// Supabase has been fully removed. Auth is now cookie-based via NestJS backend.
+// Mock the API client for tests
+vi.mock('@/lib/api/client', () => ({
+  api: {
+    get: vi.fn().mockResolvedValue({}),
+    post: vi.fn().mockResolvedValue({}),
+    put: vi.fn().mockResolvedValue({}),
+    patch: vi.fn().mockResolvedValue({}),
+    delete: vi.fn().mockResolvedValue({}),
+  },
+  endpoints: {
     auth: {
-      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      login: vi.fn().mockResolvedValue({ user: null }),
+      signup: vi.fn().mockResolvedValue({ user: null }),
+      logout: vi.fn().mockResolvedValue(undefined),
+      me: vi.fn().mockResolvedValue(null),
     },
-  })),
-}));vi.mock('@/lib/supabase/client', () => ({
-  createClient: vi.fn(() => ({
-    auth: {
-      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      signInWithPassword: vi.fn(),
-      signUp: vi.fn(),
-      signOut: vi.fn(),
-      onAuthStateChange: vi.fn(() => ({ data: { subscription: null }, unsubscribe: vi.fn() })),
+    credits: {
+      balance: vi.fn().mockResolvedValue({ balance: 0 }),
     },
-  })),
+  },
 }));

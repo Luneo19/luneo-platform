@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 interface OrderItem {
   id: string;
@@ -67,27 +68,15 @@ export function useOrdersData(
       }
       setError(null);
 
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
+      const result = await endpoints.orders.list({
+        page,
+        limit,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
       });
-
-      if (statusFilter && statusFilter !== 'all') {
-        params.append('status', statusFilter);
-      }
-
-      if (searchTerm) {
-        params.append('search', searchTerm);
-      }
-
-      const response = await fetch(`/api/orders?${params.toString()}`);
-      const result = await response.json() as OrdersResponse;
-
-      if (!response.ok) {
-        throw new Error(result.data?.toString() || 'Erreur lors du chargement des commandes');
-      }
-
-      const { orders: fetchedOrders, pagination } = result.data;
+      const ordersData = (result as OrdersResponse)?.data ?? result as { orders?: Order[]; pagination?: { hasNext: boolean; total: number } };
+      const fetchedOrders = ordersData?.orders ?? [];
+      const pagination = ordersData?.pagination ?? { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false };
 
       if (isLoadMore) {
         setOrders((prev) => [...prev, ...fetchedOrders]);

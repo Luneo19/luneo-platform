@@ -1,60 +1,20 @@
 /**
  * ★★★ HELPER - BACKEND FORWARD ★★★
  * Helper pour forwarder les requêtes vers le backend NestJS
- * Respecte la Bible Luneo : types stricts, gestion d'erreurs complète
+ * Auth : cookies httpOnly (accessToken/refreshToken) transmis via header Cookie
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { getBackendUrl as getBackendUrlBase } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 
 /**
- * Configuration du backend
+ * Configuration du backend (base + /api suffix when needed)
  */
 const getBackendUrl = (): string => {
-  const url = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-  // S'assurer que l'URL se termine par /api si nécessaire
-  if (url.includes('api.luneo.app') || url.includes('localhost:3001')) {
-    return url.endsWith('/api') ? url : `${url}/api`;
-  }
-  return url;
+  const url = getBackendUrlBase();
+  return url.endsWith('/api') ? url : `${url}/api`;
 };
-
-/**
- * Obtient le token d'authentification depuis Supabase
- * Retourne null si Supabase n'est pas configuré ou si l'utilisateur n'est pas authentifié
- */
-async function getAuthToken(): Promise<string | null> {
-  try {
-    // Vérifier si Supabase est configuré
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      logger.debug('Supabase not configured, skipping auth token');
-      return null;
-    }
-
-    const supabase = await createClient();
-    if (!supabase) {
-      return null;
-    }
-
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error || !session) {
-      logger.debug('No active session found', { error: error?.message });
-      return null;
-    }
-
-    return session.access_token || null;
-  } catch (error) {
-    // Ne pas logger comme erreur si c'est juste une absence de config
-    if (error instanceof Error && error.message.includes('Supabase')) {
-      logger.debug('Supabase client creation failed', { error: error.message });
-    } else {
-      logger.error('Failed to get auth token', { error });
-    }
-    return null;
-  }
-}
 
 /**
  * Interface pour les options de forward
@@ -81,10 +41,10 @@ export async function forwardToBackend<T = unknown>(
 ): Promise<{ success: boolean; data?: T; error?: string; message?: string }> {
   try {
     const backendUrl = getBackendUrl();
-    const token = await getAuthToken();
-    const requireAuth = options.requireAuth !== false; // Par défaut, auth requise
-    
-    if (requireAuth && !token) {
+    const requireAuth = options.requireAuth !== false;
+    const cookieHeader = request.headers.get('cookie');
+
+    if (requireAuth && !cookieHeader) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -130,21 +90,12 @@ export async function forwardToBackend<T = unknown>(
       }
     }
 
-    // Headers
+    // Headers: forward cookies so backend can read accessToken/refreshToken
     const headers: Record<string, string> = {
       ...options.headers,
     };
-    
-    // ✅ Cookies httpOnly : transmettre les cookies de la requête Next.js au backend
-    // Le backend lit les tokens depuis les cookies httpOnly automatiquement
-    const cookieHeader = request.headers.get('cookie');
     if (cookieHeader) {
       headers['Cookie'] = cookieHeader;
-    }
-    
-    // Ajouter le token seulement s'il existe (fallback pour backward compatibility)
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
     }
 
     // Set Content-Type header for JSON bodies (pas pour FormData)

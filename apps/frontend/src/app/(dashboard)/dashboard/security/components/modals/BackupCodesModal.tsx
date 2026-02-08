@@ -54,7 +54,7 @@ export function BackupCodesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl">
         <DialogHeader>
           <DialogTitle>Codes de secours</DialogTitle>
           <DialogDescription>
@@ -69,7 +69,7 @@ export function BackupCodesModal({
                 <p className="text-sm font-medium text-yellow-400 mb-1">
                   Important: Enregistrez ces codes en lieu sûr
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-600">
                   Ces codes ne seront affichés qu'une seule fois. Chaque code ne peut être utilisé qu'une fois.
                 </p>
               </div>
@@ -79,7 +79,7 @@ export function BackupCodesModal({
             {backupCodes.map((code, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-gray-700"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
               >
                 <code className="text-sm font-mono text-cyan-400">{code}</code>
                 <Button
@@ -95,7 +95,7 @@ export function BackupCodesModal({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Fermer
           </Button>
           <Button onClick={handleDownload} className="bg-cyan-600 hover:bg-cyan-700">

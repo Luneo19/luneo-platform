@@ -11,6 +11,8 @@ import { AdminBreadcrumbs } from './admin-breadcrumbs';
 import { Search, Bell, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { AdminUser } from '@/lib/admin/permissions';
+import { endpoints } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import { CommandPalette } from '../command-palette';
 import { NotificationsPanel } from '../notifications-panel';
 
@@ -36,15 +38,10 @@ export function AdminHeader({ user }: AdminHeaderProps) {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/v1/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (response.ok) {
-        router.push('/login');
-      }
+      await endpoints.auth.logout();
+      router.push('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error', { error });
       router.push('/login');
     }
   };

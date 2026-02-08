@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../server';
 import { TRPCError } from '@trpc/server';
 import { logger } from '@/lib/logger';
-import { db } from '@/lib/db';
+import { api, endpoints } from '@/lib/api/client';
 
 // ========================================
 // SCHEMAS ZOD
@@ -92,12 +92,7 @@ export const customizationRouter = router({
       try {
         logger.info('Creating zone', { productId: input.productId, name: input.name });
 
-        // Vérifie que le produit existe et appartient à la marque
-        const product = await db.product.findUnique({
-          where: { id: input.productId },
-          include: { brand: true },
-        });
-
+        const product = await endpoints.products.get(input.productId).catch(() => null);
         if (!product) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -105,14 +100,11 @@ export const customizationRouter = router({
           });
         }
 
-        // Vérifie permissions (marque ou admin)
-        const user = await db.user.findUnique({
-          where: { id: ctx.user.id },
-        });
-
+        const user = await endpoints.auth.me() as { role?: string; brandId?: string };
+        const p = product as { brandId?: string };
         if (
           user?.role !== 'PLATFORM_ADMIN' &&
-          user?.brandId !== product.brandId
+          user?.brandId !== p.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -120,13 +112,7 @@ export const customizationRouter = router({
           });
         }
 
-        // Crée la zone
-        const zone = await db.zone.create({
-          data: {
-            ...input,
-            productId: input.productId,
-          },
-        });
+        const zone = await api.post<any>(`/api/v1/products/${input.productId}/zones`, { ...input });
 
         logger.info('Zone created', { zoneId: zone.id });
 
@@ -152,12 +138,7 @@ export const customizationRouter = router({
       try {
         const { id, ...data } = input;
 
-        // Vérifie que la zone existe
-        const zone = await db.zone.findUnique({
-          where: { id },
-          include: { product: { include: { brand: true } } },
-        });
-
+        const zone = await api.get<{ product?: { brandId?: string } }>(`/api/v1/zones/${id}`).catch(() => null);
         if (!zone) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -165,14 +146,11 @@ export const customizationRouter = router({
           });
         }
 
-        // Vérifie permissions
-        const user = await db.user.findUnique({
-          where: { id: ctx.user.id },
-        });
-
+        const user = await endpoints.auth.me() as { role?: string; brandId?: string };
+        const z = zone as { product?: { brandId?: string } };
         if (
           user?.role !== 'PLATFORM_ADMIN' &&
-          user?.brandId !== zone.product.brandId
+          user?.brandId !== z.product?.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -180,11 +158,7 @@ export const customizationRouter = router({
           });
         }
 
-        // Met à jour
-        const updated = await db.zone.update({
-          where: { id },
-          data,
-        });
+        const updated = await api.put<Record<string, unknown>>(`/api/v1/zones/${id}`, data);
 
         logger.info('Zone updated', { zoneId: id });
 
@@ -208,11 +182,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const zone = await db.zone.findUnique({
-          where: { id: input.id },
-          include: { product: { include: { brand: true } } },
-        });
-
+        const zone = await api.get<{ product?: { brandId?: string } }>(`/api/v1/zones/${input.id}`).catch(() => null);
         if (!zone) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -220,14 +190,11 @@ export const customizationRouter = router({
           });
         }
 
-        // Vérifie permissions
-        const user = await db.user.findUnique({
-          where: { id: ctx.user.id },
-        });
-
+        const user = await endpoints.auth.me() as { role?: string; brandId?: string };
+        const z = zone as { product?: { brandId?: string } };
         if (
           user?.role !== 'PLATFORM_ADMIN' &&
-          user?.brandId !== zone.product.brandId
+          user?.brandId !== z.product?.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -235,10 +202,7 @@ export const customizationRouter = router({
           });
         }
 
-        // Supprime
-        await db.zone.delete({
-          where: { id: input.id },
-        });
+        await api.delete(`/api/v1/zones/${input.id}`);
 
         logger.info('Zone deleted', { zoneId: input.id });
 
@@ -262,15 +226,10 @@ export const customizationRouter = router({
     .input(z.object({ productId: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const zones = await db.zone.findMany({
-          where: {
-            productId: input.productId,
-            isActive: true,
-          },
-          orderBy: { order: 'asc' },
-        });
-
-        return zones;
+        const zones = await api.get<unknown[]>(`/api/v1/products/${input.productId}/zones`, {
+          params: { isActive: true },
+        }).catch(() => []);
+        return Array.isArray(zones) ? zones : [];
       } catch (error) {
         logger.error('Error fetching zones', { error, input });
         throw new TRPCError({
@@ -297,15 +256,7 @@ export const customizationRouter = router({
           promptLength: input.prompt.length,
         });
 
-        // 1. Récupère produit et zone
-        const product = await db.product.findUnique({
-          where: { id: input.productId },
-          include: {
-            zones: true,
-            brand: true,
-          },
-        });
-
+        const product = await endpoints.products.get(input.productId).catch(() => null);
         if (!product) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -313,7 +264,9 @@ export const customizationRouter = router({
           });
         }
 
-        const zone = product.zones.find((z: any) => z.id === input.zoneId);
+        const zones = await api.get<{ id: string }[]>(`/api/v1/products/${input.productId}/zones`).catch(() => []);
+        const zonesList = Array.isArray(zones) ? zones : (product as { zones?: { id: string }[] }).zones ?? [];
+        const zone = zonesList.find((z) => z.id === input.zoneId);
         if (!zone) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -345,22 +298,18 @@ export const customizationRouter = router({
           }
         }
 
-        // 3. Crée personnalisation en statut PENDING
-        const customization = await db.customization.create({
-          data: {
-            prompt: input.prompt,
-            zoneId: input.zoneId,
-            productId: input.productId,
-            userId: ctx.user.id,
-            brandId: product.brandId,
-            font: input.font || zone.defaultFont,
-            color: input.color || zone.defaultColor || '#000000',
-            size: input.size || zone.defaultSize || 24,
-            effect: input.effect || 'ENGRAVED',
-            orientation: input.orientation,
-            options: input.options || {},
-            status: 'GENERATING',
-          },
+        const prod = product as { model3dUrl?: string; baseAssetUrl?: string };
+        const customization = await api.post<{ id: string }>('/api/v1/customizations', {
+          prompt: input.prompt,
+          zoneId: input.zoneId,
+          productId: input.productId,
+          font: input.font || zone.defaultFont,
+          color: input.color || zone.defaultColor || '#000000',
+          size: input.size || zone.defaultSize || 24,
+          effect: input.effect || 'ENGRAVED',
+          orientation: input.orientation,
+          options: input.options || {},
+          status: 'GENERATING',
         });
 
         // 4. Appel au moteur IA Python (async, ne bloque pas)
@@ -380,7 +329,7 @@ export const customizationRouter = router({
               u: [zone.uvMinU, zone.uvMaxU],
               v: [zone.uvMinV, zone.uvMaxV],
             },
-            modelUrl: product.model3dUrl || product.baseAssetUrl || '',
+            modelUrl: prod.model3dUrl || prod.baseAssetUrl || '',
             productId: input.productId,
             zoneId: input.zoneId,
           }),
@@ -392,21 +341,17 @@ export const customizationRouter = router({
 
             const aiData = await response.json();
 
-            // Met à jour la personnalisation avec les résultats
-            await db.customization.update({
-              where: { id: customization.id },
-              data: {
-                status: 'COMPLETED',
-                textureUrl: aiData.textureUrl,
-                modelUrl: aiData.modelUrl,
-                previewUrl: aiData.previewUrl,
-                highResUrl: aiData.previewUrl, // Pour l'instant
-                jobId: aiData.jobId,
-                completedAt: new Date(),
-                metadata: {
-                  processingTimeMs: aiData.processingTimeMs,
-                  cacheKey: aiData.cacheKey,
-                },
+            await api.patch(`/api/v1/customizations/${customization.id}`, {
+              status: 'COMPLETED',
+              textureUrl: aiData.textureUrl,
+              modelUrl: aiData.modelUrl,
+              previewUrl: aiData.previewUrl,
+              highResUrl: aiData.previewUrl,
+              jobId: aiData.jobId,
+              completedAt: new Date(),
+              metadata: {
+                processingTimeMs: aiData.processingTimeMs,
+                cacheKey: aiData.cacheKey,
               },
             });
 
@@ -415,14 +360,9 @@ export const customizationRouter = router({
           .catch(async (error) => {
             logger.error('AI Engine error', { error, customizationId: customization.id });
 
-            // Met à jour en statut FAILED
-            await db.customization.update({
-              where: { id: customization.id },
-              data: {
-                status: 'FAILED',
-                errorMessage: error.message,
-                retryCount: { increment: 1 },
-              },
+            await api.patch(`/api/v1/customizations/${customization.id}`, {
+              status: 'FAILED',
+              errorMessage: error.message,
             });
           });
 
@@ -451,20 +391,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const customization = await db.customization.findUnique({
-          where: { id: input.id },
-          include: {
-            product: true,
-            zone: true,
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true,
-              },
-            },
-          },
-        });
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -473,15 +400,12 @@ export const customizationRouter = router({
           });
         }
 
-        // Vérifie permissions (propriétaire ou marque)
-        const user = await db.user.findUnique({
-          where: { id: ctx.user.id },
-        });
-
+        const user = await endpoints.auth.me() as { role?: string; brandId?: string };
+        const c = customization as { userId?: string; brandId?: string };
         if (
-          customization.userId !== ctx.user.id &&
+          c.userId !== ctx.user.id &&
           user?.role !== 'PLATFORM_ADMIN' &&
-          user?.brandId !== customization.brandId
+          user?.brandId !== c.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -518,46 +442,21 @@ export const customizationRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const where: any = {
-          userId: ctx.user.id,
-        };
+        const result = await api.get<{ customizations?: any[]; data?: any[]; total?: number; pagination?: { total: number } }>('/api/v1/customizations', {
+          params: {
+            productId: input?.productId,
+            status: input?.status,
+            limit: input?.limit ?? 20,
+            offset: input?.offset ?? 0,
+          },
+        });
 
-        if (input?.productId) {
-          where.productId = input.productId;
-        }
-
-        if (input?.status) {
-          where.status = input.status;
-        }
-
-        const [customizations, total] = await Promise.all([
-          db.customization.findMany({
-            where,
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  images: true,
-                },
-              },
-              zone: {
-                select: {
-                  id: true,
-                  name: true,
-                  type: true,
-                },
-              },
-            },
-            orderBy: { createdAt: 'desc' },
-            take: input?.limit || 20,
-            skip: input?.offset || 0,
-          }),
-          db.customization.count({ where }),
-        ]);
+        const res = result as { customizations?: unknown[]; data?: unknown[]; pagination?: { total?: number }; total?: number };
+        const customizations = res.customizations ?? res.data ?? [];
+        const total = res.pagination?.total ?? res.total ?? (Array.isArray(customizations) ? customizations.length : 0);
 
         return {
-          customizations,
+          customizations: Array.isArray(customizations) ? customizations : [],
           total,
           hasMore: (input?.offset || 0) + (input?.limit || 20) < total,
         };
@@ -579,9 +478,7 @@ export const customizationRouter = router({
       try {
         const { id, ...data } = input;
 
-        const customization = await db.customization.findUnique({
-          where: { id },
-        });
+        const customization = await api.get<any>(`/api/v1/customizations/${id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -590,18 +487,14 @@ export const customizationRouter = router({
           });
         }
 
-        // Vérifie permissions
-        if (customization.userId !== ctx.user.id) {
+        if ((customization as { userId?: string }).userId !== ctx.user.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
             message: 'Vous n\'avez pas la permission de modifier cette personnalisation',
           });
         }
 
-        const updated = await db.customization.update({
-          where: { id },
-          data,
-        });
+        const updated = await api.patch<Record<string, unknown>>(`/api/v1/customizations/${id}`, data);
 
         logger.info('Customization updated', { customizationId: id });
 
@@ -625,9 +518,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const customization = await db.customization.findUnique({
-          where: { id: input.id },
-        });
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -636,21 +527,20 @@ export const customizationRouter = router({
           });
         }
 
-        // Vérifie permissions
-        if (customization.userId !== ctx.user.id) {
+        const c = customization as { userId?: string; textureUrl?: string; modelUrl?: string; previewUrl?: string; highResUrl?: string; arModelUrl?: string };
+        if (c.userId !== ctx.user.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
             message: 'Vous n\'avez pas la permission de supprimer cette personnalisation',
           });
         }
 
-        // Supprime fichiers du stockage (async)
         const filesToDelete: string[] = [];
-        if (customization.textureUrl) filesToDelete.push(customization.textureUrl);
-        if (customization.modelUrl) filesToDelete.push(customization.modelUrl);
-        if (customization.previewUrl) filesToDelete.push(customization.previewUrl);
-        if (customization.highResUrl) filesToDelete.push(customization.highResUrl);
-        if (customization.arModelUrl) filesToDelete.push(customization.arModelUrl);
+        if (c.textureUrl) filesToDelete.push(c.textureUrl);
+        if (c.modelUrl) filesToDelete.push(c.modelUrl);
+        if (c.previewUrl) filesToDelete.push(c.previewUrl);
+        if (c.highResUrl) filesToDelete.push(c.highResUrl);
+        if (c.arModelUrl) filesToDelete.push(c.arModelUrl);
 
         if (filesToDelete.length > 0) {
           const { deleteFilesFromStorage } = await import('@/lib/storage/storage-service');
@@ -659,10 +549,7 @@ export const customizationRouter = router({
           });
         }
 
-        // Supprime de la DB
-        await db.customization.delete({
-          where: { id: input.id },
-        });
+        await api.delete(`/api/v1/customizations/${input.id}`);
 
         logger.info('Customization deleted', { customizationId: input.id });
 
@@ -686,18 +573,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const customization = await db.customization.findUnique({
-          where: { id: input.id },
-          select: {
-            id: true,
-            status: true,
-            previewUrl: true,
-            modelUrl: true,
-            errorMessage: true,
-            completedAt: true,
-            userId: true,
-          },
-        });
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -706,15 +582,23 @@ export const customizationRouter = router({
           });
         }
 
-        // Vérifie permissions
-        if (customization.userId !== ctx.user.id) {
+        const c = customization as { userId?: string; id: string; status: string; previewUrl?: string; modelUrl?: string; errorMessage?: string; completedAt?: unknown };
+        if (c.userId !== ctx.user.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
             message: 'Vous n\'avez pas accès à cette personnalisation',
           });
         }
 
-        return customization;
+        return {
+          id: c.id,
+          status: c.status,
+          previewUrl: c.previewUrl,
+          modelUrl: c.modelUrl,
+          errorMessage: c.errorMessage,
+          completedAt: c.completedAt,
+          userId: c.userId,
+        };
       } catch (error) {
         logger.error('Error checking status', { error, input });
         if (error instanceof TRPCError) {

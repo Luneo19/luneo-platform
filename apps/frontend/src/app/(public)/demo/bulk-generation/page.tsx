@@ -22,9 +22,9 @@ function BulkGenerationDemoPageContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-green-900">
       {' '}
       {/* Hero */}{' '}
-      <section className="relative overflow-x-auto overflow-y-hidden border-b border-gray-800 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:py-10 sm:py-12 sm:py-12 sm:py-12 sm:py-12 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 md:px-12 md:px-3 md:px-4 md:px-4 md:px-4 md:px-4 md:px-4 md:px-8 md:py-12 md:py-12 md:py-12 md:py-16 md:py-16 md:py-20 md:py-4 md:py-6 md:py-6 md:py-6 lg:px-12 lg:py-12 lg:py-16 lg:py-16 lg:py-16 lg:py-6 lg:py-6 lg:py-8">
+      <section className="relative overflow-x-auto overflow-y-hidden border-b border-gray-800 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16">
         {' '}
-        <div className="relative z-10 mx-auto max-w-7xl px-4 text-center min-[480px]:px-4 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 md:px-3 md:px-4 md:px-4 md:px-4 md:px-8 md:px-8 md:px-8 lg:px-4 lg:px-4">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 text-center sm:px-6 md:px-8 lg:px-12">
           {' '}
           <motion
             initial={{ opacity: 0, y: 20 }}
@@ -35,7 +35,7 @@ function BulkGenerationDemoPageContent() {
               {' '}
               ⚡ Génération Massive{' '}
             </span>{' '}
-            <h1 className="mb-6 text-5xl font-bold min-[480px]:text-2xl min-[480px]:text-2xl min-[480px]:text-3xl min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-3xl sm:text-3xl sm:text-3xl sm:text-4xl sm:text-4xl sm:text-4xl sm:text-4xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-3xl md:text-3xl md:text-3xl md:text-3xl md:text-3xl md:text-3xl md:text-4xl md:text-4xl md:text-4xl md:text-4xl md:text-5xl md:text-5xl md:text-base md:text-lg md:text-lg md:text-lg md:text-xl md:text-xl md:text-xl lg:text-2xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-4xl lg:text-4xl lg:text-4xl lg:text-5xl lg:text-5xl lg:text-6xl lg:text-base lg:text-base lg:text-lg lg:text-xl lg:text-xl xl:text-3xl xl:text-5xl xl:text-base xl:text-xl">
+            <h1 className="mb-6 text-2xl font-bold sm:text-3xl md:text-4xl lg:text-5xl">
               {' '}
               <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                 {' '}
@@ -49,7 +49,7 @@ function BulkGenerationDemoPageContent() {
               <strong className="text-white">280 lignes de code</strong> pour
               traiter 1000 designs en parallèle{' '}
             </p>{' '}
-            <div className="mx-auto grid max-w-4xl grid-cols-2 gap-2 px-4 min-[480px]:gap-3 sm:grid-cols-1 sm:grid-cols-2 sm:grid-cols-2 sm:grid-cols-2 sm:grid-cols-2 sm:grid-cols-2 sm:gap-4 sm:gap-4 sm:gap-4 sm:px-6 md:grid-cols-1 md:grid-cols-1 md:grid-cols-1 md:grid-cols-2 md:grid-cols-2 md:grid-cols-3 md:gap-3 md:gap-3 md:gap-6 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-3 lg:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+            <div className="mx-auto grid max-w-4xl grid-cols-2 gap-2 px-4 min-[480px]:gap-3 sm:grid-cols-2 sm:gap-4 sm:px-6 md:grid-cols-3 md:gap-6 lg:grid-cols-4 lg:gap-4">
               {' '}
               {[
                 { value: '1200', label: 'Designs/h', sublabel: 'Théorique' },
@@ -59,7 +59,7 @@ function BulkGenerationDemoPageContent() {
               ].map((stat, i) => (
                 <div key={i} className="text-center">
                   {' '}
-                  <div className="mb-2 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-2xl font-bold text-transparent min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-3xl md:text-3xl md:text-base md:text-base md:text-lg md:text-lg md:text-lg md:text-xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-4xl lg:text-base lg:text-xl lg:text-xl xl:text-xl">
+                  <div className="mb-2 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-2xl font-bold text-transparent min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-xl">
                     {' '}
                     {stat.value}{' '}
                   </div>{' '}
@@ -74,9 +74,9 @@ function BulkGenerationDemoPageContent() {
         </div>{' '}
       </section>{' '}
       {/* Tabs */}{' '}
-      <section className="mx-auto max-w-7xl px-4 py-6 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:py-8 sm:py-8 md:px-3 md:px-4 md:px-4 md:px-4 md:px-8 md:px-8 md:px-8 md:py-12 md:py-4 lg:px-4 lg:px-4 lg:py-12">
+      <section className="mx-auto max-w-7xl px-4 py-6 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 lg:px-4 lg:py-12">
         {' '}
-        <div className="mb-8 flex flex-col gap-3 border-b border-gray-700 min-[480px]:gap-3 sm:flex-row sm:gap-2 sm:gap-4 sm:gap-4 sm:gap-4 md:gap-3 md:gap-3 md:gap-6 lg:gap-4">
+        <div className="mb-8 flex flex-col gap-3 border-b border-gray-700 min-[480px]:gap-3 sm:flex-row sm:gap-4 md:gap-6 lg:gap-4">
           {' '}
           {[
             { id: 'demo' as const, label: 'Architecture', icon: Server },
@@ -102,15 +102,15 @@ function BulkGenerationDemoPageContent() {
         </div>{' '}
         {/* Demo/Architecture Tab */}{' '}
         {activeTab === 'demo' && (
-          <div className="space-y-3 min-[480px]:space-y-4 sm:space-y-4 sm:space-y-4 sm:space-y-6 sm:space-y-6 md:space-y-3 md:space-y-4 md:space-y-6 md:space-y-8 lg:space-y-3">
+          <div className="space-y-3 min-[480px]:space-y-4 sm:space-y-6 md:space-y-6 lg:space-y-3">
             {' '}
-            <Card className="border-gray-700 bg-gray-800/50 p-4 sm:p-6 sm:p-6 md:p-4 md:p-8">
+            <Card className="border-gray-700 bg-gray-800/50 p-4 sm:p-6 md:p-8">
               {' '}
-              <h2 className="mb-6 text-xl font-bold text-white min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-base md:text-base md:text-lg md:text-xl lg:text-3xl lg:text-lg lg:text-lg lg:text-xl">
+              <h2 className="mb-6 text-xl font-bold text-white min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl">
                 Architecture BullMQ
               </h2>{' '}
               {/* Flow diagram */}{' '}
-              <div className="mb-8 rounded-lg border border-gray-700 bg-gray-900 p-4 sm:p-6 sm:p-6 md:p-4 md:p-8">
+              <div className="mb-8 rounded-lg border border-gray-700 bg-gray-900 p-4 sm:p-6 md:p-8">
                 {' '}
                 <div className="space-y-4 font-mono text-sm text-gray-300">
                   {' '}
@@ -144,7 +144,7 @@ function BulkGenerationDemoPageContent() {
                 </div>{' '}
               </div>{' '}
               {/* Key features */}{' '}
-              <div className="grid gap-2 min-[480px]:grid-cols-2 min-[480px]:gap-3 sm:grid-cols-2 sm:grid-cols-2 sm:grid-cols-2 sm:gap-3 sm:gap-4 sm:gap-4 sm:gap-4 sm:gap-4 md:grid-cols-1 md:grid-cols-2 md:grid-cols-2 md:gap-3 md:gap-4 md:gap-6 md:gap-6 md:gap-6 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-1 lg:grid-cols-3 lg:gap-2 lg:gap-3 lg:gap-3">
+              <div className="grid gap-2 min-[480px]:grid-cols-2 min-[480px]:gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-3">
                 {' '}
                 <div className="rounded-lg border border-green-500/30 bg-gradient-to-br from-green-900/20 to-green-900/5 p-6">
                   {' '}
@@ -185,12 +185,12 @@ function BulkGenerationDemoPageContent() {
         )}{' '}
         {/* Code Tab */}{' '}
         {activeTab === 'code' && (
-          <Card className="border-gray-700 bg-gray-800/50 p-4 sm:p-6 sm:p-6 md:p-4 md:p-8">
+          <Card className="border-gray-700 bg-gray-800/50 p-4 sm:p-6 md:p-8">
             {' '}
-            <h2 className="mb-6 text-xl font-bold text-white min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-base md:text-base md:text-lg md:text-xl lg:text-3xl lg:text-lg lg:text-lg lg:text-xl">
+            <h2 className="mb-6 text-xl font-bold text-white min-[480px]:text-lg min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl">
               Code BullMQ
             </h2>{' '}
-            <div className="space-y-4 min-[480px]:space-y-4 sm:space-y-3 sm:space-y-3 sm:space-y-4 sm:space-y-4 sm:space-y-6 sm:space-y-6 md:space-y-4 md:space-y-6 md:space-y-6 md:space-y-8 md:space-y-8 md:space-y-8 lg:space-y-3 lg:space-y-4">
+            <div className="space-y-4 min-[480px]:space-y-4 sm:space-y-6 md:space-y-6 lg:space-y-4">
               {' '}
               {/* BulkProcessor */}{' '}
               <div>
@@ -200,7 +200,7 @@ function BulkGenerationDemoPageContent() {
                 </h3>{' '}
                 <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-900 p-6">
                   {' '}
-                  <pre className="text-gray-300overflow-x-autooverflow-x-auto text-sm">
+                  <pre className="overflow-x-auto text-sm text-gray-300">
                     {' '}
                     <code>{`import { Queue, Worker } from 'bullmq';
 import OpenAI from 'openai'; export class BulkProcessor { private queue: Queue; private worker: Worker; constructor(config: { concurrency: number; // 10 workers rateLimitPerMinute: number; // 100/min }) { // Initialize Queue this.queue = new Queue('bulk-generation', { connection: { host: 'redis', port: 6379 } }); // Initialize Worker avec concurrency this.worker = new Worker( 'bulk-generation', async (job) => this.processJob(job), { concurrency: config.concurrency, limiter: { max: config.rateLimitPerMinute, duration: 60000 // 1 minute } } ); } async createBulkJob(data: { batchId: string; basePrompt: string; variations: Variation[]; // 1000 items }) { const job = await this.queue.add('bulk', data, { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }); return job.id; } private async processJob(job: Job) { const results = []; for (let i = 0; i < job.data.variations.length; i++) { const variation = job.data.variations[i]; // Generate avec DALL-E 3 const response = await openai.images.generate({ model: 'dall-e-3', prompt: buildPrompt(job.data.basePrompt, variation), size: '1024x1024' }); results.push({ id: variation.id, url: response.data[0].url }); // Update progress await job.updateProgress((i + 1) / variations.length * 100); } return results; }
@@ -216,7 +216,7 @@ import OpenAI from 'openai'; export class BulkProcessor { private queue: Queue; 
                 </h3>{' '}
                 <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-900 p-6">
                   {' '}
-                  <pre className="text-gray-300overflow-x-autooverflow-x-auto text-sm">
+                  <pre className="overflow-x-auto text-sm text-gray-300">
                     {' '}
                     <code>{`const processor = new BulkProcessor({ redis: { host: 'localhost', port: 6379 }, concurrency: 10, rateLimitPerMinute: 100
 }); // Create job avec 1000 variations
@@ -238,12 +238,12 @@ processor.on('job:progress', (id, progress) => { logger.info(\`Progress: \${prog
         )}{' '}
         {/* Performance Tab */}{' '}
         {activeTab === 'performance' && (
-          <Card className="border-gray-700 bg-gray-800/50 p-4 sm:p-6 sm:p-6 md:p-4 md:p-8">
+          <Card className="border-gray-700 bg-gray-800/50 p-4 sm:p-6 md:p-8">
             {' '}
-            <h2 className="mb-6 text-xl font-bold text-white min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-base md:text-base md:text-lg md:text-xl lg:text-3xl lg:text-lg lg:text-lg lg:text-xl">
+            <h2 className="mb-6 text-xl font-bold text-white min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl">
               Performance Réelle
             </h2>{' '}
-            <div className="grid gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-3 sm:gap-3 sm:gap-3 sm:gap-3 sm:gap-4 sm:gap-4 sm:gap-4 sm:gap-4 sm:gap-4 md:grid-cols-1 md:grid-cols-1 md:grid-cols-1 md:gap-2 md:gap-4 md:gap-4 md:gap-6 md:gap-6 md:gap-6 md:gap-6 md:gap-8 lg:gap-2 lg:gap-3 lg:gap-4 lg:gap-6">
+            <div className="grid gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-3 sm:gap-4 md:grid-cols-1 md:gap-6 lg:gap-6">
               {' '}
               {/* Calculs */}{' '}
               <div>
@@ -288,7 +288,7 @@ processor.on('job:progress', (id, progress) => { logger.info(\`Progress: \${prog
                     {' '}
                     <div className="text-center">
                       {' '}
-                      <div className="mb-1 text-xl font-bold text-green-400 min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-base md:text-base md:text-lg md:text-xl lg:text-3xl lg:text-lg lg:text-lg lg:text-xl">
+                      <div className="mb-1 text-xl font-bold text-green-400 min-[480px]:text-lg min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl">
                         1200/h
                       </div>{' '}
                       <div className="text-sm text-gray-400">
@@ -300,7 +300,7 @@ processor.on('job:progress', (id, progress) => { logger.info(\`Progress: \${prog
                     {' '}
                     <div className="text-center">
                       {' '}
-                      <div className="mb-1 text-xl font-bold text-blue-400 min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-base md:text-base md:text-lg md:text-xl lg:text-3xl lg:text-lg lg:text-lg lg:text-xl">
+                      <div className="mb-1 text-xl font-bold text-blue-400 min-[480px]:text-lg min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl">
                         1000+/h
                       </div>{' '}
                       <div className="text-sm text-gray-400">
@@ -349,7 +349,7 @@ processor.on('job:progress', (id, progress) => { logger.info(\`Progress: \${prog
                     return (
                       <div
                         key={i}
-                        className="flex items-start gap-2 rounded-lg border border-gray-700 bg-gray-900/50 p-4 min-[480px]:gap-3 sm:gap-4 sm:gap-4 sm:gap-4 md:gap-3 md:gap-3 md:gap-6 lg:gap-4"
+                        className="flex items-start gap-2 rounded-lg border border-gray-700 bg-gray-900/50 p-4 min-[480px]:gap-3 sm:gap-4 md:gap-6 lg:gap-4"
                       >
                         {' '}
                         <Icon className="mt-1 h-6 w-6 flex-shrink-0 text-green-500" />{' '}
@@ -372,19 +372,19 @@ processor.on('job:progress', (id, progress) => { logger.info(\`Progress: \${prog
         )}{' '}
         {/* Code Tab */}{' '}
         {activeTab === 'code' && (
-          <Card className="border-gray-700 bg-gray-800/50 p-4 sm:p-6 sm:p-6 md:p-4 md:p-8">
+          <Card className="border-gray-700 bg-gray-800/50 p-4 sm:p-6 md:p-8">
             {' '}
-            <h2 className="mb-6 text-xl font-bold text-white min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-base md:text-base md:text-lg md:text-xl lg:text-3xl lg:text-lg lg:text-lg lg:text-xl">
+            <h2 className="mb-6 text-xl font-bold text-white min-[480px]:text-lg min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl">
               Implémentation Complète
             </h2>{' '}
             <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-900 p-6">
               {' '}
-              <pre className="text-gray-300overflow-x-autooverflow-x-auto text-sm">
+              <pre className="overflow-x-auto text-sm text-gray-300">
                 {' '}
                 <code>{`// packages/bulk-generator/src/BulkProcessor.ts import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import OpenAI from 'openai'; export class BulkProcessor { private queue: Queue; private worker: Worker; private redis: Redis; private openai: OpenAI; constructor(config) { // Redis connection this.redis = new Redis({ host: config.redis.host, port: config.redis.port, maxRetriesPerRequest: null // Required for BullMQ }); // Initialize Queue this.queue = new Queue('bulk-generation', { connection: this.redis }); // Initialize Worker avec options avancées this.worker = new Worker( 'bulk-generation', async (job) => this.processJob(job), { connection: this.redis, concurrency: config.concurrency || 10, limiter: { max: config.rateLimitPerMinute || 100, duration: 60000 // 1 minute } } ); // OpenAI client this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); } async createBulkJob(data: BulkGenerationJob) { const job = await this.queue.add(\`bulk-\${data.batchId}\`, data, { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }); return job.id; } private async processJob(job: Job) { const results = []; for (let i = 0; i < job.data.variations.length; i++) { try { // Generate avec DALL-E 3 const response = await this.openai.images.generate({ model: 'dall-e-3', prompt: this.buildPrompt( job.data.basePrompt, job.data.variations[i].modifiers ), size: '1024x1024', quality: 'standard' }); results.push({ variationId: job.data.variations[i].id, imageUrl: response.data[0].url, success: true }); // Update progress await job.updateProgress((i + 1) / variations.length * 100); } catch (error) { results.push({ variationId: job.data.variations[i].id, success: false, error: error.message }); } } return results; }
-import { logger } from '../../../../lib/logger';
+import { logger } from '@/lib/logger';
 } // Stats RÉELS observés:
 // - Time per design: 25-35s
 // - Success rate: 97-99%
@@ -397,11 +397,11 @@ import { logger } from '../../../../lib/logger';
         )}{' '}
       </section>{' '}
       {/* CTA */}{' '}
-      <section className="bg-gradient-to-r from-green-900 to-emerald-900 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:px-6 sm:py-10 sm:py-12 sm:py-12 sm:py-12 sm:py-12 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 sm:py-8 md:px-12 md:px-3 md:px-4 md:px-4 md:px-4 md:px-4 md:px-4 md:px-8 md:py-12 md:py-12 md:py-12 md:py-16 md:py-16 md:py-20 md:py-4 md:py-6 md:py-6 md:py-6 lg:px-12 lg:py-12 lg:py-16 lg:py-16 lg:py-16 lg:py-6 lg:py-6 lg:py-8">
+      <section className="bg-gradient-to-r from-green-900 to-emerald-900 px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16">
         {' '}
         <div className="mx-auto max-w-4xl px-4 text-center">
           {' '}
-          <h2 className="mb-6 text-2xl font-bold text-white min-[480px]:text-lg min-[480px]:text-lg min-[480px]:text-lg sm:text-2xl sm:text-2xl sm:text-2xl sm:text-2xl sm:text-lg sm:text-lg sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl sm:text-xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-2xl md:text-3xl md:text-3xl md:text-base md:text-base md:text-lg md:text-lg md:text-lg md:text-xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-3xl lg:text-4xl lg:text-base lg:text-xl lg:text-xl xl:text-xl">
+          <h2 className="mb-6 text-2xl font-bold text-white min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-xl">
             {' '}
             Générez 1000 designs en 1h{' '}
           </h2>{' '}

@@ -69,9 +69,9 @@ interface PlanCatalog {
 // For synchronous access, we'll use a synchronous require in a try-catch
 // This approach works better with Next.js build-time requirements
 // This is a workaround for Next.js build-time requirements
-let billingPlansModule: any;
+let billingPlansModule: unknown;
 try {
-  // @ts-ignore - Dynamic require for workspace package
+  // @ts-expect-error -- Workspace package @luneo/billing-plans may not resolve at build time in all environments
   billingPlansModule = require('@luneo/billing-plans');
 } catch (error) {
   // In Vercel/build environment, the package should be available via workspace
@@ -80,11 +80,12 @@ try {
   billingPlansModule = null;
 }
 
-if (billingPlansModule && billingPlansModule.PLAN_DEFINITIONS && billingPlansModule.PLAN_CATALOG) {
-  PLAN_DEFINITIONS = billingPlansModule.PLAN_DEFINITIONS as Record<PlanTier, PlanDefinition>;
-  PLAN_CATALOG = billingPlansModule.PLAN_CATALOG as PlanCatalog;
-  getPlanDefinition = billingPlansModule.getPlanDefinition as (plan: PlanTier) => PlanDefinition;
-  listPlans = billingPlansModule.listPlans as () => PlanDefinition[];
+const mod = billingPlansModule as { PLAN_DEFINITIONS?: Record<PlanTier, PlanDefinition>; PLAN_CATALOG?: PlanCatalog; getPlanDefinition?: (plan: PlanTier) => PlanDefinition; listPlans?: () => PlanDefinition[] } | null;
+if (mod?.PLAN_DEFINITIONS && mod?.PLAN_CATALOG && mod.getPlanDefinition && mod.listPlans) {
+  PLAN_DEFINITIONS = mod.PLAN_DEFINITIONS;
+  PLAN_CATALOG = mod.PLAN_CATALOG;
+  getPlanDefinition = mod.getPlanDefinition;
+  listPlans = mod.listPlans;
 } else {
   // This should not happen in production - package should be available
   // But we provide a type-safe fallback to prevent build errors

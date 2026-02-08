@@ -15,7 +15,7 @@ export function useABTesting(
   const { toast } = useToast();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
 
-  const experimentsQuery = (trpc.abTesting as any)?.listExperiments?.useQuery?.() || {
+  const experimentsQuery = (trpc.abTesting as { list?: { useQuery: () => { data?: { experiments?: unknown[] }; isLoading: boolean; error: unknown; refetch: () => Promise<unknown> } } })?.list?.useQuery?.() ?? {
     data: { experiments: [] },
     isLoading: false,
     error: null,
@@ -24,16 +24,17 @@ export function useABTesting(
 
   useEffect(() => {
     if (experimentsQuery.data?.experiments) {
-      const transformed: Experiment[] = (experimentsQuery.data.experiments as any[]).map((exp) => ({
+      type ExpLike = { id: string; name?: string; description?: string; status?: string; metric?: string; confidence?: number; startDate?: string | Date; endDate?: string | Date; variants?: { id: string; name?: string; traffic?: number; conversions?: number; visitors?: number; revenue?: number; isControl?: boolean; isWinner?: boolean }[]; createdAt?: string | Date; updatedAt?: string | Date };
+      const transformed: Experiment[] = (experimentsQuery.data.experiments as ExpLike[]).map((exp) => ({
         id: exp.id,
         name: exp.name || 'Test sans nom',
         description: exp.description || '',
         status: (exp.status || 'draft') as ExperimentStatus,
-        metric: (exp.metric || 'conversion') as any,
+        metric: (exp.metric || 'conversion') as 'conversions' | 'revenue' | 'engagement' | 'clicks',
         confidence: exp.confidence || 0,
-        startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
-        endDate: exp.endDate ? new Date(exp.endDate) : undefined,
-        variants: (exp.variants || []).map((v: any) => ({
+        startDate: exp.startDate ? new Date(exp.startDate as string) : new Date(),
+        endDate: exp.endDate ? new Date(exp.endDate as string) : undefined,
+        variants: (exp.variants || []).map((v) => ({
           id: v.id,
           name: v.name || 'Variante',
           traffic: v.traffic || 50,
@@ -62,7 +63,7 @@ export function useABTesting(
   }, [experiments, searchTerm, filterStatus]);
 
   const stats = useMemo(() => {
-    const getConversionRate = (variant: any) => {
+    const getConversionRate = (variant: { visitors: number; conversions: number }) => {
       if (variant.visitors === 0) return 0;
       return (variant.conversions / variant.visitors) * 100;
     };
@@ -107,7 +108,7 @@ export function useABTesting(
     };
   }, [experiments]);
 
-  const updateMutation = (trpc.abTesting as any)?.update?.useMutation?.();
+  const updateMutation = (trpc.abTesting as { update?: { useMutation: () => { mutateAsync: (input: { id: string; status: ExperimentStatus }) => Promise<unknown> } } })?.update?.useMutation?.();
 
   const toggleExperiment = async (id: string, status: ExperimentStatus) => {
     try {
@@ -129,14 +130,15 @@ export function useABTesting(
       
       toast({ title: 'Succès', description: 'Statut mis à jour' });
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to toggle experiment', { error });
+      const message = error instanceof Error ? error.message : 'Erreur lors de la mise à jour';
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la mise à jour',
+        description: message,
         variant: 'destructive',
       });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   };
 

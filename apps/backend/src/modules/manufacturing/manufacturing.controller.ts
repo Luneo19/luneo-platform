@@ -10,12 +10,12 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { ManufacturingService } from './manufacturing.service';
 import { GenerateExportPackDto } from './dto/generate-export-pack.dto';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandScopedGuard } from '@/common/guards/brand-scoped.guard';
 import { BrandScoped } from '@/common/decorators/brand-scoped.decorator';
 
 @ApiTags('manufacturing')
-@Controller('v1/manufacturing')
+@Controller('manufacturing')
 @UseGuards(JwtAuthGuard, BrandScopedGuard)
 @ApiBearerAuth()
 @BrandScoped()

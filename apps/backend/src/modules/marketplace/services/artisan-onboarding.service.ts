@@ -97,7 +97,7 @@ export class ArtisanOnboardingService {
         businessName: request.businessName,
         legalName: request.legalName,
         taxId: request.taxId,
-        address: request.address as any,
+        address: request.address as Record<string, unknown>,
         phone: request.phone,
         email: request.email,
         website: request.website,
@@ -124,6 +124,28 @@ export class ArtisanOnboardingService {
     });
 
     this.logger.log(`Artisan ${artisan.id} created, Stripe Connect account: ${stripeAccount.id}`);
+
+    // Notify admins of new artisan registration
+    try {
+      const adminUsers = await this.prisma.user.findMany({
+        where: { role: 'PLATFORM_ADMIN' },
+        select: { id: true },
+      });
+
+      for (const admin of adminUsers) {
+        await this.prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: 'SYSTEM',
+            title: 'Nouvel artisan inscrit',
+            message: `Un nouvel artisan "${request.businessName}" s'est inscrit et attend la vérification KYC.`,
+            data: { artisanId: artisan.id, businessName: request.businessName },
+          },
+        });
+      }
+    } catch (notifError) {
+      this.logger.warn('Failed to create admin notification for new artisan', { error: notifError });
+    }
 
     return {
       artisan,
@@ -184,13 +206,13 @@ export class ArtisanOnboardingService {
     }
 
     // Sauvegarder les documents
-    const kycDocuments = (artisan.kycDocuments as any) || [];
+    const kycDocuments = (artisan.kycDocuments as KYCDocument[]) || [];
     kycDocuments.push(...documents);
 
     await this.prisma.artisan.update({
       where: { id: artisanId },
       data: {
-        kycDocuments: kycDocuments as any,
+        kycDocuments: kycDocuments as unknown as Record<string, unknown>[],
         kycStatus: 'PENDING', // En attente de vérification
       },
     });
@@ -204,17 +226,11 @@ export class ArtisanOnboardingService {
       documentTypes: documents.map(d => d.type),
     });
 
-    // TODO: Intégrer service de vérification KYC automatique (ex: Onfido, Jumio)
-    // Exemple d'intégration future:
-    // const kycResult = await this.kycService.verifyDocuments(documents);
-    // await this.prisma.artisan.update({
-    //   where: { id: artisanId },
-    //   data: {
-    //     kycStatus: kycResult.verified ? 'verified' : 'rejected',
-    //     kycVerifiedAt: kycResult.verified ? new Date() : null,
-    //     status: kycResult.verified ? 'active' : 'suspended',
-    //   },
-    // });
+    // KYC verification strategy:
+    // 1. Primary: Stripe Connect Express handles identity verification automatically
+    //    When Stripe verifies the account, a webhook (account.updated) auto-sets kycStatus to VERIFIED
+    // 2. Fallback: Admin can manually verify via verifyArtisan() method
+    // 3. Future: Integrate dedicated KYC provider (Onfido/Jumio) if volume > 500 artisans/month
 
     return { status: 'pending', message: 'Documents submitted, verification in progress' };
   }

@@ -52,6 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -151,21 +152,11 @@ function BraceletCustomizePageContent() {
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      const response = await fetch('/api/bracelet/customizations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...customization,
-          texture: textureDataUrl,
-          model: 'bracelet.glb',
-        }),
+      const data = await api.post<{ id?: string }>('/api/v1/bracelet/customizations', {
+        ...customization,
+        texture: textureDataUrl,
+        model: 'bracelet.glb',
       });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la sauvegarde');
-      }
-
-      const data = await response.json();
       toast({
         title: 'Sauvegardé',
         description: 'Votre personnalisation a été enregistrée avec succès.',
@@ -190,22 +181,16 @@ function BraceletCustomizePageContent() {
   const handleExportPNG = useCallback(async () => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/bracelet/render', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const blob = await api.post<Blob>(
+        '/api/v1/bracelet/render',
+        {
           ...customization,
           width: 3840,
           height: 2160,
           format: 'png',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de l\'export');
-      }
-
-      const blob = await response.blob();
+        },
+        { responseType: 'blob' }
+      );
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

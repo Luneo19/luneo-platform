@@ -4,6 +4,8 @@
  * pour le chat/agent
  */
 
+import { api } from '@/lib/api/client';
+
 export interface ContextFile {
   id: string;
   fileName: string;
@@ -45,58 +47,53 @@ export async function uploadContextFile(
     formData.append('description', description);
   }
 
-  const response = await fetch('/api/chat/other-files-context', {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
-    throw new Error(error.error || error.message || `Erreur ${response.status}: ${response.statusText}`);
+  try {
+    const data = await api.post<{ success?: boolean; error?: string; message?: string; data?: UploadContextFileResponse['file'] & { message?: string } }>(
+      '/api/v1/chat/other-files-context',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    if (data && (data as { success?: boolean }).success === false) {
+      throw new Error((data as { error?: string }).error || (data as { message?: string }).message || 'Erreur lors de l\'upload');
+    }
+    return ((data as unknown as { data?: UploadContextFileResponse }).data ?? data) as unknown as UploadContextFileResponse;
+  } catch (err: unknown) {
+    const message = (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.message
+      || (err as Error)?.message
+      || 'Erreur inconnue';
+    throw new Error(message);
   }
-
-  const data = await response.json();
-  if (!data.success) {
-    throw new Error(data.error || data.message || 'Erreur lors de l\'upload');
-  }
-
-  return data.data;
 }
 
 /**
  * Récupérer les fichiers contextuels
  */
 export async function getContextFiles(contextId?: string): Promise<ContextFile[]> {
-  const url = contextId
-    ? `/api/chat/other-files-context?contextId=${encodeURIComponent(contextId)}`
-    : '/api/chat/other-files-context';
-
-  const response = await fetch(url, {
-    method: 'GET',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
-    throw new Error(error.error || error.message || `Erreur ${response.status}: ${response.statusText}`);
+  try {
+    const data = await api.get<{ success?: boolean; error?: string; message?: string; data?: { files?: any[] } }>(
+      '/api/v1/chat/other-files-context',
+      contextId ? { params: { contextId } } : undefined
+    );
+    if (data && (data as { success?: boolean }).success === false) {
+      throw new Error((data as { error?: string }).error || (data as { message?: string }).message || 'Erreur lors de la récupération');
+    }
+    const files = (data as { data?: { files?: any[] } })?.data?.files ?? [];
+    return files.map((file: Record<string, unknown>) => ({
+      id: String(file.id ?? `file-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`),
+      fileName: String(file.file_name ?? file.fileName ?? ''),
+      url: String(file.file_url ?? file.url ?? ''),
+      size: Number(file.file_size ?? file.size ?? 0),
+      type: String(file.file_type ?? file.type ?? ''),
+      uploadedAt: String(file.uploaded_at ?? file.uploadedAt ?? ''),
+      description: file.description as string | undefined,
+      contextId: (file.context_id ?? file.contextId) as string | undefined,
+    })) as ContextFile[];
+  } catch (err: unknown) {
+    const message = (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.message
+      || (err as Error)?.message
+      || 'Erreur inconnue';
+    throw new Error(message);
   }
-
-  const data = await response.json();
-  if (!data.success) {
-    throw new Error(data.error || data.message || 'Erreur lors de la récupération');
-  }
-
-  // Convertir les fichiers de la réponse en format ContextFile
-  const files = data.data?.files || [];
-  return files.map((file: any) => ({
-    id: file.id || `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    fileName: file.file_name || file.fileName,
-    url: file.file_url || file.url,
-    size: file.file_size || file.size,
-    type: file.file_type || file.type,
-    uploadedAt: file.uploaded_at || file.uploadedAt,
-    description: file.description,
-    contextId: file.context_id || file.contextId,
-  }));
 }
 
 /**
@@ -107,22 +104,20 @@ export async function deleteContextFile(fileId?: string, fileUrl?: string): Prom
     throw new Error('ID ou URL du fichier requis');
   }
 
-  const url = fileId
-    ? `/api/chat/other-files-context?id=${encodeURIComponent(fileId)}`
-    : `/api/chat/other-files-context?url=${encodeURIComponent(fileUrl!)}`;
-
-  const response = await fetch(url, {
-    method: 'DELETE',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
-    throw new Error(error.error || error.message || `Erreur ${response.status}: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  if (!data.success) {
-    throw new Error(data.error || data.message || 'Erreur lors de la suppression');
+  try {
+    const params = fileId ? { id: fileId } : { url: fileUrl! };
+    const data = await api.delete<{ success?: boolean; error?: string; message?: string }>(
+      '/api/v1/chat/other-files-context',
+      { params }
+    );
+    if (data && (data as { success?: boolean }).success === false) {
+      throw new Error((data as { error?: string }).error || (data as { message?: string }).message || 'Erreur lors de la suppression');
+    }
+  } catch (err: unknown) {
+    const message = (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.message
+      || (err as Error)?.message
+      || 'Erreur inconnue';
+    throw new Error(message);
   }
 }
 

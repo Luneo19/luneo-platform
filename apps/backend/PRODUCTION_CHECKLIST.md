@@ -1,178 +1,109 @@
-# 🚀 CHECKLIST DE PRÉPARATION PRODUCTION
+# Production deployment checklist – Luneo Backend
 
-## 🔒 **SÉCURITÉ (CRITIQUE)**
+Use this list before going live to ensure the backend is production-ready.
 
-### ✅ Clés JWT sécurisées
-- [ ] JWT_SECRET généré (64+ caractères)
-- [ ] JWT_REFRESH_SECRET généré (64+ caractères)
-- [ ] Clés stockées dans `.env.production`
+## Production readiness (completed)
 
-### ✅ Variables d'environnement
-- [ ] `.env.production` créé avec vraies valeurs
-- [ ] Pas de secrets dans le code
-- [ ] Variables sensibles chiffrées
+The following items have been implemented and are in place:
 
-### ✅ Middlewares de sécurité
-- [ ] Rate limiting activé
-- [ ] CORS configuré pour production
-- [ ] Helmet activé
-- [ ] HPP activé
-- [ ] Compression activée
+- [x] **httpOnly cookies** – Auth tokens stored in httpOnly cookies (no localStorage)
+- [x] **SEO** – Metadata and SEO handling in place
+- [x] **CI/CD** – Automated pipelines (e.g. GitHub Actions) for build and deploy
+- [x] **Monitoring/SLO** – Sentry and health checks; SLO/monitoring configured
+- [x] **Content moderation** – AI prompt/content moderation in place
+- [x] **RBAC** – Role-based access control implemented
+- [x] **Database backups** – Backup strategy and tooling in place
+- [x] **Shopify sync** – Shopify integration/sync implemented
+- [x] **Documentation** – API docs (Swagger), README and internal docs updated
+- [x] **Industry Adaptive Dashboard** — 9 industries, adaptive widgets, KPIs, terminology
+- [x] **Onboarding Flow** — 6-step onboarding with industry selection
+- [x] **Organization Model** — Organization -> Brand hierarchy
+- [x] **Dashboard Customization** — Per-user widget preferences
 
-## 🗄️ **INFRASTRUCTURE**
+## Environment variables
 
-### ✅ Base de données
-- [ ] PostgreSQL production configuré
-- [ ] SSL activé
-- [ ] Sauvegarde automatique
-- [ ] Monitoring configuré
-- [ ] Migrations appliquées
+- [ ] **DATABASE_URL** – PostgreSQL connection string. For production, add pooling params to the URL, e.g. `?schema=public&connection_limit=10&pool_timeout=20&connect_timeout=10` (see `.env.example`).
+- [ ] **JWT_SECRET** – Min 32 characters
+- [ ] **JWT_REFRESH_SECRET** – Min 32 characters
+- [ ] **STRIPE_SECRET_KEY** – Stripe secret key (starts with `sk_`)
+- [ ] **STRIPE_WEBHOOK_SECRET** – Stripe webhook signing secret
+- [ ] **ENCRYPTION_KEY** – 64 hex characters for AES-256-GCM
+- [ ] **FRONTEND_URL** or **CORS_ORIGIN** – Production frontend URL or explicit CORS origins (not `*` in production)
+- [ ] **Email** – At least one of:
+  - **SENDGRID_API_KEY**, or
+  - **MAILGUN_API_KEY** + **MAILGUN_DOMAIN**, or
+  - **SMTP_HOST** + **SMTP_FROM** (or **FROM_EMAIL**)
 
-### ✅ Redis
-- [ ] Instance production configurée
-- [ ] Persistence activée
-- [ ] Monitoring configuré
-- [ ] Sauvegarde configurée
+## Database connection pooling
 
-### ✅ Services externes
-- [ ] Stripe (clés live)
-- [ ] Cloudinary (compte production)
-- [ ] AI Providers (clés production)
-- [ ] SMTP (serveur production)
+- [ ] **Production DATABASE_URL** includes pooling query params when using a single connection string (e.g. Neon, Supabase direct): `connection_limit=10`, `pool_timeout=20`, `connect_timeout=10`. If you use an external connection pooler (e.g. PgBouncer, Neon pooler), use the pooler URL and follow the provider’s recommended limits.
 
-## 📊 **MONITORING**
+## Infrastructure
 
-### ✅ Sentry
-- [ ] DSN configuré
-- [ ] Environment detection
-- [ ] Error monitoring
-- [ ] Performance monitoring
-- [ ] Logs activés
+- [ ] Database migrations applied (`npx prisma migrate deploy`)
+- [ ] SSL/HTTPS active (TLS termination at load balancer or reverse proxy)
+- [ ] CORS configured with production domains (no `*` in production)
 
-### ✅ Métriques
-- [ ] Health checks
-- [ ] Métriques système
-- [ ] Alertes configurées
-- [ ] Logs centralisés
+## Security & reliability
 
-## 🔧 **DÉPLOIEMENT**
+- [ ] Rate limiting enabled (e.g. `ENABLE_RATE_LIMIT_IN_DEV=true` or default in production)
+- [ ] **SENTRY_DSN** configured for error tracking
+- [ ] Stripe webhook endpoint configured and pointing to your production URL
+- [ ] Email provider configured and tested (welcome, password reset, etc.)
 
-### ✅ Docker
-- [ ] Dockerfile optimisé
-- [ ] docker-compose.production.yml
-- [ ] Images multi-stage
-- [ ] Health checks
+## Dependencies
 
-### ✅ Nginx
-- [ ] Configuration SSL
-- [ ] Rate limiting
-- [ ] Headers de sécurité
-- [ ] Compression
+- [ ] **REDIS_URL** set and Redis reachable (for rate limiting, caching, sessions)
+- [ ] Health check endpoint responding at **/health** (and optionally **/api/v1/health**)
+- [ ] Monitoring dashboard configured (e.g. Sentry, Prometheus, or provider dashboard)
 
-### ✅ CI/CD
-- [ ] Pipeline de déploiement
-- [ ] Tests automatisés
-- [ ] Rollback strategy
-- [ ] Monitoring post-déploiement
+## Post-deployment steps
 
-## 🧪 **TESTS**
+- [ ] Run database seed: `pnpm prisma db seed` (populates 9 industries with configs)
+- [ ] Verify `/api/v1/industries` returns 9 active industries
+- [ ] Verify `/api/v1/health` returns `status: "ok"`
+- [ ] Test onboarding flow: register -> select industry -> complete -> adaptive dashboard
+- [ ] Configure Stripe webhook endpoint: `https://your-domain.com/api/v1/billing/webhook`
 
-### ✅ Tests unitaires
-- [ ] Couverture > 80%
-- [ ] Tests critiques
-- [ ] Tests de sécurité
+## Database backup strategy
 
-### ✅ Tests d'intégration
-- [ ] Tests API
-- [ ] Tests base de données
-- [ ] Tests services externes
+- [ ] **Automated daily backups** – Configure your PostgreSQL provider (Neon/Supabase/RDS) for automated daily snapshots
+- [ ] **Point-in-time recovery (PITR)** – Enable WAL archiving for point-in-time recovery (supported by Neon/Supabase natively)
+- [ ] **Backup retention** – Minimum 7 days for daily backups, 30 days for weekly backups
+- [ ] **Backup testing** – Quarterly restore test to verify backup integrity
+- [ ] **Cross-region replication** – For disaster recovery, consider a read replica in a different region
 
-### ✅ Tests de charge
-- [ ] Performance tests
-- [ ] Stress tests
-- [ ] Tests de récupération
+### Backup commands (manual, if needed)
 
-## 📚 **DOCUMENTATION**
+```bash
+# Export database (pg_dump)
+pg_dump $DATABASE_URL --format=custom --file=backup_$(date +%Y%m%d).dump
 
-### ✅ Documentation technique
-- [ ] README.md
-- [ ] API documentation
-- [ ] Architecture documentation
-- [ ] Deployment guide
+# Restore from backup
+pg_restore --dbname=$DATABASE_URL backup_20260208.dump
+```
 
-### ✅ Documentation opérationnelle
-- [ ] Runbook
-- [ ] Troubleshooting guide
-- [ ] Monitoring guide
-- [ ] Security checklist
+## Alerting and monitoring
 
-## 🔍 **VÉRIFICATIONS FINALES**
+- [ ] **Sentry alerts** – Configure alert rules in Sentry dashboard:
+  - Error spike: alert when error rate exceeds 10/min for 5 minutes
+  - New issue: notify on first occurrence of any new error
+  - Regression: alert when a previously resolved issue recurs
+- [ ] **Uptime monitoring** – Set up external health check monitoring (e.g. Better Stack, Pingdom):
+  - Backend: `https://api.luneo.app/health` (interval: 1 min, alert after 2 failures)
+  - Frontend: `https://luneo.app/api/health` (interval: 1 min, alert after 2 failures)
+- [ ] **SSL certificate expiry** – Monitor SSL certificate expiration (30-day warning)
+- [ ] **Notification channels** – Configure at least 2 channels:
+  - Primary: Slack (`SLACK_WEBHOOK_URL` in GitHub secrets)
+  - Secondary: Email to ops team
+- [ ] **On-call rotation** – Define who receives production alerts
 
-### ✅ Fonctionnalités
-- [ ] Authentification
-- [ ] API endpoints
-- [ ] File uploads
-- [ ] Job processing
-- [ ] Webhooks
+## Optional but recommended
 
-### ✅ Performance
-- [ ] Temps de réponse < 2s
-- [ ] Throughput suffisant
-- [ ] Mémoire optimisée
-- [ ] CPU optimisé
-
-### ✅ Sécurité
-- [ ] Penetration tests
-- [ ] Vulnerability scan
-- [ ] Security audit
-- [ ] Compliance check
-
-## 🚀 **DÉPLOIEMENT**
-
-### ✅ Pré-déploiement
-- [ ] Backup de la base
-- [ ] Notification équipe
-- [ ] Maintenance window
-- [ ] Rollback plan
-
-### ✅ Déploiement
-- [ ] Déploiement progressif
-- [ ] Health checks
-- [ ] Smoke tests
-- [ ] Monitoring activé
-
-### ✅ Post-déploiement
-- [ ] Vérification complète
-- [ ] Performance monitoring
-- [ ] Error monitoring
-- [ ] User feedback
-
-## 📊 **MÉTRIQUES DE SUCCÈS**
-
-### ✅ Disponibilité
-- [ ] Uptime > 99.9%
-- [ ] MTTR < 15 minutes
-- [ ] MTBF > 24 heures
-
-### ✅ Performance
-- [ ] P95 < 2s
-- [ ] P99 < 5s
-- [ ] Error rate < 1%
-
-### ✅ Sécurité
-- [ ] 0 vulnérabilités critiques
-- [ ] 0 incidents de sécurité
-- [ ] Compliance 100%
+- [ ] **CLOUDINARY_CLOUD_NAME** (and API key/secret) for media storage
+- [ ] **OPENAI_API_KEY** if using AI features
+- [ ] **SENTRY_DSN** for production error monitoring
 
 ---
 
-**🎯 OBJECTIF : Déploiement production sécurisé et performant**
-
-
-
-
-
-
-
-
-
+After deployment, call `GET /health` or `GET /api/v1/health` and confirm `status: "ok"` and that `dependencies.database`, `dependencies.redis`, `dependencies.stripe`, and `dependencies.email` show expected statuses.

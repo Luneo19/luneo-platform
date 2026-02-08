@@ -16,7 +16,7 @@ import { Request } from 'express';
 export class EnhancedRateLimitGuard extends ThrottlerGuard {
   protected async getTracker(req: Request): Promise<string> {
     // Use user ID if authenticated, otherwise use IP
-    const userId = (req as any).user?.id;
+    const userId = (req as Request & { user?: { id?: string } }).user?.id;
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     
     return userId ? `user:${userId}` : `ip:${ip}`;

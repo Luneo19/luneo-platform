@@ -72,10 +72,10 @@ export function TestWebhookModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-lg">
         <DialogHeader>
           <DialogTitle>Tester le webhook</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Envoyez une requête de test à votre webhook
           </DialogDescription>
         </DialogHeader>
@@ -89,7 +89,7 @@ export function TestWebhookModal({
               value={testUrl}
               onChange={(e) => setTestUrl(e.target.value)}
               placeholder="https://example.com/webhook"
-              className="bg-gray-700 border-gray-600"
+              className="bg-white border-gray-200"
             />
           </div>
 
@@ -101,12 +101,12 @@ export function TestWebhookModal({
               value={testSecret}
               onChange={(e) => setTestSecret(e.target.value)}
               placeholder="Secret pour la signature"
-              className="bg-gray-700 border-gray-600"
+              className="bg-white border-gray-200"
             />
           </div>
 
           {testMutation.data && (
-            <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+            <div className="p-4 bg-white/50 rounded-lg border border-gray-200">
               <div className="flex items-center gap-3 mb-2">
                 {testMutation.data.success ? (
                   <>
@@ -121,7 +121,7 @@ export function TestWebhookModal({
                 )}
               </div>
               {testMutation.data.statusCode && (
-                <p className="text-sm text-gray-300">
+                <p className="text-sm text-gray-700">
                   Statut HTTP: {testMutation.data.statusCode}
                 </p>
               )}
@@ -131,7 +131,7 @@ export function TestWebhookModal({
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-700">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button variant="ghost" onClick={onClose}>
               Fermer
             </Button>

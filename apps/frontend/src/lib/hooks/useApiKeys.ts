@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ApiKeySummary } from '@/lib/types';
 import { logger } from '@/lib/logger';
+import { api, endpoints } from '@/lib/api/client';
 
 type ApiKey = ApiKeySummary;
 
@@ -14,20 +15,16 @@ export function useApiKeys() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/api-keys');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du chargement des clés API');
-      }
-
-      setApiKeys(data.data.api_keys);
-    } catch (err: any) {
+      const data = await endpoints.publicApi.keys.list();
+      const raw = data as { data?: { api_keys?: ApiKey[] }; api_keys?: ApiKey[] };
+      setApiKeys(raw?.data?.api_keys ?? raw?.api_keys ?? []);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur chargement API keys', {
         error: err,
-        message: err.message,
+        message,
       });
-      setError(err.message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -38,37 +35,26 @@ export function useApiKeys() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, permissions, rate_limit }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la création de la clé');
-      }
-
+      const data = await endpoints.publicApi.keys.create({ name, permissions, rate_limit });
+      const raw = data as { data?: { api_key?: string; key_info?: unknown }; api_key?: string; key_info?: unknown; message?: string };
       await loadApiKeys();
-      
-      // Retourner la clé complète (affichée UNE SEULE FOIS)
       return {
         success: true,
-        api_key: data.data.api_key,
-        key_info: data.data.key_info,
-        message: data.message,
+        api_key: raw?.data?.api_key ?? raw?.api_key,
+        key_info: raw?.data?.key_info ?? raw?.key_info,
+        message: raw?.message ?? 'Clé créée',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur création API key', {
         error: err,
         name,
         permissions,
         rate_limit,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -79,26 +65,19 @@ export function useApiKeys() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/api-keys/${id}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la suppression');
-      }
-
+      const data = await endpoints.publicApi.keys.delete(id);
+      const raw = data as { message?: string };
       await loadApiKeys();
-      return { success: true, message: data.message };
-    } catch (err: any) {
+      return { success: true, message: raw?.message ?? 'Clé supprimée' };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur suppression API key', {
         error: err,
         apiKeyId: id,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -109,29 +88,20 @@ export function useApiKeys() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/api-keys/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la mise à jour');
-      }
-
+      const data = await api.put(`/api/v1/api-keys/${id}`, { is_active });
+      const raw = data as { message?: string };
       await loadApiKeys();
-      return { success: true, message: data.message };
-    } catch (err: any) {
+      return { success: true, message: raw?.message ?? 'Clé mise à jour' };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur toggle API key', {
         error: err,
         apiKeyId: id,
         is_active,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }

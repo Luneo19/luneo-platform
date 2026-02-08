@@ -11,7 +11,7 @@
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
 import { sendEmail } from '@/lib/send-email';
-import { db as prismaDb } from '@/lib/db';
+import { api, endpoints } from '@/lib/api/client';
 
 // ========================================
 // TYPES
@@ -30,7 +30,7 @@ export interface Notification {
     | 'system';
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   read: boolean;
   readAt?: Date;
   createdAt: Date;
@@ -43,7 +43,7 @@ export interface CreateNotificationRequest {
   type: Notification['type'];
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   actionUrl?: string;
   actionLabel?: string;
   sendEmail?: boolean;
@@ -101,71 +101,58 @@ export class NotificationService {
         type: request.type,
       });
 
-      // Get user email for email notifications
-      const user = await prismaDb.user.findUnique({
-        where: { id: request.userId },
-        select: { email: true },
+      // Create notification via backend API
+      const created = await api.post<Notification & { readAt?: string }>('/api/v1/notifications', {
+        type: request.type,
+        title: request.title,
+        message: request.message,
+        data: request.data || {},
+        actionUrl: request.actionUrl,
+        actionLabel: request.actionLabel,
       });
 
-      // Save to database using Prisma
-      const dbNotification = await prismaDb.notification.create({
-        data: {
-          userId: request.userId,
-          type: request.type,
-          title: request.title,
-          message: request.message,
-          data: request.data || {},
-          actionUrl: request.actionUrl,
-          actionLabel: request.actionLabel,
-          read: false,
-        },
-      });
-
-      // Convert to Notification interface
       const notification: Notification = {
-        id: dbNotification.id,
-        userId: dbNotification.userId,
-        type: dbNotification.type as Notification['type'],
-        title: dbNotification.title,
-        message: dbNotification.message,
-        ...(dbNotification.data
-          ? { data: dbNotification.data as Record<string, any> }
-          : {}),
-        read: dbNotification.read,
-        ...(dbNotification.readAt ? { readAt: dbNotification.readAt } : {}),
-        createdAt: dbNotification.createdAt,
-        ...(dbNotification.actionUrl
-          ? { actionUrl: dbNotification.actionUrl }
-          : {}),
-        ...(dbNotification.actionLabel
-          ? { actionLabel: dbNotification.actionLabel }
-          : {}),
+        id: created.id,
+        userId: created.userId,
+        type: created.type,
+        title: created.title,
+        message: created.message,
+        ...(created.data ? { data: created.data } : {}),
+        read: created.read ?? false,
+        ...(created.readAt ? { readAt: created.readAt } : {}),
+        createdAt: new Date(created.createdAt),
+        ...(created.actionUrl ? { actionUrl: created.actionUrl } : {}),
+        ...(created.actionLabel ? { actionLabel: created.actionLabel } : {}),
       };
 
-      // Send email if requested
-      if (request.sendEmail && user?.email) {
-        await this.sendEmailNotification({
-          ...request,
-          userEmail: user.email,
-        });
+      // Get user email for email notifications (via API when needed)
+      if (request.sendEmail) {
+        try {
+          const me = await endpoints.auth.me();
+          if (me?.email) {
+            await this.sendEmailNotification({
+              ...request,
+              userEmail: me.email,
+            });
+          }
+        } catch {
+          // Ignore - email send is best-effort
+        }
       }
 
-      // Send push if requested
       if (request.sendPush) {
         await this.sendPushNotification(request);
       }
 
-      // Invalidate cache
       cacheService.delete(`notifications:${request.userId}`);
 
-      const notificationId = notification.id;
       logger.info('Notification created', {
-        notificationId,
+        notificationId: notification.id,
         userId: request.userId,
       });
 
       return notification;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error creating notification', { error, request });
       throw error;
     }
@@ -204,48 +191,40 @@ export class NotificationService {
         }
       }
 
-      // Fetch from database using Prisma
-      const where: any = {
-        userId,
-      };
-
-      if (options?.unreadOnly) {
-        where.read = false;
-      }
-      const optionsWithType = options as typeof options & {
-        type?: Notification['type'];
-      };
-      if (optionsWithType?.type) {
-        where.type = optionsWithType.type;
+      interface NotificationsApiResponse {
+        notifications?: Array<{ id: string; userId: string; type: string; title: string; message: string; data?: Record<string, unknown>; read: boolean; readAt?: Date | string | null; createdAt: Date | string; actionUrl?: string | null; actionLabel?: string | null }>;
+        data?: unknown[];
+        pagination?: { total?: number };
+        total?: number;
+        unreadCount?: number;
       }
 
-      const [dbNotifications, total, unreadCount] = await Promise.all([
-        prismaDb.notification.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          take: options?.limit || 20,
-          skip: options?.offset || 0,
-        }),
-        prismaDb.notification.count({ where }),
-        prismaDb.notification.count({
-          where: {
-            userId,
-            read: false,
-          },
-        }),
-      ]);
+      const response = await api.get<NotificationsApiResponse>('/api/v1/notifications', {
+        params: {
+          userId,
+          limit: options?.limit || 20,
+          offset: options?.offset || 0,
+          unreadOnly: options?.unreadOnly || false,
+          type: options?.type,
+        },
+      });
 
-      const notifications: Notification[] = dbNotifications.map(
+      const dbNotifications = response?.notifications ?? response?.data ?? [];
+      const list = Array.isArray(dbNotifications) ? dbNotifications : [];
+      const total = response?.pagination?.total ?? response?.total ?? list.length;
+      const unreadCount = response?.unreadCount ?? list.filter((n: { read?: boolean }) => !n.read).length;
+
+      const notifications: Notification[] = list.map(
         (n: {
           id: string;
           userId: string;
           type: string;
           title: string;
           message: string;
-          data: unknown;
+          data?: Record<string, unknown>;
           read: boolean;
-          readAt: Date | null;
-          createdAt: Date;
+          readAt?: Date | string | null;
+          createdAt: Date | string;
           actionUrl?: string | null;
           actionLabel?: string | null;
         }) => ({
@@ -254,12 +233,12 @@ export class NotificationService {
           type: n.type as Notification['type'],
           title: n.title,
           message: n.message,
-          data: n.data as Record<string, any> | undefined,
+          data: n.data,
           read: n.read,
-          readAt: n.readAt || undefined,
-          createdAt: n.createdAt,
-          actionUrl: n.actionUrl || undefined,
-          actionLabel: n.actionLabel || undefined,
+          readAt: n.readAt ?? undefined,
+          createdAt: typeof n.createdAt === 'string' ? new Date(n.createdAt) : n.createdAt,
+          actionUrl: n.actionUrl ?? undefined,
+          actionLabel: n.actionLabel ?? undefined,
         })
       );
 
@@ -275,7 +254,7 @@ export class NotificationService {
       }
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing notifications', { error, userId });
       throw error;
     }
@@ -291,44 +270,54 @@ export class NotificationService {
     try {
       logger.info('Marking notification as read', { notificationId, userId });
 
-      // Update in database using Prisma
-      const dbNotification = await prismaDb.notification.update({
-        where: {
-          id: notificationId,
-          userId, // Ensure ownership
-        },
-        data: {
-          read: true,
-          readAt: new Date(),
-        },
-      });
+      await endpoints.notifications.markAsRead(notificationId);
+
+      interface NotificationApiRow {
+        id: string;
+        userId: string;
+        type: string;
+        title: string;
+        message: string;
+        data?: Record<string, unknown>;
+        read?: boolean;
+        readAt?: string | Date | null;
+        createdAt: string | Date;
+        actionUrl?: string | null;
+        actionLabel?: string | null;
+      }
+      const res = await api.get<NotificationApiRow>(`/api/v1/notifications/${notificationId}`).catch(() => null);
+      const raw = res ?? null;
+      if (raw) {
+        const notification: Notification = {
+          id: raw.id,
+          userId: raw.userId,
+          type: raw.type as Notification['type'],
+          title: raw.title,
+          message: raw.message,
+          ...(raw.data != null ? { data: raw.data } : {}),
+          read: raw.read ?? true,
+          ...(raw.readAt != null ? { readAt: typeof raw.readAt === 'string' ? new Date(raw.readAt) : raw.readAt } : {}),
+          createdAt: typeof raw.createdAt === 'string' ? new Date(raw.createdAt) : raw.createdAt,
+          ...(raw.actionUrl ? { actionUrl: raw.actionUrl } : {}),
+          ...(raw.actionLabel ? { actionLabel: raw.actionLabel } : {}),
+        };
+        logger.info('Notification marked as read', { notificationId, userId });
+        return notification;
+      }
 
       const notification: Notification = {
-        id: dbNotification.id,
-        userId: dbNotification.userId,
-        type: dbNotification.type as Notification['type'],
-        title: dbNotification.title,
-        message: dbNotification.message,
-        ...(dbNotification.data !== null
-          ? { data: dbNotification.data as Record<string, any> }
-          : {}),
-        read: dbNotification.read,
-        ...(dbNotification.readAt !== null
-          ? { readAt: dbNotification.readAt }
-          : {}),
-        createdAt: dbNotification.createdAt,
-        ...(dbNotification.actionUrl
-          ? { actionUrl: dbNotification.actionUrl }
-          : {}),
-        ...(dbNotification.actionLabel
-          ? { actionLabel: dbNotification.actionLabel }
-          : {}),
+        id: notificationId,
+        userId,
+        type: 'info',
+        title: '',
+        message: '',
+        read: true,
+        readAt: new Date(),
+        createdAt: new Date(),
       };
-
       logger.info('Notification marked as read', { notificationId, userId });
-
       return notification;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error marking notification as read', {
         error,
         notificationId,
@@ -344,20 +333,10 @@ export class NotificationService {
     try {
       logger.info('Marking all notifications as read', { userId });
 
-      // Update in database using Prisma
-      await prismaDb.notification.updateMany({
-        where: {
-          userId,
-          read: false,
-        },
-        data: {
-          read: true,
-          readAt: new Date(),
-        },
-      });
+      await api.post('/api/v1/notifications/read-all', {});
 
       logger.info('All notifications marked as read', { userId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error marking all notifications as read', {
         error,
         userId,
@@ -371,21 +350,15 @@ export class NotificationService {
    */
   async deleteNotification(
     notificationId: string,
-    userId: string
+    _userId: string
   ): Promise<void> {
     try {
-      logger.info('Deleting notification', { notificationId, userId });
+      logger.info('Deleting notification', { notificationId, userId: _userId });
 
-      // Delete from database using Prisma
-      await prismaDb.notification.delete({
-        where: {
-          id: notificationId,
-          userId, // Ensure ownership
-        },
-      });
+      await api.delete(`/api/v1/notifications/${notificationId}`);
 
-      logger.info('Notification deleted', { notificationId, userId });
-    } catch (error: any) {
+      logger.info('Notification deleted', { notificationId, userId: _userId });
+    } catch (error: unknown) {
       logger.error('Error deleting notification', { error, notificationId });
       throw error;
     }
@@ -403,20 +376,21 @@ export class NotificationService {
   ): Promise<void> {
     try {
       if (!request.userEmail) {
-        // Get user email
-        const user = await prismaDb.user.findUnique({
-          where: { id: request.userId },
-          select: { email: true },
-        });
-
-        if (!user?.email) {
-          logger.warn('Cannot send email notification: user has no email', {
+        try {
+          const me = await endpoints.auth.me();
+          if (!me?.email) {
+            logger.warn('Cannot send email notification: user has no email', {
+              userId: request.userId,
+            });
+            return;
+            }
+          request.userEmail = me.email;
+        } catch {
+          logger.warn('Cannot send email notification: could not load user', {
             userId: request.userId,
           });
           return;
         }
-
-        request.userEmail = user.email;
       }
 
       // Check user preferences
@@ -455,7 +429,7 @@ export class NotificationService {
         email: userEmail,
         type: request.type,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error sending email notification', { error, request });
       // Don't throw - email failures shouldn't break the notification creation
     }
@@ -483,7 +457,7 @@ export class NotificationService {
             ${actionButton}
             <p style="margin-top: 30px; font-size: 12px; color: #666;">
               Vous recevez cet email car vous avez activé les notifications par email pour ce type d'événement.
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/settings/notifications" style="color: #0070f3;">Gérer mes préférences</a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/notifications" style="color: #0070f3;">Gérer mes préférences</a>
             </p>
           </div>
         </body>
@@ -496,17 +470,15 @@ export class NotificationService {
   // ========================================
 
   /**
-   * Envoie une notification push
+   * Envoie une notification push (via backend send-to-user)
    */
   async sendPushNotification(
     request: CreateNotificationRequest
   ): Promise<void> {
     try {
-      // Check user preferences
       const preferences = await this.getPreferences(request.userId);
       const notificationType = request.type;
 
-      // Check if push is enabled for this notification type
       if (notificationType === 'order' && !preferences.push.orders) return;
       if (
         notificationType === 'customization' &&
@@ -515,91 +487,25 @@ export class NotificationService {
         return;
       if (notificationType === 'system' && !preferences.push.system) return;
 
-      // Get user's push subscription from database
-      // Note: Push subscriptions are stored in user.metadata.pushSubscriptions
-      // In production, consider creating a dedicated PushSubscription model in Prisma
-      // for better querying and management
-      const pushSubscriptions = await this.getUserPushSubscriptions(
-        request.userId
-      );
-
-      if (pushSubscriptions.length === 0) {
-        logger.info('No push subscriptions found for user', {
-          userId: request.userId,
-        });
-        return;
-      }
-
-      // Send push notification to all subscriptions
-      for (const subscription of pushSubscriptions) {
-        try {
-          await this.sendPushToSubscription(subscription, {
-            title: request.title,
-            body: request.message,
-            data: {
-              type: request.type,
-              actionUrl: request.actionUrl,
-              ...request.data,
-            },
-          });
-        } catch (error: any) {
-          logger.error('Error sending push to subscription', {
-            error,
-            subscriptionId: subscription.id,
-            userId: request.userId,
-          });
-        }
-      }
+      await api.post('/api/v1/notifications/push/send-to-user', {
+        userId: request.userId,
+        payload: {
+          title: request.title,
+          body: request.message,
+          data: {
+            type: request.type,
+            actionUrl: request.actionUrl,
+            ...request.data,
+          },
+        },
+      });
 
       logger.info('Push notification sent', {
         userId: request.userId,
-        subscriptions: pushSubscriptions.length,
         type: request.type,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error sending push notification', { error, request });
-      // Don't throw - push failures shouldn't break the notification creation
-    }
-  }
-
-  /**
-   * Récupère les abonnements push d'un utilisateur
-   */
-  private async getUserPushSubscriptions(
-    userId: string
-  ): Promise<Array<{ id: string; endpoint: string; keys: any }>> {
-    try {
-      // Check cache first
-      const cached = cacheService.get<
-        Array<{ id: string; endpoint: string; keys: any }>
-      >(`push:subscriptions:${userId}`);
-      if (cached) {
-        return cached;
-      }
-
-      // Query from database (when PushSubscription model is created in Prisma)
-      // For now, use a workaround with User.metadata or a separate table
-      const user = await prismaDb.user.findUnique({
-        where: { id: userId },
-        select: { metadata: true },
-      });
-
-      if (user?.metadata) {
-        const metadata = user.metadata as any;
-        const subscriptions = metadata.pushSubscriptions || [];
-
-        // Cache for 5 minutes
-        cacheService.set(`push:subscriptions:${userId}`, subscriptions, {
-          ttl: 5 * 60 * 1000,
-        });
-
-        return subscriptions;
-      }
-
-      return [];
-    } catch (error: any) {
-      logger.error('Error getting push subscriptions', { error, userId });
-      return [];
     }
   }
 
@@ -608,46 +514,31 @@ export class NotificationService {
    */
   private async sendPushToSubscription(
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
-    payload: { title: string; body: string; data?: any; icon?: string; badge?: string; url?: string }
+    payload: { title: string; body: string; data?: Record<string, unknown>; icon?: string; badge?: string; url?: string }
   ): Promise<void> {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-      const response = await fetch(`${API_BASE}/notifications/push/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          subscription,
-          payload: {
-            title: payload.title,
-            body: payload.body,
-            icon: payload.icon || '/icons/notification-icon.png',
-            badge: payload.badge || '/icons/badge-icon.png',
-            data: {
-              ...payload.data,
-              url: payload.url || '/',
-            },
+      await api.post('/api/v1/notifications/push/send', {
+        subscription,
+        payload: {
+          title: payload.title,
+          body: payload.body,
+          icon: payload.icon || '/icons/notification-icon.png',
+          badge: payload.badge || '/icons/badge-icon.png',
+          data: {
+            ...payload.data,
+            url: payload.url || '/',
           },
-        }),
+        },
       });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to send push notification');
-      }
-
       logger.info('Push notification sent successfully', {
         endpoint: subscription.endpoint.substring(0, 50) + '...',
         title: payload.title,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Failed to send push notification', {
         error,
         endpoint: subscription.endpoint.substring(0, 50) + '...',
       });
-      // Don't throw - push failures shouldn't break the notification flow
     }
   }
 
@@ -672,17 +563,9 @@ export class NotificationService {
       // Get service worker registration
       const registration = await navigator.serviceWorker.ready;
 
-      // Get VAPID public key from backend
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-      const vapidResponse = await fetch(`${API_BASE}/notifications/push/vapid-key`, {
-        credentials: 'include',
-      });
-      
-      if (!vapidResponse.ok) {
-        throw new Error('Failed to get VAPID public key');
-      }
-      
-      const { publicKey } = await vapidResponse.json();
+      const { publicKey } = await api.get<{ publicKey: string }>(
+        '/api/v1/notifications/push/vapid-key'
+      );
 
       // Convert VAPID key to Uint8Array
       const applicationServerKey = this.urlBase64ToUint8Array(publicKey);
@@ -734,39 +617,19 @@ export class NotificationService {
    * Sauvegarde l'abonnement push sur le backend
    */
   private async savePushSubscription(userId: string, subscription: PushSubscription): Promise<void> {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-    const response = await fetch(`${API_BASE}/notifications/push/subscribe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        userId,
-        subscription: subscription.toJSON(),
-      }),
+    await api.post('/api/v1/notifications/push/subscribe', {
+      userId,
+      subscription: subscription.toJSON(),
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to save push subscription');
-    }
   }
 
   /**
    * Supprime l'abonnement push du backend
    */
   private async removePushSubscription(userId: string, endpoint: string): Promise<void> {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-    await fetch(`${API_BASE}/notifications/push/unsubscribe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        userId,
-        endpoint,
-      }),
+    await api.post('/api/v1/notifications/push/unsubscribe', {
+      userId,
+      endpoint,
     });
   }
 
@@ -792,72 +655,54 @@ export class NotificationService {
   // PREFERENCES
   // ========================================
 
+  private readonly defaultPreferences: NotificationPreferences = {
+    email: {
+      orders: true,
+      customizations: true,
+      system: true,
+      marketing: false,
+    },
+    push: {
+      orders: true,
+      customizations: true,
+      system: true,
+    },
+    inApp: {
+      orders: true,
+      customizations: true,
+      system: true,
+    },
+  };
+
   /**
-   * Récupère les préférences de notifications
+   * Récupère les préférences de notifications (via API or defaults)
    */
   async getPreferences(userId: string): Promise<NotificationPreferences> {
     try {
-      // Fetch from database (User model should have notificationPreferences field)
-      const user = await prismaDb.user.findUnique({
-        where: { id: userId },
-        select: { notificationPreferences: true },
-      });
-
-      // Default preferences
-      const defaultPreferences: NotificationPreferences = {
-        email: {
-          orders: true,
-          customizations: true,
-          system: true,
-          marketing: false,
-        },
-        push: {
-          orders: true,
-          customizations: true,
-          system: true,
-        },
-        inApp: {
-          orders: true,
-          customizations: true,
-          system: true,
-        },
-      };
-
-      if (user?.notificationPreferences) {
-        // Merge with defaults
-        const userPrefs = user.notificationPreferences as any;
+      const res = await api.get<{ notificationPreferences?: NotificationPreferences }>(
+        '/api/v1/settings/notifications'
+      ).catch(() => null);
+      const userPrefs = res?.notificationPreferences;
+      if (userPrefs) {
         return {
-          email: { ...defaultPreferences.email, ...(userPrefs.email || {}) },
-          push: { ...defaultPreferences.push, ...(userPrefs.push || {}) },
-          inApp: { ...defaultPreferences.inApp, ...(userPrefs.inApp || {}) },
+          email: { ...this.defaultPreferences.email, ...(userPrefs.email || {}) },
+          push: { ...this.defaultPreferences.push, ...(userPrefs.push || {}) },
+          inApp: { ...this.defaultPreferences.inApp, ...(userPrefs.inApp || {}) },
         };
       }
-
-      return defaultPreferences;
-    } catch (error: any) {
-      logger.error('Error fetching notification preferences', {
-        error,
-        userId,
-      });
-      // Return defaults on error
-      return {
-        email: {
-          orders: true,
-          customizations: true,
-          system: true,
-          marketing: false,
-        },
-        push: {
-          orders: true,
-          customizations: true,
-          system: true,
-        },
-        inApp: {
-          orders: true,
-          customizations: true,
-          system: true,
-        },
-      };
+      const me = await endpoints.auth.me().catch(() => null) as { notificationPreferences?: NotificationPreferences } | null;
+      const prefs = me?.notificationPreferences;
+      if (prefs) {
+        return {
+          email: { ...this.defaultPreferences.email, ...(prefs.email || {}) },
+          push: { ...this.defaultPreferences.push, ...(prefs.push || {}) },
+          inApp: { ...this.defaultPreferences.inApp, ...(prefs.inApp || {}) },
+        };
+      }
+      return this.defaultPreferences;
+    } catch (error: unknown) {
+      logger.error('Error fetching notification preferences', { error, userId });
+      return this.defaultPreferences;
     }
   }
 
@@ -871,28 +716,18 @@ export class NotificationService {
     try {
       logger.info('Updating notification preferences', { userId });
 
-      // Get current preferences
       const current = await this.getPreferences(userId);
-
-      // Merge with new preferences
       const updated: NotificationPreferences = {
         email: { ...current.email, ...(preferences.email || {}) },
         push: { ...current.push, ...(preferences.push || {}) },
         inApp: { ...current.inApp, ...(preferences.inApp || {}) },
       };
 
-      // Update in database
-      await prismaDb.user.update({
-        where: { id: userId },
-        data: {
-          notificationPreferences: updated as any,
-        },
-      });
+      await endpoints.settings.notifications(updated as unknown as Record<string, unknown>);
 
       logger.info('Notification preferences updated', { userId });
-
       return updated;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating notification preferences', {
         error,
         userId,

@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
@@ -55,17 +56,12 @@ export default function VisualCustomizerPage() {
     setIsSaving(true);
     setSaveStatus('idle');
     try {
-      const response = await fetch('/api/emails/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'design@luneo.app',
-          brandName: designName,
-          subject: `Design sauvegardé: ${designName}`,
-          customMessage: `Notes: ${designNotes || 'Aucune note'}`,
-        }),
+      await api.post('/api/v1/emails/send-welcome', {
+        email: 'design@luneo.app',
+        brandName: designName,
+        subject: `Design sauvegardé: ${designName}`,
+        customMessage: `Notes: ${designNotes || 'Aucune note'}`,
       });
-      if (!response.ok) throw new Error('Save failed');
       setSaveStatus('success');
       setTimeout(() => {
         setSaveStatus('idle');

@@ -7,10 +7,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AnalyticsCalculationsService } from './analytics-calculations.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 import {
   Funnel,
   FunnelData,
+  FunnelWithConversionData,
+  FunnelStepConversion,
   Cohort,
   CohortAnalysis,
   Segment,
@@ -124,31 +126,104 @@ export class AnalyticsAdvancedService {
   // ========================================
 
   /**
-   * Récupère tous les funnels d'une marque avec typage strict et validation
+   * Récupère tous les funnels d'une marque avec conversion réelle depuis AnalyticsEvent
    */
-  async getFunnels(brandId: string): Promise<Funnel[]> {
-    // ✅ Validation des entrées
+  async getFunnels(
+    brandId: string,
+    options?: { dateFrom?: Date; dateTo?: Date },
+  ): Promise<FunnelWithConversionData[]> {
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getFunnels');
       throw new BadRequestException('Brand ID is required');
     }
 
-    try {
-      this.logger.log(`Getting funnels for brand: ${brandId}`);
+    const trimmedBrandId = brandId.trim();
 
-      // ✅ Récupérer les funnels depuis Prisma
+    try {
+      this.logger.log(`Getting funnels with conversion data for brand: ${trimmedBrandId}`);
+
       const funnels = await this.prisma.analyticsFunnel.findMany({
-        where: {
-          brandId: brandId.trim(),
-          isActive: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        where: { brandId: trimmedBrandId, isActive: true },
+        orderBy: { createdAt: 'desc' },
       });
 
-      // ✅ Transformer les données Prisma en format Funnel avec validation
-      return funnels.map((funnel) => this.normalizeFunnel(funnel));
+      const dateFrom = options?.dateFrom;
+      const dateTo = options?.dateTo;
+
+      const results: FunnelWithConversionData[] = [];
+
+      for (const funnel of funnels) {
+        const rawSteps = Array.isArray(funnel.steps) ? funnel.steps : [];
+        const sortedSteps = [...rawSteps].sort(
+          (a: unknown, b: unknown) =>
+            (typeof (a as { order?: number }).order === 'number' ? (a as { order: number }).order : 0) -
+            (typeof (b as { order?: number }).order === 'number' ? (b as { order: number }).order : 0),
+        );
+
+        const stepResults: FunnelStepConversion[] = [];
+        let previousCount = 0;
+
+        for (const step of sortedSteps) {
+          const stepObj = step as Partial<FunnelStepFromPrisma>;
+          const eventType =
+            typeof stepObj?.eventType === 'string' && stepObj.eventType.trim().length > 0
+              ? stepObj.eventType.trim()
+              : '';
+          const stepName =
+            typeof stepObj?.name === 'string' && stepObj.name.trim().length > 0
+              ? stepObj.name.trim()
+              : 'Step';
+
+          const timestampFilter =
+            dateFrom && dateTo
+              ? { gte: dateFrom, lte: dateTo }
+              : dateFrom
+                ? { gte: dateFrom }
+                : dateTo
+                  ? { lte: dateTo }
+                  : undefined;
+
+          const count =
+            eventType === ''
+              ? 0
+              : await this.prisma.analyticsEvent.count({
+                  where: {
+                    brandId: trimmedBrandId,
+                    eventType,
+                    ...(timestampFilter && { timestamp: timestampFilter }),
+                  },
+                });
+
+          const conversionRate =
+            previousCount > 0 ? Math.round((count / previousCount) * 100 * 100) / 100 : count > 0 ? 100 : 0;
+          const dropoffRate =
+            previousCount > 0 ? Math.round(((previousCount - count) / previousCount) * 100 * 100) / 100 : 0;
+
+          stepResults.push({
+            name: stepName,
+            eventType: eventType || '',
+            count,
+            conversionRate,
+            dropoffRate,
+          });
+          previousCount = count;
+        }
+
+        const firstCount = stepResults[0]?.count ?? 0;
+        const lastCount = stepResults.length > 0 ? stepResults[stepResults.length - 1]?.count ?? 0 : 0;
+        const overallConversion =
+          stepResults.length > 1 && firstCount > 0 ? Math.round((lastCount / firstCount) * 100 * 100) / 100 : 0;
+
+        results.push({
+          id: funnel.id,
+          name: funnel.name ?? 'Unnamed Funnel',
+          isActive: Boolean(funnel.isActive),
+          steps: stepResults,
+          overallConversion,
+        });
+      }
+
+      return results;
     } catch (error) {
       this.logger.error(
         `Failed to get funnels: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -267,69 +342,6 @@ export class AnalyticsAdvancedService {
   }
   
   /**
-   * Récupère les données d'un funnel spécifique (ancienne méthode mockée - à supprimer)
-   */
-  private async getFunnelDataMocked(funnelId: string, brandId: string, filters?: AnalyticsAdvancedFilters): Promise<FunnelData> {
-      const mockData: FunnelData = {
-        funnelId,
-        steps: [
-          {
-            stepId: 'step-1',
-            stepName: 'Email envoyé',
-            users: 50000,
-            conversion: 100,
-            dropoff: 0,
-            details: { opens: 34250, clicks: 12500 },
-          },
-          {
-            stepId: 'step-2',
-            stepName: 'Email ouvert',
-            users: 34250,
-            conversion: 68.5,
-            dropoff: 0,
-            details: { openRate: 68.5 },
-          },
-          {
-            stepId: 'step-3',
-            stepName: 'Lien cliqué',
-            users: 12500,
-            conversion: 25.0,
-            dropoff: 0,
-            details: { clickRate: 25.0 },
-          },
-          {
-            stepId: 'step-4',
-            stepName: 'Landing page visitée',
-            users: 11250,
-            conversion: 22.5,
-            dropoff: 2.5,
-            details: { bounceRate: 2.5 },
-          },
-          {
-            stepId: 'step-5',
-            stepName: 'Formulaire commencé',
-            users: 5670,
-            conversion: 11.3,
-            dropoff: 11.2,
-            details: { completionRate: 50.4 },
-          },
-          {
-            stepId: 'step-6',
-            stepName: 'Inscription complétée',
-            users: 4560,
-            conversion: 9.1,
-            dropoff: 2.2,
-            details: { successRate: 80.4 },
-          },
-        ],
-        totalConversion: 9.1,
-        dropoffPoint: 'Formulaire commencé',
-      };
-
-      return mockData;
-  }
-
-  /**
    * Crée un nouveau funnel avec validation robuste
    */
   async createFunnel(brandId: string, data: Omit<Funnel, 'id' | 'brandId' | 'createdAt' | 'updatedAt'>): Promise<Funnel> {
@@ -399,53 +411,17 @@ export class AnalyticsAdvancedService {
       // Utiliser le service de calculs
       return await this.calculationsService.calculateCohorts(brandId, startDate, endDate);
     } catch (error) {
-      this.logger.error(`Failed to get cohorts: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get cohorts: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
   
   /**
-   * Récupère les analyses de cohortes (ancienne méthode mockée - à supprimer)
-   */
-  private async getCohortsMocked(brandId: string, filters?: AnalyticsAdvancedFilters): Promise<CohortAnalysis> {
-      const mockAnalysis: CohortAnalysis = {
-        cohorts: [
-          {
-            cohort: 'Jan 2024',
-            users: 12500,
-            retention30: 45.2,
-            retention90: 28.5,
-            ltv: 145.80,
-            revenue: 1822500,
-          },
-          {
-            cohort: 'Fév 2024',
-            users: 8900,
-            retention30: 38.7,
-            retention90: 22.3,
-            ltv: 125.30,
-            revenue: 1115170,
-          },
-          {
-            cohort: 'Mar 2024',
-            users: 6700,
-            retention30: 32.5,
-            retention90: 18.2,
-            ltv: 98.50,
-            revenue: 659950,
-          },
-        ],
-        trends: {
-          retention: 'down',
-          revenue: 'down',
-        },
-      };
-
-      return mockAnalysis;
-  }
-
-  /**
-   * Calcule les prédictions de rétention pour une cohorte avec typage strict
+   * Calcule les prédictions de rétention pour une cohorte avec typage strict.
+   * Données réelles depuis AnalyticsCohort ; prédictions 30/90 basées sur les périodes enregistrées.
    */
   async getRetentionPredictions(brandId: string): Promise<RetentionPrediction[]> {
     // ✅ Validation des entrées
@@ -453,30 +429,59 @@ export class AnalyticsAdvancedService {
       this.logger.warn('Invalid brandId provided to getRetentionPredictions');
       throw new BadRequestException('Brand ID is required');
     }
+    const trimmedBrandId = brandId.trim();
     try {
-      this.logger.log(`Getting retention predictions for brand: ${brandId}`);
+      this.logger.log(`Getting retention predictions for brand: ${trimmedBrandId}`);
 
-      // TODO: Implémenter avec ML models
-      return [
-        {
-          cohort: 'Avril 2024 (prédit)',
-          current: 87.2,
-          predicted30: 65.8,
-          predicted90: 45.3,
-          confidence: 92.5,
-          trend: 'up',
-        },
-        {
-          cohort: 'Mai 2024 (prédit)',
-          current: 89.5,
-          predicted30: 68.2,
-          predicted90: 47.8,
-          confidence: 89.3,
-          trend: 'up',
-        },
-      ];
+      const cohorts = await this.prisma.analyticsCohort.findMany({
+        where: { brandId: trimmedBrandId },
+        orderBy: [{ cohortDate: 'desc' }, { period: 'asc' }],
+        take: 100,
+      });
+
+      const byCohort = new Map<string, { cohortDate: Date; retentionByPeriod: Map<number, number> }>();
+      for (const c of cohorts) {
+        const key = c.cohortDate.toISOString().slice(0, 7);
+        if (!byCohort.has(key)) {
+          byCohort.set(key, { cohortDate: c.cohortDate, retentionByPeriod: new Map() });
+        }
+        byCohort.get(key)!.retentionByPeriod.set(c.period, c.retention);
+      }
+
+      const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+      const results: RetentionPrediction[] = [];
+      const entries = Array.from(byCohort.entries())
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .slice(0, 12);
+
+      for (let i = 0; i < entries.length; i++) {
+        const [cohortKey, { retentionByPeriod }] = entries[i];
+        const [y, m] = cohortKey.split('-').map(Number);
+        const label = `${monthNames[m - 1]} ${y}`;
+        const ret30 = retentionByPeriod.get(30) ?? retentionByPeriod.get(7) ?? 0;
+        const ret90 = retentionByPeriod.get(90) ?? ret30 * 0.7;
+        const prevEntry = entries[i + 1];
+        const prevRet30 = prevEntry
+          ? prevEntry[1].retentionByPeriod.get(30) ?? prevEntry[1].retentionByPeriod.get(7)
+          : null;
+        const trend: 'up' | 'down' | 'stable' =
+          prevRet30 == null ? 'stable' : ret30 > prevRet30 ? 'up' : ret30 < prevRet30 ? 'down' : 'stable';
+        results.push({
+          cohort: label,
+          current: Math.round(ret30 * 100) / 100,
+          predicted30: Math.round(ret30 * 100) / 100,
+          predicted90: Math.round(ret90 * 100) / 100,
+          confidence: 85,
+          trend,
+        });
+      }
+
+      return results;
     } catch (error) {
-      this.logger.error(`Failed to get retention predictions: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get retention predictions: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -563,6 +568,111 @@ export class AnalyticsAdvancedService {
   }
 
   /**
+   * Count users matching segment criteria using Prisma on User, Order, AnalyticsEvent.
+   * Supported criteria: role, createdAfter, createdBefore, lastLoginAfter, hasOrder, minOrders, eventType, minEvents.
+   */
+  private async countUsersBySegmentCriteria(brandId: string, criteria: SegmentCriteria): Promise<number> {
+    const baseWhere = await this.buildSegmentUserWhere(brandId, criteria);
+    if (baseWhere.id === 'impossible-id') return 0;
+    return this.prisma.user.count({ where: baseWhere });
+  }
+
+  /**
+   * Returns user IDs matching segment criteria (same logic as countUsersBySegmentCriteria), for use in revenue/activity aggregation.
+   */
+  private async getUserIdsBySegmentCriteria(brandId: string, criteria: SegmentCriteria, limit = 5000): Promise<string[]> {
+    const baseWhere = await this.buildSegmentUserWhere(brandId, criteria);
+    if (baseWhere.id === 'impossible-id') return [];
+    const users = await this.prisma.user.findMany({
+      where: baseWhere,
+      select: { id: true },
+      take: limit,
+    });
+    return users.map((u) => u.id);
+  }
+
+  /**
+   * Builds Prisma UserWhereInput for segment criteria (shared by count and getUserIdList).
+   */
+  private async buildSegmentUserWhere(brandId: string, criteria: SegmentCriteria): Promise<Prisma.UserWhereInput> {
+    const baseWhere: Prisma.UserWhereInput = {
+      brandId,
+      isActive: true,
+      deletedAt: null,
+    };
+
+    const role = criteria['role'];
+    const validRoles: UserRole[] = ['CONSUMER', 'BRAND_USER', 'BRAND_ADMIN', 'PLATFORM_ADMIN', 'FABRICATOR'];
+    if (typeof role === 'string' && validRoles.includes(role as UserRole)) {
+      baseWhere.role = role as UserRole;
+    }
+
+    const createdAfter = criteria['createdAfter'];
+    const createdBefore = criteria['createdBefore'];
+    const createdAtParts: { gte?: Date; lte?: Date } = {};
+    if (typeof createdAfter === 'string') {
+      const d = new Date(createdAfter);
+      if (!Number.isNaN(d.getTime())) createdAtParts.gte = d;
+    }
+    if (typeof createdBefore === 'string') {
+      const d = new Date(createdBefore);
+      if (!Number.isNaN(d.getTime())) createdAtParts.lte = d;
+    }
+    if (Object.keys(createdAtParts).length > 0) baseWhere.createdAt = createdAtParts;
+
+    const lastLoginAfter = criteria['lastLoginAfter'];
+    if (typeof lastLoginAfter === 'string') {
+      const d = new Date(lastLoginAfter);
+      if (!Number.isNaN(d.getTime())) baseWhere.lastLoginAt = { gte: d };
+    }
+
+    const hasOrder = criteria['hasOrder'];
+    const minOrders = criteria['minOrders'];
+    if (hasOrder === true || (typeof minOrders === 'number' && minOrders >= 1)) {
+      const threshold = typeof minOrders === 'number' && minOrders > 0 ? minOrders : 1;
+      const orderCounts = await this.prisma.order.groupBy({
+        by: ['userId'],
+        where: {
+          brandId,
+          paymentStatus: 'SUCCEEDED',
+          userId: { not: null },
+          deletedAt: null,
+        },
+        _count: { id: true },
+      });
+      const orderUserIds = orderCounts
+        .filter((r) => r.userId != null && r._count.id >= threshold)
+        .map((r) => r.userId as string);
+      if (orderUserIds.length === 0) return { ...baseWhere, id: 'impossible-id' };
+      baseWhere.id = { ...(baseWhere.id as object || {}), in: orderUserIds };
+    }
+
+    const eventType = criteria['eventType'];
+    const minEvents = criteria['minEvents'];
+    if (typeof eventType === 'string' && eventType.trim().length > 0 && typeof minEvents === 'number' && minEvents >= 1) {
+      const eventCounts = await this.prisma.analyticsEvent.groupBy({
+        by: ['userId'],
+        where: {
+          brandId,
+          eventType: eventType.trim(),
+          userId: { not: null },
+        },
+        _count: { id: true },
+      });
+      const eventUserIds = eventCounts
+        .filter((r) => r.userId != null && r._count.id >= minEvents)
+        .map((r) => r.userId as string);
+      if (eventUserIds.length === 0) return { ...baseWhere, id: 'impossible-id' };
+      const inIds = eventUserIds;
+      baseWhere.id = baseWhere.id && typeof baseWhere.id === 'object' && 'in' in baseWhere.id
+        ? { in: (baseWhere.id as { in: string[] }).in.filter((id) => inIds.includes(id)) }
+        : { in: inIds };
+    }
+
+    return baseWhere;
+  }
+
+  /**
    * Crée un nouveau segment avec validation robuste
    */
   async createSegment(brandId: string, data: Omit<Segment, 'id' | 'brandId' | 'userCount' | 'createdAt' | 'updatedAt'>): Promise<Segment> {
@@ -601,15 +711,20 @@ export class AnalyticsAdvancedService {
         },
       });
 
-      // ✅ Calculer userCount en fonction des critères
-      // Pour l'instant, compter tous les utilisateurs de la marque
-      // TODO: Filtrer selon les critères du segment (à implémenter avec logique de filtrage avancée)
-      const userCount = await this.prisma.user.count({
-        where: {
-          brandId: brandId.trim(),
-          isActive: true,
-        },
-      });
+      // ✅ Calculer userCount en fonction des critères du segment (User, Order, AnalyticsEvent)
+      const criteriaObj = (data.criteria && typeof data.criteria === 'object' && !Array.isArray(data.criteria))
+        ? (data.criteria as SegmentCriteria)
+        : {};
+      const hasCriteria = Object.keys(criteriaObj).length > 0;
+      const userCount = hasCriteria
+        ? await this.countUsersBySegmentCriteria(brandId.trim(), criteriaObj)
+        : await this.prisma.user.count({
+            where: {
+              brandId: brandId.trim(),
+              isActive: true,
+              deletedAt: null,
+            },
+          });
 
       // ✅ Mettre à jour le userCount
       const updatedSegment = await this.prisma.analyticsSegment.update({
@@ -632,79 +747,186 @@ export class AnalyticsAdvancedService {
   // ========================================
 
   /**
-   * Récupère les prédictions de revenus
+   * Récupère les prédictions de revenus basées sur les commandes payées (Order).
+   * Scénarios dérivés du revenu des 30 derniers jours.
    */
   async getRevenuePredictions(brandId: string): Promise<RevenuePrediction[]> {
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getRevenuePredictions');
+      throw new BadRequestException('Brand ID is required');
+    }
+    const trimmedBrandId = brandId.trim();
     try {
-      this.logger.log(`Getting revenue predictions for brand: ${brandId}`);
+      this.logger.log(`Getting revenue predictions for brand: ${trimmedBrandId}`);
 
-      // TODO: Implémenter avec ML models
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const orders = await this.prisma.order.findMany({
+        where: {
+          brandId: trimmedBrandId,
+          paymentStatus: 'SUCCEEDED',
+          createdAt: { gte: thirtyDaysAgo },
+          deletedAt: null,
+        },
+        select: { totalCents: true },
+      });
+
+      const revenueCentsLast30 = orders.reduce((sum, o) => sum + o.totalCents, 0);
+      const baseRevenue = Math.round(revenueCentsLast30 / 100);
+
       return [
         {
           scenario: 'conservative',
-          revenue: 125450,
+          revenue: baseRevenue,
           probability: 35,
-          factors: ['Croissance normale 5%', 'Pas de changement majeur', 'Saisonnalité attendue'],
-          confidence: 92.5,
+          factors: ['Croissance normale ~5%', 'Pas de changement majeur', 'Saisonnalité attendue'],
+          confidence: 90,
         },
         {
           scenario: 'optimistic',
-          revenue: 187230,
+          revenue: Math.round(baseRevenue * 1.15),
           probability: 45,
           factors: ['Nouvelle campagne réussie', 'Optimisation conversion +10%', 'Croissance organique +15%'],
-          confidence: 87.3,
+          confidence: 85,
         },
         {
           scenario: 'very_optimistic',
-          revenue: 245680,
+          revenue: Math.round(baseRevenue * 1.35),
           probability: 20,
           factors: ['Viralité sur réseaux sociaux', 'Nouveau produit lancé', 'Partenariats stratégiques'],
-          confidence: 78.5,
+          confidence: 75,
         },
       ];
     } catch (error) {
-      this.logger.error(`Failed to get revenue predictions: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get revenue predictions: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 
   /**
-   * Récupère les prédictions par segment avec typage strict
+   * Récupère les prédictions par segment avec heuristiques (tendance taille, AOV, activité).
    */
   async getSegmentPredictions(brandId: string): Promise<SegmentPrediction[]> {
-    // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getSegmentPredictions');
       throw new BadRequestException('Brand ID is required');
     }
+    const trimmedBrandId = brandId.trim();
     try {
-      this.logger.log(`Getting segment predictions for brand: ${brandId}`);
+      this.logger.log(`Getting segment predictions for brand: ${trimmedBrandId}`);
 
-      // TODO: Implémenter avec ML models
-      return [
-        {
-          segment: 'Nouveaux Utilisateurs',
-          current: '€45,230',
-          predicted7d: '€52,180',
-          predicted30d: '€78,450',
-          growth7d: '+15.4%',
-          growth30d: '+73.5%',
-          confidence: 89.2,
-          factors: ['Croissance organique', 'Nouveaux canaux'],
-        },
-        {
-          segment: 'Utilisateurs Récurrents',
-          current: '€78,450',
-          predicted7d: '€89,230',
-          predicted30d: '€125,670',
-          growth7d: '+13.7%',
-          growth30d: '+60.2%',
-          confidence: 92.5,
-          factors: ['Rétention élevée', 'Panier moyen stable'],
-        },
-      ];
+      const segments = await this.prisma.analyticsSegment.findMany({
+        where: { brandId: trimmedBrandId, isActive: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      });
+
+      const now = Date.now();
+      const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+      const fourteenDaysAgo = new Date(now - 14 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+      const results: SegmentPrediction[] = [];
+
+      for (const seg of segments) {
+        const criteria = this.normalizeSegmentCriteria(seg.criteria);
+        const userIds = await this.getUserIdsBySegmentCriteria(trimmedBrandId, criteria, 5000);
+        const userCount = userIds.length;
+        if (userCount === 0) {
+          results.push({
+            segment: seg.name ?? 'Unnamed',
+            current: '€0',
+            predicted7d: '€0',
+            predicted30d: '€0',
+            growth7d: '0%',
+            growth30d: '0%',
+            confidence: 50,
+            factors: ['Segment vide', 'Pas de données'],
+          });
+          continue;
+        }
+
+        const [revenueLast7d, revenuePrev7d, revenueLast30d, eventCount] = await Promise.all([
+          this.prisma.order.aggregate({
+            where: {
+              brandId: trimmedBrandId,
+              paymentStatus: 'SUCCEEDED',
+              userId: { in: userIds },
+              createdAt: { gte: sevenDaysAgo },
+              deletedAt: null,
+            },
+            _sum: { totalCents: true },
+          }),
+          this.prisma.order.aggregate({
+            where: {
+              brandId: trimmedBrandId,
+              paymentStatus: 'SUCCEEDED',
+              userId: { in: userIds },
+              createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo },
+              deletedAt: null,
+            },
+            _sum: { totalCents: true },
+          }),
+          this.prisma.order.aggregate({
+            where: {
+              brandId: trimmedBrandId,
+              paymentStatus: 'SUCCEEDED',
+              userId: { in: userIds },
+              createdAt: { gte: thirtyDaysAgo },
+              deletedAt: null,
+            },
+            _sum: { totalCents: true },
+          }),
+          this.prisma.analyticsEvent.count({
+            where: {
+              brandId: trimmedBrandId,
+              userId: { in: userIds },
+              timestamp: { gte: thirtyDaysAgo },
+            },
+          }),
+        ]);
+
+        const rev7 = (revenueLast7d._sum.totalCents ?? 0) / 100;
+        const revPrev7 = (revenuePrev7d._sum.totalCents ?? 0) / 100;
+        const rev30 = (revenueLast30d._sum.totalCents ?? 0) / 100;
+        const eventsPerUser = userCount > 0 ? eventCount / userCount : 0;
+
+        const growth7dPct = revPrev7 > 0 ? ((rev7 - revPrev7) / revPrev7) * 100 : (rev7 > 0 ? 20 : 0);
+        const growth30dPct = rev30 > 0 ? growth7dPct * 1.2 : 0;
+        const predicted7d = rev7 * (1 + Math.max(-0.2, Math.min(0.25, growth7dPct / 100)));
+        const predicted30d = rev30 * (1 + Math.max(-0.1, Math.min(0.4, growth30dPct / 100)));
+
+        const factors: string[] = [];
+        if (eventsPerUser >= 5) factors.push('Activité élevée');
+        else if (eventsPerUser >= 1) factors.push('Activité modérée');
+        if (rev30 / userCount >= 100) factors.push('Panier moyen élevé');
+        if (growth7dPct > 5) factors.push('Croissance récente');
+        if (factors.length === 0) factors.push('Données limitées');
+
+        const confidence = Math.min(95, Math.max(60, 70 + Math.log10(userCount + 1) * 5));
+
+        const formatEur = (v: number) => `€${Math.round(v).toLocaleString('fr-FR')}`;
+
+        results.push({
+          segment: seg.name ?? 'Unnamed',
+          current: formatEur(rev30),
+          predicted7d: formatEur(predicted7d),
+          predicted30d: formatEur(predicted30d),
+          growth7d: `${growth7dPct >= 0 ? '+' : ''}${Math.round(growth7dPct * 10) / 10}%`,
+          growth30d: `${growth30dPct >= 0 ? '+' : ''}${Math.round(growth30dPct * 10) / 10}%`,
+          confidence: Math.round(confidence * 10) / 10,
+          factors,
+        });
+      }
+
+      return results;
     } catch (error) {
-      this.logger.error(`Failed to get segment predictions: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get segment predictions: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -758,33 +980,14 @@ export class AnalyticsAdvancedService {
       // Trier par corrélation absolue décroissante
       return correlations.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
     } catch (error) {
-      this.logger.error(`Failed to get correlations: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get correlations: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
   
-  /**
-   * Récupère les corrélations entre métriques (ancienne méthode mockée - à supprimer)
-   */
-  private async getCorrelationsMocked(brandId: string): Promise<Correlation[]> {
-      return [
-        {
-          metric1: 'Temps sur site',
-          metric2: 'Taux de conversion',
-          correlation: 0.78,
-          significance: 'high',
-          insight: 'Les utilisateurs qui restent plus longtemps convertissent mieux',
-        },
-        {
-          metric1: 'Taux de rebond',
-          metric2: 'Taux de conversion',
-          correlation: -0.72,
-          significance: 'high',
-          insight: 'Taux de rebond élevé = conversion faible (attendu)',
-        },
-      ];
-  }
-
   // ========================================
   // ANOMALIES
   // ========================================
@@ -803,127 +1006,335 @@ export class AnalyticsAdvancedService {
       // Utiliser le service de calculs
       return await this.calculationsService.detectAnomalies(brandId, startDate, endDate);
     } catch (error) {
-      this.logger.error(`Failed to get anomalies: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get anomalies: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
   
-  /**
-   * Détecte les anomalies dans les données (ancienne méthode mockée - à supprimer)
-   */
-  private async getAnomaliesMocked(brandId: string): Promise<Anomaly[]> {
-      return [
-        {
-          id: 'anomaly-1',
-          type: 'Spike de revenus',
-          date: new Date(Date.now() - 2 * 60 * 60 * 1000), // Il y a 2h
-          value: '+45%',
-          expected: '+5%',
-          severity: 'high',
-          cause: 'Campagne email réussie',
-          action: 'Analyser et répliquer',
-        },
-        {
-          id: 'anomaly-2',
-          type: 'Drop de conversion',
-          date: new Date(Date.now() - 24 * 60 * 60 * 1000), // Hier
-          value: '-18%',
-          expected: 'Stable',
-          severity: 'high',
-          cause: 'Problème technique détecté',
-          action: 'Vérifier infrastructure',
-        },
-      ];
-  }
-
   // ========================================
   // BENCHMARKS & SAISONNALITÉ
   // ========================================
 
   /**
-   * Récupère les benchmarks de l'industrie avec typage strict
+   * Récupère les benchmarks à partir des données réelles de la marque vs moyennes plateforme.
    */
   async getBenchmarks(brandId: string): Promise<MetricBenchmark[]> {
-    // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getBenchmarks');
       throw new BadRequestException('Brand ID is required');
     }
+    const trimmedBrandId = brandId.trim();
     try {
-      this.logger.log(`Getting benchmarks for brand: ${brandId}`);
+      this.logger.log(`Getting benchmarks for brand: ${trimmedBrandId}`);
 
-      // TODO: Implémenter avec données benchmarks
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      const [
+        brandConversionEvents,
+        brandPageViews,
+        brandOrdersAgg,
+        brandSessionDurations,
+        platformConversionEvents,
+        platformPageViews,
+        platformOrdersAgg,
+        platformSessionDurations,
+      ] = await Promise.all([
+        this.prisma.analyticsEvent.count({
+          where: {
+            brandId: trimmedBrandId,
+            eventType: 'conversion',
+            timestamp: { gte: thirtyDaysAgo },
+          },
+        }),
+        this.prisma.analyticsEvent.count({
+          where: {
+            brandId: trimmedBrandId,
+            eventType: 'page_view',
+            timestamp: { gte: thirtyDaysAgo },
+          },
+        }),
+        this.prisma.order.aggregate({
+          where: {
+            brandId: trimmedBrandId,
+            paymentStatus: 'SUCCEEDED',
+            createdAt: { gte: thirtyDaysAgo },
+            deletedAt: null,
+          },
+          _avg: { totalCents: true },
+          _count: { id: true },
+        }),
+        this.getAvgSessionDurationSeconds(trimmedBrandId, thirtyDaysAgo),
+        this.prisma.analyticsEvent.count({
+          where: { eventType: 'conversion', timestamp: { gte: thirtyDaysAgo } },
+        }),
+        this.prisma.analyticsEvent.count({
+          where: { eventType: 'page_view', timestamp: { gte: thirtyDaysAgo } },
+        }),
+        this.prisma.order.aggregate({
+          where: {
+            paymentStatus: 'SUCCEEDED',
+            createdAt: { gte: thirtyDaysAgo },
+            deletedAt: null,
+          },
+          _avg: { totalCents: true },
+        }),
+        this.getAvgSessionDurationSecondsPlatform(thirtyDaysAgo),
+      ]);
+
+      const brandConversionRate =
+        brandPageViews > 0 ? (brandConversionEvents / brandPageViews) * 100 : 0;
+      const platformConversionRate =
+        platformPageViews > 0 ? (platformConversionEvents / platformPageViews) * 100 : 2.5;
+      const industryTopConversion = Math.max(platformConversionRate * 1.8, 5);
+
+      const brandAov = (brandOrdersAgg._avg.totalCents ?? 0) / 100;
+      const platformAov = (platformOrdersAgg._avg.totalCents ?? 0) / 100;
+      const industryTopAov = Math.max(platformAov * 1.5, 100);
+
+      const brandAvgSessionSec = brandSessionDurations;
+      const platformAvgSessionSec = platformSessionDurations;
+      const industryTopSession = Math.max(platformAvgSessionSec * 1.5, 180);
+
+      const percentileConversion =
+        industryTopConversion > platformConversionRate
+          ? Math.round(
+              ((brandConversionRate - platformConversionRate) /
+                (industryTopConversion - platformConversionRate)) *
+                50 +
+                50,
+            )
+          : 50;
+      const percentileAov =
+        industryTopAov > platformAov
+          ? Math.round(
+              ((brandAov - platformAov) / (industryTopAov - platformAov)) * 50 + 50,
+            )
+          : 50;
+      const percentileSession =
+        industryTopSession > platformAvgSessionSec
+          ? Math.round(
+              ((brandAvgSessionSec - platformAvgSessionSec) /
+                (industryTopSession - platformAvgSessionSec)) *
+                50 +
+                50,
+            )
+          : 50;
+
+      const clampPct = (n: number) => Math.max(0, Math.min(100, n));
+
       return [
         {
           metric: 'Taux de conversion',
-          yourValue: 3.42,
-          industryAvg: 2.86,
-          industryTop: 5.2,
-          percentile: 72,
-          status: 'above',
+          yourValue: Math.round(brandConversionRate * 100) / 100,
+          industryAvg: Math.round(platformConversionRate * 100) / 100,
+          industryTop: Math.round(industryTopConversion * 100) / 100,
+          percentile: clampPct(percentileConversion),
+          status: brandConversionRate >= platformConversionRate ? 'above' : 'below',
         },
         {
           metric: 'Panier moyen',
-          yourValue: 87.50,
-          industryAvg: 78.30,
-          industryTop: 125.00,
-          percentile: 65,
-          status: 'above',
+          yourValue: Math.round(brandAov * 100) / 100,
+          industryAvg: Math.round(platformAov * 100) / 100,
+          industryTop: Math.round(industryTopAov * 100) / 100,
+          percentile: clampPct(percentileAov),
+          status: brandAov >= platformAov ? 'above' : 'below',
+        },
+        {
+          metric: 'Durée session moy. (s)',
+          yourValue: Math.round(brandAvgSessionSec),
+          industryAvg: Math.round(platformAvgSessionSec),
+          industryTop: Math.round(industryTopSession),
+          percentile: clampPct(percentileSession),
+          status: brandAvgSessionSec >= platformAvgSessionSec ? 'above' : 'below',
         },
       ];
     } catch (error) {
-      this.logger.error(`Failed to get benchmarks: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get benchmarks: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 
+  /** Average session duration in seconds for a brand (from AnalyticsEvent sessionId min/max timestamp). */
+  private async getAvgSessionDurationSeconds(brandId: string, since: Date): Promise<number> {
+    const sessions = await this.prisma.analyticsEvent.groupBy({
+      by: ['sessionId'],
+      where: {
+        brandId,
+        sessionId: { not: null },
+        timestamp: { gte: since },
+      },
+      _min: { timestamp: true },
+      _max: { timestamp: true },
+    });
+    let totalSec = 0;
+    let count = 0;
+    for (const s of sessions) {
+      if (s.sessionId && s._min.timestamp && s._max.timestamp) {
+        totalSec += (s._max.timestamp.getTime() - s._min.timestamp.getTime()) / 1000;
+        count += 1;
+      }
+    }
+    return count > 0 ? totalSec / count : 0;
+  }
+
+  /** Platform-wide average session duration in seconds. */
+  private async getAvgSessionDurationSecondsPlatform(since: Date): Promise<number> {
+    const sessions = await this.prisma.analyticsEvent.groupBy({
+      by: ['sessionId'],
+      where: {
+        sessionId: { not: null },
+        timestamp: { gte: since },
+      },
+      _min: { timestamp: true },
+      _max: { timestamp: true },
+    });
+    let totalSec = 0;
+    let count = 0;
+    for (const s of sessions) {
+      if (s.sessionId && s._min.timestamp && s._max.timestamp) {
+        totalSec += (s._max.timestamp.getTime() - s._min.timestamp.getTime()) / 1000;
+        count += 1;
+      }
+    }
+    return count > 0 ? totalSec / count : 60;
+  }
+
   /**
-   * Récupère les analyses de saisonnalité avec typage strict
+   * Récupère les analyses de saisonnalité à partir des commandes (12 derniers mois).
    */
   async getSeasonality(brandId: string): Promise<SeasonalityAnalysis> {
-    // ✅ Validation des entrées
     if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
       this.logger.warn('Invalid brandId provided to getSeasonality');
       throw new BadRequestException('Brand ID is required');
     }
+    const trimmedBrandId = brandId.trim();
     try {
-      this.logger.log(`Getting seasonality for brand: ${brandId}`);
+      this.logger.log(`Getting seasonality for brand: ${trimmedBrandId}`);
 
-      // TODO: Implémenter avec analyses temporelles
-      return {
-        patterns: [
-          {
-            pattern: 'Pic hebdomadaire',
-            period: 'Vendredi-Samedi',
-            impact: '+35% revenus',
-            confidence: 96.2,
-          },
-          {
-            pattern: 'Saisonnalité annuelle',
-            period: 'Novembre-Décembre',
-            impact: '+125% revenus',
-            confidence: 98.7,
-          },
-        ],
-        forecasts: [
-          {
-            period: 'Semaine prochaine',
-            forecast: '€145,230',
-            trend: '+12.5%',
-            reason: 'Pic hebdomadaire attendu',
-            confidence: 87.3,
-          },
-          {
-            period: 'Mois prochain',
-            forecast: '€612,450',
-            trend: '+8.2%',
-            reason: 'Saisonnalité positive',
-            confidence: 92.1,
-          },
-        ],
-      };
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      twelveMonthsAgo.setDate(1);
+      twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+      const orders = await this.prisma.order.findMany({
+        where: {
+          brandId: trimmedBrandId,
+          paymentStatus: 'SUCCEEDED',
+          createdAt: { gte: twelveMonthsAgo },
+          deletedAt: null,
+        },
+        select: { createdAt: true, totalCents: true },
+      });
+
+      const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+      const byMonth = new Map<string, { count: number; revenueCents: number }>();
+
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(twelveMonthsAgo);
+        d.setMonth(d.getMonth() + i);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        byMonth.set(key, { count: 0, revenueCents: 0 });
+      }
+
+      for (const o of orders) {
+        const key = `${o.createdAt.getFullYear()}-${String(o.createdAt.getMonth() + 1).padStart(2, '0')}`;
+        const entry = byMonth.get(key);
+        if (entry) {
+          entry.count += 1;
+          entry.revenueCents += o.totalCents;
+        }
+      }
+
+      const entries = Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      const volumes = entries.map(([, v]) => v.count);
+      const revenues = entries.map(([, v]) => v.revenueCents / 100);
+      const avgVolume = volumes.reduce((a, b) => a + b, 0) / (volumes.length || 1);
+      const avgRevenue = revenues.reduce((a, b) => a + b, 0) / (revenues.length || 1);
+
+      const patterns: SeasonalityPattern[] = [];
+      let peakMonth = '';
+      let peakImpact = 0;
+      let lowMonth = '';
+      let lowImpact = 0;
+      let maxRelRevenue = 0;
+      let minRelRevenue = 200;
+
+      for (let i = 0; i < entries.length; i++) {
+        const [key, { count, revenueCents }] = entries[i];
+        const [, m] = key.split('-').map(Number);
+        const label = monthNames[m - 1];
+        const relRevenue = avgRevenue > 0 ? (revenueCents / 100 / avgRevenue) * 100 : 100;
+        if (relRevenue > maxRelRevenue) {
+          maxRelRevenue = relRevenue;
+          peakMonth = label;
+          peakImpact = Math.round(relRevenue - 100);
+        }
+        if (relRevenue < minRelRevenue && (revenueCents > 0 || count > 0)) {
+          minRelRevenue = relRevenue;
+          lowMonth = label;
+          lowImpact = Math.round(100 - relRevenue);
+        }
+      }
+
+      if (peakMonth && maxRelRevenue > 105) {
+        patterns.push({
+          pattern: 'Pic de volume',
+          period: peakMonth,
+          impact: `+${peakImpact}% revenus vs moyenne`,
+          confidence: 85,
+        });
+      }
+      if (lowMonth && minRelRevenue < 95) {
+        patterns.push({
+          pattern: 'Creux de volume',
+          period: lowMonth,
+          impact: `-${lowImpact}% revenus vs moyenne`,
+          confidence: 85,
+        });
+      }
+      if (patterns.length === 0 && entries.length > 0) {
+        patterns.push({
+          pattern: 'Volume stable',
+          period: '12 derniers mois',
+          impact: 'Pas de pic/creux marqué',
+          confidence: 70,
+        });
+      }
+
+      const totalRevenue = revenues.reduce((a, b) => a + b, 0);
+      const lastMonthRevenue = revenues.length > 0 ? revenues[revenues.length - 1] : 0;
+      const prevMonthRevenue = revenues.length > 1 ? revenues[revenues.length - 2] : lastMonthRevenue;
+      const trendPct = prevMonthRevenue > 0 ? ((lastMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 : 0;
+
+      const forecasts: SeasonalityForecast[] = [
+        {
+          period: 'Mois prochain',
+          forecast: `€${Math.round(lastMonthRevenue * (1 + trendPct / 100)).toLocaleString('fr-FR')}`,
+          trend: `${trendPct >= 0 ? '+' : ''}${Math.round(trendPct * 10) / 10}%`,
+          reason: trendPct >= 0 ? 'Tendance récente positive' : 'Tendance récente à la baisse',
+          confidence: 75,
+        },
+        {
+          period: 'Trimestre prochain',
+          forecast: `€${Math.round((totalRevenue / 4) * (1 + trendPct / 100)).toLocaleString('fr-FR')}`,
+          trend: 'Basé sur moyenne 3 mois',
+          reason: 'Extrapolation sur saisonnalité observée',
+          confidence: 70,
+        },
+      ];
+
+      return { patterns, forecasts };
     } catch (error) {
-      this.logger.error(`Failed to get seasonality: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get seasonality: ${error instanceof Error ? error.message : 'Unknown'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }

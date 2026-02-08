@@ -10,6 +10,7 @@ import {
   FooterNew,
   CursorGlow,
 } from '@/components/marketing/home';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { generateMetadata as generateSEOMetadata, getOrganizationSchema, getWebsiteSchema } from '@/lib/seo/metadata';
 import type { Metadata } from 'next';
 
@@ -40,19 +41,33 @@ export const metadata: Metadata = generateSEOMetadata({
   ogImage: '/og-homepage.png',
 });
 
+const softwareApplicationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Luneo',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+};
+
 export default function HomePage() {
   const organizationSchema = getOrganizationSchema();
   const websiteSchema = getWebsiteSchema();
 
   return (
-    <>
+    <ErrorBoundary componentName="HomePage">
+      <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        dangerouslySetInnerHTML={{ __html: typeof organizationSchema === 'string' ? organizationSchema : JSON.stringify(organizationSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        dangerouslySetInnerHTML={{ __html: typeof websiteSchema === 'string' ? websiteSchema : JSON.stringify(websiteSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
       />
       <main className="min-h-screen">
         <HeroSectionNew />
@@ -64,5 +79,6 @@ export default function HomePage() {
         <CTASectionNew />
       </main>
     </>
+    </ErrorBoundary>
   );
 }

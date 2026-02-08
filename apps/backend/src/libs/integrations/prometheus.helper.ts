@@ -53,6 +53,20 @@ export class PrometheusHelper {
   }
 
   /**
+   * Query latency p99
+   */
+  async queryLatencyP99(service: string, window: string = '24h'): Promise<number> {
+    const query = `histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{service="${service}"}[${window}]))`;
+    const result = await this.query(query);
+
+    if (result && result.length > 0) {
+      return parseFloat(result[0].value[1]) * 1000; // Convert to ms
+    }
+
+    return 0;
+  }
+
+  /**
    * Query error rate
    */
   async queryErrorRate(service: string, window: string = '24h'): Promise<number> {

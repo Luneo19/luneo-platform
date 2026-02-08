@@ -1,19 +1,21 @@
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder, validateRequest, validateWithZodSchema } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { changePasswordSchema } from '@/lib/validation/zod-schemas';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
 
 /**
  * PUT /api/profile/password
  * Change le mot de passe de l'utilisateur
+ * Forwards to backend API
  */
 export async function PUT(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
@@ -30,42 +32,23 @@ export async function PUT(request: NextRequest) {
       };
     }
 
-    const validatedData = validation.data as {
-      currentPassword: string;
-      newPassword: string;
-    };
-    const { currentPassword, newPassword } = validatedData;
-
-    // Vérifier que le mot de passe actuel est correct
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email || '',
-      password: currentPassword,
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/auth/change-password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+      body: JSON.stringify(validation.data),
     });
 
-    if (signInError || !signInData.user) {
-      logger.warn('Password change failed - incorrect current password', {
-        userId: user.id,
-      });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la mise à jour du mot de passe' }));
       throw {
-        status: 401,
-        message: 'Mot de passe actuel incorrect',
-        code: 'INVALID_PASSWORD',
-      };
-    }
-
-    // Mettre à jour le mot de passe
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (updateError) {
-      logger.error('Password update error', updateError, {
-        userId: user.id,
-      });
-      throw {
-        status: 500,
-        message: 'Erreur lors de la mise à jour du mot de passe',
-        code: 'PASSWORD_UPDATE_ERROR',
+        status: response.status,
+        message: errorData.message || 'Erreur lors de la mise à jour du mot de passe',
+        code: response.status === 401 ? 'INVALID_PASSWORD' : 'PASSWORD_UPDATE_ERROR',
       };
     }
 

@@ -6,8 +6,24 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
+import { api, endpoints } from '@/lib/api/client';
 
-import { db as prismaDb } from '@/lib/db';
+/** Design from API with ownership fields */
+interface DesignWithUserId {
+  userId?: string;
+  [key: string]: unknown;
+}
+
+/** Version item from designs versions API */
+interface DesignVersionRaw {
+  id?: string;
+  name?: string;
+  previewUrl?: string;
+  renderUrl?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  metadata?: Record<string, unknown>;
+}
 
 export const designRouter = router({
   listVersions: protectedProcedure
@@ -15,12 +31,7 @@ export const designRouter = router({
     .query(async ({ ctx, input }) => {
       const { user } = ctx;
 
-      // Vérifier que le design appartient à l'utilisateur
-      const design = await prismaDb.design.findUnique({
-        where: { id: input.designId },
-        select: { userId: true },
-      });
-
+      const design = await endpoints.designs.get(input.designId).catch(() => null);
       if (!design) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -28,7 +39,8 @@ export const designRouter = router({
         });
       }
 
-      if (design.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
+      const d = design as DesignWithUserId;
+      if (d.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Vous n\'avez pas accès à ce design',
@@ -36,41 +48,21 @@ export const designRouter = router({
       }
 
       try {
-        // Récupérer les versions depuis les designs liés (via parentId ou versioning)
-        const versions = await prismaDb.design.findMany({
-          where: {
-            OR: [
-              { id: input.designId },
-              { parentId: input.designId },
-            ],
-          },
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            name: true,
-            previewUrl: true,
-            renderUrl: true,
-            highResUrl: true,
-            createdAt: true,
-            updatedAt: true,
-            metadata: true,
-          },
-        });
+        const versions = await api.get<DesignVersionRaw[]>(`/api/v1/designs/${input.designId}/versions`).catch(() => []);
 
-        const formattedVersions = versions.map((version: any, index: number) => ({
+        const rawList = Array.isArray(versions) ? versions : [];
+        const formattedVersions = rawList.map((version: DesignVersionRaw, index: number) => ({
           id: version.id,
           version: index + 1,
           name: version.name || `Version ${index + 1}`,
           thumbnail: version.previewUrl || version.renderUrl || '/placeholder-design.jpg',
-          createdAt: version.createdAt.toISOString(),
-          updatedAt: version.updatedAt.toISOString(),
-          metadata: version.metadata as any,
+          createdAt: version.createdAt ? (version.createdAt instanceof Date ? version.createdAt.toISOString() : String(version.createdAt)) : '',
+          updatedAt: version.updatedAt ? (version.updatedAt instanceof Date ? version.updatedAt.toISOString() : String(version.updatedAt)) : '',
+          metadata: version.metadata ?? {},
         }));
 
-        return {
-          versions: formattedVersions,
-        };
-      } catch (error: any) {
+        return { versions: formattedVersions };
+      } catch (error: unknown) {
         logger.error('Error listing design versions', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -90,11 +82,7 @@ export const designRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { user } = ctx;
 
-      const design = await prismaDb.design.findUnique({
-        where: { id: input.designId },
-        select: { userId: true, productId: true, brandId: true },
-      });
-
+      const design = await endpoints.designs.get(input.designId).catch(() => null);
       if (!design) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -102,32 +90,33 @@ export const designRouter = router({
         });
       }
 
-      if (design.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
+      const d = design as DesignWithUserId;
+      if (d.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Vous n\'avez pas accès à ce design',
         });
       }
 
+      interface VersionCreateResponse {
+        id?: string;
+        name?: string;
+        createdAt?: Date | string;
+      }
+
       try {
-        const version = await prismaDb.design.create({
-          data: {
-            name: input.name || `Version ${new Date().toISOString()}`,
-            userId: user.id,
-            productId: design.productId,
-            brandId: design.brandId,
-            parentId: input.designId,
-            metadata: input.metadata as any,
-          },
+        const version = await api.post<VersionCreateResponse>(`/api/v1/designs/${input.designId}/versions`, {
+          name: input.name || `Version ${new Date().toISOString()}`,
+          metadata: input.metadata,
         });
 
         logger.info('Design version created', { versionId: version.id, designId: input.designId });
         return {
-          id: version.id,
+          id: version.id ?? '',
           name: version.name,
-          createdAt: version.createdAt.toISOString(),
+          createdAt: version.createdAt ? (version.createdAt instanceof Date ? version.createdAt.toISOString() : String(version.createdAt)) : new Date().toISOString(),
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error creating design version', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',

@@ -3,6 +3,18 @@
  * Client pour interagir avec l'API Meta Ads (Facebook/Instagram)
  */
 
+/**
+ * Returns true if Meta Ads OAuth is configured (env vars set).
+ * Use this before initiating connect flow; the client itself uses tokens from DB.
+ */
+export function isMetaAdsConfigured(): boolean {
+  return !!(
+    typeof process !== 'undefined' &&
+    process.env.META_APP_ID &&
+    process.env.META_APP_SECRET
+  );
+}
+
 export interface MetaCampaign {
   id: string;
   name: string;

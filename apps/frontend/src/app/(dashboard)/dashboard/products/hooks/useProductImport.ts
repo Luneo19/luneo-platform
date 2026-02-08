@@ -26,9 +26,9 @@ export function useProductImport(onSuccess?: () => void) {
           const values = line
             .split(',')
             .map((v) => v.trim().replace(/"/g, ''));
-          const product: any = {};
+          const product: Record<string, string> = {};
           headers.forEach((header, index) => {
-            product[header] = values[index];
+            product[header] = values[index] ?? '';
           });
           return product;
         });
@@ -38,10 +38,10 @@ export function useProductImport(onSuccess?: () => void) {
             productService.create({
               name: p.name,
               description: p.description,
-              category: p.category || 'OTHER',
+              category: (p.category || 'OTHER') as string,
               price: parseFloat(p.price) || 0,
               currency: p.currency || 'EUR',
-            } as any)
+            })
           )
         );
 

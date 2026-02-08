@@ -4,8 +4,9 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@ne
 import { Request as ExpressRequest } from 'express';
 import Stripe from 'stripe';
 import { Public } from '../../common/decorators/public.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BillingService } from './billing.service';
+import { CreateCheckoutSessionDto, AddPaymentMethodDto, ChangePlanDto, CancelSubscriptionDto } from './dto/billing.dto';
 
 @ApiTags('Billing')
 @Controller('billing')
@@ -14,18 +15,14 @@ export class BillingController {
 
   constructor(private readonly billingService: BillingService) {}
 
+  /** @Public: checkout can be started without auth (email in body) */
   @Public()
   @Post('create-checkout-session')
   @ApiOperation({ summary: 'Créer une session de paiement Stripe avec support des add-ons' })
   @ApiResponse({ status: 200, description: 'Session créée avec succès' })
   @ApiResponse({ status: 400, description: 'Email invalide ou manquant' })
   async createCheckoutSession(
-    @Body() body: {
-      planId: string;
-      email?: string;
-      billingInterval?: 'monthly' | 'yearly';
-      addOns?: Array<{ type: string; quantity: number }>;
-    },
+    @Body() body: CreateCheckoutSessionDto,
   ): Promise<{ success: boolean; url?: string; sessionId?: string; error?: string }> {
     try {
       // Validation de l'email - obligatoire pour les utilisateurs non connectés
@@ -108,7 +105,7 @@ export class BillingController {
   @ApiResponse({ status: 200, description: 'Méthode de paiement ajoutée avec succès' })
   async addPaymentMethod(
     @Request() req: ExpressRequest & { user: CurrentUser },
-    @Body() body: { paymentMethodId: string; setAsDefault?: boolean }
+    @Body() body: AddPaymentMethodDto
   ) {
     return this.billingService.addPaymentMethod(
       req.user.id,
@@ -187,11 +184,7 @@ export class BillingController {
   })
   async changePlan(
     @Request() req: ExpressRequest & { user: CurrentUser },
-    @Body() body: {
-      planId: string;
-      billingInterval?: 'monthly' | 'yearly';
-      immediateChange?: boolean;
-    }
+    @Body() body: ChangePlanDto
   ) {
     if (!body.planId) {
       throw new BadRequestException('planId is required');
@@ -379,11 +372,12 @@ export class BillingController {
   })
   async cancelSubscription(
     @Request() req: ExpressRequest & { user: CurrentUser },
-    @Body() body: { immediate?: boolean },
+    @Body() body: CancelSubscriptionDto,
   ) {
     return this.billingService.cancelSubscription(req.user.id, body?.immediate || false);
   }
 
+  /** @Public: Stripe webhook; verified by stripe-signature */
   @Public()
   @Post('webhook')
   @HttpCode(HttpStatus.OK)

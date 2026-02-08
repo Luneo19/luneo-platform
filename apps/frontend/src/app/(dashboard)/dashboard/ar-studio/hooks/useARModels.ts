@@ -20,11 +20,12 @@ export function useARModels(
 
   useEffect(() => {
     if (modelsQuery.data?.models) {
-      const transformed: ARModel[] = (modelsQuery.data.models as any[]).map((m) => ({
+      type ModelLike = { id: string; name?: string; category?: string; type?: string; thumbnailUrl?: string; thumbnail_url?: string; fileSize?: number; status?: string; viewsCount?: number; views_count?: number; tryOnsCount?: number; try_ons_count?: number; conversionsCount?: number; conversions_count?: number; createdAt?: string | Date; updatedAt?: string | Date; glbUrl?: string; glb_url?: string; usdzUrl?: string; usdz_url?: string; metadata?: unknown; tags?: string[]; productId?: string; product_id?: string };
+      const transformed: ARModel[] = (modelsQuery.data.models as ModelLike[]).map((m) => ({
         id: m.id,
         name: m.name || 'Modèle sans nom',
         type: (m.category || m.type || 'other') as ARModelType,
-        thumbnail: m.thumbnailUrl || m.thumbnail_url || '/placeholder-model.jpg',
+        thumbnail: m.thumbnailUrl || m.thumbnail_url || '/placeholder-model.svg',
         fileSize: m.fileSize || 0,
         format:
           (m.usdzUrl || m.usdz_url) && (m.glbUrl || m.glb_url)

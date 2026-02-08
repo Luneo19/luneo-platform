@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 interface Notification {
   id: string;
@@ -57,53 +58,25 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await endpoints.admin.notifications.list();
-      // setNotifications(response.data);
-
-      // Mock data for now
-      setNotifications([
-        {
-          id: '1',
-          type: 'warning',
-          title: 'High Churn Risk',
-          message: '5 customers have been inactive for 30+ days',
-          read: false,
-          createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-          actionUrl: '/admin/customers?filter=at-risk',
-          actionLabel: 'View Customers',
-        },
-        {
-          id: '2',
-          type: 'success',
-          title: 'New Customer',
-          message: 'John Doe signed up for Pro plan',
-          read: false,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-          actionUrl: '/admin/customers',
-          actionLabel: 'View Profile',
-        },
-        {
-          id: '3',
-          type: 'info',
-          title: 'System Update',
-          message: 'Scheduled maintenance completed successfully',
-          read: true,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-        },
-        {
-          id: '4',
-          type: 'error',
-          title: 'API Error Rate High',
-          message: 'Error rate exceeded 5% threshold',
-          read: false,
-          createdAt: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-          actionUrl: '/admin/monitoring',
-          actionLabel: 'View Monitoring',
-        },
-      ]);
+      const response = await api.get<{ notifications?: Array<Record<string, unknown>>; data?: { notifications?: Array<Record<string, unknown>> } }>('/api/v1/notifications');
+      const data = (response as { data?: { notifications?: unknown[] } })?.data ?? response;
+      const list = (data as { notifications?: unknown[] })?.notifications ?? [];
+      const items = Array.isArray(list) ? list : [];
+      setNotifications(
+        items.map((n: Record<string, unknown>) => ({
+          id: String(n.id ?? ''),
+          type: (n.type as Notification['type']) ?? 'info',
+          title: String(n.title ?? ''),
+          message: String(n.message ?? n.body ?? ''),
+          read: Boolean((n as Record<string, unknown>).is_read ?? n.read),
+          createdAt: n.createdAt ? new Date(n.createdAt as string) : (n.created_at ? new Date(n.created_at as string) : new Date()),
+          actionUrl: n.actionUrl ? String(n.actionUrl) : (n as Record<string, unknown>).action_url ? String((n as Record<string, unknown>).action_url) : undefined,
+          actionLabel: n.actionLabel ? String(n.actionLabel) : (n as Record<string, unknown>).action_label ? String((n as Record<string, unknown>).action_label) : undefined,
+        }))
+      );
     } catch (error) {
       logger.error('Failed to fetch notifications', error as Error);
+      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
@@ -111,9 +84,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
 
   const markAsRead = async (id: string) => {
     try {
-      // TODO: Replace with actual API call
-      // await endpoints.admin.notifications.markAsRead(id);
-      
+      await api.post(`/api/v1/notifications/${id}/read`, {});
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
       );
@@ -124,9 +95,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
 
   const markAllAsRead = async () => {
     try {
-      // TODO: Replace with actual API call
-      // await endpoints.admin.notifications.markAllAsRead();
-      
+      await api.post('/api/v1/notifications/read-all', {});
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
       logger.error('Failed to mark all notifications as read', error as Error);
@@ -135,9 +104,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
 
   const deleteNotification = async (id: string) => {
     try {
-      // TODO: Replace with actual API call
-      // await endpoints.admin.notifications.delete(id);
-      
+      await api.delete(`/api/v1/notifications/${id}`);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (error) {
       logger.error('Failed to delete notification', error as Error);

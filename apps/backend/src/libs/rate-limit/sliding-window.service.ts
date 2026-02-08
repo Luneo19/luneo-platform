@@ -109,7 +109,7 @@ export class SlidingWindowRateLimitService {
       await withTimeout(
         redisClient.zremrangebyscore(key, 0, windowStart),
         500,
-        undefined as any
+        0
       ).catch(() => {}); // Ignore errors
 
       // Count current requests in the window (timeout 500ms)
@@ -150,14 +150,14 @@ export class SlidingWindowRateLimitService {
       await withTimeout(
         redisClient.zadd(key, now, `${now}-${Math.random()}`),
         500,
-        undefined as any
+        0
       ).catch(() => {}); // Ignore errors
 
       // Set expiration on the key (timeout 500ms)
       await withTimeout(
         redisClient.expire(key, window + 60),
         500,
-        undefined as any
+        0
       ).catch(() => {}); // Ignore errors
 
       // Calculate remaining requests

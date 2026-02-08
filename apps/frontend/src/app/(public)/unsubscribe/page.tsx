@@ -7,6 +7,7 @@ import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Mail, CheckCircle, Loader2, AlertCircle, ArrowLeft, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 function UnsubscribePageContent() {
@@ -35,15 +36,9 @@ function UnsubscribePageContent() {
     setError(null);
 
     try {
-      const response = await fetch('/api/newsletter/unsubscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, reason }),
-      });
+      const data = await api.post<{ success?: boolean; error?: string }>('/api/v1/newsletter/unsubscribe', { email, reason });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Erreur lors du désabonnement');
       }
 

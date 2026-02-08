@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TwoFactorForm } from '@/components/auth/TwoFactorForm';
@@ -110,11 +111,8 @@ function LoginPageContent() {
         return;
       }
 
-      if (response.accessToken && response.user) {
-        // Store token for API calls
-        // Tokens are now in httpOnly cookies (set by backend)
-        // No need to store in localStorage for security
-        // Cookies are automatically sent with each request via withCredentials: true
+      // Success: user in body; tokens are in httpOnly cookies (set by backend via Set-Cookie)
+      if (response.user) {
         if (rememberMe) {
           localStorage.setItem('rememberMe', 'true'); // Keep rememberMe preference
         }
@@ -163,7 +161,7 @@ function LoginPageContent() {
       setError('');
       
       // Redirect to backend OAuth endpoint
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const apiUrl = getBackendUrl();
       const oauthUrl = `${apiUrl}/api/v1/auth/${provider}`;
       
       // Redirect to backend OAuth
@@ -207,9 +205,9 @@ function LoginPageContent() {
           {/* Error Message */}
           {error && (
         <FadeIn>
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3" data-testid="login-error">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-300">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3" data-testid="login-error">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         </FadeIn>
       )}
@@ -217,9 +215,9 @@ function LoginPageContent() {
       {/* Success Message */}
       {success && (
         <FadeIn>
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3">
-            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-green-300">{success}</p>
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-green-600">{success}</p>
           </div>
         </FadeIn>
           )}
@@ -276,7 +274,7 @@ function LoginPageContent() {
               </Label>
             <Link 
               href="/forgot-password" 
-              className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+              className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
               tabIndex={-1}
             >
               Mot de passe oublié ?
@@ -288,7 +286,7 @@ function LoginPageContent() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-              className="pl-10 pr-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 h-12"
+              className="pl-10 pr-12 bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500/20 h-12"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -358,10 +356,10 @@ function LoginPageContent() {
         <FadeIn delay={0.8}>
       <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-700" />
+          <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-slate-900 text-slate-500">ou continuer avec</span>
+          <span className="px-4 bg-white text-gray-500">ou continuer avec</span>
             </div>
           </div>
         </FadeIn>
@@ -372,7 +370,7 @@ function LoginPageContent() {
             <Button
               type="button"
               variant="outline"
-          className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-12"
+          className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-900 h-12"
               onClick={() => handleOAuthLogin('google')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -389,7 +387,7 @@ function LoginPageContent() {
             <Button
               type="button"
               variant="outline"
-          className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600 text-white h-12"
+          className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-900 h-12"
               onClick={() => handleOAuthLogin('github')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -408,11 +406,11 @@ function LoginPageContent() {
           {/* Sign up link */}
         <FadeIn delay={1.0}>
       <div className="mt-8 text-center">
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-gray-500">
               Pas encore de compte ?{' '}
               <Link
                 href="/register"
-            className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+            className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
                 data-testid="login-switch-register"
               >
             Créer un compte gratuitement
@@ -423,8 +421,8 @@ function LoginPageContent() {
 
       {/* Security indicators */}
         <FadeIn delay={1.1}>
-      <div className="mt-8 pt-6 border-t border-slate-800">
-        <div className="flex items-center justify-center gap-6 text-xs text-slate-500">
+      <div className="mt-8 pt-6 border-t border-gray-200">
+        <div className="flex items-center justify-center gap-6 text-xs text-gray-500">
           <div className="flex items-center gap-1">
             <Shield className="w-3 h-3" />
             <span>SSL/TLS</span>

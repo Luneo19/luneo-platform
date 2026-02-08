@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 interface Profile {
   id: string;
@@ -32,14 +33,11 @@ export function useProfile() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/profile');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du chargement du profil');
-      }
-
-      setProfile(data.data.profile);
+      const data = await api.get<Profile | { data?: { profile?: Profile }; profile?: Profile }>('/api/v1/auth/me');
+      const profileData = (data as { data?: { profile?: Profile }; profile?: Profile })?.data?.profile
+        ?? (data as { profile?: Profile })?.profile
+        ?? (data as Profile);
+      setProfile(profileData as Profile);
     } catch (err: any) {
       logger.error('Erreur chargement profil', {
         error: err,
@@ -57,19 +55,11 @@ export function useProfile() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la mise à jour');
+      const data = await api.put<{ data?: { profile?: Profile }; profile?: Profile }>('/api/v1/profile', updates);
+      const profileData = data?.data?.profile ?? data?.profile;
+      if (profileData) {
+        setProfile(profileData);
       }
-
-      setProfile(data.data.profile);
       return { success: true };
     } catch (err: any) {
       logger.error('Erreur mise à jour profil', {
@@ -93,19 +83,16 @@ export function useProfile() {
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const response = await fetch('/api/profile/avatar', {
-        method: 'POST',
-        body: formData,
+      const data = await api.post<{ data?: { avatar_url?: string }; avatar_url?: string }>('/api/v1/profile/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'upload');
+      const avatarUrl = data?.data?.avatar_url ?? data?.avatar_url;
+      if (avatarUrl) {
+        setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : null);
       }
-
-      setProfile(prev => prev ? { ...prev, avatar_url: data.data.avatar_url } : null);
-      return { success: true, avatar_url: data.data.avatar_url };
+      return { success: true, avatar_url: avatarUrl };
     } catch (err: any) {
       logger.error('Erreur upload avatar', {
         error: err,
@@ -126,19 +113,11 @@ export function useProfile() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/profile/password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
+      const data = await api.put<{ message?: string }>('/api/v1/auth/change-password', {
+        currentPassword,
+        newPassword,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du changement de mot de passe');
-      }
-
-      return { success: true, message: data.message };
+      return { success: true, message: data?.message ?? 'Mot de passe mis à jour' };
     } catch (err: any) {
       logger.error('Erreur changement mot de passe', {
         error: err,

@@ -34,8 +34,8 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
 
   if (members.length === 0) {
     return (
-      <Card className="p-12 bg-gray-800/50 border-gray-700 text-center">
-        <p className="text-gray-400">Aucun membre dans l'équipe</p>
+      <Card className="p-12 bg-gray-50 border-gray-200 text-center">
+        <p className="text-gray-600">Aucun membre dans l'équipe</p>
       </Card>
     );
   }
@@ -47,7 +47,7 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
         const RoleIcon = roleInfo.icon;
 
         return (
-          <Card key={member.id} className="p-4 bg-gray-800/50 border-gray-700">
+          <Card key={member.id} className="p-4 bg-white border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Avatar>
@@ -63,7 +63,7 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
                 </Avatar>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-white font-medium">{member.name}</p>
+                    <p className="text-gray-900 font-medium">{member.name}</p>
                     <Badge
                       variant="outline"
                       className={cn(
@@ -71,14 +71,14 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
                         roleInfo.color === 'yellow' ? 'border-yellow-500/50 text-yellow-400' :
                         roleInfo.color === 'blue' ? 'border-blue-500/50 text-blue-400' :
                         roleInfo.color === 'green' ? 'border-green-500/50 text-green-400' :
-                        'border-gray-500/50 text-gray-400',
+                        'border-gray-500/50 text-gray-600',
                       )}
                     >
                       {RoleIcon && React.createElement(RoleIcon as React.ElementType, { className: 'w-3 h-3 mr-1' })}
                       {String(roleInfo.name)}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-400">{member.email}</p>
+                  <p className="text-sm text-gray-600">{member.email}</p>
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -96,10 +96,10 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                <DropdownMenuContent align="end" className="bg-white border-gray-200">
                   <DropdownMenuItem
                     onClick={() => onEditRole(member)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Modifier le rôle

@@ -36,16 +36,16 @@ export function ARFilters({
   modelsCount,
 }: ARFiltersProps) {
   return (
-    <Card className="p-4 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
             <Input
               placeholder="Rechercher des modèles..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="bg-gray-900 border-gray-600 text-white pl-10"
+              className="bg-white border-gray-200 text-gray-900 pl-10"
             />
           </div>
         </div>
@@ -70,7 +70,7 @@ export function ARFilters({
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-            <SelectTrigger className="w-40 bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-40 bg-white border-gray-200 text-gray-900">
               <SelectValue placeholder="Statut" />
             </SelectTrigger>
             <SelectContent>
@@ -82,11 +82,11 @@ export function ARFilters({
             </SelectContent>
           </Select>
           <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as 'grid' | 'list')}>
-            <TabsList className="bg-gray-800 border-gray-700">
-              <TabsTrigger value="grid" className="data-[state=active]:bg-gray-700">
+            <TabsList className="bg-gray-100 border-gray-200">
+              <TabsTrigger value="grid" className="data-[state=active]:bg-gray-200">
                 <Grid className="w-4 h-4" />
               </TabsTrigger>
-              <TabsTrigger value="list" className="data-[state=active]:bg-gray-700">
+              <TabsTrigger value="list" className="data-[state=active]:bg-gray-200">
                 <List className="w-4 h-4" />
               </TabsTrigger>
             </TabsList>

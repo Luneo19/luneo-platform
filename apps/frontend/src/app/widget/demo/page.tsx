@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 
 export default function WidgetDemoPage() {
   const [productId, setProductId] = useState('demo-product-123');
@@ -70,9 +71,9 @@ export default function WidgetDemoPage() {
     productId: '${productId}',
     locale: 'fr',
     theme: 'light',
-    onSave: (design) => console.log('Saved:', design),
-    onError: (error) => console.error('Error:', error),
-    onReady: () => console.log('Ready!')
+    onSave: (design) => logger.info('Saved', { design }),
+    onError: (error) => logger.error('Error', error instanceof Error ? error : new Error(String(error))),
+    onReady: () => logger.info('Ready')
   });
 </script>`}
             </pre>

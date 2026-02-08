@@ -265,6 +265,42 @@ enum WebhookEvent {
 }
 
 // ========================================
+// INDUSTRY ADAPTIVE DASHBOARD ENUMS
+// ========================================
+
+enum ModulePriority {
+  PRIMARY
+  SECONDARY
+  AVAILABLE
+  HIDDEN
+}
+
+enum CompanySize {
+  SOLO
+  SMALL_2_10
+  MEDIUM_11_50
+  LARGE_51_200
+  ENTERPRISE_200_PLUS
+}
+
+enum PrimaryUseCase {
+  CUSTOMIZER
+  DESIGN_AI
+  VISUALIZATION_3D
+  AR_TRYON
+  PRINT_PRODUCTION
+  ALL
+}
+
+enum OnboardingActionType {
+  TUTORIAL
+  SETUP_GUIDE
+  TEMPLATE_IMPORT
+  INTEGRATION_CONNECT
+  SKIP
+}
+
+// ========================================
 // MODELS
 // ========================================
 
@@ -290,6 +326,9 @@ model User {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // Soft delete timestamp
 
+  // Notification preferences (email, marketing, order updates, security alerts)
+  notificationPreferences Json?
+
   // Relations
   brandId String?
   brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: SetNull)
@@ -303,8 +342,15 @@ model User {
   // OAuth
   oauthAccounts OAuthAccount[]
 
+  // Audit & Safety
+  auditLogs         AuditLog[]
+  moderationRecords ModerationRecord[]
+
   // Quotas
   userQuota UserQuota?
+
+  // Experiments
+  experimentAssignments ExperimentAssignment[]
 
   // Marketplace
   artisan Artisan?
@@ -353,12 +399,40 @@ model User {
   commissions         Commission[]
   withdrawals         Withdrawal[]
   userProfile         UserProfile?
+  downloads          Download[]
+
+  // Observability
+  traces Trace[] @relation("UserTraces")
+
+  // AR Collaboration
+  arProjects           ARProject[]           @relation("UserARProjects")
+  arProjectMemberships ARProjectMember[]     @relation("UserARProjectMemberships")
+  arProjectComments    ARProjectComment[]    @relation("UserARProjectComments")
 
   @@index([email])
   @@index([brandId])
   @@index([role])
   @@index([aiCredits])
   @@index([deletedAt]) // Soft delete index for efficient queries on active users
+}
+
+model Download {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resourceId   String   @map("resource_id")
+  resourceType String   @map("resource_type") // design, template, clipart, product
+  fileUrl      String?  @map("file_url")
+  fileSize     Int?     @map("file_size")
+  format       String?
+  downloadedAt DateTime @default(now()) @map("downloaded_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([userId, downloadedAt])
+  @@index([resourceType])
+  @@index([resourceId, resourceType])
+  @@map("downloads")
 }
 
 model OAuthAccount {
@@ -495,6 +569,27 @@ model Brand {
   // Discounts
   discounts Discount[]
 
+  // Audit & Safety
+  auditLogs         AuditLog[]
+  moderationRecords ModerationRecord[]
+
+  // Workspaces & Projects
+  workspaces Workspace[]
+  projects   Project[]
+
+  // AR Collaboration
+  arProjects ARProject[] @relation("BrandARProjects")
+
+  // Observability
+  traces Trace[] @relation("BrandTraces")
+
+  // Feature Flags
+  featureFlags FeatureFlag[] @relation("BrandFeatureFlags")
+
+  // Organization
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   @@index([slug])
   @@index([status])
   @@index([stripeCustomerId])
@@ -506,6 +601,249 @@ model Brand {
   @@index([trialEndsAt])
   @@index([planExpiresAt])
   @@index([subscriptionStatus, trialEndsAt])
+  @@index([organizationId])
+}
+
+// ========================================
+// ORGANIZATION & INDUSTRY
+// ========================================
+
+model Organization {
+  id                    String        @id @default(cuid())
+  name                  String
+  slug                  String        @unique
+  industryId            String?
+  industry              Industry?     @relation(fields: [industryId], references: [id])
+  onboardingCompletedAt DateTime?
+  onboardingCurrentStep Int           @default(0)
+  companySize           CompanySize?
+  primaryUseCase        PrimaryUseCase?
+  businessGoals         Json?
+  dashboardLayout       Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  brands                Brand[]
+  onboardingProgress    OnboardingProgress[]
+  dashboardPreferences  UserDashboardPreference[]
+
+  @@index([slug])
+  @@index([industryId])
+}
+
+model Industry {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  labelFr     String
+  labelEn     String
+  icon        String
+  accentColor String
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizations   Organization[]
+  moduleConfigs   IndustryModuleConfig[]
+  widgetConfigs   IndustryWidgetConfig[]
+  kpiConfigs      IndustryKpiConfig[]
+  templates       IndustryTemplate[]
+  terminology     IndustryTerminology[]
+  onboardingSteps IndustryOnboarding[]
+
+  @@index([slug])
+  @@index([isActive, sortOrder])
+}
+
+model IndustryModuleConfig {
+  id               String         @id @default(cuid())
+  industryId       String
+  industry         Industry       @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  moduleSlug       String
+  priority         ModulePriority @default(AVAILABLE)
+  sortOrder        Int            @default(0)
+  isDefaultEnabled Boolean        @default(true)
+  defaultSettings  Json?
+
+  @@unique([industryId, moduleSlug])
+  @@index([industryId])
+}
+
+model IndustryWidgetConfig {
+  id               String  @id @default(cuid())
+  industryId       String
+  industry         Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  widgetSlug       String
+  position         Int     @default(0)
+  gridColumn       Int     @default(1)
+  gridRow          Int     @default(1)
+  gridWidth        Int     @default(1)
+  gridHeight       Int     @default(1)
+  isDefaultVisible Boolean @default(true)
+
+  @@unique([industryId, widgetSlug])
+  @@index([industryId])
+}
+
+model IndustryKpiConfig {
+  id                String  @id @default(cuid())
+  industryId        String
+  industry          Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  kpiSlug           String
+  labelFr           String
+  labelEn           String
+  icon              String
+  sortOrder         Int     @default(0)
+  isDefaultVisible  Boolean @default(true)
+  calculationMethod String?
+
+  @@unique([industryId, kpiSlug])
+  @@index([industryId])
+}
+
+model IndustryTemplate {
+  id            String  @id @default(cuid())
+  industryId    String
+  industry      Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  thumbnailUrl  String?
+  templateData  Json?
+  productType   String?
+  is3D          Boolean @default(false)
+  modelUrl      String?
+  sortOrder     Int     @default(0)
+
+  @@index([industryId])
+}
+
+model IndustryTerminology {
+  id            String  @id @default(cuid())
+  industryId    String
+  industry      Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  genericTerm   String
+  customTermFr  String
+  customTermEn  String
+  context       String  @default("all")
+
+  @@unique([industryId, genericTerm, context])
+  @@index([industryId])
+}
+
+model IndustryOnboarding {
+  id            String              @id @default(cuid())
+  industryId    String
+  industry      Industry            @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  stepOrder     Int
+  titleFr       String
+  titleEn       String
+  descriptionFr String?
+  descriptionEn String?
+  videoUrl      String?
+  actionType    OnboardingActionType @default(TUTORIAL)
+  actionPayload Json?
+
+  @@unique([industryId, stepOrder])
+  @@index([industryId])
+}
+
+model OnboardingProgress {
+  id                 String    @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId             String
+  step1Profile       Json?
+  step1CompletedAt   DateTime?
+  step2Industry      String?
+  step2CompletedAt   DateTime?
+  step3UseCases      Json?
+  step3CompletedAt   DateTime?
+  step4Goals         Json?
+  step4CompletedAt   DateTime?
+  step5Integrations  Json?
+  step5CompletedAt   DateTime?
+  completedAt        DateTime?
+  skippedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model UserDashboardPreference {
+  id                String       @id @default(cuid())
+  userId            String
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  widgetOverrides   Json?
+  sidebarOrder      Json?
+  pinnedModules     Json?
+  lastVisitedModule String?
+  dashboardTheme    String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+// ========================================
+// AR COLLABORATION
+// ========================================
+
+model ARProject {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  thumbnail   String?
+  brandId     String
+  ownerId     String
+  status      String   @default("active")
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  brand    Brand    @relation("BrandARProjects", fields: [brandId], references: [id], onDelete: Cascade)
+  owner    User     @relation("UserARProjects", fields: [ownerId], references: [id])
+  members  ARProjectMember[]
+  comments ARProjectComment[]
+
+  @@index([brandId])
+  @@index([ownerId])
+}
+
+model ARProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("viewer")
+  joinedAt  DateTime @default(now())
+
+  project ARProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user   User      @relation("UserARProjectMemberships", fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model ARProjectComment {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project ARProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user   User      @relation("UserARProjectComments", fields: [userId], references: [id])
+
+  @@index([projectId])
+  @@index([userId])
 }
 
 // ========================================
@@ -628,6 +966,9 @@ model Product {
   tryOnMappings    TryOnProductMapping[]
   tryOnScreenshots TryOnScreenshot[]
 
+  // 3D configurator
+  product3DConfig Product3DConfiguration?
+
   @@unique([brandId, slug]) // NOUVEAU: Unique par brand
   @@index([brandId])
   @@index([isActive])
@@ -635,6 +976,26 @@ model Product {
   @@index([brandId, isActive]) // NOUVEAU: Composite
   @@index([status])
   @@index([deletedAt]) // Soft delete index for efficient queries on active products
+}
+
+model Product3DConfiguration {
+  id             String   @id @default(cuid())
+  productId      String   @unique
+  modelUrl       String?
+  textureUrl     String?
+  materialType   String   @default("standard")
+  environmentMap String?
+  lightingPreset String   @default("studio")
+  cameraPosition Json?
+  cameraTarget   Json?
+  customZones    Json?
+  renderSettings Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 // ========================================
@@ -781,6 +1142,11 @@ model Design {
   blockedReason    String?
   blockedAt        DateTime?
   blockedByClaimId String?
+  blockedByClaim  IPClaim?  @relation("BlockedDesigns", fields: [blockedByClaimId], references: [id], onDelete: SetNull)
+
+  // Trust & Safety
+  moderationRecords ModerationRecord[]
+  ipClaims          IPClaim[]
 
   @@index([userId])
   @@index([brandId])
@@ -790,6 +1156,7 @@ model Design {
   @@index([createdAt])
   @@index([specId]) // NOUVEAU
   @@index([brandId, status]) // NOUVEAU: Composite
+  @@index([brandId, status, createdAt]) // Composite for filtered + sorted queries
   @@index([isBlocked])
   // DB-01: Index manquant
   @@index([completedAt])
@@ -864,8 +1231,12 @@ model Order {
 
   // Shipping
   trackingNumber      String?
+  trackingCarrier     String?
   trackingUrl         String?
   productionBundleUrl String? // URL to production bundle
+  shippedAt          DateTime?
+  deliveredAt         DateTime?
+  estimatedDelivery   DateTime?
 
   // Notes
   notes    String?
@@ -874,7 +1245,7 @@ model Order {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   paidAt    DateTime?
-  shippedAt DateTime?
+  deletedAt DateTime? // Soft delete timestamp (GDPR compliance)
 
   // Relations
   userId String?
@@ -904,6 +1275,7 @@ model Order {
   commissionPercent Float?
   commissionCents   Int?
   discountId        String?
+  discount          Discount? @relation(fields: [discountId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([brandId])
@@ -914,11 +1286,14 @@ model Order {
   @@index([createdAt])
   @@index([brandId, status]) // NOUVEAU: Composite pour performance
   @@index([brandId, createdAt]) // NOUVEAU: Composite pour pagination
+  @@index([brandId, status, createdAt]) // Composite for filtered + sorted queries
   // DB-01: Index manquants sur champs date et paiement
   @@index([paymentStatus])
   @@index([paidAt])
   @@index([shippedAt])
   @@index([paymentStatus, createdAt])
+  @@index([discountId])
+  @@index([deletedAt]) // Soft delete index for efficient queries on active orders
   // DB-01: Composite index for status-based queries with date sorting
   @@index([status, createdAt])
 }
@@ -1514,7 +1889,8 @@ model Asset {
 model AuditLog {
   id           String   @id @default(cuid())
   eventType    String
-  userId       String
+  userId       String?
+  brandId      String?
   resourceType String
   resourceId   String
   action       String
@@ -1524,12 +1900,18 @@ model AuditLog {
   ipAddress    String?
   userAgent    String?
 
+  // Relations
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  brand Brand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+
   @@index([userId])
+  @@index([brandId])
   @@index([eventType])
   @@index([resourceType])
   @@index([resourceId])
   @@index([timestamp])
   @@index([success])
+  @@index([brandId, eventType, timestamp])
 }
 
 model UserConsent {
@@ -1576,6 +1958,7 @@ model Discount {
   updatedAt        DateTime     @updatedAt @map("updated_at")
 
   discountUsages DiscountUsage[]
+  orders Order[]
 
   @@index([code])
   @@index([brandId])
@@ -2286,10 +2669,13 @@ model Payout {
 // ========================================
 
 model ModerationRecord {
-  id      String @id @default(cuid())
-  type    String // text, image, ai_generation
-  content String // Text or image URL
-  context Json? // userId, brandId, designId
+  id       String  @id @default(cuid())
+  type     String // text, image, ai_generation
+  content  String // Text or image URL
+  userId   String?
+  brandId  String?
+  designId String?
+  context  Json? // Additional context metadata
 
   // Result
   approved   Boolean
@@ -2300,9 +2686,17 @@ model ModerationRecord {
 
   createdAt DateTime @default(now())
 
+  // Relations
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  brand  Brand?  @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  design Design? @relation(fields: [designId], references: [id], onDelete: SetNull)
+
   @@index([type])
   @@index([approved])
   @@index([createdAt])
+  @@index([userId])
+  @@index([brandId])
+  @@index([designId])
 }
 
 model IPClaim {
@@ -2322,6 +2716,10 @@ model IPClaim {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relations
+  design Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+  blockedDesigns Design[] @relation("BlockedDesigns")
 
   @@index([designId])
   @@index([status])
@@ -2358,6 +2756,7 @@ model ExperimentAssignment {
   assignedAt   DateTime @default(now())
 
   // Relations
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, experimentId])
@@ -2961,6 +3360,7 @@ model AIGeneration {
   createdAt   DateTime  @default(now())
   completedAt DateTime?
   updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // Soft delete timestamp (user data cleanup)
 
   @@index([userId, createdAt])
   @@index([brandId, createdAt])
@@ -2971,6 +3371,7 @@ model AIGeneration {
   @@index([parentGenerationId])
   @@index([userId, status])
   @@index([createdAt])
+  @@index([deletedAt]) // Soft delete index for efficient queries on active generations
   @@map("AIGeneration")
 }
 
@@ -4477,15 +4878,18 @@ model Workspace {
   isDefault Boolean @default(false)
   settings  Json?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete timestamp (consistency with Project)
 
   // Relations
+  brand           Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
   projects        Project[]
   projectsManyRef Project[] @relation("ProjectWorkspaces")
 
   @@unique([brandId, slug])
   @@index([brandId])
+  @@index([deletedAt]) // Soft delete index for efficient queries on active workspaces
 }
 
 model Project {
@@ -4513,6 +4917,7 @@ model Project {
   deletedAt DateTime?
 
   // Relations
+  brand                        Brand                         @relation(fields: [brandId], references: [id], onDelete: Cascade)
   workspace                    Workspace?                    @relation(fields: [workspaceId], references: [id])
   configurator3DConfigurations Configurator3DConfiguration[]
   tryOnConfigurations          TryOnConfiguration[]
@@ -4911,4 +5316,59 @@ model VisualCustomizerPreset {
   customizer VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
 
   @@index([customizerId])
+}
+
+// ========================================
+// OBSERVABILITY - Distributed Tracing
+// ========================================
+
+model Trace {
+  id            String   @id @default(cuid())
+  traceId       String   @unique
+  spanId        String
+  parentSpanId  String?
+  operationName String
+  serviceName   String
+  duration      Int // milliseconds
+  status        String   @default("ok") // ok, error, timeout
+  metadata      Json?
+  brandId       String?
+  userId        String?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  brand Brand? @relation("BrandTraces", fields: [brandId], references: [id], onDelete: SetNull)
+  user  User?  @relation("UserTraces", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([traceId])
+  @@index([serviceName])
+  @@index([operationName])
+  @@index([status])
+  @@index([createdAt])
+  @@index([brandId])
+  @@index([userId])
+  @@index([serviceName, createdAt])
+}
+
+// ========================================
+// FEATURE FLAGS
+// ========================================
+
+model FeatureFlag {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  description String?
+  isEnabled   Boolean @default(false)
+  brandId     String? // null = global flag, set = brand-specific
+  brand       Brand?  @relation("BrandFeatureFlags", fields: [brandId], references: [id], onDelete: SetNull)
+  percentage  Int?    // Gradual rollout percentage (0-100)
+  conditions  Json?   // Advanced targeting conditions
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+  @@index([brandId])
+  @@index([isEnabled])
 }

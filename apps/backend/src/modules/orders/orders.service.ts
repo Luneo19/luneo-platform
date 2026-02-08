@@ -4,12 +4,13 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrencyUtils } from '@/config/currency.config';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, PaymentStatus, UserRole } from '@prisma/client';
+import { OrderStatus, PaymentStatus, UserRole, Prisma, CommissionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { CommissionService } from '@/modules/billing/services/commission.service';
 import { DiscountService } from './services/discount.service';
 import { ReferralService } from '../referral/referral.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
@@ -23,6 +24,7 @@ export class OrdersService {
     private discountService: DiscountService,
     private commissionService: CommissionService,
     @Optional() private referralService?: ReferralService, // Optional to avoid DI issues in unit tests
+    @Optional() private notificationsService?: NotificationsService,
   ) {}
 
   /**
@@ -356,7 +358,7 @@ export class OrdersService {
         customerEmail,
         customerName,
         customerPhone,
-        shippingAddress: shippingAddress as any,
+        shippingAddress: shippingAddress as Prisma.InputJsonValue,
         subtotalCents,
         taxCents,
         shippingCents,
@@ -367,7 +369,7 @@ export class OrdersService {
         brandId,
         designId: orderItems.length === 1 && orderItems[0].designId ? orderItems[0].designId : null, // Legacy support
         productId: orderItems.length === 1 ? orderItems[0].productId : null, // Legacy support
-        metadata: discountMetadata ? { discount: discountMetadata } as any : undefined,
+        metadata: discountMetadata ? { discount: discountMetadata } as Prisma.InputJsonValue : undefined,
         items: {
           create: orderItems.map(item => ({
             productId: item.productId,
@@ -375,7 +377,7 @@ export class OrdersService {
             quantity: item.quantity,
             priceCents: item.priceCents,
             totalCents: item.totalCents,
-            metadata: item.metadata as any,
+            metadata: item.metadata as Prisma.InputJsonValue,
           })),
         },
       },
@@ -578,8 +580,11 @@ export class OrdersService {
         stripeSessionId: true,
         stripePaymentId: true,
         trackingNumber: true,
+        trackingCarrier: true,
         trackingUrl: true,
         shippedAt: true,
+        deliveredAt: true,
+        estimatedDelivery: true,
         metadata: true,
         userId: true,
         brandId: true,
@@ -668,7 +673,7 @@ export class OrdersService {
       }
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.OrderUpdateInput = {};
     if (data.status) updateData.status = data.status;
     if (data.trackingNumber) updateData.trackingNumber = data.trackingNumber;
     if (data.notes) updateData.notes = data.notes;
@@ -774,21 +779,45 @@ export class OrdersService {
   /**
    * Récupérer les informations de suivi d'une commande
    */
-  async getTracking(id: string, currentUser: CurrentUser) {
-    const order = await this.findOne(id, currentUser);
+  async getTracking(orderId: string, currentUser: CurrentUser) {
+    const where: { id: string; userId?: string; brandId?: string; OR?: Array<{ userId: string } | { brandId: string }> } = {
+      id: orderId,
+    };
+    if (currentUser.role !== UserRole.PLATFORM_ADMIN) {
+      where.OR = [{ userId: currentUser.id }, ...(currentUser.brandId ? [{ brandId: currentUser.brandId }] : [])];
+    }
+
+    const order = await this.prisma.order.findFirst({
+      where,
+      select: {
+        id: true,
+        status: true,
+        trackingNumber: true,
+        trackingCarrier: true,
+        trackingUrl: true,
+        shippedAt: true,
+        deliveredAt: true,
+        estimatedDelivery: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
 
     return {
       orderId: order.id,
-      orderNumber: order.orderNumber,
-      status: order.status,
-      trackingNumber: order.trackingNumber || null,
-      trackingUrl: order.trackingUrl || null,
-      shippedAt: order.shippedAt || null,
-      estimatedDelivery: order.shippedAt
-        ? new Date(new Date(order.shippedAt).getTime() + 7 * 24 * 60 * 60 * 1000) // +7 jours
+      status: order.trackingNumber ? order.status : ('pending' as OrderStatus),
+      tracking: order.trackingNumber
+        ? {
+            number: order.trackingNumber,
+            carrier: order.trackingCarrier || 'unknown',
+            url: order.trackingUrl || null,
+            shippedAt: order.shippedAt ?? null,
+            deliveredAt: order.deliveredAt ?? null,
+            estimatedDelivery: order.estimatedDelivery ?? null,
+          }
         : null,
-      shippingAddress: order.shippingAddress,
-      carrier: order.metadata ? (order.metadata as any).carrier : null,
     };
   }
 
@@ -838,7 +867,7 @@ export class OrdersService {
             status: OrderStatus.CANCELLED,
             paymentStatus: PaymentStatus.REFUNDED,
             metadata: {
-              ...((order.metadata as any) || {}),
+              ...((order.metadata as Record<string, unknown>) || {}),
               refund: {
                 refundId: refund.id,
                 amountCents: refund.amount,
@@ -846,7 +875,7 @@ export class OrdersService {
                 requestedAt: new Date().toISOString(),
                 requestedBy: currentUser.id,
               },
-            } as any,
+            } as Prisma.InputJsonValue,
           },
           select: {
             id: true,
@@ -876,14 +905,14 @@ export class OrdersService {
             status: OrderStatus.CANCELLED,
             paymentStatus: PaymentStatus.REFUNDED,
             metadata: {
-              ...((order.metadata as any) || {}),
+              ...((order.metadata as Record<string, unknown>) || {}),
               refund: {
                 reason,
                 requestedAt: new Date().toISOString(),
                 requestedBy: currentUser.id,
                 type: 'manual',
               },
-            } as any,
+            } as Prisma.InputJsonValue,
           },
           select: {
             id: true,
@@ -911,6 +940,13 @@ export class OrdersService {
       this.logger.error(`Failed to process refund for order ${order.orderNumber}: ${errorMessage}`);
       throw new BadRequestException(`Failed to process refund: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Process a refund (admin endpoint) - delegates to requestRefund
+   */
+  async processRefund(id: string, adminUser: CurrentUser) {
+    return this.requestRefund(id, 'Admin-initiated refund', adminUser);
   }
 
   /**
@@ -949,7 +985,7 @@ export class OrdersService {
       if (commissions.length > 0) {
         await this.prisma.commission.updateMany({
           where: { orderId, status: 'PENDING' },
-          data: { status: 'CANCELLED' as any },
+          data: { status: CommissionStatus.CANCELLED },
         });
         this.logger.log(`Cancelled ${commissions.length} pending commissions for order ${orderNumber}`);
       }

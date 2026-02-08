@@ -42,6 +42,21 @@ import {
 import { EmptyState } from '@/components/ui/empty-states/EmptyState';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
+import { api } from '@/lib/api/client';
+
+interface DesignVersionMetadata {
+  auto_save?: boolean;
+  restored?: boolean;
+  manual?: boolean;
+  created_by?: string;
+  [key: string]: unknown;
+}
+
+interface DesignVersionDesignData {
+  thumbnail_url?: string;
+  preview_url?: string;
+  [key: string]: unknown;
+}
 
 interface DesignVersion {
   id: string;
@@ -49,8 +64,8 @@ interface DesignVersion {
   version_number: number;
   name: string;
   description: string | null;
-  design_data: any;
-  metadata: any;
+  design_data: DesignVersionDesignData | null;
+  metadata: DesignVersionMetadata | null;
   created_at: string;
   updated_at: string;
 }
@@ -85,15 +100,23 @@ function DesignVersionsPageContent() {
     },
   });
 
+  interface VersionRow {
+    id: string;
+    version?: number;
+    name: string;
+    metadata?: DesignVersionMetadata;
+    createdAt: string;
+    updatedAt: string;
+  }
   // Transform data
-  const versions: DesignVersion[] = (versionsQuery.data?.versions || []).map((v: any) => ({
+  const versions: DesignVersion[] = (versionsQuery.data?.versions || []).map((v: VersionRow) => ({
     id: v.id,
     design_id: designId,
-    version_number: v.version,
+    version_number: v.version ?? 0,
     name: v.name,
     description: null,
-    design_data: v.metadata,
-    metadata: v.metadata,
+    design_data: (v.metadata ?? {}) as DesignVersionDesignData | null,
+    metadata: v.metadata ?? null,
     created_at: v.createdAt,
     updated_at: v.updatedAt,
   }));
@@ -105,16 +128,7 @@ function DesignVersionsPageContent() {
 
     setRestoring(true);
     try {
-      const response = await fetch(
-        `/api/designs/${designId}/versions/${selectedVersion.id}/restore`,
-        { method: 'POST' }
-      );
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la restauration');
-      }
+      await api.post(`/api/v1/designs/${designId}/versions/${selectedVersion.id}/restore`);
 
       toast({
         title: 'Version restaurée',
@@ -129,10 +143,11 @@ function DesignVersionsPageContent() {
       
       // Rediriger vers le design
       router.push(`/dashboard/designs/${designId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Impossible de restaurer la version';
       toast({
         title: 'Erreur',
-        description: err.message || 'Impossible de restaurer la version',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -145,16 +160,7 @@ function DesignVersionsPageContent() {
 
     setDeleting(true);
     try {
-      const response = await fetch(
-        `/api/designs/${designId}/versions/${versionToDelete}`,
-        { method: 'DELETE' }
-      );
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la suppression');
-      }
+      await api.delete(`/api/v1/designs/${designId}/versions/${versionToDelete}`);
 
       toast({
         title: 'Version supprimée',
@@ -164,10 +170,11 @@ function DesignVersionsPageContent() {
       setIsDeleteModalOpen(false);
       setVersionToDelete(null);
       await versionsQuery.refetch();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Impossible de supprimer la version';
       toast({
         title: 'Erreur',
-        description: err.message || 'Impossible de supprimer la version',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -177,19 +184,9 @@ function DesignVersionsPageContent() {
 
   const handleCreateVersion = async () => {
     try {
-      const response = await fetch(`/api/designs/${designId}/versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `Version manuelle - ${new Date().toLocaleString('fr-FR')}`,
-        }),
+      await api.post(`/api/v1/designs/${designId}/versions`, {
+        name: `Version manuelle - ${new Date().toLocaleString('fr-FR')}`,
       });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la création');
-      }
 
       toast({
         title: 'Version créée',
@@ -197,10 +194,11 @@ function DesignVersionsPageContent() {
       });
 
       await versionsQuery.refetch();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Impossible de créer la version';
       toast({
         title: 'Erreur',
-        description: err.message || 'Impossible de créer la version',
+        description: message,
         variant: 'destructive',
       });
     }

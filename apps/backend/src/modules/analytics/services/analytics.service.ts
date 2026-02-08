@@ -1,7 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { CurrencyUtils } from '@/config/currency.config';
+import { PLAN_CONFIGS, normalizePlanTier } from '@/libs/plans';
 import { AnalyticsDashboard, AnalyticsMetrics } from '../interfaces/analytics.interface';
 
 // ============================================================================
@@ -676,17 +678,58 @@ export class AnalyticsService {
     try {
       this.logger.log(`Getting usage analytics for brand: ${brandId}`);
 
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        select: { plan: true },
+      });
+      const tier = normalizePlanTier(brand?.plan);
+      const planConfig = PLAN_CONFIGS[tier];
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const designsLimit = planConfig.limits.designsPerMonth < 0 ? 99_999 : planConfig.limits.designsPerMonth;
+      const rendersQuota = planConfig.quotas.find((q) => q.metric === 'renders_2d');
+      const rendersLimit = rendersQuota ? (rendersQuota.limit < 0 ? 99_999 : rendersQuota.limit) : 100;
+      const storageLimit = planConfig.limits.storageGB < 0 ? 999 : planConfig.limits.storageGB;
+      const apiCallsQuota = planConfig.quotas.find((q) => q.metric === 'api_calls');
+      const apiCallsLimit = apiCallsQuota ? (apiCallsQuota.limit < 0 ? 99_999_999 : apiCallsQuota.limit) : 0;
+
+      const [designsUsed, rendersUsed, storageAgg, apiCallsUsed] = await Promise.all([
+        this.prisma.design.count({
+          where: { brandId, createdAt: { gte: startOfMonth } },
+        }),
+        this.prisma.generation.count({
+          where: { brandId, createdAt: { gte: startOfMonth } },
+        }),
+        this.prisma.assetFile.aggregate({
+          where: { brandId },
+          _sum: { size: true },
+        }),
+        this.prisma.usageRecord.aggregate({
+          where: {
+            brandId,
+            recordedAt: { gte: startOfMonth },
+          },
+          _sum: { count: true },
+        }),
+      ]);
+
+      const storageBytes = storageAgg._sum.size ?? 0;
+      const storageUsedGb = Math.round((storageBytes / (1024 * 1024 * 1024)) * 100) / 100;
+      const apiCalls = apiCallsUsed._sum.count ?? 0;
+
       return {
         success: true,
         usage: {
-          designs: { used: 45, limit: 100, unit: 'designs' },
-          renders: { used: 120, limit: 500, unit: 'renders' },
-          storage: { used: 2.5, limit: 10, unit: 'GB' },
-          apiCalls: { used: 15000, limit: 100000, unit: 'calls' }
-        }
+          designs: { used: designsUsed, limit: designsLimit, unit: 'designs' },
+          renders: { used: rendersUsed, limit: rendersLimit, unit: 'renders' },
+          storage: { used: storageUsedGb, limit: storageLimit, unit: 'GB' },
+          apiCalls: { used: apiCalls, limit: apiCallsLimit, unit: 'calls' },
+        },
       };
     } catch (error) {
-      this.logger.error(`Failed to get usage analytics: ${error.message}`);
+      this.logger.error(`Failed to get usage analytics: ${error instanceof Error ? error.message : 'Unknown'}`);
       throw error;
     }
   }
@@ -1124,6 +1167,108 @@ export class AnalyticsService {
       this.logger.error(`Failed to get realtime users: ${error instanceof Error ? error.message : 'Unknown'}`);
       return { users: [] };
     }
+  }
+
+  /**
+   * Get design analytics: counts by status and daily counts for the period.
+   */
+  async getDesignsAnalytics(brandId?: string, startDateStr?: string, endDateStr?: string) {
+    const where: Record<string, unknown> = {};
+    if (brandId) where.brandId = brandId;
+    if (startDateStr || endDateStr) {
+      where.createdAt = {} as Record<string, unknown>;
+      if (startDateStr) (where.createdAt as Record<string, unknown>).gte = new Date(startDateStr);
+      if (endDateStr) (where.createdAt as Record<string, unknown>).lte = new Date(endDateStr);
+    }
+    const prismaWhere = where as Prisma.DesignWhereInput;
+
+    const [total, designsByStatus] = await Promise.all([
+      this.prisma.design.count({ where: prismaWhere }),
+      this.prisma.design.groupBy({
+        by: ['status'],
+        where: prismaWhere,
+        _count: { id: true },
+      }),
+    ]);
+
+    const start = (where.createdAt as { gte?: Date } | undefined)?.gte ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = (where.createdAt as { lte?: Date } | undefined)?.lte ?? new Date();
+    const dailyRaw = brandId
+      ? await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          FROM "Design"
+          WHERE brand_id = ${brandId}
+            AND created_at >= ${start}::timestamp
+            AND created_at <= ${end}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `
+      : await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          FROM "Design"
+          WHERE created_at >= ${start}::timestamp
+            AND created_at <= ${end}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `;
+    const daily = dailyRaw.map((d) => ({ date: d.date, count: Number(d.count) }));
+
+    return {
+      data: designsByStatus.map((d) => ({ status: d.status, count: d._count.id })),
+      daily,
+      total,
+    };
+  }
+
+  /**
+   * Get order analytics: counts by status and daily counts for the period.
+   */
+  async getOrdersAnalytics(brandId?: string, startDateStr?: string, endDateStr?: string) {
+    const where: Record<string, unknown> = {};
+    if (brandId) where.brandId = brandId;
+    if (startDateStr || endDateStr) {
+      where.createdAt = {} as Record<string, unknown>;
+      if (startDateStr) (where.createdAt as Record<string, unknown>).gte = new Date(startDateStr);
+      if (endDateStr) (where.createdAt as Record<string, unknown>).lte = new Date(endDateStr);
+    }
+    const prismaWhere = where as Prisma.OrderWhereInput;
+
+    const [total, ordersByStatus] = await Promise.all([
+      this.prisma.order.count({ where: prismaWhere }),
+      this.prisma.order.groupBy({
+        by: ['status'],
+        where: prismaWhere,
+        _count: { id: true },
+      }),
+    ]);
+
+    const start = (where.createdAt as { gte?: Date } | undefined)?.gte ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = (where.createdAt as { lte?: Date } | undefined)?.lte ?? new Date();
+    const dailyRaw = brandId
+      ? await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          FROM "Order"
+          WHERE brand_id = ${brandId}
+            AND created_at >= ${start}::timestamp
+            AND created_at <= ${end}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `
+      : await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          FROM "Order"
+          WHERE created_at >= ${start}::timestamp
+            AND created_at <= ${end}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `;
+    const daily = dailyRaw.map((d) => ({ date: d.date, count: Number(d.count) }));
+
+    return {
+      data: ordersByStatus.map((o) => ({ status: o.status, count: o._count.id })),
+      daily,
+      total,
+    };
   }
 
   /**

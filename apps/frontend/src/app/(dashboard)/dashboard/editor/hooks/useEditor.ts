@@ -4,6 +4,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { Layer, EditorTool, HistoryState, TextTool, ShapeTool, ImageTool } from '../types';
 
@@ -102,53 +103,54 @@ export function useEditor() {
 
   const handleSave = useCallback(async () => {
     try {
-      const response = await fetch('/api/editor/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ layers }),
-      });
-      if (response.ok) {
-        toast({ title: 'Succès', description: 'Projet enregistré' });
-        return { success: true };
-      }
-      throw new Error('Failed to save');
-    } catch (error: any) {
+      await api.post('/api/v1/editor/projects', { layers });
+      toast({ title: 'Succès', description: 'Projet enregistré' });
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erreur lors de l'enregistrement";
       logger.error('Failed to save project', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de l\'enregistrement',
+        description: message,
         variant: 'destructive',
       });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   }, [layers, toast]);
 
   const handleExport = useCallback(async (format: string) => {
     try {
-      const response = await fetch('/api/editor/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ layers, format }),
-      });
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+      const data = await api.post<Blob | { url?: string }>(
+        '/api/v1/editor/export',
+        { layers, format },
+        { responseType: 'blob' }
+      );
+      if (data instanceof Blob) {
+        const url = window.URL.createObjectURL(data);
         const a = document.createElement('a');
         a.href = url;
         a.download = `design.${format}`;
         a.click();
-        toast({ title: 'Succès', description: 'Export réussi' });
-        return { success: true };
+        window.URL.revokeObjectURL(url);
+      } else if (data && typeof (data as { url?: string }).url === 'string') {
+        const a = document.createElement('a');
+        a.href = (data as { url: string }).url;
+        a.download = `design.${format}`;
+        a.click();
+      } else {
+        throw new Error('Export response missing url or blob');
       }
-      throw new Error('Failed to export');
-    } catch (error: any) {
+      toast({ title: 'Succès', description: 'Export réussi' });
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erreur lors de l'export";
       logger.error('Failed to export', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de l\'export',
+        description: message,
         variant: 'destructive',
       });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   }, [layers, toast]);
 

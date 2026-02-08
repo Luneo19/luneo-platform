@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AnalyticsService } from '../services/analytics.service';
 import { RecordWebVitalDto } from '../dto/record-web-vital.dto';
 
@@ -199,6 +199,34 @@ export class AnalyticsController {
   @ApiResponse({ status: 500, description: 'Erreur serveur' })
   async getRealtimeUsers() {
     return this.analyticsService.getRealtimeUsers();
+  }
+
+  @Get('designs')
+  @ApiOperation({ summary: 'Get design analytics' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date filter' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date filter' })
+  @ApiResponse({ status: 200, description: 'Design analytics with counts by status and daily' })
+  async getDesignsAnalytics(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Request() req?: { user?: { brandId?: string } },
+  ) {
+    const brandId = req?.user?.brandId;
+    return this.analyticsService.getDesignsAnalytics(brandId, startDate, endDate);
+  }
+
+  @Get('orders')
+  @ApiOperation({ summary: 'Get order analytics' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date filter' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date filter' })
+  @ApiResponse({ status: 200, description: 'Order analytics with counts by status and daily' })
+  async getOrdersAnalytics(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Request() req?: { user?: { brandId?: string } },
+  ) {
+    const brandId = req?.user?.brandId;
+    return this.analyticsService.getOrdersAnalytics(brandId, startDate, endDate);
   }
 }
 

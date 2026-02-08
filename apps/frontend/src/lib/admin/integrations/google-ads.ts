@@ -9,6 +9,8 @@
  * qui peut être remplacée par l'implémentation réelle une fois le SDK installé.
  */
 
+import { logger } from '@/lib/logger';
+
 // Conditional import - google-ads-api is optional
 let GoogleAdsApi: any;
 let Customer: any;
@@ -82,7 +84,10 @@ export class GoogleAdsClient {
           refresh_token: refreshToken,
         });
       } catch (error) {
-        console.error('Failed to initialize Google Ads client:', error);
+        logger.error(
+          'Failed to initialize Google Ads client',
+          error instanceof Error ? error : new Error(String(error))
+        );
       }
     }
   }
@@ -132,7 +137,10 @@ export class GoogleAdsClient {
         endDate: row.campaign.end_date,
       }));
     } catch (error) {
-      console.error('Failed to fetch Google Ads campaigns:', error);
+      logger.error(
+        'Failed to fetch Google Ads campaigns',
+        error instanceof Error ? error : new Error(String(error))
+      );
       return [];
     }
   }
@@ -203,7 +211,10 @@ export class GoogleAdsClient {
         roas: aggregated.cost > 0 ? aggregated.conversions / aggregated.cost : 0,
       };
     } catch (error) {
-      console.error('Failed to fetch Google Ads insights:', error);
+      logger.error(
+        'Failed to fetch Google Ads insights',
+        error instanceof Error ? error : new Error(String(error))
+      );
       return {
         impressions: 0,
         clicks: 0,

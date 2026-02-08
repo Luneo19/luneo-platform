@@ -2,7 +2,18 @@
  * Types for AI Studio 3D
  */
 
-export type AIStudioTab = 'generate' | 'models' | 'templates' | 'settings';
+export type AIStudioTab =
+  | 'generate'
+  | 'history'
+  | 'templates'
+  | 'analytics'
+  | 'ai-ml'
+  | 'collaboration'
+  | 'performance'
+  | 'security'
+  | 'i18n'
+  | 'accessibility'
+  | 'workflow';
 
 export interface GeneratedModel {
   id: string;
@@ -10,11 +21,11 @@ export interface GeneratedModel {
   prompt: string;
   thumbnail: string;
   thumbnailUrl?: string;
-  modelUrl: string;
+  modelUrl?: string;
   category: string;
   complexity: string;
   resolution: string;
-  polyCount: number;
+  polyCount?: number;
   createdAt: Date | number | string;
   credits: number;
   creditsUsed?: number;

@@ -9,7 +9,8 @@ import { Queue } from 'bullmq';
 import { MagentoConnector } from '../connectors/magento/magento.connector';
 import { ShopifyConnector } from '../connectors/shopify/shopify.connector';
 import { WooCommerceConnector } from '../connectors/woocommerce/woocommerce.connector';
-import { OrderSyncRequest, SyncResult } from '../interfaces/ecommerce.interface';
+import { OrderSyncRequest, SyncResult, SyncError } from '../interfaces/ecommerce.interface';
+import type { Prisma } from '@prisma/client';
 
 export interface OrderStats {
   period: 'day' | 'week' | 'month';
@@ -63,15 +64,15 @@ export class OrderSyncService {
 
       switch (integration.platform) {
         case 'shopify':
-          orders = (await this.shopifyConnector.getOrders(integrationId)) as any;
+          orders = (await this.shopifyConnector.getOrders(integrationId)) as Array<Record<string, JsonValue>>;
           break;
 
         case 'woocommerce':
-          orders = (await this.woocommerceConnector.getOrders(integrationId)) as any;
+          orders = (await this.woocommerceConnector.getOrders(integrationId)) as Array<Record<string, JsonValue>>;
           break;
 
         case 'magento':
-          orders = (await this.magentoConnector.getOrders(integrationId)) as any;
+          orders = (await this.magentoConnector.getOrders(integrationId)) as Array<Record<string, JsonValue>>;
           break;
       }
 
@@ -92,9 +93,10 @@ export class OrderSyncService {
             itemsProcessed++;
           } else {
             this.logger.error(`Error processing order:`, result.reason);
+            const orderRecord = order as Record<string, JsonValue>;
             errors.push({
               message: result.reason?.message || 'Unknown error',
-              orderId: (order as any).id?.toString(),
+              orderId: orderRecord?.id != null ? String(orderRecord.id) : undefined,
               error: result.reason,
             });
             itemsFailed++;
@@ -111,21 +113,26 @@ export class OrderSyncService {
           status: itemsFailed === 0 ? SyncLogStatus.SUCCESS : itemsFailed < itemsProcessed ? SyncLogStatus.PARTIAL : SyncLogStatus.FAILED,
           itemsProcessed,
           itemsFailed,
-          errors: errors as any,
+          errors: errors as unknown as Prisma.InputJsonValue,
           duration: Date.now() - startTime,
         },
       });
 
+      const statusMap: Record<SyncLogStatus, SyncResult['status']> = {
+        [SyncLogStatus.SUCCESS]: 'success',
+        [SyncLogStatus.FAILED]: 'failed',
+        [SyncLogStatus.PARTIAL]: 'partial',
+      };
       return {
         integrationId,
         platform: integration.platform,
         type: 'order',
         direction: 'import',
-        status: syncLog.status as any,
+        status: statusMap[syncLog.status],
         itemsProcessed,
         itemsFailed,
         duration: Date.now() - startTime,
-        errors: errors as any,
+        errors: errors as unknown as SyncError[],
         summary: {
           created: itemsProcessed - itemsFailed,
           updated: 0,

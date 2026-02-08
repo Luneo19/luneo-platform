@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { ARModel, ARSession, ARMode, ARPreviewStats } from '../types';
 
@@ -26,15 +27,11 @@ export function useARPreview(
   const fetchModels = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/ar-studio/models');
-      if (response.ok) {
-        const data = await response.json();
-        setModels(data.models || data.data || []);
-        if (data.models && data.models.length > 0) {
-          setSelectedModel(data.models[0].id);
-        }
-      } else {
-        setModels([]);
+      const data = await api.get<{ models?: ARModel[]; data?: ARModel[] }>('/api/v1/ar-studio/models');
+      const modelsList = data?.models ?? data?.data ?? [];
+      setModels(modelsList);
+      if (modelsList.length > 0) {
+        setSelectedModel(modelsList[0].id);
       }
     } catch (error) {
       logger.error('Failed to fetch AR models', { error });
@@ -46,13 +43,8 @@ export function useARPreview(
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/ar-studio/sessions');
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data.sessions || data.data || []);
-      } else {
-        setSessions([]);
-      }
+      const data = await api.get<{ sessions?: ARSession[]; data?: ARSession[] }>('/api/v1/ar-studio/sessions');
+      setSessions(data?.sessions ?? data?.data ?? []);
     } catch (error) {
       logger.error('Failed to fetch AR sessions', { error });
       setSessions([]);
@@ -98,28 +90,22 @@ export function useARPreview(
   const startPreview = async (modelId: string, mode: ARMode) => {
     try {
       setIsPreviewing(true);
-      const response = await fetch('/api/ar-studio/preview/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId, mode }),
+      await api.post('/api/v1/ar-studio/preview/start', { modelId, mode });
+      toast({
+        title: 'Prévisualisation AR',
+        description: 'Ouvrez votre appareil mobile pour voir le modèle en AR',
       });
-      if (response.ok) {
-        toast({
-          title: 'Prévisualisation AR',
-          description: 'Ouvrez votre appareil mobile pour voir le modèle en AR',
-        });
-        return { success: true };
-      }
-      throw new Error('Failed to start preview');
-    } catch (error: any) {
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors du démarrage';
       logger.error('Failed to start preview', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors du démarrage',
+        description: message,
         variant: 'destructive',
       });
       setIsPreviewing(false);
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   };
 
@@ -129,15 +115,12 @@ export function useARPreview(
 
   const generateQRCode = async (modelId: string) => {
     try {
-      const response = await fetch(`/api/ar-studio/preview/qr/${modelId}`);
-      if (response.ok) {
-        const data = await response.json();
-        return { success: true, qrCode: data.qrCode, url: data.url };
-      }
-      throw new Error('Failed to generate QR code');
-    } catch (error: any) {
+      const data = await api.get<{ qrCode?: string; url?: string }>(`/api/v1/ar-studio/preview/qr/${modelId}`);
+      return { success: true, qrCode: data?.qrCode, url: data?.url };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to generate QR code';
       logger.error('Failed to generate QR code', { error });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   };
 

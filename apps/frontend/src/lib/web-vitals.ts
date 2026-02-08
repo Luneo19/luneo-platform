@@ -5,6 +5,7 @@
 
 import { onCLS, onFID, onFCP, onLCP, onTTFB, Metric } from 'web-vitals';
 import { logger } from './logger';
+import { api } from '@/lib/api/client';
 
 // Fonction pour envoyer les métriques
 function sendToAnalytics(metric: Metric) {
@@ -24,18 +25,14 @@ function sendToAnalytics(metric: Metric) {
 
   // Envoyer à notre API pour stockage et dashboard
   if (typeof window !== 'undefined') {
-    fetch('/api/analytics/web-vitals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: metric.name,
-        value: metric.value,
-        rating: metric.rating,
-        delta: metric.delta,
-        id: metric.id,
-        url: window.location.pathname,
-        timestamp: Date.now(),
-      }),
+    api.post('/api/v1/analytics/web-vitals', {
+      name: metric.name,
+      value: metric.value,
+      rating: metric.rating,
+      delta: metric.delta,
+      id: metric.id,
+      url: window.location.pathname,
+      timestamp: Date.now(),
     }).catch((error) => {
       // Ne pas bloquer si l'API échoue
       if (process.env.NODE_ENV === 'development') {
@@ -45,23 +42,29 @@ function sendToAnalytics(metric: Metric) {
   }
 
   // Optionnel : Envoyer à Google Analytics
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', metric.name, {
-      value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
-      event_category: 'Web Vitals',
-      event_label: metric.id,
-      non_interaction: true,
-    });
+  if (typeof window !== 'undefined') {
+    const win = window as Window & { gtag?: (a: string, b: string, c: Record<string, unknown>) => void };
+    if (win.gtag) {
+      win.gtag('event', metric.name, {
+        value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
+        event_category: 'Web Vitals',
+        event_label: metric.id,
+        non_interaction: true,
+      });
+    }
   }
 
   // Envoyer à Sentry pour performance monitoring
-  if (typeof window !== 'undefined' && (window as any).Sentry) {
-    (window as any).Sentry.metrics.distribution('web_vital', metric.value, {
-      tags: {
-        metric_name: metric.name,
-        rating: metric.rating || 'unknown',
-      },
-    });
+  if (typeof window !== 'undefined') {
+    const win = window as Window & { Sentry?: { metrics: { distribution: (name: string, value: number, opts: { tags: Record<string, string> }) => void } } };
+    if (win.Sentry) {
+      win.Sentry.metrics.distribution('web_vital', metric.value, {
+        tags: {
+          metric_name: metric.name,
+          rating: metric.rating || 'unknown',
+        },
+      });
+    }
   }
 }
 

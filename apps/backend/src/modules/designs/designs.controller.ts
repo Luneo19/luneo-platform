@@ -27,6 +27,7 @@ import { GetVersionsQueryDto } from './dto/get-versions-query.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
 import { UpdateDesignDto } from './dto/update-design.dto';
 import { ExportForPrintDto } from './dto/export-for-print.dto';
+import { ShareDesignDto } from './dto/share-design.dto';
 
 @ApiTags('designs')
 @Controller('designs')
@@ -225,5 +226,37 @@ export class DesignsController {
       },
       req.user,
     );
+  }
+
+  @Post(':id/share')
+  @ApiOperation({ summary: 'Create share link for a design' })
+  @ApiParam({ name: 'id', description: 'Design ID' })
+  @ApiResponse({ status: 201, description: 'Share link created' })
+  async createShare(
+    @Param('id') id: string,
+    @Body() body: ShareDesignDto,
+    @Request() req,
+  ) {
+    const result = await this.designsService.share(
+      id,
+      { expiresInDays: body.expires_in_days ?? 30 },
+      req.user,
+    );
+    return {
+      share: {
+        token: result.shareToken,
+        shareUrl: result.shareUrl,
+        expires_at: result.expiresAt,
+        created_at: new Date().toISOString(),
+      },
+    };
+  }
+
+  @Get(':id/share')
+  @ApiOperation({ summary: 'Get share status for a design' })
+  @ApiParam({ name: 'id', description: 'Design ID' })
+  @ApiResponse({ status: 200, description: 'Share status' })
+  async getShareStatus(@Param('id') id: string, @Request() req) {
+    return this.designsService.getShareStatus(id, req.user);
   }
 }

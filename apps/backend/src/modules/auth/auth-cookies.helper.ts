@@ -15,7 +15,7 @@ export class AuthCookiesHelper {
     configService: ConfigService,
   ): void {
     const isProduction = configService.get('app.nodeEnv') === 'production';
-    const frontendUrl = configService.get('app.frontendUrl') || 'http://localhost:3000';
+    const frontendUrl = configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
     const domain = this.extractDomain(frontendUrl);
 
     // Access Token cookie (15 minutes)
@@ -28,13 +28,13 @@ export class AuthCookiesHelper {
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
 
-    // Refresh Token cookie (7 days)
+    // Refresh Token cookie (7 days) - path restricted so it's only sent to /api/v1/auth (e.g. refresh)
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction, // HTTPS only en production
       sameSite: 'lax', // Protection CSRF
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
-      path: '/',
+      path: '/api/v1/auth',
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
   }
@@ -46,7 +46,7 @@ export class AuthCookiesHelper {
     res: Response,
     configService: ConfigService,
   ): void {
-    const frontendUrl = configService.get('app.frontendUrl') || 'http://localhost:3000';
+    const frontendUrl = configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
     const domain = this.extractDomain(frontendUrl);
 
     res.clearCookie('accessToken', {
@@ -61,7 +61,7 @@ export class AuthCookiesHelper {
       httpOnly: true,
       secure: configService.get('app.nodeEnv') === 'production',
       sameSite: 'lax',
-      path: '/',
+      path: '/api/v1/auth',
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
   }

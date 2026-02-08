@@ -10,12 +10,12 @@
  */
 
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SettingsPageClient } from './SettingsPageClient';
 import { SettingsSkeleton } from './components/SettingsSkeleton';
-// Note: On ne peut pas utiliser trpc directement dans un Server Component
-// On utilisera fetch ou Supabase directement
+import { getBackendUrl } from '@/lib/api/server-url';
+import { cookies } from 'next/headers';
 
 export const metadata = {
   title: 'Paramètres | Luneo',
@@ -26,12 +26,10 @@ export const metadata = {
  * Server Component - Fetch les données initiales
  */
 export default async function SettingsPage() {
-  const supabase = await createClient();
-
   // Vérifier l'authentification
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const user = await getServerUser();
 
-  if (authError || !user) {
+  if (!user) {
     return (
       <ErrorBoundary level="page" componentName="SettingsPage">
         <div className="p-6">
@@ -41,40 +39,64 @@ export default async function SettingsPage() {
     );
   }
 
-  // Fetch profile data from Supabase
-  const { data: profileData, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (profileError || !profileData) {
-    return (
-      <ErrorBoundary level="page" componentName="SettingsPage">
-        <div className="p-6">
-          <p className="text-red-400">Erreur lors du chargement du profil</p>
-        </div>
-      </ErrorBoundary>
-    );
-  }
-
-  const metadata = (profileData.metadata || {}) as any;
-
-  const initialProfile = {
-    id: profileData.id,
-    name: profileData.name || '',
+  // Full profile is fetched from GET /api/v1/auth/me below (cookies sent via Cookie header)
+  let initialProfile = {
+    id: user.id,
+    name: '',
     email: user.email || '',
-    phone: profileData.phone || metadata.phone || '',
-    company: metadata.company || '',
-    website: profileData.website || metadata.website || '',
-    bio: metadata.bio || '',
-    location: metadata.location || '',
-    avatar_url: profileData.avatar_url || '',
-    timezone: profileData.timezone || 'Europe/Paris',
-    role: profileData.role || '',
+    phone: '',
+    company: '',
+    website: '',
+    bio: '',
+    location: '',
+    avatar_url: '',
+    timezone: 'Europe/Paris',
+    role: user.role || '',
   };
 
-  const initialNotificationPreferences = metadata.notificationPreferences || undefined;
+  let initialNotificationPreferences = undefined;
+
+  try {
+    // Try to fetch full profile from backend
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('accessToken')?.value;
+    const refreshToken = cookieStore.get('refreshToken')?.value || '';
+    const cookieHeader = refreshToken
+      ? `accessToken=${accessToken}; refreshToken=${refreshToken}`
+      : `accessToken=${accessToken}`;
+
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/v1/auth/me`, {
+      method: 'GET',
+      headers: {
+        Cookie: cookieHeader,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      // Map backend user data to profile format
+      initialProfile = {
+        id: data.id || user.id,
+        name: data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : data.firstName || data.lastName || '',
+        email: data.email || user.email || '',
+        phone: data.phone || '',
+        company: data.company || '',
+        website: data.website || '',
+        bio: data.bio || '',
+        location: data.location || '',
+        avatar_url: data.avatar || '',
+        timezone: data.timezone || 'Europe/Paris',
+        role: data.role || user.role || '',
+      };
+      initialNotificationPreferences = data.notificationPreferences || undefined;
+    }
+  } catch (error) {
+    // If profile fetch fails, use basic user data
+    // Client component will handle fetching full profile
+  }
 
   return (
     <ErrorBoundary level="page" componentName="SettingsPage">

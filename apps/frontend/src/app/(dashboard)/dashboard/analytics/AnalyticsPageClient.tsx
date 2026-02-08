@@ -104,7 +104,7 @@ export function AnalyticsPageClient() {
 
   const handleExport = useCallback(() => {
     if (!data || !metrics.length) return;
-    exportAnalytics(data as any, metrics, exportFormat);
+    exportAnalytics(data as Record<string, unknown>, metrics, exportFormat);
     setShowExportModal(false);
   }, [data, metrics, exportFormat, exportAnalytics]);
 

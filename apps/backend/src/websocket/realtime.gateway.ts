@@ -177,7 +177,7 @@ export class RealtimeGateway {
     if (!room) {
       room = {
         id: roomId,
-        type: type as any,
+        type: type as CollaborationRoom['type'],
         resourceId,
         participants: new Map(),
         cursors: new Map(),
@@ -236,7 +236,7 @@ export class RealtimeGateway {
     }
 
     // Remove participant
-    const clientId = (client as any).id;
+    const clientId = (client as AuthenticatedSocket).id;
     if (clientId) {
       room.participants.delete(clientId);
       room.cursors.delete(clientId);
@@ -287,7 +287,7 @@ export class RealtimeGateway {
       color: this.getUserColor(client.userId),
     };
 
-    const clientId = (client as any).id;
+    const clientId = (client as AuthenticatedSocket).id;
     if (clientId) {
       room.cursors.set(clientId, cursor);
     }

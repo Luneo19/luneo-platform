@@ -2,9 +2,25 @@
  * ★★★ USE ADMIN OVERVIEW HOOK ★★★
  * Hook SWR pour récupérer les données du dashboard admin overview
  * Auto-refresh et gestion d'erreurs
+ *
+ * Coexistence: This admin area uses SWR for simple GET + cache; the rest of the app
+ * uses React Query (@tanstack/react-query). Both can coexist. Consider migrating to
+ * React Query later for consistency if desired.
  */
 
 import useSWR from 'swr';
+
+/** Error thrown by fetcher with API response details */
+class FetcherError extends Error {
+  info?: unknown;
+  status?: number;
+  constructor(message: string, options?: { info?: unknown; status?: number }) {
+    super(message);
+    this.name = 'FetcherError';
+    this.info = options?.info;
+    this.status = options?.status;
+  }
+}
 
 /**
  * Fetcher simple pour SWR
@@ -13,16 +29,14 @@ async function fetcher(url: string) {
   const response = await fetch(url, {
     credentials: 'include',
   });
-  
+
   if (!response.ok) {
-    const error = new Error('An error occurred while fetching the data.');
-    // @ts-ignore
-    error.info = await response.json();
-    // @ts-ignore
-    error.status = response.status;
-    throw error;
+    throw new FetcherError('An error occurred while fetching the data.', {
+      info: await response.json(),
+      status: response.status,
+    });
   }
-  
+
   return response.json();
 }
 

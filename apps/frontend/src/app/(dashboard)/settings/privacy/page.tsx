@@ -7,6 +7,7 @@
 
 import { useState, memo } from 'react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { api } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Download,
@@ -45,16 +46,10 @@ function PrivacySettingsPageContent() {
   const handleExportData = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/gdpr/export');
-      
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-
-      const data = await response.json();
-      
+      const data = await api.get<{ data?: { data?: unknown } }>('/api/v1/gdpr/export');
+      const exportData = data?.data?.data ?? data;
       // Create downloadable JSON file
-      const blob = new Blob([JSON.stringify(data.data.data, null, 2)], {
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
@@ -102,19 +97,10 @@ function PrivacySettingsPageContent() {
 
     setIsDeleting(true);
     try {
-      const response = await fetch('/api/gdpr/delete-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          confirmation: deleteConfirmation,
-          password: deletePassword,
-        }),
+      await api.post('/api/v1/gdpr/delete-account', {
+        confirmation: deleteConfirmation,
+        password: deletePassword,
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Deletion failed');
-      }
 
       // Redirect to goodbye page
       window.location.href = '/goodbye';

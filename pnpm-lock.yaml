@@ -11,6 +11,9 @@ importers:
       '@prisma/client':
         specifier: 5.22.0
         version: 5.22.0(prisma@5.22.0)
+      argon2:
+        specifier: ^0.44.0
+        version: 0.44.0
       next:
         specifier: ^15.0.0
         version: 15.5.12(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.1)(react-dom@18.3.1)(react@18.3.1)
@@ -90,9 +93,6 @@ importers:
       '@sentry/nestjs':
         specifier: ^10.22.0
         version: 10.38.0(@nestjs/common@10.4.22)(@nestjs/core@10.4.22)
-      '@sentry/node':
-        specifier: ^7.91.0
-        version: 7.120.4
       '@types/archiver':
         specifier: ^7.0.0
         version: 7.0.0
@@ -566,6 +566,9 @@ importers:
       date-fns:
         specifier: ^3.0.0
         version: 3.6.0
+      dompurify:
+        specifier: ^3.3.1
+        version: 3.3.1
       embla-carousel-react:
         specifier: ^8.0.0
         version: 8.6.0(react@18.3.1)
@@ -690,6 +693,9 @@ importers:
       '@types/bcryptjs':
         specifier: ^3.0.0
         version: 3.0.0
+      '@types/dompurify':
+        specifier: ^3.2.0
+        version: 3.2.0
       '@types/node':
         specifier: ^20.10.0
         version: 20.19.31
@@ -2199,6 +2205,10 @@ packages:
 
   /@emotion/memoize@0.9.0:
     resolution: {integrity: sha512-30FAj7/EoJ5mwVPOWhAyCX+FPfMDrVecJAM+Iw9NRoSl4BBAQeqj4cApHHUXOVvIPgLVDsCFoz/hGD+5QQD1GQ==}
+    dev: false
+
+  /@epic-web/invariant@1.0.0:
+    resolution: {integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==}
     dev: false
 
   /@esbuild/aix-ppc64@0.21.5:
@@ -4766,6 +4776,11 @@ packages:
       '@noble/hashes': 1.8.0
     dev: true
 
+  /@phc/format@1.0.0:
+    resolution: {integrity: sha512-m7X9U6BG2+J+R1lSOdCiITLLrxm+cWlNI3HUFA92oLO77ObGNzaKdh8pMLqdZcshtkKuV84olNNXDfMc4FezBQ==}
+    engines: {node: '>=10'}
+    dev: false
+
   /@pkgjs/parseargs@0.11.0:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
@@ -6659,15 +6674,6 @@ packages:
       '@sentry/core': 10.38.0
     dev: false
 
-  /@sentry-internal/tracing@7.120.4:
-    resolution: {integrity: sha512-Fz5+4XCg3akeoFK+K7g+d7HqGMjmnLoY2eJlpONJmaeT9pXY7yfUyXKZMmMajdE2LxxKJgQ2YKvSCaGVamTjHw==}
-    engines: {node: '>=8'}
-    dependencies:
-      '@sentry/core': 7.120.4
-      '@sentry/types': 7.120.4
-      '@sentry/utils': 7.120.4
-    dev: false
-
   /@sentry/babel-plugin-component-annotate@4.9.0:
     resolution: {integrity: sha512-TJ7sVoa2Bf36lpJjBAzpNDC5Hg+evjsQnqUPeDx9Nz/YFw0u9rK1cwvi95gVWpx7PJSDCkljIv3aw0m4RatHpQ==}
     engines: {node: '>= 14'}
@@ -6802,24 +6808,6 @@ packages:
     engines: {node: '>=18'}
     dev: false
 
-  /@sentry/core@7.120.4:
-    resolution: {integrity: sha512-TXu3Q5kKiq8db9OXGkWyXUbIxMMuttB5vJ031yolOl5T/B69JRyAoKuojLBjRv1XX583gS1rSSoX8YXX7ATFGA==}
-    engines: {node: '>=8'}
-    dependencies:
-      '@sentry/types': 7.120.4
-      '@sentry/utils': 7.120.4
-    dev: false
-
-  /@sentry/integrations@7.120.4:
-    resolution: {integrity: sha512-kkBTLk053XlhDCg7OkBQTIMF4puqFibeRO3E3YiVc4PGLnocXMaVpOSCkMqAc1k1kZ09UgGi8DxfQhnFEjUkpA==}
-    engines: {node: '>=8'}
-    dependencies:
-      '@sentry/core': 7.120.4
-      '@sentry/types': 7.120.4
-      '@sentry/utils': 7.120.4
-      localforage: 1.10.0
-    dev: false
-
   /@sentry/nestjs@10.38.0(@nestjs/common@10.4.22)(@nestjs/core@10.4.22):
     resolution: {integrity: sha512-K+dMs0JzCrwAnOV7M1uSbGzm3KvvdkTvRKNyyOcBOPY9IeVoffPQxz+KNtMsXEIeI7UA35T8riFN8zCNxdqH+A==}
     engines: {node: '>=18'}
@@ -6940,17 +6928,6 @@ packages:
       - supports-color
     dev: false
 
-  /@sentry/node@7.120.4:
-    resolution: {integrity: sha512-qq3wZAXXj2SRWhqErnGCSJKUhPSlZ+RGnCZjhfjHpP49KNpcd9YdPTIUsFMgeyjdh6Ew6aVCv23g1hTP0CHpYw==}
-    engines: {node: '>=8'}
-    dependencies:
-      '@sentry-internal/tracing': 7.120.4
-      '@sentry/core': 7.120.4
-      '@sentry/integrations': 7.120.4
-      '@sentry/types': 7.120.4
-      '@sentry/utils': 7.120.4
-    dev: false
-
   /@sentry/opentelemetry@10.38.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.0)(@opentelemetry/core@2.5.0)(@opentelemetry/sdk-trace-base@2.5.0)(@opentelemetry/semantic-conventions@1.39.0):
     resolution: {integrity: sha512-YPVhWfYmC7nD3EJqEHGtjp4fp5LwtAbE5rt9egQ4hqJlYFvr8YEz9sdoqSZxO0cZzgs2v97HFl/nmWAXe52G2Q==}
     engines: {node: '>=18'}
@@ -6978,18 +6955,6 @@ packages:
       '@sentry/browser': 10.38.0
       '@sentry/core': 10.38.0
       react: 18.3.1
-    dev: false
-
-  /@sentry/types@7.120.4:
-    resolution: {integrity: sha512-cUq2hSSe6/qrU6oZsEP4InMI5VVdD86aypE+ENrQ6eZEVLTCYm1w6XhW1NvIu3UuWh7gZec4a9J7AFpYxki88Q==}
-    engines: {node: '>=8'}
-    dev: false
-
-  /@sentry/utils@7.120.4:
-    resolution: {integrity: sha512-zCKpyDIWKHwtervNK2ZlaK8mMV7gVUijAgFeJStH+CU/imcdquizV3pFLlSQYRswG+Lbyd6CT/LGRh3IbtkCFw==}
-    engines: {node: '>=8'}
-    dependencies:
-      '@sentry/types': 7.120.4
     dev: false
 
   /@sentry/vercel-edge@10.38.0:
@@ -8085,6 +8050,13 @@ packages:
       '@types/ms': 2.1.0
     dev: false
 
+  /@types/dompurify@3.2.0:
+    resolution: {integrity: sha512-Fgg31wv9QbLDA0SpTOXO3MaxySc4DKGLi8sna4/Utjo4r3ZRPdCt4UQee8BWr+Q5z21yifghREPJGYaEOEIACg==}
+    deprecated: This is a stub types definition. dompurify provides its own type definitions, so you do not need this installed.
+    dependencies:
+      dompurify: 3.3.1
+    dev: true
+
   /@types/draco3d@1.4.10:
     resolution: {integrity: sha512-AX22jp8Y7wwaBgAixaSvkoG4M/+PlAcm3Qs4OW8yT9DM4xUpWKeFhLueTAyZF39pviAdcDdeJoACapiAceqNcw==}
     dev: false
@@ -8470,7 +8442,6 @@ packages:
   /@types/trusted-types@2.0.7:
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
     requiresBuild: true
-    dev: false
     optional: true
 
   /@types/uuid@9.0.8:
@@ -8905,7 +8876,7 @@ packages:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 4.5.14(@types/node@25.2.0)
+      vite: 4.5.14(@types/node@20.19.31)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -9504,6 +9475,17 @@ packages:
 
   /arg@5.0.2:
     resolution: {integrity: sha512-PYjyFOLKQ9y57JvQ6QLo8dAgNqswh8M1RMJYdQduT6xbWSgK36P/Z/v+p888pM69jMMfS8Xd8F6I1kQ/I9HUGg==}
+    dev: false
+
+  /argon2@0.44.0:
+    resolution: {integrity: sha512-zHPGN3S55sihSQo0dBbK0A5qpi2R31z7HZDZnry3ifOyj8bZZnpZND2gpmhnRGO1V/d555RwBqIK5W4Mrmv3ig==}
+    engines: {node: '>=16.17.0'}
+    requiresBuild: true
+    dependencies:
+      '@phc/format': 1.0.0
+      cross-env: 10.1.0
+      node-addon-api: 8.5.0
+      node-gyp-build: 4.8.4
     dev: false
 
   /argparse@1.0.10:
@@ -10934,6 +10916,15 @@ packages:
     resolution: {integrity: sha512-YIaY9TR5Nxeb8SMdtrU8asWVM4jqJDNDYlKV21LxtYcfNJhp1kEsgSa6qXwXgzN0WQWGODps0+TlGp2xQSHwOg==}
     dev: true
 
+  /cross-env@10.1.0:
+    resolution: {integrity: sha512-GsYosgnACZTADcmEyJctkJIoqAhHjttw7RsFrVoJNXbsWWqaq6Ym+7kZjq6mS45O0jij6vtiReppKQEtqWy6Dw==}
+    engines: {node: '>=20'}
+    hasBin: true
+    dependencies:
+      '@epic-web/invariant': 1.0.0
+      cross-spawn: 7.0.6
+    dev: false
+
   /cross-env@7.0.3:
     resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
     engines: {node: '>=10.14', npm: '>=6', yarn: '>=1'}
@@ -11528,8 +11519,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@types/trusted-types': 2.0.7
-    dev: false
-    optional: true
 
   /domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
@@ -14767,12 +14756,6 @@ packages:
   /libphonenumber-js@1.12.36:
     resolution: {integrity: sha512-woWhKMAVx1fzzUnMCyOzglgSgf6/AFHLASdOBcchYCyvWSGWt12imw3iu2hdI5d4dGZRsNWAmWiz37sDKUPaRQ==}
 
-  /lie@3.1.1:
-    resolution: {integrity: sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==}
-    dependencies:
-      immediate: 3.0.6
-    dev: false
-
   /lie@3.3.0:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
     dependencies:
@@ -14839,12 +14822,6 @@ packages:
       mlly: 1.8.0
       pkg-types: 1.3.1
     dev: true
-
-  /localforage@1.10.0:
-    resolution: {integrity: sha512-14/H1aX7hzBBmmh7sGPd+AOMkkIrHM3Z1PAyGgZigA1H1p5O5ANnMyWzvpAETtG68/dC4pC0ncy3+PPGzXZHPg==}
-    dependencies:
-      lie: 3.1.1
-    dev: false
 
   /locate-path@5.0.0:
     resolution: {integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==}
@@ -15596,6 +15573,11 @@ packages:
     resolution: {integrity: sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA==}
     dev: false
 
+  /node-addon-api@8.5.0:
+    resolution: {integrity: sha512-/bRZty2mXUIFY/xU5HLvveNHlswNJej+RnxBjOMkidWfwZzgTbPG1E3K5TOxRLOR+5hX7bSofy8yf1hZevMS8A==}
+    engines: {node: ^18 || ^20 || >= 21}
+    dev: false
+
   /node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
@@ -15639,6 +15621,11 @@ packages:
       detect-libc: 2.1.2
     dev: false
     optional: true
+
+  /node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
+    dev: false
 
   /node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
@@ -19344,6 +19331,42 @@ packages:
       - '@types/node'
       - rollup
       - supports-color
+    dev: true
+
+  /vite@4.5.14(@types/node@20.19.31):
+    resolution: {integrity: sha512-+v57oAaoYNnO3hIu5Z/tJRZjq5aHM2zDve9YZ8HngVHbhk66RStobhb1sqPMIPEleV6cNKYK4eGrAbE9Ulbl2g==}
+    engines: {node: ^14.18.0 || >=16.0.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': '>= 14'
+      less: '*'
+      lightningcss: ^1.21.0
+      sass: '*'
+      stylus: '*'
+      sugarss: '*'
+      terser: ^5.4.0
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      less:
+        optional: true
+      lightningcss:
+        optional: true
+      sass:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+    dependencies:
+      '@types/node': 20.19.31
+      esbuild: 0.18.20
+      postcss: 8.5.6
+      rollup: 3.29.5
+    optionalDependencies:
+      fsevents: 2.3.3
     dev: true
 
   /vite@4.5.14(@types/node@25.2.0):

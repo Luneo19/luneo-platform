@@ -469,11 +469,17 @@ export class LunaService {
         'chat',
       );
 
+      const confidence = this.computeConfidence(
+        message,
+        llmResponse.usage?.completionTokens ?? 0,
+        Boolean(ragContext),
+      );
+
       return {
         conversationId: conversation.id,
         message,
         intent,
-        confidence: 0.95, // TODO: Calculer dynamiquement
+        confidence,
         actions,
         data: biPack.detailed, // ✅ Retourner les données détaillées (compatibilité)
         suggestions,
@@ -541,29 +547,44 @@ export class LunaService {
       }
     }
 
-    // Fallback: détection basique par mots-clés
+    // Fallback: keyword-based intent classification (map of intents to keyword patterns)
+    const intentKeywords: Record<LunaIntentType, string[]> = {
+      [LunaIntentType.ANALYZE_SALES]: ['vente', 'chiffre', 'ventes', 'ca', 'revenus', 'analyse'],
+      [LunaIntentType.RECOMMEND_PRODUCTS]: ['recommand', 'suggère', 'suggestion', 'recommandation', 'top produit'],
+      [LunaIntentType.OPTIMIZE_PROMPT]: ['prompt', 'améliore', 'optimise', 'formulation'],
+      [LunaIntentType.PREDICT_TRENDS]: ['tendance', 'prévi', 'prédiction', 'évolution', 'forecast'],
+      [LunaIntentType.GENERATE_REPORT]: ['rapport', 'export', 'exporter', 'pdf', 'bilan'],
+      [LunaIntentType.CONFIGURE_PRODUCT]: ['configur', 'créer', 'nouveau', 'produit', 'template'],
+      [LunaIntentType.GENERAL_QUESTION]: [],
+    };
+
     const lowerMessage = message.toLowerCase();
-    // TODO: Utiliser un classifieur ML pour plus de précision
-    if (lowerMessage.includes('vente') || lowerMessage.includes('chiffre')) {
-      return LunaIntentType.ANALYZE_SALES;
-    }
-    if (lowerMessage.includes('recommand') || lowerMessage.includes('suggère')) {
-      return LunaIntentType.RECOMMEND_PRODUCTS;
-    }
-    if (lowerMessage.includes('prompt') || lowerMessage.includes('améliore')) {
-      return LunaIntentType.OPTIMIZE_PROMPT;
-    }
-    if (lowerMessage.includes('tendance') || lowerMessage.includes('prévi')) {
-      return LunaIntentType.PREDICT_TRENDS;
-    }
-    if (lowerMessage.includes('rapport') || lowerMessage.includes('export')) {
-      return LunaIntentType.GENERATE_REPORT;
-    }
-    if (lowerMessage.includes('configur') || lowerMessage.includes('créer') || lowerMessage.includes('nouveau')) {
-      return LunaIntentType.CONFIGURE_PRODUCT;
+    for (const [intent, keywords] of Object.entries(intentKeywords)) {
+      if (intent === LunaIntentType.GENERAL_QUESTION) continue;
+      if (keywords.some((kw) => lowerMessage.includes(kw))) {
+        return intent as LunaIntentType;
+      }
     }
 
     return LunaIntentType.GENERAL_QUESTION;
+  }
+
+  /**
+   * Calcule la confiance dynamiquement (heuristique: tokens, mots-clés, appels externes)
+   */
+  private computeConfidence(
+    responseMessage: string,
+    responseTokenCount: number,
+    usedExternalApi: boolean,
+  ): number {
+    let confidence = 0.9;
+    if (responseTokenCount > 0 && responseTokenCount < 200) {
+      confidence += 0.05;
+    }
+    if (/i'm not sure|je ne suis pas sûr|pas certain|unsure/i.test(responseMessage)) {
+      confidence -= 0.1;
+    }
+    return Math.max(0, Math.min(1, confidence));
   }
 
   /**
@@ -1194,8 +1215,11 @@ export class LunaService {
     if (jsonMatch) {
       try {
         parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-      } catch {
-        // Ignorer l'erreur de parsing
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse Luna LLM response JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error instanceof Error ? error.stack : undefined,
+        );
       }
     }
 

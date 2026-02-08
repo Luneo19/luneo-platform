@@ -48,10 +48,9 @@ function PlanLimitsContent() {
 
   const fetchPlanData = useCallback(async () => {
     try {
-      const response = await fetch('https://api.luneo.app/api/plans/current', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/v1/plans/current`, {
+        credentials: 'include', // Send httpOnly cookies automatically
       });
 
       if (response.ok) {

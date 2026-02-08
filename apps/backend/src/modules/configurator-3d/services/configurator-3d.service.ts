@@ -155,8 +155,8 @@ export class Configurator3DService {
         description: dto.description,
         brandId: project.brandId, // Récupérer brandId depuis project
         projectId,
-        sceneConfig: (dto.sceneConfig || {}) as any,
-        uiConfig: (dto.uiConfig || {}) as any,
+        sceneConfig: (dto.sceneConfig || {}) as Record<string, unknown>,
+        uiConfig: (dto.uiConfig || {}) as Record<string, unknown>,
         isActive: dto.isActive ?? true,
       },
       select: {
@@ -191,7 +191,7 @@ export class Configurator3DService {
 
     const config = await this.prisma.configurator3DConfiguration.update({
       where: { id },
-      data: dto as any,
+      data: dto as Record<string, unknown>,
       select: {
         id: true,
         name: true,
@@ -223,7 +223,11 @@ export class Configurator3DService {
 
     this.logger.log(`Configurator 3D configuration deleted: ${id}`);
 
-    return { success: true };
+    return {
+      success: true,
+      id,
+      deletedAt: new Date().toISOString(),
+    };
   }
 
   /**
@@ -240,9 +244,9 @@ export class Configurator3DService {
       data: {
         ...dto,
         configurationId: configId,
-        defaultValue: (dto.defaultValue || {}) as any,
-        values: (dto.values || {}) as any,
-        constraints: (dto.constraints || {}) as any,
+        defaultValue: (dto.defaultValue || {}) as Record<string, unknown>,
+        values: (dto.values || {}) as Record<string, unknown>,
+        constraints: (dto.constraints || {}) as Record<string, unknown>,
         order: dto.order || 0,
         isRequired: dto.isRequired ?? false,
       },
@@ -285,6 +289,11 @@ export class Configurator3DService {
       `Option ${optionId} removed from configurator 3D configuration ${configId}`,
     );
 
-    return { success: true };
+    return {
+      success: true,
+      configId,
+      optionId,
+      removedAt: new Date().toISOString(),
+    };
   }
 }

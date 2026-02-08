@@ -66,16 +66,16 @@ export function GenerateModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl">
         <DialogHeader>
           <DialogTitle>Générer avec l'IA</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Décrivez votre idée et l'IA créera un design pour vous
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
           <div>
-            <Label className="text-gray-300 mb-2 block">Type de génération</Label>
+            <Label className="text-gray-700 mb-2 block">Type de génération</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {GENERATION_TYPES.map((genType) => {
                 const Icon = genType.icon as React.ComponentType<{ className?: string }>;
@@ -86,12 +86,12 @@ export function GenerateModal({
                     className={`p-3 rounded-lg border-2 transition-colors text-left ${
                       type === genType.value
                         ? 'border-purple-500 bg-purple-500/10'
-                        : 'border-gray-600 bg-gray-900/50 hover:border-gray-500'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                     }`}
                   >
                     {Icon && <Icon className="w-5 h-5 mb-2 text-purple-400" />}
-                    <p className="text-sm font-medium text-white">{genType.label}</p>
-                    <p className="text-xs text-gray-400">{genType.description}</p>
+                    <p className="text-sm font-medium text-gray-900">{genType.label}</p>
+                    <p className="text-xs text-gray-600">{genType.description}</p>
                     <p className="text-xs text-yellow-400 mt-1">{genType.credits} crédits</p>
                   </button>
                 );
@@ -99,7 +99,7 @@ export function GenerateModal({
             </div>
           </div>
           <div>
-            <Label htmlFor="prompt" className="text-gray-300">
+            <Label htmlFor="prompt" className="text-gray-700">
               Décrivez votre design
             </Label>
             <Textarea
@@ -107,18 +107,18 @@ export function GenerateModal({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ex: Un logo moderne pour une startup tech avec des couleurs bleu et blanc..."
-              className="bg-gray-900 border-gray-600 text-white mt-2 min-h-[120px]"
+              className="bg-white border-gray-200 text-gray-900 mt-2 min-h-[120px]"
               disabled={isGenerating}
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               {prompt.length} / 1000 caractères • ~{estimatedCredits} crédits estimés
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-300">Modèle IA</Label>
+              <Label className="text-gray-700">Modèle IA</Label>
               <Select value={model} onValueChange={(v) => setModel(v as AISettings['model'])}>
-                <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-2">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-2">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -182,14 +182,14 @@ export function GenerateModal({
           {isGenerating && (
             <div className="space-y-2">
               <Progress value={progress} className="h-2" />
-              <p className="text-xs text-gray-400 text-center">
+              <p className="text-xs text-gray-600 text-center">
                 Génération en cours... {progress}%
               </p>
             </div>
           )}
         </div>
         <div className="flex items-center justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600" disabled={isGenerating}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200" disabled={isGenerating}>
             Annuler
           </Button>
           <Button

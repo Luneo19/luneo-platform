@@ -10,7 +10,7 @@ export class PdfGeneratorService {
    */
   async generate(snapshot: any): Promise<Buffer> {
     try {
-      const specData = snapshot.specData as any;
+      const specData = snapshot.specData as Record<string, unknown> | null | undefined;
       const productName = specData?.productName || 'Design';
       const zones = specData?.zones || [];
       const snapshotId = snapshot.id || 'unknown';

@@ -23,6 +23,32 @@ Le projet a été professionnalisé de **55-60%** à **85-90%** suivant un roadm
 
 ---
 
+## Architecture
+
+### Data Model
+- **Organization** — Top-level entity (1 org = N brands)
+- **Brand** — Business unit with products, orders, designs
+- **Industry** — Sector-specific configuration (jewelry, eyewear, fashion, etc.)
+- **User** — Individual accounts within a brand
+
+### Tech Stack
+- **Backend**: NestJS 10, Prisma 5, PostgreSQL, Redis, BullMQ
+- **Frontend**: Next.js 15, React 18, TypeScript, Tailwind, shadcn/ui
+- **Auth**: JWT + httpOnly cookies + OAuth (Google, GitHub)
+- **Payments**: Stripe (subscriptions, checkout, webhooks)
+- **AI**: OpenAI (design generation, smart features)
+- **Storage**: Cloudinary (media/assets)
+- **CI/CD**: GitHub Actions -> Railway (backend) + Vercel (frontend)
+
+### Key Features
+- Industry-adaptive dashboard with configurable widgets and KPIs
+- 6-step onboarding with industry selection
+- AR Studio, AI Studio, 3D Configurator, 2D Editor
+- Real-time analytics and ML predictions
+- Multi-platform integrations (Shopify, WooCommerce, Printful)
+
+---
+
 ## 🏆 ARCHITECTURE COMPLÈTE
 
 ### **✅ Backend (NestJS)** - 12 Modules
@@ -90,13 +116,13 @@ Design, Order, ApiKey, Webhook, AICost, UserQuota, SystemConfig
 ```bash
 # Backend
 cd backend
-npm install
+pnpm install
 cp .env.example .env
 # Configurer DATABASE_URL, JWT_SECRET, etc.
 
 # Frontend
 cd frontend
-npm install
+pnpm install
 cp .env.example .env.local
 # Configurer NEXT_PUBLIC_API_URL, etc.
 ```
@@ -107,13 +133,13 @@ cp .env.example .env.local
 cd backend
 
 # Générer Prisma Client
-npx prisma generate
+pnpm exec prisma generate
 
 # Run migrations
-npx prisma migrate dev
+pnpm exec prisma migrate dev
 
 # Seed data (optional)
-npm run seed
+pnpm run seed
 ```
 
 ### **3. Development**
@@ -121,13 +147,13 @@ npm run seed
 ```bash
 # Terminal 1 - Backend
 cd backend
-npm run start:dev
+pnpm run start:dev
 # 🚀 API: http://localhost:3001
 # 📖 Swagger: http://localhost:3001/api/docs
 
 # Terminal 2 - Frontend
 cd frontend
-npm run dev
+pnpm run dev
 # 🌐 App: http://localhost:3000
 
 # Terminal 3 - Services (Docker)
@@ -139,13 +165,13 @@ docker-compose up -d postgres redis
 ```bash
 # Backend
 cd backend
-npm run build         # ✅ Build OK - 0 erreurs
-npm run start:prod
+pnpm run build         # ✅ Build OK - 0 erreurs
+pnpm run start:prod
 
 # Frontend
 cd frontend
-npm run build         # ✅ Build OK - 24 pages
-npm run start
+pnpm run build         # ✅ Build OK - 24 pages
+pnpm run start
 ```
 
 ---

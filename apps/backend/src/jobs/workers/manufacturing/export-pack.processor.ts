@@ -3,7 +3,7 @@ import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ExportPackService } from '@/modules/manufacturing/services/export-pack.service';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 
 interface ExportPackJob {
   snapshotId: string;

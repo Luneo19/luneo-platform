@@ -137,9 +137,16 @@ export class RulesEngineService {
       }
 
       const input = normalized[rule.zoneId];
+      const zone = await this.prisma.zone.findUnique({
+        where: { id: rule.zoneId },
+        select: { defaultFont: true, defaultColor: true, defaultSize: true },
+      });
 
-      // Appliquer defaults si manquants
-      // TODO: Récupérer defaults depuis Zone (defaultFont, defaultColor, defaultSize)
+      if (zone) {
+        if (!input.font && zone.defaultFont) normalized[rule.zoneId].font = zone.defaultFont;
+        if (!input.color && zone.defaultColor) normalized[rule.zoneId].color = zone.defaultColor;
+        if (input.size == null && zone.defaultSize != null) normalized[rule.zoneId].size = zone.defaultSize;
+      }
     }
 
     return normalized;

@@ -17,8 +17,13 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
+import { CreateOrderDto, UpdateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { RequestRefundDto } from './dto/request-refund.dto';
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '@/common/guards/roles.guard';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -107,7 +112,7 @@ export class OrdersController {
   @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
   @ApiResponse({ status: 404, description: 'Produit ou design non trouvé - Un des IDs fournis n\'existe pas' })
   @ApiResponse({ status: 500, description: 'Erreur lors de la création de la session Stripe' })
-  async create(@Body() createOrderDto: any, @Request() req) {
+  async create(@Body() createOrderDto: CreateOrderDto, @Request() req) {
     return this.ordersService.create(createOrderDto, req.user);
   }
 
@@ -129,7 +134,7 @@ export class OrdersController {
     status: 200,
     description: 'Commande mise à jour',
   })
-  async update(@Param('id') id: string, @Body() updateDto: any, @Request() req) {
+  async update(@Param('id') id: string, @Body() updateDto: UpdateOrderDto, @Request() req) {
     return this.ordersService.update(id, updateDto, req.user);
   }
 
@@ -147,10 +152,10 @@ export class OrdersController {
   @ApiResponse({ status: 200, description: 'Statut mis à jour' })
   async updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: string },
+    @Body() dto: UpdateOrderStatusDto,
     @Request() req,
   ) {
-    return this.ordersService.updateStatus(id, body.status as any, req.user);
+    return this.ordersService.updateStatus(id, dto.status, req.user);
   }
 
   @Get(':id/tracking')
@@ -167,9 +172,19 @@ export class OrdersController {
   @ApiResponse({ status: 200, description: 'Demande de remboursement créée' })
   async requestRefund(
     @Param('id') id: string,
-    @Body() body: { reason: string },
+    @Body() dto: RequestRefundDto,
     @Request() req,
   ) {
-    return this.ordersService.requestRefund(id, body.reason, req.user);
+    return this.ordersService.requestRefund(id, dto.reason ?? '', req.user);
+  }
+
+  @Post(':id/refund/process')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Traiter un remboursement (admin)' })
+  @ApiParam({ name: 'id', description: 'ID de la commande' })
+  @ApiResponse({ status: 200, description: 'Remboursement traité' })
+  async processRefund(@Param('id') id: string, @Request() req) {
+    return this.ordersService.processRefund(id, req.user);
   }
 }

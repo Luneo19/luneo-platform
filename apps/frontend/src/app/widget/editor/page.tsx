@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 // WidgetConfig type definition
 interface WidgetConfig {
@@ -53,23 +54,22 @@ export default function WidgetEditorPage() {
           locale: 'fr',
           theme: 'light',
           onSave: (designData) => {
-            // Widget callback - logging acceptable for external widget debugging
             if (process.env.NODE_ENV === 'development') {
-              console.log('Design saved:', designData);
+              logger.info('Design saved', { designData });
             }
             alert('Design sauvegardé avec succès!');
           },
           onError: (error) => {
-            // Widget callback - logging acceptable for external widget debugging
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Widget error:', error);
-            }
-            alert(`Erreur: ${error.message}`);
+            logger.error(
+              'Widget error',
+              error instanceof Error ? error : new Error(String(error)),
+              { message: (error as { message?: string }).message }
+            );
+            alert(`Erreur: ${(error as { message: string }).message}`);
           },
           onReady: () => {
-            // Widget callback - logging acceptable for external widget debugging
             if (process.env.NODE_ENV === 'development') {
-              console.log('Widget ready');
+              logger.info('Widget ready');
             }
           },
         };
@@ -79,10 +79,7 @@ export default function WidgetEditorPage() {
       }
     };
     script.onerror = () => {
-      // Widget script loading error - use logger if available
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to load widget script');
-      }
+      logger.error('Failed to load widget script', new Error('Widget script failed to load'));
     };
     document.head.appendChild(script);
 

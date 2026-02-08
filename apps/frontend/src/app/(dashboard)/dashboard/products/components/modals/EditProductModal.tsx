@@ -64,7 +64,7 @@ export function EditProductModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-gray-800 border-gray-700 text-white max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl bg-white border-gray-200 text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier le produit</DialogTitle>
           <DialogDescription>
@@ -73,30 +73,30 @@ export function EditProductModal({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label className="text-gray-300">Nom du produit *</Label>
+            <Label className="text-gray-700">Nom du produit *</Label>
             <Input
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
               required
             />
           </div>
           <div>
-            <Label className="text-gray-300">Description</Label>
+            <Label className="text-gray-700">Description</Label>
             <Textarea
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
               rows={4}
-              className="bg-gray-900 border-gray-600 text-white mt-1 resize-none"
+              className="bg-white border-gray-200 text-gray-900 mt-1 resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-300">Catégorie *</Label>
+              <Label className="text-gray-700">Catégorie *</Label>
               <Select
                 value={formData.category}
                 onValueChange={(value) =>
@@ -106,7 +106,7 @@ export function EditProductModal({
                   })
                 }
               >
-                <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-1">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -125,7 +125,7 @@ export function EditProductModal({
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300">Prix</Label>
+              <Label className="text-gray-700">Prix</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -136,20 +136,20 @@ export function EditProductModal({
                     price: parseFloat(e.target.value) || 0,
                   })
                 }
-                className="bg-gray-900 border-gray-600 text-white mt-1"
+                className="bg-white border-gray-200 text-gray-900 mt-1"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-300">Statut</Label>
+              <Label className="text-gray-700">Statut</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value) =>
                   setFormData({ ...formData, status: value as ProductStatus })
                 }
               >
-                <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-1">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -177,7 +177,7 @@ export function EditProductModal({
                 />
                 <Label
                   htmlFor="is-active-edit"
-                  className="text-gray-300 cursor-pointer"
+                  className="text-gray-700 cursor-pointer"
                 >
                   Produit actif
                 </Label>
@@ -189,7 +189,7 @@ export function EditProductModal({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-600"
+              className="border-gray-200"
             >
               Annuler
             </Button>

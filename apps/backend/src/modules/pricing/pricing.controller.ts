@@ -9,7 +9,7 @@ import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/co
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AICostAuditService, AuditOptions } from './services/ai-cost-audit.service';
-import { PricingPlansService, PricingOptions } from './services/pricing-plans.service';
+import { PricingPlansService, PricingOptions, PlanType } from './services/pricing-plans.service';
 
 @ApiTags('Pricing')
 @Controller('pricing')
@@ -78,14 +78,14 @@ export class PricingController {
   @ApiOperation({ summary: 'Obtient un plan spécifique' })
   @ApiResponse({ status: 200, description: 'Plan récupéré' })
   async getPlan(@Param('planId') planId: string) {
-    return this.pricingPlansService.getPlan(planId as any);
+    return this.pricingPlansService.getPlan(planId as PlanType);
   }
 
   @Get('plans/:planId/add-ons')
   @ApiOperation({ summary: 'Obtient les add-ons disponibles pour un plan' })
   @ApiResponse({ status: 200, description: 'Add-ons récupérés' })
   async getAvailableAddOns(@Param('planId') planId: string) {
-    return this.pricingPlansService.getAvailableAddOns(planId as any);
+    return this.pricingPlansService.getAvailableAddOns(planId as PlanType);
   }
 
   @Post('calculate')

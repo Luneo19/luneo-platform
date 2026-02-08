@@ -46,7 +46,7 @@ export class DLQService {
 
     for (const [queueName, queue] of this.getQueues()) {
       const failed = await queue.getFailed(0, 99);
-      const oldest = failed.length > 0 ? new Date((failed[failed.length - 1] as any).timestamp || Date.now()) : null;
+      const oldest = failed.length > 0 ? new Date((failed[failed.length - 1] as unknown as { timestamp?: number }).timestamp || Date.now()) : null;
 
       stats[queueName] = {
         count: failed.length,
@@ -113,7 +113,8 @@ export class DLQService {
     let removed = 0;
 
     for (const job of failed) {
-      if ((job as any).timestamp && new Date((job as any).timestamp) < cutoffDate) {
+      const jobWithTimestamp = job as Job & { timestamp?: number };
+      if (jobWithTimestamp.timestamp && new Date(jobWithTimestamp.timestamp) < cutoffDate) {
         await job.remove();
         removed++;
       }

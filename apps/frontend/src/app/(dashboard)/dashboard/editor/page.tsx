@@ -1,16 +1,12 @@
 /**
  * ★★★ PAGE - EDITOR ★★★
- * Page Server Component pour Editor
- * 
- * Architecture:
- * - Server Component qui vérifie l'authentification
- * - Client Component pour les interactions
- * - Composants < 300 lignes
- * - Types stricts (pas de any)
+ * Page Server Component pour Editor. Cookie-based auth with NestJS backend.
  */
 
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { serverFetch } from '@/lib/api/server-fetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { EditorPageClient } from './EditorPageClient';
 
@@ -23,19 +19,13 @@ export const metadata = {
  * Server Component - Vérifie l'authentification
  */
 export default async function EditorPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  if (!cookieStore.get('accessToken')?.value) redirect('/login');
 
-  // Vérifier l'authentification
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return (
-      <ErrorBoundary level="page" componentName="EditorPage">
-        <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
-        </div>
-      </ErrorBoundary>
-    );
+  try {
+    await serverFetch('/api/v1/auth/me');
+  } catch {
+    redirect('/login');
   }
 
   return (

@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 interface ExportOptions {
   format: 'csv' | 'json' | 'pdf';
@@ -29,23 +30,14 @@ export function useExport() {
     setError(null);
 
     try {
-      const response = await fetch('/api/analytics/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(options),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Export failed');
-      }
-
       if (options.format === 'csv') {
-        // Handle CSV download
-        const blob = await response.blob();
-        const filename = response.headers.get('Content-Disposition')?.split('filename=')[1] || 
-          `luneo-analytics-${options.dateRange}.csv`;
-        
+        const blob = await api.request<Blob>({
+          method: 'POST',
+          url: '/api/v1/analytics/export',
+          data: options,
+          responseType: 'blob',
+        });
+        const filename = `luneo-analytics-${options.dateRange}.csv`;
         downloadBlob(blob, filename);
         
         logger.info('CSV export successful', { filename });
@@ -53,9 +45,8 @@ export function useExport() {
       }
 
       if (options.format === 'json') {
-        // Handle JSON download
-        const data = await response.json();
-        const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+        const data = await api.post<{ data?: unknown }>('/api/v1/analytics/export', options);
+        const blob = new Blob([JSON.stringify((data as { data?: unknown })?.data ?? data, null, 2)], { type: 'application/json' });
         const filename = `luneo-analytics-${options.dateRange}.json`;
         
         downloadBlob(blob, filename);
@@ -65,10 +56,8 @@ export function useExport() {
       }
 
       if (options.format === 'pdf') {
-        // Handle PDF generation
-        const data = await response.json();
-        
-        if (data.html) {
+        const data = await api.post<{ html?: string; filename?: string }>('/api/v1/analytics/export', options);
+        if (data?.html) {
           // Open in new window for printing
           const printWindow = window.open('', '_blank');
           if (printWindow) {

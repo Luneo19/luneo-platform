@@ -10,7 +10,7 @@
 
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
-import { db } from '@/lib/db';
+import { api } from '@/lib/api/client';
 
 // ========================================
 // TYPES
@@ -44,9 +44,9 @@ export interface Cohort {
 export interface UserSegment {
   id: string;
   name: string;
-  criteria: Record<string, any>;
+  criteria: Record<string, unknown>;
   userCount: number;
-  characteristics: Record<string, any>;
+  characteristics: Record<string, unknown>;
 }
 
 // ========================================
@@ -81,70 +81,20 @@ export class AdvancedAnalyticsService {
     try {
       logger.info('Analyzing funnel', { brandId, steps });
 
-      // Query database for funnel data
-      // Map steps to actual event types or use AuditLog/UsageMetric tables
-      const stepCounts = await Promise.all(
-        steps.map(async (step, index) => {
-          // Try to find events in AuditLog or UsageMetric
-          // For now, we'll use a combination of different tables based on step name
-          let count = 0;
+      const funnelRes = await api.get<{ steps?: Array<{ step: string; count: number }> }>('/api/v1/analytics-advanced/funnel/analyze', {
+        params: {
+          brandId,
+          steps: steps.join(','),
+          periodStart: periodStart.toISOString(),
+          periodEnd: periodEnd.toISOString(),
+        },
+      }).catch(() => ({}));
 
-          if (step.toLowerCase().includes('view') || step.toLowerCase().includes('visit')) {
-            // Count page views or product views
-            count = await db.usageMetric.count({
-              where: {
-                brandId,
-                metricType: 'PAGE_VIEW',
-                timestamp: {
-                  gte: periodStart,
-                  lte: periodEnd,
-                },
-              },
-            });
-          } else if (step.toLowerCase().includes('customize') || step.toLowerCase().includes('create')) {
-            // Count customizations created
-            count = await db.customization.count({
-              where: {
-                product: {
-                  brandId,
-                },
-                createdAt: {
-                  gte: periodStart,
-                  lte: periodEnd,
-                },
-              },
-            });
-          } else if (step.toLowerCase().includes('order') || step.toLowerCase().includes('purchase')) {
-            // Count orders
-            count = await db.order.count({
-              where: {
-                brandId,
-                createdAt: {
-                  gte: periodStart,
-                  lte: periodEnd,
-                },
-              },
-            });
-          } else {
-            // Generic event count from AuditLog
-            count = await db.auditLog.count({
-              where: {
-                brandId,
-                action: step.toUpperCase(),
-                timestamp: {
-                  gte: periodStart,
-                  lte: periodEnd,
-                },
-              },
-            });
-          }
-
-          return { step, count };
-        })
-      );
+      const funnelData = funnelRes as { steps?: Array<{ step: string; count: number }> };
+      const stepCounts = funnelData.steps ?? steps.map((step) => ({ step, count: 0 }));
 
       // Calculate percentages and dropoffs
-      const funnelSteps: FunnelStep[] = stepCounts.map(({ step, count }, index) => {
+      const funnelSteps: FunnelStep[] = stepCounts.map(({ step, count }: { step: string; count: number }, index: number) => {
         const previousCount = index > 0 ? stepCounts[index - 1].count : count;
         const percentage = previousCount > 0 ? (count / previousCount) * 100 : 100;
         const dropoff = index > 0 ? 100 - percentage : 0;
@@ -174,7 +124,7 @@ export class AdvancedAnalyticsService {
       };
 
       return analysis;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error analyzing funnel', { error, brandId });
       throw error;
     }
@@ -196,24 +146,18 @@ export class AdvancedAnalyticsService {
     try {
       logger.info('Analyzing cohorts', { brandId, weeks });
 
-      // Query database for cohort data
-      const users = await db.user.findMany({
-        where: {
+      const cohortsRes = await api.get<{ users?: Array<{ id: string; createdAt: string }> }>('/api/v1/analytics-advanced/cohorts/users', {
+        params: {
           brandId,
-          createdAt: {
-            gte: cohortStart,
-            lte: cohortEnd,
-          },
+          cohortStart: cohortStart.toISOString(),
+          cohortEnd: cohortEnd.toISOString(),
         },
-        select: {
-          id: true,
-          createdAt: true,
-        },
-      });
+      }).catch(() => ({}));
 
-      // Group users by week of signup
-      const cohortsByWeek = new Map<string, typeof users>();
-      users.forEach((user: { id: string; createdAt: Date }) => {
+      const users = (cohortsRes as Record<string, unknown>).users as Array<{ id: string; createdAt: Date }> ?? [];
+
+      const cohortsByWeek = new Map<string, Array<{ id: string; createdAt: Date }>>();
+      users.forEach((user: { id: string; createdAt: Date | string }) => {
         const weekStart = new Date(user.createdAt);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week
         const weekKey = weekStart.toISOString().split('T')[0];
@@ -221,7 +165,7 @@ export class AdvancedAnalyticsService {
         if (!cohortsByWeek.has(weekKey)) {
           cohortsByWeek.set(weekKey, []);
         }
-        cohortsByWeek.get(weekKey)!.push(user);
+        cohortsByWeek.get(weekKey)!.push({ id: user.id, createdAt: new Date(user.createdAt) });
       });
 
       // Calculate retention for each week
@@ -235,19 +179,16 @@ export class AdvancedAnalyticsService {
           const weekEnd = new Date(cohortStartDate);
           weekEnd.setDate(weekEnd.getDate() + week * 7);
 
-          // Count users who had activity in this week
-          const activeUserIds = await db.auditLog.findMany({
-            where: {
-              userId: { in: cohortUsers.map((u: { id: string; createdAt: Date }) => u.id) },
-              timestamp: {
-                gte: new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000),
-                lte: weekEnd,
-              },
+          const activeRes = await api.get<{ userIds?: string[] }>('/api/v1/analytics-advanced/cohorts/active-users', {
+            params: {
+              brandId,
+              userIds: cohortUsers.map((u: { id: string }) => u.id).join(','),
+              weekStart: new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+              weekEnd: weekEnd.toISOString(),
             },
-            select: { userId: true },
-            distinct: ['userId'],
-          });
-
+          }).catch(() => ({}));
+          const activeData = activeRes as { userIds?: string[] };
+          const activeUserIds = activeData.userIds ?? [];
           const activeCount = activeUserIds.length;
           const retentionPercent = cohortUsers.length > 0 ? (activeCount / cohortUsers.length) * 100 : 0;
           retention[week] = Math.round(retentionPercent * 100) / 100;
@@ -263,7 +204,7 @@ export class AdvancedAnalyticsService {
       }
 
       return cohorts;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error analyzing cohorts', { error, brandId });
       throw error;
     }
@@ -279,13 +220,13 @@ export class AdvancedAnalyticsService {
   async createSegment(
     brandId: string,
     name: string,
-    criteria: Record<string, any>
+    criteria: Record<string, unknown>
   ): Promise<UserSegment> {
     try {
       logger.info('Creating user segment', { brandId, name });
 
       // Query users matching criteria
-      const whereClause: any = { brandId };
+      const whereClause: Record<string, unknown> = { brandId };
 
       // Map criteria to Prisma where clause
       if (criteria.email) whereClause.email = { contains: criteria.email };
@@ -295,18 +236,14 @@ export class AdvancedAnalyticsService {
         if (criteria.createdAt.lte) whereClause.createdAt = { ...whereClause.createdAt, lte: new Date(criteria.createdAt.lte) };
       }
 
-      const users = await db.user.findMany({
-        where: whereClause,
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          createdAt: true,
-        },
-      });
+      const segmentRes = await api.get<{ users?: Array<{ id: string; email?: string; role?: string; createdAt: string }> }>('/api/v1/analytics-advanced/segments/query', {
+        params: { brandId, ...criteria },
+      }).catch(() => ({}));
+      const segmentData = segmentRes as { users?: Array<{ id: string; createdAt?: Date | string; role?: string | null }> };
+      const users = segmentData.users ?? [];
 
       // Calculate characteristics
-      const characteristics: Record<string, any> = {
+      const characteristics: Record<string, unknown> = {
         totalUsers: users.length,
         roles: {},
         avgAccountAge: 0,
@@ -314,13 +251,15 @@ export class AdvancedAnalyticsService {
 
       if (users.length > 0) {
         const now = new Date();
-        const totalAge = users.reduce((sum: number, user: { id: string; createdAt: Date; role?: string | null }) => {
-          return sum + (now.getTime() - user.createdAt.getTime());
+        const totalAge = users.reduce((sum: number, user: { id: string; createdAt: Date | string; role?: string | null }) => {
+          const created = user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
+          return sum + (now.getTime() - created.getTime());
         }, 0);
         characteristics.avgAccountAge = Math.round(totalAge / users.length / (1000 * 60 * 60 * 24)); // days
 
-        users.forEach((user: { id: string; createdAt: Date; role?: string | null }) => {
-          characteristics.roles[user.role || 'USER'] = (characteristics.roles[user.role || 'USER'] || 0) + 1;
+        users.forEach((user) => {
+          const roleKey = (user.role || 'USER') as string;
+          (characteristics.roles as Record<string, number>)[roleKey] = ((characteristics.roles as Record<string, number>)[roleKey] || 0) + 1;
         });
       }
 
@@ -333,7 +272,7 @@ export class AdvancedAnalyticsService {
       };
 
       return segment;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error creating segment', { error, brandId });
       throw error;
     }
@@ -353,43 +292,22 @@ export class AdvancedAnalyticsService {
   ): Promise<Array<{ id: string; score: number; reason: string }>> {
     try {
       // ML-based recommendations using collaborative filtering
-      // 1. Get user behavior (customizations, orders, views)
-      const userCustomizations = await db.customization.findMany({
-        where: { userId },
-        select: { productId: true },
-        distinct: ['productId'],
-      });
+      const recRes = await api.get<{
+        userProductIds?: string[];
+        similarUserIds?: string[];
+        recommendedProducts?: Array<{ productId: string }>;
+      }>('/api/v1/analytics-advanced/recommendations', {
+        params: { userId, limit: limit * 2 },
+      }).catch(() => ({}));
 
-      const userProductIds = userCustomizations.map((c: { productId: string | null }) => c.productId).filter((id: string | null): id is string => id !== null);
-
-      // 2. Find similar users (users who customized similar products)
-      const similarUsers = await db.customization.findMany({
-        where: {
-          productId: { in: userProductIds },
-          userId: { not: userId },
-        },
-        select: { userId: true, productId: true },
-        distinct: ['userId'],
-      });
-
-      const similarUserIds = [...new Set(similarUsers.map((s: { userId: string }) => s.userId))];
-
-      // 3. Get products that similar users liked but current user hasn't seen
-      const recommendedProducts = await db.customization.findMany({
-        where: {
-          userId: { in: similarUserIds },
-          productId: { notIn: userProductIds },
-        },
-        select: {
-          productId: true,
-        },
-        distinct: ['productId'],
-        take: limit * 2, // Get more to filter
-      });
+      const recData = recRes as { userProductIds?: string[]; similarUserIds?: string[]; recommendedProducts?: Array<{ productId: string | null; userId?: string }> };
+      const userProductIds = recData.userProductIds ?? [];
+      const similarUserIds = recData.similarUserIds ?? [];
+      const recommendedProducts = recData.recommendedProducts ?? [];
 
       // 4. Calculate scores based on popularity and similarity
       const productScores = new Map<string, number>();
-      recommendedProducts.forEach((rec: { productId: string | null; userId: string }) => {
+      recommendedProducts.forEach((rec) => {
         if (!rec.productId) return;
         const currentScore = productScores.get(rec.productId) || 0;
         productScores.set(rec.productId, currentScore + 1);
@@ -401,24 +319,18 @@ export class AdvancedAnalyticsService {
         .slice(0, limit)
         .map(([productId, score]) => ({
           id: productId,
-          score: Math.round((score / similarUsers.length) * 100),
-          reason: `Based on ${score} similar users`,
+          score: Math.round((score / similarUserIds.length) * 100),
+          reason: `Based on ${similarUserIds.length} similar users`,
         }));
 
-      // If not enough recommendations, fill with popular products
       if (sortedRecommendations.length < limit) {
-        const popularProducts = await db.product.findMany({
-          where: {
-            id: { notIn: userProductIds },
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: limit - sortedRecommendations.length,
-          select: { id: true },
-        });
+        const popularRes = await api.get<{ products?: Array<{ id: string }> }>('/api/v1/analytics-advanced/recommendations/popular', {
+          params: { excludeIds: userProductIds.join(','), take: limit - sortedRecommendations.length },
+        }).catch(() => ({}));
+        const popularData = popularRes as { products?: Array<{ id: string }> };
+        const popularProducts = popularData.products ?? [];
 
-        popularProducts.forEach((product: { id: string; createdAt: Date }) => {
+        popularProducts.forEach((product) => {
           sortedRecommendations.push({
             id: product.id,
             score: 50, // Default score for popular items
@@ -430,7 +342,7 @@ export class AdvancedAnalyticsService {
       const recommendations = sortedRecommendations;
 
       return recommendations;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting recommendations', { error, userId });
       throw error;
     }

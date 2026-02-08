@@ -29,6 +29,8 @@
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradeRequiredPage } from '@/components/shared/UpgradeRequiredPage';
 import {
   Plug,
   Store,
@@ -921,7 +923,19 @@ const MemoizedIntegrationsPageContent = memo(IntegrationsPageContent);
 export default function IntegrationsPage() {
   return (
     <ErrorBoundary level="page" componentName="IntegrationsPage">
-      <MemoizedIntegrationsPageContent />
+      <PlanGate
+        minimumPlan="professional"
+        showUpgradePrompt
+        fallback={
+          <UpgradeRequiredPage
+            feature="Integrations & API"
+            requiredPlan="professional"
+            description="Les integrations e-commerce, API et webhooks sont disponibles a partir du plan Professional."
+          />
+        }
+      >
+        <MemoizedIntegrationsPageContent />
+      </PlanGate>
     </ErrorBoundary>
   );
 }

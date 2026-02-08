@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 export interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -46,23 +47,13 @@ class HealthCheckService {
     };
 
     try {
-      // Check database
+      // Database is accessed via NestJS backend only; API health implies DB connectivity
+      // Check API (NestJS backend)
       try {
-        const { db } = await import('@/lib/db');
-        await db.$queryRaw`SELECT 1`;
-      } catch (error) {
-        checks.database = 'error';
-        logger.error('Database health check failed', { error });
-      }
-
-      // Check API (tRPC)
-      try {
-        const response = await fetch('/api/trpc/health', { method: 'GET' });
-        if (!response.ok) {
-          checks.api = 'error';
-        }
+        await api.get('/api/v1/health');
       } catch (error) {
         checks.api = 'error';
+        checks.database = 'error';
         logger.error('API health check failed', { error });
       }
 

@@ -30,24 +30,24 @@ export function SessionsSection() {
 
   if (isLoading) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Sessions actives</CardTitle>
+          <CardTitle className="text-gray-900">Sessions actives</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">Chargement...</p>
+          <p className="text-gray-600">Chargement...</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white">Sessions actives</CardTitle>
-            <CardDescription className="text-gray-400 mt-1">
+            <CardTitle className="text-gray-900">Sessions actives</CardTitle>
+            <CardDescription className="text-gray-600 mt-1">
               Gérez les appareils connectés à votre compte
             </CardDescription>
           </div>
@@ -65,7 +65,7 @@ export function SessionsSection() {
       </CardHeader>
       <CardContent>
         {sessions.length === 0 ? (
-          <p className="text-gray-400">Aucune session active</p>
+          <p className="text-gray-600">Aucune session active</p>
         ) : (
           <div className="space-y-3">
             {sessions.map((session: SecuritySession) => {
@@ -73,7 +73,7 @@ export function SessionsSection() {
               return (
                 <div
                   key={session.id}
-                  className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700"
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 bg-cyan-500/10 rounded-lg">
@@ -81,7 +81,7 @@ export function SessionsSection() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-white font-medium">
+                        <p className="text-gray-900 font-medium">
                           {session.device || 'Appareil inconnu'}
                         </p>
                         {session.isCurrent && (
@@ -90,7 +90,7 @@ export function SessionsSection() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-gray-600">
                         {session.browser || 'Unknown'} • {session.os || 'Unknown'}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">

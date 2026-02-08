@@ -167,7 +167,7 @@ export function useProductList(options: UseProductListOptions = {}) {
   const listQuery = trpc.product.list.useQuery(
     {
       brandId,
-      category: category as any,
+      category: category ?? undefined,
       search,
       limit,
       offset,

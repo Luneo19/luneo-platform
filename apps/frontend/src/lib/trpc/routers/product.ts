@@ -8,7 +8,7 @@
  * - Intégrations e-commerce
  */
 
-import { db } from '@/lib/db';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -44,6 +44,22 @@ const CreateProductSchema = z.object({
 const UpdateProductSchema = CreateProductSchema.partial().extend({
   id: z.string().min(1),
 });
+
+/** Product from API with brandId for ownership checks */
+interface ProductWithBrandId {
+  id: string;
+  brandId?: string;
+  isActive?: boolean;
+  metadata?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** Products list API response shape */
+interface ProductsListResponse {
+  products?: ProductWithBrandId[];
+  data?: ProductWithBrandId[];
+  pagination?: { total: number };
+}
 
 const UploadModelSchema = z.object({
   productId: z.string().min(1),
@@ -82,52 +98,18 @@ export const productRouter = router({
 
       try {
         const skip = (input.page - 1) * input.limit;
-        const where: any = { brandId: user.brandId };
+        const result = await endpoints.products.list({
+          page: input.page,
+          limit: input.limit,
+          search: input.search,
+        });
 
-        if (input.search) {
-          where.OR = [
-            { name: { contains: input.search, mode: 'insensitive' } },
-            { description: { contains: input.search, mode: 'insensitive' } },
-          ];
-        }
-
-        if (input.category && input.category !== 'all') {
-          where.category = input.category;
-        }
-
-        const orderBy: any = {};
-        if (input.sortBy === 'recent') {
-          orderBy.createdAt = 'desc';
-        } else if (input.sortBy === 'name') {
-          orderBy.name = 'asc';
-        } else {
-          orderBy.viewsCount = 'desc';
-        }
-
-        const [products, total] = await Promise.all([
-          db.product.findMany({
-            where,
-            skip,
-            take: input.limit,
-            orderBy,
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              category: true,
-              imageUrl: true,
-              price: true,
-              baseCostCents: true,
-              createdAt: true,
-              updatedAt: true,
-              viewsCount: true,
-            },
-          }),
-          db.product.count({ where }),
-        ]);
+        const data = result as ProductsListResponse;
+        const products = data.products ?? data.data ?? [];
+        const total = data.pagination?.total ?? (Array.isArray(products) ? products.length : 0);
 
         return {
-          products: products.map((p: any) => ({
+          products: (Array.isArray(products) ? products : []).map((p: ProductWithBrandId) => ({
             id: p.id,
             name: p.name,
             description: p.description,
@@ -148,7 +130,7 @@ export const productRouter = router({
             hasPrev: input.page > 1,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error listing products', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -178,26 +160,15 @@ export const productRouter = router({
           });
         }
 
-        // Crée le produit
-        const product = await db.product.create({
-          data: {
-            ...input,
-            brandId: ctx.user.brandId,
-            createdBy: ctx.user.id,
-          },
-          include: {
-            brand: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
+        const product = await endpoints.products.create({
+          ...input,
+          brandId: ctx.user.brandId,
+          createdBy: ctx.user.id,
         });
 
-        logger.info('Product created', { productId: product.id });
+        logger.info('Product created', { productId: (product as { id?: string }).id });
 
-        return product;
+        return product as Record<string, unknown>;
       } catch (error) {
         logger.error('Error creating product', { error, input });
         if (error instanceof TRPCError) {
@@ -219,12 +190,7 @@ export const productRouter = router({
       try {
         const { id, ...data } = input;
 
-        // Vérifie que le produit existe
-        const product = await db.product.findUnique({
-          where: { id },
-          include: { brand: true },
-        });
-
+        const product = await endpoints.products.get(id).catch(() => null);
         if (!product) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -232,10 +198,10 @@ export const productRouter = router({
           });
         }
 
-        // Vérifie permissions
+        const p = product as ProductWithBrandId;
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
-          ctx.user?.brandId !== product.brandId
+          ctx.user?.brandId !== p.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -243,23 +209,11 @@ export const productRouter = router({
           });
         }
 
-        // Met à jour
-        const updated = await db.product.update({
-          where: { id },
-          data,
-          include: {
-            brand: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        });
+        const updated = await endpoints.products.update(id, data);
 
         logger.info('Product updated', { productId: id });
 
-        return updated;
+        return updated as Record<string, unknown>;
       } catch (error) {
         logger.error('Error updating product', { error, input });
         if (error instanceof TRPCError) {
@@ -279,11 +233,7 @@ export const productRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const product = await db.product.findUnique({
-          where: { id: input.id },
-          include: { brand: true },
-        });
-
+        const product = await endpoints.products.get(input.id).catch(() => null);
         if (!product) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -291,10 +241,10 @@ export const productRouter = router({
           });
         }
 
-        // Vérifie permissions
+        const p = product as ProductWithBrandId;
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
-          ctx.user?.brandId !== product.brandId
+          ctx.user?.brandId !== p.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -302,10 +252,7 @@ export const productRouter = router({
           });
         }
 
-        // Supprime (cascade supprimera zones et customizations)
-        await db.product.delete({
-          where: { id: input.id },
-        });
+        await endpoints.products.delete(input.id);
 
         logger.info('Product deleted', { productId: input.id });
 
@@ -329,28 +276,7 @@ export const productRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const product = await db.product.findUnique({
-          where: { id: input.id },
-          include: {
-            brand: {
-              select: {
-                id: true,
-                name: true,
-                logo: true,
-              },
-            },
-            zones: {
-              where: { isActive: true },
-              orderBy: { order: 'asc' },
-            },
-            _count: {
-              select: {
-                customizations: true,
-                designs: true,
-              },
-            },
-          },
-        });
+        const product = await endpoints.products.get(input.id);
 
         if (!product) {
           throw new TRPCError({
@@ -359,15 +285,15 @@ export const productRouter = router({
           });
         }
 
-        // Vérifie si le produit est actif ou si l'utilisateur a les permissions
-        if (!product.isActive && ctx.user?.brandId !== product.brandId) {
+        const p = product as ProductWithBrandId;
+        if (!p.isActive && ctx.user?.brandId !== p.brandId) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Produit introuvable',
           });
         }
 
-        return product;
+        return product as Record<string, unknown>;
       } catch (error) {
         logger.error('Error fetching product', { error, input });
         if (error instanceof TRPCError) {
@@ -398,64 +324,19 @@ export const productRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const where: any = {};
+        const page = Math.floor((input?.offset ?? 0) / (input?.limit ?? 20)) + 1;
+        const result = await endpoints.products.list({
+          page,
+          limit: input?.limit ?? 20,
+          search: input?.search,
+        });
 
-        // Filtre par marque
-        if (input?.brandId) {
-          where.brandId = input.brandId;
-        } else if (ctx.user?.brandId && ctx.user.role !== 'PLATFORM_ADMIN') {
-          // Utilisateur voit seulement ses produits
-          where.brandId = ctx.user.brandId;
-        }
-
-        // Filtres optionnels
-        if (input?.category) {
-          where.category = input.category;
-        }
-
-        if (input?.isActive !== undefined) {
-          where.isActive = input.isActive;
-        }
-
-        // Recherche
-        if (input?.search) {
-          where.OR = [
-            { name: { contains: input.search, mode: 'insensitive' } },
-            { description: { contains: input.search, mode: 'insensitive' } },
-          ];
-        }
-
-        const [products, total] = await Promise.all([
-          db.product.findMany({
-            where,
-            include: {
-              brand: {
-                select: {
-                  id: true,
-                  name: true,
-                  logo: true,
-                },
-              },
-              zones: {
-                where: { isActive: true },
-                select: { id: true },
-              },
-              _count: {
-                select: {
-                  customizations: true,
-                  designs: true,
-                },
-              },
-            },
-            orderBy: { createdAt: 'desc' },
-            take: input?.limit || 20,
-            skip: input?.offset || 0,
-          }),
-          db.product.count({ where }),
-        ]);
+        const data = result as ProductsListResponse;
+        const products = data.products ?? data.data ?? [];
+        const total = data.pagination?.total ?? (Array.isArray(products) ? products.length : 0);
 
         return {
-          products,
+          products: Array.isArray(products) ? products : [],
           total,
           hasMore: (input?.offset || 0) + (input?.limit || 20) < total,
         };
@@ -479,11 +360,7 @@ export const productRouter = router({
     .input(UploadModelSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        // Vérifie que le produit existe et appartient à la marque
-        const product = await db.product.findUnique({
-          where: { id: input.productId },
-        });
-
+        const product = await endpoints.products.get(input.productId).catch(() => null);
         if (!product) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -491,10 +368,10 @@ export const productRouter = router({
           });
         }
 
-        // Vérifie permissions
+        const p = product as ProductWithBrandId;
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
-          ctx.user?.brandId !== product.brandId
+          ctx.user?.brandId !== p.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -502,26 +379,22 @@ export const productRouter = router({
           });
         }
 
-        // Met à jour le produit avec l'URL du modèle
-        const updated = await db.product.update({
-          where: { id: input.productId },
-          data: {
-            model3dUrl: input.fileUrl,
-            metadata: {
-              ...((product.metadata as any) || {}),
-              modelUpload: {
-                fileName: input.fileName,
-                fileSize: input.fileSize,
-                fileType: input.fileType,
-                uploadedAt: new Date().toISOString(),
-              },
+        const updated = await endpoints.products.update(input.productId, {
+          model3dUrl: input.fileUrl,
+          metadata: {
+            ...(typeof p.metadata === 'object' && p.metadata !== null ? p.metadata : {}),
+            modelUpload: {
+              fileName: input.fileName,
+              fileSize: input.fileSize,
+              fileType: input.fileType,
+              uploadedAt: new Date().toISOString(),
             },
           },
         });
 
         logger.info('Model uploaded', { productId: input.productId });
 
-        return updated;
+        return updated as Record<string, unknown>;
       } catch (error) {
         logger.error('Error uploading model', { error, input });
         if (error instanceof TRPCError) {
@@ -551,10 +424,7 @@ export const productRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const product = await db.product.findUnique({
-          where: { id: input.productId },
-        });
-
+        const product = await endpoints.products.get(input.productId).catch(() => null);
         if (!product) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -562,10 +432,10 @@ export const productRouter = router({
           });
         }
 
-        // Vérifie permissions
+        const p = product as ProductWithBrandId;
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
-          ctx.user?.brandId !== product.brandId
+          ctx.user?.brandId !== p.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -573,52 +443,30 @@ export const productRouter = router({
           });
         }
 
-        const where: any = {
-          productId: input.productId,
-        };
+        const params: Record<string, string> = {};
+        if (input.startDate) params.startDate = input.startDate.toISOString().split('T')[0];
+        if (input.endDate) params.endDate = input.endDate.toISOString().split('T')[0];
 
-        if (input.startDate || input.endDate) {
-          where.createdAt = {};
-          if (input.startDate) {
-            where.createdAt.gte = input.startDate;
-          }
-          if (input.endDate) {
-            where.createdAt.lte = input.endDate;
-          }
-        }
+        const stats = await api.get<{
+          totalCustomizations?: number;
+          completedCustomizations?: number;
+          failedCustomizations?: number;
+          zonesCount?: number;
+          designsCount?: number;
+        }>(`/api/v1/products/${input.productId}/stats`, { params }).catch(() => ({}));
 
-        // Stats customizations
-        const [totalCustomizations, completedCustomizations, failedCustomizations] =
-          await Promise.all([
-            db.customization.count({ where }),
-            db.customization.count({
-              where: { ...where, status: 'COMPLETED' },
-            }),
-            db.customization.count({
-              where: { ...where, status: 'FAILED' },
-            }),
-          ]);
-
-        // Stats zones
-        const zonesCount = await db.zone.count({
-          where: { productId: input.productId, isActive: true },
-        });
-
-        // Stats designs
-        const designsCount = await db.design.count({
-          where: { productId: input.productId },
-        });
+        const statsData = stats as Record<string, number | undefined>;
+        const totalCustomizations = statsData.totalCustomizations ?? 0;
+        const completedCustomizations = statsData.completedCustomizations ?? 0;
 
         return {
           totalCustomizations,
           completedCustomizations,
-          failedCustomizations,
+          failedCustomizations: statsData.failedCustomizations ?? 0,
           successRate:
-            totalCustomizations > 0
-              ? (completedCustomizations / totalCustomizations) * 100
-              : 0,
-          zonesCount,
-          designsCount,
+            totalCustomizations > 0 ? (completedCustomizations / totalCustomizations) * 100 : 0,
+          zonesCount: statsData.zonesCount ?? 0,
+          designsCount: statsData.designsCount ?? 0,
         };
       } catch (error) {
         logger.error('Error fetching analytics', { error, input });

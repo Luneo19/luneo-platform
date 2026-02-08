@@ -72,10 +72,10 @@ export function OrdersStats({ stats }: OrdersStatsProps) {
       {statConfig.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.label} className="p-4 bg-gray-800/50 border-gray-700">
+          <Card key={stat.label} className="p-4 bg-white border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400">{stat.label}</p>
+                <p className="text-sm text-gray-600">{stat.label}</p>
                 <p className={`text-2xl font-bold text-${stat.color}-400 mt-1`}>
                   {stat.value(stats)}
                 </p>

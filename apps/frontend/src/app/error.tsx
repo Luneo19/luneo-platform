@@ -12,12 +12,11 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log l'erreur avec logger professionnel (Sentry si configuré)
-    logger.error('Application Error', {
-      error,
-      digest: error.digest,
-      message: error.message,
-      stack: error.stack,
+    const err = error instanceof Error ? error : new globalThis.Error(String(error));
+    logger.error('Application Error', err, {
+      digest: (error as Error & { digest?: string }).digest,
+      message: (error as Error).message,
+      stack: (error as Error).stack,
     });
   }, [error]);
 

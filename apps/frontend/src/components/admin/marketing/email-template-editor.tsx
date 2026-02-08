@@ -5,7 +5,8 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -241,12 +242,14 @@ export function EmailTemplateEditor({
           <div
             className="bg-white text-black p-6 rounded-lg min-h-[200px]"
             dangerouslySetInnerHTML={{
-              __html:
+              __html: DOMPurify.sanitize(
                 mode === 'visual'
                   ? visualContent.replace(/\n/g, '<br />')
                   : mode === 'html'
                   ? htmlContent
                   : markdownToHtml(markdownContent),
+                { ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','a','img','div','span','strong','em','b','i','u','ul','ol','li','table','tr','td','th','thead','tbody','hr','blockquote','pre','code'], ALLOWED_ATTR: ['href','src','alt','style','class','width','height','target','rel'] }
+              ),
             }}
           />
         </CardContent>

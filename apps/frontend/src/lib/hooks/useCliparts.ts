@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api/client';
 
 interface Clipart {
   id: string;
@@ -65,9 +66,8 @@ export function useCliparts(filters: ClipartsFilters = {}) {
   const { data, isLoading, error } = useQuery<ClipartsResponse>({
     queryKey: ['cliparts', filters],
     queryFn: async () => {
-      const response = await fetch(`/api/cliparts?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch cliparts');
-      return response.json();
+      const result = await api.get<ClipartsResponse>('/api/v1/cliparts', { params: Object.fromEntries(params) });
+      return result ?? { cliparts: [], total: 0, limit: 0, offset: 0 };
     },
   });
 
@@ -83,11 +83,7 @@ export function useClipart(id: string) {
   // GET - Clipart unique
   const { data, isLoading, error } = useQuery<Clipart>({
     queryKey: ['clipart', id],
-    queryFn: async () => {
-      const response = await fetch(`/api/cliparts/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch clipart');
-      return response.json();
-    },
+    queryFn: async () => api.get<Clipart>(`/api/v1/cliparts/${id}`),
     enabled: !!id,
   });
 
@@ -102,15 +98,7 @@ export function useCreateClipart() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (clipart: Partial<Clipart>) => {
-      const response = await fetch('/api/cliparts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(clipart),
-      });
-      if (!response.ok) throw new Error('Failed to create clipart');
-      return response.json();
-    },
+    mutationFn: async (clipart: Partial<Clipart>) => api.post<Clipart>('/api/v1/cliparts', clipart),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cliparts'] });
     },
@@ -121,15 +109,7 @@ export function useUpdateClipart(id: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (clipart: Partial<Clipart>) => {
-      const response = await fetch(`/api/cliparts/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(clipart),
-      });
-      if (!response.ok) throw new Error('Failed to update clipart');
-      return response.json();
-    },
+    mutationFn: async (clipart: Partial<Clipart>) => api.patch<Clipart>(`/api/v1/cliparts/${id}`, clipart),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cliparts'] });
       queryClient.invalidateQueries({ queryKey: ['clipart', id] });
@@ -141,13 +121,7 @@ export function useDeleteClipart() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/cliparts/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete clipart');
-      return response.json();
-    },
+    mutationFn: async (id: string) => api.delete(`/api/v1/cliparts/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cliparts'] });
     },

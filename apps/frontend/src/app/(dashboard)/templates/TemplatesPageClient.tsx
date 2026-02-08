@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTemplates } from '@/lib/hooks/useTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 import Image from 'next/image';
 
 interface Template {
@@ -61,21 +62,35 @@ export function TemplatesPageClient() {
   }, [templates, searchQuery, selectedCategory]);
 
   const handlePreview = (template: Template) => {
-    // TODO: Implémenter la prévisualisation
-    toast({
-      title: 'Prévisualisation',
-      description: `Prévisualisation de ${template.name}`,
-    });
+    const url = template.preview_url || template.thumbnail_url;
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: 'Prévisualisation',
+        description: `Aucune prévisualisation disponible pour ${template.name}`,
+      });
+    }
   };
 
   const handleDownload = async (template: Template) => {
     try {
-      // TODO: Implémenter le téléchargement
+      const blob = await api.get<Blob>(`/api/v1/templates/${template.id}/download`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${template.name || 'template'}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       toast({
         title: 'Téléchargement',
-        description: `Téléchargement de ${template.name}`,
+        description: `${template.name} a été téléchargé`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error downloading template', { error });
       toast({
         title: 'Erreur',

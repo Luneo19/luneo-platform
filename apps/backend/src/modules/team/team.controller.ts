@@ -19,7 +19,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { TeamService } from './team.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { UpdateTeamMemberDto } from './dto/team.dto';
+import { InviteTeamMemberDto } from './dto/invite-team-member.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('team')
 @Controller('team')
@@ -38,7 +40,7 @@ export class TeamController {
   @Post('invite')
   @ApiOperation({ summary: 'Inviter un nouveau membre' })
   @ApiResponse({ status: 201, description: 'Invitation créée' })
-  async invite(@Body() inviteDto: { email: string; role?: string }, @Request() req) {
+  async invite(@Body() inviteDto: InviteTeamMemberDto, @Request() req) {
     return this.teamService.invite(inviteDto, req.user.brandId || req.user.id, req.user.id);
   }
 
@@ -69,7 +71,7 @@ export class TeamController {
   @ApiOperation({ summary: 'Mettre à jour un membre d\'équipe' })
   @ApiParam({ name: 'id', description: 'ID du membre' })
   @ApiResponse({ status: 200, description: 'Membre mis à jour' })
-  async update(@Param('id') id: string, @Body() updateDto: any, @Request() req) {
+  async update(@Param('id') id: string, @Body() updateDto: UpdateTeamMemberDto, @Request() req) {
     return this.teamService.update(id, updateDto, req.user.brandId || req.user.id);
   }
 

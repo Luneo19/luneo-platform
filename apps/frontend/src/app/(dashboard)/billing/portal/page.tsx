@@ -6,6 +6,7 @@ import { Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
+import { endpoints } from '@/lib/api/client';
 
 function BillingPortalPageContent() {
   const router = useRouter();
@@ -18,52 +19,19 @@ function BillingPortalPageContent() {
         setIsLoading(true);
         setError(null);
 
-        // Récupérer l'utilisateur connecté
-        const { createClient } = await import('@/lib/supabase/client');
-        const supabase = createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-          router.push('/login');
-          return;
-        }
-
-        // Récupérer le customer ID Stripe
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('stripe_customer_id')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError || !profile?.stripe_customer_id) {
-          setError('Aucun abonnement actif trouvé. Souscrivez d\'abord à un plan.');
+        // Get portal URL from NestJS backend (auth via httpOnly cookies)
+        const data = (await endpoints.billing.customerPortal()) as { success?: boolean; url?: string; error?: string };
+        if (!data?.success || !data?.url) {
+          setError(data?.error || 'Aucun abonnement actif trouvé. Souscrivez d\'abord à un plan.');
           setIsLoading(false);
           return;
         }
-
-        // Créer la session du portail
-        const response = await fetch('/api/billing/portal', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerId: profile.stripe_customer_id,
-            returnUrl: `${window.location.origin}/dashboard/billing`,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || data.error || 'Erreur lors de l\'ouverture du portail');
-        }
-
-        if (!data.data?.url) {
-          throw new Error('URL du portail non disponible');
-        }
-
-        // Rediriger vers le portail Stripe
-        window.location.href = data.data.url;
+        window.location.href = data.url;
       } catch (err: unknown) {
+        if ((err as { response?: { status?: number } })?.response?.status === 401) {
+          router.push('/login');
+          return;
+        }
         const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
         logger.error('Billing portal error', { error: err });
         setError(errorMessage);

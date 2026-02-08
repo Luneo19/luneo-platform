@@ -8,6 +8,8 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { api } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -46,15 +48,14 @@ export default function EventsPage() {
   const loadEvents = async () => {
     try {
       setIsLoading(true);
-      const params = new URLSearchParams();
-      if (dateFilter) params.set('days', dateFilter);
-      if (typeFilter !== 'all') params.set('type', typeFilter);
+      const params: Record<string, string> = {};
+      if (dateFilter) params.days = dateFilter;
+      if (typeFilter !== 'all') params.type = typeFilter;
 
-      const response = await fetch(`/api/admin/events?${params.toString()}`);
-      const data = await response.json();
-      setEvents(data.events || []);
+      const data = await api.get<{ events?: Event[] }>('/api/v1/admin/events', { params });
+      setEvents(data?.events ?? []);
     } catch (error) {
-      console.error('Error loading events:', error);
+      logger.error('Error loading events:', error);
     } finally {
       setIsLoading(false);
     }

@@ -1,9 +1,6 @@
-'use client';
-
-import React, { memo } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Zap, Check } from 'lucide-react';
-import { logger } from '../../../../../lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function QuickstartPageContent() {
@@ -74,7 +71,7 @@ curl -X POST https://api.luneo.app/v1/auth/signup \\
   })
 })
 .then(res => res.json())
-.then(data => logger.info('Design created:', data.id));`}</pre>
+.then(data => console.info('Design created:', data.id));`}</pre>
             </div>
             <div className="flex items-start gap-3 bg-green-900/30 border-l-4 border-green-500 p-4 rounded-lg">
               <Check className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
@@ -92,11 +89,11 @@ curl -X POST https://api.luneo.app/v1/auth/signup \\
                 <h3 className="font-bold text-lg mb-2 text-white">📖 API Reference</h3>
                 <p className="text-gray-300 text-sm">Documentation complète de l'API</p>
               </Link>
-              <Link href="/help/documentation/sdk/react" className="bg-gray-800/50 border-2 border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
+              <Link href="/help/documentation/sdks/react" className="bg-gray-800/50 border-2 border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
                 <h3 className="font-bold text-lg mb-2 text-white">⚛️ React SDK</h3>
                 <p className="text-gray-300 text-sm">Intégration React en 5 minutes</p>
               </Link>
-              <Link href="/help/documentation/examples" className="bg-gray-800/50 border-2 border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
+              <Link href="/help/documentation" className="bg-gray-800/50 border-2 border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors">
                 <h3 className="font-bold text-lg mb-2 text-white">💡 Exemples</h3>
                 <p className="text-gray-300 text-sm">Code examples et use cases</p>
               </Link>
@@ -112,12 +109,10 @@ curl -X POST https://api.luneo.app/v1/auth/signup \\
   );
 }
 
-const QuickstartPageMemo = memo(QuickstartPageContent);
-
 export default function QuickstartPage() {
   return (
     <ErrorBoundary componentName="QuickstartPage">
-      <QuickstartPageMemo />
+      <QuickstartPageContent />
     </ErrorBoundary>
   );
 }

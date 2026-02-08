@@ -162,21 +162,16 @@ export class I18nService {
   }
 
   /**
-   * Private helper to get translation from database
+   * Private helper to get translation from database.
+   * When a Translation model is added to the Prisma schema, implement the query here
+   * (e.g. prisma.translation.findUnique({ where: { key_locale: { key, locale } } }))
+   * and return translation?.value ?? null. Until then, returns null so that
+   * in-memory/fallback translations are used.
    */
   private async getTranslationFromDB(key: string, locale: string): Promise<string | null> {
-    // TODO: Implement database query when Translation table is created
-    // For now, return null to use fallback
     if (!this.prisma) {
       return null;
     }
-    
-    // Future implementation:
-    // const translation = await this.prisma.translation.findUnique({
-    //   where: { key_locale: { key, locale } },
-    // });
-    // return translation?.value || null;
-    
     return null;
   }
 

@@ -49,8 +49,7 @@ const LOCALE_STORAGE_KEY = 'luneo_locale';
  * Get stored locale from localStorage
  */
 function getStoredLocale(): Locale | null {
-  if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+  const stored = typeof window !== 'undefined' ? localStorage.getItem(LOCALE_STORAGE_KEY) : null;
   if (stored && SUPPORTED_LOCALES.includes(stored as Locale)) {
     return stored as Locale;
   }
@@ -61,12 +60,16 @@ function getStoredLocale(): Locale | null {
  * Store locale in localStorage
  */
 function storeLocale(locale: Locale): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  }
 }
 
 /**
  * useI18n hook
+ * - t(key): use nested keys, e.g. t('common.error'), t('auth.login'). Falls back to key if missing.
+ * - t(key, { max: 10 }): replace {{max}} in the translation string.
+ * - locale / setLocale: current locale and setter (persisted in localStorage).
  */
 export function useI18n() {
   const context = useContext(I18nContext);

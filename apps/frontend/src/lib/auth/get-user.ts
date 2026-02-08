@@ -1,12 +1,12 @@
 /**
  * ★★★ AUTH HELPER - GET USER ★★★
  * Helper pour récupérer l'utilisateur depuis la session
- * ✅ Utilise JWT backend (cookies httpOnly) au lieu de Supabase
+ * ✅ Utilise JWT backend (cookies httpOnly)
  * - Support cookies JWT
- * - Support API routes
+ * - Appel direct au backend NestJS
  */
 
-import { db } from '@/lib/db';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { cookies } from 'next/headers';
 import { serverLogger } from '@/lib/logger-server';
 
@@ -19,7 +19,7 @@ export interface AuthUser {
 
 /**
  * Récupère l'utilisateur depuis les cookies JWT (backend NestJS)
- * Remplace l'ancienne implémentation Supabase qui était incompatible
+ * Appelle directement le backend /api/v1/auth/me avec les cookies
  */
 export async function getServerUser(): Promise<AuthUser | null> {
   try {
@@ -30,52 +30,36 @@ export async function getServerUser(): Promise<AuthUser | null> {
       return null;
     }
 
-    // Option 1 : Utiliser l'API route Next.js (recommandé)
-    // En Server Component, utiliser l'URL relative (Next.js gère automatiquement)
-    // En production Vercel, l'URL relative fonctionne car on est sur le même domaine
-    const apiUrl = '/api/auth/me';
-    
-    try {
-      const refreshToken = cookieStore.get('refreshToken')?.value || '';
-      const cookieHeader = refreshToken
-        ? `accessToken=${accessToken}; refreshToken=${refreshToken}`
-        : `accessToken=${accessToken}`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Cookie': cookieHeader,
-        },
-        credentials: 'include',
-        cache: 'no-store', // Important : ne pas mettre en cache
-      });
+    const refreshToken = cookieStore.get('refreshToken')?.value || '';
+    const cookieHeader = refreshToken
+      ? `accessToken=${accessToken}; refreshToken=${refreshToken}`
+      : `accessToken=${accessToken}`;
 
-      if (!response.ok) {
-        return null;
-      }
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/v1/auth/me`, {
+      method: 'GET',
+      headers: {
+        Cookie: cookieHeader,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
 
-      const data = await response.json();
-      
-      // Vérifier que les données sont valides
-      if (!data || !data.id) {
-        return null;
-      }
-
-      return {
-        id: data.id,
-        email: data.email,
-        role: data.role || undefined,
-        brandId: data.brandId || undefined,
-      };
-    } catch (fetchError) {
-      // Fallback : Décoder le JWT directement (moins sécurisé mais fonctionne)
-      serverLogger.warn('[getServerUser] API route failed, trying JWT decode fallback', { error: fetchError });
-      
-      // Option 2 : Décoder le JWT et récupérer depuis DB
-      // Note : Nécessite d'installer jsonwebtoken ou jose
-      // Pour l'instant, on retourne null si l'API route échoue
+    if (!response.ok) {
       return null;
     }
+
+    const data = await response.json();
+    if (!data || !data.id) {
+      return null;
+    }
+
+    return {
+      id: data.id,
+      email: data.email,
+      role: data.role || undefined,
+      brandId: data.brandId || undefined,
+    };
   } catch (error) {
     serverLogger.error('[getServerUser] Error getting server user', error);
     return null;
@@ -84,7 +68,7 @@ export async function getServerUser(): Promise<AuthUser | null> {
 
 /**
  * Récupère l'utilisateur depuis la requête (API Route)
- * ✅ Utilise JWT backend (cookies httpOnly) au lieu de Supabase
+ * ✅ Utilise JWT backend (cookies httpOnly)
  */
 export async function getUserFromRequest(
   request: Request
@@ -112,8 +96,7 @@ export async function getUserFromRequest(
       }
     }
 
-    // Call backend API to verify token and get user
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.luneo.app';
+    const backendUrl = getBackendUrl();
     const response = await fetch(`${backendUrl}/api/v1/auth/me`, {
       method: 'GET',
       headers: {

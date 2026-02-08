@@ -254,9 +254,10 @@ export class SyncEngineService {
       const state = await job.getState();
       const progress = job.progress;
 
+      const data = job.data as Record<string, unknown>;
       return {
         id: job.id!,
-        type: (job.data as any).type || 'product',
+        type: (data.type as string) || 'product',
         status: state as JobStatus['status'],
         progress: typeof progress === 'number' ? progress : undefined,
         createdAt: new Date(job.timestamp),
@@ -343,7 +344,7 @@ export class SyncEngineService {
 
       // ✅ Filtrer par integrationId
       const integrationJobs = jobs.filter(
-        (job) => (job.data as any).integrationId === integrationId,
+        (job) => (job.data as Record<string, unknown>).integrationId === integrationId,
       );
 
       // ✅ Mapper en JobStatus
@@ -352,9 +353,10 @@ export class SyncEngineService {
           const state = await job.getState();
           const progress = job.progress;
 
+          const jobData = job.data as Record<string, unknown>;
           return {
             id: job.id!,
-            type: (job.data as any).type || 'product',
+            type: (jobData.type as string) || 'product',
             status: state as JobStatus['status'],
             progress: typeof progress === 'number' ? progress : undefined,
             createdAt: new Date(job.timestamp),

@@ -36,7 +36,7 @@ export class PerformanceMiddleware implements NestMiddleware {
           duration,
           statusCode,
           timestamp: new Date(),
-          userId: (req as any).user?.id,
+          userId: (req as Request & { user?: { id?: string } }).user?.id,
           ip: req.ip || req.socket.remoteAddress,
           userAgent: req.get('user-agent'),
         })

@@ -13,6 +13,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 import type {
   AnalyticsEvent,
   TrackedEvent,
@@ -125,7 +126,7 @@ class AnalyticsService {
     options: {
       label?: string;
       value?: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {}
   ): void {
     if (!this.config.enabled || typeof window === 'undefined') return;
@@ -198,7 +199,10 @@ class AnalyticsService {
         });
       }
     } catch (error) {
-      // Silently fail - GA is optional
+      // GA is optional - log for debugging
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug('[Analytics] GA call failed', { error });
+      }
     }
 
     // Send to Mixpanel
@@ -208,7 +212,10 @@ class AnalyticsService {
         mp.trackMixpanelEvent(eventName, properties);
       }
     } catch (error) {
-      // Silently fail - Mixpanel is optional
+      // Mixpanel is optional - log for debugging
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug('[Analytics] Mixpanel call failed', { error });
+      }
     }
   }
 
@@ -242,7 +249,7 @@ class AnalyticsService {
   /**
    * Track click event
    */
-  public trackClick(element: string, metadata?: Record<string, any>): void {
+  public trackClick(element: string, metadata?: Record<string, unknown>): void {
     if (!this.config.trackClicks) return;
 
     this.track('user_action', 'click', {
@@ -254,7 +261,7 @@ class AnalyticsService {
   /**
    * Track form submission
    */
-  public trackFormSubmit(formName: string, success: boolean, metadata?: Record<string, any>): void {
+  public trackFormSubmit(formName: string, success: boolean, metadata?: Record<string, unknown>): void {
     if (!this.config.trackFormSubmissions) return;
 
     this.track('user_action', 'submit', {
@@ -267,7 +274,7 @@ class AnalyticsService {
   /**
    * Track error
    */
-  public trackError(error: Error | string, metadata?: Record<string, any>): void {
+  public trackError(error: Error | string, metadata?: Record<string, unknown>): void {
     if (!this.config.trackErrors) return;
 
     const errorMessage = error instanceof Error ? error.message : error;
@@ -285,7 +292,7 @@ class AnalyticsService {
   /**
    * Track performance metric
    */
-  public trackPerformance(metric: string, value: number, metadata?: Record<string, any>): void {
+  public trackPerformance(metric: string, value: number, metadata?: Record<string, unknown>): void {
     if (!this.config.trackPerformance) return;
 
     this.track('performance', 'render_time', {
@@ -300,7 +307,7 @@ class AnalyticsService {
    */
   public trackCustomization(
     action: 'customizer_open' | 'customizer_close' | 'element_add' | 'element_modify' | 'element_delete' | 'color_change' | 'text_add' | 'image_upload' | 'template_select',
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     this.track('customization', action, { metadata });
   }
@@ -317,7 +324,7 @@ class AnalyticsService {
       quantity?: number;
       currency?: string;
       orderId?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {}
   ): void {
     this.track('commerce', action, {
@@ -417,15 +424,7 @@ class AnalyticsService {
     this.eventQueue = [];
 
     try {
-      const response = await fetch('/api/analytics/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send events');
-      }
+      await api.post('/api/v1/analytics-clean/events', { events });
 
       if (this.config.debug) {
         logger.debug('Events flushed', { count: events.length });
@@ -458,14 +457,14 @@ class AnalyticsService {
   // ============================================
 
   private getOrCreateAnonymousId(): string {
-    if (typeof window === 'undefined') return uuidv4();
-
-    const stored = localStorage.getItem(`${this.config.storageKey}_aid`);
-    if (stored) return stored;
-
-    const newId = uuidv4();
-    localStorage.setItem(`${this.config.storageKey}_aid`, newId);
-    return newId;
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`${this.config.storageKey}_aid`);
+      if (stored) return stored;
+      const newId = uuidv4();
+      localStorage.setItem(`${this.config.storageKey}_aid`, newId);
+      return newId;
+    }
+    return uuidv4();
   }
 
   private initSession(): string {
@@ -693,30 +692,30 @@ class AnalyticsService {
   }
 
   private saveQueuedEvents(): void {
-    if (typeof window === 'undefined') return;
-
-    try {
-      localStorage.setItem(
-        `${this.config.storageKey}_queue`,
-        JSON.stringify(this.eventQueue.slice(0, 100)) // Max 100 events
-      );
-    } catch (e) {
-      // Storage quota exceeded, clear old events
-      localStorage.removeItem(`${this.config.storageKey}_queue`);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(
+          `${this.config.storageKey}_queue`,
+          JSON.stringify(this.eventQueue.slice(0, 100)) // Max 100 events
+        );
+      } catch (e) {
+        // Storage quota exceeded, clear old events
+        localStorage.removeItem(`${this.config.storageKey}_queue`);
+      }
     }
   }
 
   private loadQueuedEvents(): void {
-    if (typeof window === 'undefined') return;
-
-    const stored = localStorage.getItem(`${this.config.storageKey}_queue`);
-    if (stored) {
-      try {
-        const events = JSON.parse(stored);
-        this.eventQueue = [...events, ...this.eventQueue];
-        localStorage.removeItem(`${this.config.storageKey}_queue`);
-      } catch (e) {
-        localStorage.removeItem(`${this.config.storageKey}_queue`);
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`${this.config.storageKey}_queue`);
+      if (stored) {
+        try {
+          const events = JSON.parse(stored);
+          this.eventQueue = [...events, ...this.eventQueue];
+          localStorage.removeItem(`${this.config.storageKey}_queue`);
+        } catch (e) {
+          localStorage.removeItem(`${this.config.storageKey}_queue`);
+        }
       }
     }
   }

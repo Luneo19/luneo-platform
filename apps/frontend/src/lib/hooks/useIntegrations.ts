@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useCallback } from 'react';
+import { trpc } from '@/lib/trpc/client';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 interface Integration {
@@ -17,111 +18,93 @@ interface Integration {
   created_at: string;
 }
 
+// Map tRPC integration (IntegrationService shape) to hook's Integration
+function mapTrpcToIntegration(row: {
+  id: string;
+  platform: string;
+  shopDomain?: string;
+  status?: string;
+  lastSyncAt?: Date | null;
+  config?: Record<string, unknown>;
+  createdAt: Date;
+}): Integration {
+  return {
+    id: row.id,
+    platform: row.platform,
+    platform_name: row.platform.charAt(0).toUpperCase() + row.platform.slice(1),
+    store_url: row.shopDomain ? `https://${row.shopDomain}` : null,
+    store_name: row.shopDomain ?? null,
+    status: row.status ?? 'active',
+    is_active: (row.status ?? 'active') === 'active',
+    last_sync_at: row.lastSyncAt ? new Date(row.lastSyncAt).toISOString() : null,
+    last_sync_status: null,
+    products_synced: Number((row.config as Record<string, unknown>)?.productsSynced ?? 0),
+    orders_synced: Number((row.config as Record<string, unknown>)?.ordersSynced ?? 0),
+    created_at: new Date(row.createdAt).toISOString(),
+  };
+}
+
 export function useIntegrations() {
-  const [integrations, setIntegrations] = useState<Integration[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const integrationsQuery = trpc.integration.list.useQuery();
+  const deleteMutation = trpc.integration.delete.useMutation({
+    onSuccess: () => {
+      integrationsQuery.refetch();
+    },
+  });
 
-  const fetchIntegrations = useCallback(async () => {
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+  const rawList = (integrationsQuery.data ?? []) as unknown as Array<{
+    id: string;
+    platform: string;
+    shopDomain?: string;
+    status?: string;
+    lastSyncAt?: Date | null;
+    config?: Record<string, unknown>;
+    createdAt: Date;
+  }>;
+  const integrations: Integration[] = rawList.map(mapTrpcToIntegration);
+  const loading = integrationsQuery.isLoading;
+  const error = integrationsQuery.error?.message ?? null;
 
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
-
-      const { data, error: dbError } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (dbError) throw dbError;
-
-      setIntegrations(data || []);
-    } catch (err: any) {
-      logger.error('Error fetching integrations', {
-        error: err,
-        message: err.message,
-      });
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchIntegrations();
-  }, [fetchIntegrations]);
+  const fetchIntegrations = useCallback(() => {
+    integrationsQuery.refetch();
+  }, [integrationsQuery]);
 
   const connectShopify = useCallback(async (storeDomain: string) => {
-    try {
-      // Rediriger vers l'OAuth Shopify
-      window.location.href = `/api/integrations/shopify/connect?shop=${encodeURIComponent(storeDomain)}`;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
+    window.location.href = `/api/integrations/shopify/connect?shop=${encodeURIComponent(storeDomain)}`;
   }, []);
 
   const syncShopify = useCallback(async (integrationId: string) => {
-    try {
-      const response = await fetch('/api/integrations/shopify/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ integrationId }),
-      });
+    const result = await api.post<{ success?: boolean; error?: string; data?: unknown }>('/api/v1/integrations/shopify/sync', {
+      integrationId,
+    });
+    if (result && typeof result === 'object' && 'success' in result && !result.success) {
+      throw new Error((result as { error?: string }).error || 'Sync failed');
+    }
+    integrationsQuery.refetch();
+    return (result as { data?: unknown })?.data ?? result;
+  }, [integrationsQuery]);
 
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Sync failed');
+  const disconnectIntegration = useCallback(
+    async (integrationId: string) => {
+      try {
+        await deleteMutation.mutateAsync({ id: integrationId });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to disconnect';
+        logger.error('Error disconnecting integration', { error: err, integrationId });
+        throw err;
       }
-
-      // Rafraîchir les intégrations
-      await fetchIntegrations();
-
-      return result.data;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
-  }, [fetchIntegrations]);
-
-  const disconnectIntegration = useCallback(async (integrationId: string) => {
-    try {
-      const supabase = createClient();
-      
-      const { error: dbError } = await supabase
-        .from('integrations')
-        .update({
-          is_active: false,
-          status: 'disconnected',
-          disconnected_at: new Date().toISOString(),
-        })
-        .eq('id', integrationId);
-
-      if (dbError) throw dbError;
-
-      // Rafraîchir les intégrations
-      await fetchIntegrations();
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
-  }, [fetchIntegrations]);
+    },
+    [deleteMutation]
+  );
 
   const refresh = useCallback(() => {
-    fetchIntegrations();
-  }, [fetchIntegrations]);
-
-  const memoizedIntegrations = useMemo(() => integrations, [integrations]);
+    integrationsQuery.refetch();
+  }, [integrationsQuery]);
 
   return {
-    integrations: memoizedIntegrations,
+    integrations,
     loading,
-    error,
+    error: error ?? null,
     connectShopify,
     syncShopify,
     disconnectIntegration,

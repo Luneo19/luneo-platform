@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger';
 
 export interface AnalyticsEvent {
   name: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   userId?: string;
   timestamp?: Date;
 }
@@ -44,8 +44,11 @@ class AnalyticsService {
       });
 
       // In production, send to analytics service (e.g., PostHog, Mixpanel, etc.)
-      if (typeof window !== 'undefined' && (window as any).analytics) {
-        (window as any).analytics.track(event.name, event.properties);
+      if (typeof window !== 'undefined') {
+        const win = window as Window & { analytics?: { track: (name: string, properties?: Record<string, unknown>) => void } };
+        if (win.analytics) {
+          win.analytics.track(event.name, event.properties);
+        }
       }
 
       // Keep only last 100 events in memory
@@ -60,7 +63,7 @@ class AnalyticsService {
   /**
    * Track page view
    */
-  trackPageView(path: string, properties?: Record<string, any>) {
+  trackPageView(path: string, properties?: Record<string, unknown>) {
     this.track({
       name: 'page_view',
       properties: {
@@ -73,7 +76,7 @@ class AnalyticsService {
   /**
    * Track custom event
    */
-  trackEvent(name: string, properties?: Record<string, any>, userId?: string) {
+  trackEvent(name: string, properties?: Record<string, unknown>, userId?: string) {
     this.track({
       name,
       properties,
@@ -84,7 +87,7 @@ class AnalyticsService {
   /**
    * Track conversion
    */
-  trackConversion(eventName: string, value?: number, properties?: Record<string, any>) {
+  trackConversion(eventName: string, value?: number, properties?: Record<string, unknown>) {
     this.track({
       name: eventName,
       properties: {

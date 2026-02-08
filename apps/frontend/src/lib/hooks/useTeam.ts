@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 interface TeamMember {
   id: string;
@@ -24,14 +25,9 @@ export function useTeam() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/team');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du chargement des membres');
-      }
-
-      setMembers(data.data.members);
+      const data = await endpoints.team.members();
+      const raw = data as { data?: { members?: TeamMember[] }; members?: TeamMember[] };
+      setMembers(raw?.data?.members ?? raw?.members ?? []);
     } catch (err: any) {
       logger.error('Erreur chargement team', {
         error: err,
@@ -49,22 +45,9 @@ export function useTeam() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/team', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, role }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'invitation');
-      }
-
-      // Recharger la liste
+      await endpoints.team.invite(email, role);
       await loadMembers();
-
-      return { success: true, message: data.message };
+      return { success: true, message: 'Invitation envoyée' };
     } catch (err: any) {
       logger.error('Erreur invitation', {
         error: err,
@@ -85,20 +68,9 @@ export function useTeam() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/team/${memberId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la suppression');
-      }
-
-      // Recharger la liste
+      await endpoints.team.remove(memberId);
       await loadMembers();
-
-      return { success: true, message: data.message };
+      return { success: true, message: 'Membre supprimé' };
     } catch (err: any) {
       logger.error('Erreur suppression membre', {
         error: err,
@@ -118,22 +90,9 @@ export function useTeam() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/team/${memberId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la mise à jour');
-      }
-
-      // Recharger la liste
+      await endpoints.team.update(memberId, { role });
       await loadMembers();
-
-      return { success: true, message: data.message };
+      return { success: true, message: 'Rôle mis à jour' };
     } catch (err: any) {
       logger.error('Erreur mise à jour rôle', {
         error: err,

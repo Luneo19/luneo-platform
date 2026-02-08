@@ -18,13 +18,12 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    logger.error('Dashboard page error', {
-      error,
-      message: error.message,
-      stack: error.stack,
-      digest: error.digest,
+    const err = error instanceof Error ? error : new globalThis.Error(String(error));
+    logger.error('Dashboard page error', err, {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+      digest: (error as Error & { digest?: string }).digest,
     });
-    // Envoyer à Sentry si configuré
   }, [error]);
 
   return (

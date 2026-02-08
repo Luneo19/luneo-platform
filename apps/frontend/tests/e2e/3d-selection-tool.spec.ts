@@ -25,7 +25,7 @@ test.describe('3D Selection Tool', () => {
       try {
         await loginUser(page, TEST_USER);
         const isLoggedIn = await page.evaluate(() => {
-          return document.cookie.includes('sb-') || localStorage.getItem('supabase.auth.token');
+          return document.cookie.includes('accessToken=');
         });
         expect(isLoggedIn).toBeTruthy();
       } catch (error) {
@@ -82,17 +82,8 @@ test.describe('3D Selection Tool', () => {
     let authToken: string | null = null;
     if (useAuth) {
       authToken = await page.evaluate(() => {
-        // Try to get token from localStorage or cookies
-        const token = localStorage.getItem('supabase.auth.token');
-        if (token) {
-          try {
-            const parsed = JSON.parse(token);
-            return parsed.access_token || token;
-          } catch {
-            return token;
-          }
-        }
-        return null;
+        const match = document.cookie.match(/accessToken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : null;
       });
     }
 
@@ -154,16 +145,8 @@ test.describe('3D Selection Tool', () => {
     let authToken: string | null = null;
     if (useAuth) {
       authToken = await page.evaluate(() => {
-        const token = localStorage.getItem('supabase.auth.token');
-        if (token) {
-          try {
-            const parsed = JSON.parse(token);
-            return parsed.access_token || token;
-          } catch {
-            return token;
-          }
-        }
-        return null;
+        const match = document.cookie.match(/accessToken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : null;
       });
     }
 
@@ -213,16 +196,8 @@ test.describe('3D Selection Tool', () => {
     let authToken: string | null = null;
     if (useAuth) {
       authToken = await page.evaluate(() => {
-        const token = localStorage.getItem('supabase.auth.token');
-        if (token) {
-          try {
-            const parsed = JSON.parse(token);
-            return parsed.access_token || token;
-          } catch {
-            return token;
-          }
-        }
-        return null;
+        const match = document.cookie.match(/accessToken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : null;
       });
     }
 

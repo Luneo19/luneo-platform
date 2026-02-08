@@ -1,9 +1,23 @@
-'use client';
-
-import React, { memo, useMemo } from 'react';
+import React from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Shield, Eye, Download, Trash2 } from 'lucide-react';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+export const metadata: Metadata = {
+  title: 'RGPD & Protection des données - Luneo',
+  description:
+    'Luneo est conforme au RGPD. Droits d\'accès, rectification, effacement, portabilité et opposition.',
+  openGraph: {
+    title: 'RGPD & Protection des données - Luneo',
+    description: 'Conformité RGPD et droits des personnes.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'RGPD & Protection des données - Luneo',
+    description: 'RGPD et protection des données Luneo.',
+  },
+};
 
 function GDPRPageContent() {
   return (
@@ -201,12 +215,6 @@ function GDPRPageContent() {
   );
 }
 
-const GDPRPageMemo = memo(GDPRPageContent);
-
 export default function GDPRPage() {
-  return (
-    <ErrorBoundary componentName="GDPRPage">
-      <GDPRPageMemo />
-    </ErrorBoundary>
-  );
+  return <GDPRPageContent />;
 }

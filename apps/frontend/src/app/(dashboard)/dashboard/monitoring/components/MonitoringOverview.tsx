@@ -63,18 +63,18 @@ export function MonitoringOverview({ metrics, services, alerts }: MonitoringOver
   return (
     <div className="space-y-6">
       {/* Services Status */}
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900">
             <Server className="w-5 h-5" />
             État des services
           </CardTitle>
-          <CardDescription>Monitoring des services critiques</CardDescription>
+          <CardDescription className="text-gray-600">Monitoring des services critiques</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {services.length === 0 ? (
-              <p className="text-slate-400 text-center py-8">Aucun service à surveiller</p>
+              <p className="text-gray-600 text-center py-8">Aucun service à surveiller</p>
             ) : (
               services.map((service) => {
                 const IconComponent = SERVICE_ICONS[service.name] || Server;
@@ -83,22 +83,22 @@ export function MonitoringOverview({ metrics, services, alerts }: MonitoringOver
                 return (
                   <div
                     key={service.name}
-                    className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl"
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="p-2 rounded-lg bg-slate-700">
+                      <div className="p-2 rounded-lg bg-gray-200">
                         <IconComponent className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="font-medium capitalize">{service.name}</p>
+                        <p className="font-medium capitalize text-gray-900">{service.name}</p>
                         {service.message && (
-                          <p className="text-sm text-slate-400">{service.message}</p>
+                          <p className="text-sm text-gray-600">{service.message}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       {service.latency !== undefined && (
-                        <span className="text-sm text-slate-400">{service.latency}ms</span>
+                        <span className="text-sm text-gray-600">{service.latency}ms</span>
                       )}
                       <div className={cn('flex items-center gap-2', getStatusColor(service.status))}>
                         <StatusIcon className="w-5 h-5" />
@@ -115,13 +115,13 @@ export function MonitoringOverview({ metrics, services, alerts }: MonitoringOver
 
       {/* Recent Alerts */}
       {recentAlerts.length > 0 && (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900">
               <AlertTriangle className="w-5 h-5" />
               Alertes récentes
             </CardTitle>
-            <CardDescription>Dernières alertes non acquittées</CardDescription>
+            <CardDescription className="text-gray-600">Dernières alertes non acquittées</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -152,10 +152,10 @@ export function MonitoringOverview({ metrics, services, alerts }: MonitoringOver
                         >
                           {alert.severity}
                         </Badge>
-                        <span className="font-semibold text-white">{alert.title}</span>
+                        <span className="font-semibold text-gray-900">{alert.title}</span>
                       </div>
-                      <p className="text-sm text-slate-300">{alert.message}</p>
-                      <p className="text-xs text-slate-500 mt-2">
+                      <p className="text-sm text-gray-700">{alert.message}</p>
+                      <p className="text-xs text-gray-500 mt-2">
                         {new Date(alert.timestamp).toLocaleString('fr-FR')}
                       </p>
                     </div>
@@ -176,17 +176,17 @@ export function MonitoringOverview({ metrics, services, alerts }: MonitoringOver
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-slate-800/50 rounded-lg">
-                <p className="text-sm text-slate-400 mb-1">Requêtes totales</p>
-                <p className="text-2xl font-bold">{metrics.totalRequests24h.toLocaleString()}</p>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Requêtes totales</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.totalRequests24h.toLocaleString()}</p>
               </div>
-              <div className="p-4 bg-slate-800/50 rounded-lg">
-                <p className="text-sm text-slate-400 mb-1">Erreurs totales</p>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Erreurs totales</p>
                 <p className="text-2xl font-bold text-red-400">{metrics.totalErrors24h.toLocaleString()}</p>
               </div>
-              <div className="p-4 bg-slate-800/50 rounded-lg">
-                <p className="text-sm text-slate-400 mb-1">Visiteurs uniques</p>
-                <p className="text-2xl font-bold">{metrics.uniqueVisitors24h.toLocaleString()}</p>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Visiteurs uniques</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.uniqueVisitors24h.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>

@@ -27,18 +27,18 @@ export function Configurator3DControls({
   if (!configuration) return null;
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Contrôles</CardTitle>
+        <CardTitle className="text-gray-900">Contrôles</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label className="text-gray-300">Matériau</Label>
+          <Label className="text-gray-700">Matériau</Label>
           <Select
             value={configuration.material}
             onValueChange={(value) => onUpdate({ material: value })}
           >
-            <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -52,7 +52,7 @@ export function Configurator3DControls({
         </div>
 
         <div>
-          <Label className="text-gray-300">Couleur</Label>
+          <Label className="text-gray-700">Couleur</Label>
           <div className="grid grid-cols-4 gap-2 mt-2">
             {COLORS.map((color) => (
               <button
@@ -61,7 +61,7 @@ export function Configurator3DControls({
                 className={`w-10 h-10 rounded border-2 ${
                   configuration.color === color.value
                     ? 'border-cyan-400'
-                    : 'border-gray-600'
+                    : 'border-gray-200'
                 }`}
                 style={{ backgroundColor: color.value }}
                 title={color.name}
@@ -72,21 +72,21 @@ export function Configurator3DControls({
             type="color"
             value={configuration.color}
             onChange={(e) => onUpdate({ color: e.target.value })}
-            className="mt-2 bg-gray-900 border-gray-600"
+            className="mt-2 bg-white border-gray-200"
           />
         </div>
 
         <div>
-          <Label className="text-gray-300">Gravure</Label>
+          <Label className="text-gray-700">Gravure</Label>
           <Input
             value={configuration.engraving || ''}
             onChange={(e) => onUpdate({ engraving: e.target.value })}
             placeholder="Texte à graver"
-            className="bg-gray-900 border-gray-600 text-white"
+            className="bg-white border-gray-200 text-gray-900"
           />
         </div>
 
-        <Button variant="outline" onClick={onReset} className="w-full border-gray-600">
+        <Button variant="outline" onClick={onReset} className="w-full border-gray-200">
           <RotateCcw className="w-4 h-4 mr-2" />
           Réinitialiser
         </Button>

@@ -4,10 +4,9 @@
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-import { db as prismaDb } from '@/lib/db';
 import { TRPCError } from '@trpc/server';
-import bcrypt from 'bcryptjs';
 
 
 const UpdateProfileSchema = z.object({
@@ -32,22 +31,7 @@ export const profileRouter = router({
     const { user } = ctx;
 
     try {
-      const userData = await prismaDb.user.findUnique({
-        where: { id: user.id },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          imageUrl: true,
-          phone: true,
-          website: true,
-          timezone: true,
-          role: true,
-          metadata: true,
-          createdAt: true,
-          lastLoginAt: true,
-        },
-      });
+      const userData = await endpoints.auth.me();
 
       if (!userData) {
         throw new TRPCError({
@@ -56,22 +40,23 @@ export const profileRouter = router({
         });
       }
 
-      const metadata = (userData.metadata || {}) as any;
+      const u = userData as Record<string, unknown>;
+      const metadata = (u.metadata ?? {}) as Record<string, unknown>;
 
       return {
-        id: userData.id,
-        email: userData.email,
-        name: userData.name || '',
-        avatar_url: userData.imageUrl || '',
-        phone: userData.phone || '',
-        website: userData.website || '',
-        timezone: userData.timezone || 'Europe/Paris',
-        role: userData.role,
+        id: u.id,
+        email: u.email,
+        name: u.name || '',
+        avatar_url: u.imageUrl || u.avatar_url || '',
+        phone: u.phone || '',
+        website: u.website || '',
+        timezone: u.timezone || 'Europe/Paris',
+        role: u.role,
         company: metadata.company || '',
-        createdAt: userData.createdAt.toISOString(),
-        lastLoginAt: userData.lastLoginAt?.toISOString() || null,
+        createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : '',
+        lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : null,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof TRPCError) throw error;
       logger.error('Error getting profile', { error, userId: user.id });
       throw new TRPCError({
@@ -90,14 +75,10 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        const currentUser = await prismaDb.user.findUnique({
-          where: { id: user.id },
-          select: { metadata: true },
-        });
+        const currentUser = (await endpoints.auth.me()) as Record<string, unknown> | null;
+        const metadata = (currentUser?.metadata ?? {}) as Record<string, unknown>;
 
-        const metadata = (currentUser?.metadata || {}) as any;
-
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
         if (input.name !== undefined) updateData.name = input.name;
         if (input.email !== undefined) updateData.email = input.email;
         if (input.phone !== undefined) updateData.phone = input.phone;
@@ -110,37 +91,23 @@ export const profileRouter = router({
           };
         }
 
-        const updated = await prismaDb.user.update({
-          where: { id: user.id },
-          data: updateData,
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            imageUrl: true,
-            phone: true,
-            website: true,
-            timezone: true,
-            role: true,
-            metadata: true,
-          },
-        });
+        const updated = await endpoints.users.update(user.id, updateData as Record<string, unknown>) as Record<string, unknown>;
 
         logger.info('Profile updated', { userId: user.id, fields: Object.keys(input) });
 
-        const updatedMetadata = (updated.metadata || {}) as any;
+        const updatedMetadata = (updated.metadata ?? {}) as Record<string, unknown>;
         return {
           id: updated.id,
           email: updated.email,
           name: updated.name || '',
-          avatar_url: updated.imageUrl || '',
+          avatar_url: updated.imageUrl || updated.avatar_url || '',
           phone: updated.phone || '',
           website: updated.website || '',
           timezone: updated.timezone || 'Europe/Paris',
           role: updated.role,
           company: updatedMetadata.company || '',
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error updating profile', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -167,7 +134,7 @@ export const profileRouter = router({
           },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching sessions', { error, userId: ctx.user.id });
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
@@ -185,7 +152,7 @@ export const profileRouter = router({
       try {
         logger.info('Session revoked', { sessionId: input.sessionId, userId: ctx.user.id });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error revoking session', { error, input, userId: ctx.user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -200,7 +167,7 @@ export const profileRouter = router({
   listApiKeys: protectedProcedure.query(async ({ ctx }) => {
     try {
       return { keys: [] };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing API keys', { error, userId: ctx.user.id });
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
@@ -224,7 +191,7 @@ export const profileRouter = router({
           key: apiKey,
           createdAt: new Date(),
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error creating API key', { error, input, userId: ctx.user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -242,7 +209,7 @@ export const profileRouter = router({
       try {
         logger.info('API key deleted', { keyId: input.id, userId: ctx.user.id });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error deleting API key', { error, input, userId: ctx.user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -257,7 +224,7 @@ export const profileRouter = router({
   listWebhooks: protectedProcedure.query(async ({ ctx }) => {
     try {
       return { webhooks: [] };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing webhooks', { error, userId: ctx.user.id });
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
@@ -281,7 +248,7 @@ export const profileRouter = router({
           status: 'active',
           createdAt: new Date(),
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error creating webhook', { error, input, userId: ctx.user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -299,7 +266,7 @@ export const profileRouter = router({
       try {
         logger.info('Webhook deleted', { webhookId: input.id, userId: ctx.user.id });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error deleting webhook', { error, input, userId: ctx.user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -321,7 +288,7 @@ export const profileRouter = router({
           { id: 'in_app', type: 'in_app', category: 'all', enabled: true },
         ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching notification preferences', { error, userId: ctx.user.id });
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
@@ -339,41 +306,30 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        // Récupérer l'utilisateur avec le mot de passe hashé
-        const userData = await prismaDb.user.findUnique({
-          where: { id: user.id },
-          select: { passwordHash: true },
-        });
-
-        if (!userData?.passwordHash) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Aucun mot de passe enregistré. Utilisez la réinitialisation de mot de passe.',
-          });
-        }
-
-        // Vérifier le mot de passe actuel
-        const isValid = await bcrypt.compare(input.currentPassword, userData.passwordHash);
-        if (!isValid) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Mot de passe actuel incorrect',
-          });
-        }
-
-        // Hasher le nouveau mot de passe
-        const newPasswordHash = await bcrypt.hash(input.newPassword, 10);
-
-        // Mettre à jour
-        await prismaDb.user.update({
-          where: { id: user.id },
-          data: { passwordHash: newPasswordHash },
+        await api.post('/api/v1/auth/change-password', {
+          currentPassword: input.currentPassword,
+          newPassword: input.newPassword,
         });
 
         logger.info('Password changed', { userId: user.id });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
+        const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+        const status = err?.response?.status;
+        const message = err?.response?.data?.message || err?.message;
+        if (status === 400) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: message || 'Aucun mot de passe enregistré. Utilisez la réinitialisation de mot de passe.',
+          });
+        }
+        if (status === 401) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: message || 'Mot de passe actuel incorrect',
+          });
+        }
         logger.error('Error changing password', { error, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -391,15 +347,11 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        const updated = await prismaDb.user.update({
-          where: { id: user.id },
-          data: { imageUrl: input.imageUrl },
-          select: { imageUrl: true },
-        });
+        const updated = await endpoints.users.update(user.id, { imageUrl: input.imageUrl }) as Record<string, unknown>;
 
         logger.info('Avatar uploaded', { userId: user.id });
-        return { avatar_url: updated.imageUrl || '' };
-      } catch (error: any) {
+        return { avatar_url: updated?.imageUrl || updated?.avatar_url || input.imageUrl };
+      } catch (error: unknown) {
         logger.error('Error uploading avatar', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -417,37 +369,30 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        const userData = await prismaDb.user.findUnique({
-          where: { id: user.id },
-          select: { passwordHash: true },
-        });
-
-        if (!userData?.passwordHash) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Aucun mot de passe enregistré. Utilisez la réinitialisation de mot de passe.',
-          });
-        }
-
-        const isValid = await bcrypt.compare(input.currentPassword, userData.passwordHash);
-        if (!isValid) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Mot de passe actuel incorrect',
-          });
-        }
-
-        const newPasswordHash = await bcrypt.hash(input.newPassword, 10);
-
-        await prismaDb.user.update({
-          where: { id: user.id },
-          data: { passwordHash: newPasswordHash },
+        await api.post('/api/v1/auth/change-password', {
+          currentPassword: input.currentPassword,
+          newPassword: input.newPassword,
         });
 
         logger.info('Password updated', { userId: user.id });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
+        const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+        const status = err?.response?.status;
+        const message = err?.response?.data?.message || err?.message;
+        if (status === 400) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: message || 'Aucun mot de passe enregistré.',
+          });
+        }
+        if (status === 401) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: message || 'Mot de passe actuel incorrect',
+          });
+        }
         logger.error('Error updating password', { error, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',

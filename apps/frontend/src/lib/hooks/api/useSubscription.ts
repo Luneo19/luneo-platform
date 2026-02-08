@@ -7,7 +7,7 @@ import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
-export type PlanTier = 'starter' | 'professional' | 'business' | 'enterprise';
+export type PlanTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
 
 export interface PlanLimits {
   designsPerMonth: number | -1; // -1 = illimité
@@ -47,34 +47,40 @@ export function useSubscription(
     queryFn: async () => {
       try {
         // Utiliser l'endpoint billing/subscription
-        const subscription = await endpoints.billing.subscription();
+        const response = await endpoints.billing.subscription();
         
-        // Si l'endpoint retourne directement les données
-        if (subscription && typeof subscription === 'object' && 'plan' in subscription) {
-          return subscription as SubscriptionInfo;
+        // L'endpoint retourne directement les données SubscriptionInfo
+        // Gérer différents formats de réponse possibles
+        let subscription: SubscriptionInfo;
+        
+        if (response && typeof response === 'object') {
+          // Si la réponse contient directement les propriétés de SubscriptionInfo
+          if ('plan' in response && 'status' in response && 'limits' in response) {
+            subscription = response as SubscriptionInfo;
+          } 
+          // Si la réponse est encapsulée dans un objet data ou subscription
+          else if ('data' in response && response.data && typeof response.data === 'object' && 'plan' in response.data) {
+            subscription = response.data as SubscriptionInfo;
+          }
+          else if ('subscription' in response && response.subscription && typeof response.subscription === 'object' && 'plan' in response.subscription) {
+            subscription = response.subscription as SubscriptionInfo;
+          }
+          else {
+            throw new Error('Invalid subscription response format');
+          }
+          
+          return subscription;
         }
         
-        // Fallback : récupérer depuis /api/v1/auth/me si user.plan existe
-        // Pour l'instant, retourner un plan par défaut (STARTER)
-        // TODO: Implémenter l'endpoint backend /api/v1/billing/subscription
-        return {
-          plan: 'starter' as PlanTier,
-          status: 'active' as const,
-          limits: {
-            designsPerMonth: 50,
-            teamMembers: 3,
-            storageGB: 5,
-            apiAccess: false,
-            advancedAnalytics: false,
-            prioritySupport: false,
-            customExport: false,
-            whiteLabel: false,
-          },
-        };
-      } catch (error) {
-        logger.error('Failed to fetch subscription', { error });
+        throw new Error('Empty subscription response');
+      } catch (error: unknown) {
+        logger.error(
+          'Failed to fetch subscription',
+          error instanceof Error ? error : new Error(String(error))
+        );
         
-        // En cas d'erreur, retourner un plan par défaut
+        // En cas d'erreur (404, pas d'abonnement, etc.), retourner un plan par défaut
+        // Cela permet à l'application de continuer à fonctionner même sans abonnement actif
         return {
           plan: 'starter' as PlanTier,
           status: 'active' as const,
@@ -128,6 +134,7 @@ export function useHasMinimumPlan(
   const { data: subscription } = useSubscription();
   
   const planHierarchy: Record<PlanTier, number> = {
+    free: 0,
     starter: 1,
     professional: 2,
     business: 3,

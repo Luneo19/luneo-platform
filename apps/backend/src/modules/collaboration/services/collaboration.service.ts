@@ -1,17 +1,20 @@
 /**
- * ★★★ SERVICE - COLLABORATION ★★★
- * Service pour la collaboration (partage, commentaires, annotations)
- * Respecte les patterns existants du projet
+ * SERVICE - COLLABORATION
+ * Service pour la collaboration (partage, commentaires)
+ * Uses Prisma SharedResource and Comment models
  */
 
 import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { ResourceType as PrismaResourceType } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import {
   SharedResource,
   ResourceType,
   Permission,
   Comment,
 } from '../interfaces/collaboration.interface';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class CollaborationService {
@@ -35,77 +38,44 @@ export class CollaborationService {
     permissions: Record<string, Permission[]>,
     isPublic: boolean = false,
   ): Promise<SharedResource> {
-    try {
-      this.logger.log(`Sharing resource ${resourceType}:${resourceId} by user: ${createdBy}`);
+    this.logger.log(`Sharing resource ${resourceType}:${resourceId} by user: ${createdBy}`);
 
-      // TODO: Implémenter avec Prisma
-      const sharedResource: SharedResource = {
-        id: `shared-${Date.now()}`,
-        resourceType,
+    const publicToken = isPublic ? randomBytes(32).toString('hex') : null;
+
+    const record = await this.prisma.sharedResource.create({
+      data: {
+        resourceType: resourceType as PrismaResourceType,
         resourceId,
         sharedWith,
-        permissions,
+        permissions: permissions as Prisma.InputJsonValue,
         isPublic,
-        publicToken: isPublic ? `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : undefined,
+        publicToken,
         createdBy,
         brandId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      },
+    });
 
-      return sharedResource;
-    } catch (error) {
-      this.logger.error(`Failed to share resource: ${error.message}`, error.stack);
-      throw error;
-    }
+    return this.mapToSharedResource(record);
   }
 
   /**
    * Récupère les ressources partagées avec un utilisateur
    */
   async getSharedResources(userId: string, brandId: string): Promise<SharedResource[]> {
-    try {
-      this.logger.log(`Getting shared resources for user: ${userId}, brand: ${brandId}`);
+    this.logger.log(`Getting shared resources for user: ${userId}, brand: ${brandId}`);
 
-      // TODO: Implémenter avec Prisma
-      const mockResources: SharedResource[] = [
-        {
-          id: 'shared-1',
-          resourceType: ResourceType.ANALYTICS_REPORT,
-          resourceId: 'report-1',
-          sharedWith: [userId, 'user-2', 'user-3'],
-          permissions: {
-            [userId]: ['view', 'edit'],
-            'user-2': ['view'],
-            'user-3': ['view', 'comment'],
-          },
-          isPublic: false,
-          createdBy: 'user-1',
-          brandId,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        },
-        {
-          id: 'shared-2',
-          resourceType: ResourceType.AI_GENERATION,
-          resourceId: 'gen-1',
-          sharedWith: [userId],
-          permissions: {
-            [userId]: ['view', 'edit', 'comment'],
-          },
-          isPublic: false,
-          createdBy: 'user-2',
-          brandId,
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-          updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        },
-      ];
+    const records = await this.prisma.sharedResource.findMany({
+      where: {
+        brandId,
+        OR: [
+          { sharedWith: { has: userId } },
+          { createdBy: userId },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-      return mockResources;
-    } catch (error) {
-      this.logger.error(`Failed to get shared resources: ${error.message}`, error.stack);
-      throw error;
-    }
+    return records.map((r) => this.mapToSharedResource(r));
   }
 
   /**
@@ -117,30 +87,30 @@ export class CollaborationService {
     brandId: string,
     permissions: Record<string, Permission[]>,
   ): Promise<SharedResource> {
-    try {
-      this.logger.log(`Updating permissions for resource: ${resourceId}`);
+    this.logger.log(`Updating permissions for resource: ${resourceId}`);
 
-      // TODO: Vérifier que l'utilisateur a le droit de modifier
-      // TODO: Implémenter avec Prisma
+    // Verify ownership
+    const existing = await this.prisma.sharedResource.findFirst({
+      where: { id: resourceId, brandId },
+    });
 
-      const updatedResource: SharedResource = {
-        id: resourceId,
-        resourceType: ResourceType.ANALYTICS_REPORT,
-        resourceId: 'report-1',
-        sharedWith: Object.keys(permissions),
-        permissions,
-        isPublic: false,
-        createdBy: userId,
-        brandId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      return updatedResource;
-    } catch (error) {
-      this.logger.error(`Failed to update permissions: ${error.message}`, error.stack);
-      throw error;
+    if (!existing) {
+      throw new NotFoundException(`Shared resource ${resourceId} not found`);
     }
+
+    if (existing.createdBy !== userId) {
+      throw new ForbiddenException('Only the resource owner can update permissions');
+    }
+
+    const record = await this.prisma.sharedResource.update({
+      where: { id: resourceId },
+      data: {
+        sharedWith: Object.keys(permissions),
+        permissions: permissions as Prisma.InputJsonValue,
+      },
+    });
+
+    return this.mapToSharedResource(record);
   }
 
   /**
@@ -152,15 +122,30 @@ export class CollaborationService {
     resourceId: string,
     requiredPermission: Permission,
   ): Promise<boolean> {
-    try {
-      // TODO: Implémenter avec Prisma
-      // Vérifier si la ressource est partagée avec l'utilisateur
-      // Vérifier si l'utilisateur a la permission requise
-      return true; // Mock pour l'instant
-    } catch (error) {
-      this.logger.error(`Failed to check access: ${error.message}`, error.stack);
-      return false;
-    }
+    const record = await this.prisma.sharedResource.findFirst({
+      where: {
+        resourceType: resourceType as PrismaResourceType,
+        resourceId,
+        OR: [
+          { sharedWith: { has: userId } },
+          { createdBy: userId },
+          { isPublic: true },
+        ],
+      },
+    });
+
+    if (!record) return false;
+
+    // Owner always has full access
+    if (record.createdBy === userId) return true;
+
+    // Public resources grant view access
+    if (record.isPublic && requiredPermission === 'view') return true;
+
+    // Check specific permissions
+    const perms = record.permissions as Record<string, string[]>;
+    const userPerms = perms[userId] || [];
+    return userPerms.includes(requiredPermission);
   }
 
   // ========================================
@@ -178,32 +163,33 @@ export class CollaborationService {
     parentId?: string,
     sharedResourceId?: string,
   ): Promise<Comment> {
-    try {
-      this.logger.log(`Adding comment on ${resourceType}:${resourceId} by user: ${authorId}`);
+    this.logger.log(`Adding comment on ${resourceType}:${resourceId} by user: ${authorId}`);
 
-      // TODO: Implémenter avec Prisma
-      const comment: Comment = {
-        id: `comment-${Date.now()}`,
-        resourceType,
+    // Validate parent exists if provided
+    if (parentId) {
+      const parent = await this.prisma.comment.findUnique({ where: { id: parentId } });
+      if (!parent) {
+        throw new NotFoundException(`Parent comment ${parentId} not found`);
+      }
+    }
+
+    const record = await this.prisma.comment.create({
+      data: {
+        resourceType: resourceType as PrismaResourceType,
         resourceId,
         content,
         parentId,
         authorId,
-        author: {
-          id: authorId,
-          name: 'User Name',
-          email: 'user@example.com',
-        },
         sharedResourceId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      },
+      include: {
+        author: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    });
 
-      return comment;
-    } catch (error) {
-      this.logger.error(`Failed to add comment: ${error.message}`, error.stack);
-      throw error;
-    }
+    return this.mapToComment(record);
   }
 
   /**
@@ -214,73 +200,105 @@ export class CollaborationService {
     resourceId: string,
     sharedResourceId?: string,
   ): Promise<Comment[]> {
-    try {
-      this.logger.log(`Getting comments for ${resourceType}:${resourceId}`);
+    this.logger.log(`Getting comments for ${resourceType}:${resourceId}`);
 
-      // TODO: Implémenter avec Prisma
-      const mockComments: Comment[] = [
-        {
-          id: 'comment-1',
-          resourceType,
-          resourceId,
-          content: 'Excellente génération, pourrait améliorer les couleurs',
-          authorId: 'user-1',
-          author: {
-            id: 'user-1',
-            name: 'Marie Dupont',
-            email: 'marie@example.com',
-          },
-          sharedResourceId,
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-          updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-        },
-        {
-          id: 'comment-2',
-          resourceType,
-          resourceId,
-          content: 'Suggestion: utiliser un prompt plus détaillé',
-          authorId: 'user-2',
-          author: {
-            id: 'user-2',
-            name: 'Jean Martin',
-            email: 'jean@example.com',
-          },
-          sharedResourceId,
-          createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-          updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-        },
-      ];
+    const where: Prisma.CommentWhereInput = {
+      resourceType: resourceType as PrismaResourceType,
+      resourceId,
+      parentId: null, // Only top-level comments
+    };
 
-      return mockComments;
-    } catch (error) {
-      this.logger.error(`Failed to get comments: ${error.message}`, error.stack);
-      throw error;
+    if (sharedResourceId) {
+      where.sharedResourceId = sharedResourceId;
     }
+
+    const records = await this.prisma.comment.findMany({
+      where,
+      include: {
+        author: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        replies: {
+          include: {
+            author: {
+              select: { id: true, firstName: true, lastName: true, email: true },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return records.map((r) => this.mapToComment(r));
   }
 
   /**
    * Supprime un commentaire
    */
   async deleteComment(commentId: string, userId: string): Promise<void> {
-    try {
-      this.logger.log(`Deleting comment: ${commentId} by user: ${userId}`);
+    this.logger.log(`Deleting comment: ${commentId} by user: ${userId}`);
 
-      // TODO: Vérifier que l'utilisateur est l'auteur ou admin
-      // TODO: Implémenter avec Prisma
-    } catch (error) {
-      this.logger.error(`Failed to delete comment: ${error.message}`, error.stack);
-      throw error;
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+    });
+
+    if (!comment) {
+      throw new NotFoundException(`Comment ${commentId} not found`);
     }
+
+    if (comment.authorId !== userId) {
+      throw new ForbiddenException('Only the comment author can delete it');
+    }
+
+    // Cascade deletes replies via Prisma relation config
+    await this.prisma.comment.delete({
+      where: { id: commentId },
+    });
+  }
+
+  // ========================================
+  // MAPPERS
+  // ========================================
+
+  private mapToSharedResource(record: { id: string; resourceType: string; resourceId: string; sharedWith: string[]; permissions: unknown; isPublic: boolean; publicToken: string | null; createdBy: string; brandId: string; createdAt: Date; updatedAt: Date }): SharedResource {
+    return {
+      id: record.id,
+      resourceType: record.resourceType as ResourceType,
+      resourceId: record.resourceId,
+      sharedWith: record.sharedWith || [],
+      permissions: (record.permissions as Record<string, Permission[]>) || {},
+      isPublic: record.isPublic,
+      publicToken: record.publicToken || undefined,
+      createdBy: record.createdBy,
+      brandId: record.brandId,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
+  private mapToComment(record: { id: string; resourceType: string; resourceId: string; content: string; parentId: string | null; authorId: string; author: { id: string; firstName: string | null; lastName: string | null; email: string }; sharedResourceId: string | null; createdAt: Date; updatedAt: Date; replies?: Array<{ id: string; resourceType: string; resourceId: string; content: string; parentId: string | null; authorId: string; author: { id: string; firstName: string | null; lastName: string | null; email: string }; sharedResourceId: string | null; createdAt: Date; updatedAt: Date }> }): Comment {
+    const comment: Comment = {
+      id: record.id,
+      resourceType: record.resourceType as ResourceType,
+      resourceId: record.resourceId,
+      content: record.content,
+      parentId: record.parentId || undefined,
+      authorId: record.authorId,
+      author: {
+        id: record.author.id,
+        name: `${record.author.firstName || ''} ${record.author.lastName || ''}`.trim() || 'Unknown',
+        email: record.author.email,
+      },
+      sharedResourceId: record.sharedResourceId || undefined,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+
+    if (record.replies?.length > 0) {
+      comment.replies = record.replies.map((r) => this.mapToComment(r));
+    }
+
+    return comment;
   }
 }
-
-
-
-
-
-
-
-
-
-
-

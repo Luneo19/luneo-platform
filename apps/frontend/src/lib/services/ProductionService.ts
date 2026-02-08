@@ -11,7 +11,7 @@
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
 import type { ProductionJob } from '@/lib/types/order';
-import { db as prismaDb } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 
 // AI Engine URL
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.NEXT_PUBLIC_AI_ENGINE_URL || 'http://localhost:8000';
@@ -92,19 +92,16 @@ export class ProductionService {
         quality: options.quality,
       });
 
-      // Get order item to find design/customization
-      const order = await prismaDb.order.findUnique({
-        where: { id: orderId },
-        include: {
-          items: true,
-        },
-      });
+      interface OrderWithItems {
+        items?: Array<{ id: string; designId?: string | null; customizationId?: string | null }>;
+      }
+      const order = await endpoints.orders.get(orderId) as OrderWithItems | null;
 
       if (!order) {
         throw new Error('Order not found');
       }
 
-      const items = order.items as Array<{
+      const items = (order.items ?? []) as Array<{
         id: string;
         designId?: string | null;
         customizationId?: string | null;
@@ -120,15 +117,13 @@ export class ProductionService {
         throw new Error('Order item has no design');
       }
 
-      const design = await prismaDb.design.findUnique({
-        where: { id: designId },
-        select: {
-          highResUrl: true,
-          imageUrl: true,
-          renderUrl: true,
-          metadata: true,
-        },
-      });
+      interface DesignWithUrls {
+        highResUrl: string | null;
+        imageUrl: string | null;
+        renderUrl: string | null;
+        metadata?: Record<string, unknown>;
+      }
+      const design = await endpoints.designs.get(designId) as DesignWithUrls | null;
 
       if (!design) {
         throw new Error('Design not found');
@@ -147,7 +142,7 @@ export class ProductionService {
         progress: 0,
         files: [],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating production file', { error, orderId, itemId });
       throw error;
     }
@@ -161,7 +156,7 @@ export class ProductionService {
     orderId: string,
     itemId: string,
     options: ProductionOptions,
-    design: { highResUrl: string | null; imageUrl: string | null; renderUrl: string | null; metadata: any }
+    design: { highResUrl: string | null; imageUrl: string | null; renderUrl: string | null; metadata?: Record<string, unknown> }
   ): Promise<void> {
     try {
       logger.info('Production job processing', { jobId, orderId, itemId, format: options.format });
@@ -268,7 +263,7 @@ export class ProductionService {
       cacheService.set(`production:job:${jobId}`, {
         status: 'FAILED',
         progress: 0,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }, { ttl: 3600 * 1000 });
 
       throw error;
@@ -298,8 +293,8 @@ export class ProductionService {
       // Process all items
       const promises = items.map((item) =>
         this.generateFile(orderId, item.id, {
-          format: item.format as any,
-          quality: (item.quality || 'standard') as any,
+          format: item.format as ProductionOptions['format'],
+          quality: (item.quality || 'standard') as ProductionOptions['quality'],
           ...options,
         })
       );
@@ -320,9 +315,9 @@ export class ProductionService {
         status: errors.length === 0 ? 'COMPLETED' : 'PROCESSING',
         progress: 100,
         files,
-        error: errors.length > 0 ? errors.map((e) => e.message).join('; ') : undefined,
+        error: errors.length > 0 ? errors.map((e) => (e instanceof Error ? e.message : String(e))).join('; ') : undefined,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating batch production files', { error, orderId });
       throw error;
     }
@@ -345,7 +340,7 @@ export class ProductionService {
       }
 
       return jobStatus;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error checking production status', { error, jobId });
       return null;
     }
@@ -361,13 +356,13 @@ export class ProductionService {
   async validateFile(fileUrl: string, format: string): Promise<{
     isValid: boolean;
     issues: string[];
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
   }> {
     try {
       logger.info('Validating production file', { fileUrl, format });
 
       const issues: string[] = [];
-      const metadata: Record<string, any> = {};
+      const metadata: Record<string, unknown> = {};
 
       // 1. Check file exists and is accessible
       let fileResponse: Response;
@@ -377,8 +372,8 @@ export class ProductionService {
           issues.push(`File not accessible: ${fileResponse.status} ${fileResponse.statusText}`);
           return { isValid: false, issues, metadata };
         }
-      } catch (error: any) {
-        issues.push(`File fetch failed: ${error.message}`);
+      } catch (error: unknown) {
+        issues.push(`File fetch failed: ${error instanceof Error ? error.message : String(error)}`);
         return { isValid: false, issues, metadata };
       }
 
@@ -451,8 +446,8 @@ export class ProductionService {
           // if (width < 100 || height < 100) {
           //   issues.push(`Image resolution too low: ${width}x${height}`);
           // }
-        } catch (error: any) {
-          issues.push(`Failed to download image for validation: ${error.message}`);
+        } catch (error: unknown) {
+          issues.push(`Failed to download image for validation: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -464,8 +459,8 @@ export class ProductionService {
           if (!pdfHeader.startsWith('%PDF')) {
             issues.push('File does not appear to be a valid PDF (missing PDF header)');
           }
-        } catch (error: any) {
-          issues.push(`Failed to validate PDF header: ${error.message}`);
+        } catch (error: unknown) {
+          issues.push(`Failed to validate PDF header: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -494,7 +489,7 @@ export class ProductionService {
         issues,
         metadata,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error validating production file', { error, fileUrl });
       throw error;
     }

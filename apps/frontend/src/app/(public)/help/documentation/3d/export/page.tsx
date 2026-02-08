@@ -50,7 +50,7 @@ function ThreeDExportPageContent() {
           <div className="bg-gray-900 rounded-lg p-4">
             <pre className="text-sm text-gray-300 overflow-x-auto">
               <code>{`// Export image haute résolution
-const response = await fetch('/api/3d/export-ar', {
+const response = await fetch('/api/v1/3d/export-ar', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer TOKEN',

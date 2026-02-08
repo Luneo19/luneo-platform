@@ -96,7 +96,7 @@ export class AssetHubController {
     }
     return this.fileService.upload(
       req.user.brandId,
-      file as any,
+      file as { buffer: Buffer; mimetype: string; originalname: string; size: number },
       dto,
       req.user.id,
     );

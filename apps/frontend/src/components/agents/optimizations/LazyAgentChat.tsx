@@ -31,7 +31,7 @@ export function LazyAgentChat({ agent, ...props }: LazyAgentChatProps) {
   if (agent === 'luna') {
     return (
       <Suspense fallback={<LoadingSkeleton />}>
-        <LunaChat {...(props as any)} />
+        <LunaChat {...(props as Record<string, unknown>)} />
       </Suspense>
     );
   }
@@ -39,7 +39,7 @@ export function LazyAgentChat({ agent, ...props }: LazyAgentChatProps) {
   if (agent === 'aria' || agent === 'nova') {
     return (
       <Suspense fallback={<LoadingSkeleton />}>
-        <AriaWidget {...(props as any)} />
+        <AriaWidget {...(props as Record<string, unknown>)} />
       </Suspense>
     );
   }

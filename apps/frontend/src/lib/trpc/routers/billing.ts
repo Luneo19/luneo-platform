@@ -6,13 +6,16 @@
  * - Usage & limits
  * - Payment methods
  * - Refunds
+ *
+ * ARCHITECTURE: REST is the primary billing interface (endpoints.billing in @/lib/api/client.ts).
+ * Backend billing lives at /api/v1/billing/*. This tRPC billing router is maintained for
+ * backwards compatibility only; prefer REST for new code.
  */
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { billingService } from '@/lib/services/BillingService';
-import { db } from '@/lib/db';
 
 // ========================================
 // SCHEMAS

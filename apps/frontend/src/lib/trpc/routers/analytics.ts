@@ -9,7 +9,7 @@
  * ~300 lignes de code professionnel
  */
 
-import { db } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { protectedProcedure, router } from '../server';
@@ -71,54 +71,31 @@ export const analyticsRouter = router({
             startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         }
 
-        // Get user's brand
-        const user = await db.user.findUnique({
-          where: { id: ctx.user.id },
-          select: { brandId: true },
-        });
-
-      if (!user?.brandId) {
+        const user = await endpoints.auth.me() as { brandId?: string };
+        if (!user?.brandId) {
           throw new Error('User must have a brandId');
         }
 
-        // Calculate previous period for comparison
+        const startStr = startDate.toISOString().split('T')[0];
+        const endStr = endDate.toISOString().split('T')[0];
+
         const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
         const previousStartDate = new Date(startDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
         const previousEndDate = startDate;
+        const prevStartStr = previousStartDate.toISOString().split('T')[0];
+        const prevEndStr = previousEndDate.toISOString().split('T')[0];
 
-        // Get orders for current period
-        const [currentOrders, previousOrders] = await Promise.all([
-          db.order.findMany({
-            where: {
-              brandId: user.brandId,
-              createdAt: {
-                gte: startDate,
-                lte: endDate,
-              },
-            },
-            select: {
-              totalCents: true,
-              createdAt: true,
-              status: true,
-            },
-          }),
+        const [ordersCurrent, ordersPrevious] = await Promise.all([
+          endpoints.analytics.orders({ startDate: startStr, endDate: endStr }).catch(() => []),
           compare
-            ? db.order.findMany({
-                where: {
-                  brandId: user.brandId,
-                  createdAt: {
-                    gte: previousStartDate,
-                    lte: previousEndDate,
-                  },
-                },
-                select: {
-                  totalCents: true,
-                  createdAt: true,
-                  status: true,
-                },
-              })
-            : [],
+            ? endpoints.analytics.orders({ startDate: prevStartStr, endDate: prevEndStr }).catch(() => [])
+            : Promise.resolve([]),
         ]);
+
+        const currRaw = ordersCurrent as unknown[] | { orders?: unknown[]; data?: unknown[] };
+        const currentOrders = Array.isArray(ordersCurrent) ? ordersCurrent : (currRaw && typeof currRaw === 'object' ? (currRaw.orders ?? currRaw.data ?? []) : []);
+        const prevRaw = ordersPrevious as unknown[] | { orders?: unknown[]; data?: unknown[] };
+        const previousOrders = Array.isArray(ordersPrevious) ? ordersPrevious : (prevRaw && typeof prevRaw === 'object' ? (prevRaw.orders ?? prevRaw.data ?? []) : []);
 
         // Calculate metrics
         const revenue =
@@ -185,8 +162,9 @@ export const analyticsRouter = router({
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        currentOrders.forEach((order: { createdAt: Date; totalCents?: number | null }) => {
-          const dateKey = order.createdAt.toISOString().split('T')[0];
+        currentOrders.forEach((order: { createdAt: Date | string; totalCents?: number | null }) => {
+          const d = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+          const dateKey = d.toISOString().split('T')[0];
           const current = dailyData.get(dateKey) || 0;
           dailyData.set(dateKey, current + (order.totalCents || 0) / 100);
         });

@@ -30,11 +30,9 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
-      
-      // Générer un ID unique pour la zone
+      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
+
       const zoneId = `zone_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
       const newZone: ProductZone = {
         ...zone,
         id: zoneId,
@@ -42,10 +40,9 @@ export class ZonesService {
 
       rules.zones.push(newZone);
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: rules as Record<string, unknown> },
       });
 
       // Invalider le cache
@@ -74,7 +71,7 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
+      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
       const zoneIndex = rules.zones.findIndex(z => z.id === zoneId);
 
       if (zoneIndex === -1) {
@@ -91,7 +88,7 @@ export class ZonesService {
       // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: rules as Record<string, unknown> },
       });
 
       // Invalider le cache
@@ -120,20 +117,18 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
+      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
       const zoneIndex = rules.zones.findIndex(z => z.id === zoneId);
 
       if (zoneIndex === -1) {
         throw new NotFoundException(`Zone ${zoneId} not found`);
       }
 
-      // Supprimer la zone
       rules.zones.splice(zoneIndex, 1);
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: rules as Record<string, unknown> },
       });
 
       // Invalider le cache
@@ -160,7 +155,7 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
+      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
       const originalZone = rules.zones.find(z => z.id === zoneId);
 
       if (!originalZone) {
@@ -179,10 +174,9 @@ export class ZonesService {
 
       rules.zones.push(duplicatedZone);
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: rules as Record<string, unknown> },
       });
 
       // Invalider le cache
@@ -211,8 +205,8 @@ export class ZonesService {
         return [];
       }
 
-      const rules = product.rulesJson as any;
-      return rules.zones || [];
+      const rules = product.rulesJson as ProductRules | null;
+      return rules?.zones ?? [];
     } catch (error) {
       this.logger.error(`Error getting zones for product ${productId}:`, error);
       throw error;
@@ -246,8 +240,8 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as any) || { zones: [] };
-      
+      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
+
       // Réorganiser les zones selon l'ordre fourni
       const reorderedZones: ProductZone[] = [];
       
@@ -267,10 +261,9 @@ export class ZonesService {
 
       rules.zones = reorderedZones;
 
-      // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: rules as Record<string, unknown> },
       });
 
       // Invalider le cache
@@ -463,7 +456,13 @@ export class ZonesService {
       });
 
       const zones = await this.getZones(productId);
-      const stats: Record<string, any> = {};
+      interface ZoneStat {
+        usageCount: number;
+        successRate: number;
+        averagePrice: number;
+        popularOptions: Array<{ option: string; count: number }>;
+      }
+      const stats: Record<string, ZoneStat> = {};
 
       // Initialiser les stats pour chaque zone
       for (const zone of zones) {
@@ -477,21 +476,21 @@ export class ZonesService {
 
       // Analyser l'usage des zones
       for (const design of designs) {
-        const options = design.options as any;
-        if (!options.zones) continue;
+        const options = design.options as DesignOptions | null;
+        if (!options?.zones) continue;
 
         for (const [zoneId, zoneOptions] of Object.entries(options.zones)) {
           if (stats[zoneId]) {
             stats[zoneId].usageCount++;
-            
+
             if (design.status === 'COMPLETED') {
               stats[zoneId].successRate++;
             }
 
-            // Analyser les options populaires
-            for (const [optionKey, optionValue] of Object.entries(zoneOptions)) {
+            const zoneOpts = zoneOptions as Record<string, unknown>;
+            for (const optionKey of Object.keys(zoneOpts)) {
               const existingOption = stats[zoneId].popularOptions.find(
-                (opt: any) => opt.option === optionKey
+                (opt) => opt.option === optionKey
               );
               
               if (existingOption) {
@@ -514,7 +513,7 @@ export class ZonesService {
         }
         
         // Trier les options populaires
-        stats[zoneId].popularOptions.sort((a: any, b: any) => b.count - a.count);
+        stats[zoneId].popularOptions.sort((a, b) => b.count - a.count);
         stats[zoneId].popularOptions = stats[zoneId].popularOptions.slice(0, 5); // Top 5
       }
 

@@ -35,14 +35,15 @@ export async function GET(request: NextRequest) {
     // Extraire les settings de la brand ou retourner des valeurs par défaut
     const settings = brand?.settings || {};
     
+    const s = settings as Record<string, unknown>;
     return {
       brandSettings: {
-        primary_color: (settings as any)?.primary_color || '#000000',
-        secondary_color: (settings as any)?.secondary_color || '#ffffff',
-        logo_url: (settings as any)?.logo_url || (brand as any)?.logo || null,
-        favicon_url: (settings as any)?.favicon_url || null,
-        brand_name: brand?.name || null,
-        brand_domain: brand?.website || null,
+        primary_color: (s?.primary_color as string) || '#000000',
+        secondary_color: (s?.secondary_color as string) || '#ffffff',
+        logo_url: (s?.logo_url as string) ?? (brand?.logo as string) ?? null,
+        favicon_url: (s?.favicon_url as string) ?? null,
+        brand_name: brand?.name ?? null,
+        brand_domain: brand?.website ?? null,
       },
     };
   }, '/api/brand-settings', 'GET');
@@ -139,14 +140,15 @@ export async function PUT(request: NextRequest) {
     const result = await forwardPatch(`/brands/${user.brandId}`, request, updateData);
     const updatedBrand = result.data as { settings?: Record<string, unknown>; logo?: string; name?: string; website?: string } | null;
 
+    const ubSettings = (updatedBrand?.settings ?? {}) as Record<string, unknown>;
     return {
       brandSettings: {
-        primary_color: (updatedBrand?.settings as any)?.primary_color || primary_color || '#000000',
-        secondary_color: (updatedBrand?.settings as any)?.secondary_color || secondary_color || '#ffffff',
-        logo_url: (updatedBrand?.settings as any)?.logo_url || (updatedBrand as any)?.logo || logo_url || null,
-        favicon_url: (updatedBrand?.settings as any)?.favicon_url || favicon_url || null,
-        brand_name: updatedBrand?.name || brand_name || null,
-        brand_domain: updatedBrand?.website || brand_domain || null,
+        primary_color: (ubSettings?.primary_color as string) || primary_color || '#000000',
+        secondary_color: (ubSettings?.secondary_color as string) || secondary_color || '#ffffff',
+        logo_url: (ubSettings?.logo_url as string) ?? (updatedBrand?.logo as string) ?? logo_url ?? null,
+        favicon_url: (ubSettings?.favicon_url as string) ?? favicon_url ?? null,
+        brand_name: updatedBrand?.name ?? brand_name ?? null,
+        brand_domain: updatedBrand?.website ?? brand_domain ?? null,
       },
       message: 'Paramètres de marque mis à jour avec succès',
     };

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/lib/types';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 type AuthUser = Pick<User, 'id' | 'email' | 'firstName' | 'lastName' | 'avatar' | 'name'> & {
   role: UserRole | 'admin' | 'user';
@@ -38,22 +39,16 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-          });
-
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Erreur de connexion');
+          const data = await endpoints.auth.login({ email, password });
+          const userData = data.user;
+          if (!userData) {
+            throw new Error('Erreur de connexion');
           }
-
-          const { user: userData } = await response.json();
-          
-          // Tokens are now in httpOnly cookies, no need to store in localStorage
-          // Cookies are automatically sent with each request via withCredentials: true
-          
+          // Tokens are in httpOnly cookies; clear any legacy localStorage tokens
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+          }
           set({ 
             user: userData as AuthUser, 
             isAuthenticated: true, 
@@ -71,22 +66,16 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userData),
-          });
-
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Erreur lors de l\'inscription');
+          const data = await endpoints.auth.signup(userData);
+          const newUser = data.user;
+          if (!newUser) {
+            throw new Error('Erreur lors de l\'inscription');
           }
-
-          const { user: newUser } = await response.json();
-          
-          // Tokens are now in httpOnly cookies, no need to store in localStorage
-          // Cookies are automatically sent with each request via withCredentials: true
-          
+          // Tokens are in httpOnly cookies; clear any legacy localStorage tokens
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+          }
           set({ 
             user: newUser as AuthUser, 
             isAuthenticated: true, 
@@ -102,19 +91,17 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
-          await fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('accessToken') : ''}`,
-            },
-          });
+          await endpoints.auth.logout();
           logger.info('User logged out');
         } catch (error) {
           logger.error('Logout error', error instanceof Error ? error : new Error(String(error)));
         } finally {
-          // Cookies are cleared by backend on logout
-          // No need to manually remove from localStorage
-          
+          // Cookies are cleared by backend on logout; clear legacy localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+          }
           set({ 
             user: null, 
             isAuthenticated: false, 

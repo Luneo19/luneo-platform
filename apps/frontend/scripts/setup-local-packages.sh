@@ -97,9 +97,10 @@ EOF
 # Copier les packages (ne pas échouer si un package n'existe pas)
 echo ""
 echo "🔄 Copie des packages locaux..."
-copy_package "billing-plans" "src/lib/packages/billing-plans" || echo "⚠️ Échec copie billing-plans, continuation..."
-copy_package "ai-safety" "src/lib/packages/ai-safety" || echo "⚠️ Échec copie ai-safety, continuation..."
-copy_package "types" "src/lib/packages/types" || echo "⚠️ Échec copie types, continuation..."
+PACKAGES_ROOT="$PROJECT_DIR/../../packages"
+copy_package "billing-plans" "$PACKAGES_ROOT/billing-plans" || echo "⚠️ Échec copie billing-plans, continuation..."
+copy_package "ai-safety" "$PACKAGES_ROOT/ai-safety" || echo "⚠️ Échec copie ai-safety, continuation..."
+copy_package "types" "$PACKAGES_ROOT/types" || echo "⚠️ Échec copie types, continuation..."
 
 # Vérifier que les packages sont bien là
 echo ""

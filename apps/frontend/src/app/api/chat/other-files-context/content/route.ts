@@ -7,19 +7,19 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
 
 /**
  * GET - Récupère le contenu textuel d'un fichier contextuel
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
-    const supabase = await createClient();
+    const user = await getUserFromRequest(request);
     
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    if (!user) {
       throw {
         status: 401,
         message: 'Non authentifié',
@@ -39,136 +39,30 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Récupérer les informations du fichier
-    let fileInfo: any = null;
-    
-    if (fileId) {
-      try {
-        const { data: tableCheck } = await supabase
-          .from('context_files')
-          .select('id')
-          .limit(1);
+    // Migrated: content is fetched via backend API; this route forwards the request.
+    const url = new URL(`${API_URL}/api/v1/chat/other-files-context/content`);
+    if (fileId) url.searchParams.set('id', fileId);
+    if (fileUrl) url.searchParams.set('url', fileUrl);
 
-        if (tableCheck !== null) {
-          const { data: file, error: fetchError } = await supabase
-            .from('context_files')
-            .select('*')
-            .eq('id', fileId)
-            .eq('user_id', user.id)
-            .single();
+    const backendResponse = await fetch(url.toString(), {
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
 
-          if (fetchError) {
-            if (fetchError.code === 'PGRST116') {
-              throw {
-                status: 404,
-                message: 'Fichier contextuel non trouvé',
-                code: 'FILE_NOT_FOUND',
-              };
-            }
-            logger.dbError('fetch context file', fetchError, {
-              userId: user.id,
-              fileId,
-            });
-            throw {
-              status: 500,
-              message: 'Erreur lors de la récupération du fichier',
-              code: 'DATABASE_ERROR',
-            };
-          }
-          fileInfo = file;
-        }
-      } catch (dbError: any) {
-        if (dbError.status === 404 || dbError.status === 500) {
-          throw dbError;
-        }
-        // La table n'existe peut-être pas, continuer avec l'URL
+    if (!backendResponse.ok) {
+      if (backendResponse.status === 404) {
+        throw {
+          status: 404,
+          message: 'Fichier contextuel non trouvé',
+          code: 'FILE_NOT_FOUND',
+        };
       }
-    }
-
-    // Si on a une URL mais pas d'info, utiliser l'URL directement
-    const finalUrl = fileInfo?.file_url || fileUrl;
-    
-    if (!finalUrl) {
-      throw {
-        status: 400,
-        message: 'URL du fichier manquante',
-        code: 'VALIDATION_ERROR',
-      };
-    }
-
-    // Récupérer le fichier depuis Supabase Storage ou l'URL
-    let fileContent: string = '';
-    let contentType: string = 'text/plain';
-
-    try {
-      // Si c'est une URL Supabase Storage, extraire le chemin
-      const urlObj = new URL(finalUrl);
-      const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/other-files\/(.+)/);
-      
-      if (pathMatch) {
-        // Télécharger depuis Supabase Storage
-        const filePath = pathMatch[1];
-        const { data, error: downloadError } = await supabase.storage
-          .from('other-files')
-          .download(filePath);
-
-        if (downloadError) {
-          logger.error('Error downloading context file', {
-            error: downloadError,
-            userId: user.id,
-            filePath,
-          });
-          throw {
-            status: 500,
-            message: 'Erreur lors du téléchargement du fichier',
-            code: 'STORAGE_ERROR',
-          };
-        }
-
-        // Convertir en texte selon le type
-        const fileType = fileInfo?.file_type || 'text/plain';
-        contentType = fileType;
-
-        if (fileType.includes('text') || fileType.includes('json') || fileType.includes('xml') || fileType.includes('html')) {
-          fileContent = await data.text();
-        } else if (fileType.includes('pdf')) {
-          // Pour les PDF, on retourne une note indiquant qu'il faut un traitement spécial
-          fileContent = '[PDF] - Le contenu PDF nécessite un traitement spécial. Utilisez un service d\'extraction PDF.';
-        } else if (fileType.includes('word') || fileType.includes('document')) {
-          // Pour les documents Word, on retourne une note
-          fileContent = '[DOCX] - Le contenu DOCX nécessite un traitement spécial. Utilisez un service d\'extraction DOCX.';
-        } else if (fileType.includes('excel') || fileType.includes('spreadsheet')) {
-          // Pour les fichiers Excel, on retourne une note
-          fileContent = '[XLSX] - Le contenu XLSX nécessite un traitement spécial. Utilisez un service d\'extraction XLSX.';
-        } else {
-          // Par défaut, essayer de lire comme texte
-          try {
-            fileContent = await data.text();
-          } catch {
-            fileContent = '[BINARY] - Fichier binaire, contenu non lisible en texte.';
-          }
-        }
-      } else {
-        // Si c'est une URL externe, faire une requête HTTP
-        const response = await fetch(finalUrl);
-        if (!response.ok) {
-          throw {
-            status: 404,
-            message: 'Fichier non accessible',
-            code: 'FILE_NOT_ACCESSIBLE',
-          };
-        }
-        contentType = response.headers.get('content-type') || 'text/plain';
-        fileContent = await response.text();
-      }
-    } catch (error: any) {
-      if (error.status) {
-        throw error;
-      }
-      logger.error('Error processing context file content', {
-        error,
+      logger.error('Failed to fetch context file content', {
         userId: user.id,
-        fileUrl: finalUrl,
+        fileId,
+        fileUrl,
+        status: backendResponse.status,
       });
       throw {
         status: 500,
@@ -177,28 +71,15 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    const result = await backendResponse.json();
     logger.info('Context file content retrieved', {
       userId: user.id,
       fileId,
-      fileUrl: finalUrl,
-      contentType,
-      contentLength: fileContent.length,
+      fileUrl,
+      contentType: result.contentType,
+      contentLength: result.content?.length,
     });
 
-    return {
-      content: fileContent,
-      contentType,
-      fileName: fileInfo?.file_name || 'unknown',
-      fileSize: fileInfo?.file_size || fileContent.length,
-      uploadedAt: fileInfo?.uploaded_at || new Date().toISOString(),
-    };
+    return result;
   }, '/api/chat/other-files-context/content', 'GET');
 }
-
-
-
-
-
-
-
-

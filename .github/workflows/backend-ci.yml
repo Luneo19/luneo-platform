@@ -1,3 +1,4 @@
+# Backend-only CI: runs on backend path changes. Main CI is ci.yml.
 name: Backend CI/CD
 
 on:
@@ -29,8 +30,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: cd apps/backend && npm run lint
-      - run: cd apps/backend && npm run build
+      - run: cd apps/backend && pnpm run lint
+      - run: cd apps/backend && pnpm run build
 
   unit-tests:
     name: Unit Tests
@@ -47,7 +48,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - name: Run tests
-        run: cd apps/backend && npm test
+        run: cd apps/backend && pnpm run test
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
       - name: Upload coverage
@@ -70,7 +71,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: cd apps/backend && npm run build
+      - run: cd apps/backend && pnpm run build
 
   deploy-staging:
     name: Deploy to Staging (Railway)
@@ -82,11 +83,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Railway
-        uses: bervProject/railway-deploy@v0.1.0
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: backend
-          environment: staging
+        run: |
+          npm install -g @railway/cli
+          railway up --service backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   deploy-production:
     name: Deploy to Production (Railway)
@@ -98,8 +99,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Railway
-        uses: bervProject/railway-deploy@v0.1.0
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: backend
-          environment: production
+        run: |
+          npm install -g @railway/cli
+          railway up --service backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

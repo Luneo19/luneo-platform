@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 import { StorageService } from '@/libs/storage/storage.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { firstValueFrom } from 'rxjs';
@@ -105,7 +106,7 @@ export class VariantService {
             variant: true,
             materialId: material.materialId,
             materialType: material.type,
-          } as any,
+          } as Prisma.InputJsonValue,
         },
       });
 
@@ -257,7 +258,7 @@ export class VariantService {
         metadata: {
           path: ['materialId'],
           equals: materialId,
-        } as any,
+        } as Prisma.JsonFilter,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -289,7 +290,7 @@ export class VariantService {
         metadata: {
           path: ['variant'],
           equals: true,
-        } as any,
+        } as Prisma.JsonFilter,
         createdAt: {
           lt: cutoffDate,
         },

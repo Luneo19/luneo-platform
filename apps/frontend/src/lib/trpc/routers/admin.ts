@@ -11,8 +11,6 @@ import { router, adminProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { adminService } from '@/lib/services/AdminService';
 
-// db importé depuis @/lib/db
-
 // ========================================
 // SCHEMAS
 // ========================================

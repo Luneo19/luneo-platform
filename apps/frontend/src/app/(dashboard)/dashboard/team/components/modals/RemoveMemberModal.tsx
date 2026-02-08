@@ -44,7 +44,7 @@ export function RemoveMemberModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle className="text-red-400">Retirer de l'équipe</DialogTitle>
           <DialogDescription>
@@ -66,7 +66,7 @@ export function RemoveMemberModal({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-gray-600"
+            className="border-gray-200"
           >
             Annuler
           </Button>

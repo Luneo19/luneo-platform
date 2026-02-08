@@ -1,3 +1,14 @@
+/**
+ * REST API Client - Public & Auth API Layer
+ *
+ * ARCHITECTURE BOUNDARY:
+ * - REST is used for public API, auth flows, Stripe, and external integrations.
+ * - tRPC (@/lib/trpc/client.ts) is used for internal dashboard pages.
+ *
+ * RULE: Auth, billing, webhooks, and public API = REST.
+ *       Dashboard CRUD, AI studio, editor = tRPC.
+ *       Do NOT duplicate endpoints across both layers.
+ */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import type { LunaResponse, LunaAction, AriaResponse, AriaSuggestion, AgentConversation, NovaResponse } from '@/types/agents';
 import type { Design, DesignSummary, LoginCredentials, RegisterData, User } from '@/lib/types';
@@ -24,12 +35,9 @@ interface GenerateDesignResponse {
 // API Base URL
 // Use NEXT_PUBLIC_API_URL from environment variables
 // IMPORTANT: Do NOT include /api in NEXT_PUBLIC_API_URL - endpoints already include /api/v1
-// For production: NEXT_PUBLIC_API_URL=https://api.luneo.app
-// For development: NEXT_PUBLIC_API_URL=http://localhost:3001
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? 'https://api.luneo.app' // Fallback for production
-    : 'http://localhost:3001'); // Fallback for development
+// For production: set NEXT_PUBLIC_API_URL (e.g. https://api.luneo.app)
+// For development: falls back to http://localhost:3001
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -47,19 +55,8 @@ const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // ✅ Tokens are now in httpOnly cookies
-    // Cookies are automatically sent with each request via withCredentials: true
-    // No need to manually add Authorization header - backend reads from cookies first
-    // Keep Authorization header as fallback for backward compatibility during migration
-    const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('accessToken') // Fallback only during migration
-      : null;
-    
-    // Only add Authorization header as fallback if token available in localStorage
-    // Primary method is httpOnly cookies (sent automatically)
-    if (token && !config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // ✅ Tokens are in httpOnly cookies — sent automatically via withCredentials: true
+    // No Authorization header needed — backend reads tokens from cookies
 
     // Add request timestamp
     config.headers['X-Request-Time'] = new Date().toISOString();
@@ -169,37 +166,75 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * API Client Methods
+ * Retry logic for 5xx errors and network failures
+ * Does NOT retry 4xx (client errors) — only server errors and network failures
+ */
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
+
+async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isAxiosErr = axios.isAxiosError(error);
+      const status = isAxiosErr ? error.response?.status : undefined;
+
+      // Don't retry client errors (4xx)
+      if (status && status >= 400 && status < 500) {
+        throw error;
+      }
+
+      // Exhausted retries
+      if (attempt === retries) {
+        throw error;
+      }
+
+      // Retry on 5xx or network error (no status = network failure)
+      const isRetryable = !status || status >= 500;
+      if (!isRetryable) {
+        throw error;
+      }
+
+      const delay = RETRY_DELAYS[attempt] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Retry logic exhausted');
+}
+
+/**
+ * API Client Methods — all methods use automatic retry for 5xx/network errors
  */
 export const api = {
   // Generic request method
-  request: <T = any>(config: AxiosRequestConfig): Promise<T> => {
-    return apiClient.request(config).then(res => res.data);
+  request: <T = unknown>(config: AxiosRequestConfig): Promise<T> => {
+    return withRetry(() => apiClient.request(config).then(res => res.data));
   },
 
   // GET request
   get: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.get(url, config).then(res => res.data);
+    return withRetry(() => apiClient.get(url, config).then(res => res.data));
   },
 
   // POST request
   post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.post(url, data, config).then(res => res.data);
+    return withRetry(() => apiClient.post(url, data, config).then(res => res.data));
   },
 
   // PUT request
   put: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.put(url, data, config).then(res => res.data);
+    return withRetry(() => apiClient.put(url, data, config).then(res => res.data));
   },
 
   // PATCH request
   patch: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.patch(url, data, config).then(res => res.data);
+    return withRetry(() => apiClient.patch(url, data, config).then(res => res.data));
   },
 
   // DELETE request
   delete: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.delete(url, config).then(res => res.data);
+    return withRetry(() => apiClient.delete(url, config).then(res => res.data));
   },
 };
 
@@ -239,16 +274,22 @@ export const endpoints = {
     list: (params?: { page?: number; limit?: number }) => 
       api.get('/api/v1/users', { params }),
     get: (id: string) => api.get(`/api/v1/users/${id}`),
-    update: (id: string, data: any) => api.put(`/api/v1/users/${id}`, data),
+    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/users/${id}`, data),
     delete: (id: string) => api.delete(`/api/v1/users/${id}`),
   },
 
-  // Brands
+  // Settings
+  settings: {
+    notifications: (preferences: Record<string, unknown>) =>
+      api.put<{ success: boolean }>('/api/v1/settings/notifications', preferences),
+  },
+
+  // Brands (backend: GET/PUT /brands/settings)
   brands: {
-    current: () => api.get('/api/v1/brands/current'),
-    update: (data: any) => api.put('/api/v1/brands/current', data),
+    current: () => api.get('/api/v1/brands/settings'),
+    update: (data: Record<string, unknown>) => api.put('/api/v1/brands/settings', data),
     settings: () => api.get('/api/v1/brands/settings'),
-    updateSettings: (data: any) => api.put('/api/v1/brands/settings', data),
+    updateSettings: (data: Record<string, unknown>) => api.put('/api/v1/brands/settings', data),
   },
 
   // Products
@@ -256,15 +297,15 @@ export const endpoints = {
     list: (params?: { page?: number; limit?: number }) => 
       api.get('/api/v1/products', { params }),
     get: (id: string) => api.get(`/api/v1/products/${id}`),
-    create: (data: any) => api.post('/api/v1/products', data),
-    update: (id: string, data: any) => api.put(`/api/v1/products/${id}`, data),
+    create: (data: Record<string, unknown>) => api.post('/api/v1/products', data),
+    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/products/${id}`, data),
     delete: (id: string) => api.delete(`/api/v1/products/${id}`),
   },
 
   // Designs
   designs: {
-    list: (params?: { page?: number; limit?: number; status?: string }) =>
-      api.get<DesignSummary[]>('/api/v1/designs', { params }),
+    list: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
+      api.get<DesignSummary[] | { designs: DesignSummary[]; pagination: { hasNext: boolean; total: number } }>('/api/v1/designs', { params }),
     get: (id: string) => api.get<Design>(`/api/v1/designs/${id}`),
     create: (data: Partial<Design>) => api.post<Design>('/api/v1/designs', data),
     delete: (id: string) => api.delete<void>(`/api/v1/designs/${id}`),
@@ -274,7 +315,8 @@ export const endpoints = {
   ai: {
     generate: (data: { prompt: string; productId: string; options?: Record<string, unknown> }) =>
       api.post<GenerateDesignResponse>('/api/v1/ai/generate', data),
-    status: (jobId: string) => api.get(`/api/v1/generation/${jobId}/status`),
+    /** Generation status: param is the job/generation publicId (backend uses :publicId in route). */
+    status: (publicId: string) => api.get(`/api/v1/generation/${publicId}/status`),
     upscale: (designId: string) => api.post(`/api/v1/ai/upscale`, { designId }),
     removeBackground: (designId: string) => api.post(`/api/v1/ai/background-removal`, { designId }),
     extractColors: (imageUrl: string) => api.post(`/api/v1/ai/extract-colors`, { imageUrl }),
@@ -283,24 +325,25 @@ export const endpoints = {
 
   // Orders
   orders: {
-    list: (params?: { page?: number; limit?: number; status?: string }) => 
+    list: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
       api.get('/api/v1/orders', { params }),
     get: (id: string) => api.get(`/api/v1/orders/${id}`),
-    create: (data: any) => api.post('/api/v1/orders', data),
-    update: (id: string, data: any) => api.put(`/api/v1/orders/${id}`, data),
+    create: (data: Record<string, unknown>) => api.post('/api/v1/orders', data),
+    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/orders/${id}`, data),
     cancel: (id: string) => api.post(`/api/v1/orders/${id}/cancel`),
     updateStatus: (id: string, status: string) => api.put(`/api/v1/orders/${id}/status`, { status }),
     tracking: (id: string) => api.get(`/api/v1/orders/${id}/tracking`),
     refund: (id: string, reason: string) => api.post(`/api/v1/orders/${id}/refund`, { reason }),
   },
 
-  // Analytics
+  // Analytics (backend: GET /analytics/dashboard, /revenue, /realtime, designs, orders, etc.)
   analytics: {
-    overview: () => api.get('/api/v1/analytics/overview'),
-    designs: (params?: { startDate?: string; endDate?: string }) => 
-      api.get('/api/v1/analytics/designs', { params }),
-    orders: (params?: { startDate?: string; endDate?: string }) => 
-      api.get('/api/v1/analytics/orders', { params }),
+    overview: (params?: { period?: string }) =>
+      api.get('/api/v1/analytics/dashboard', { params }),
+    designs: (params?: { startDate?: string; endDate?: string }) =>
+      api.get<{ data: unknown[]; total: number }>('/api/v1/analytics/designs', { params }),
+    orders: (params?: { startDate?: string; endDate?: string }) =>
+      api.get<{ data: unknown[]; total: number }>('/api/v1/analytics/orders', { params }),
     revenue: (params?: { startDate?: string; endDate?: string }) => 
       api.get('/api/v1/analytics/revenue', { params }),
     export: {
@@ -313,12 +356,26 @@ export const endpoints = {
     },
   },
 
-  // Billing
+  // Credits (AI credits balance, packs, buy)
+  credits: {
+    balance: () =>
+      api.get<{ balance: number; purchased?: number; used?: number }>('/api/v1/credits/balance'),
+    packs: () =>
+      api.get<{ packs?: Array<{ id: string; name: string; credits: number; price: number; priceCents?: number; stripePriceId?: string; badge?: string; savings?: number }> }>('/api/v1/credits/packs'),
+    buy: (data: { packId?: string; packSize?: number }) =>
+      api.post<{ success: boolean; url?: string; sessionId?: string; pack?: unknown }>('/api/v1/credits/buy', data),
+    transactions: (params?: { limit?: number; offset?: number }) =>
+      api.get('/api/v1/credits/transactions', { params }),
+  },
+
+  // Billing (list plans: GET /pricing/plans; current: GET /plans/current)
   billing: {
     subscription: () => api.get('/api/v1/billing/subscription'),
-    plans: () => api.get('/api/v1/plans'),
+    plans: () => api.get('/api/v1/pricing/plans'),
     subscribe: (planId: string, email?: string) => api.post('/api/v1/billing/create-checkout-session', { planId, email }),
     cancel: () => api.post('/api/v1/billing/cancel-downgrade'),
+    cancelSubscription: (immediate?: boolean) =>
+      api.post<{ success: boolean; message?: string; cancelAt?: string }>('/api/v1/billing/cancel-subscription', { immediate: !!immediate }),
     invoices: () => api.get('/api/v1/billing/invoices'),
     paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
     addPaymentMethod: (paymentMethodId: string) => api.post('/api/v1/billing/payment-methods', { paymentMethodId }),
@@ -330,12 +387,32 @@ export const endpoints = {
     scheduledChanges: () => api.get('/api/v1/billing/scheduled-changes'),
   },
 
+  // Notifications (backend: GET list, POST :id/read, POST read-all, DELETE :id)
+  notifications: {
+    list: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) =>
+      api.get<{ notifications: unknown[]; pagination: { total: number } }>('/api/v1/notifications', { params }),
+    markAsRead: (id: string) => api.post(`/api/v1/notifications/${id}/read`, {}),
+    markAllAsRead: () => api.post('/api/v1/notifications/read-all', {}),
+    delete: (id: string) => api.delete(`/api/v1/notifications/${id}`),
+  },
+
+  // Security & GDPR
+  security: {
+    exportData: () => api.get<Blob | { url?: string; data?: unknown }>('/api/v1/security/gdpr/export'),
+    deleteAccount: (data: { password: string; reason?: string }) =>
+      api.delete<{ success: boolean; message?: string }>('/api/v1/security/gdpr/delete-account', { data }),
+    sessions: () =>
+      api.get<Array<{ id: string; device?: string; browser?: string; location?: string; ip?: string; lastActive?: string; current?: boolean }>>('/api/v1/security/sessions'),
+    revokeSession: (sessionId: string) =>
+      api.delete<void>(`/api/v1/security/sessions/${sessionId}`),
+  },
+
   // Integrations
   integrations: {
     list: () => api.get('/api/v1/integrations'),
-    enable: (type: string, config: any) => api.post(`/api/v1/integrations/${type}/enable`, config),
+    enable: (type: string, config: Record<string, unknown>) => api.post(`/api/v1/integrations/${type}/enable`, config),
     disable: (type: string) => api.delete(`/api/v1/integrations/${type}`),
-    test: (type: string, config: any) => api.post(`/api/v1/integrations/${type}/test`, config),
+    test: (type: string, config: Record<string, unknown>) => api.post(`/api/v1/integrations/${type}/test`, config),
   },
 
   // Team
@@ -345,7 +422,7 @@ export const endpoints = {
     invites: () => api.get('/api/v1/team/invite'),
     cancelInvite: (id: string) => api.delete(`/api/v1/team/invite/${id}`),
     get: (id: string) => api.get(`/api/v1/team/${id}`),
-    update: (id: string, data: any) => api.put(`/api/v1/team/${id}`, data),
+    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/team/${id}`, data),
     remove: (userId: string) => api.delete(`/api/v1/team/${userId}`),
   },
 
@@ -353,7 +430,7 @@ export const endpoints = {
   publicApi: {
     keys: {
       list: () => api.get('/api/v1/api-keys'),
-      create: (data: any) => api.post('/api/v1/api-keys', data),
+      create: (data: Record<string, unknown>) => api.post('/api/v1/api-keys', data),
       delete: (id: string) => api.delete(`/api/v1/api-keys/${id}`),
       regenerate: (id: string) => api.post(`/api/v1/api-keys/${id}/regenerate`),
     },
@@ -413,6 +490,20 @@ export const endpoints = {
     retry: (logId: string) => api.post(`/api/v1/webhooks/${logId}/retry`),
   },
 
+  // Marketplace (templates listing, detail, reviews)
+  marketplace: {
+    templates: (params?: Record<string, unknown>) =>
+      api.get<{ items?: unknown[]; templates?: unknown[] }>('/api/v1/marketplace/templates', { params }),
+    template: (slug: string) => api.get(`/api/v1/marketplace/templates/${encodeURIComponent(slug)}`),
+    reviews: (templateId: string) =>
+      api.get<{ reviews?: unknown[]; items?: unknown[] }>(`/api/v1/marketplace/templates/${templateId}/reviews`),
+  },
+
+  // AI Studio (3D templates, etc.)
+  aiStudio: {
+    templates: () => api.get<{ templates?: unknown[]; data?: unknown[] }>('/api/v1/ai-studio/templates'),
+  },
+
   // Admin
   admin: {
     metrics: () => api.get('/api/v1/admin/metrics'),
@@ -422,7 +513,7 @@ export const endpoints = {
       bulkAction: (data: {
         customerIds: string[];
         action: 'email' | 'export' | 'tag' | 'segment' | 'delete';
-        options?: Record<string, any>;
+        options?: Record<string, unknown>;
       }) => api.post('/api/v1/admin/customers/bulk-action', data),
     },
   },

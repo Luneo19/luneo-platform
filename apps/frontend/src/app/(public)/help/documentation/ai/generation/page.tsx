@@ -17,7 +17,7 @@ function AIGenerationPageContent() {
     setTimeout(() => setCopied(''), 2000);
   }, []);
 
-  const apiExample = useMemo(() => `const response = await fetch('/api/ai/generate', {
+  const apiExample = useMemo(() => `const response = await fetch('/api/v1/ai/generate', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer TOKEN',

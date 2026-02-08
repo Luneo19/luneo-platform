@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { logger } from '@/lib/logger';
 import {
   Search,
   Filter,
@@ -130,7 +131,7 @@ export function CustomersTable({
       const response = await endpoints.admin.customers.bulkAction({
         customerIds,
         action: action as 'email' | 'export' | 'tag' | 'segment' | 'delete',
-      }) as any;
+      }) as { data?: { data?: unknown[] }; [key: string]: unknown };
 
       if (action === 'export') {
         // Download CSV
@@ -149,7 +150,7 @@ export function CustomersTable({
       // Clear selection after action
       setSelectedCustomers(new Set());
     } catch (error) {
-      console.error(`Bulk action ${action} failed:`, error);
+      logger.error(`Bulk action ${action} failed:`, error);
     }
   };
 

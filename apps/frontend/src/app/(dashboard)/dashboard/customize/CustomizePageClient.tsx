@@ -58,7 +58,7 @@ export function CustomizePageClient() {
       <CustomizeStats products={products} />
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ActiveTab)} className="space-y-6">
-        <TabsList className="bg-slate-900/50 border border-slate-700">
+        <TabsList className="bg-gray-50 border border-gray-200">
           <TabsTrigger value="products" className="data-[state=active]:bg-cyan-600">
             Produits
           </TabsTrigger>

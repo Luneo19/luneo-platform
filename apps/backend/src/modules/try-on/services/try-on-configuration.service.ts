@@ -143,8 +143,8 @@ export class TryOnConfigurationService {
       data: {
         ...dto,
         projectId,
-        settings: (dto.settings || {}) as any,
-        uiConfig: (dto.uiConfig || {}) as any,
+        settings: (dto.settings || {}) as Record<string, unknown>,
+        uiConfig: (dto.uiConfig || {}) as Record<string, unknown>,
         isActive: dto.isActive ?? true,
       },
       select: {
@@ -179,7 +179,7 @@ export class TryOnConfigurationService {
 
     const config = await this.prisma.tryOnConfiguration.update({
       where: { id },
-      data: dto as any,
+      data: dto as Record<string, unknown>,
       select: {
         id: true,
         name: true,
@@ -211,7 +211,12 @@ export class TryOnConfigurationService {
 
     this.logger.log(`Try-on configuration deleted: ${id}`);
 
-    return { success: true };
+    return {
+      success: true,
+      id,
+      projectId,
+      deletedAt: new Date().toISOString(),
+    };
   }
 
   /**
@@ -255,9 +260,9 @@ export class TryOnConfigurationService {
         configurationId: configId,
         productId: dto.productId,
         modelId: dto.modelId,
-        anchorPoints: (dto.anchorPoints || {}) as any,
+        anchorPoints: (dto.anchorPoints || {}) as Record<string, unknown>,
         scaleFactor: dto.scaleFactor || 1.0,
-        adjustments: (dto.adjustments || {}) as any,
+        adjustments: (dto.adjustments || {}) as Record<string, unknown>,
       },
       select: {
         id: true,
@@ -305,6 +310,11 @@ export class TryOnConfigurationService {
       `Product ${productId} removed from try-on configuration ${configId}`,
     );
 
-    return { success: true };
+    return {
+      success: true,
+      configId,
+      productId,
+      removedAt: new Date().toISOString(),
+    };
   }
 }

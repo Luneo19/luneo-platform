@@ -189,9 +189,9 @@ export class DesignWorker {
         where: { id: designId },
         data: {
           metadata: {
-            validation: validationResult as any,
+            validation: validationResult as unknown as import('@prisma/client').Prisma.InputJsonValue,
             validatedAt: new Date(),
-          } as any,
+          },
         },
       });
 
@@ -226,14 +226,14 @@ export class DesignWorker {
       await this.prisma.design.update({
         where: { id: designId },
         data: {
-          options: optimizedOptions as any,
+          options: optimizedOptions as unknown as import('@prisma/client').Prisma.InputJsonValue,
           metadata: {
             optimization: {
               suggestions,
               performanceAnalysis,
               optimizedAt: new Date(),
             },
-          } as any,
+          },
         },
       });
 
@@ -375,7 +375,7 @@ export class DesignWorker {
         metadata: {
           ...result.metadata,
           generationTime,
-          quality: (result.metadata as any).quality || options.quality || 'standard',
+          quality: (result.metadata as Record<string, unknown>)?.quality as string || options.quality || 'standard',
           originalPrompt: prompt,
           finalPrompt,
           moderation,
@@ -669,7 +669,7 @@ export class DesignWorker {
         );
 
         uploadedAssets.push({
-          url: uploadResult as any,
+          url: typeof uploadResult === 'string' ? uploadResult : String(uploadResult),
           filename,
           size: imageBuffer.length,
           format: image.format,
@@ -701,21 +701,25 @@ export class DesignWorker {
   /**
    * Crée les enregistrements d'assets
    */
-  private async createAssetRecords(designId: string, assets: any[]): Promise<void> {
+  private async createAssetRecords(designId: string, assets: Array<{ url: string; format: string; filename: string; size: number; width?: number; height?: number; index: number }>): Promise<void> {
     for (const asset of assets) {
-      await (this.prisma as any).asset.create({
+      await this.prisma.asset.create({
         data: {
-          designId: designId as any,
+          designId,
           url: asset.url,
           type: asset.format,
+          format: asset.format,
+          size: asset.size,
+          width: asset.width ?? undefined,
+          height: asset.height ?? undefined,
           metadata: {
             filename: asset.filename,
             size: asset.size,
             width: asset.width,
             height: asset.height,
             index: asset.index,
-          } as any,
-        } as any,
+          },
+        },
       });
     }
   }
@@ -723,7 +727,7 @@ export class DesignWorker {
   /**
    * Met à jour le design avec les résultats
    */
-  private async updateDesignWithResults(designId: string, data: any): Promise<void> {
+  private async updateDesignWithResults(designId: string, data: Record<string, unknown>): Promise<void> {
     await this.prisma.design.update({
       where: { id: designId },
       data,
@@ -737,8 +741,8 @@ export class DesignWorker {
     await this.prisma.design.update({
       where: { id: designId },
       data: {
-        status: status as any,
-        ...(error && { metadata: { error, failedAt: new Date() } as any }),
+        status: status as import('@prisma/client').DesignStatus,
+        ...(error && { metadata: { error, failedAt: new Date() } }),
       },
     });
   }
@@ -746,9 +750,10 @@ export class DesignWorker {
   /**
    * Calcule le coût
    */
-  private calculateCost(usage: any): number {
-    // Logique de calcul des coûts
-    return (usage?.total_tokens || 0) * 0.0001 + (usage?.credits || 0) * 0.01;
+  private calculateCost(usage: Record<string, unknown> | undefined): number {
+    const tokens = Number(usage?.total_tokens ?? 0);
+    const credits = Number(usage?.credits ?? 0);
+    return tokens * 0.0001 + credits * 0.01;
   }
 
   /**

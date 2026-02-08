@@ -87,23 +87,24 @@ function TeamPageContent() {
   });
 
   // Transform data
-  const members: TeamMember[] = (teamQuery.data?.members || []).map((m: any) => ({
-    id: m.id,
-    name: m.name || m.email,
-    email: m.email,
-    role: m.role.toLowerCase() as any,
+  type MemberRole = 'owner' | 'admin' | 'member' | 'viewer';
+  const members: TeamMember[] = (teamQuery.data?.members || []).map((m: Record<string, unknown>) => ({
+    id: m.id as string,
+    name: (m.name as string) || (m.email as string),
+    email: m.email as string,
+    role: (m.role as string).toLowerCase() as MemberRole,
     status: 'active' as const,
-    avatar: m.avatar || '',
-    joinedAt: m.joinedAt.toISOString(),
-    lastActive: m.lastActive ? formatRelativeTime(m.lastActive.toISOString()) : 'Jamais',
+    avatar: (m.avatar as string) || '',
+    joinedAt: (m.joinedAt as Date).toISOString(),
+    lastActive: m.lastActive ? formatRelativeTime((m.lastActive as Date).toISOString()) : 'Jamais',
   }));
 
-  const pendingInvites: PendingInvite[] = (teamQuery.data?.pendingInvites || []).map((i: any) => ({
-    id: i.id,
-    email: i.email,
-    role: i.role.toLowerCase() as any,
-    sentAt: i.invitedAt.toISOString().split('T')[0],
-    expiresAt: i.expiresAt.toISOString().split('T')[0],
+  const pendingInvites: PendingInvite[] = (teamQuery.data?.pendingInvites || []).map((i: Record<string, unknown>) => ({
+    id: i.id as string,
+    email: i.email as string,
+    role: (i.role as string).toLowerCase() as MemberRole,
+    sentAt: (i.invitedAt as Date).toISOString().split('T')[0],
+    expiresAt: (i.expiresAt as Date).toISOString().split('T')[0],
   }));
 
   const roles = [
@@ -344,7 +345,7 @@ function TeamPageContent() {
                     <div className="flex items-center gap-2">
                       <select
                         defaultValue={member.role}
-                        onChange={(e) => handleChangeRole(member.id, e.target.value as any)}
+                        onChange={(e) => handleChangeRole(member.id, e.target.value as 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER')}
                         className="px-3 py-1.5 bg-gray-800 border border-gray-600 rounded text-white text-sm"
                       >
                         {roles.filter(r => r.value !== 'owner').map(role => (
@@ -449,7 +450,7 @@ function TeamPageContent() {
                   </label>
                   <select
                     value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value as any)}
+                    onChange={(e) => setInviteRole((e.target.value?.toUpperCase() ?? 'MEMBER') as 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER')}
                     className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white"
                   >
                     {roles.filter(r => r.value !== 'owner').map(role => (

@@ -1,12 +1,43 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { UserRole } from '@prisma/client';
+import { UserRole, Prisma } from '@prisma/client';
+import { EmailService } from '@/modules/email/email.service';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
+
+  // ========================================
+  // TENANTS (BRANDS)
+  // ========================================
+
+  /**
+   * List all tenants (brands) for platform admin dashboard.
+   */
+  async getTenants() {
+    const brands = await this.prisma.brand.findMany({
+      select: {
+        id: true,
+        name: true,
+        subscriptionPlan: true,
+        subscriptionStatus: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+    return {
+      tenants: brands.map((b) => ({
+        id: b.id,
+        name: b.name || 'Unnamed Tenant',
+        plan: b.subscriptionPlan || 'starter',
+        status: b.subscriptionStatus || 'active',
+      })),
+    };
+  }
 
   // ========================================
   // CUSTOMER MANAGEMENT
@@ -28,7 +59,7 @@ export class AdminService {
     const { search, role, sortBy = 'createdAt', sortOrder = 'desc' } = options;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
     
     // Filter by search (email, firstName, lastName)
     if (search) {
@@ -388,13 +419,29 @@ export class AdminService {
   async createAdminUser() {
     try {
       const bcrypt = require('bcryptjs');
-      const adminPassword = await bcrypt.hash('admin123', 13);
+      const defaultAdminPw = process.env.ADMIN_DEFAULT_PASSWORD;
+      if (!defaultAdminPw && process.env.NODE_ENV === 'production') {
+        throw new Error('ADMIN_DEFAULT_PASSWORD must be set in production');
+      }
+      // In production: use env var. In dev: use env var or generate random password
+      let passwordToHash = defaultAdminPw;
+      if (!passwordToHash) {
+        const crypto = require('crypto');
+        passwordToHash = crypto.randomBytes(16).toString('hex');
+        this.logger.warn(`DEV ONLY: Generated random admin password: ${passwordToHash}`);
+      }
+      const adminPassword = await bcrypt.hash(passwordToHash, 13);
+      const adminEmail = process.env.ADMIN_EMAIL;
+      if (!adminEmail && process.env.NODE_ENV === 'production') {
+        throw new Error('ADMIN_EMAIL must be set in production');
+      }
+      const finalAdminEmail = adminEmail || 'admin@localhost.dev';
       
       const adminUser = await this.prisma.user.upsert({
-        where: { email: 'admin@luneo.com' },
+        where: { email: finalAdminEmail },
         update: {},
         create: {
-          email: 'admin@luneo.com',
+          email: finalAdminEmail,
           password: adminPassword,
           firstName: 'Admin',
           lastName: 'Luneo',
@@ -456,10 +503,54 @@ export class AdminService {
     };
   }
 
+  private static readonly BLACKLIST_CONFIG_KEY = 'ai:blacklisted_prompts';
+
   async addBlacklistedPrompt(term: string) {
-    // In a real implementation, you would store this in a separate table
-    this.logger.log(`Adding blacklisted prompt term: ${term}`);
-    return { message: 'Term added to blacklist' };
+    const normalized = term.toLowerCase().trim();
+    if (!normalized) {
+      throw new BadRequestException('Term cannot be empty');
+    }
+    const terms = await this.getBlacklistedPrompts();
+    const set = new Set(terms);
+    set.add(normalized);
+    await this.persistBlacklistedPrompts([...set]);
+    this.logger.log(`Added blacklisted prompt term: ${term}`);
+    return { message: 'Term added to blacklist', total: set.size };
+  }
+
+  async getBlacklistedPrompts(): Promise<string[]> {
+    const config = await this.prisma.systemConfig.findUnique({
+      where: { key: AdminService.BLACKLIST_CONFIG_KEY },
+    });
+    if (!config?.value) return [];
+    try {
+      return JSON.parse(config.value) as string[];
+    } catch {
+      this.logger.warn('Invalid JSON in ai:blacklisted_prompts config');
+      return [];
+    }
+  }
+
+  async removeBlacklistedPrompt(term: string) {
+    const normalized = term.toLowerCase().trim();
+    const terms = await this.getBlacklistedPrompts();
+    const set = new Set(terms);
+    set.delete(normalized);
+    await this.persistBlacklistedPrompts([...set]);
+    this.logger.log(`Removed blacklisted prompt term: ${term}`);
+    return { message: 'Term removed from blacklist', total: set.size };
+  }
+
+  private async persistBlacklistedPrompts(terms: string[]) {
+    await this.prisma.systemConfig.upsert({
+      where: { key: AdminService.BLACKLIST_CONFIG_KEY },
+      create: {
+        key: AdminService.BLACKLIST_CONFIG_KEY,
+        value: JSON.stringify(terms),
+        description: 'AI blacklisted prompt terms (content moderation)',
+      },
+      update: { value: JSON.stringify(terms) },
+    });
   }
 
   /**
@@ -499,13 +590,24 @@ export class AdminService {
       },
     });
 
-    // In a real implementation, you would use an email service (SendGrid, Mailgun, etc.)
-    this.logger.log(`Sending email to ${customers.length} customers`);
-    
-    // TODO: Integrate with email service
+    const subject = options?.subject ?? 'Message from Luneo';
+    const html = options?.template ?? '<p>Hello {{firstName}},</p><p>You have a new message.</p>';
+    for (const c of customers) {
+      const body = html
+        .replace(/\{\{firstName\}\}/g, c.firstName ?? '')
+        .replace(/\{\{lastName\}\}/g, c.lastName ?? '')
+        .replace(/\{\{email\}\}/g, c.email);
+      await this.emailService.sendEmail({
+        to: c.email,
+        subject,
+        html: body,
+        text: body.replace(/<[^>]*>/g, ''),
+      });
+    }
+    this.logger.log(`Sent email to ${customers.length} customers`);
     return {
       success: true,
-      message: `Email queued for ${customers.length} customers`,
+      message: `Email sent to ${customers.length} customers`,
       count: customers.length,
     };
   }
@@ -540,10 +642,7 @@ export class AdminService {
   }
 
   private async bulkTagCustomers(customerIds: string[], tags: string[]) {
-    // In a real implementation, you would have a Tag model
     this.logger.log(`Tagging ${customerIds.length} customers with tags: ${tags.join(', ')}`);
-    
-    // TODO: Implement tagging system
     return {
       success: true,
       message: `Tagged ${customerIds.length} customers`,
@@ -556,10 +655,26 @@ export class AdminService {
       throw new BadRequestException('Segment ID is required');
     }
 
-    // In a real implementation, you would link customers to segments
-    this.logger.log(`Adding ${customerIds.length} customers to segment ${segmentId}`);
-    
-    // TODO: Implement segment linking
+    const segment = await this.prisma.analyticsSegment.findUnique({
+      where: { id: segmentId },
+      select: { id: true, criteria: true, userCount: true },
+    });
+    if (!segment) {
+      throw new NotFoundException(`Segment ${segmentId} not found`);
+    }
+
+    const criteria = (segment.criteria as Record<string, unknown>) ?? {};
+    const memberIds = (criteria.memberIds as string[]) ?? [];
+    const merged = [...new Set([...memberIds, ...customerIds])];
+    await this.prisma.analyticsSegment.update({
+      where: { id: segmentId },
+      data: {
+        criteria: { ...criteria, memberIds: merged } as Prisma.InputJsonValue,
+        userCount: merged.length,
+      },
+    });
+
+    this.logger.log(`Added ${customerIds.length} customers to segment ${segmentId}`);
     return {
       success: true,
       message: `Added ${customerIds.length} customers to segment`,

@@ -63,18 +63,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
+      - name: Lint Frontend
         run: pnpm --filter luneo-frontend run lint:check
 
-      - name: Type Check
+      - name: Type Check Frontend
         run: pnpm --filter luneo-frontend run type-check
+
+      - name: Lint Backend
+        run: |
+          cd apps/backend
+          pnpm run lint
+
+      - name: Type Check Backend
+        run: |
+          cd apps/backend
+          pnpm exec tsc --noEmit
 
       - name: Security Audit
         run: |
           cd apps/frontend
-          pnpm audit --audit-level=moderate || true
+          pnpm audit --audit-level=moderate
           echo "Security audit completed. Review vulnerabilities above."
-        continue-on-error: true
 
   # ============================================
   # UNIT TESTS
@@ -119,7 +128,7 @@ jobs:
       - name: Run Backend Unit Tests
         run: |
           cd apps/backend
-          npm run test -- --coverage --testPathPattern="(pricing|marketplace|enterprise)" --passWithNoTests
+          pnpm run test -- --coverage --testPathPattern="(pricing|marketplace|enterprise)" --passWithNoTests
         env:
           CI: true
           NODE_ENV: test
@@ -219,7 +228,6 @@ jobs:
         run: pnpm --filter luneo-frontend run test:e2e tests/e2e/cross-browser.spec.ts
         env:
           CI: true
-        continue-on-error: true
         timeout-minutes: 20
 
       - name: Upload E2E Test Results
@@ -281,8 +289,7 @@ jobs:
       - name: Run npm audit
         run: |
           cd apps/frontend
-          pnpm audit --audit-level=moderate || true
-        continue-on-error: true
+          pnpm audit --audit-level=moderate
 
       - name: Check for secrets
         uses: trufflesecurity/trufflehog@main
@@ -290,7 +297,6 @@ jobs:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
-        continue-on-error: true
 
   # ============================================
   # BUILD
@@ -354,116 +360,7 @@ jobs:
           path: apps/frontend/.next/
           retention-days: 7
 
-  # ============================================
-  # DEPLOY TO STAGING
-  # ============================================
-  # DÉSACTIVÉ: Déploiement automatique Vercel désactivé pour économiser les crédits
-  deploy-staging:
-    name: Deploy to Staging (DISABLED)
-    runs-on: ubuntu-latest
-    needs: build
-    if: false # Désactivé - github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging'
-    timeout-minutes: 15
-    environment:
-      name: staging
-      url: https://staging.luneo.app
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deploy to Vercel (Staging)
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./apps/frontend
-          scope: ${{ secrets.VERCEL_ORG_ID }}
-
-      - name: Wait for deployment
-        run: sleep 30
-
-      - name: Health check
-        run: |
-          curl -f https://staging.luneo.app/health || exit 1
-        continue-on-error: true
-
-      - name: Notify deployment success
-        if: success()
-        uses: slackapi/slack-github-action@v1.25.0
-        with:
-          payload: |
-            {
-              "text": "🚀 Deployed to Staging",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*🚀 Deployed to Staging*\n\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\n\nURL: https://staging.luneo.app"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        continue-on-error: true
-
-  # ============================================
-  # DEPLOY TO PRODUCTION
-  # ============================================
-  # DÉSACTIVÉ: Déploiement automatique Vercel désactivé pour économiser les crédits
-  deploy-production:
-    name: Deploy to Production (DISABLED)
-    runs-on: ubuntu-latest
-    needs: build
-    if: false # Désactivé - github.ref == 'refs/heads/main'
-    timeout-minutes: 15
-    environment:
-      name: production
-      url: https://luneo.app
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deploy to Vercel (Production)
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: ./apps/frontend
-          scope: ${{ secrets.VERCEL_ORG_ID }}
-
-      - name: Wait for deployment
-        run: sleep 30
-
-      - name: Health check
-        run: |
-          curl -f https://luneo.app/api/health || exit 1
-        continue-on-error: true
-
-      - name: Notify deployment success
-        if: success()
-        uses: slackapi/slack-github-action@v1.25.0
-        with:
-          payload: |
-            {
-              "text": "🚀 Deployed to Production",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*🚀 Deployed to Production*\n\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\n\nURL: https://luneo.app"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        continue-on-error: true
+  # Deployment handled by deploy-production.yml and deploy-staging.yml
 
   # ============================================
   # NOTIFY
@@ -471,7 +368,7 @@ jobs:
   notify:
     name: Notify
     runs-on: ubuntu-latest
-    needs: [build, deploy-staging, deploy-production]
+    needs: [build]
     if: always()
     steps:
       - name: Notify Slack on Success
@@ -514,6 +411,7 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        # Slack notification - continue on error to not block builds
         continue-on-error: true
 
 

@@ -115,7 +115,7 @@ export default function ChatAssistantPage() {
         </div>
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)} className="space-y-4">
           <TabsList className="bg-gray-800/50 border border-gray-700">
             <TabsTrigger value="chat" className="data-[state=active]:bg-cyan-600">
               <Bot className="w-4 h-4 mr-2" />

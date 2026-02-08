@@ -1,22 +1,48 @@
 /**
- * Helper pour intégration OpenTelemetry
- * 
- * Usage:
+ * OpenTelemetry Helper - FUTURE PHASE
+ *
+ * This helper provides basic OpenTelemetry integration points.
+ * Currently, the platform uses Sentry + custom DB tracing.
+ *
+ * This file is kept as scaffolding for future migration when:
+ * - The platform splits into microservices
+ * - Distributed tracing becomes necessary
+ * - User base exceeds 10,000+ requiring advanced observability
+ *
+ * DO NOT invest in full OpenTelemetry setup while architecture is monolithic.
+ *
+ * Usage (when enabled):
  * ```typescript
  * import { OpenTelemetryHelper } from '@/libs/integrations/opentelemetry.helper';
- * 
+ *
  * const otel = new OpenTelemetryHelper('api');
- * 
- * // Start span
  * const span = otel.startSpan('processOrder', { orderId: 'order-123' });
- * 
- * // Add tag
  * otel.addTag(span, 'userId', 'user-456');
- * 
- * // Finish span
  * otel.finishSpan(span, 'success');
  * ```
  */
+
+import type { Tracer, Span as OTelSpan, Context } from '@opentelemetry/api';
+
+let otelApi: {
+  trace: { getTracer: (name: string, version?: string) => Tracer };
+  context: { active: () => Context };
+  SpanKind: { INTERNAL: number };
+  SpanStatusCode: { ERROR: number; OK: number };
+} | null = null;
+
+const SPAN_STATUS_ERROR = 2;
+
+function getOtelApi(): typeof otelApi {
+  if (otelApi === null) {
+    try {
+      otelApi = require('@opentelemetry/api');
+    } catch {
+      // @opentelemetry/api not installed – no-op
+    }
+  }
+  return otelApi;
+}
 
 export interface Span {
   traceId: string;
@@ -31,14 +57,17 @@ export interface Span {
 
 export class OpenTelemetryHelper {
   private serviceName: string;
-  private tracer: any;
+  private tracer: Tracer | undefined;
+  private otelSpanMap = new Map<string, OTelSpan>();
 
   constructor(serviceName: string) {
     this.serviceName = serviceName;
-    // TODO: Initialize OpenTelemetry tracer
-    // const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
-    // const { Tracer } = require('@opentelemetry/api');
-    // this.tracer = Tracer.getTracer(serviceName);
+    try {
+      const api = getOtelApi();
+      this.tracer = api ? api.trace.getTracer('luneo-backend', '1.0.0') : undefined;
+    } catch {
+      this.tracer = undefined;
+    }
   }
 
   /**
@@ -57,9 +86,20 @@ export class OpenTelemetryHelper {
       logs: [],
     };
 
-    // TODO: Start actual OpenTelemetry span
-    // const otelSpan = this.tracer.startSpan(operation);
-    // otelSpan.setAttributes(tags);
+    try {
+      const api = getOtelApi();
+      if (api && this.tracer) {
+        const parentContext = api.context.active();
+        const attributes = tags ? { ...tags } : undefined;
+        const otelSpan = this.tracer.startSpan(operation, {
+          kind: api.SpanKind.INTERNAL,
+          attributes,
+        }, parentContext);
+        this.otelSpanMap.set(span.spanId, otelSpan);
+      }
+    } catch {
+      // no-op when OTel not available
+    }
 
     return span;
   }
@@ -82,12 +122,18 @@ export class OpenTelemetryHelper {
       span.tags['error.message'] = error.message;
     }
 
-    // TODO: Finish actual OpenTelemetry span
-    // otelSpan.setStatus({ code: status === 'success' ? 1 : 2 });
-    // if (error) {
-    //   otelSpan.recordException(error);
-    // }
-    // otelSpan.end();
+    try {
+      const otelSpan = this.otelSpanMap.get(span.spanId);
+      if (otelSpan) {
+        if (status === 'error' && error) {
+          otelSpan.setStatus({ code: SPAN_STATUS_ERROR, message: error.message });
+        }
+        otelSpan.end();
+        this.otelSpanMap.delete(span.spanId);
+      }
+    } catch {
+      // no-op when OTel not available
+    }
   }
 
   /**
@@ -95,8 +141,14 @@ export class OpenTelemetryHelper {
    */
   addTag(span: Span, key: string, value: string): void {
     span.tags[key] = value;
-    // TODO: Set attribute on OpenTelemetry span
-    // otelSpan.setAttribute(key, value);
+    try {
+      const otelSpan = this.otelSpanMap.get(span.spanId);
+      if (otelSpan) {
+        otelSpan.setAttribute(key, value);
+      }
+    } catch {
+      // no-op when OTel not available
+    }
   }
 
   /**
@@ -108,8 +160,14 @@ export class OpenTelemetryHelper {
       message,
       level,
     });
-    // TODO: Add event to OpenTelemetry span
-    // otelSpan.addEvent(message, { level });
+    try {
+      const otelSpan = this.otelSpanMap.get(span.spanId);
+      if (otelSpan) {
+        otelSpan.addEvent(message, { level });
+      }
+    } catch {
+      // no-op when OTel not available
+    }
   }
 
   /**

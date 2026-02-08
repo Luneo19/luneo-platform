@@ -8,7 +8,6 @@
  */
 
 import { getUserFromRequest } from '@/lib/auth/get-user';
-import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { ZodError } from 'zod';
@@ -25,7 +24,6 @@ export interface AuthUser {
 }
 
 export interface Context {
-  db: typeof db;
   user: AuthUser | null;
 }
 
@@ -46,7 +44,6 @@ export async function createContext(opts?: { req?: Request }): Promise<Context> 
   }
 
   return {
-    db,
     user,
   };
 }

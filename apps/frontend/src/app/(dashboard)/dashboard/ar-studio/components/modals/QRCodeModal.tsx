@@ -57,10 +57,10 @@ export function QRCodeModal({ open, onOpenChange, model }: QRCodeModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>QR Code AR - {model.name}</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Scannez ce code pour ouvrir le modèle en AR
           </DialogDescription>
         </DialogHeader>
@@ -68,15 +68,16 @@ export function QRCodeModal({ open, onOpenChange, model }: QRCodeModalProps) {
           {qrCodeUrl && (
             <div className="flex justify-center">
               <div className="p-4 bg-white rounded-lg">
+                {/* next/image not needed for data URLs */}
                 <img src={qrCodeUrl} alt="QR Code AR" className="w-64 h-64" />
               </div>
             </div>
           )}
-          <p className="text-sm text-gray-400 text-center">
+          <p className="text-sm text-gray-600 text-center">
             Scannez ce QR code avec votre appareil pour voir le modèle en AR
           </p>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={handleCopyLink} className="flex-1 border-gray-600">
+            <Button variant="outline" onClick={handleCopyLink} className="flex-1 border-gray-200">
               <Copy className="w-4 h-4 mr-2" />
               Copier le lien
             </Button>

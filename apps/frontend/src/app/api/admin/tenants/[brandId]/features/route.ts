@@ -1,78 +1,63 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { manageTenantFeaturesSchema } from '@/lib/validation/zod-schemas';
 import { logger } from '@/lib/logger';
-import { requireAdmin } from '@/lib/rbac';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
 
 type TenantFeaturesRouteContext = {
   params: Promise<{ brandId: string }>;
 };
 
+async function getAdminUser(request: NextRequest): Promise<{ id: string }> {
+  const user = await getUserFromRequest(request);
+  if (!user) {
+    throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
+  }
+  if (user.role !== 'PLATFORM_ADMIN') {
+    throw { status: 403, message: 'Accès réservé aux administrateurs', code: 'FORBIDDEN' };
+  }
+  return user;
+}
+
 /**
  * GET /api/admin/tenants/[brandId]/features
- * Récupère les fonctionnalités activées pour un tenant
+ * Récupère les fonctionnalités activées pour un tenant. Cookie-based auth, admin only.
  */
 export async function GET(request: NextRequest, { params }: TenantFeaturesRouteContext) {
   return ApiResponseBuilder.handle(async () => {
     const { brandId } = await params;
-    const supabase = await createClient();
+    const user = await getAdminUser(request);
 
-    // Vérifier les permissions admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/admin/tenants/${brandId}/features`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la récupération du tenant' }));
+      throw {
+        status: response.status,
+        message: errorData.message || 'Erreur lors de la récupération du tenant',
+        code: response.status === 404 ? 'TENANT_NOT_FOUND' : 'FETCH_ERROR',
+      };
     }
 
-    // Vérifier les permissions admin
-    await requireAdmin(user.id);
-
-    // Récupérer les fonctionnalités du tenant
-    const { data: brand, error: brandError } = await supabase
-      .from('Brand')
-      .select('id, name, features, plan')
-      .eq('id', brandId)
-      .single();
-
-    if (brandError || !brand) {
-      if (brandError?.code === 'PGRST116') {
-        throw { status: 404, message: 'Tenant non trouvé', code: 'TENANT_NOT_FOUND' };
-      }
-      logger.dbError('fetch tenant features', brandError, {
-        brandId,
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la récupération du tenant' };
-    }
-
-    // Parser les fonctionnalités (peuvent être JSON ou objet)
-    let features = brand.features;
-    if (typeof features === 'string') {
-      try {
-        features = JSON.parse(features);
-      } catch (parseError) {
-        logger.warn('Failed to parse tenant features JSON', {
-          brandId,
-          error: parseError,
-        });
-        features = {};
-      }
-    }
+    const result = await response.json();
 
     logger.info('Tenant features fetched', {
       brandId,
       userId: user.id,
-      plan: brand.plan,
     });
 
-    return {
-      tenant: {
-        id: brand.id,
-        name: brand.name,
-        plan: brand.plan,
-      },
-      features: features || {},
-    };
+    return result;
   }, '/api/admin/tenants/[brandId]/features', 'GET');
 }
 
@@ -83,16 +68,7 @@ export async function GET(request: NextRequest, { params }: TenantFeaturesRouteC
 export async function POST(request: NextRequest, { params }: TenantFeaturesRouteContext) {
   return ApiResponseBuilder.handle(async () => {
     const { brandId } = await params;
-    const supabase = await createClient();
-
-    // Vérifier les permissions admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
-    // Vérifier les permissions admin
-    await requireAdmin(user.id);
+    const user = await getAdminUser(request);
 
     const body = await request.json();
     
@@ -107,77 +83,36 @@ export async function POST(request: NextRequest, { params }: TenantFeaturesRoute
       };
     }
 
-    const { feature, enabled = true } = validation.data;
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/admin/tenants/${brandId}/features`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+      body: JSON.stringify(validation.data),
+    });
 
-    // Récupérer le tenant actuel
-    const { data: brand, error: brandError } = await supabase
-      .from('Brand')
-      .select('id, features')
-      .eq('id', brandId)
-      .single();
-
-    if (brandError || !brand) {
-      if (brandError?.code === 'PGRST116') {
-        throw { status: 404, message: 'Tenant non trouvé', code: 'TENANT_NOT_FOUND' };
-      }
-      logger.dbError('fetch tenant for feature update', brandError, {
-        brandId,
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la récupération du tenant' };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la mise à jour des fonctionnalités' }));
+      throw {
+        status: response.status,
+        message: errorData.message || 'Erreur lors de la mise à jour des fonctionnalités',
+        code: response.status === 404 ? 'TENANT_NOT_FOUND' : 'UPDATE_ERROR',
+      };
     }
 
-    // Parser les fonctionnalités existantes
-    let features: Record<string, any> = brand.features || {};
-    if (typeof features === 'string') {
-      try {
-        features = JSON.parse(features);
-      } catch (parseError) {
-        logger.warn('Failed to parse tenant features JSON', {
-          brandId,
-          error: parseError,
-        });
-        features = {};
-      }
-    }
-
-    // Mettre à jour la fonctionnalité
-    features[feature] = enabled;
-
-    // Sauvegarder
-    const { data: updatedBrand, error: updateError } = await supabase
-      .from('Brand')
-      .update({
-        features: features,
-        updatedAt: new Date().toISOString(),
-      })
-      .eq('id', brandId)
-      .select()
-      .single();
-
-    if (updateError) {
-      logger.dbError('update tenant features', updateError, {
-        brandId,
-        userId: user.id,
-        feature,
-      });
-      throw { status: 500, message: 'Erreur lors de la mise à jour des fonctionnalités' };
-    }
+    const result = await response.json();
 
     logger.info('Tenant feature updated', {
       brandId,
       userId: user.id,
-      feature,
-      enabled,
+      feature: validation.data.feature,
+      enabled: validation.data.enabled,
     });
 
-    return {
-      tenant: {
-        id: updatedBrand.id,
-        features: features,
-      },
-      message: `Fonctionnalité ${feature} ${enabled ? 'activée' : 'désactivée'} avec succès`,
-    };
+    return result;
   }, '/api/admin/tenants/[brandId]/features', 'POST');
 }
 
@@ -188,16 +123,7 @@ export async function POST(request: NextRequest, { params }: TenantFeaturesRoute
 export async function PUT(request: NextRequest, { params }: TenantFeaturesRouteContext) {
   return ApiResponseBuilder.handle(async () => {
     const { brandId } = await params;
-    const supabase = await createClient();
-
-    // Vérifier les permissions admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
-    // Vérifier les permissions admin
-    await requireAdmin(user.id);
+    const user = await getAdminUser(request);
 
     const body = await request.json();
     const { features } = body;
@@ -211,62 +137,27 @@ export async function PUT(request: NextRequest, { params }: TenantFeaturesRouteC
       };
     }
 
-    // Récupérer le tenant actuel
-    const { data: brand, error: brandError } = await supabase
-      .from('Brand')
-      .select('id, features')
-      .eq('id', brandId)
-      .single();
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/admin/tenants/${brandId}/features`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+      body: JSON.stringify({ features }),
+    });
 
-    if (brandError || !brand) {
-      if (brandError?.code === 'PGRST116') {
-        throw { status: 404, message: 'Tenant non trouvé', code: 'TENANT_NOT_FOUND' };
-      }
-      logger.dbError('fetch tenant for features update', brandError, {
-        brandId,
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la récupération du tenant' };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la mise à jour des fonctionnalités' }));
+      throw {
+        status: response.status,
+        message: errorData.message || 'Erreur lors de la mise à jour des fonctionnalités',
+        code: response.status === 404 ? 'TENANT_NOT_FOUND' : 'UPDATE_ERROR',
+      };
     }
 
-    // Parser les fonctionnalités existantes
-    let existingFeatures: Record<string, any> = brand.features || {};
-    if (typeof existingFeatures === 'string') {
-      try {
-        existingFeatures = JSON.parse(existingFeatures);
-      } catch (parseError) {
-        logger.warn('Failed to parse tenant features JSON', {
-          brandId,
-          error: parseError,
-        });
-        existingFeatures = {};
-      }
-    }
-
-    // Fusionner les nouvelles fonctionnalités
-    const updatedFeatures = {
-      ...existingFeatures,
-      ...features,
-    };
-
-    // Sauvegarder
-    const { data: updatedBrand, error: updateError } = await supabase
-      .from('Brand')
-      .update({
-        features: updatedFeatures,
-        updatedAt: new Date().toISOString(),
-      })
-      .eq('id', brandId)
-      .select()
-      .single();
-
-    if (updateError) {
-      logger.dbError('update tenant features', updateError, {
-        brandId,
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la mise à jour des fonctionnalités' };
-    }
+    const result = await response.json();
 
     logger.info('Tenant features updated', {
       brandId,
@@ -274,13 +165,7 @@ export async function PUT(request: NextRequest, { params }: TenantFeaturesRouteC
       featuresCount: Object.keys(features).length,
     });
 
-    return {
-      tenant: {
-        id: updatedBrand.id,
-        features: updatedFeatures,
-      },
-      message: 'Fonctionnalités mises à jour avec succès',
-    };
+    return result;
   }, '/api/admin/tenants/[brandId]/features', 'PUT');
 }
 
@@ -291,16 +176,7 @@ export async function PUT(request: NextRequest, { params }: TenantFeaturesRouteC
 export async function DELETE(request: NextRequest, { params }: TenantFeaturesRouteContext) {
   return ApiResponseBuilder.handle(async () => {
     const { brandId } = await params;
-    const supabase = await createClient();
-
-    // Vérifier les permissions admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
-    }
-
-    // Vérifier les permissions admin
-    await requireAdmin(user.id);
+    const user = await getAdminUser(request);
 
     const { searchParams } = new URL(request.url);
     const feature = searchParams.get('feature');
@@ -313,60 +189,26 @@ export async function DELETE(request: NextRequest, { params }: TenantFeaturesRou
       };
     }
 
-    // Récupérer le tenant actuel
-    const { data: brand, error: brandError } = await supabase
-      .from('Brand')
-      .select('id, features')
-      .eq('id', brandId)
-      .single();
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/admin/tenants/${brandId}/features?feature=${encodeURIComponent(feature)}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+    });
 
-    if (brandError || !brand) {
-      if (brandError?.code === 'PGRST116') {
-        throw { status: 404, message: 'Tenant non trouvé', code: 'TENANT_NOT_FOUND' };
-      }
-      logger.dbError('fetch tenant for feature deletion', brandError, {
-        brandId,
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la récupération du tenant' };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la suppression de la fonctionnalité' }));
+      throw {
+        status: response.status,
+        message: errorData.message || 'Erreur lors de la suppression de la fonctionnalité',
+        code: response.status === 404 ? 'TENANT_NOT_FOUND' : 'DELETE_ERROR',
+      };
     }
 
-    // Parser les fonctionnalités existantes
-    let features: Record<string, any> = brand.features || {};
-    if (typeof features === 'string') {
-      try {
-        features = JSON.parse(features);
-      } catch (parseError) {
-        logger.warn('Failed to parse tenant features JSON', {
-          brandId,
-          error: parseError,
-        });
-        features = {};
-      }
-    }
-
-    // Supprimer la fonctionnalité
-    delete features[feature];
-
-    // Sauvegarder
-    const { data: updatedBrand, error: updateError } = await supabase
-      .from('Brand')
-      .update({
-        features: features,
-        updatedAt: new Date().toISOString(),
-      })
-      .eq('id', brandId)
-      .select()
-      .single();
-
-    if (updateError) {
-      logger.dbError('delete tenant feature', updateError, {
-        brandId,
-        userId: user.id,
-        feature,
-      });
-      throw { status: 500, message: 'Erreur lors de la suppression de la fonctionnalité' };
-    }
+    const result = await response.json();
 
     logger.info('Tenant feature deleted', {
       brandId,
@@ -374,12 +216,6 @@ export async function DELETE(request: NextRequest, { params }: TenantFeaturesRou
       feature,
     });
 
-    return {
-      tenant: {
-        id: updatedBrand.id,
-        features: features,
-      },
-      message: `Fonctionnalité ${feature} supprimée avec succès`,
-    };
+    return result;
   }, '/api/admin/tenants/[brandId]/features', 'DELETE');
 }

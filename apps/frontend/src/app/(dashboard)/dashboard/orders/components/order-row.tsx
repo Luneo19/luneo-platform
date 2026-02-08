@@ -62,7 +62,7 @@ export function OrderRow({
 
   return (
     <Card
-      className={`bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-all ${
+      className={`bg-white border-gray-200 hover:border-cyan-500/50 transition-all ${
         isSelected ? 'ring-2 ring-cyan-500 border-cyan-500' : ''
       }`}
     >
@@ -78,14 +78,14 @@ export function OrderRow({
           )}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h3 className="font-semibold text-white">{order.order_number}</h3>
+              <h3 className="font-semibold text-gray-900">{order.order_number}</h3>
               <Badge
                 className={`bg-${statusConfig.bgColor} text-${statusConfig.color}-400 border-${statusConfig.color}-500/30`}
               >
                 {statusConfig.label}
               </Badge>
             </div>
-            <div className="flex items-center gap-4 text-sm text-gray-400">
+            <div className="flex items-center gap-4 text-sm text-gray-600">
               <span>{order.customer_name || order.customer_email}</span>
               <span>•</span>
               <span>{formatDate(order.created_at)}</span>
@@ -99,7 +99,7 @@ export function OrderRow({
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-lg font-bold text-white">
+              <p className="text-lg font-bold text-gray-900">
                 {formatPrice(order.total_amount, order.currency)}
               </p>
               <p className="text-xs text-gray-500">
@@ -110,7 +110,7 @@ export function OrderRow({
               size="sm"
               variant="outline"
               onClick={() => onViewOrder(order)}
-              className="border-gray-600"
+              className="border-gray-200"
             >
               <Eye className="w-4 h-4 mr-2" />
               Voir

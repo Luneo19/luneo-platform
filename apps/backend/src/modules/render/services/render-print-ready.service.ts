@@ -474,18 +474,18 @@ export class RenderPrintReadyService {
       canvas: {
         width: design.canvasWidth || 800,
         height: design.canvasHeight || 600,
-        backgroundColor: ((design as any).backgroundColor as string | undefined) || '#ffffff',
+        backgroundColor: (design && typeof design === 'object' && 'backgroundColor' in design ? (design as { backgroundColor?: string }).backgroundColor : undefined) || '#ffffff',
       },
       layers: design.layers.map((layer) => ({
         id: layer.id,
-        type: layer.type as any,
+        type: layer.type as 'text' | 'image' | 'shape',
         position: { x: layer.x, y: layer.y },
         rotation: layer.rotation || 0,
         scale: { x: layer.scaleX || 1, y: layer.scaleY || 1 },
         opacity: layer.opacity || 1,
         visible: layer.visible ?? true,
         locked: layer.locked ?? false,
-        data: layer.data as any,
+        data: layer.data as TextLayerData | ImageLayerData | ShapeLayerData,
       })),
       metadata: {
         createdAt: design.createdAt.toISOString(),

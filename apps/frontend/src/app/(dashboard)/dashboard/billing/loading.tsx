@@ -1,7 +1,7 @@
-import { BillingSkeleton } from './components/BillingSkeleton';
+import { CardSkeleton } from '@/components/ui/card-skeleton';
 
 export default function Loading() {
-  return <BillingSkeleton />;
+  return <CardSkeleton />;
 }
 
 

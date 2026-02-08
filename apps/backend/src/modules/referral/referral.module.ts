@@ -3,9 +3,10 @@ import { ReferralController } from './referral.controller';
 import { ReferralService } from './referral.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
+import { EmailModule } from '@/modules/email/email.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule],
+  imports: [PrismaModule, ConfigModule, EmailModule],
   controllers: [ReferralController],
   providers: [ReferralService],
   exports: [ReferralService],

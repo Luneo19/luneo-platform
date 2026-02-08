@@ -1,282 +1,401 @@
 /**
- * DesignsService - Tests unitaires
- * Tests pour la gestion des designs
+ * DesignsService unit tests
  */
-
-import { createMockPrismaService, testFixtures } from '@/common/test/test-setup';
+import { Test, TestingModule } from '@nestjs/testing';
+import {
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { DesignsService } from './designs.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { HttpService } from '@nestjs/axios';
 import { getQueueToken } from '@nestjs/bull';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { DesignStatus, UserRole } from '@prisma/client';
-import { Queue } from 'bullmq';
-import { DesignsService } from './designs.service';
+import { of } from 'rxjs';
 
 describe('DesignsService', () => {
   let service: DesignsService;
-  let prismaService: jest.Mocked<PrismaService>;
-  let aiQueue: jest.Mocked<Queue>;
+  const mockPrisma = {
+    product: { findUnique: jest.fn() },
+    design: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
+    },
+    order: { findMany: jest.fn() },
+    designVersion: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      count: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+  };
+
+  const mockAiQueue = {
+    add: jest.fn().mockResolvedValue({ id: 'job-1' }),
+  };
+
+  const mockStorageService = {
+    uploadBuffer: jest.fn().mockResolvedValue('https://storage.example/file.pdf'),
+  };
+
+  const mockHttpService = {
+    get: jest.fn().mockReturnValue(
+      of({ data: Buffer.from('image-data'), status: 200 }),
+    ),
+  };
+
+  const brandUser = {
+    id: 'user-1',
+    role: UserRole.BRAND_ADMIN as UserRole,
+    brandId: 'brand-1',
+  };
+
+  const platformAdmin = {
+    id: 'admin-1',
+    role: UserRole.PLATFORM_ADMIN as UserRole,
+    brandId: null,
+  };
 
   beforeEach(async () => {
-    const mockQueue = {
-      add: jest.fn().mockResolvedValue({ id: 'job_123' } as any),
-    } as unknown as Queue;
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DesignsService,
-        {
-          provide: PrismaService,
-          useValue: createMockPrismaService(),
-        },
-        {
-          provide: getQueueToken('ai-generation'),
-          useValue: mockQueue,
-        },
-        {
-          provide: StorageService,
-          useValue: {
-            uploadFile: jest.fn().mockResolvedValue({ url: 'https://cdn.example.com/file.png' }),
-            deleteFile: jest.fn().mockResolvedValue(undefined),
-          },
-        },
-        {
-          provide: HttpService,
-          useValue: {
-            get: jest.fn(),
-            post: jest.fn(),
-          },
-        },
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: getQueueToken('ai-generation'), useValue: mockAiQueue },
+        { provide: StorageService, useValue: mockStorageService },
+        { provide: HttpService, useValue: mockHttpService },
       ],
     }).compile();
 
     service = module.get<DesignsService>(DesignsService);
-    prismaService = module.get(PrismaService);
-    aiQueue = module.get(getQueueToken('ai-generation')) as jest.Mocked<Queue>;
-    
-    // Ensure the mock is properly set up
-    (aiQueue.add as jest.Mock).mockResolvedValue({ id: 'job_123' });
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
   describe('create', () => {
-    const createDto = {
-      productId: 'prod_123',
-      prompt: 'Create a beautiful design',
-      options: { style: 'modern' },
-    };
-
-    it('should create design successfully', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: UserRole.CONSUMER };
-      (prismaService.product.findUnique as any).mockResolvedValue({
-        ...testFixtures.product,
-        brand: testFixtures.brand,
-      } as any);
-      (prismaService.design.create as any).mockResolvedValue({
-        ...testFixtures.design,
-        ...createDto,
-        product: testFixtures.product,
-        brand: testFixtures.brand,
-      } as any);
-
-      // Act
-      const result = await service.create(createDto, currentUser);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.prompt).toBe(createDto.prompt);
-      expect(prismaService.design.create).toHaveBeenCalled();
-      expect(aiQueue.add).toHaveBeenCalledWith('generate-design', expect.any(Object));
-    });
-
-    it('should throw NotFoundException if product not found', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: testFixtures.currentUser.role as UserRole };
-      (prismaService.product.findUnique as any).mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(service.create(createDto, currentUser)).rejects.toThrow(NotFoundException);
-      expect(prismaService.design.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw ForbiddenException if user does not have access to product brand', async () => {
-      // Arrange
-      const currentUser = {
-        ...testFixtures.currentUser,
-        role: UserRole.CONSUMER,
-        brandId: 'different_brand',
+    it('should create design and queue AI generation', async () => {
+      const product = {
+        id: 'prod-1',
+        brandId: 'brand-1',
+        brand: { id: 'brand-1', name: 'Brand' },
       };
-      (prismaService.product.findUnique as any).mockResolvedValue({
-        ...testFixtures.product,
-        brand: testFixtures.brand,
-      } as any);
+      mockPrisma.product.findUnique.mockResolvedValue(product);
+      const createdDesign = {
+        id: 'design-1',
+        prompt: 'A red logo',
+        options: null,
+        status: DesignStatus.PENDING,
+        userId: 'user-1',
+        brandId: 'brand-1',
+        productId: 'prod-1',
+        createdAt: new Date(),
+        product: { id: 'prod-1', name: 'T-Shirt', price: 29.99 },
+        brand: { id: 'brand-1', name: 'Brand' },
+      };
+      mockPrisma.design.create.mockResolvedValue(createdDesign);
 
-      // Act & Assert
-      await expect(service.create(createDto, currentUser)).rejects.toThrow(ForbiddenException);
-      expect(prismaService.design.create).not.toHaveBeenCalled();
+      const result = await service.create(
+        { productId: 'prod-1', prompt: 'A red logo' },
+        brandUser as any,
+      );
+
+      expect(result.id).toBe('design-1');
+      expect(result.prompt).toBe('A red logo');
+      expect(mockPrisma.design.create).toHaveBeenCalled();
+      expect(mockAiQueue.add).toHaveBeenCalledWith('generate-design', {
+        designId: 'design-1',
+        prompt: 'A red logo',
+        options: undefined,
+        userId: 'user-1',
+        brandId: 'brand-1',
+      });
     });
 
-    it('should add design to AI generation queue', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: testFixtures.currentUser.role as UserRole };
-      (prismaService.product.findUnique as any).mockResolvedValue({
-        ...testFixtures.product,
-        brand: testFixtures.brand,
-      } as any);
-      (prismaService.design.create as any).mockResolvedValue({
-        ...testFixtures.design,
-        id: 'design_123',
-      } as any);
+    it('should throw NotFoundException when product not found', async () => {
+      mockPrisma.product.findUnique.mockResolvedValue(null);
 
-      // Act
-      await service.create(createDto, currentUser);
+      await expect(
+        service.create({ productId: 'nonexistent', prompt: 'x' }, brandUser as any),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.create({ productId: 'nonexistent', prompt: 'x' }, brandUser as any),
+      ).rejects.toThrow('Product not found');
+      expect(mockPrisma.design.create).not.toHaveBeenCalled();
+    });
 
-      // Assert
-      expect(aiQueue.add).toHaveBeenCalledWith(
-        'generate-design',
+    it('should throw ForbiddenException when user has no access to product', async () => {
+      mockPrisma.product.findUnique.mockResolvedValue({
+        id: 'prod-1',
+        brandId: 'other-brand',
+        brand: {},
+      });
+
+      await expect(
+        service.create({ productId: 'prod-1', prompt: 'x' }, brandUser as any),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.create({ productId: 'prod-1', prompt: 'x' }, brandUser as any),
+      ).rejects.toThrow('Access denied to this product');
+    });
+  });
+
+  describe('getOrdersByDesign', () => {
+    it('should return orders for design', async () => {
+      const orders = [
+        {
+          id: 'ord-1',
+          status: 'PAID',
+          designId: 'design-1',
+          orderNumber: 'ORD-1',
+          createdAt: new Date(),
+        },
+      ];
+      mockPrisma.order.findMany.mockResolvedValue(orders);
+
+      const result = await service.getOrdersByDesign('design-1');
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('ord-1');
+      expect(mockPrisma.order.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          designId: 'design_123',
-          prompt: createDto.prompt,
-          userId: currentUser.id,
-          brandId: testFixtures.brand.id,
+          where: expect.objectContaining({
+            OR: expect.any(Array),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated designs for user brand', async () => {
+      const designs = [
+        {
+          id: 'd1',
+          name: null,
+          description: null,
+          prompt: 'Prompt',
+          status: DesignStatus.COMPLETED,
+          previewUrl: null,
+          imageUrl: null,
+          userId: 'user-1',
+          brandId: 'brand-1',
+          productId: 'prod-1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          product: { id: 'prod-1', name: 'T-Shirt', price: 29.99 },
+          brand: { id: 'brand-1', name: 'Brand', logo: null },
+        },
+      ];
+      mockPrisma.design.findMany.mockResolvedValue(designs);
+      mockPrisma.design.count.mockResolvedValue(1);
+
+      const result = await service.findAll(brandUser as any, { page: 1, limit: 50 });
+
+      expect(result.designs).toHaveLength(1);
+      expect(result.pagination.total).toBe(1);
+      expect(result.pagination.page).toBe(1);
+      expect(mockPrisma.design.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { brandId: 'brand-1' },
         }),
       );
     });
   });
 
   describe('findOne', () => {
-    it('should return design by id', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: testFixtures.currentUser.role as UserRole };
-      (prismaService.design.findUnique as any).mockResolvedValue({
-        ...testFixtures.design,
-        product: testFixtures.product,
-        brand: testFixtures.brand,
-        user: testFixtures.user,
+    it('should return design when found and user has access', async () => {
+      const design = {
+        id: 'design-1',
+        name: null,
+        description: null,
+        prompt: 'Prompt',
+        options: null,
+        status: DesignStatus.COMPLETED,
+        previewUrl: null,
+        highResUrl: null,
+        imageUrl: null,
+        renderUrl: null,
+        metadata: null,
+        designData: null,
+        canvasWidth: null,
+        canvasHeight: null,
+        canvasBackgroundColor: null,
+        isBlocked: false,
+        blockedReason: null,
+        blockedAt: null,
+        blockedByClaimId: null,
+        userId: 'user-1',
+        brandId: 'brand-1',
+        productId: 'prod-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        product: {},
+        brand: {},
+        user: {},
+      };
+      mockPrisma.design.findUnique.mockResolvedValue(design);
+
+      const result = await service.findOne('design-1', brandUser as any);
+
+      expect(result).toEqual(design);
+      expect(result.id).toBe('design-1');
+    });
+
+    it('should throw NotFoundException when design not found', async () => {
+      mockPrisma.design.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.findOne('nonexistent', brandUser as any),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.findOne('nonexistent', brandUser as any),
+      ).rejects.toThrow('Design not found');
+    });
+
+    it('should throw ForbiddenException when user has no access', async () => {
+      mockPrisma.design.findUnique.mockResolvedValue({
+        id: 'design-1',
+        brandId: 'other-brand',
+        userId: 'other',
+        product: {},
+        brand: {},
+        user: {},
       } as any);
 
-      // Act
-      const result = await service.findOne('design_123', currentUser);
+      await expect(
+        service.findOne('design-1', brandUser as any),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.findOne('design-1', brandUser as any),
+      ).rejects.toThrow('Access denied to this design');
+    });
+  });
 
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.id).toBe('design_123');
-      expect(prismaService.design.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'design_123' },
-        }),
+  describe('update', () => {
+    it('should update design when user has access', async () => {
+      const existingDesign = {
+        id: 'design-1',
+        brandId: 'brand-1',
+        isBlocked: false,
+        product: {},
+        brand: {},
+        user: {},
+      } as any;
+      mockPrisma.design.findUnique.mockResolvedValue(existingDesign);
+      const updated = {
+        id: 'design-1',
+        name: 'Updated',
+        description: null,
+        status: DesignStatus.COMPLETED,
+        previewUrl: null,
+        imageUrl: null,
+        userId: 'user-1',
+        brandId: 'brand-1',
+        productId: 'prod-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockPrisma.design.update.mockResolvedValue(updated);
+
+      const result = await service.update(
+        'design-1',
+        { name: 'Updated' },
+        brandUser as any,
+      );
+
+      expect(result.name).toBe('Updated');
+      expect(mockPrisma.design.update).toHaveBeenCalledWith({
+        where: { id: 'design-1' },
+        data: expect.objectContaining({ name: 'Updated' }),
+        select: expect.any(Object),
+      });
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete design when user has access', async () => {
+      const design = {
+        id: 'design-1',
+        brandId: 'brand-1',
+        isBlocked: false,
+        product: {},
+        brand: {},
+        user: {},
+      } as any;
+      mockPrisma.design.findUnique.mockResolvedValue(design);
+      mockPrisma.design.delete.mockResolvedValue(design);
+
+      const result = await service.delete('design-1', brandUser as any);
+
+      expect(result.success).toBe(true);
+      expect(mockPrisma.design.delete).toHaveBeenCalledWith({
+        where: { id: 'design-1' },
+      });
+    });
+
+    it('should throw ForbiddenException when design is blocked and user is not platform admin', async () => {
+      mockPrisma.design.findUnique.mockResolvedValue({
+        id: 'design-1',
+        brandId: 'brand-1',
+        isBlocked: true,
+        product: {},
+        brand: {},
+        user: {},
+      } as any);
+
+      await expect(
+        service.delete('design-1', brandUser as any),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.delete('design-1', brandUser as any),
+      ).rejects.toThrow(/blocked due to an IP claim/);
+      expect(mockPrisma.design.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getShared', () => {
+    it('should throw NotFoundException when shared design not found', async () => {
+      mockPrisma.design.findMany.mockResolvedValue([]);
+
+      await expect(service.getShared('invalid-token')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getShared('invalid-token')).rejects.toThrow(
+        'Shared design not found',
       );
     });
 
-    it('should throw NotFoundException if design not found', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: testFixtures.currentUser.role as UserRole };
-      (prismaService.design.findUnique as any).mockResolvedValue(null);
+    it('should throw BadRequestException when share link expired', async () => {
+      const pastDate = new Date(Date.now() - 86400000).toISOString();
+      mockPrisma.design.findMany.mockResolvedValue([
+        {
+          id: 'd1',
+          name: 'Design',
+          description: null,
+          previewUrl: null,
+          highResUrl: null,
+          imageUrl: null,
+          metadata: { shareToken: 'token-1', shareTokenExpiresAt: pastDate },
+          createdAt: new Date(),
+          product: {},
+          brand: {},
+        },
+      ]);
 
-      // Act & Assert
-      await expect(service.findOne('invalid_id', currentUser)).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw ForbiddenException if user does not have access', async () => {
-      // Arrange
-      const currentUser = {
-        ...testFixtures.currentUser,
-        role: UserRole.CONSUMER,
-        brandId: 'different_brand',
-      };
-      (prismaService.design.findUnique as any).mockResolvedValue({
-        ...testFixtures.design,
-        brandId: 'brand_123',
-      } as any);
-
-      // Act & Assert
-      await expect(service.findOne('design_123', currentUser)).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should use select for optimization', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: testFixtures.currentUser.role as UserRole };
-      (prismaService.design.findUnique as any).mockResolvedValue({
-        ...testFixtures.design,
-        product: testFixtures.product,
-        brand: testFixtures.brand,
-        user: testFixtures.user,
-      } as any);
-
-      // Act
-      await service.findOne('design_123', currentUser);
-
-      // Assert
-      const callArgs = (prismaService.design.findUnique as any).mock.calls[0][0];
-      expect(callArgs.select).toBeDefined();
-      expect(callArgs.include).toBeUndefined();
-    });
-  });
-
-  describe('upgradeToHighRes', () => {
-    it('should add design to high-res generation queue', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: testFixtures.currentUser.role as UserRole };
-      (prismaService.design.findUnique as any).mockResolvedValue({
-        ...testFixtures.design,
-        id: 'design_123',
-        status: DesignStatus.COMPLETED,
-        prompt: 'Test prompt',
-        options: { test: 'options' },
-        product: testFixtures.product,
-        brand: testFixtures.brand,
-        user: testFixtures.user,
-      } as any);
-
-      // Act
-      const result = await service.upgradeToHighRes('design_123', currentUser);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.message).toBe('High-res generation started');
-      expect(aiQueue.add).toHaveBeenCalledWith('generate-high-res', {
-        designId: 'design_123',
-        prompt: 'Test prompt',
-        options: { test: 'options' },
-        userId: currentUser.id,
-      });
-      expect(prismaService.design.findUnique).toHaveBeenCalled();
-    });
-
-    it('should throw ForbiddenException if design is not completed', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: testFixtures.currentUser.role as UserRole };
-      (prismaService.design.findUnique as any).mockResolvedValue({
-        ...testFixtures.design,
-        status: DesignStatus.PENDING,
-        product: testFixtures.product,
-        brand: testFixtures.brand,
-        user: testFixtures.user,
-      } as any);
-
-      // Act & Assert
-      await expect(
-        service.upgradeToHighRes('design_123', currentUser),
-      ).rejects.toThrow(ForbiddenException);
-      expect(aiQueue.add).not.toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException if design not found', async () => {
-      // Arrange
-      const currentUser = { ...testFixtures.currentUser, role: testFixtures.currentUser.role as UserRole };
-      (prismaService.design.findUnique as any).mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(
-        service.upgradeToHighRes('invalid_id', currentUser),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getShared('token-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.getShared('token-1')).rejects.toThrow(
+        'Shared design link has expired',
+      );
     });
   });
 });
-

@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Render2DService } from './services/render-2d.service';
 import { Render3DService } from './services/render-3d.service';
 import { ExportService } from './services/export.service';
@@ -15,6 +15,11 @@ import { GenerateLODDto } from './dto/generate-lod.dto';
 import { GenerateMarketingRenderDto } from './dto/generate-marketing-render.dto';
 import { GenerateVariantDto, GenerateVariantsBatchDto } from './dto/generate-variant.dto';
 import { EnqueueRenderDto } from './dto/enqueue-render.dto';
+import { RenderPrintReadyDto } from './dto/render-print-ready.dto';
+import { Render3DHighResDto } from './dto/render-3d-highres.dto';
+import { ExportARDto } from './dto/export-ar.dto';
+import type { CADValidationRequest } from '@/libs/cad/cad-constraints.interface';
+import type { MaterialVariant } from '@/libs/3d/variant.service';
 
 @ApiTags('Render Engine')
 @Controller('render')
@@ -56,7 +61,13 @@ export class RenderController {
   @ApiOperation({ summary: 'Valide un design CAD pour la production' })
   @ApiResponse({ status: 200, description: 'Validation CAD effectuée' })
   async validateCAD(@Body() dto: ValidateCADDto) {
-    return this.cadIntegration.validateForProduction(dto as any);
+    const request: CADValidationRequest = {
+      designId: dto.designId,
+      productId: dto.productId,
+      parameters: dto.parameters as CADValidationRequest['parameters'],
+      constraints: dto.constraints,
+    };
+    return this.cadIntegration.validateForProduction(request);
   }
 
   @Post('lod/generate')
@@ -82,29 +93,38 @@ export class RenderController {
   @ApiOperation({ summary: 'Génère un rendu marketing' })
   @ApiResponse({ status: 200, description: 'Rendu marketing généré' })
   async generateMarketingRender(@Body() dto: GenerateMarketingRenderDto) {
-    return this.cadIntegration.generateMarketingRender(dto as any);
+    return this.cadIntegration.generateMarketingRender({
+      designId: dto.designId,
+      productId: dto.productId,
+      type: dto.type,
+      options: dto.options,
+    });
   }
 
   @Post('variant')
   @ApiOperation({ summary: 'Génère un variant (matériau/pierre) sans re-export' })
   @ApiResponse({ status: 200, description: 'Variant généré' })
   async generateVariant(@Body() dto: GenerateVariantDto) {
-    return this.cadIntegration.generateVariant(
-      dto.designId,
-      dto.baseModelUrl,
-      dto.material as any,
-    );
+    const material: MaterialVariant = {
+      materialId: dto.material.materialId,
+      name: dto.material.name,
+      type: dto.material.type,
+      properties: (dto.material.properties ?? {}) as MaterialVariant['properties'],
+    };
+    return this.cadIntegration.generateVariant(dto.designId, dto.baseModelUrl, material);
   }
 
   @Post('variants/batch')
   @ApiOperation({ summary: 'Génère plusieurs variants en batch' })
   @ApiResponse({ status: 200, description: 'Variants générés' })
   async generateVariantsBatch(@Body() dto: GenerateVariantsBatchDto) {
-    return this.cadIntegration.generateVariantsBatch(
-      dto.designId,
-      dto.baseModelUrl,
-      dto.materials as any,
-    );
+    const materials: MaterialVariant[] = dto.materials.map((m) => ({
+      materialId: m.materialId,
+      name: m.name,
+      type: m.type,
+      properties: (m.properties ?? {}) as MaterialVariant['properties'],
+    }));
+    return this.cadIntegration.generateVariantsBatch(dto.designId, dto.baseModelUrl, materials);
   }
 
   // NOUVEAU: Endpoints pour queue et status
@@ -150,17 +170,7 @@ export class RenderController {
   @Post('print-ready')
   @ApiOperation({ summary: 'Génère un rendu print-ready haute résolution (300 DPI)' })
   @ApiResponse({ status: 200, description: 'Rendu print-ready généré' })
-  async renderPrintReady(@Body() request: {
-    designId: string;
-    productId: string;
-    width: number;
-    height: number;
-    dpi?: number;
-    format?: 'png' | 'jpg' | 'pdf';
-    quality?: number;
-    backgroundColor?: string;
-    bleed?: number;
-  }) {
+  async renderPrintReady(@Body() request: RenderPrintReadyDto) {
     const renderRequest = {
       id: `print-ready-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...request,
@@ -171,29 +181,14 @@ export class RenderController {
   @Post('3d/highres')
   @ApiOperation({ summary: 'Génère un rendu 3D haute résolution' })
   @ApiResponse({ status: 200, description: 'Rendu 3D haute résolution généré' })
-  async render3DHighRes(@Body() body: {
-    configurationId: string;
-    preset?: 'thumbnail' | 'preview' | 'hd' | '2k' | '4k' | 'print';
-    width?: number;
-    height?: number;
-    format?: 'png' | 'jpg' | 'webp';
-    quality?: number;
-    transparent?: boolean;
-    watermark?: string;
-  }, @Request() req: ExpressRequest & { user: { id: string } }) {
+  async render3DHighRes(@Body() body: Render3DHighResDto, @Request() req: ExpressRequest & { user: { id: string } }) {
     return this.render3DService.render3DHighRes(body, req.user.id);
   }
 
   @Post('3d/export-ar')
   @ApiOperation({ summary: 'Exporte un modèle 3D pour AR (iOS/Android/Web)' })
   @ApiResponse({ status: 200, description: 'Modèle AR exporté' })
-  async exportAR(@Body() body: {
-    configurationId: string;
-    platform: 'ios' | 'android' | 'web';
-    includeTextures?: boolean;
-    maxTextureSize?: number;
-    compression?: boolean;
-  }, @Request() req: ExpressRequest & { user: { id: string } }) {
+  async exportAR(@Body() body: ExportARDto, @Request() req: ExpressRequest & { user: { id: string } }) {
     return this.render3DService.exportAR(body, req.user.id);
   }
 }

@@ -1,52 +1,47 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { saveCustomDesignSchema, updateCustomDesignSchema } from '@/lib/validation/zod-schemas';
 import { z } from 'zod';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
 
 /**
  * POST /api/designs/save-custom
- * Sauvegarde un design personnalisé
+ * Sauvegarde un design personnalisé. Cookie-based auth.
+ * Forwards to backend API /api/v1/designs/custom
  */
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.validateWithZod(saveCustomDesignSchema, request, async (validatedData) => {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
-    const { name, design_data, product_id, thumbnail_url, tags } = validatedData;
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/designs/custom`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+      body: JSON.stringify(validatedData),
+    });
 
-    // Créer le design personnalisé
-    const { data: createdDesign, error: createError } = await supabase
-      .from('custom_designs')
-      .insert({
-        user_id: user.id,
-        name: name.trim(),
-        design_data: design_data,
-        product_id: product_id || null,
-        thumbnail_url: thumbnail_url || null,
-        tags: Array.isArray(tags) ? tags : [],
-        status: 'draft',
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      logger.dbError('create custom design', createError, {
-        userId: user.id,
-        designName: name,
-      });
-      throw { status: 500, message: 'Erreur lors de la sauvegarde du design' };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la sauvegarde du design' }));
+      throw { status: response.status, message: errorData.message || 'Erreur lors de la sauvegarde du design' };
     }
+
+    const createdDesign = await response.json();
 
     logger.info('Custom design saved', {
       userId: user.id,
       designId: createdDesign.id,
-      designName: name,
+      designName: validatedData.name,
     });
 
     return ApiResponseBuilder.success(
@@ -62,20 +57,18 @@ export async function POST(request: NextRequest) {
 /**
  * PUT /api/designs/save-custom?id=xxx
  * Met à jour un design personnalisé
+ * Forwards to backend API /api/v1/designs/custom/[id]
  */
 export async function PUT(request: NextRequest) {
   return ApiResponseBuilder.validateWithZod(updateCustomDesignSchema, request, async (validatedData) => {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
     const { searchParams } = new URL(request.url);
     const designId = searchParams.get('id');
 
-    // Validation Zod pour le paramètre id
     const idValidation = z.string().uuid('ID de design invalide').safeParse(designId);
 
     if (!idValidation.success) {
@@ -87,46 +80,27 @@ export async function PUT(request: NextRequest) {
       };
     }
 
-    const body = validatedData;
+    // Forward to backend API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const response = await fetch(`${API_URL}/api/v1/designs/custom/${idValidation.data}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+      body: JSON.stringify(validatedData),
+    });
 
-    // Vérifier que le design existe et appartient à l'utilisateur
-    const { data: existingDesign, error: checkError } = await supabase
-      .from('custom_designs')
-      .select('id, name')
-      .eq('id', idValidation.data)
-      .eq('user_id', user.id)
-      .single();
-
-    if (checkError || !existingDesign) {
-      if (checkError?.code === 'PGRST116') {
-        throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
-      }
-      logger.dbError('fetch custom design for update', checkError, {
-        designId: idValidation.data,
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la récupération du design' };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la mise à jour du design' }));
+      throw {
+        status: response.status,
+        message: errorData.message || 'Erreur lors de la mise à jour du design',
+        code: response.status === 404 ? 'DESIGN_NOT_FOUND' : 'UPDATE_ERROR',
+      };
     }
 
-    // Mettre à jour le design
-    const { data: updatedDesign, error: updateError } = await supabase
-      .from('custom_designs')
-      .update({
-        ...body,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', idValidation.data)
-      .eq('user_id', user.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      logger.dbError('update custom design', updateError, {
-        designId: idValidation.data,
-        userId: user.id,
-      });
-      throw { status: 500, message: 'Erreur lors de la mise à jour du design' };
-    }
+    const updatedDesign = await response.json();
 
     logger.info('Custom design updated', {
       designId: idValidation.data,

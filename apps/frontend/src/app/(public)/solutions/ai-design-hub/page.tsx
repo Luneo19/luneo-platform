@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
@@ -23,6 +24,9 @@ import Image from 'next/image';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+
+// Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
+const APP_URL = 'https://luneo.app';
 
 function AIDesignHubPageContent() {
   const [prompt, setPrompt] = useState('');
@@ -49,21 +53,11 @@ function AIDesignHubPageContent() {
     setError(null);
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          style,
-          count: variations,
-        }),
+      const data = await api.post<any>('/api/v1/ai/generate', {
+        prompt,
+        style,
+        count: variations,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
-        throw new Error(errorData.message || `Erreur HTTP ${response.status}`);
-      }
-      const data = await response.json();
       
       // Handle different response structures
       let urls: string[] = [];
@@ -207,6 +201,31 @@ function AIDesignHubPageContent() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Luneo AI Design Hub',
+            description: 'AI-powered design generation and editing tools for product customization',
+            applicationCategory: 'DesignApplication',
+            operatingSystem: 'Web',
+            url: `${APP_URL}/solutions/ai-design-hub`,
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'EUR',
+              description: 'Free tier available',
+            },
+            provider: {
+              '@type': 'Organization',
+              name: 'Luneo',
+              url: APP_URL,
+            },
+          }),
+        }}
+      />
       <PageHero
         title="AI Design Hub"
         description="Générez des milliers de designs uniques avec DALL-E 3. Du concept à l'export en quelques secondes. Parfait pour e-commerce, marketing, et print on demand."

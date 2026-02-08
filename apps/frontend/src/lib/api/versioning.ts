@@ -6,6 +6,8 @@
  * - Deprecation warnings
  */
 
+import { getBackendUrl } from '@/lib/api/server-url';
+
 // ========================================
 // TYPES
 // ========================================
@@ -90,7 +92,7 @@ export class ApiVersioningService {
    */
   getVersionedUrl(path: string, version?: ApiVersion): string {
     const v = version || this.currentVersion;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const baseUrl = getBackendUrl();
     return `${baseUrl}/api/${v}${path.startsWith('/') ? path : `/${path}`}`;
   }
 

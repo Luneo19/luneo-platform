@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
 import { ProjectQueryDto } from '../dto/project-query.dto';
@@ -174,7 +175,7 @@ export class ProjectsService {
         status: 'DRAFT', // Statut par défaut
         brandId: organizationId, // Utiliser brandId pour compatibilité
         apiKey,
-        settings: (dto.settings || {}) as any,
+        settings: (dto.settings || {}) as Prisma.InputJsonValue,
       },
       select: {
         id: true,
@@ -231,7 +232,7 @@ export class ProjectsService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.type && { type: dto.type }),
         ...(dto.status && { status: dto.status }),
-        ...(dto.settings && { settings: dto.settings as any }),
+        ...(dto.settings && { settings: dto.settings as Prisma.InputJsonValue }),
       },
       select: {
         id: true,

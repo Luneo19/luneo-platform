@@ -76,7 +76,22 @@ export class AttributionService {
    * Enregistre une attribution
    */
   async recordAttribution(attribution: AttributionData): Promise<void> {
-    // TODO: Sauvegarder dans table Attribution
+    await this.prisma.attribution.create({
+      data: {
+        userId: attribution.userId,
+        sessionId: attribution.sessionId,
+        source: attribution.source,
+        medium: attribution.medium,
+        campaign: attribution.campaign,
+        term: attribution.term,
+        content: attribution.content,
+        referrer: attribution.referrer,
+        landingPage: attribution.landingPage,
+        device: attribution.device as object,
+        location: attribution.location as object | undefined,
+        timestamp: attribution.timestamp,
+      },
+    });
     this.logger.debug(`Attribution recorded: ${attribution.source} -> ${attribution.landingPage}`);
   }
 
@@ -84,7 +99,16 @@ export class AttributionService {
    * Enregistre un événement de conversion
    */
   async recordConversion(event: ConversionEvent): Promise<void> {
-    // TODO: Sauvegarder dans table Conversion
+    await this.prisma.conversion.create({
+      data: {
+        userId: event.userId,
+        sessionId: event.sessionId,
+        eventType: event.eventType,
+        value: event.value != null ? Math.round(event.value * 100) : null,
+        attribution: event.attribution as object,
+        timestamp: event.timestamp,
+      },
+    });
     this.logger.log(
       `Conversion recorded: ${event.eventType} (value: ${event.value || 0}) from ${event.attribution.source}`,
     );
@@ -94,8 +118,27 @@ export class AttributionService {
    * Récupère l'attribution d'une session
    */
   async getSessionAttribution(sessionId: string): Promise<AttributionData | null> {
-    // TODO: Récupérer depuis table Attribution
-    return null;
+    const rows = await this.prisma.attribution.findMany({
+      where: { sessionId },
+      orderBy: { timestamp: 'desc' },
+      take: 1,
+    });
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      userId: row.userId ?? undefined,
+      sessionId: row.sessionId,
+      source: row.source as AttributionData['source'],
+      medium: row.medium ?? undefined,
+      campaign: row.campaign ?? undefined,
+      term: row.term ?? undefined,
+      content: row.content ?? undefined,
+      referrer: row.referrer ?? undefined,
+      landingPage: row.landingPage,
+      device: row.device as AttributionData['device'],
+      location: row.location as AttributionData['location'] | undefined,
+      timestamp: row.timestamp,
+    };
   }
 
   /**
@@ -105,8 +148,19 @@ export class AttributionService {
     startDate: Date,
     endDate: Date,
   ): Promise<Record<string, { count: number; revenue: number }>> {
-    // TODO: Agréger depuis table Conversion
-    return {};
+    const conversions = await this.prisma.conversion.findMany({
+      where: { timestamp: { gte: startDate, lte: endDate } },
+      select: { attribution: true, value: true },
+    });
+    const bySource: Record<string, { count: number; revenue: number }> = {};
+    for (const c of conversions) {
+      const att = c.attribution as { source?: string };
+      const source = att?.source ?? 'direct';
+      if (!bySource[source]) bySource[source] = { count: 0, revenue: 0 };
+      bySource[source].count += 1;
+      bySource[source].revenue += c.value != null ? c.value / 100 : 0;
+    }
+    return bySource;
   }
 
   /**
@@ -116,8 +170,23 @@ export class AttributionService {
     startDate: Date,
     endDate: Date,
   ): Promise<Array<{ campaign: string; spend: number; revenue: number; roi: number }>> {
-    // TODO: Calculer depuis table Conversion + coûts campagnes
-    return [];
+    const conversions = await this.prisma.conversion.findMany({
+      where: { timestamp: { gte: startDate, lte: endDate } },
+      select: { attribution: true, value: true },
+    });
+    const byCampaign: Record<string, { spend: number; revenue: number }> = {};
+    for (const c of conversions) {
+      const att = c.attribution as { campaign?: string };
+      const campaign = att?.campaign ?? '(none)';
+      if (!byCampaign[campaign]) byCampaign[campaign] = { spend: 0, revenue: 0 };
+      byCampaign[campaign].revenue += c.value != null ? c.value / 100 : 0;
+    }
+    return Object.entries(byCampaign).map(([campaign, { spend, revenue }]) => ({
+      campaign,
+      spend,
+      revenue,
+      roi: spend > 0 ? Math.round((revenue / spend) * 100) / 100 : (revenue > 0 ? Infinity : 0),
+    }));
   }
 }
 

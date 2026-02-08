@@ -229,7 +229,7 @@ function WidgetPageContent() {
               <Preview3D modelUrl={modelUrl} autoRotate={true} />
               <ARButton
                 modelUrl={modelUrl}
-                productType={product.category?.toLowerCase() as any || 'jewelry'}
+                productType={(product.category?.toLowerCase() as 'glasses' | 'jewelry' | 'watch' | 'ring' | 'earrings' | 'necklace') || 'jewelry'}
                 productId={productId}
                 customizationId={customizationId || undefined}
               />

@@ -161,7 +161,7 @@ export function AITemplatesPageClient() {
                 })}
               </SelectContent>
             </Select>
-            <Select value={selectedType} onValueChange={(v) => setSelectedType(v as any)}>
+            <Select value={selectedType} onValueChange={(v) => setSelectedType(v as string)}>
               <SelectTrigger className="w-40 bg-gray-900 border-gray-600 text-white">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
@@ -171,7 +171,7 @@ export function AITemplatesPageClient() {
                 <SelectItem value="premium">Premium</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as string)}>
               <SelectTrigger className="w-40 bg-gray-900 border-gray-600 text-white">
                 <SelectValue placeholder="Trier par" />
               </SelectTrigger>

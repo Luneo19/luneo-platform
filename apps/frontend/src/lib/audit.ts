@@ -4,6 +4,7 @@
  * Usage: await auditLog.create('order', orderId, 'Commande créée');
  */
 
+import { api } from '@/lib/api/client';
 import { logger } from './logger';
 
 export type AuditAction = 
@@ -31,29 +32,21 @@ export interface AuditLogData {
   resource_name?: string;
   description?: string;
   changes?: {
-    before?: any;
-    after?: any;
+    before?: unknown;
+    after?: unknown;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   status?: AuditStatus;
   sensitivity?: AuditSensitivity;
 }
 
 /**
- * Log une action dans les audit logs
+ * Log une action dans les audit logs (NestJS backend)
  */
 export async function logAudit(data: AuditLogData): Promise<boolean> {
   try {
-    const response = await fetch('/api/audit/logs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-
-    const result = await response.json();
-    return result.success;
+    const result = await api.post<{ success?: boolean }>('/api/v1/security/audit-log', data);
+    return (result as { success?: boolean })?.success ?? false;
   } catch (error) {
     logger.error('Erreur audit log', {
       error,
@@ -73,7 +66,7 @@ export const auditLog = {
     resourceType: AuditResourceType,
     resourceId: string,
     resourceName?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     return logAudit({
       action: 'create',
@@ -90,7 +83,7 @@ export const auditLog = {
   update: async (
     resourceType: AuditResourceType,
     resourceId: string,
-    changes: { before: any; after: any },
+    changes: { before: unknown; after: unknown },
     resourceName?: string
   ) => {
     return logAudit({

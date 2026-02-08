@@ -31,22 +31,22 @@ export function LibraryFilters({
   templatesCount,
 }: LibraryFiltersProps) {
   return (
-    <Card className="p-4 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
             <Input
               placeholder="Rechercher des templates..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="bg-gray-900 border-gray-600 text-white pl-10"
+              className="bg-white border-gray-200 text-gray-900 pl-10"
             />
           </div>
         </div>
         <div className="flex gap-3">
           <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
-            <SelectTrigger className="w-48 bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-48 bg-white border-gray-200 text-gray-900">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
@@ -65,7 +65,7 @@ export function LibraryFilters({
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={onSortByChange}>
-            <SelectTrigger className="w-40 bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-40 bg-white border-gray-200 text-gray-900">
               <SelectValue placeholder="Trier" />
             </SelectTrigger>
             <SelectContent>
@@ -78,7 +78,7 @@ export function LibraryFilters({
           </Select>
         </div>
       </div>
-      <div className="mt-3 text-sm text-gray-400">
+      <div className="mt-3 text-sm text-gray-600">
         {templatesCount} template{templatesCount > 1 ? 's' : ''} trouvé{templatesCount > 1 ? 's' : ''}
       </div>
     </Card>

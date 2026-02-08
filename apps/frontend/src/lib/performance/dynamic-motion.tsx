@@ -3,30 +3,31 @@
  * Optimized lazy loading for framer-motion library (~50KB)
  */
 
+import React from 'react';
 import dynamic from 'next/dynamic';
 
 // Framer Motion components (heavy: ~50KB)
 export const LazyMotion = dynamic(
-  // @ts-expect-error - framer-motion motion is not a standard React component
+  // @ts-expect-error -- framer-motion exports motion as a factory, not a standard React component type
   () => import('framer-motion').then(mod => ({ default: mod.motion })),
   { ssr: false }
-) as any;
+) as React.ComponentType<React.PropsWithChildren<Record<string, unknown>>>;
 
 export const LazyAnimatePresence = dynamic(
   () => import('framer-motion').then(mod => ({ default: mod.AnimatePresence })),
   { ssr: false }
-) as any;
+) as React.ComponentType<React.PropsWithChildren<Record<string, unknown>>>;
 
 // Helper to create lazy motion components
 export const createLazyMotion = (component: string) => {
   return dynamic(
-    // @ts-expect-error - framer-motion motion components type compatibility
+    // @ts-expect-error -- framer-motion motion[component] has no generic React component type
     () => import('framer-motion').then(mod => {
       const MotionComponent = mod.motion[component as keyof typeof mod.motion];
       return { default: MotionComponent };
     }),
     { ssr: false }
-  ) as any;
+  ) as React.ComponentType<React.PropsWithChildren<Record<string, unknown>>>;
 };
 
 // Pre-configured lazy motion components

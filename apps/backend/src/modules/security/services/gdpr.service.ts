@@ -60,7 +60,8 @@ export class GDPRService {
           where: { userId },
         }),
         this.auditLogs.getUserActivity(userId, 1000),
-        (this.prisma as any).usageMetric.findMany({
+        // @ts-expect-error - usageMetric model may exist at runtime (Prisma schema extension)
+        this.prisma.usageMetric.findMany({
           where: {
             brand: {
               users: {
@@ -145,7 +146,6 @@ export class GDPRService {
           where: { userId },
           data: {
             userId: null,
-            // @ts-ignore - userEmail exists in schema but Prisma client may need regeneration
             userEmail: 'deleted@user.anonymized',
           },
         }),
@@ -288,7 +288,8 @@ export class GDPRService {
    */
   async getConsentHistory(userId: string): Promise<any[]> {
     try {
-      return await (this.prisma as any).userConsent.findMany({
+      // @ts-expect-error - userConsent model may exist at runtime (Prisma schema extension)
+      return await this.prisma.userConsent.findMany({
         where: { userId },
         orderBy: { recordedAt: 'desc' },
       });
@@ -342,13 +343,14 @@ export class GDPRService {
       let complianceScore = 100;
       const recommendations: string[] = [];
 
-      // Vérifier les politiques
-      if (!(brand as any)?.privacyPolicyUrl) {
+      // Vérifier les politiques (champs optionnels sur Brand ou dans config)
+      const brandWithPolicies = brand as { privacyPolicyUrl?: string; termsOfServiceUrl?: string } | null;
+      if (!brandWithPolicies?.privacyPolicyUrl) {
         complianceScore -= 20;
         recommendations.push('❌ Add a privacy policy URL');
       }
 
-      if (!(brand as any)?.termsOfServiceUrl) {
+      if (!brandWithPolicies?.termsOfServiceUrl) {
         complianceScore -= 10;
         recommendations.push('❌ Add terms of service URL');
       }

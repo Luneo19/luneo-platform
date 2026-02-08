@@ -1,7 +1,8 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BraceletService } from './bracelet.service';
+import { RenderBraceletDto } from './dto/render-bracelet.dto';
 
 @ApiTags('Bracelet')
 @Controller('bracelet')
@@ -13,18 +14,7 @@ export class BraceletController {
   @Post('render')
   @ApiOperation({ summary: 'Génère une image PNG haute résolution du bracelet personnalisé' })
   @ApiResponse({ status: 200, description: 'Rendu généré avec succès' })
-  async render(@Body() body: {
-    text: string;
-    font: string;
-    fontSize: number;
-    alignment: string;
-    position: string;
-    color: string;
-    material: string;
-    width?: number;
-    height?: number;
-    format?: 'png' | 'jpg';
-  }) {
+  async render(@Body() body: RenderBraceletDto) {
     return this.braceletService.renderBracelet(body);
   }
 }

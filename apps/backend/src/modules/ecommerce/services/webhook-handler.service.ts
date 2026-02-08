@@ -43,7 +43,8 @@ export class WebhookHandlerService {
       }
 
       // Valider le webhook
-      const webhookSecret = (integration.config as any).webhookSecret || '';
+      const config = integration.config as Record<string, unknown>;
+      const webhookSecret = (config.webhookSecret as string) || '';
       const isValid = this.shopifyConnector.validateWebhook(
         JSON.stringify(payload),
         hmacHeader,

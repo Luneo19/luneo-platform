@@ -90,7 +90,7 @@ export function UploadARModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl">
         <DialogHeader>
           <DialogTitle>Upload Modèle AR</DialogTitle>
           <DialogDescription>
@@ -195,9 +195,9 @@ export function UploadARModal({
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Type de produit</Label>
+                <Label className="text-gray-700">Type de produit</Label>
                 <Select value={modelType} onValueChange={setModelType}>
-                  <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-2">
+                  <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -219,7 +219,7 @@ export function UploadARModal({
           )}
         </div>
         <div className="flex items-center justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Annuler
           </Button>
           <Button

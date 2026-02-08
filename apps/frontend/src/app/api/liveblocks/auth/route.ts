@@ -4,8 +4,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromRequest } from '@/lib/auth/get-user';
 import { logger } from '@/lib/logger';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
 
 const LIVEBLOCKS_SECRET_KEY = process.env.LIVEBLOCKS_SECRET_KEY;
 
@@ -47,78 +50,55 @@ export async function POST(request: NextRequest) {
     }
 
     // Get authenticated user
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getUserFromRequest(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    // Get user profile for name and avatar
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, avatar_url')
-      .eq('id', user.id)
-      .single();
-
-    // Check if user has access to this room (design)
+    // Forward to backend: check if user has access to this room (design)
     // Room ID format: design_<designId>
     const designIdMatch = room.match(/^design_(.+)$/);
     if (designIdMatch) {
       const designId = designIdMatch[1];
       
-      // Check design ownership or team membership
-      const { data: design, error: designError } = await supabase
-        .from('designs')
-        .select('id, user_id, team_id')
-        .eq('id', designId)
-        .single();
+      // Check design access via backend
+      const accessResponse = await fetch(`${API_URL}/api/v1/designs/${designId}/access`, {
+        headers: {
+          Cookie: request.headers.get('cookie') || '',
+        },
+      });
 
-      if (designError || !design) {
+      if (!accessResponse.ok) {
         return NextResponse.json(
           { error: 'Design not found or access denied' },
           { status: 403 }
         );
       }
 
-      // Check if user owns the design
-      let hasAccess = design.user_id === user.id;
-
-      // Check team membership if design has team_id
-      if (!hasAccess && design.team_id) {
-        const { data: teamMember, error: teamError } = await supabase
-          .from('team_members')
-          .select('id, role, status')
-          .eq('team_id', design.team_id)
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .single();
-
-        if (!teamError && teamMember) {
-          hasAccess = true;
-        }
-      }
-
-      // Check for shared access if still no access
-      if (!hasAccess) {
-        const { data: share } = await supabase
-          .from('design_shares')
-          .select('permission')
-          .eq('design_id', designId)
-          .eq('user_id', user.id)
-          .single();
-
-        if (!share) {
-          return NextResponse.json(
-            { error: 'Access denied to this design' },
-            { status: 403 }
-          );
-        }
-      }
+      const { profile } = await accessResponse.json();
+    } else {
+      // For non-design rooms, get profile from backend
+      const profileResponse = await fetch(`${API_URL}/api/v1/auth/me`, {
+        headers: {
+          Cookie: request.headers.get('cookie') || '',
+        },
+      });
+      
+      const profile = profileResponse.ok ? await profileResponse.json() : null;
     }
+
+    // Get user profile for name and avatar
+    const profileResponse = await fetch(`${API_URL}/api/v1/auth/me`, {
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
+    
+    const profileData = profileResponse.ok ? await profileResponse.json() : null;
 
     // Create Liveblocks session token
     const response = await fetch('https://api.liveblocks.io/v2/authorize', {
@@ -130,8 +110,8 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         userId: user.id,
         userInfo: {
-          name: profile?.full_name || user.email?.split('@')[0] || 'Anonymous',
-          avatar: profile?.avatar_url || null,
+          name: profileData?.full_name || profileData?.name || user.email?.split('@')[0] || 'Anonymous',
+          avatar: profileData?.avatar_url || profileData?.avatar || null,
           color: generateColorFromId(user.id),
         },
         permissions: {

@@ -1,85 +1,49 @@
 /**
  * ★★★ META ADS CALLBACK API ★★★
- * API route pour traiter le callback OAuth Meta
+ * Forwards to NestJS backend. Backend performs OAuth exchange and DB upsert, then returns redirect URL.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
-import { exchangeCodeForToken } from '@/lib/admin/integrations/oauth-helpers';
-import { db } from '@/lib/db';
 import { serverLogger } from '@/lib/logger-server';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
+
+function forwardHeaders(request: NextRequest): HeadersInit {
+  const headers: HeadersInit = {
+    Cookie: request.headers.get('cookie') || '',
+  };
+  const auth = request.headers.get('authorization');
+  if (auth) headers['Authorization'] = auth;
+  return headers;
+}
 
 export async function GET(request: NextRequest) {
   try {
-    // Vérification admin
     const adminUser = await getAdminUser();
     if (!adminUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const code = searchParams.get('code');
-    const state = searchParams.get('state'); // Peut contenir l'adAccountId
+    const url = new URL(`${API_URL}/api/v1/admin/ads/meta/callback`);
+    url.searchParams.set('code', searchParams.get('code') || '');
+    url.searchParams.set('state', searchParams.get('state') || '');
     const redirectUri = `${request.nextUrl.origin}/admin/ads/meta/callback`;
+    url.searchParams.set('redirect_uri', redirectUri);
 
-    if (!code) {
-      return NextResponse.json(
-        { error: 'Missing authorization code' },
-        { status: 400 }
-      );
+    const res = await fetch(url.toString(), { headers: forwardHeaders(request), redirect: 'manual' });
+    if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+      return NextResponse.redirect(new URL(res.headers.get('location')!, request.url));
     }
-
-    // Échanger le code contre un token
-    const tokenData = await exchangeCodeForToken('meta', code, redirectUri);
-
-    // Récupérer les infos du compte depuis Meta
-    const accountResponse = await fetch(
-      `https://graph.facebook.com/v18.0/me/adaccounts?access_token=${tokenData.access_token}`
-    );
-    const accountData = await accountResponse.json();
-
-    const adAccountId = state || accountData.data?.[0]?.account_id || '';
-
-    // Sauvegarder la connexion dans la base de données
-    const connection = await db.adPlatformConnection.upsert({
-      where: {
-        platform_accountId: {
-          platform: 'meta',
-          accountId: adAccountId,
-        },
-      },
-      create: {
-        platform: 'meta',
-        accountId: adAccountId,
-        accountName: accountData.data?.[0]?.name || 'Meta Ads Account',
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || null,
-        expiresAt: tokenData.expires_in
-          ? new Date(Date.now() + tokenData.expires_in * 1000)
-          : null,
-        metadata: {
-          scopes: ['ads_read', 'ads_management'],
-        },
-      },
-      update: {
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || undefined,
-        expiresAt: tokenData.expires_in
-          ? new Date(Date.now() + tokenData.expires_in * 1000)
-          : undefined,
-        lastSyncedAt: new Date(),
-      },
-    });
-
-    // Rediriger vers la page Meta Ads
-    return NextResponse.redirect(new URL('/admin/ads/meta?connected=true', request.url));
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.redirect(new URL('/admin/ads/meta?error=connection_failed', request.url));
+    }
+    return NextResponse.redirect(new URL(data.redirectUrl || '/admin/ads/meta?connected=true', request.url));
   } catch (error) {
     serverLogger.apiError('/api/admin/ads/meta/callback', 'GET', error);
-    return NextResponse.redirect(
-      new URL('/admin/ads/meta?error=connection_failed', request.url)
-    );
+    return NextResponse.redirect(new URL('/admin/ads/meta?error=connection_failed', request.url));
   }
 }

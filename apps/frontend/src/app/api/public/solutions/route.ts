@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { cacheService, cacheTTL } from '@/lib/cache/redis';
-import { createClient } from '@/lib/supabase/server';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
 
 // Types
 interface SolutionFeature {
@@ -131,7 +133,7 @@ const FALLBACK_SOLUTIONS: Record<string, SolutionData> = {
 
 /**
  * GET /api/public/solutions
- * Récupère les données d'une solution depuis Supabase avec fallback
+ * Récupère les données d'une solution depuis le backend API avec fallback
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
@@ -155,82 +157,23 @@ export async function GET(request: NextRequest) {
     let data: SolutionData | SolutionData[] | null = null;
 
     try {
-      const supabase = await createClient();
+      // Forward to backend API (public route, no auth required)
+      const url = new URL(`${API_URL}/api/v1/public/solutions`);
+      if (solutionId) url.searchParams.set('id', solutionId);
 
-      if (solutionId) {
-        // Récupérer une solution spécifique
-        const { data: solution, error } = await supabase
-          .from('solutions')
-          .select('*')
-          .eq('id', solutionId)
-          .eq('is_published', true)
-          .single();
+      const backendResponse = await fetch(url.toString());
 
-        if (!error && solution) {
-          data = {
-            id: solution.id,
-            name: solution.name,
-            tagline: solution.tagline || '',
-            description: solution.description,
-            heroImage: solution.hero_image || `/solutions/${solution.id}-hero.jpg`,
-            demoUrl: solution.demo_url,
-            features: solution.features || [],
-            useCases: solution.use_cases || [],
-            testimonials: [],
-            pricing: solution.pricing || FALLBACK_SOLUTIONS[solutionId]?.pricing || {},
-            stats: solution.stats || [],
-            integrations: solution.integrations || [],
-          };
-
-          // Récupérer les témoignages liés à cette solution
-          const { data: testimonials } = await supabase
-            .from('testimonials')
-            .select('content, author_name, author_company, author_role, author_avatar, metric_value')
-            .eq('solution', solutionId)
-            .eq('is_published', true)
-            .limit(3);
-
-          if (testimonials?.length) {
-            data.testimonials = testimonials.map((t: any) => ({
-              quote: t.content,
-              author: t.author_name,
-              company: t.author_company,
-              role: t.author_role || '',
-              avatar: t.author_avatar || '',
-              result: t.metric_value || '',
-            }));
-          }
-        }
+      if (!backendResponse.ok) {
+        logger.error('Error fetching solutions from backend', { error: backendResponse.status, solutionId });
       } else {
-        // Récupérer toutes les solutions
-        const { data: solutions, error } = await supabase
-          .from('solutions')
-          .select('*')
-          .eq('is_published', true)
-          .order('display_order', { ascending: true });
-
-        if (!error && solutions?.length) {
-          data = solutions.map((solution: any) => ({
-            id: solution.id,
-            name: solution.name,
-            tagline: solution.tagline || '',
-            description: solution.description,
-            heroImage: solution.hero_image || `/solutions/${solution.id}-hero.jpg`,
-            demoUrl: solution.demo_url,
-            features: solution.features || [],
-            useCases: solution.use_cases || [],
-            testimonials: [],
-            pricing: solution.pricing || {},
-            stats: solution.stats || [],
-            integrations: solution.integrations || [],
-          }));
-        }
+        const result = await backendResponse.json();
+        data = result.data || null;
       }
     } catch (error) {
-      logger.error('Error fetching solutions from Supabase', { error, solutionId });
+      logger.error('Error fetching solutions from backend', { error, solutionId });
     }
 
-    // Fallback aux données statiques si Supabase échoue
+    // Fallback aux données statiques si le backend échoue
     if (!data) {
       if (solutionId) {
         data = FALLBACK_SOLUTIONS[solutionId] || null;

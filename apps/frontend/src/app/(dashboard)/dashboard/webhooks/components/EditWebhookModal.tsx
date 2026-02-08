@@ -95,10 +95,10 @@ export function EditWebhookModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier le webhook</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Modifiez la configuration de votre webhook
           </DialogDescription>
         </DialogHeader>
@@ -112,7 +112,7 @@ export function EditWebhookModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Mon webhook"
               required
-              className="bg-gray-700 border-gray-600"
+              className="bg-white border-gray-200"
             />
           </div>
 
@@ -125,7 +125,7 @@ export function EditWebhookModal({
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com/webhook"
               required
-              className="bg-gray-700 border-gray-600"
+              className="bg-white border-gray-200"
             />
           </div>
 
@@ -137,23 +137,23 @@ export function EditWebhookModal({
               value={secret}
               onChange={(e) => setSecret(e.target.value)}
               placeholder="Laisser vide pour ne pas modifier"
-              className="bg-gray-700 border-gray-600"
+              className="bg-white border-gray-200"
             />
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-600">
               Laissez vide pour conserver le secret actuel
             </p>
           </div>
 
           <div className="space-y-2">
             <Label>Événements à écouter</Label>
-            <div className="grid grid-cols-2 gap-3 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+            <div className="grid grid-cols-2 gap-3 p-4 bg-white/50 rounded-lg border border-gray-200">
               {WEBHOOK_EVENTS.map((event) => (
                 <div key={event.value} className="flex items-center space-x-2">
                   <Checkbox
                     id={event.value}
                     checked={selectedEvents.includes(event.value)}
                     onCheckedChange={() => toggleEvent(event.value)}
-                    className="border-gray-500"
+                    className="border-gray-300"
                   />
                   <Label
                     htmlFor={event.value}
@@ -176,7 +176,7 @@ export function EditWebhookModal({
               id="isActive"
               checked={isActive}
               onCheckedChange={(checked) => setIsActive(checked === true)}
-              className="border-gray-500"
+              className="border-gray-300"
             />
             <Label htmlFor="isActive" className="cursor-pointer">
               Webhook actif

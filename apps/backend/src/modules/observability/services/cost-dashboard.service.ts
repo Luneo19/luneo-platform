@@ -190,14 +190,13 @@ export class CostDashboardService {
   }
 
   /**
-   * Récupère les trends de coûts
+   * Récupère les trends de coûts (agrégation par jour / semaine / mois via AICost)
    */
   private async getCostTrends(
     start: Date,
     end: Date,
     period: 'day' | 'week' | 'month',
   ): Promise<Array<{ date: string; costCents: number }>> {
-    // TODO: Agréger par jour/semaine/mois
     const costs = await this.prisma.aICost.findMany({
       where: {
         createdAt: {
@@ -214,9 +213,7 @@ export class CostDashboardService {
       },
     });
 
-    // Grouper par période
     const trends: Record<string, number> = {};
-
     for (const cost of costs) {
       const dateKey = this.getDateKey(cost.createdAt, period);
       trends[dateKey] = (trends[dateKey] || 0) + cost.costCents;

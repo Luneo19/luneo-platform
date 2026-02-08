@@ -60,7 +60,7 @@ function Textures3DPageContent() {
 formData.append('texture', file);
 formData.append('type', 'albedo');
 
-const response = await fetch('/api/3d/textures', {
+const response = await fetch('/api/v1/3d/textures', {
   method: 'POST',
   headers: { 'Authorization': 'Bearer TOKEN' },
   body: formData

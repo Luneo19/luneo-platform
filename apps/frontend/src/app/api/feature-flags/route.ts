@@ -39,7 +39,7 @@ const DEFAULT_FLAGS: Record<string, boolean> = {
 
 export async function GET() {
   // En production, vous pourriez récupérer les flags depuis:
-  // - Une base de données (Supabase)
+  // - Une base de données (PostgreSQL via backend)
   // - Un service externe (LaunchDarkly, Unleash)
   // - Des variables d'environnement
   

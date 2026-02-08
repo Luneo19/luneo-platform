@@ -10,7 +10,10 @@ type DesignListItem = DesignSummary;
 export function useDesigns(params?: { page?: number; limit?: number; status?: string }) {
   return useQuery<DesignListItem[]>({
     queryKey: ['designs', params],
-    queryFn: () => endpoints.designs.list(params),
+    queryFn: async () => {
+      const res = await endpoints.designs.list(params);
+      return Array.isArray(res) ? res : (res as { designs?: DesignSummary[] })?.designs ?? [];
+    },
     staleTime: 1 * 60 * 1000, // 1 minute (designs update frequently)
   });
 }

@@ -10,7 +10,7 @@
  */
 
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TeamPageClient } from './TeamPageClient';
 import { TeamSkeleton } from './components/TeamSkeleton';
@@ -24,12 +24,10 @@ export const metadata = {
  * Server Component - Vérifie l'authentification
  */
 export default async function TeamPage() {
-  const supabase = await createClient();
-
   // Vérifier l'authentification
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const user = await getServerUser();
 
-  if (authError || !user) {
+  if (!user) {
     return (
       <ErrorBoundary level="page" componentName="TeamPage">
         <div className="p-6">

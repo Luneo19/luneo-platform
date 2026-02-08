@@ -10,6 +10,7 @@
 import { logger } from '@/lib/logger';
 import { cacheService } from '@/lib/cache/CacheService';
 import { analyticsService } from './AnalyticsService';
+import { api } from '@/lib/api/client';
 
 // ========================================
 // TYPES
@@ -233,7 +234,7 @@ export class ReportService {
   }
 
   /**
-   * Upload un fichier vers le stockage (S3/Cloudinary/Supabase)
+   * Upload un fichier vers le stockage (S3/Cloudinary)
    */
   private async uploadToStorage(
     reportId: string,
@@ -253,22 +254,14 @@ export class ReportService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const uploadResponse = await fetch('/api/reports/upload', {
-        method: 'POST',
-        body: formData,
+      const uploadData = await api.post<{ url?: string }>('/api/v1/reports/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        throw new Error(`Upload failed: ${uploadResponse.status} ${errorText}`);
-      }
-
-      const uploadData = await uploadResponse.json();
-      
-      if (!uploadData.url) {
+      if (!uploadData?.url) {
         throw new Error('No URL returned from upload');
       }
-
+      
       logger.info('Report uploaded to storage', {
         reportId,
         url: uploadData.url,

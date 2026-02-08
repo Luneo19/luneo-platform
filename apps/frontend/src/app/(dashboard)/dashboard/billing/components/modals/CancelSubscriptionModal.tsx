@@ -36,7 +36,7 @@ export function CancelSubscriptionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle className="text-red-400">Annuler l'abonnement</DialogTitle>
           <DialogDescription>
@@ -55,7 +55,7 @@ export function CancelSubscriptionModal({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Garder l'abonnement
           </Button>
           <Button variant="destructive" onClick={handleCancel} disabled={isLoading}>

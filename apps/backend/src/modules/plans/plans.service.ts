@@ -1,51 +1,37 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { SubscriptionPlan } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import {
+  PLAN_CONFIGS,
+  ADDON_BONUSES,
+  normalizePlanTier,
+  type FeatureLimits,
+  type ActiveAddon,
+  type PlanInfo as PlanInfoBase,
+  PlanTier,
+} from '@/libs/plans';
 
 /**
- * Types de plans disponibles
- * Synchronisé avec l'enum SubscriptionPlan dans Prisma
+ * Re-export PlanTier as PlanType for backward compatibility.
+ * New code should import PlanTier from '@/libs/plans' directly.
  */
-export enum PlanType {
-  FREE = 'free',
-  STARTER = 'starter',
-  PROFESSIONAL = 'professional', 
-  BUSINESS = 'business',
-  ENTERPRISE = 'enterprise'
-}
+export const PlanType = PlanTier;
+export type PlanType = PlanTier;
 
 /**
- * Types d'add-ons disponibles
+ * Re-export FeatureLimits as PlanLimits for backward compatibility.
  */
-export interface ActiveAddon {
-  type: string;       // ex: 'extra_designs', 'extra_storage', etc.
-  quantity: number;    // nombre d'unités achetées
-  stripePriceId?: string;
-}
+export type PlanLimits = FeatureLimits;
 
 /**
- * Bonus par add-on (ce que chaque unité ajoute aux limites)
+ * Re-export ActiveAddon for backward compatibility.
  */
-const ADDON_BONUSES: Record<string, Partial<PlanLimits>> = {
-  extra_designs:      { designsPerMonth: 100 },     // +100 designs par unité
-  extra_storage:      { storageGB: 10 },             // +10 GB par unité
-  extra_team_members: { teamMembers: 5 },            // +5 membres par unité
-  extra_api_calls:    {},                             // géré par usage metering
-  extra_renders_3d:   {},                             // géré par usage metering
-};
+export type { ActiveAddon };
 
-export interface PlanLimits {
-  designsPerMonth: number;
-  teamMembers: number;
-  storageGB: number;
-  apiAccess: boolean;
-  advancedAnalytics: boolean;
-  prioritySupport: boolean;
-  customExport: boolean;
-  whiteLabel: boolean;
-  arEnabled: boolean;
-  maxProducts: number;
-}
-
+/**
+ * PlanInfo enrichi avec les champs de pricing pour l'UI.
+ */
 export interface PlanInfo {
   name: string;
   price: number;
@@ -68,116 +54,33 @@ export class PlansService {
   private readonly logger = new Logger(PlansService.name);
   
   /**
-   * Limites par plan d'abonnement
+   * Limites par plan d'abonnement.
+   * Source: @/libs/plans/plan-config.ts (SINGLE SOURCE OF TRUTH)
    */
-  private readonly planLimits: Record<PlanType, PlanLimits> = {
-    [PlanType.FREE]: {
-      designsPerMonth: 5,
-      teamMembers: 1,
-      storageGB: 0.5,
-      apiAccess: false,
-      advancedAnalytics: false,
-      prioritySupport: false,
-      customExport: false,
-      whiteLabel: false,
-      arEnabled: false,
-      maxProducts: 2,
-    },
-    [PlanType.STARTER]: {
-      designsPerMonth: 50,
-      teamMembers: 3,
-      storageGB: 5,
-      apiAccess: false,
-      advancedAnalytics: false,
-      prioritySupport: false,
-      customExport: false,
-      whiteLabel: false,
-      arEnabled: false,
-      maxProducts: 10,
-    },
-    [PlanType.PROFESSIONAL]: {
-      designsPerMonth: 200,
-      teamMembers: 10,
-      storageGB: 25,
-      apiAccess: true,
-      advancedAnalytics: false,
-      prioritySupport: true,
-      customExport: false,
-      whiteLabel: true,
-      arEnabled: true,
-      maxProducts: 50,
-    },
-    [PlanType.BUSINESS]: {
-      designsPerMonth: 1000,
-      teamMembers: 50,
-      storageGB: 100,
-      apiAccess: true,
-      advancedAnalytics: true,
-      prioritySupport: true,
-      customExport: true,
-      whiteLabel: true,
-      arEnabled: true,
-      maxProducts: 500,
-    },
-    [PlanType.ENTERPRISE]: {
-      designsPerMonth: -1, // Illimité
-      teamMembers: -1, // Illimité
-      storageGB: -1, // Illimité
-      apiAccess: true,
-      advancedAnalytics: true,
-      prioritySupport: true,
-      customExport: true,
-      whiteLabel: true,
-      arEnabled: true,
-      maxProducts: -1, // Illimité
-    },
-  };
+  private readonly planLimits: Record<PlanTier, PlanLimits> = Object.fromEntries(
+    Object.values(PlanTier).map((tier) => [tier, PLAN_CONFIGS[tier].limits]),
+  ) as Record<PlanTier, PlanLimits>;
 
   /**
-   * Informations détaillées des plans (pour l'UI)
+   * Informations détaillées des plans (pour l'UI).
+   * Source: @/libs/plans/plan-config.ts (SINGLE SOURCE OF TRUTH)
    */
-  private readonly planInfo: Record<PlanType, PlanInfo> = {
-    [PlanType.FREE]: {
-      name: 'Free',
-      price: 0,
-      yearlyPrice: 0,
-      description: 'Découvrez Luneo gratuitement',
-      commissionPercent: 15,
-      features: ['5 designs/mois', '2 produits', 'Support email'],
-    },
-    [PlanType.STARTER]: {
-      name: 'Starter',
-      price: 19,
-      yearlyPrice: 190,
-      description: 'Parfait pour démarrer',
-      commissionPercent: 12,
-      features: ['50 designs/mois', '10 produits', '3 membres', 'Support prioritaire'],
-    },
-    [PlanType.PROFESSIONAL]: {
-      name: 'Professional',
-      price: 49,
-      yearlyPrice: 490,
-      description: 'Pour les créateurs professionnels',
-      commissionPercent: 10,
-      features: ['200 designs/mois', '50 produits', '10 membres', 'API access', 'AR enabled', 'White label'],
-    },
-    [PlanType.BUSINESS]: {
-      name: 'Business',
-      price: 99,
-      yearlyPrice: 990,
-      description: 'Pour les équipes en croissance',
-      commissionPercent: 7,
-      features: ['1000 designs/mois', '500 produits', '50 membres', 'Analytics avancés', 'Export personnalisé'],
-    },
-    [PlanType.ENTERPRISE]: {
-      name: 'Enterprise',
-      price: 299,
-      yearlyPrice: 2990,
-      description: 'Solutions sur mesure',
-      commissionPercent: 5,
-      features: ['Illimité', 'Support dédié', 'SLA garanti', 'Formation', 'Intégration personnalisée'],
-    },
-  };
+  private readonly planInfo: Record<PlanTier, PlanInfo> = Object.fromEntries(
+    Object.values(PlanTier).map((tier) => {
+      const config = PLAN_CONFIGS[tier];
+      return [
+        tier,
+        {
+          name: config.info.name,
+          price: config.pricing.monthlyPrice,
+          yearlyPrice: config.pricing.yearlyPrice,
+          description: config.info.description,
+          commissionPercent: config.pricing.commissionPercent,
+          features: config.info.features,
+        },
+      ];
+    }),
+  ) as Record<PlanTier, PlanInfo>;
 
   constructor(private prisma: PrismaService) {}
 
@@ -256,8 +159,8 @@ export class PlansService {
         return [];
       }
 
-      const limitsData = brand.limits as Record<string, any>;
-      return Array.isArray(limitsData.activeAddons) ? limitsData.activeAddons : [];
+      const limitsData = brand.limits as Record<string, unknown> | null;
+      return Array.isArray(limitsData?.activeAddons) ? (limitsData.activeAddons as ActiveAddon[]) : [];
     } catch (error) {
       this.logger.error(`Error getting active addons for brand ${brandId}:`, error);
       return [];
@@ -291,10 +194,10 @@ export class PlansService {
           const bonus = ADDON_BONUSES[addon.type];
           if (bonus) {
             for (const [key, value] of Object.entries(bonus)) {
-              if (typeof value === 'number' && typeof (baseLimits as any)[key] === 'number') {
+              if (typeof value === 'number' && typeof (baseLimits as Record<string, number>)[key] === 'number') {
                 // Ne pas ajouter de bonus si la limite est déjà illimitée (-1)
-                if ((baseLimits as any)[key] !== -1) {
-                  (baseLimits as any)[key] += value * (addon.quantity || 1);
+                if ((baseLimits as Record<string, number>)[key] !== -1) {
+                  (baseLimits as Record<string, number>)[key] += value * (addon.quantity || 1);
                 }
               }
             }
@@ -436,7 +339,7 @@ export class PlansService {
         where: { id: user.brandId },
         data: {
           plan: newPlan,
-          subscriptionPlan: subscriptionPlanMapping[newPlan] as any,
+          subscriptionPlan: subscriptionPlanMapping[newPlan] as SubscriptionPlan,
           subscriptionStatus: 'ACTIVE',
         },
       });
@@ -526,7 +429,7 @@ export class PlansService {
    */
   async syncAddonsFromSubscription(
     brandId: string,
-    subscriptionItems: Array<{ price: { id: string; product?: any }; quantity: number }>,
+    subscriptionItems: Array<{ price: { id: string; product?: { id: string } }; quantity: number }>,
     addonPriceIds: Record<string, string>,
   ): Promise<void> {
     try {
@@ -549,7 +452,7 @@ export class PlansService {
         select: { limits: true },
       });
 
-      const currentLimits = (brand?.limits as Record<string, any>) || {};
+      const currentLimits = (brand?.limits as Record<string, unknown>) || {};
 
       await this.prisma.brand.update({
         where: { id: brandId },
@@ -558,7 +461,7 @@ export class PlansService {
             ...currentLimits,
             activeAddons: activeAddons.map(a => ({ ...a })),
             addonsUpdatedAt: new Date().toISOString(),
-          } as any,
+          } as Prisma.InputJsonValue,
         },
       });
 

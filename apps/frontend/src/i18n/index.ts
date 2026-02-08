@@ -1,10 +1,11 @@
 /**
  * i18n Module
  * I-001 à I-015: Internationalisation complète
+ * Uses centralized locale files from ./locales (fr, en) and JSON fallbacks for de, es, it.
  */
 
-import en from './locales/en.json';
-import fr from './locales/fr.json';
+import { en } from './locales/en';
+import { fr } from './locales/fr';
 import de from './locales/de.json';
 import es from './locales/es.json';
 import it from './locales/it.json';
@@ -31,7 +32,8 @@ export const LOCALE_FLAGS: Record<Locale, string> = {
   it: '🇮🇹',
 };
 
-type TranslationDict = typeof en;
+/** Shape of centralized translations (fr/en); de/es/it JSON cast to this for fallback. */
+type TranslationDict = typeof fr;
 
 const translations: Record<string, TranslationDict> = {
   en,

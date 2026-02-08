@@ -8,8 +8,6 @@ import {
   Request,
   Get,
   Res,
-  Response,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { Response as ExpressResponse } from 'express';
 import {
@@ -28,12 +26,17 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Setup2FADto } from './dto/setup-2fa.dto';
 import { Verify2FADto } from './dto/verify-2fa.dto';
 import { Login2FADto } from './dto/login-2fa.dto';
+import { OnboardingDto } from './dto/onboarding.dto';
+import { CheckPermissionDto } from './dto/check-permission.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { AuthCookiesHelper } from './auth-cookies.helper';
 import { AuthGuard } from '@nestjs/passport';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
+import { RATE_LIMITS } from '@/common/constants/app.constants';
+import { RBACService } from '@/modules/security/services/rbac.service';
+import { Permission } from '@/modules/security/interfaces/rbac.interface';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -41,10 +44,18 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly rbacService: RBACService,
   ) {}
 
+  /** Frontend base URL for OAuth/callback redirects (config or env, fallback localhost). */
+  private getFrontendUrl(): string {
+    return this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+  }
+
   @Post('signup')
+  /** @Public: user registration — no auth yet */
   @Public()
+  @Throttle({ default: RATE_LIMITS.AUTH.SIGNUP })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
     summary: 'Inscription d\'un nouvel utilisateur',
@@ -124,19 +135,16 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data (tokens are in httpOnly cookies)
-    // Tokens removed from response for security (httpOnly cookies only)
-    // Using res.json() because passthrough is false
+    // Return user data only; tokens are set in httpOnly cookies (not exposed in body for security)
     return res.status(HttpStatus.CREATED).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     });
   }
 
   @Post('login')
+  /** @Public: login — returns tokens/cookies */
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute max
+  @Throttle({ default: RATE_LIMITS.AUTH.LOGIN })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Connexion utilisateur',
@@ -208,15 +216,12 @@ export class AuthController {
         this.configService,
       );
       
-      // Return user data with tokens (using res.json because passthrough is false)
+      // Return user data only; tokens are in httpOnly cookies
       return res.status(HttpStatus.OK).json({
         user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
       });
     }
     
-    // Fallback return (shouldn't happen but needed for TypeScript)
     return res.status(HttpStatus.OK).json({
       user: result.user,
     });
@@ -224,7 +229,7 @@ export class AuthController {
 
   @Post('login/2fa')
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 tentatives par minute
+  @Throttle({ default: RATE_LIMITS.AUTH.REFRESH })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Connexion avec code 2FA' })
   async loginWith2FA(
@@ -242,10 +247,9 @@ export class AuthController {
       this.configService,
     );
     
+    // Tokens are in httpOnly cookies
     return res.status(HttpStatus.OK).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     });
   }
 
@@ -349,11 +353,9 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data with tokens (using res.json because passthrough is false)
+    // Tokens are in httpOnly cookies
     return res.status(HttpStatus.OK).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     });
   }
 
@@ -400,39 +402,82 @@ export class AuthController {
     return res.status(HttpStatus.OK).json(result);
   }
 
+  @Post('onboarding')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete onboarding step (company, industry, profile)' })
+  @ApiResponse({ status: 200, description: 'Onboarding step saved' })
+  @ApiResponse({ status: 400, description: 'Invalid step or missing data' })
+  async onboarding(@Request() req: any, @Body() dto: OnboardingDto) {
+    return this.authService.completeOnboardingStep(req.user.id, dto.step, dto.data);
+  }
+
+  @Get('onboarding')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get onboarding status for current user' })
+  @ApiResponse({ status: 200, description: 'Onboarding status and current step' })
+  async getOnboarding(@Request() req: any) {
+    return this.authService.getOnboardingStatus(req.user.id);
+  }
+
+  @Post('check-permission')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Check if current user has a permission' })
+  @ApiResponse({ status: 200, description: 'Returns { allowed: boolean }' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async checkPermission(
+    @Request() req: { user: { id: string } },
+    @Body() dto: CheckPermissionDto,
+  ) {
+    const allowed = await this.rbacService.userHasPermission(req.user.id, dto.permission as Permission);
+    return { allowed };
+  }
+
+  @Get('permissions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user permissions' })
+  @ApiResponse({ status: 200, description: 'Returns { permissions: string[] }' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getPermissions(@Request() req: { user: { id: string } }) {
+    const permissions = await this.rbacService.getUserPermissions(req.user.id);
+    return { permissions: permissions as string[] };
+  }
+
   @Get('me')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtenir les informations de l\'utilisateur connecté' })
   @ApiResponse({
     status: 200,
-    description: 'Informations utilisateur',
+    description: 'Informations utilisateur avec organization, industry et onboardingCompleted',
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        data: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            email: { type: 'string' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            role: { type: 'string' },
-            brandId: { type: 'string' },
-            brand: { type: 'object' },
-          },
-        },
-        timestamp: { type: 'string' },
+        id: { type: 'string' },
+        email: { type: 'string' },
+        firstName: { type: 'string' },
+        lastName: { type: 'string' },
+        role: { type: 'string' },
+        brandId: { type: 'string' },
+        brand: { type: 'object' },
+        organization: { type: 'object' },
+        industry: { type: 'object' },
+        onboardingCompleted: { type: 'boolean' },
       },
     },
   })
   @ApiResponse({ status: 401, description: 'Non autorisé' })
-  async getProfile(@Request() req) {
-    return req.user;
+  async getProfile(@Request() req: { user: { id: string } }) {
+    return this.authService.getMe(req.user.id);
   }
 
   @Post('forgot-password')
   @Public()
+  @Throttle({ default: RATE_LIMITS.AUTH.FORGOT_PASSWORD })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Demander la réinitialisation du mot de passe' })
   @ApiResponse({
@@ -448,13 +493,12 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Données invalides' })
   @ApiResponse({ status: 429, description: 'Too many requests' })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    // ✅ Note: Rate limiting should be applied at middleware level
-    // Rate limit: 3 requests per hour per IP/email
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('reset-password')
   @Public()
+  @Throttle({ default: RATE_LIMITS.AUTH.RESET_PASSWORD })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Réinitialiser le mot de passe avec un token' })
   @ApiResponse({
@@ -470,9 +514,6 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Token invalide ou expiré / Password does not meet requirements' })
   @ApiResponse({ status: 429, description: 'Too many requests' })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    // ✅ Note: Rate limiting should be applied at middleware level
-    // Rate limit: 5 requests per hour per IP/token
-    // ✅ Password strength validation included in service
     return this.authService.resetPassword(resetPasswordDto);
   }
 
@@ -519,8 +560,7 @@ export class AuthController {
     const user = req.user;
     
     if (!user) {
-      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+      return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed`);
     }
 
     // Generate tokens
@@ -538,8 +578,7 @@ export class AuthController {
     );
 
     // Redirect to frontend callback
-    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   @Get('github')
@@ -552,6 +591,7 @@ export class AuthController {
   }
 
   @Get('github/callback')
+  /** @Public: OAuth callback — receives redirect from GitHub */
   @Public()
   @UseGuards(AuthGuard('github'))
   @ApiOperation({ summary: 'GitHub OAuth callback' })
@@ -560,8 +600,7 @@ export class AuthController {
     const user = req.user;
     
     if (!user) {
-      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+      return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed`);
     }
 
     // Generate tokens
@@ -579,8 +618,7 @@ export class AuthController {
     );
 
     // Redirect to frontend callback
-    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   // ========================================
@@ -588,6 +626,7 @@ export class AuthController {
   // ========================================
 
   @Get('saml')
+  /** @Public: SAML SSO entry — redirects to IdP */
   @Public()
   @UseGuards(AuthGuard('saml'))
   @ApiOperation({ summary: 'Initiate SAML SSO login' })
@@ -598,6 +637,7 @@ export class AuthController {
 
   @Post('saml/callback')
   @Get('saml/callback')
+  /** @Public: SAML callback — receives POST/GET from IdP */
   @Public()
   @UseGuards(AuthGuard('saml'))
   @ApiOperation({ summary: 'SAML SSO callback (supports both POST and GET)' })
@@ -606,8 +646,7 @@ export class AuthController {
     const user = req.user;
     
     if (!user) {
-      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=saml_failed`);
+      return res.redirect(`${this.getFrontendUrl()}/login?error=saml_failed`);
     }
 
     // Generate tokens
@@ -625,11 +664,11 @@ export class AuthController {
     );
 
     // Redirect to frontend callback
-    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   @Get('oidc')
+  /** @Public: OIDC SSO entry — redirects to IdP */
   @Public()
   @UseGuards(AuthGuard('oidc'))
   @ApiOperation({ summary: 'Initiate OIDC SSO login' })
@@ -639,6 +678,7 @@ export class AuthController {
   }
 
   @Get('oidc/callback')
+  /** @Public: OIDC callback — receives redirect from IdP */
   @Public()
   @UseGuards(AuthGuard('oidc'))
   @ApiOperation({ summary: 'OIDC SSO callback' })
@@ -647,8 +687,7 @@ export class AuthController {
     const user = req.user;
     
     if (!user) {
-      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=oidc_failed`);
+      return res.redirect(`${this.getFrontendUrl()}/login?error=oidc_failed`);
     }
 
     // Generate tokens
@@ -666,7 +705,6 @@ export class AuthController {
     );
 
     // Redirect to frontend callback
-    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 }

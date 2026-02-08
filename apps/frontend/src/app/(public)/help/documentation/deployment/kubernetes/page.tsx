@@ -28,11 +28,11 @@ spec:
         ports:
         - containerPort: 3000
         env:
-        - name: NEXT_PUBLIC_SUPABASE_URL
+        - name: NEXT_PUBLIC_API_URL
           valueFrom:
             secretKeyRef:
               name: luneo-secrets
-              key: supabase-url`, []);
+              key: api-url`, []);
 
   return (
     <DocPageTemplate

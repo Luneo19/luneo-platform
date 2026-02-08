@@ -11,16 +11,16 @@ import {
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
 import { CurrentUser } from '@/common/types/user.types';
-import { ArtisanOnboardingService } from './services/artisan-onboarding.service';
+import { ArtisanOnboardingService, type ArtisanOnboardingRequest } from './services/artisan-onboarding.service';
 import { OrderRoutingService } from './services/order-routing.service';
 import { StripeConnectService } from './services/stripe-connect.service';
 import { SLAEnforcementService } from './services/sla-enforcement.service';
-import { QCSystemService } from './services/qc-system.service';
+import { QCSystemService, type QCReport } from './services/qc-system.service';
 import { CreatorProfileService } from './services/creator-profile.service'; // ✅ PHASE 7
-import { MarketplaceTemplateService } from './services/marketplace-template.service'; // ✅ PHASE 7
+import { MarketplaceTemplateService, type SearchTemplatesOptions } from './services/marketplace-template.service'; // ✅ PHASE 7
 import { RevenueSharingService } from './services/revenue-sharing.service'; // ✅ PHASE 7
 import { EngagementService } from './services/engagement.service'; // ✅ PHASE 7
 import { CreateArtisanDto } from './dto/create-artisan.dto';
@@ -38,6 +38,8 @@ import { CreateMarketplaceTemplateDto } from './dto/create-marketplace-template.
 import { SearchTemplatesDto } from './dto/search-templates.dto';
 import { PurchaseTemplateDto } from './dto/purchase-template.dto';
 import { CreateCreatorPayoutDto } from './dto/create-creator-payout.dto';
+import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
+import { ProcessCreatorPayoutDto } from './dto/process-creator-payout.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 
 @ApiTags('Marketplace')
@@ -64,8 +66,17 @@ export class MarketplaceController {
   @Post('artisans')
   @ApiOperation({ summary: 'Crée un artisan et démarre l\'onboarding' })
   @ApiResponse({ status: 201, description: 'Artisan créé' })
-  async createArtisan(@Body() dto: CreateArtisanDto) {
-    return this.artisanOnboarding.createArtisan(dto as any);
+  async createArtisan(
+    @Request() req: ExpressRequest & { user: { id: string } },
+    @Body() dto: CreateArtisanDto,
+  ) {
+    const request: ArtisanOnboardingRequest = {
+      ...dto,
+      userId: req.user.id,
+      supportedMaterials: dto.supportedMaterials,
+      supportedTechniques: dto.supportedTechniques,
+    };
+    return this.artisanOnboarding.createArtisan(request);
   }
 
   @Post('artisans/:artisanId/kyc')
@@ -232,7 +243,7 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Templates récupérés' })
   async searchTemplates(@Query() dto: SearchTemplatesDto) {
     // Cast DTO to SearchTemplatesOptions for proper type alignment
-    return this.marketplaceTemplate.searchTemplates(dto as any);
+    return this.marketplaceTemplate.searchTemplates(dto as SearchTemplatesOptions);
   }
 
   @Get('templates/:slug')
@@ -270,10 +281,16 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Achat confirmé' })
   async confirmPurchase(
     @Param('purchaseId') purchaseId: string,
-    @Body() body: { stripePaymentIntentId: string },
+    @Body() body: ConfirmPurchaseDto,
   ) {
     await this.revenueSharing.confirmPurchase(purchaseId, body.stripePaymentIntentId);
-    return { success: true };
+    const confirmedAt = new Date();
+    return {
+      success: true,
+      purchaseId,
+      status: 'CONFIRMED',
+      confirmedAt: confirmedAt.toISOString(),
+    };
   }
 
   @Post('creators/:creatorId/payouts')
@@ -292,7 +309,7 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Payout traité' })
   async processCreatorPayout(
     @Param('payoutId') payoutId: string,
-    @Body() body: { stripeConnectAccountId: string },
+    @Body() body: ProcessCreatorPayoutDto,
   ) {
     return this.revenueSharing.processPayout(payoutId, body.stripeConnectAccountId);
   }
@@ -343,7 +360,20 @@ export class MarketplaceController {
   @ApiOperation({ summary: 'Crée un rapport QC' })
   @ApiResponse({ status: 201, description: 'Rapport QC créé' })
   async createQCReport(@Body() dto: CreateQCReportDto) {
-    return this.qcSystem.createQCReport(dto as any);
+    const report: QCReport = {
+      workOrderId: dto.workOrderId,
+      overallScore: (dto.qualityScore ?? 0) / 10,
+      passed: dto.status === 'passed',
+      issues: dto.issues
+        ? Object.entries(dto.issues).map(([type, desc]) => ({
+            type: type as QCReport['issues'][0]['type'],
+            severity: 'minor' as const,
+            description: typeof desc === 'string' ? desc : JSON.stringify(desc),
+          }))
+        : [],
+      recommendations: dto.notes ? [dto.notes] : [],
+    };
+    return this.qcSystem.createQCReport(report);
   }
 
   @Get('artisans/:artisanId/qc-stats')

@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
-import { db as prismaDb } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 
 const GenerateImageSchema = z.object({
   prompt: z.string().min(1).max(1000),
@@ -66,32 +66,23 @@ export const aiRouter = router({
           });
         }
 
-        // Créer un design si productId fourni
         let designId: string | undefined;
         if (input.productId) {
-          const product = await prismaDb.product.findUnique({
-            where: { id: input.productId },
-            select: { brandId: true },
-          });
-
+          const product = await endpoints.products.get(input.productId).catch(() => null) as { brandId?: string } | null;
           if (product && product.brandId === user.brandId) {
-            const design = await prismaDb.design.create({
-              data: {
-                name: `AI Generated: ${input.prompt.substring(0, 50)}`,
-                userId: user.id,
-                productId: input.productId,
-                brandId: product.brandId,
-                previewUrl: imageUrl,
-                renderUrl: imageUrl,
-                metadata: {
-                  aiGenerated: true,
-                  prompt: input.prompt,
-                  style: input.style,
-                  generatedAt: new Date().toISOString(),
-                } as any,
+            const design = await endpoints.designs.create({
+              name: `AI Generated: ${input.prompt.substring(0, 50)}`,
+              productId: input.productId,
+              previewUrl: imageUrl,
+              renderUrl: imageUrl,
+              metadata: {
+                aiGenerated: true,
+                prompt: input.prompt,
+                style: input.style,
+                generatedAt: new Date().toISOString(),
               },
-            });
-            designId = design.id;
+            } as Record<string, unknown>);
+            designId = (design as { id?: string }).id;
           }
         }
 
@@ -108,7 +99,7 @@ export const aiRouter = router({
           style: input.style,
           createdAt: new Date().toISOString(),
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
         logger.error('Error generating AI image', { error, input, userId: user.id });
         throw new TRPCError({
@@ -133,56 +124,55 @@ export const aiRouter = router({
       const { user } = ctx;
 
       try {
-        const skip = (input.page - 1) * input.limit;
-        const where: any = {
-          userId: user.id,
-          metadata: {
-            path: ['aiGenerated'],
-            equals: true,
-          },
-        };
+        const result = await endpoints.designs.list({
+          page: input.page,
+          limit: input.limit,
+          search: undefined,
+        });
 
-        if (input.productId) {
-          where.productId = input.productId;
+        interface DesignListItem {
+          id: string;
+          name?: string;
+          productId?: string;
+          previewUrl?: string;
+          renderUrl?: string;
+          createdAt?: Date | string;
+          metadata?: Record<string, unknown>;
         }
+        interface DesignsListResponse {
+          designs?: DesignListItem[];
+          data?: DesignListItem[];
+          pagination?: { total: number; hasNext?: boolean };
+        }
+        const data = result as DesignsListResponse;
+        const list = data.designs ?? data.data ?? [];
+        const designs = Array.isArray(list) ? list : [];
+        const total = data.pagination?.total ?? designs.length;
+        const skip = (input.page - 1) * input.limit;
 
-        const [designs, total] = await Promise.all([
-          prismaDb.design.findMany({
-            where,
-            skip,
-            take: input.limit,
-            orderBy: { createdAt: 'desc' },
-            select: {
-              id: true,
-              name: true,
-              previewUrl: true,
-              renderUrl: true,
-              createdAt: true,
-              metadata: true,
-            },
-          }),
-          prismaDb.design.count({ where }),
-        ]);
+        const filtered = input.productId
+          ? designs.filter((d) => d.productId === input.productId)
+          : designs;
 
         return {
-          designs: designs.map((d: any) => ({
+          designs: filtered.map((d) => ({
             id: d.id,
             name: d.name,
             url: d.previewUrl || d.renderUrl || `https://picsum.photos/seed/${d.id}/800/600`,
-            prompt: (d.metadata as any)?.prompt || '',
-            style: (d.metadata as any)?.style || 'photorealistic',
-            createdAt: d.createdAt.toISOString(),
+            prompt: (d.metadata && typeof d.metadata === 'object' && 'prompt' in d.metadata ? String(d.metadata.prompt) : '') || '',
+            style: (d.metadata && typeof d.metadata === 'object' && 'style' in d.metadata ? String(d.metadata.style) : 'photorealistic') || 'photorealistic',
+            createdAt: d.createdAt ? (d.createdAt instanceof Date ? d.createdAt.toISOString() : String(d.createdAt)) : '',
           })),
           pagination: {
             page: input.page,
             limit: input.limit,
-            total,
-            totalPages: Math.ceil(total / input.limit),
+            total: input.productId ? filtered.length : total,
+            totalPages: Math.ceil((input.productId ? filtered.length : total) / input.limit),
             hasNext: skip + input.limit < total,
             hasPrev: input.page > 1,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error listing AI generated designs', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',

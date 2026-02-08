@@ -16,9 +16,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { WooCommerceWebhookService } from '../services/woocommerce-webhook.service';
+import { WooCommerceWebhookPayloadDto } from '../dto/woocommerce-webhook.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import * as crypto from 'crypto';
 
+/** @Public: WooCommerce webhooks; verified by signature in handler */
 @ApiTags('ecommerce')
 @Controller('ecommerce/woocommerce/webhook')
 @Public()
@@ -62,7 +64,7 @@ export class WooCommerceWebhookController {
   @ApiOperation({ summary: 'Handle WooCommerce webhook events' })
   @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
   async handleWebhook(
-    @Body() payload: any,
+    @Body() payload: WooCommerceWebhookPayloadDto,
     @Headers('x-wc-webhook-signature') signature: string | undefined,
     @Headers('x-wc-webhook-topic') topic: string | undefined,
     @Headers('x-wc-webhook-source') source: string | undefined,

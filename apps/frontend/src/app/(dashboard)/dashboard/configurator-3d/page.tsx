@@ -10,7 +10,7 @@
  */
 
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Configurator3DPageClient } from './Configurator3DPageClient';
 import { Loader2 } from 'lucide-react';
@@ -35,12 +35,10 @@ function Configurator3DSkeleton() {
  * Server Component - Vérifie l'authentification
  */
 export default async function Configurator3DPage() {
-  const supabase = await createClient();
-
   // Vérifier l'authentification
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const user = await getServerUser();
 
-  if (authError || !user) {
+  if (!user) {
     return (
       <ErrorBoundary level="page" componentName="Configurator3DPage">
         <div className="p-6">

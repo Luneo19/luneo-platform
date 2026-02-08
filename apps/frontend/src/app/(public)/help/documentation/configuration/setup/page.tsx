@@ -1,6 +1,4 @@
-'use client';
-
-import React, { memo } from 'react';
+import React from 'react';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
 import { Card } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
@@ -73,12 +71,10 @@ function ConfigSetupPageContent() {
   );
 }
 
-const ConfigSetupPageMemo = memo(ConfigSetupPageContent);
-
 export default function ConfigSetupPage() {
   return (
     <ErrorBoundary componentName="ConfigSetupPage">
-      <ConfigSetupPageMemo />
+      <ConfigSetupPageContent />
     </ErrorBoundary>
   );
 }

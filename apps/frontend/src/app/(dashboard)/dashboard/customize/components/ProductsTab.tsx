@@ -74,7 +74,7 @@ export function ProductsTab({
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Chargement des produits...</p>
+          <p className="text-gray-600">Chargement des produits...</p>
         </div>
       </div>
     );
@@ -82,11 +82,11 @@ export function ProductsTab({
 
   if (filteredProducts.length === 0) {
     return (
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-white border-gray-200">
         <CardContent className="flex flex-col items-center justify-center py-16">
-          <Package className="w-16 h-16 text-slate-500 mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">Aucun produit trouvé</h3>
-          <p className="text-slate-400 text-center mb-4">
+          <Package className="w-16 h-16 text-gray-500 mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun produit trouvé</h3>
+          <p className="text-gray-600 text-center mb-4">
             {searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
               ? 'Aucun produit ne correspond à vos critères'
               : 'Créez votre premier produit personnalisable'}
@@ -101,17 +101,17 @@ export function ProductsTab({
       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
           <Input
             type="text"
             placeholder="Rechercher un produit..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 bg-slate-900 border-slate-700 text-white"
+            className="pl-10 bg-white border-gray-200 text-gray-900"
           />
         </div>
         <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
-          <SelectTrigger className="w-full sm:w-[180px] bg-slate-900 border-slate-700 text-white">
+          <SelectTrigger className="w-full sm:w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -123,7 +123,7 @@ export function ProductsTab({
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-          <SelectTrigger className="w-full sm:w-[180px] bg-slate-900 border-slate-700 text-white">
+          <SelectTrigger className="w-full sm:w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -139,7 +139,7 @@ export function ProductsTab({
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="icon"
             onClick={() => setViewMode('grid')}
-            className={viewMode === 'grid' ? 'bg-cyan-600' : 'border-slate-700'}
+            className={viewMode === 'grid' ? 'bg-cyan-600' : 'border-gray-200'}
           >
             <Grid3x3 className="w-4 h-4" />
           </Button>
@@ -147,7 +147,7 @@ export function ProductsTab({
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="icon"
             onClick={() => setViewMode('list')}
-            className={viewMode === 'list' ? 'bg-cyan-600' : 'border-slate-700'}
+            className={viewMode === 'list' ? 'bg-cyan-600' : 'border-gray-200'}
           >
             <List className="w-4 h-4" />
           </Button>
@@ -175,7 +175,7 @@ export function ProductsTab({
         <ProductListView products={filteredProducts} />
       )}
 
-      <div className="text-center text-slate-400 text-sm">
+      <div className="text-center text-gray-600 text-sm">
         {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''} trouvé{filteredProducts.length > 1 ? 's' : ''}
       </div>
     </div>

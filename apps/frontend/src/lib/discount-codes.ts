@@ -7,8 +7,10 @@
  * Pour un SaaS professionnel et scalable
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from './logger';
+
+const API_URL = getBackendUrl();
 
 export type DiscountType = 'percentage' | 'fixed' | 'shipping';
 
@@ -49,156 +51,29 @@ export async function validateDiscountCode(
   itemIds?: string[] // IDs des produits dans la commande
 ): Promise<DiscountValidationResult> {
   try {
-    const supabase = await createClient();
-
-    // Récupérer le code promo
-    const { data: discountCode, error: fetchError } = await supabase
-      .from('discount_codes')
-      .select('*')
-      .eq('code', code.toUpperCase())
-      .eq('is_active', true)
-      .single();
-
-    if (fetchError || !discountCode) {
-      logger.warn('Discount code not found', {
-        code,
-        userId,
-        error: fetchError?.message,
+    const response = await fetch(`${API_URL}/api/v1/discount-codes/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: code.toUpperCase(),
+          userId,
+          subtotal,
+          itemIds,
+        }),
       });
-      return {
-        valid: false,
-        discountAmount: 0,
-        error: 'CODE_NOT_FOUND',
-        reason: 'Code promo introuvable',
-      };
+
+    if (response.ok) {
+      return await response.json();
     }
 
-    // Vérifier la validité temporelle
-    const now = new Date();
-    const validFrom = new Date(discountCode.valid_from);
-    const validUntil = new Date(discountCode.valid_until);
-
-    if (now < validFrom) {
-      return {
-        valid: false,
-        discountAmount: 0,
-        error: 'CODE_NOT_YET_VALID',
-        reason: 'Ce code promo n\'est pas encore valide',
-      };
-    }
-
-    if (now > validUntil) {
-      return {
-        valid: false,
-        discountAmount: 0,
-        error: 'CODE_EXPIRED',
-        reason: 'Ce code promo a expiré',
-      };
-    }
-
-    // Vérifier la limite d'utilisation globale
-    if (discountCode.usage_limit && discountCode.usage_count >= discountCode.usage_limit) {
-      return {
-        valid: false,
-        discountAmount: 0,
-        error: 'CODE_LIMIT_REACHED',
-        reason: 'Ce code promo a atteint sa limite d\'utilisation',
-      };
-    }
-
-    // Vérifier la limite d'utilisation par utilisateur
-    if (discountCode.user_limit) {
-      const { data: userUsage, error: usageError } = await supabase
-        .from('order_discount_codes')
-        .select('id', { count: 'exact' })
-        .eq('discount_code_id', discountCode.id)
-        .eq('user_id', userId);
-
-      if (!usageError && userUsage && userUsage.length >= discountCode.user_limit) {
-        return {
-          valid: false,
-          discountAmount: 0,
-          error: 'USER_LIMIT_REACHED',
-          reason: 'Vous avez déjà utilisé ce code promo le maximum de fois autorisé',
-        };
-      }
-    }
-
-    // Vérifier le montant minimum
-    if (discountCode.min_amount && subtotal < discountCode.min_amount) {
-      return {
-        valid: false,
-        discountAmount: 0,
-        error: 'MIN_AMOUNT_NOT_MET',
-        reason: `Ce code promo nécessite un montant minimum de ${(discountCode.min_amount / 100).toFixed(2)}€`,
-      };
-    }
-
-    // Vérifier si le code s'applique à des produits spécifiques
-    if (discountCode.applies_to && discountCode.applies_to.length > 0 && itemIds) {
-      const hasApplicableProduct = itemIds.some(id => discountCode.applies_to!.includes(id));
-      if (!hasApplicableProduct) {
-        return {
-          valid: false,
-          discountAmount: 0,
-          error: 'CODE_NOT_APPLICABLE',
-          reason: 'Ce code promo ne s\'applique pas aux produits de votre commande',
-        };
-      }
-    }
-
-    // Vérifier si le code exclut certains produits
-    if (discountCode.excluded_products && discountCode.excluded_products.length > 0 && itemIds) {
-      const hasExcludedProduct = itemIds.some(id => discountCode.excluded_products!.includes(id));
-      if (hasExcludedProduct) {
-        return {
-          valid: false,
-          discountAmount: 0,
-          error: 'CODE_EXCLUDED_PRODUCTS',
-          reason: 'Ce code promo ne s\'applique pas à certains produits de votre commande',
-        };
-      }
-    }
-
-    // Calculer le montant de la réduction
-    let discountAmount = 0;
-
-    switch (discountCode.type) {
-      case 'percentage':
-        discountAmount = Math.round((subtotal * discountCode.value) / 100);
-        
-        // Appliquer le maximum de réduction si spécifié
-        if (discountCode.max_discount && discountAmount > discountCode.max_discount) {
-          discountAmount = discountCode.max_discount;
-        }
-        break;
-
-      case 'fixed':
-        discountAmount = discountCode.value;
-        // Ne pas dépasser le montant de la commande
-        if (discountAmount > subtotal) {
-          discountAmount = subtotal;
-        }
-        break;
-
-      case 'shipping':
-        // Pour shipping, on retourne 0 ici car il sera géré séparément
-        discountAmount = 0;
-        break;
-
-      default:
-        return {
-          valid: false,
-          discountAmount: 0,
-          error: 'INVALID_DISCOUNT_TYPE',
-          reason: 'Type de réduction invalide',
-        };
-    }
-
+    const err = await response.json().catch(() => ({}));
     return {
-      valid: true,
-      discountCode: discountCode as DiscountCode,
-      discountAmount,
+      valid: false,
+      discountAmount: 0,
+      error: (err as { error?: string }).error ?? 'VALIDATION_FAILED',
+      reason: (err as { reason?: string }).reason ?? 'Code promo invalide ou expiré',
     };
   } catch (error) {
     logger.error('Error validating discount code', error instanceof Error ? error : new Error(String(error)), {
@@ -215,8 +90,11 @@ export async function validateDiscountCode(
   }
 }
 
+// Legacy implementation removed - all discount validation goes through backend API (validateDiscountCode)
+
 /**
  * Enregistrer l'utilisation d'un code promo
+ * Délègue au backend API (NestJS).
  */
 export async function recordDiscountCodeUsage(
   discountCodeId: string,
@@ -225,58 +103,32 @@ export async function recordDiscountCodeUsage(
   discountAmount: number
 ): Promise<void> {
   try {
-    const supabase = await createClient();
-
-    // Enregistrer l'utilisation dans order_discount_codes
-    const { error: recordError } = await supabase
-      .from('order_discount_codes')
-      .insert({
-        discount_code_id: discountCodeId,
-        user_id: userId,
-        order_id: orderId,
-        discount_amount: discountAmount,
-        used_at: new Date().toISOString(),
-      });
-
-    if (recordError) {
-      logger.error('Error recording discount code usage', recordError, {
+    const response = await fetch(`${API_URL}/api/v1/discount-codes/record-usage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         discountCodeId,
         userId,
         orderId,
+        discountAmount,
+      }),
+    });
+
+    if (response.ok) {
+      logger.info('Discount code usage recorded', {
+        discountCodeId,
+        userId,
+        orderId,
+        discountAmount,
       });
-      // Ne pas faire échouer la commande si l'enregistrement échoue
       return;
     }
 
-    // Incrémenter le compteur d'utilisation du code
-    const { error: updateError } = await supabase.rpc('increment_discount_code_usage', {
-      code_id: discountCodeId,
-    });
-
-    if (updateError) {
-      // Fallback: update manuel si la fonction RPC n'existe pas
-      const { data: currentCode } = await supabase
-        .from('discount_codes')
-        .select('usage_count')
-        .eq('id', discountCodeId)
-        .single();
-
-      if (currentCode) {
-        await supabase
-          .from('discount_codes')
-          .update({
-            usage_count: (currentCode.usage_count || 0) + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', discountCodeId);
-      }
-    }
-
-    logger.info('Discount code usage recorded', {
+    logger.warn('Backend record discount usage failed', {
       discountCodeId,
       userId,
       orderId,
-      discountAmount,
+      status: response.status,
     });
   } catch (error) {
     logger.error('Error recording discount code usage', error instanceof Error ? error : new Error(String(error)), {
@@ -290,47 +142,33 @@ export async function recordDiscountCodeUsage(
 
 /**
  * Appliquer un code promo shipping (gratuit)
+ * Délègue au backend API (NestJS).
  */
 export async function applyShippingDiscount(
   code: string,
   shippingAmount: number
 ): Promise<{ valid: boolean; newShippingAmount: number; error?: string }> {
   try {
-    const supabase = await createClient();
+    const response = await fetch(`${API_URL}/api/v1/discount-codes/apply-shipping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code.toUpperCase(), shippingAmount }),
+    });
 
-    const { data: discountCode, error: fetchError } = await supabase
-      .from('discount_codes')
-      .select('*')
-      .eq('code', code.toUpperCase())
-      .eq('type', 'shipping')
-      .eq('is_active', true)
-      .single();
-
-    if (fetchError || !discountCode) {
+    if (response.ok) {
+      const data = await response.json();
       return {
-        valid: false,
-        newShippingAmount: shippingAmount,
-        error: 'CODE_NOT_FOUND',
+        valid: data.valid === true,
+        newShippingAmount: typeof data.newShippingAmount === 'number' ? data.newShippingAmount : 0,
+        error: data.error,
       };
     }
 
-    // Vérifier la validité temporelle
-    const now = new Date();
-    const validFrom = new Date(discountCode.valid_from);
-    const validUntil = new Date(discountCode.valid_until);
-
-    if (now < validFrom || now > validUntil) {
-      return {
-        valid: false,
-        newShippingAmount: shippingAmount,
-        error: 'CODE_EXPIRED',
-      };
-    }
-
-    // Code shipping valide: shipping gratuit
+    const err = await response.json().catch(() => ({}));
     return {
-      valid: true,
-      newShippingAmount: 0,
+      valid: false,
+      newShippingAmount: shippingAmount,
+      error: (err as { error?: string }).error || 'CODE_NOT_FOUND',
     };
   } catch (error) {
     logger.error('Error applying shipping discount', error instanceof Error ? error : new Error(String(error)), {

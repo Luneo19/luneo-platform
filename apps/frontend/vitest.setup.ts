@@ -51,7 +51,7 @@ vi.mock('next/link', () => ({
 }));
 
 // ============================================
-// SUPABASE MOCK
+// SUPABASE MOCK (kept for API routes that still use @/lib/supabase until backend migration)
 // ============================================
 
 const mockSupabaseClient = {

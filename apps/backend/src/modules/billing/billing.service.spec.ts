@@ -24,6 +24,7 @@ describe('BillingService', () => {
     user: {
       findUnique: jest.fn(),
       update: jest.fn(),
+      count: jest.fn(),
     },
     brand: {
       findUnique: jest.fn(),
@@ -39,12 +40,16 @@ describe('BillingService', () => {
     },
     processedWebhookEvent: {
       findUnique: jest.fn(),
+      upsert: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
     creditPack: {
       findFirst: jest.fn(),
     },
+    design: { count: jest.fn() },
+    usageRecord: { aggregate: jest.fn() },
+    assetFile: { aggregate: jest.fn() },
   };
 
   const configValues: Record<string, any> = {
@@ -357,8 +362,7 @@ describe('BillingService', () => {
     });
   });
 
-  // Note: cancelSubscription has been removed or renamed
-  describe.skip('cancelSubscription', () => {
+  describe('cancelSubscription', () => {
     const mockUser = {
       id: 'user-123',
       email: 'test@test.com',
@@ -370,41 +374,38 @@ describe('BillingService', () => {
       },
     };
 
-    it('should throw NotFoundException if user has no brand', async () => {
+    it('should throw BadRequestException if user has no brand', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: null,
       });
 
-      await expect((service as any).cancelSubscription('user-123')).rejects.toThrow(NotFoundException);
+      await expect(service.cancelSubscription('user-123')).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw NotFoundException if brand has no subscription', async () => {
+    it('should throw BadRequestException if brand has no subscription', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: { id: 'brand-123', stripeSubscriptionId: null },
       });
 
-      await expect((service as any).cancelSubscription('user-123')).rejects.toThrow(NotFoundException);
+      await expect(service.cancelSubscription('user-123')).rejects.toThrow(BadRequestException);
     });
 
     it('should cancel subscription at period end by default', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      const updateMock = jest.fn().mockResolvedValue({
+        id: 'sub_123',
+        cancel_at_period_end: true,
+        current_period_end: 1735689600,
+      });
+      (service as any).getStripe = jest.fn().mockResolvedValue({
+        subscriptions: { update: updateMock },
+      });
 
-      const mockStripe = {
-        subscriptions: {
-          update: jest.fn().mockResolvedValue({
-            id: 'sub_123',
-            cancel_at_period_end: true,
-            current_period_end: 1735689600, // Future timestamp
-          }),
-        },
-      };
-      (service as any).stripeInstance = mockStripe;
+      const result = await service.cancelSubscription('user-123');
 
-      const result = await (service as any).cancelSubscription('user-123');
-
-      expect(mockStripe.subscriptions.update).toHaveBeenCalledWith('sub_123', {
+      expect(updateMock).toHaveBeenCalledWith('sub_123', {
         cancel_at_period_end: true,
       });
       expect(result.success).toBe(true);
@@ -414,21 +415,27 @@ describe('BillingService', () => {
     it('should cancel subscription immediately when immediate=true', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
       mockPrismaService.brand.update.mockResolvedValue({});
+      const cancelMock = jest.fn().mockResolvedValue({
+        id: 'sub_123',
+        status: 'canceled',
+      });
+      (service as any).getStripe = jest.fn().mockResolvedValue({
+        subscriptions: { cancel: cancelMock },
+      });
 
-      const mockStripe = {
-        subscriptions: {
-          cancel: jest.fn().mockResolvedValue({
-            id: 'sub_123',
-            status: 'canceled',
-          }),
-        },
-      };
-      (service as any).stripeInstance = mockStripe;
+      const result = await service.cancelSubscription('user-123', true);
 
-      const result = await (service as any).cancelSubscription('user-123', { immediate: true });
-
-      expect(mockStripe.subscriptions.cancel).toHaveBeenCalledWith('sub_123');
+      expect(cancelMock).toHaveBeenCalledWith('sub_123');
       expect(result.success).toBe(true);
+      expect(mockPrismaService.brand.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'brand-123' },
+          data: expect.objectContaining({
+            subscriptionStatus: 'CANCELED',
+            plan: 'free',
+          }),
+        }),
+      );
     });
   });
 
@@ -500,6 +507,75 @@ describe('BillingService', () => {
     });
   });
 
+  describe('handleStripeWebhook', () => {
+    it('should process checkout.session.completed event', async () => {
+      mockPrismaService.processedWebhookEvent.findUnique.mockResolvedValue(null);
+      mockPrismaService.processedWebhookEvent.upsert.mockResolvedValue({} as any);
+      mockPrismaService.processedWebhookEvent.update.mockResolvedValue({} as any);
+      (service as any).handleCheckoutSessionCompleted = jest.fn().mockResolvedValue({
+        processed: true,
+        result: { sessionId: 'cs_123' },
+      });
+
+      const event = {
+        id: 'evt_123',
+        type: 'checkout.session.completed',
+        data: { object: { id: 'cs_123', metadata: {} } },
+      } as any;
+
+      const result = await service.handleStripeWebhook(event);
+
+      expect(result.processed).toBe(true);
+      expect(mockPrismaService.processedWebhookEvent.upsert).toHaveBeenCalled();
+      expect(mockPrismaService.processedWebhookEvent.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { eventId: 'evt_123' },
+          data: expect.objectContaining({ processed: true }),
+        }),
+      );
+    });
+
+    it('should process customer.subscription.updated event', async () => {
+      mockPrismaService.processedWebhookEvent.findUnique.mockResolvedValue(null);
+      mockPrismaService.processedWebhookEvent.upsert.mockResolvedValue({} as any);
+      mockPrismaService.processedWebhookEvent.update.mockResolvedValue({} as any);
+      (service as any).handleSubscriptionUpdated = jest.fn().mockResolvedValue({
+        processed: true,
+        result: { subscriptionId: 'sub_123' },
+      });
+
+      const event = {
+        id: 'evt_456',
+        type: 'customer.subscription.updated',
+        data: { object: { id: 'sub_123', status: 'active' } },
+      } as any;
+
+      const result = await service.handleStripeWebhook(event);
+
+      expect(result.processed).toBe(true);
+    });
+
+    it('should skip already processed webhook events (idempotency)', async () => {
+      mockPrismaService.processedWebhookEvent.findUnique.mockResolvedValue({
+        eventId: 'evt_123',
+        processed: true,
+        result: { sessionId: 'cs_123' },
+      } as any);
+
+      const event = {
+        id: 'evt_123',
+        type: 'checkout.session.completed',
+        data: { object: {} },
+      } as any;
+
+      const result = await service.handleStripeWebhook(event);
+
+      expect(result.processed).toBe(true);
+      expect(result.result).toEqual({ sessionId: 'cs_123' });
+      expect(mockPrismaService.processedWebhookEvent.upsert).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getSubscription', () => {
     it('should return default starter plan if user has no brand', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
@@ -512,6 +588,46 @@ describe('BillingService', () => {
       expect(result).toBeDefined();
       expect(result?.plan).toBe('starter');
       expect(result?.status).toBe('active');
+    });
+
+    it('should return real usage data from DB (designs, teamMembers, usageRecord, assetFile)', async () => {
+      const mockUser = {
+        id: 'user-123',
+        brandId: 'brand-123',
+        brand: {
+          id: 'brand-123',
+          plan: 'professional',
+          subscriptionPlan: 'PROFESSIONAL',
+          subscriptionStatus: 'ACTIVE',
+          stripeSubscriptionId: null,
+          monthlyGenerations: 10,
+          planExpiresAt: null,
+        },
+      };
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.design.count.mockResolvedValue(5);
+      mockPrismaService.user.count.mockResolvedValue(3);
+      mockPrismaService.usageRecord.aggregate
+        .mockResolvedValueOnce({ _sum: { count: 100 } })
+        .mockResolvedValueOnce({ _sum: { count: 50 } });
+      mockPrismaService.assetFile.aggregate.mockResolvedValue({
+        _sum: { sizeBytes: 2 * 1024 * 1024 * 1024 },
+      });
+
+      const result = await service.getSubscription('user-123');
+
+      expect(result).toBeDefined();
+      expect(result?.currentUsage).toBeDefined();
+      expect(result?.currentUsage?.designs).toBe(5);
+      expect(result?.currentUsage?.teamMembers).toBe(3);
+      expect(result?.currentUsage?.renders3D).toBe(100);
+      expect(result?.currentUsage?.storageGB).toBeGreaterThanOrEqual(0);
+      expect(mockPrismaService.design.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { brandId: 'brand-123', createdAt: expect.anything() },
+        }),
+      );
+      expect(mockPrismaService.usageRecord.aggregate).toHaveBeenCalled();
     });
 
     it('should return subscription details from Stripe', async () => {
@@ -530,10 +646,12 @@ describe('BillingService', () => {
         },
       };
       mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
-      
-      // Mock for design and user count
-      (mockPrismaService as any).design = { count: jest.fn().mockResolvedValue(5) };
-      (mockPrismaService.user as any).count = jest.fn().mockResolvedValue(2);
+      mockPrismaService.design.count.mockResolvedValue(5);
+      mockPrismaService.user.count.mockResolvedValue(2);
+      mockPrismaService.usageRecord.aggregate
+        .mockResolvedValueOnce({ _sum: { count: 10 } })
+        .mockResolvedValueOnce({ _sum: { count: 20 } });
+      mockPrismaService.assetFile.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0 } });
 
       const mockStripe = {
         subscriptions: {
@@ -558,7 +676,7 @@ describe('BillingService', () => {
           }),
         },
       };
-      (service as any).stripeInstance = mockStripe;
+      (service as any).getStripe = jest.fn().mockResolvedValue(mockStripe);
 
       const result = await service.getSubscription('user-123');
 

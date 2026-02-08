@@ -43,7 +43,7 @@ export function ChangePlanModal({ open, onOpenChange, planId }: ChangePlanModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>Changer de plan</DialogTitle>
           <DialogDescription>
@@ -52,9 +52,9 @@ export function ChangePlanModal({ open, onOpenChange, planId }: ChangePlanModalP
         </DialogHeader>
         <div className="space-y-4 mt-4">
           <div>
-            <label className="text-sm text-gray-300 mb-2 block">Période</label>
+            <label className="text-sm text-gray-700 mb-2 block">Période</label>
             <Select value={period} onValueChange={(value) => setPeriod(value as 'monthly' | 'yearly')}>
-              <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+              <SelectTrigger className="bg-white border-gray-200 text-gray-900">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -62,7 +62,7 @@ export function ChangePlanModal({ open, onOpenChange, planId }: ChangePlanModalP
                   Mensuel - {plan.price.monthly}€/mois
                 </SelectItem>
                 <SelectItem value="yearly">
-                  Annuel - {plan.price.yearly}€/an (-20%)
+                  Annuel - {plan.price.yearly}€/an
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -74,7 +74,7 @@ export function ChangePlanModal({ open, onOpenChange, planId }: ChangePlanModalP
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Annuler
           </Button>
           <Button

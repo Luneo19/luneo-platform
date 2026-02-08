@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { ARModel, ARLibraryStats, ARModelType, ARModelStatus } from '../types';
 
@@ -24,14 +25,8 @@ export function useARLibrary(
   const fetchModels = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/ar-studio/library/models');
-      if (response.ok) {
-        const data = await response.json();
-        setModels(data.models || data.data || []);
-      } else {
-        // Fallback to empty array if API fails
-        setModels([]);
-      }
+      const data = await api.get<{ models?: ARModel[]; data?: ARModel[] }>('/api/v1/ar-studio/library/models');
+      setModels(data?.models ?? data?.data ?? []);
     } catch (error) {
       logger.error('Failed to fetch AR models', { error });
       setModels([]);
@@ -83,47 +78,38 @@ export function useARLibrary(
 
   const toggleFavorite = async (modelId: string) => {
     try {
-      const response = await fetch(`/api/ar-studio/library/models/${modelId}/favorite`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        setModels((prev) =>
-          prev.map((m) => (m.id === modelId ? { ...m, isFavorite: !m.isFavorite } : m))
-        );
-        toast({ title: 'Succès', description: 'Favori mis à jour' });
-        return { success: true };
-      }
-      throw new Error('Failed to toggle favorite');
-    } catch (error: any) {
+      await api.post(`/api/v1/ar-studio/library/models/${modelId}/favorite`);
+      setModels((prev) =>
+        prev.map((m) => (m.id === modelId ? { ...m, isFavorite: !m.isFavorite } : m))
+      );
+      toast({ title: 'Succès', description: 'Favori mis à jour' });
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de la mise à jour';
       logger.error('Failed to toggle favorite', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la mise à jour',
+        description: message,
         variant: 'destructive',
       });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   };
 
   const deleteModel = async (modelId: string) => {
     try {
-      const response = await fetch(`/api/ar-studio/library/models/${modelId}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        setModels((prev) => prev.filter((m) => m.id !== modelId));
-        toast({ title: 'Succès', description: 'Modèle supprimé' });
-        return { success: true };
-      }
-      throw new Error('Failed to delete model');
-    } catch (error: any) {
+      await api.delete(`/api/v1/ar-studio/library/models/${modelId}`);
+      setModels((prev) => prev.filter((m) => m.id !== modelId));
+      toast({ title: 'Succès', description: 'Modèle supprimé' });
+      return { success: true };
+    } catch (error: unknown) {
       logger.error('Failed to delete model', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la suppression',
+        description: error instanceof Error ? error.message : 'Erreur lors de la suppression',
         variant: 'destructive',
       });
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : 'Erreur' };
     }
   };
 

@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 import type { Configuration3D } from '../../types';
 
 interface ExportModalProps {
@@ -30,19 +32,50 @@ export function ExportModal({ open, onOpenChange, configuration }: ExportModalPr
   const [format, setFormat] = useState('png');
 
   const handleExport = async () => {
-    if (!configuration) return;
-
-    try {
-      // TODO: Implémenter l'export réel
-      toast({
-        title: 'Export',
-        description: `Export en ${format} en cours...`,
-      });
-      onOpenChange(false);
-    } catch (error: any) {
+    if (!configuration) {
       toast({
         title: 'Erreur',
-        description: 'Erreur lors de l\'export',
+        description: 'Aucune configuration à exporter',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await api.post<Blob | { url?: string; blob?: unknown }>(
+        '/api/v1/configurator-3d/export',
+        { format, configurationId: configuration.id }
+      );
+      const data = response as unknown;
+      if (data && typeof data === 'object' && (data as Blob).size !== undefined && (data as Blob).type !== undefined) {
+        const blob = data as Blob;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `configuration-${configuration.id}.${format}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } else if (data && typeof data === 'object' && typeof (data as { url?: string }).url === 'string') {
+        window.open((data as { url: string }).url, '_blank');
+        toast({
+          title: 'Export',
+          description: `Export en ${format} terminé.`,
+        });
+      } else {
+        toast({
+          title: 'Export',
+          description: `Export en ${format} demandé. L’endpoint backend peut retourner un blob ou une URL.`,
+        });
+      }
+      onOpenChange(false);
+    } catch (error: unknown) {
+      logger.error(
+        'Error exporting 3D configuration',
+        error instanceof Error ? error : new Error(String(error))
+      );
+      toast({
+        title: 'Erreur',
+        description: error instanceof Error ? error.message : 'Erreur lors de l\'export',
         variant: 'destructive',
       });
     }
@@ -50,18 +83,18 @@ export function ExportModal({ open, onOpenChange, configuration }: ExportModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>Exporter la configuration</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Choisissez le format d'export
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
           <div>
-            <label className="text-sm text-gray-300 mb-2 block">Format</label>
+            <label className="text-sm text-gray-700 mb-2 block">Format</label>
             <Select value={format} onValueChange={setFormat}>
-              <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+              <SelectTrigger className="bg-white border-gray-200 text-gray-900">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -74,7 +107,7 @@ export function ExportModal({ open, onOpenChange, configuration }: ExportModalPr
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Annuler
           </Button>
           <Button onClick={handleExport} className="bg-cyan-600 hover:bg-cyan-700">

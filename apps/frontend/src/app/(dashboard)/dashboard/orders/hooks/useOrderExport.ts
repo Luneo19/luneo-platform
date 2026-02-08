@@ -44,7 +44,7 @@ export function useOrderExport() {
               headers.join(','),
               ...exportData.map((o) =>
                 headers.map((h) => {
-                  const value = (o as any)[h];
+                  const value = (o as Record<string, unknown>)[h];
                   return typeof value === 'string' && value.includes(',')
                     ? `"${value}"`
                     : value;

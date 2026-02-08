@@ -23,19 +23,19 @@ export function MonitoringLogs() {
   }> = [];
 
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-gray-900">
           <FileText className="w-5 h-5" />
           Logs système
         </CardTitle>
-        <CardDescription>Journal des événements système</CardDescription>
+        <CardDescription className="text-gray-600">Journal des événements système</CardDescription>
       </CardHeader>
       <CardContent>
         {sampleLogs.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-slate-400 mb-2">Aucun log disponible</p>
-            <p className="text-sm text-slate-500">
+            <p className="text-gray-600 mb-2">Aucun log disponible</p>
+            <p className="text-sm text-gray-500">
               Les logs seront affichés ici une fois la collecte activée
             </p>
           </div>
@@ -44,7 +44,7 @@ export function MonitoringLogs() {
             {sampleLogs.map((log) => (
               <div
                 key={log.id}
-                className="p-3 bg-slate-800/50 rounded-lg font-mono text-sm"
+                className="p-3 bg-gray-50 rounded-lg font-mono text-sm"
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Badge
@@ -56,17 +56,17 @@ export function MonitoringLogs() {
                         ? 'border-yellow-500 text-yellow-400'
                         : log.level === 'info'
                         ? 'border-blue-500 text-blue-400'
-                        : 'border-gray-500 text-gray-400'
+                        : 'border-gray-300 text-gray-600'
                     }
                   >
                     {log.level.toUpperCase()}
                   </Badge>
-                  <span className="text-slate-400">{log.source}</span>
-                  <span className="text-slate-500 text-xs">
+                  <span className="text-gray-600">{log.source}</span>
+                  <span className="text-gray-500 text-xs">
                     {new Date(log.timestamp).toLocaleString('fr-FR')}
                   </span>
                 </div>
-                <p className="text-slate-300">{log.message}</p>
+                <p className="text-gray-700">{log.message}</p>
               </div>
             ))}
           </div>

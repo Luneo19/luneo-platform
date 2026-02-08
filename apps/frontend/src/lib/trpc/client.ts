@@ -1,9 +1,17 @@
 /**
- * ★★★ CLIENT TRPC - CONFIGURATION COMPLÈTE ★★★
- * Client tRPC pour React avec:
- * - React Query integration
- * - Error handling
- * - Type safety
+ * tRPC Client - Internal Dashboard API Layer
+ *
+ * ARCHITECTURE BOUNDARY:
+ * - tRPC is used for INTERNAL dashboard pages (type-safe, fast iteration).
+ * - REST (@/lib/api/client.ts) is used for:
+ *   - Public API endpoints (documented with Swagger)
+ *   - Auth flows (login, signup, OAuth callbacks)
+ *   - Stripe webhooks and payment flows
+ *   - External integrations (Shopify, WooCommerce)
+ *
+ * RULE: New dashboard features should use tRPC.
+ *       New public/external APIs should use REST.
+ *       Do NOT duplicate endpoints across both layers.
  */
 
 import { createTRPCReact } from '@trpc/react-query';
@@ -42,14 +50,12 @@ export function getTRPCClient() {
         url: '/api/trpc',
         // Headers pour auth
         headers: async () => {
-          // Récupérer token depuis session/cookies
+          // Auth: use backend JWT from cookie (accessToken)
           if (typeof window !== 'undefined') {
-            // Client-side: get from localStorage or cookies
-            const token = localStorage.getItem('supabase.auth.token') || 
-                         document.cookie
-                           .split('; ')
-                           .find((row) => row.startsWith('sb-'))
-                           ?.split('=')[1];
+            const token = document.cookie
+              .split('; ')
+              .find((row) => row.startsWith('accessToken='))
+              ?.split('=')[1];
 
             if (token) {
               return {

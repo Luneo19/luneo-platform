@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api/client';
 
 interface Favorite {
   id: string;
@@ -12,12 +13,10 @@ export function useFavorites(userId: string, resourceType?: string) {
   const { data, isLoading, error } = useQuery<{ favorites: Favorite[] }>({
     queryKey: ['favorites', userId, resourceType],
     queryFn: async () => {
-      const params = new URLSearchParams({ userId });
-      if (resourceType) params.append('resourceType', resourceType);
-      
-      const response = await fetch(`/api/favorites?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch favorites');
-      return response.json();
+      const result = await api.get<{ favorites: Favorite[] }>('/api/v1/library/favorites', {
+        params: { userId, resourceType },
+      });
+      return result ?? { favorites: [] };
     },
     enabled: !!userId,
   });
@@ -37,15 +36,7 @@ export function useAddToFavorites() {
       user_id: string;
       resource_type: 'template' | 'clipart';
       resource_id: string;
-    }) => {
-      const response = await fetch('/api/favorites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(favorite),
-      });
-      if (!response.ok) throw new Error('Failed to add to favorites');
-      return response.json();
-    },
+    }) => api.post('/api/v1/library/favorites', favorite),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['favorites', variables.user_id] });
       queryClient.invalidateQueries({ queryKey: ['templates'] });
@@ -62,19 +53,7 @@ export function useRemoveFromFavorites() {
       userId: string;
       resourceType: 'template' | 'clipart';
       resourceId: string;
-    }) => {
-      const searchParams = new URLSearchParams({
-        userId: params.userId,
-        resourceType: params.resourceType,
-        resourceId: params.resourceId,
-      });
-      
-      const response = await fetch(`/api/favorites?${searchParams.toString()}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to remove from favorites');
-      return response.json();
-    },
+    }) => api.delete('/api/v1/library/favorites', { params: { userId: params.userId, resourceType: params.resourceType, resourceId: params.resourceId } }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['favorites', variables.userId] });
       queryClient.invalidateQueries({ queryKey: ['templates'] });

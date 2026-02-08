@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Save, RefreshCw } from 'lucide-react';
-import { trpc } from '@/lib/trpc/client';
 import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
 import type { NotificationPreference } from '../../types';
 
 interface NotificationsTabProps {
@@ -40,45 +40,41 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
     }
   );
 
-  // TODO: Créer updateNotificationPreferences dans le router profile
-  // Pour l'instant, on utilise une mutation temporaire
-  const updateMutation = trpc.profile.update.useMutation({
-    onSuccess: () => {
-      toast({ title: 'Succès', description: 'Préférences mises à jour' });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Erreur lors de la mise à jour',
-        variant: 'destructive',
-      });
-    },
-  });
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
-    // TODO: Implémenter updateNotificationPreferences dans le router
-    // Pour l'instant, on sauvegarde dans les métadonnées du profil
-    await updateMutation.mutateAsync({
-      metadata: {
-        notificationPreferences: preferences,
-      },
-    } as any);
+    setIsSaving(true);
+    try {
+      await endpoints.settings.notifications(preferences as unknown as Record<string, unknown>);
+      toast({ title: 'Succès', description: 'Préférences mises à jour' });
+    } catch (error: unknown) {
+      const message = error && typeof error === 'object' && 'message' in error
+        ? String((error as { message: string }).message)
+        : 'Erreur lors de la mise à jour';
+      toast({
+        title: 'Erreur',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="space-y-6">
       {/* Email Notifications */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Notifications Email</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Notifications Email</CardTitle>
+          <CardDescription className="text-gray-600">
             Choisissez les notifications que vous souhaitez recevoir par email
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Commandes</Label>
+              <Label className="text-gray-700">Commandes</Label>
               <p className="text-sm text-gray-500">Notifications sur vos commandes</p>
             </div>
             <Checkbox
@@ -93,7 +89,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Designs</Label>
+              <Label className="text-gray-700">Designs</Label>
               <p className="text-sm text-gray-500">Notifications sur vos designs</p>
             </div>
             <Checkbox
@@ -108,7 +104,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Marketing</Label>
+              <Label className="text-gray-700">Marketing</Label>
               <p className="text-sm text-gray-500">Newsletters et offres promotionnelles</p>
             </div>
             <Checkbox
@@ -123,7 +119,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Alertes de sécurité</Label>
+              <Label className="text-gray-700">Alertes de sécurité</Label>
               <p className="text-sm text-gray-500">Notifications importantes de sécurité</p>
             </div>
             <Checkbox
@@ -140,17 +136,17 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
       </Card>
 
       {/* In-App Notifications */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Notifications In-App</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Notifications In-App</CardTitle>
+          <CardDescription className="text-gray-600">
             Choisissez les notifications affichées dans l'application
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Commandes</Label>
+              <Label className="text-gray-700">Commandes</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.orders}
@@ -164,7 +160,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Designs</Label>
+              <Label className="text-gray-700">Designs</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.designs}
@@ -178,7 +174,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Système</Label>
+              <Label className="text-gray-700">Système</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.system}
@@ -196,10 +192,10 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
       <div className="flex justify-end">
         <Button
           onClick={handleSave}
-          disabled={updateMutation.isPending}
+          disabled={isSaving}
           className="bg-gradient-to-r from-cyan-600 to-blue-600"
         >
-          {updateMutation.isPending ? (
+          {isSaving ? (
             <>
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
               Enregistrement...

@@ -77,7 +77,7 @@ function ARViewerContent() {
         productId: productId || '',
         customizationId: customizationId || undefined,
         modelUrl: modelUrl!,
-        productType: productType as any,
+        productType: productType as 'glasses' | 'jewelry' | 'watch' | 'ring' | 'earrings' | 'necklace',
         deviceInfo: {
           userAgent: navigator.userAgent,
           platform: navigator.platform,
@@ -97,9 +97,9 @@ function ARViewerContent() {
       await startWebXRSession();
 
       setIsInitializing(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error initializing AR', { error });
-      setError(error.message || 'Erreur lors de l\'initialisation AR');
+      setError(error instanceof Error ? error.message : 'Erreur lors de l\'initialisation AR');
       setIsInitializing(false);
     }
   }, [modelUrl, productId, customizationId, productType, createSession, trackInteraction]);
@@ -113,7 +113,7 @@ function ARViewerContent() {
       throw new Error('WebXR non supporté sur cet appareil');
     }
 
-    const xr = (navigator as any).xr;
+    const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
 
     // Check AR support
     const supported = await xr.isSessionSupported('immersive-ar');

@@ -37,7 +37,7 @@ export function AnalyticsFilters({
   onCustomDateToChange,
 }: AnalyticsFiltersProps) {
   return (
-    <Card className="p-4 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex items-center gap-2 flex-wrap">
           {TIME_RANGES.filter((tr) => tr.value !== 'custom').map((range) => (
@@ -49,7 +49,7 @@ export function AnalyticsFilters({
               className={cn(
                 timeRange === range.value
                   ? 'bg-cyan-600 text-white'
-                  : 'border-gray-600 text-gray-300'
+                  : 'border-gray-200 text-gray-700'
               )}
             >
               {range.label}
@@ -59,11 +59,11 @@ export function AnalyticsFilters({
             variant={timeRange === 'custom' ? 'default' : 'outline'}
             size="sm"
             onClick={() => onTimeRangeChange('custom')}
-            className={cn(
-              timeRange === 'custom'
-                ? 'bg-cyan-600 text-white'
-                : 'border-gray-600 text-gray-300'
-            )}
+              className={cn(
+                timeRange === 'custom'
+                  ? 'bg-cyan-600 text-white'
+                  : 'border-gray-200 text-gray-700'
+              )}
           >
             <Calendar className="w-4 h-4 mr-2" />
             Personnalisé
@@ -85,7 +85,7 @@ export function AnalyticsFilters({
             checked={comparePeriod}
             onCheckedChange={(checked) => onCompareChange(checked as boolean)}
           />
-          <Label htmlFor="compare" className="text-gray-300 cursor-pointer">
+          <Label htmlFor="compare" className="text-gray-700 cursor-pointer">
             Comparer avec période précédente
           </Label>
         </div>

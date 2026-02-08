@@ -5,11 +5,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Shield, Trash2, RefreshCw } from 'lucide-react';
+import { Shield, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import { useSecuritySettings } from '../../hooks/useSecuritySettings';
 import { ChangePasswordModal } from '../modals/ChangePasswordModal';
 import { DeleteAccountModal } from '../modals/DeleteAccountModal';
@@ -19,18 +21,51 @@ interface SecurityTabProps {
   sessions?: SecuritySession[];
 }
 
-export function SecurityTab({ sessions = [] }: SecurityTabProps) {
+export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: sessionsData } = useQuery({
+    queryKey: ['security', 'sessions'],
+    queryFn: () => endpoints.security.sessions(),
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (sessionId: string) => endpoints.security.revokeSession(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['security', 'sessions'] });
+      toast({ title: 'Session révoquée', description: 'La session a été déconnectée.' });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Impossible de révoquer la session';
+      logger.error('Session revoke failed', error instanceof Error ? error : new Error(String(error)));
+      toast({ title: 'Erreur', description: message, variant: 'destructive' });
+    },
+  });
+
+  const sessions: SecuritySession[] = Array.isArray(sessionsData)
+    ? sessionsData.map((s) => ({
+        id: s.id,
+        device: s.device ?? 'Appareil inconnu',
+        browser: s.browser ?? '',
+        location: s.location ?? '',
+        ip: s.ip ?? '',
+        lastActive: s.lastActive ?? new Date().toISOString(),
+        current: s.current ?? false,
+      }))
+    : sessionsProp;
 
   return (
     <div className="space-y-6">
       {/* Change Password */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Mot de passe</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Mot de passe</CardTitle>
+          <CardDescription className="text-gray-600">
             Changez votre mot de passe pour sécuriser votre compte
           </CardDescription>
         </CardHeader>
@@ -47,10 +82,10 @@ export function SecurityTab({ sessions = [] }: SecurityTabProps) {
 
       {/* Active Sessions */}
       {sessions.length > 0 && (
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="text-white">Sessions actives</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-gray-900">Sessions actives</CardTitle>
+            <CardDescription className="text-gray-600">
               Gérez vos sessions actives sur différents appareils
             </CardDescription>
           </CardHeader>
@@ -58,11 +93,11 @@ export function SecurityTab({ sessions = [] }: SecurityTabProps) {
             {sessions.map((session) => (
               <div
                 key={session.id}
-                className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-gray-700"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
               >
                 <div>
-                  <p className="text-white font-medium">{session.device}</p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-gray-900 font-medium">{session.device}</p>
+                  <p className="text-sm text-gray-600">
                     {session.browser} • {session.location} • {session.ip}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
@@ -79,10 +114,9 @@ export function SecurityTab({ sessions = [] }: SecurityTabProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        // TODO: Implémenter révocation de session
-                      }}
-                      className="border-gray-600"
+                      onClick={() => revokeMutation.mutate(session.id)}
+                      disabled={revokeMutation.isPending}
+                      className="border-gray-200"
                     >
                       Révoquer
                     </Button>
@@ -95,10 +129,10 @@ export function SecurityTab({ sessions = [] }: SecurityTabProps) {
       )}
 
       {/* Delete Account */}
-      <Card className="bg-gray-800/50 border-gray-700 border-red-500/30">
+      <Card className="bg-white border-gray-200 border-red-500/30">
         <CardHeader>
           <CardTitle className="text-red-400">Zone de danger</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-gray-600">
             Actions irréversibles sur votre compte
           </CardDescription>
         </CardHeader>

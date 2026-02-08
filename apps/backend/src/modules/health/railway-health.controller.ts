@@ -1,48 +1,43 @@
 import { Controller, Get } from '@nestjs/common';
 import { Public } from '@/common/decorators/public.decorator';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { HealthService, EnrichedHealthResponse } from './health.service';
 
 /**
  * Railway Health Controller
- * 
- * This controller provides a simple health check endpoint at /health
- * that Railway can use for health checks. It's excluded from the global
- * prefix to be accessible at /health (not /api/v1/health).
- * 
- * This is a minimal implementation that doesn't depend on Terminus
- * to ensure it works reliably with Railway's health check system.
+ *
+ * Provides enriched health at /health/railway for Railway/load balancers.
+ * Uses HealthService for dependency checks (database, redis, stripe, email).
  */
 @ApiTags('Health')
-@Controller('health') // Direct path 'health' - will be /health when excluded from global prefix
+@Controller('health/railway')
 export class RailwayHealthController {
-  @Get() // Empty path - will be /health when controller path is 'health'
-  @Public() // Make health endpoint public (no authentication required)
-  @ApiOperation({ 
+  constructor(private readonly healthService: HealthService) {}
+
+  @Get()
+  /** @Public: Railway/load balancer health check */
+  @Public()
+  @ApiOperation({
     summary: 'Health check endpoint for Railway',
-    description: 'Simple health check endpoint that returns the service status. Used by Railway for health checks.'
+    description: 'Enriched health with dependencies. Used by Railway for health checks.',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Service is healthy',
     schema: {
       type: 'object',
       properties: {
         status: { type: 'string', example: 'ok' },
         timestamp: { type: 'string', format: 'date-time' },
-        uptime: { type: 'number', description: 'Uptime in seconds' },
+        uptime: { type: 'number' },
         service: { type: 'string', example: 'luneo-backend' },
         version: { type: 'string', example: '1.0.0' },
-      }
-    }
+        dependencies: { type: 'object' },
+      },
+    },
   })
-  check() {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      service: 'luneo-backend',
-      version: process.env.npm_package_version || '1.0.0',
-    };
+  async check(): Promise<EnrichedHealthResponse> {
+    return this.healthService.getEnrichedHealth();
   }
 }
 

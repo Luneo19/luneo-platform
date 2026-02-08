@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface OutboxEventData {
@@ -20,7 +21,7 @@ export class OutboxService {
       const event = await this.prisma.outboxEvent.create({
         data: {
           eventType,
-          payload: payload as any,
+          payload: payload as Prisma.InputJsonValue,
           status: 'pending',
         },
       });

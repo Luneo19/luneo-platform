@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { api, endpoints } from '@/lib/api/client';
 import type { PaymentMethod } from '../types';
 
 export function usePaymentMethods() {
@@ -17,19 +18,15 @@ export function usePaymentMethods() {
   const fetchPaymentMethods = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/billing/payment-methods');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de la récupération des méthodes de paiement');
-      }
-
-      setPaymentMethods(data.paymentMethods || []);
-    } catch (error: any) {
+      const data = await endpoints.billing.paymentMethods();
+      const raw = data as { paymentMethods?: PaymentMethod[] };
+      setPaymentMethods(raw.paymentMethods || []);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de la récupération des méthodes de paiement';
       logger.error('Error fetching payment methods', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la récupération des méthodes de paiement',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -43,32 +40,22 @@ export function usePaymentMethods() {
 
   const addPaymentMethod = useCallback(async (): Promise<{ success: boolean }> => {
     try {
-      // Rediriger vers Stripe pour ajouter une méthode de paiement
-      const response = await fetch('/api/billing/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          setupIntent: true,
-        }),
+      const data = await api.post<{ url?: string }>('/api/v1/billing/create-checkout-session', {
+        setupIntent: true,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de l\'ajout de la méthode de paiement');
-      }
-
-      if (data.url) {
+      if (data?.url) {
         window.location.href = data.url;
         return { success: true };
       }
 
       return { success: false };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de l\'ajout de la méthode de paiement';
       logger.error('Error adding payment method', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de l\'ajout de la méthode de paiement',
+        description: message,
         variant: 'destructive',
       });
       return { success: false };
@@ -78,25 +65,20 @@ export function usePaymentMethods() {
   const deletePaymentMethod = useCallback(
     async (paymentMethodId: string): Promise<{ success: boolean }> => {
       try {
-        const response = await fetch(`/api/billing/payment-methods?payment_method_id=${paymentMethodId}`, {
-          method: 'DELETE',
+        await api.delete('/api/v1/billing/payment-methods', {
+          params: { id: paymentMethodId },
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors de la suppression de la méthode de paiement');
-        }
 
         toast({ title: 'Succès', description: 'Méthode de paiement supprimée' });
         router.refresh();
         await fetchPaymentMethods();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erreur lors de la suppression de la méthode de paiement';
         logger.error('Error deleting payment method', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors de la suppression de la méthode de paiement',
+          description: message,
           variant: 'destructive',
         });
         return { success: false };

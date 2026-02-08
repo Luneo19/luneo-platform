@@ -2,7 +2,9 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Job } from 'bullmq';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 import { OutboxService } from './outbox.service';
+import { WebhookEvent } from '@prisma/client';
 
 /**
  * Worker qui publie les événements de l'outbox
@@ -19,6 +21,7 @@ export class OutboxPublisherWorker {
   constructor(
     private readonly outboxService: OutboxService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Process('publish-events')
@@ -41,7 +44,7 @@ export class OutboxPublisherWorker {
         this.eventEmitter.emit(event.eventType, event.payload);
 
         // Option 2: Publier via webhooks (si configuré)
-        // await this.publishToWebhooks(event);
+        await this.publishToWebhooks(event);
 
         // Option 3: Publier via Kafka/NATS (futur)
         // await this.publishToMessageQueue(event);
@@ -76,14 +79,46 @@ export class OutboxPublisherWorker {
   }
 
   /**
-   * Publie un événement vers les webhooks configurés (futur)
+   * Publie un événement vers les webhooks brand-specific configurés pour ce type d'événement
    */
-  private async publishToWebhooks(event: any): Promise<void> {
-    // TODO: Implémenter publication vers webhooks brand-specific
-    // const brands = await this.getBrandsWithWebhooks(event.eventType);
-    // for (const brand of brands) {
-    //   await this.sendWebhook(brand.webhookUrl, event);
-    // }
+  private async publishToWebhooks(event: { eventType: string; payload: unknown }): Promise<void> {
+    const eventEnum = this.toWebhookEventEnum(event.eventType);
+    if (!eventEnum) return;
+
+    const webhooks = await this.prisma.webhook.findMany({
+      where: {
+        isActive: true,
+        events: { has: eventEnum },
+      },
+      select: { id: true, url: true, secret: true },
+    });
+
+    for (const webhook of webhooks) {
+      try {
+        const res = await fetch(webhook.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventType: event.eventType,
+            payload: event.payload,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        if (!res.ok) {
+          this.logger.warn(`Webhook ${webhook.id} returned ${res.status}`);
+        }
+      } catch (err) {
+        this.logger.warn(`Webhook ${webhook.id} failed: ${err instanceof Error ? err.message : 'Unknown'}`);
+      }
+    }
+  }
+
+  private toWebhookEventEnum(eventType: string): WebhookEvent | null {
+    const normalized = eventType.toUpperCase().replace(/\./g, '_');
+    if (Object.values(WebhookEvent).includes(normalized as WebhookEvent)) {
+      return normalized as WebhookEvent;
+    }
+    return null;
   }
 }
 

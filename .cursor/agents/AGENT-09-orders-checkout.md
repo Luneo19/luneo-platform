@@ -51,7 +51,44 @@
 
 ---
 
+## ⚠️ PRE-REQUIS: Phase 12.5 - Corriger Routes API Cassées
+
+**AVANT de commencer**, ces fichiers appellent des routes `/api/orders` supprimées :
+
+- `apps/frontend/src/lib/hooks/useOrders.ts` : `/api/orders` → `endpoints.orders.list(params)`
+- `apps/frontend/src/app/(dashboard)/dashboard/components/RecentActivity.tsx` : `/api/orders?limit=5` → `endpoints.orders.list({ limit: 5 })`
+
+**Pattern de migration** :
+```typescript
+// ❌ AVANT (route Next.js supprimée)
+const res = await fetch('/api/orders?limit=5');
+
+// ✅ APRÈS (backend NestJS via client API)
+import { endpoints } from '@/lib/api/client';
+const data = await endpoints.orders.list({ limit: 5 });
+```
+
+**Endpoints disponibles** :
+```
+endpoints.orders.list(params)        // GET /api/v1/orders
+endpoints.orders.get(id)             // GET /api/v1/orders/:id
+endpoints.orders.create(data)        // POST /api/v1/orders
+endpoints.orders.update(id, data)    // PUT /api/v1/orders/:id
+endpoints.orders.cancel(id)          // POST /api/v1/orders/:id/cancel
+endpoints.orders.updateStatus(id, s) // PUT /api/v1/orders/:id/status
+endpoints.orders.tracking(id)        // GET /api/v1/orders/:id/tracking
+endpoints.orders.refund(id, reason)  // POST /api/v1/orders/:id/refund
+```
+
+---
+
 ## ✅ TÂCHES
+
+### Phase 0: Fix Broken API Routes (0.5 jour) [Phase 12.5]
+
+- [ ] Migrer `useOrders.ts` → `endpoints.orders.list(params)`
+- [ ] Migrer `RecentActivity.tsx` → `endpoints.orders.list({ limit: 5 })`
+- [ ] Supprimer tout `fetch('/api/orders')` résiduel
 
 ### Phase 1: Amélioration Liste Commandes (2 jours)
 

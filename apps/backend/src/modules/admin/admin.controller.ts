@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Query,
   Param,
@@ -25,6 +26,7 @@ import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { AddBlacklistedPromptDto, BulkActionCustomersDto } from './dto/admin.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -32,6 +34,18 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 @Roles(UserRole.PLATFORM_ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  // ========================================
+  // TENANTS (BRANDS) - Platform admin view
+  // ========================================
+
+  @Get('tenants')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all tenants (brands) for platform admin' })
+  @ApiResponse({ status: 200, description: 'List of tenants' })
+  async getTenants() {
+    return this.adminService.getTenants();
+  }
 
   // ========================================
   // CUSTOMER MANAGEMENT
@@ -107,6 +121,7 @@ export class AdminController {
   }
 
   @Post('create-admin')
+  /** @Public: setup endpoint; protected by X-Setup-Key secret */
   @Public()
   @ApiOperation({ summary: 'Créer l\'admin (endpoint de setup - sécurisé avec clé secrète)' })
   @ApiHeader({ name: 'X-Setup-Key', description: 'Clé secrète pour créer l\'admin' })
@@ -152,6 +167,19 @@ export class AdminController {
     return this.adminService.getAICosts(period);
   }
 
+  @Get('ai/blacklist')
+  @ApiBearerAuth()
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Liste tous les termes blacklistés IA' })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des termes blacklistés',
+  })
+  async getBlacklistedPrompts() {
+    const terms = await this.adminService.getBlacklistedPrompts();
+    return { terms };
+  }
+
   @Post('ai/blacklist')
   @ApiBearerAuth()
   @Roles(UserRole.PLATFORM_ADMIN)
@@ -160,8 +188,21 @@ export class AdminController {
     status: 201,
     description: 'Terme ajouté à la liste noire',
   })
-  async addBlacklistedPrompt(@Body() body: { term: string }) {
+  async addBlacklistedPrompt(@Body() body: AddBlacklistedPromptDto) {
     return this.adminService.addBlacklistedPrompt(body.term);
+  }
+
+  @Delete('ai/blacklist/:term')
+  @ApiBearerAuth()
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Retirer un terme de la liste noire IA' })
+  @ApiParam({ name: 'term', description: 'Terme à retirer (peut être encodé en URL)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Terme retiré de la liste noire',
+  })
+  async removeBlacklistedPrompt(@Param('term') term: string) {
+    return this.adminService.removeBlacklistedPrompt(decodeURIComponent(term));
   }
 
   @Post('customers/bulk-action')
@@ -173,11 +214,7 @@ export class AdminController {
     description: 'Action en masse effectuée',
   })
   async bulkActionCustomers(
-    @Body() body: {
-      customerIds: string[];
-      action: 'email' | 'export' | 'tag' | 'segment' | 'delete';
-      options?: Record<string, any>;
-    },
+    @Body() body: BulkActionCustomersDto,
   ) {
     return this.adminService.bulkActionCustomers(
       body.customerIds,

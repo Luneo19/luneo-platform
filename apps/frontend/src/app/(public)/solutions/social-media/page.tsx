@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
@@ -84,17 +85,12 @@ function SocialMediaPageContent() {
     setIsScheduling(true);
     setScheduleStatus('idle');
     try {
-      const response = await fetch('/api/emails/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'social@luneo.app',
-          brandName: selectedPlatform.name,
-          subject: `Publication programmée ${selectedPlatform.name}`,
-          customMessage: `Type: ${postType}\nDate: ${scheduledDate} ${scheduledTime}\nContenu: ${content}`,
-        }),
+      await api.post('/api/v1/emails/send-welcome', {
+        email: 'social@luneo.app',
+        brandName: selectedPlatform.name,
+        subject: `Publication programmée ${selectedPlatform.name}`,
+        customMessage: `Type: ${postType}\nDate: ${scheduledDate} ${scheduledTime}\nContenu: ${content}`,
       });
-      if (!response.ok) throw new Error('Schedule failed');
       setScheduleStatus('success');
       setTimeout(() => {
         setScheduleStatus('idle');
@@ -229,7 +225,7 @@ function SocialMediaPageContent() {
                 {postTypes.map((type) => (
                   <Card
                     key={type.id}
-                    onClick={() => setPostType(type.id as any)}
+                    onClick={() => setPostType(type.id as string)}
                     className={`p-3 text-center cursor-pointer transition-all ${
                       postType === type.id
                         ? 'bg-pink-500/20 border-pink-500'

@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import { QuotaWarningBanner } from '@/components/shared/QuotaWarningBanner';
 import { TeamHeader } from './components/TeamHeader';
 import { TeamStats } from './components/TeamStats';
 import { TeamFilters } from './components/TeamFilters';
@@ -15,7 +16,7 @@ import { EditRoleModal } from './components/modals/EditRoleModal';
 import { RemoveMemberModal } from './components/modals/RemoveMemberModal';
 import { useTeamMembers } from './hooks/useTeamMembers';
 import { useTeamActions } from './hooks/useTeamActions';
-import type { TeamMember } from './types';
+import type { TeamMember, TeamRole } from './types';
 
 export function TeamPageClient() {
   const { members, pendingInvites, stats, isLoading, error, refetch } = useTeamMembers();
@@ -59,7 +60,7 @@ export function TeamPageClient() {
 
   const handleUpdateRole = useCallback(
     async (memberId: string, role: string) => {
-      const result = await handleChangeRole(memberId, role as any);
+      const result = await handleChangeRole(memberId, role as TeamRole);
       if (result.success) {
         refetch();
       }
@@ -81,7 +82,7 @@ export function TeamPageClient() {
 
   const handleInviteConfirm = useCallback(
     async (email: string, role: string) => {
-      const result = await handleInvite(email, role as any);
+      const result = await handleInvite(email, role as TeamRole);
       if (result.success) {
         refetch();
       }
@@ -103,10 +104,10 @@ export function TeamPageClient() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
-          <p className="mt-4 text-gray-300">Chargement de l'équipe...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement de l'équipe...</p>
         </div>
       </div>
     );
@@ -114,9 +115,9 @@ export function TeamPageClient() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <p className="text-red-400 mb-4">Erreur lors du chargement de l'équipe</p>
+          <p className="text-red-600 mb-4">Erreur lors du chargement de l'équipe</p>
           <button
             onClick={() => refetch()}
             className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700"
@@ -130,6 +131,7 @@ export function TeamPageClient() {
 
   return (
     <div className="space-y-6 pb-10">
+      <QuotaWarningBanner metric="teamMembers" />
       <TeamHeader stats={stats} onInvite={() => setShowInviteModal(true)} />
       <TeamStats stats={stats} />
       <TeamFilters

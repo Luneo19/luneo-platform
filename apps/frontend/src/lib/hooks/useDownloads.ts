@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api/client';
 
 interface Download {
   id: string;
@@ -13,12 +14,10 @@ export function useDownloads(userId: string, resourceType?: string) {
   const { data, isLoading, error } = useQuery<{ downloads: Download[] }>({
     queryKey: ['downloads', userId, resourceType],
     queryFn: async () => {
-      const params = new URLSearchParams({ userId });
-      if (resourceType) params.append('resourceType', resourceType);
-      
-      const response = await fetch(`/api/downloads?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch downloads');
-      return response.json();
+      const params: Record<string, string> = { userId };
+      if (resourceType) params.resourceType = resourceType;
+      const res = await api.get<{ downloads?: Download[] }>('/api/v1/downloads', { params });
+      return { downloads: res?.downloads ?? [] };
     },
     enabled: !!userId,
   });
@@ -40,13 +39,11 @@ export function useRecordDownload() {
       resource_id: string;
       download_url?: string;
     }) => {
-      const response = await fetch('/api/downloads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(download),
+      return api.post('/api/v1/downloads', {
+        resourceId: download.resource_id,
+        resourceType: download.resource_type,
+        fileUrl: download.download_url,
       });
-      if (!response.ok) throw new Error('Failed to record download');
-      return response.json();
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['downloads', variables.user_id] });

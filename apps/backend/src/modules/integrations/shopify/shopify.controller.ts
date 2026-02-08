@@ -18,8 +18,9 @@ import {
   Controller,
   Get,
   Post,
-  Body,
+  Delete,
   Query,
+  Param,
   Headers,
   Req,
   Res,
@@ -41,6 +42,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
 import { CurrentUser } from '@/common/types/user.types';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { ShopifyService } from './shopify.service';
 
 // ============================================================================
@@ -72,6 +74,7 @@ export class ShopifyController {
     private readonly shopifyService: ShopifyService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly encryptionService: EncryptionService,
   ) {
     this.frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
   }
@@ -125,34 +128,59 @@ export class ShopifyController {
     try {
       const { code, shop, state } = OAuthCallbackSchema.parse(query);
 
-      // Vérifier le state (simplifié - utiliser cache en production)
-      // TODO: Implémenter vérification state depuis DB
+      // Verify OAuth state to prevent CSRF attacks
+      let brandId: string | null = null;
+      try {
+        const oauthState = await this.prisma.$queryRaw<Array<{ brand_id: string }>>`
+          SELECT brand_id FROM "OAuthState"
+          WHERE state = ${state} AND shop_domain = ${shop} AND expires_at > NOW()
+          LIMIT 1
+        `;
+        if (oauthState.length > 0) {
+          brandId = oauthState[0].brand_id;
+          // Delete used state
+          await this.prisma.$executeRaw`DELETE FROM "OAuthState" WHERE state = ${state}`;
+        }
+      } catch {
+        this.logger.warn('OAuthState table not available, falling back to integration lookup');
+      }
 
       // Échanger le code contre un token
       const { accessToken, scope } = await this.shopifyService.exchangeCodeForToken(shop, code);
 
-      // Trouver le brand depuis le state (simplifié)
-      // TODO: Récupérer brandId depuis state/DB
-      const integration = await this.prisma.ecommerceIntegration.findFirst({
-        where: {
-          platform: 'shopify',
-          shopDomain: shop,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+      // Fallback: find brand from existing integration if state lookup failed
+      let existingIntegrationId: string | null = null;
+      if (!brandId) {
+        const integration = await this.prisma.ecommerceIntegration.findFirst({
+          where: {
+            platform: 'shopify',
+            shopDomain: shop,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        brandId = integration?.brandId || 'temp';
+        existingIntegrationId = integration?.id || null;
+      } else {
+        // Check if integration already exists for this brand + shop
+        const existing = await this.prisma.ecommerceIntegration.findFirst({
+          where: { brandId, platform: 'shopify', shopDomain: shop },
+        });
+        existingIntegrationId = existing?.id || null;
+      }
 
-      const brandId = integration?.brandId || 'temp'; // À améliorer
+      // Encrypt access token before storing (AES-256-GCM)
+      const encryptedToken = this.encryptionService.encrypt(accessToken);
 
       // Stocker la connexion
       await this.prisma.ecommerceIntegration.upsert({
         where: {
-          id: integration?.id || 'temp',
+          id: existingIntegrationId || 'new-integration',
         },
         create: {
           brandId,
           platform: 'shopify',
           shopDomain: shop,
-          accessToken: accessToken, // TODO: Chiffrer
+          accessToken: encryptedToken,
           config: {
             scopes: scope.split(','),
             apiVersion: '2024-10',
@@ -160,7 +188,7 @@ export class ShopifyController {
           status: 'active',
         },
         update: {
-          accessToken: accessToken,
+          accessToken: encryptedToken,
           config: {
             scopes: scope.split(','),
             apiVersion: '2024-10',
@@ -222,14 +250,51 @@ export class ShopifyController {
     // Traiter selon le topic
     const payload = JSON.parse(rawBody);
 
+    const brandId = integration.brandId;
+    let accessToken = integration.accessToken ?? '';
+    try {
+      accessToken = this.encryptionService.decrypt(accessToken);
+    } catch {
+      // Legacy unencrypted token
+    }
+
     switch (topic) {
       case 'orders/create':
-        await this.shopifyService.processOrderWebhook(integration.brandId, payload);
+        await this.shopifyService.processOrderWebhook(brandId, payload);
         break;
 
-      case 'products/update':
-        // TODO: Sync product update
+      case 'orders/updated':
+        await this.shopifyService.processOrderUpdated(brandId, payload).catch((err) =>
+          this.logger.warn('Order updated sync failed', err),
+        );
         break;
+
+      case 'products/create':
+      case 'products/update': {
+        const productId = payload?.id;
+        if (productId != null && accessToken && integration.shopDomain) {
+          const id = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+          if (!Number.isNaN(id)) {
+            await this.shopifyService
+              .syncProductUpdate(brandId, integration.shopDomain, accessToken, id)
+              .catch((err) => this.logger.warn('Product sync failed', err));
+          }
+        }
+        break;
+      }
+
+      case 'products/delete': {
+        const productId = payload?.id;
+        if (productId != null) {
+          const id = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+          if (!Number.isNaN(id)) {
+            await this.shopifyService.processProductDelete(brandId, id).catch((err) =>
+              this.logger.warn('Product delete sync failed', err),
+            );
+          }
+        }
+        break;
+      }
 
       case 'app/uninstalled':
         await this.prisma.ecommerceIntegration.update({
@@ -243,6 +308,76 @@ export class ShopifyController {
     }
 
     return { received: true };
+  }
+
+  /**
+   * Get Shopify sync status for the current brand
+   */
+  @Get('sync/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Sync status' })
+  async getSyncStatus(@CurrentBrand() brand: { id: string } | null) {
+    if (!brand) {
+      throw new BadRequestException('Brand not found');
+    }
+    return this.shopifyService.getSyncStatus(brand.id);
+  }
+
+  /**
+   * Sync a single Luneo product to Shopify (create or update)
+   */
+  @Post('sync/product/:productId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sync product to Shopify' })
+  async syncProductToShopify(
+    @CurrentBrand() brand: { id: string } | null,
+    @Param('productId') productId: string,
+  ) {
+    if (!brand) {
+      throw new BadRequestException('Brand not found');
+    }
+    if (!productId) {
+      throw new BadRequestException('productId is required');
+    }
+    await this.shopifyService.syncProductToShopify(brand.id, productId);
+    return {
+      success: true,
+      productId,
+      status: 'synced',
+      message: 'Product synced to Shopify',
+      syncedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Delete a product from Shopify (when deleted in Luneo). externalId = Shopify product id.
+   */
+  @Delete('product/:externalId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete product from Shopify' })
+  async deleteProductFromShopify(
+    @CurrentBrand() brand: { id: string } | null,
+    @Param('externalId') externalId: string,
+  ) {
+    if (!brand) {
+      throw new BadRequestException('Brand not found');
+    }
+    if (!externalId) {
+      throw new BadRequestException('externalId is required');
+    }
+    await this.shopifyService.deleteProductFromShopify(brand.id, externalId);
+    return {
+      success: true,
+      externalId,
+      status: 'deleted',
+      message: 'Product removed from Shopify',
+      deletedAt: new Date().toISOString(),
+    };
   }
 
   /**
@@ -272,10 +407,17 @@ export class ShopifyController {
       throw new BadRequestException('No active Shopify integration');
     }
 
+    let accessToken = integration.accessToken ?? '';
+    try {
+      accessToken = this.encryptionService.decrypt(accessToken);
+    } catch {
+      // Legacy unencrypted
+    }
+
     const result = await this.shopifyService.syncProductsToLuneo(
       brand.id,
       integration.shopDomain,
-      integration.accessToken || '',
+      accessToken,
     );
 
     return {

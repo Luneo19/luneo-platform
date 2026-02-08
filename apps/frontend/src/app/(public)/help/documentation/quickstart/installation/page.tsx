@@ -4,7 +4,7 @@ import React, { memo } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Terminal, Package, CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { logger } from '../../../../../../lib/logger';
+import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function InstallationPageContent() {

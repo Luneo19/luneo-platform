@@ -87,7 +87,8 @@ export function preloadRoute(pathname: string): void {
   if (typeof window === 'undefined') return;
 
   // Use Next.js router prefetch if available
-  const router = (window as any).__NEXT_ROUTER__;
+  const win = window as Window & { __NEXT_ROUTER__?: { prefetch: (pathname: string) => void } };
+  const router = win.__NEXT_ROUTER__;
   if (router?.prefetch) {
     router.prefetch(pathname);
     return;
@@ -204,7 +205,7 @@ export function prefetchOnIdle(callback: () => void): void {
   if (typeof window === 'undefined') return;
 
   if ('requestIdleCallback' in window) {
-    (window as any).requestIdleCallback(callback, { timeout: 2000 });
+    (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout?: number }) => number }).requestIdleCallback(callback, { timeout: 2000 });
   } else {
     // Fallback for Safari
     setTimeout(callback, 100);
@@ -230,7 +231,8 @@ export function preloadFonts(fonts: { url: string; format: string }[]): void {
 export function shouldPreload(): boolean {
   if (typeof navigator === 'undefined') return true;
 
-  const connection = (navigator as any).connection;
+  const nav = navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } };
+  const connection = nav.connection;
   if (!connection) return true;
 
   // Don't preload on slow connections or save-data mode

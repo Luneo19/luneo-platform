@@ -56,16 +56,16 @@ export function GenerateModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-700 max-w-2xl">
+      <DialogContent className="bg-white border-gray-200 max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Générer une Animation</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogTitle className="text-gray-900">Générer une Animation</DialogTitle>
+          <DialogDescription className="text-gray-600">
             Décrivez l'animation que vous souhaitez créer
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="prompt" className="text-gray-300">
+            <Label htmlFor="prompt" className="text-gray-700">
               Prompt
             </Label>
             <Textarea
@@ -73,13 +73,13 @@ export function GenerateModal({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ex: Logo qui apparaît avec un effet de zoom fluide..."
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
               rows={4}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="duration" className="text-gray-300">
+              <Label htmlFor="duration" className="text-gray-700">
                 Durée (secondes)
               </Label>
               <Input
@@ -89,15 +89,15 @@ export function GenerateModal({
                 onChange={(e) => setDuration(e.target.value)}
                 min="1"
                 max="30"
-                className="bg-gray-900 border-gray-600 text-white mt-1"
+                className="bg-white border-gray-200 text-gray-900 mt-1"
               />
             </div>
             <div>
-              <Label htmlFor="style" className="text-gray-300">
+              <Label htmlFor="style" className="text-gray-700">
                 Style
               </Label>
               <Select value={style} onValueChange={(v) => setStyle(v as AnimationStyle)}>
-                <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-1">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -140,7 +140,7 @@ export function GenerateModal({
           </div>
           {isGenerating && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm text-gray-400">
+              <div className="flex items-center justify-between text-sm text-gray-600">
                 <span>Génération en cours...</span>
                 <span>{progress}%</span>
               </div>
@@ -149,7 +149,7 @@ export function GenerateModal({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isGenerating} className="border-gray-600">
+          <Button variant="outline" onClick={onClose} disabled={isGenerating} className="border-gray-200">
             Annuler
           </Button>
           <Button

@@ -1,4 +1,0 @@
-  File "/Users/emmanuelabougadous/luneo-platform/analyze_dashboard_pages.py", line 51
-    'has_use_client': bool(re.search(r"'use client'|"use client"", content)),
-                                                     ^
-SyntaxError: invalid syntax

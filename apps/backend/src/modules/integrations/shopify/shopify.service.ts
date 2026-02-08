@@ -373,11 +373,34 @@ export class ShopifyService {
   }
 
   // ==========================================================================
-  // API CALLS
+  // API CALLS & HELPERS
   // ==========================================================================
 
+  /** Shopify rate limit: 2 req/sec — wait 500ms before each request */
+  private static readonly SHOPIFY_THROTTLE_MS = 500;
+
   /**
-   * Appel API Shopify générique
+   * Get active Shopify integration for a brand with decrypted access token.
+   */
+  private async getIntegration(brandId: string) {
+    const integration = await this.prisma.ecommerceIntegration.findFirst({
+      where: {
+        brandId,
+        platform: 'shopify',
+        status: 'active',
+      },
+    });
+    if (!integration || !integration.accessToken || !integration.shopDomain) {
+      throw new NotFoundException(`No active Shopify integration found for brand ${brandId}`);
+    }
+    return {
+      ...integration,
+      accessToken: this.decryptToken(integration.accessToken),
+    };
+  }
+
+  /**
+   * Appel API Shopify générique avec throttling (500ms entre chaque requête)
    */
   private async shopifyApiCall<T>(
     shopDomain: string,
@@ -386,6 +409,8 @@ export class ShopifyService {
     endpoint: string,
     data?: Record<string, unknown>,
   ): Promise<T> {
+    await this.delay(ShopifyService.SHOPIFY_THROTTLE_MS);
+
     const url = `https://${shopDomain}/admin/api/${this.apiVersion}/${endpoint}`;
 
     try {
@@ -439,6 +464,46 @@ export class ShopifyService {
   }
 
   /**
+   * Récupère un produit Shopify par son ID
+   */
+  async fetchProductById(
+    shopDomain: string,
+    accessToken: string,
+    productId: number,
+  ): Promise<ShopifyProduct | null> {
+    try {
+      const response = await this.shopifyApiCall<{ product: unknown }>(
+        shopDomain,
+        accessToken,
+        'GET',
+        `products/${productId}.json`,
+      );
+      return response?.product
+        ? ShopifyProductSchema.parse(response.product)
+        : null;
+    } catch (error) {
+      this.logger.warn(`Failed to fetch Shopify product ${productId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Synchronise un produit mis à jour depuis un webhook products/update
+   */
+  async syncProductUpdate(
+    brandId: string,
+    shopDomain: string,
+    accessToken: string,
+    productId: number,
+  ): Promise<void> {
+    const shopifyProduct = await this.fetchProductById(shopDomain, accessToken, productId);
+    if (shopifyProduct) {
+      await this.upsertProductFromShopify(brandId, shopifyProduct);
+      this.logger.log(`Synced product ${productId} for brand ${brandId}`);
+    }
+  }
+
+  /**
    * Synchronise les produits Shopify vers Luneo
    */
   async syncProductsToLuneo(
@@ -480,6 +545,105 @@ export class ShopifyService {
       this.logger.error('Product sync failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Sync a Luneo product to Shopify (create or update).
+   * When the product is modified in Luneo, call this to push changes to Shopify.
+   */
+  async syncProductToShopify(brandId: string, productId: string): Promise<void> {
+    const integration = await this.getIntegration(brandId);
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, brandId },
+      include: {
+        productMappings: {
+          where: { integrationId: integration.id },
+          take: 1,
+        },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const price = typeof product.price === 'object' && product.price !== null && 'toNumber' in product.price
+      ? (product.price as { toNumber: () => number }).toNumber()
+      : Number(product.price);
+
+    const shopifyData = {
+      title: product.name,
+      body_html: product.description || '',
+      product_type: product.category || '',
+      images: (product.images || []).map((url: string) => ({ src: url })),
+      variants: [{ price: String(price), sku: product.sku || undefined }],
+    };
+
+    const mapping = product.productMappings[0];
+    if (mapping) {
+      await this.shopifyApiCall(
+        integration.shopDomain,
+        integration.accessToken,
+        'PUT',
+        `products/${mapping.externalProductId}.json`,
+        { product: shopifyData },
+      );
+      this.logger.log(`Updated product ${mapping.externalProductId} on Shopify for brand ${brandId}`);
+    } else {
+      const response = await this.shopifyApiCall<{ product: { id: number } }>(
+        integration.shopDomain,
+        integration.accessToken,
+        'POST',
+        'products.json',
+        { product: shopifyData },
+      );
+      const shopifyId = String(response.product.id);
+      await this.prisma.productMapping.create({
+        data: {
+          luneoProductId: product.id,
+          integrationId: integration.id,
+          externalProductId: shopifyId,
+          externalSku: product.sku || product.slug,
+          metadata: { createdFromLuneo: true },
+        },
+      });
+      this.logger.log(`Created product ${shopifyId} on Shopify for brand ${brandId}`);
+    }
+
+    await this.prisma.productMapping.updateMany({
+      where: { luneoProductId: productId, integrationId: integration.id },
+      data: { lastSyncedAt: new Date(), syncStatus: 'synced' },
+    });
+    await this.prisma.ecommerceIntegration.update({
+      where: { id: integration.id },
+      data: { lastSyncAt: new Date() },
+    });
+  }
+
+  /**
+   * Delete a product from Shopify when it is deleted in Luneo.
+   * @param brandId - Brand id
+   * @param externalId - Shopify product id (from ProductMapping.externalProductId)
+   */
+  async deleteProductFromShopify(brandId: string, externalId: string): Promise<void> {
+    const integration = await this.getIntegration(brandId);
+    await this.shopifyApiCall(
+      integration.shopDomain,
+      integration.accessToken,
+      'DELETE',
+      `products/${externalId}.json`,
+    );
+    await this.prisma.productMapping.deleteMany({
+      where: {
+        integrationId: integration.id,
+        externalProductId: externalId,
+      },
+    });
+    await this.prisma.ecommerceIntegration.update({
+      where: { id: integration.id },
+      data: { lastSyncAt: new Date() },
+    });
+    this.logger.log(`Deleted product ${externalId} from Shopify for brand ${brandId}`);
   }
 
   /**
@@ -587,14 +751,18 @@ export class ShopifyService {
       return;
     }
 
-    // Créer la commande dans Luneo
-    // Utiliser OrderUncheckedCreateInput en passant brandId directement
+    const totalCents = Math.round(parseFloat(order.total_price) * 100);
+    const orderNumber = `SHOP-${order.id}`;
+    const customerEmail = order.email || 'noreply@shopify-order.local';
+
     const luneoOrder = await this.prisma.order.create({
       data: {
-        brandId, // Utiliser brandId directement au lieu de la relation
-        // userId est optionnel, on l'omet si null
+        brandId,
+        orderNumber,
+        customerEmail,
         status: 'CREATED',
-        totalCents: Math.round(parseFloat(order.total_price) * 100),
+        subtotalCents: totalCents,
+        totalCents,
         currency: order.currency,
         paymentStatus: order.financial_status === 'paid' ? 'SUCCEEDED' : 'PENDING',
         metadata: {
@@ -602,16 +770,15 @@ export class ShopifyService {
           shopifyOrderNumber: order.order_number,
           financialStatus: order.financial_status,
           fulfillmentStatus: order.fulfillment_status,
-        } as any,
-      } as any,
+        },
+      },
     });
 
-    // Créer les order items avec les générations
+    // Créer les order items avec les générations (uniquement si produit mappé trouvé)
     for (const item of luneoItems) {
       const generationIdProp = item.properties.find(p => p.name === '_luneo_generation_id');
       if (!generationIdProp) continue;
 
-      // Trouver le produit Luneo depuis le mapping
       let productId: string | null = null;
       if (item.product_id) {
         const mapping = await this.prisma.productMapping.findFirst({
@@ -622,10 +789,15 @@ export class ShopifyService {
         productId = mapping?.luneoProductId || null;
       }
 
+      if (!productId) {
+        this.logger.warn(`Skipping order item: no Luneo product mapping for Shopify product ${item.product_id}`);
+        continue;
+      }
+
       await this.prisma.orderItem.create({
         data: {
           orderId: luneoOrder.id,
-          productId: productId || 'temp', // OrderItem.productId est required
+          productId,
           quantity: item.quantity,
           priceCents: Math.round(parseFloat(item.price) * 100),
           totalCents: Math.round(parseFloat(item.price) * 100 * item.quantity),
@@ -647,6 +819,105 @@ export class ShopifyService {
     this.logger.log(`Order ${order.order_number} processed, ${luneoItems.length} items`);
   }
 
+  /**
+   * Process Shopify orders/updated webhook: update Luneo order status and payment.
+   */
+  async processOrderUpdated(brandId: string, payload: unknown): Promise<void> {
+    const order = ShopifyOrderSchema.parse(payload);
+
+    const existing = await this.prisma.order.findFirst({
+      where: {
+        brandId,
+        metadata: { path: ['shopifyOrderId'], equals: order.id },
+      },
+    });
+
+    if (!existing) {
+      this.logger.log(`Order ${order.id} not found in Luneo for brand ${brandId}, skipping update`);
+      return;
+    }
+
+    const status = this.mapShopifyFulfillmentToOrderStatus(order.fulfillment_status);
+    const paymentStatus = order.financial_status === 'paid' ? 'SUCCEEDED' : 'PENDING';
+
+    await this.prisma.order.update({
+      where: { id: existing.id },
+      data: {
+        status,
+        paymentStatus,
+        metadata: {
+          ...(typeof existing.metadata === 'object' && existing.metadata !== null ? existing.metadata as Record<string, unknown> : {}),
+          shopifyOrderId: order.id,
+          shopifyOrderNumber: order.order_number,
+          financialStatus: order.financial_status,
+          fulfillmentStatus: order.fulfillment_status,
+        },
+      },
+    });
+
+    this.logger.log(`Updated order ${existing.orderNumber} for brand ${brandId}`);
+  }
+
+  private mapShopifyFulfillmentToOrderStatus(fulfillment: string | null): 'CREATED' | 'PENDING_PAYMENT' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED' {
+    if (!fulfillment) return 'CREATED';
+    switch (fulfillment) {
+      case 'fulfilled':
+        return 'SHIPPED';
+      case 'partial':
+        return 'PROCESSING';
+      case 'restocked':
+        return 'CANCELLED';
+      default:
+        return 'PROCESSING';
+    }
+  }
+
+  /**
+   * Handle products/delete webhook: remove ProductMapping and optionally soft-delete product in Luneo.
+   */
+  async processProductDelete(brandId: string, shopifyProductId: number): Promise<void> {
+    const integration = await this.prisma.ecommerceIntegration.findFirst({
+      where: { brandId, platform: 'shopify', status: 'active' },
+    });
+    if (!integration) return;
+
+    const mapping = await this.prisma.productMapping.findFirst({
+      where: {
+        integrationId: integration.id,
+        externalProductId: String(shopifyProductId),
+      },
+      include: { product: true },
+    });
+
+    if (mapping?.product) {
+      await this.prisma.productMapping.delete({ where: { id: mapping.id } });
+      await this.prisma.product.update({
+        where: { id: mapping.luneoProductId },
+        data: { deletedAt: new Date() },
+      });
+      this.logger.log(`Soft-deleted Luneo product ${mapping.luneoProductId} after Shopify product ${shopifyProductId} deleted`);
+    }
+  }
+
+  /**
+   * Sync status for a brand's Shopify integration.
+   */
+  async getSyncStatus(brandId: string): Promise<{
+    lastSync: Date | null;
+    syncedProducts: number;
+    status: string;
+  }> {
+    const integration = await this.getIntegration(brandId);
+    const syncedProducts = await this.prisma.productMapping.count({
+      where: { integrationId: integration.id },
+    });
+    return {
+      lastSync: integration.lastSyncAt ?? null,
+      syncedProducts,
+      status: integration.status,
+    };
+  }
+
   // ==========================================================================
   // WEBHOOKS MANAGEMENT
   // ==========================================================================
@@ -662,6 +933,7 @@ export class ShopifyService {
     const webhookTopics = [
       'orders/create',
       'orders/updated',
+      'products/create',
       'products/update',
       'products/delete',
       'app/uninstalled',

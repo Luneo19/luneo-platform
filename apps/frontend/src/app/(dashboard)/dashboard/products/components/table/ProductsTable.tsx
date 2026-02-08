@@ -32,33 +32,33 @@ export function ProductsTable({
     products.length > 0 && selectedProducts.size === products.length;
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-700">
+            <tr className="border-b border-gray-200">
               <th className="p-4 text-left">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={onSelectAll}
                 />
               </th>
-              <th className="p-4 text-left text-gray-300 font-medium">
+              <th className="p-4 text-left text-gray-700 font-medium">
                 Produit
               </th>
-              <th className="p-4 text-left text-gray-300 font-medium">
+              <th className="p-4 text-left text-gray-700 font-medium">
                 Catégorie
               </th>
-              <th className="p-4 text-left text-gray-300 font-medium">Prix</th>
-              <th className="p-4 text-left text-gray-300 font-medium">
+              <th className="p-4 text-left text-gray-700 font-medium">Prix</th>
+              <th className="p-4 text-left text-gray-700 font-medium">
                 Statut
               </th>
-              <th className="p-4 text-left text-gray-300 font-medium">Vues</th>
-              <th className="p-4 text-left text-gray-300 font-medium">
+              <th className="p-4 text-left text-gray-700 font-medium">Vues</th>
+              <th className="p-4 text-left text-gray-700 font-medium">
                 Commandes
               </th>
-              <th className="p-4 text-left text-gray-300 font-medium">Date</th>
-              <th className="p-4 text-left text-gray-300 font-medium">
+              <th className="p-4 text-left text-gray-700 font-medium">Date</th>
+              <th className="p-4 text-left text-gray-700 font-medium">
                 Actions
               </th>
             </tr>

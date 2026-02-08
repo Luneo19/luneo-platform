@@ -72,15 +72,24 @@ export class PrometheusService implements OnModuleInit {
       collectDefaultMetrics({ register: this.registry });
     }
 
+    // Typed constructors: prom-client types are not fully compatible with strict mode (optional dependency)
+    type PrometheusConfig = { name: string; help: string; labelNames?: string[]; buckets?: number[]; registers?: unknown[] };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const TypedCounter = Counter as new (config: PrometheusConfig) => { inc: (labels?: Record<string, string>) => void };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const TypedHistogram = Histogram as new (config: PrometheusConfig) => { observe: (labels: Record<string, string>, value: number) => void };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const TypedGauge = Gauge as new (config: PrometheusConfig) => { set: (labels: Record<string, string>, value: number) => void };
+
     // HTTP Metrics
-    this.httpRequestsTotal = new (Counter as any)({
+    this.httpRequestsTotal = new TypedCounter({
       name: 'http_requests_total',
       help: 'Total number of HTTP requests',
       labelNames: ['method', 'route', 'status', 'brandId'],
       registers: [this.registry],
     });
 
-    this.httpRequestDuration = new (Histogram as any)({
+    this.httpRequestDuration = new TypedHistogram({
       name: 'http_request_duration_seconds',
       help: 'Duration of HTTP requests in seconds',
       labelNames: ['method', 'route', 'status'],
@@ -88,7 +97,7 @@ export class PrometheusService implements OnModuleInit {
       registers: [this.registry],
     });
 
-    this.httpRequestSize = new (Histogram as any)({
+    this.httpRequestSize = new TypedHistogram({
       name: 'http_request_size_bytes',
       help: 'Size of HTTP requests in bytes',
       labelNames: ['method', 'route'],
@@ -96,7 +105,7 @@ export class PrometheusService implements OnModuleInit {
       registers: [this.registry],
     });
 
-    this.httpResponseSize = new (Histogram as any)({
+    this.httpResponseSize = new TypedHistogram({
       name: 'http_response_size_bytes',
       help: 'Size of HTTP responses in bytes',
       labelNames: ['method', 'route', 'status'],
@@ -105,35 +114,35 @@ export class PrometheusService implements OnModuleInit {
     });
 
     // Business Metrics
-    this.designsCreated = new (Counter as any)({
+    this.designsCreated = new TypedCounter({
       name: 'designs_created_total',
       help: 'Total number of designs created',
       labelNames: ['brandId', 'provider'],
       registers: [this.registry],
     });
 
-    this.aiGenerations = new (Counter as any)({
+    this.aiGenerations = new TypedCounter({
       name: 'ai_generations_total',
       help: 'Total number of AI generations',
       labelNames: ['brandId', 'provider', 'model', 'stage'],
       registers: [this.registry],
     });
 
-    this.aiCosts = new (Counter as any)({
+    this.aiCosts = new TypedCounter({
       name: 'ai_costs_cents_total',
       help: 'Total AI costs in cents',
       labelNames: ['brandId', 'provider', 'model'],
       registers: [this.registry],
     });
 
-    this.ordersCreated = new (Counter as any)({
+    this.ordersCreated = new TypedCounter({
       name: 'orders_created_total',
       help: 'Total number of orders created',
       labelNames: ['brandId', 'status'],
       registers: [this.registry],
     });
 
-    this.renderRequests = new (Counter as any)({
+    this.renderRequests = new TypedCounter({
       name: 'render_requests_total',
       help: 'Total number of render requests',
       labelNames: ['brandId', 'type', 'status'],
@@ -141,21 +150,21 @@ export class PrometheusService implements OnModuleInit {
     });
 
     // System Metrics
-    this.activeConnections = new (Gauge as any)({
+    this.activeConnections = new TypedGauge({
       name: 'active_connections',
       help: 'Number of active connections',
       labelNames: ['type'],
       registers: [this.registry],
     });
 
-    this.queueSize = new (Gauge as any)({
+    this.queueSize = new TypedGauge({
       name: 'queue_size',
       help: 'Size of job queues',
       labelNames: ['queue'],
       registers: [this.registry],
     });
 
-    this.cacheHitRate = new (Gauge as any)({
+    this.cacheHitRate = new TypedGauge({
       name: 'cache_hit_rate',
       help: 'Cache hit rate (0-1)',
       labelNames: ['type'],
@@ -176,9 +185,35 @@ export class PrometheusService implements OnModuleInit {
    */
   async getMetrics(): Promise<string> {
     if (!this.registry) {
-      return '# prom-client not installed. Install with: npm install prom-client\n';
+      return '# prom-client not installed. Install with: prom-client\n';
     }
     return this.registry.metrics();
+  }
+
+  /**
+   * Get basic request count and latency for health endpoint (from prom-client registry).
+   */
+  async getRequestStats(): Promise<{ requestCountTotal: number; latencyP95Ms: number | null }> {
+    if (!this.registry || typeof this.registry.getMetricsAsJSON !== 'function') {
+      return { requestCountTotal: 0, latencyP95Ms: null };
+    }
+    const metrics = this.registry.getMetricsAsJSON() as Array<{ name: string; values?: Array<{ value?: number; labels?: Record<string, string> }> }>;
+    let requestCountTotal = 0;
+    let latencyP95Ms: number | null = null;
+    for (const m of metrics) {
+      if (m.name === 'http_requests_total' && m.values?.length) {
+        requestCountTotal += m.values.reduce((s, v) => s + (Number(v.value) || 0), 0);
+      }
+      if (m.name === 'http_request_duration_seconds_bucket' && m.values?.length) {
+        const withLe = m.values.filter((v) => v.labels?.le != null).sort((a, b) => (parseFloat(a.labels!.le) || 0) - (parseFloat(b.labels!.le) || 0));
+        if (withLe.length > 0) {
+          const p95Bucket = withLe[Math.min(Math.ceil(withLe.length * 0.95) - 1, withLe.length - 1)];
+          const le = p95Bucket?.labels?.le ? parseFloat(p95Bucket.labels.le) : 0;
+          latencyP95Ms = Math.round(le * 1000);
+        }
+      }
+    }
+    return { requestCountTotal, latencyP95Ms };
   }
 
   /**

@@ -15,7 +15,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { WebVitalsService } from '../services/web-vitals.service';
 import { CreateWebVitalDto, GetWebVitalsDto } from '../dto/web-vitals.dto';
 
@@ -25,6 +26,7 @@ export class WebVitalsController {
   constructor(private readonly webVitalsService: WebVitalsService) {}
 
   @Post()
+  @Public() // Public: Browser metrics collection endpoint
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Record Web Vital metric',

@@ -102,18 +102,50 @@ export class DesignDNAService {
   }
 
   /**
-   * Analyse les paramètres qui convertissent le mieux
+   * Analyse les paramètres qui convertissent le mieux à partir des conversions
    */
   async analyzeConversionPatterns(brandId?: string): Promise<{
     topParameters: Array<{ parameter: string; conversionRate: number }>;
     topTags: Array<{ tag: string; conversionRate: number }>;
   }> {
-    // TODO: Implémenter analyse des patterns de conversion
-    // Pour l'instant, retourner des données vides
-    return {
-      topParameters: [],
-      topTags: [],
-    };
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+
+    const conversions = await this.prisma.conversion.findMany({
+      where: { timestamp: { gte: startDate } },
+      select: { eventType: true, attribution: true },
+    });
+
+    const byEvent = new Map<string, number>();
+    const byTag = new Map<string, number>();
+    for (const c of conversions) {
+      byEvent.set(c.eventType, (byEvent.get(c.eventType) ?? 0) + 1);
+      const att = c.attribution as Record<string, unknown> | null;
+      if (att?.tags && Array.isArray(att.tags)) {
+        for (const t of att.tags as string[]) {
+          byTag.set(t, (byTag.get(t) ?? 0) + 1);
+        }
+      }
+      if (att?.parameter && typeof att.parameter === 'string') {
+        byEvent.set(`param:${att.parameter}`, (byEvent.get(`param:${att.parameter}`) ?? 0) + 1);
+      }
+    }
+
+    const total = conversions.length;
+    const rate = (n: number) => (total > 0 ? n / total : 0);
+
+    const topParameters = Array.from(byEvent.entries())
+      .filter(([k]) => k.startsWith('param:'))
+      .map(([parameter, count]) => ({ parameter: parameter.replace('param:', ''), conversionRate: rate(count) }))
+      .sort((a, b) => b.conversionRate - a.conversionRate)
+      .slice(0, 10);
+
+    const topTags = Array.from(byTag.entries())
+      .map(([tag, count]) => ({ tag, conversionRate: rate(count) }))
+      .sort((a, b) => b.conversionRate - a.conversionRate)
+      .slice(0, 10);
+
+    return { topParameters, topTags };
   }
 
   /**

@@ -8,7 +8,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { db } from '@/lib/db';
+import { endpoints } from '@/lib/api/client';
 
 export interface PODVariantMapping {
   provider: 'printful' | 'printify' | 'gelato';
@@ -53,21 +53,15 @@ export class PODMappingService {
    */
   async getProductPODConfig(productId: string): Promise<PODProductConfig> {
     try {
-      const product = await db.product.findUnique({
-        where: { id: productId },
-        select: {
-          metadata: true,
-          customizationOptions: true,
-        },
-      });
+      const product = await endpoints.products.get(productId).catch(() => null) as { metadata?: any } | null;
 
       if (!product) {
         return {};
       }
 
-      const metadata = product.metadata as any;
+      const metadata = product.metadata as Record<string, unknown>;
       return metadata?.pod || {};
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting POD config', { error, productId });
       return {};
     }
@@ -82,19 +76,15 @@ export class PODMappingService {
     config: PODVariantMapping
   ): Promise<void> {
     try {
-      const product = await db.product.findUnique({
-        where: { id: productId },
-        select: { metadata: true },
-      });
+      const product = await endpoints.products.get(productId).catch(() => null) as { metadata?: Record<string, unknown> & { pod?: Record<string, PODVariantMapping> } } | null;
 
       if (!product) {
         throw new Error('Product not found');
       }
 
-      const metadata = product.metadata as any || {};
+      const metadata = (product.metadata as Record<string, unknown> & { pod?: Record<string, PODVariantMapping> }) || {};
       const podConfig = metadata.pod || {};
 
-      // Update provider-specific config
       podConfig[provider] = {
         variantId: config.variantId,
         productId: config.productId,
@@ -103,19 +93,15 @@ export class PODMappingService {
         defaultProductId: config.defaultProductId,
       };
 
-      // Update product metadata
-      await db.product.update({
-        where: { id: productId },
-        data: {
-          metadata: {
-            ...metadata,
-            pod: podConfig,
-          } as any,
+      await endpoints.products.update(productId, {
+        metadata: {
+          ...metadata,
+          pod: podConfig,
         },
       });
 
       logger.info('POD config updated', { productId, provider, config });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating POD config', { error, productId, provider });
       throw error;
     }
@@ -160,7 +146,7 @@ export class PODMappingService {
 
       // Fallback to default based on provider
       return this.getDefaultVariantId(provider);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting variant ID', { error, productId, provider });
       return this.getDefaultVariantId(provider);
     }
@@ -228,7 +214,7 @@ export class PODMappingService {
       }
 
       return `product_${productId}`; // Generate from product ID
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting product UID', { error, productId, provider });
       return `product_${productId}`;
     }

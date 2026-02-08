@@ -1,7 +1,8 @@
 import { Controller, Get, UseGuards, Request, Post, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { PlansService, PlanType } from './plans.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PlansService, type PlanLimits } from './plans.service';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { UpgradePlanDto } from './dto/upgrade-plan.dto';
 
 @ApiTags('Plans')
 @Controller('plans')
@@ -59,13 +60,13 @@ export class PlansController {
   @Post('upgrade')
   @ApiOperation({ summary: 'Upgrader le plan de l\'utilisateur' })
   @ApiResponse({ status: 200, description: 'Plan upgradé avec succès' })
-  async upgradePlan(@Request() req, @Body() body: { plan: PlanType }) {
+  async upgradePlan(@Request() req, @Body() body: UpgradePlanDto) {
     await this.plansService.upgradeUserPlan(req.user.id, body.plan);
-    
+
     return {
       success: true,
       message: 'Plan upgradé avec succès',
-      newPlan: body.plan
+      newPlan: body.plan,
     };
   }
 
@@ -73,7 +74,7 @@ export class PlansController {
   @ApiOperation({ summary: 'Vérifier si l\'utilisateur a accès à une fonctionnalité' })
   @ApiResponse({ status: 200, description: 'Vérification effectuée avec succès' })
   async hasFeature(@Request() req, @Param('feature') feature: string) {
-    const hasAccess = await this.plansService.hasFeature(req.user.id, feature as any);
+    const hasAccess = await this.plansService.hasFeature(req.user.id, feature as keyof PlanLimits);
     
     return {
       feature,

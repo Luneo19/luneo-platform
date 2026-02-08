@@ -28,7 +28,7 @@ export default function GlobalError({
     // Envoyer à Sentry si disponible
     if (typeof window !== 'undefined') {
       try {
-        const sentry = (window as any).Sentry;
+        const sentry = (window as Window & { Sentry?: { captureException: (error: Error, options?: object) => void } }).Sentry;
         if (sentry && sentry.captureException) {
           sentry.captureException(error, {
             level: 'fatal',

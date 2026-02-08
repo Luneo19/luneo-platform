@@ -4,25 +4,23 @@ import React, { useState, useEffect, createContext, useContext, ReactNode, useCa
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
+import { getBackendUrl } from '@/lib/api/server-url';
 
 import type { AuthContextType, AuthUser } from './types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// API Base URL - Use environment variable or fallback
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? 'https://api.luneo.app'
-    : 'http://localhost:3001');
+// API Base URL - centralized via getBackendUrl()
+const API_BASE_URL = getBackendUrl();
 
 /**
  * Map backend user response to AuthUser
  */
-const mapBackendUser = (backendUser: any): AuthUser => ({
-  id: backendUser.id || '',
-  email: backendUser.email || '',
-  firstName: backendUser.firstName || backendUser.first_name || '',
-  lastName: backendUser.lastName || backendUser.last_name || '',
+const mapBackendUser = (backendUser: Record<string, unknown>): AuthUser => ({
+  id: String(backendUser.id ?? ''),
+  email: String(backendUser.email ?? ''),
+  firstName: String(backendUser.firstName ?? backendUser.first_name ?? ''),
+  lastName: String(backendUser.lastName ?? backendUser.last_name ?? ''),
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -131,11 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadUser = async () => {
       setIsLoading(true);
       try {
-        // ✅ FIX: Vérifier la présence d'un token AVANT d'appeler /auth/me
-        // Évite les requêtes 401 inutiles quand personne n'est connecté
+        // Check for auth cookie presence before calling /auth/me
+        // Avoids unnecessary 401 requests when no one is logged in
         const hasToken = typeof window !== 'undefined' && (
-          localStorage.getItem('accessToken') ||
-          localStorage.getItem('token') ||
           document.cookie.includes('accessToken') ||
           document.cookie.includes('refreshToken')
         );
@@ -156,10 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!response.ok) {
           if (response.status === 401) {
-            // Not authenticated - clear user and token
+            // Not authenticated - clear user state (cookies handled by backend)
             setUser(null);
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('token');
             return;
           }
           throw new Error(`Failed to fetch user: ${response.statusText}`);
@@ -188,12 +182,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser();
 
     // Poll for user changes every 5 minutes ONLY if user is logged in
-    // ✅ FIX: Ne pas poll si pas de token (évite les 401 inutiles)
     const intervalId = setInterval(() => {
       if (!isMounted) return;
       const hasToken = typeof window !== 'undefined' && (
-        localStorage.getItem('accessToken') ||
-        localStorage.getItem('token') ||
         document.cookie.includes('accessToken') ||
         document.cookie.includes('refreshToken')
       );

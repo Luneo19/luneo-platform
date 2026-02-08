@@ -9,6 +9,9 @@ on:
     # Run weekly on Monday at 10 AM UTC
     - cron: '0 10 * * 1'
 
+env:
+  NODE_VERSION: '22'
+
 jobs:
   a11y-tests:
     name: Accessibility Tests (A11y)
@@ -18,25 +21,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: |
-          cd apps/frontend
-          pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
         run: |
           cd apps/frontend
-          npx playwright install --with-deps chromium
+          pnpm exec playwright install --with-deps chromium
 
       - name: Install axe-core Playwright
         run: |
@@ -59,13 +61,12 @@ jobs:
       - name: Run accessibility tests
         run: |
           cd apps/frontend
-          npx playwright test tests/a11y/a11y.spec.ts
+          pnpm exec playwright test tests/a11y/a11y.spec.ts
         env:
           BASE_URL: http://localhost:3000
-        continue-on-error: true
 
       - name: Upload accessibility test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: a11y-test-results

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api/client';
 
 interface Template {
   id: string;
@@ -9,7 +10,7 @@ interface Template {
   subcategory?: string;
   preview_url: string;
   thumbnail_url?: string;
-  konva_json: any;
+  konva_json: Record<string, unknown>;
   width: number;
   height: number;
   unit: string;
@@ -47,21 +48,12 @@ interface TemplatesFilters {
 }
 
 export function useTemplates(filters: TemplatesFilters = {}) {
-  // Construire les query params
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      params.append(key, String(value));
-    }
-  });
-
   // GET - Liste des templates
   const { data, isLoading, error } = useQuery<TemplatesResponse>({
     queryKey: ['templates', filters],
     queryFn: async () => {
-      const response = await fetch(`/api/templates?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch templates');
-      return response.json();
+      const result = await api.get<TemplatesResponse>('/api/v1/templates', { params: filters });
+      return result ?? { templates: [], total: 0, limit: 0, offset: 0 };
     },
   });
 
@@ -77,11 +69,7 @@ export function useTemplate(id: string) {
   // GET - Template unique
   const { data, isLoading, error } = useQuery<Template>({
     queryKey: ['template', id],
-    queryFn: async () => {
-      const response = await fetch(`/api/templates/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch template');
-      return response.json();
-    },
+    queryFn: async () => api.get<Template>(`/api/v1/templates/${id}`),
     enabled: !!id,
   });
 
@@ -96,15 +84,7 @@ export function useCreateTemplate() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (template: Partial<Template>) => {
-      const response = await fetch('/api/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(template),
-      });
-      if (!response.ok) throw new Error('Failed to create template');
-      return response.json();
-    },
+    mutationFn: async (template: Partial<Template>) => api.post<Template>('/api/v1/templates', template),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
     },
@@ -115,15 +95,7 @@ export function useUpdateTemplate(id: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (template: Partial<Template>) => {
-      const response = await fetch(`/api/templates/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(template),
-      });
-      if (!response.ok) throw new Error('Failed to update template');
-      return response.json();
-    },
+    mutationFn: async (template: Partial<Template>) => api.patch<Template>(`/api/v1/templates/${id}`, template),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
       queryClient.invalidateQueries({ queryKey: ['template', id] });
@@ -135,13 +107,7 @@ export function useDeleteTemplate() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/templates/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete template');
-      return response.json();
-    },
+    mutationFn: async (id: string) => api.delete(`/api/v1/templates/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
     },

@@ -9,39 +9,6 @@ import type { AppRouter } from './routers/_app';
 import { logger } from '@/lib/logger';
 
 // ========================================
-// GET AUTH TOKEN
-// ========================================
-
-function getAuthToken(): string | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  // Try localStorage first
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    return token;
-  }
-
-  // Try sessionStorage
-  const sessionToken = sessionStorage.getItem('accessToken');
-  if (sessionToken) {
-    return sessionToken;
-  }
-
-  // Try cookies (if using cookie-based auth)
-  const cookies = document.cookie.split(';');
-  for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'accessToken' || name === 'auth-token') {
-      return value;
-    }
-  }
-
-  return null;
-}
-
-// ========================================
 // CREATE VANILLA CLIENT
 // ========================================
 
@@ -50,21 +17,14 @@ export function createVanillaTRPCClient() {
     links: [
       httpBatchLink({
         url: '/api/trpc',
-        headers: async () => {
-          const token = getAuthToken();
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-          };
-
-          if (token) {
-            headers.Authorization = `Bearer ${token}`;
-          }
-
-          return headers;
-        },
+        // Auth tokens are in httpOnly cookies — sent automatically via credentials: 'include'
+        // No Authorization header needed
         fetch: async (url, options) => {
           try {
-            const response = await fetch(url, options);
+            const response = await fetch(url, {
+              ...options,
+              credentials: 'include', // Send httpOnly cookies automatically
+            });
             
             if (!response.ok) {
               const errorText = await response.text();

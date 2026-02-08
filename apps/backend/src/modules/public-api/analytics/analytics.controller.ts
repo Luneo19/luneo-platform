@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandId } from '../decorators/brand-id.decorator';
 
 @ApiTags('Analytics')
-@Controller('analytics')
+@Controller('public-api/analytics')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AnalyticsController {

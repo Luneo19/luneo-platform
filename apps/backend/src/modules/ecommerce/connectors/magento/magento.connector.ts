@@ -54,7 +54,7 @@ export class MagentoConnector {
       });
 
       this.logger.log(`Magento integration created for brand ${brandId}`);
-      return integration as any;
+      return integration as unknown as EcommerceIntegration;
     } catch (error) {
       this.logger.error(`Error connecting Magento:`, error);
       throw error;
@@ -245,18 +245,18 @@ export class MagentoConnector {
   /**
    * Transforme les produits Magento GraphQL en format standard
    */
-  private transformMagentoProducts(graphqlProducts: any[]): MagentoProduct[] {
+  private transformMagentoProducts(graphqlProducts: Record<string, unknown>[]): MagentoProduct[] {
     return graphqlProducts.map(product => ({
-      id: product.id,
-      sku: product.sku,
-      name: product.name,
+      id: (product.id as string),
+      sku: (product.sku as string),
+      name: (product.name as string),
       status: 1, // Enabled
       visibility: 4, // Catalog, Search
       type_id: 'simple',
-      price: product.price_range?.minimum_price?.regular_price?.value || 0,
+      price: (product.price_range as { minimum_price?: { regular_price?: { value?: number } } })?.minimum_price?.regular_price?.value || 0,
       attribute_set_id: 4, // Default
       custom_attributes: [],
-      media_gallery_entries: product.media_gallery?.map((media: any, index: number) => ({
+      media_gallery_entries: (product.media_gallery as Array<{ label?: string; position?: number; url?: string }> | undefined)?.map((media, index: number) => ({
         id: index + 1,
         media_type: 'image',
         label: media.label,
@@ -342,7 +342,7 @@ export class MagentoConnector {
         platform: 'magento',
         type: 'product',
         direction: 'import',
-        status: syncLog.status as any,
+        status: syncLog.status as 'success' | 'partial' | 'failed',
         itemsProcessed,
         itemsFailed,
         duration: Date.now() - startTime,
@@ -403,14 +403,14 @@ export class MagentoConnector {
 
     const luneoProduct = await this.prisma.product.create({
       data: {
-        brandId: integration.brandId as any,
+        brandId: integration.brandId,
         name: magentoProduct.name,
         description: '',
         sku: magentoProduct.sku,
         price: magentoProduct.price,
         images: magentoProduct.media_gallery_entries.map(media => media.file),
         isActive: magentoProduct.status === 1,
-      } as any,
+      },
     });
 
     await this.prisma.productMapping.create({
@@ -450,7 +450,7 @@ export class MagentoConnector {
   /**
    * Récupère une intégration
    */
-  private async getIntegration(integrationId: string): Promise<any> {
+  private async getIntegration(integrationId: string): Promise<{ id: string; brandId: string; shopDomain: string; accessToken: string }> {
     const integration = await this.prisma.ecommerceIntegration.findUnique({
       where: { id: integrationId },
     });

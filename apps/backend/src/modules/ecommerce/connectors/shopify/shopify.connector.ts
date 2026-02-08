@@ -9,6 +9,7 @@ import * as crypto from 'crypto';
 import {
   ShopifyProduct,
   ShopifyOrder,
+  ShopifyLineItem,
   ShopifyWebhook,
   EcommerceIntegration,
   ProductMapping,
@@ -17,7 +18,8 @@ import {
 } from '../../interfaces/ecommerce.interface';
 import { JsonValue } from '@/common/types/utility-types';
 // ENUM-01: Import des enums Prisma pour intégrité des données
-import { SyncLogStatus, SyncLogType, SyncDirection } from '@prisma/client';
+import { SyncLogStatus, SyncLogType, SyncDirection, OrderStatus, PaymentStatus } from '@prisma/client';
+import type { EcommerceIntegration as PrismaEcommerceIntegration } from '@prisma/client';
 
 interface ShopifyApiResponse<T> {
   data?: T;
@@ -125,7 +127,7 @@ export class ShopifyConnector {
     await this.setupWebhooks(integration.id, shop, accessToken);
 
     this.logger.log(`Shopify integration saved for brand ${brandId}`);
-    return integration as any as EcommerceIntegration;
+    return integration as unknown as EcommerceIntegration;
   }
 
   /**
@@ -375,7 +377,7 @@ export class ShopifyConnector {
       switch (topic) {
         case 'products/create':
         case 'products/update':
-          await this.handleProductWebhook(integration.id, payload as any as ShopifyProduct);
+          await this.handleProductWebhook(integration.id, payload as unknown as ShopifyProduct);
           break;
 
         case 'products/delete':
@@ -385,7 +387,7 @@ export class ShopifyConnector {
         case 'orders/create':
         case 'orders/updated':
         case 'orders/paid':
-          await this.handleOrderWebhook(integration.id, payload as any as ShopifyOrder);
+          await this.handleOrderWebhook(integration.id, payload as unknown as ShopifyOrder);
           break;
 
         case 'inventory_levels/update':
@@ -465,7 +467,7 @@ export class ShopifyConnector {
   /**
    * Traite un webhook d'inventaire
    */
-  private async handleInventoryWebhook(integrationId: string, payload: any): Promise<void> {
+  private async handleInventoryWebhook(integrationId: string, payload: Record<string, unknown>): Promise<void> {
     // Mettre à jour l'inventaire dans LUNEO
     this.logger.log(`Inventory update received: ${JSON.stringify(payload)}`);
   }
@@ -482,14 +484,14 @@ export class ShopifyConnector {
     // Créer le produit LUNEO
     const luneoProduct = await this.prisma.product.create({
       data: {
-        brandId: integration.brandId as any,
+        brandId: integration.brandId,
         name: shopifyProduct.title,
-        description: shopifyProduct.body_html,
+        description: shopifyProduct.body_html ?? '',
         sku: shopifyProduct.variants[0]?.sku || shopifyProduct.handle,
         price: parseFloat(shopifyProduct.variants[0]?.price || '0'),
         images: shopifyProduct.images.map(img => img.src),
         isActive: shopifyProduct.status === 'active',
-      } as any,
+      },
     });
 
     // Créer le mapping
@@ -534,18 +536,17 @@ export class ShopifyConnector {
   private async createLuneoOrder(
     integrationId: string,
     shopifyOrder: ShopifyOrder,
-    lineItem: any,
-    mapping: any,
+    lineItem: ShopifyLineItem,
+    mapping: ProductMapping,
   ): Promise<void> {
     const integration = await this.getIntegration(integrationId);
 
     // Vérifier si la commande existe déjà
-      const existingOrder = await (this.prisma.order.findFirst as any)({
-        where: {
-          userEmail: shopifyOrder.email,
-          // Recherche par email car metadata n'est pas dans OrderWhereInput
-        },
-      });
+    const existingOrder = await this.prisma.order.findFirst({
+      where: {
+        userEmail: shopifyOrder.email,
+      },
+    });
 
     if (existingOrder) {
       this.logger.log(`Order already exists for Shopify order ${shopifyOrder.id}`);
@@ -555,25 +556,25 @@ export class ShopifyConnector {
     // Créer la commande LUNEO
     await this.prisma.order.create({
       data: {
-        brandId: integration.brandId as any,
-        productId: mapping.luneoProductId as any,
+        brandId: integration.brandId,
+        productId: mapping.luneoProductId,
         orderNumber: `SH-${shopifyOrder.order_number}`,
         customerEmail: shopifyOrder.email,
-        customerName: `${shopifyOrder.customer?.first_name} ${shopifyOrder.customer?.last_name}`,
+        customerName: `${shopifyOrder.customer?.first_name ?? ''} ${shopifyOrder.customer?.last_name ?? ''}`.trim(),
         subtotalCents: Math.round(parseFloat(lineItem.price) * lineItem.quantity * 100),
-        taxCents: Math.round(parseFloat(shopifyOrder.total_tax) * 100),
+        taxCents: Math.round(parseFloat(shopifyOrder.total_tax || '0') * 100),
         totalCents: Math.round(parseFloat(shopifyOrder.total_price) * 100),
         currency: shopifyOrder.currency,
-        status: this.mapShopifyOrderStatus(shopifyOrder.financial_status) as any,
-        paymentStatus: this.mapShopifyPaymentStatus(shopifyOrder.financial_status) as any,
-        shippingAddress: shopifyOrder.shipping_address as any,
+        status: this.mapShopifyOrderStatus(shopifyOrder.financial_status) as OrderStatus,
+        paymentStatus: this.mapShopifyPaymentStatus(shopifyOrder.financial_status) as PaymentStatus,
+        shippingAddress: shopifyOrder.shipping_address as Record<string, unknown>,
         metadata: {
           shopifyOrderId: shopifyOrder.id,
           shopifyOrderNumber: shopifyOrder.order_number,
           lineItemId: lineItem.id,
           customProperties: lineItem.properties || [],
-        } as any,
-      } as any,
+        },
+      },
     });
 
     this.logger.log(`Created LUNEO order from Shopify order ${shopifyOrder.id}`);
@@ -616,7 +617,7 @@ export class ShopifyConnector {
   /**
    * Récupère une intégration
    */
-  private async getIntegration(integrationId: string): Promise<any> {
+  private async getIntegration(integrationId: string): Promise<PrismaEcommerceIntegration> {
     const integration = await this.prisma.ecommerceIntegration.findUnique({
       where: { id: integrationId },
     });
@@ -699,12 +700,17 @@ export class ShopifyConnector {
         },
       });
 
+      const statusMap: Record<SyncLogStatus, 'success' | 'failed' | 'partial'> = {
+        [SyncLogStatus.SUCCESS]: 'success',
+        [SyncLogStatus.FAILED]: 'failed',
+        [SyncLogStatus.PARTIAL]: 'partial',
+      };
       const result: SyncResult = {
         integrationId,
         platform: 'shopify',
         type: 'product',
         direction: 'import',
-        status: syncLog.status as any,
+        status: statusMap[syncLog.status],
         itemsProcessed,
         itemsFailed,
         duration: Date.now() - startTime,

@@ -64,13 +64,13 @@ export const ProductCard = memo(function ProductCard({
     >
       <Card
         className={cn(
-          'overflow-hidden bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-all group cursor-pointer',
+          'overflow-hidden bg-white border-gray-200 hover:border-cyan-500/50 transition-all group cursor-pointer',
           isSelected && 'ring-2 ring-cyan-500 border-cyan-500'
         )}
         onClick={onView}
       >
         {/* Image */}
-        <div className="aspect-square bg-gray-900 relative">
+        <div className="aspect-square bg-gray-100 relative">
           {product.image_url ? (
             <Image
               src={product.image_url}
@@ -80,11 +80,11 @@ export const ProductCard = memo(function ProductCard({
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
               loading="lazy"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="w-16 h-16 text-gray-700" />
-            </div>
-          )}
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Package className="w-16 h-16 text-gray-400" />
+              </div>
+            )}
           {/* Overlay Actions */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
             <div className="flex gap-2">
@@ -144,11 +144,11 @@ export const ProductCard = memo(function ProductCard({
         <div className="p-4">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-white truncate mb-1">
+              <h3 className="font-semibold text-gray-900 truncate mb-1">
                 {product.name}
               </h3>
               {product.description && (
-                <p className="text-sm text-gray-400 line-clamp-2">
+                <p className="text-sm text-gray-600 line-clamp-2">
                   {product.description}
                 </p>
               )}
@@ -164,14 +164,14 @@ export const ProductCard = memo(function ProductCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="bg-gray-800 border-gray-700"
+                className="bg-white border-gray-200"
               >
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
                     onView();
                   }}
-                  className="text-white"
+                  className="text-gray-900"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Voir
@@ -181,7 +181,7 @@ export const ProductCard = memo(function ProductCard({
                     e.stopPropagation();
                     onEdit();
                   }}
-                  className="text-white"
+                  className="text-gray-900"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Modifier
@@ -190,12 +190,12 @@ export const ProductCard = memo(function ProductCard({
                   onClick={(e) => {
                     e.stopPropagation();
                   }}
-                  className="text-white"
+                  className="text-gray-900"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   Dupliquer
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-gray-700" />
+                <DropdownMenuSeparator className="bg-gray-200" />
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();

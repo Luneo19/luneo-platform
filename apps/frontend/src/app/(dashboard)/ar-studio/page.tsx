@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { trpc } from '@/lib/trpc/client';
@@ -54,19 +55,36 @@ function ARStudioPageContent() {
   const loadModels = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/ar-studio/models');
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Erreur lors du chargement des modèles');
+      const result = await api.get<{ data?: { models?: unknown[] }; models?: unknown[]; error?: string; message?: string }>('/api/v1/ar-studio/models');
+      const apiModels = result?.data?.models ?? result?.models ?? [];
+      interface ApiARModel {
+        id: string;
+        name?: string;
+        category?: string;
+        type?: string;
+        thumbnailUrl?: string;
+        thumbnail_url?: string;
+        previewUrl?: string;
+        preview_url?: string;
+        modelUrl?: string;
+        model_url?: string;
+        fileSize?: number;
+        file_size?: number;
+        usdzUrl?: string;
+        usdz_url?: string;
+        status?: string;
+        viewsCount?: number;
+        views_count?: number;
+        tryOnsCount?: number;
+        try_ons_count?: number;
+        createdAt?: string;
+        created_at?: string;
       }
-
-      const apiModels = result.data?.models || result.models || [];
-      const transformedModels: ARModel[] = apiModels.map((model: any) => ({
+      const transformedModels: ARModel[] = (apiModels as ApiARModel[]).map((model) => ({
         id: model.id,
         name: model.name || 'Modèle sans nom',
         type: (model.category || model.type || 'other') as ARModel['type'],
-        thumbnail: model.thumbnailUrl || model.thumbnail_url || model.previewUrl || model.preview_url || model.modelUrl || model.model_url || '/placeholder-model.jpg',
+        thumbnail: model.thumbnailUrl || model.thumbnail_url || model.previewUrl || model.preview_url || model.modelUrl || model.model_url || '/placeholder-model.svg',
         fileSize: model.fileSize ? `${(model.fileSize / 1024 / 1024).toFixed(1)} MB` : model.file_size ? `${(model.file_size / 1024 / 1024).toFixed(1)} MB` : '0 MB',
         format: (model.usdzUrl || model.usdz_url) ? 'Both' : 'GLB',
         status: (model.status || 'active') as ARModel['status'],
@@ -104,16 +122,7 @@ function ARStudioPageContent() {
       formData.append('name', file.name.replace(/\.[^/.]+$/, ''));
       formData.append('category', 'other');
 
-      const response = await fetch('/api/ar/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Erreur lors de l\'upload');
-      }
+      await api.post('/api/v1/ar-studio/upload', formData);
 
       // Simuler progression pour UX
       for (let i = 0; i <= 100; i += 10) {
@@ -152,15 +161,7 @@ function ARStudioPageContent() {
     }
 
     try {
-      const response = await fetch(`/api/ar-studio/models?id=${modelId}`, {
-        method: 'DELETE'
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to delete model');
-      }
+      await api.delete(`/api/v1/ar-studio/models/${modelId}`);
 
       setModels(models.filter(m => m.id !== modelId));
       
@@ -168,10 +169,10 @@ function ARStudioPageContent() {
         title: "Modèle supprimé",
         description: "Le modèle a été supprimé avec succès",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de supprimer le modèle",
+        description: error instanceof Error ? error.message : "Impossible de supprimer le modèle",
         variant: "destructive",
       });
     }

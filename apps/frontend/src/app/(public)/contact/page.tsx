@@ -5,6 +5,7 @@ import { Mail, Phone, MapPin, Send, CheckCircle, MessageSquare, Loader2, AlertCi
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
@@ -80,19 +81,13 @@ function ContactPageContent() {
         }
       }
 
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          type: 'general',
-          captchaToken, // Send CAPTCHA token
-        }),
+      const data = await api.post<{ success?: boolean; error?: string; message?: string }>('/api/v1/contact', {
+        ...formData,
+        type: 'general',
+        captchaToken,
       });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || data.message || 'Erreur lors de l\'envoi');
       }
 

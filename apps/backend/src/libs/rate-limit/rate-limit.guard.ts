@@ -109,13 +109,13 @@ export class RateLimitGuard implements CanActivate {
    */
   private getIdentifier(request: Request): string {
     // Check for API key (set by ApiKeyGuard)
-    const apiKey = (request as any).apiKey;
+    const apiKey = (request as Request & { apiKey?: { id: string } }).apiKey;
     if (apiKey?.id) {
       return `api_key:${apiKey.id}`;
     }
 
     // Check for authenticated user
-    const user = (request as any).user;
+    const user = (request as Request & { user?: { id: string } }).user;
     if (user?.id) {
       return `user:${user.id}`;
     }

@@ -41,8 +41,26 @@ export class PerformanceOptimizerService {
   async optimizeCache(): Promise<void> {
     this.logger.log('Optimisation du cache...');
 
-    // Pré-charger données fréquentes
-    // TODO: Implémenter pré-chargement
+    // Pré-chargement: charger les données fréquemment accédées en cache
+    try {
+      const [conversations, articles] = await Promise.all([
+        this.prisma.agentConversation.findMany({
+          take: 100,
+          orderBy: { updatedAt: 'desc' },
+          select: { id: true, brandId: true, agentType: true, updatedAt: true },
+        }),
+        this.prisma.knowledgeBaseArticle.findMany({
+          where: { isPublished: true },
+          take: 50,
+          select: { id: true, title: true, slug: true },
+        }),
+      ]);
+      await this.cache.set('perf:preload:conversations', 'data', conversations, { ttl: 300 });
+      await this.cache.set('perf:preload:articles', 'data', articles, { ttl: 300 });
+      this.logger.log(`Preloaded ${conversations.length} conversations, ${articles.length} articles`);
+    } catch (err) {
+      this.logger.warn(`Cache prefetch failed: ${err instanceof Error ? err.message : 'Unknown'}`);
+    }
   }
 
   /**
@@ -53,11 +71,29 @@ export class PerformanceOptimizerService {
     cacheHitRate: number;
     averageLatency: number;
   }> {
-    // TODO: Implémenter analyse
+    let averageLatency = 0;
+    let slowQueries = 0;
+
+    try {
+      const recent = await this.prisma.aIUsageLog.findMany({
+        take: 1000,
+        orderBy: { createdAt: 'desc' },
+        select: { latencyMs: true },
+      });
+      const latencies = recent.map((l) => l.latencyMs).filter((n): n is number => typeof n === 'number' && n > 0);
+      averageLatency = latencies.length > 0
+        ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
+        : 0;
+      const threshold = averageLatency * 2;
+      slowQueries = latencies.filter((l) => l > threshold).length;
+    } catch (err) {
+      this.logger.warn(`Performance analysis failed: ${err instanceof Error ? err.message : 'Unknown'}`);
+    }
+
     return {
-      slowQueries: 0,
+      slowQueries,
       cacheHitRate: 0,
-      averageLatency: 0,
+      averageLatency,
     };
   }
 }

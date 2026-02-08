@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { cacheService, cacheTTL } from '@/lib/cache/redis';
-import { createClient } from '@/lib/supabase/server';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
 
 // Types
 interface IndustryFeature {
@@ -90,7 +92,7 @@ const FALLBACK_INDUSTRIES: Record<string, IndustryData> = {
 
 /**
  * GET /api/public/industries
- * Récupère les données d'une industrie depuis Supabase avec fallback
+ * Récupère les données d'une industrie depuis le backend API avec fallback
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
@@ -114,79 +116,23 @@ export async function GET(request: NextRequest) {
     let data: IndustryData | IndustryData[] | null = null;
 
     try {
-      const supabase = await createClient();
+      // Forward to backend API (public route, no auth required)
+      const url = new URL(`${API_URL}/api/v1/public/industries`);
+      if (industryId) url.searchParams.set('id', industryId);
 
-      if (industryId) {
-        // Récupérer une industrie spécifique
-        const { data: industry, error } = await supabase
-          .from('industries')
-          .select('*')
-          .eq('id', industryId)
-          .eq('is_published', true)
-          .single();
+      const backendResponse = await fetch(url.toString());
 
-        if (!error && industry) {
-          data = {
-            id: industry.id,
-            name: industry.name,
-            slug: industry.slug,
-            tagline: industry.tagline || '',
-            description: industry.description,
-            heroImage: industry.hero_image || `/industries/${industry.slug}-hero.jpg`,
-            icon: industry.icon || 'Building',
-            features: industry.features || [],
-            caseStudies: industry.case_studies || [],
-            stats: industry.stats || [],
-            recommendedSolutions: industry.recommended_solutions || [],
-          };
-
-          // Récupérer les case studies liées à cette industrie
-          const { data: caseStudies } = await supabase
-            .from('case_studies')
-            .select('title, client_name, client_logo, excerpt, metrics')
-            .eq('industry', industryId)
-            .eq('is_published', true)
-            .limit(3);
-
-          if (caseStudies?.length) {
-            data.caseStudies = caseStudies.map((cs: any) => ({
-              company: cs.client_name,
-              logo: cs.client_logo,
-              challenge: cs.excerpt || '',
-              solution: '',
-              results: (cs.metrics || []).map((m: any) => `${m.label}: ${m.value}`),
-            }));
-          }
-        }
+      if (!backendResponse.ok) {
+        logger.error('Error fetching industries from backend', { error: backendResponse.status, industryId });
       } else {
-        // Récupérer toutes les industries
-        const { data: industries, error } = await supabase
-          .from('industries')
-          .select('*')
-          .eq('is_published', true)
-          .order('display_order', { ascending: true });
-
-        if (!error && industries?.length) {
-          data = industries.map((industry: any) => ({
-            id: industry.id,
-            name: industry.name,
-            slug: industry.slug,
-            tagline: industry.tagline || '',
-            description: industry.description,
-            heroImage: industry.hero_image || `/industries/${industry.slug}-hero.jpg`,
-            icon: industry.icon || 'Building',
-            features: industry.features || [],
-            caseStudies: industry.case_studies || [],
-            stats: industry.stats || [],
-            recommendedSolutions: industry.recommended_solutions || [],
-          }));
-        }
+        const result = await backendResponse.json();
+        data = result.data || null;
       }
     } catch (error) {
-      logger.error('Error fetching industries from Supabase', { error, industryId });
+      logger.error('Error fetching industries from backend', { error, industryId });
     }
 
-    // Fallback aux données statiques si Supabase échoue
+    // Fallback aux données statiques si le backend échoue
     if (!data) {
       if (industryId) {
         data = FALLBACK_INDUSTRIES[industryId] || null;

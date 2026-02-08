@@ -15,37 +15,37 @@ interface CohortAnalysisProps {
 export function CohortAnalysis({ cohortData }: CohortAnalysisProps) {
   if (cohortData.length === 0) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Analyse de Cohortes</CardTitle>
-          <CardDescription>Aucune donnée disponible</CardDescription>
+          <CardTitle className="text-gray-900">Analyse de Cohortes</CardTitle>
+          <CardDescription className="text-gray-600">Aucune donnée disponible</CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Analyse de Cohortes</CardTitle>
-        <CardDescription>Rétention par cohorte</CardDescription>
+        <CardTitle className="text-gray-900">Analyse de Cohortes</CardTitle>
+        <CardDescription className="text-gray-600">Rétention par cohorte</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {cohortData.slice(0, 10).map((cohort) => (
             <div
               key={cohort.cohort}
-              className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg"
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
               <div>
-                <p className="text-white font-medium">{cohort.cohort}</p>
-                <p className="text-gray-400 text-sm">{formatNumber(cohort.size)} utilisateurs</p>
+                <p className="text-gray-900 font-medium">{cohort.cohort}</p>
+                <p className="text-gray-600 text-sm">{formatNumber(cohort.size)} utilisateurs</p>
               </div>
               <div className="text-right">
-                <p className="text-white font-medium">
+                <p className="text-gray-900 font-medium">
                   {cohort.retention[0]?.toFixed(1) || 0}% rétention
                 </p>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-600 text-sm">
                   {formatNumber(cohort.revenue.reduce((a, b) => a + b, 0))}€ revenus
                 </p>
               </div>

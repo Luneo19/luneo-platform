@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { endpoints, api } from '@/lib/api/client';
 import { VersionTimeline } from '@/components/versioning/VersionTimeline';
 import { EmptyState } from '@/components/ui/empty-states/EmptyState';
 import { DesignDetailSkeleton } from '@/components/ui/skeletons';
@@ -72,16 +73,9 @@ function DesignDetailPageContent() {
   const loadDesign = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/designs/${designId}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Erreur lors du chargement du design');
-      }
-
-      const designData = result.data?.design || result.design;
-      setDesign(designData);
-      setCurrentVersionId(designData.id);
+      const designData = await endpoints.designs.get(designId);
+      setDesign(designData as unknown as Design);
+      setCurrentVersionId((designData as unknown as Design).id);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       logger.error('Error loading design', { error, designId, message: errorMessage });
@@ -98,14 +92,8 @@ function DesignDetailPageContent() {
   const loadVersions = async () => {
     setLoadingVersions(true);
     try {
-      const response = await fetch(`/api/designs/${designId}/versions?limit=50`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Erreur lors du chargement des versions');
-      }
-
-      const versionsData = result.data?.versions || result.versions || [];
+      const result = await api.get<{ data?: { versions?: DesignVersion[] }; versions?: DesignVersion[] }>(`/api/v1/designs/${designId}/versions`, { params: { limit: 50 } });
+      const versionsData = result?.data?.versions ?? result?.versions ?? [];
       setVersions(versionsData);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
@@ -122,15 +110,7 @@ function DesignDetailPageContent() {
 
     setRestoring(versionId);
     try {
-      const response = await fetch(`/api/designs/${designId}/versions/${versionId}`, {
-        method: 'POST',
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Erreur lors de la restauration');
-      }
-
+      await api.post(`/api/v1/designs/${designId}/versions/${versionId}/restore`);
       toast({
         title: 'Version restaurée',
         description: 'Le design a été restauré à cette version',
@@ -158,15 +138,7 @@ function DesignDetailPageContent() {
 
     setDeleting(versionId);
     try {
-      const response = await fetch(`/api/designs/${designId}/versions/${versionId}`, {
-        method: 'DELETE',
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Erreur lors de la suppression');
-      }
-
+      await api.delete(`/api/v1/designs/${designId}/versions/${versionId}`);
       toast({
         title: 'Version supprimée',
         description: 'La version a été supprimée avec succès',

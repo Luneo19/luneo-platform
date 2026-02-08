@@ -18,7 +18,7 @@ interface PreloadResource {
 export const usePreloader = () => {
   const router = useRouter();
   const preloadedResources = useRef<Set<string>>(new Set());
-  const preloadPromises = useRef<Map<string, Promise<any>>>(new Map());
+  const preloadPromises = useRef<Map<string, Promise<unknown>>>(new Map());
 
   // Précharger une route
   const preloadRoute = useCallback((href: string, options: PreloadOptions = {}) => {
@@ -118,7 +118,7 @@ export const usePreloader = () => {
         clearTimeout(timeoutId);
         preloadedResources.current.add(src);
         onLoad?.();
-        resolve(link as any);
+        resolve(link as unknown as HTMLScriptElement);
       };
 
       link.onerror = () => {

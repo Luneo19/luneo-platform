@@ -23,17 +23,18 @@ export function useProductActions() {
   const handleCreateProduct = useCallback(
     async (productData: Partial<Product>) => {
       try {
-        await productService.create(productData as any);
+        await productService.create(productData as Record<string, unknown>);
         toast({ title: 'Succès', description: 'Produit créé avec succès' });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error creating product', { error });
+        const message = error instanceof Error ? error.message : 'Erreur inconnue';
         toast({
           title: 'Erreur',
-          description: error.message,
+          description: message,
           variant: 'destructive',
         });
-        return { success: false, error: error.message };
+        return { success: false, error: message };
       }
     },
     [productService, toast]
@@ -42,17 +43,18 @@ export function useProductActions() {
   const handleEditProduct = useCallback(
     async (productId: string, productData: Partial<Product>) => {
       try {
-        await productService.update({ id: productId, ...productData } as any);
+        await productService.update({ id: productId, ...productData } as Record<string, unknown>);
         toast({ title: 'Succès', description: 'Produit mis à jour' });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error updating product', { error });
+        const msg = error instanceof Error ? error.message : 'Erreur inconnue';
         toast({
           title: 'Erreur',
-          description: error.message,
+          description: msg,
           variant: 'destructive',
         });
-        return { success: false, error: error.message };
+        return { success: false, error: msg };
       }
     },
     [productService, toast]
@@ -68,14 +70,15 @@ export function useProductActions() {
         await deleteMutation.mutateAsync({ id: productId });
         toast({ title: 'Succès', description: 'Produit supprimé' });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error deleting product', { error });
+        const msg = error instanceof Error ? error.message : 'Erreur inconnue';
         toast({
           title: 'Erreur',
-          description: error.message,
+          description: msg,
           variant: 'destructive',
         });
-        return { success: false, error: error.message };
+        return { success: false, error: msg };
       }
     },
     [deleteMutation, toast]
@@ -104,7 +107,7 @@ export function useProductActions() {
                 archiveMutation.mutateAsync({
                   id,
                   status: 'ARCHIVED',
-                } as any)
+                })
               )
             );
             toast({
@@ -118,7 +121,7 @@ export function useProductActions() {
                 archiveMutation.mutateAsync({
                   id,
                   isActive: true,
-                } as any)
+                })
               )
             );
             toast({
@@ -132,7 +135,7 @@ export function useProductActions() {
                 archiveMutation.mutateAsync({
                   id,
                   isActive: false,
-                } as any)
+                })
               )
             );
             toast({
@@ -143,14 +146,15 @@ export function useProductActions() {
         }
         onSuccess?.();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error performing bulk action', { error });
+        const msg = error instanceof Error ? error.message : 'Erreur lors de l\'action';
         toast({
           title: 'Erreur',
           description: 'Erreur lors de l\'action',
           variant: 'destructive',
         });
-        return { success: false, error: error.message };
+        return { success: false, error: msg };
       }
     },
     [deleteMutation, archiveMutation, toast]

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 import { StorageService } from '@/libs/storage/storage.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -69,7 +70,7 @@ export class LODService {
     designId: string,
     sourceModelUrl: string,
   ): Promise<Record<LODLevel, string>> {
-    const results: Record<LODLevel, string> = {} as any;
+    const results = {} as Record<LODLevel, string>;
 
     this.logger.log(`Generating LODs for design ${designId}`);
 
@@ -221,7 +222,7 @@ export class LODService {
           lod: level,
           maxPolygons: config.maxPolygons,
           compression: config.compression,
-        } as any,
+        } as Prisma.InputJsonValue,
       },
     });
   }
@@ -239,7 +240,7 @@ export class LODService {
         metadata: {
           path: ['lod'],
           equals: level,
-        } as any,
+        } as Prisma.JsonFilter,
       },
       orderBy: { createdAt: 'desc' },
     });
