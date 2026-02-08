@@ -86,16 +86,16 @@ export class AgentUsageGuardService {
 
       if (!quotaCheck.allowed) {
         this.aiLogger.logWarn('Quota check failed', {
-          brandId,
-          userId,
-          reason: quotaCheck.reason,
+          brandId: brandId ?? undefined,
+          userId: userId ?? undefined,
+          reason: quotaCheck.reason ?? undefined,
         });
 
         // Vérifier les alertes
         await this.alerts.checkQuotaAlerts(brandId, userId, planId);
 
         throw new BadRequestException(
-          quotaCheck.reason || 'Quota exceeded',
+          quotaCheck.reason ?? 'Quota exceeded',
         );
       }
 
@@ -108,9 +108,9 @@ export class AgentUsageGuardService {
 
       if (!rateLimitCheck.allowed) {
         this.aiLogger.logWarn('Rate limit check failed', {
-          brandId,
-          userId,
-          reason: rateLimitCheck.reason,
+          brandId: brandId ?? undefined,
+          userId: userId ?? undefined,
+          reason: rateLimitCheck.reason ?? undefined,
         });
 
         throw new HttpException(
@@ -133,8 +133,8 @@ export class AgentUsageGuardService {
 
       const duration = Date.now() - startTime;
       this.aiLogger.logDebug('Usage guard check completed', {
-        brandId,
-        userId,
+        brandId: brandId ?? undefined,
+        userId: userId ?? undefined,
         durationMs: duration,
         allowed: true,
       });
@@ -153,8 +153,8 @@ export class AgentUsageGuardService {
       }
 
       this.aiLogger.logError('Usage guard check failed', error, {
-        brandId,
-        userId,
+        brandId: brandId ?? undefined,
+        userId: userId ?? undefined,
         durationMs: duration,
       });
 
@@ -178,7 +178,7 @@ export class AgentUsageGuardService {
       const totalTokens = update.tokens.input + update.tokens.output;
 
       // 1. Mettre à jour les quotas
-      await this.quotaManager.updateQuota(brandId, userId, {
+      await this.quotaManager.updateQuota(brandId ?? undefined, userId ?? undefined, {
         tokens: totalTokens,
         requests: 1,
       });
@@ -186,9 +186,9 @@ export class AgentUsageGuardService {
       // 2. Tracker l'appel
       if (update.success) {
         await this.tracker.trackSuccess(
-          brandId,
-          userId,
-          agentId,
+          brandId ?? undefined,
+          userId ?? undefined,
+          agentId ?? undefined,
           model,
           provider,
           operation,
@@ -198,9 +198,9 @@ export class AgentUsageGuardService {
         );
       } else {
         await this.tracker.trackError(
-          brandId,
-          userId,
-          agentId,
+          brandId ?? undefined,
+          userId ?? undefined,
+          agentId ?? undefined,
           model,
           provider,
           operation,
@@ -210,7 +210,7 @@ export class AgentUsageGuardService {
       }
 
       // 3. Tracker le coût
-      await this.tracker.trackCost(brandId, update.costCents, totalTokens);
+      await this.tracker.trackCost(brandId ?? undefined, update.costCents, totalTokens);
 
       // 4. Vérifier les alertes (en background, ne pas bloquer)
       this.checkAlertsAsync(brandId, userId).catch((error) => {
@@ -218,9 +218,9 @@ export class AgentUsageGuardService {
       });
 
       this.aiLogger.logDebug('Usage updated after AI call', {
-        brandId,
-        userId,
-        agentId,
+        brandId: brandId ?? undefined,
+        userId: userId ?? undefined,
+        agentId: agentId ?? undefined,
         tokens: totalTokens,
         costCents: update.costCents,
         success: update.success,
@@ -228,9 +228,9 @@ export class AgentUsageGuardService {
     } catch (error) {
       // Ne pas faire échouer la requête si le tracking échoue
       this.aiLogger.logError('Failed to update usage after call', error, {
-        brandId,
-        userId,
-        agentId,
+        brandId: brandId ?? undefined,
+        userId: userId ?? undefined,
+        agentId: agentId ?? undefined,
       });
     }
   }
@@ -246,8 +246,8 @@ export class AgentUsageGuardService {
     quota: QuotaCheckResult['quota'];
     rateLimit: { remaining: number; resetAt: Date };
   }> {
-    const quota = await this.quotaManager.getQuotaStatus(brandId, userId, planId);
-    const remaining = await this.rateLimiter.getRemainingRequests(brandId, userId, planId);
+    const quota = await this.quotaManager.getQuotaStatus(brandId ?? undefined, userId ?? undefined, planId ?? undefined);
+    const remaining = await this.rateLimiter.getRemainingRequests(brandId ?? undefined, userId ?? undefined, planId ?? undefined);
 
     // Calculer resetAt (prochaine fenêtre)
     const now = new Date();
@@ -276,7 +276,7 @@ export class AgentUsageGuardService {
     try {
       // Vérifier les alertes de quotas (seulement si brandId)
       if (brandId) {
-        await this.alerts.checkQuotaAlerts(brandId, userId, undefined);
+        await this.alerts.checkQuotaAlerts(brandId, userId ?? undefined, undefined);
         await this.alerts.checkErrorAlerts(brandId);
         await this.alerts.checkCostAlerts(brandId);
       }

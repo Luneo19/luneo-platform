@@ -215,12 +215,12 @@ export class WebhookHandlerService {
         await this.shopifyConnector.handleWebhook(
           webhook.event,
           integration.shopDomain || '',
-          webhook.payload as Record<string, JsonValue>,
+          webhook.payload as unknown as Record<string, JsonValue>,
         );
       } else if (integration.platform === 'woocommerce') {
         await this.woocommerceConnector.handleWebhook(
           webhook.event,
-          webhook.payload,
+          webhook.payload as unknown as Record<string, unknown>,
           '', // Signature déjà validée
         );
       }

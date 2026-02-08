@@ -62,7 +62,7 @@ export class RedisOptimizedService {
     // Configuration optimisée pour Upstash (TLS) et autres providers
     const isUpstash = redisUrl.includes('upstash.io') || redisUrl.startsWith('rediss://');
     
-    this.redis = new Redis(redisUrl, {
+    this.redis = new Redis(redisUrl as string, {
       retryDelayOnFailover: 50,
       keepAlive: 30000,
       lazyConnect: true,
@@ -75,7 +75,7 @@ export class RedisOptimizedService {
           rejectUnauthorized: true,
         },
       }),
-    });
+    } as import('ioredis').RedisOptions);
 
     this.setupEventListeners();
     // Ne pas appeler initializeCacheConfigs() dans le constructeur pour éviter de bloquer

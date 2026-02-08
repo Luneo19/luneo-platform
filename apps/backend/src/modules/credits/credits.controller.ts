@@ -28,6 +28,7 @@ import { CurrentUser } from '@/common/types/user.types';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { BillingService } from '@/modules/billing/billing.service';
 import { ConfigService } from '@nestjs/config';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 import type Stripe from 'stripe';
 
 @ApiTags('Credits')

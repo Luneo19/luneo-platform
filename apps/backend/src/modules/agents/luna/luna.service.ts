@@ -407,6 +407,7 @@ export class LunaService {
         messages,
         temperature: 0.7,
         maxTokens: 2048,
+        stream: false,
         brandId: validated.brandId,
         agentType: 'luna',
         enableFallback: true,

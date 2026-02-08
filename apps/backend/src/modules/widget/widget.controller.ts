@@ -32,7 +32,7 @@ export class WidgetController {
     @Request() req: Request & { user?: { id?: string } },
   ) {
     const userId = req.user?.id;
-    return this.widgetService.saveDesign(dto.productId, dto.designData as DesignData, userId);
+    return this.widgetService.saveDesign(dto.productId, dto.designData as unknown as DesignData, userId);
   }
 
   @Get('designs/:id')

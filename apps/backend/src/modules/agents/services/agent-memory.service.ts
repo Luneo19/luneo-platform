@@ -55,7 +55,7 @@ export class AgentMemoryService {
         context: {
           ...currentContext,
           ...context,
-        } as Record<string, unknown>,
+        } as import('@prisma/client').Prisma.InputJsonValue,
       },
     });
 

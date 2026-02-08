@@ -117,7 +117,7 @@ export class WebhookService {
         name: createWebhookDto.name,
         url: createWebhookDto.url,
         secret: createWebhookDto.secret || '',
-        events: createWebhookDto.events as Prisma.InputJsonValue,
+        events: createWebhookDto.events as unknown as import('@prisma/client').WebhookEvent[],
         isActive: createWebhookDto.isActive ?? true,
       },
       include: {
@@ -195,7 +195,7 @@ export class WebhookService {
         ...(updateWebhookDto.name && { name: updateWebhookDto.name }),
         ...(updateWebhookDto.url && { url: updateWebhookDto.url }),
         ...(updateWebhookDto.secret !== undefined && { secret: updateWebhookDto.secret }),
-        ...(updateWebhookDto.events && { events: updateWebhookDto.events as Prisma.InputJsonValue }),
+        ...(updateWebhookDto.events && { events: updateWebhookDto.events as unknown as import('@prisma/client').WebhookEvent[] }),
         ...(updateWebhookDto.isActive !== undefined && { isActive: updateWebhookDto.isActive }),
       },
       include: {

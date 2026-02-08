@@ -79,6 +79,7 @@ export class IntentDetectionService {
         messages,
         temperature: 0.3, // Basse température pour classification précise
         maxTokens: 200, // Réponse courte suffit
+        stream: false,
         brandId,
         agentType,
         enableFallback: true,

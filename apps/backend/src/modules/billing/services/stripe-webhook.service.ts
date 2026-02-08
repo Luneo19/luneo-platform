@@ -115,7 +115,7 @@ export class StripeWebhookService {
       try {
         await this.prisma.processedWebhookEvent.update({
           where: { eventId: event.id },
-          data: { processed: true, result: result.result ? result.result : undefined, processedAt: new Date() },
+          data: { processed: true, result: result.result ? (result.result as unknown as import('@prisma/client').Prisma.InputJsonValue) : undefined, processedAt: new Date() },
         });
       } catch (error: any) {
         this.logger.warn(`Failed to mark webhook event as processed: ${error.message}`);

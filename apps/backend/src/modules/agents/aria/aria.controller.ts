@@ -29,7 +29,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RateLimit } from '@/libs/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '@/libs/rate-limit/rate-limit.guard';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { AriaService } from './aria.service';
+import { AriaService, AriaMessage } from './aria.service';
 import {
   AriaChatDto,
   AriaImproveTextDto,
@@ -66,7 +66,7 @@ export class AriaController {
   async chat(@Body() body: AriaChatDto) {
     this.logger.log(`Aria chat request for product ${body.productId}`);
 
-    const response = await this.ariaService.chat(body);
+    const response = await this.ariaService.chat(body as AriaMessage);
 
     return {
       success: true,

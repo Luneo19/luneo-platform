@@ -358,7 +358,7 @@ export class OrdersService {
         customerEmail,
         customerName,
         customerPhone,
-        shippingAddress: shippingAddress as Prisma.InputJsonValue,
+        shippingAddress: shippingAddress as unknown as Prisma.InputJsonValue,
         subtotalCents,
         taxCents,
         shippingCents,

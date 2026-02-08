@@ -167,7 +167,7 @@ export class NotificationsService {
         channel: 'push',
         subscribedAt: new Date().toISOString(),
         endpointHint: subscription.endpoint?.substring(0, 50) ?? undefined,
-      };
+      } as { success: boolean; channel?: string; subscribedAt?: string; endpointHint?: string };
     } catch (error) {
       this.logger.error(`Failed to subscribe user ${userId} to push`, error);
       return { success: false };

@@ -155,7 +155,7 @@ export class DesignsService {
 
     // Filter by status if provided
     if (options?.status) {
-      where.status = options.status;
+      where.status = options.status as DesignStatus;
     }
 
     // Search filter (on name or prompt)
@@ -510,7 +510,7 @@ export class DesignsService {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.status !== undefined && { status: data.status }),
-        ...(data.designData !== undefined && { designData: data.designData }),
+        ...(data.designData !== undefined && { designData: data.designData as unknown as Prisma.InputJsonValue }),
       },
       select: {
         id: true,
@@ -1121,7 +1121,7 @@ export class DesignsService {
 
     // Vérifier l'expiration
     if (metadata?.shareTokenExpiresAt) {
-      const expiresAt = new Date(metadata.shareTokenExpiresAt);
+      const expiresAt = new Date(metadata.shareTokenExpiresAt as string | number | Date);
       if (expiresAt < new Date()) {
         throw new BadRequestException('Shared design link has expired');
       }

@@ -5,15 +5,6 @@
     "dist",
     "**/*.spec.ts",
     "test/**/*",
-    "**/__tests__/**/*",
-    "src/modules/projects/**/*",
-    "src/modules/try-on/**/*",
-    "src/modules/configurator-3d/**/*",
-    "src/modules/visual-customizer/**/*",
-    "src/modules/asset-hub/**/*",
-    "src/modules/agents/**/*",
-    "src/modules/observability/**/*",
-    "src/modules/analytics/services/predictive.service.ts",
-    "src/modules/analytics/controllers/predictive.controller.ts"
+    "**/__tests__/**/*"
   ]
 }

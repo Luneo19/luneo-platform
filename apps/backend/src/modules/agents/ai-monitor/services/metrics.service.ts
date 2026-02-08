@@ -129,8 +129,9 @@ export class MetricsService {
     }> = {};
 
     for (const log of logs) {
-      if (!byProvider[log.provider]) {
-        byProvider[log.provider] = {
+      const providerKey = log.provider ?? 'unknown';
+      if (!byProvider[providerKey]) {
+        byProvider[providerKey] = {
           calls: 0,
           errors: 0,
           tokens: 0,
@@ -139,17 +140,17 @@ export class MetricsService {
         };
       }
 
-      byProvider[log.provider].calls++;
+      byProvider[providerKey].calls++;
       if (!log.success) {
-        byProvider[log.provider].errors++;
+        byProvider[providerKey].errors++;
       }
-      byProvider[log.provider].tokens += log.totalTokens;
-      byProvider[log.provider].costCents += Number(log.costCents);
+      byProvider[providerKey].tokens += log.totalTokens;
+      byProvider[providerKey].costCents += Number(log.costCents);
     }
 
     // Calculer avgLatency par provider
     for (const provider of Object.keys(byProvider)) {
-      const providerLogs = logs.filter(l => l.provider === provider && l.latencyMs);
+      const providerLogs = logs.filter(l => (l.provider ?? 'unknown') === provider && l.latencyMs);
       if (providerLogs.length > 0) {
         byProvider[provider].avgLatencyMs = Math.round(
           providerLogs.reduce((sum, l) => sum + (l.latencyMs || 0), 0) / providerLogs.length
@@ -289,13 +290,14 @@ export class MetricsService {
     const byProvider: Record<string, { total: number; errors: number }> = {};
 
     for (const log of logs) {
-      if (!byProvider[log.provider]) {
-        byProvider[log.provider] = { total: 0, errors: 0 };
+      const providerKey = log.provider ?? 'unknown';
+      if (!byProvider[providerKey]) {
+        byProvider[providerKey] = { total: 0, errors: 0 };
       }
 
-      byProvider[log.provider].total++;
+      byProvider[providerKey].total++;
       if (!log.success) {
-        byProvider[log.provider].errors++;
+        byProvider[providerKey].errors++;
       }
     }
 
@@ -361,10 +363,11 @@ export class MetricsService {
 
     for (const log of logs) {
       // Par provider
-      byProvider[log.provider] = (byProvider[log.provider] || 0) + Number(log.costCents);
+      const providerKey = log.provider ?? 'unknown';
+      byProvider[providerKey] = (byProvider[providerKey] || 0) + Number(log.costCents);
 
       // Par agent
-      const agentId = log.agentId || 'unknown';
+      const agentId = log.agentId ?? 'unknown';
       byAgent[agentId] = (byAgent[agentId] || 0) + Number(log.costCents);
 
       // Par jour

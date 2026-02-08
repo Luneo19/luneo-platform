@@ -20,6 +20,9 @@ import { WooCommerceWebhookPayloadDto } from '../dto/woocommerce-webhook.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import * as crypto from 'crypto';
 
+type WooCommerceProductPayload = Parameters<WooCommerceWebhookService['handleProductCreate']>[1];
+type WooCommerceOrderPayload = Parameters<WooCommerceWebhookService['handleOrderCreate']>[1];
+
 /** @Public: WooCommerce webhooks; verified by signature in handler */
 @ApiTags('ecommerce')
 @Controller('ecommerce/woocommerce/webhook')
@@ -106,27 +109,27 @@ export class WooCommerceWebhookController {
       // Route to appropriate handler
       switch (topic) {
         case 'product.created':
-          await this.webhookService.handleProductCreate(integrationId, payload);
+          await this.webhookService.handleProductCreate(integrationId, payload as unknown as WooCommerceProductPayload);
           break;
 
         case 'product.updated':
-          await this.webhookService.handleProductUpdate(integrationId, payload);
+          await this.webhookService.handleProductUpdate(integrationId, payload as unknown as WooCommerceProductPayload);
           break;
 
         case 'product.deleted':
-          await this.webhookService.handleProductDelete(integrationId, payload);
+          await this.webhookService.handleProductDelete(integrationId, payload as unknown as WooCommerceProductPayload);
           break;
 
         case 'order.created':
-          await this.webhookService.handleOrderCreate(integrationId, payload);
+          await this.webhookService.handleOrderCreate(integrationId, payload as unknown as WooCommerceOrderPayload);
           break;
 
         case 'order.updated':
-          await this.webhookService.handleOrderUpdate(integrationId, payload);
+          await this.webhookService.handleOrderUpdate(integrationId, payload as unknown as WooCommerceOrderPayload);
           break;
 
         case 'order.deleted':
-          await this.webhookService.handleOrderDelete(integrationId, payload);
+          await this.webhookService.handleOrderDelete(integrationId, payload as unknown as WooCommerceOrderPayload);
           break;
 
         default:

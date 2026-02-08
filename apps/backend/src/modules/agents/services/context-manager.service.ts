@@ -126,6 +126,7 @@ Résumé doit être concis (max ${this.MAX_SUMMARY_TOKENS} tokens) et structuré
         messages: messagesForLLM,
         temperature: 0.3, // Basse température pour résumé factuel
         maxTokens: this.MAX_SUMMARY_TOKENS,
+        stream: false,
         brandId,
         agentType: 'luna', // Par défaut, peut être ajusté
         enableFallback: true,

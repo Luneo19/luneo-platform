@@ -374,13 +374,13 @@ export class DRService {
     return { database, storage };
   }
 
-  private mapBackupRecord(row: { id: string; type: string; status: string; size: number; location: string; createdAt: Date; completedAt: Date | null; error: string | null }): BackupRecord {
+  private mapBackupRecord(row: { id: string; type: string; status: string; size: number; location: string | null; createdAt: Date; completedAt: Date | null; error: string | null }): BackupRecord {
     return {
       id: row.id,
       type: row.type as BackupRecord['type'],
       status: row.status as BackupRecord['status'],
       size: row.size,
-      location: row.location,
+      location: row.location ?? '',
       createdAt: row.createdAt,
       completedAt: row.completedAt ?? undefined,
       error: row.error ?? undefined,
@@ -485,9 +485,10 @@ export class DRService {
       where: { id: backupId },
     });
     if (!backup || backup.status !== 'completed') return false;
-    if (backup.location.startsWith('simulated://')) return true;
+    const location = backup.location;
+    if (!location || location.startsWith('simulated://')) return !!location;
     try {
-      const st = await stat(backup.location);
+      const st = await stat(location);
       return st.isFile() && st.size > 0;
     } catch {
       return false;

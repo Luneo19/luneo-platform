@@ -258,6 +258,8 @@ Génère un JSON array avec le format:
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
             maxTokens: 1024,
+            stream: false,
+            enableFallback: true,
           });
 
           const recommendations = JSON.parse(response.content) as Array<Partial<Recommendation>>;

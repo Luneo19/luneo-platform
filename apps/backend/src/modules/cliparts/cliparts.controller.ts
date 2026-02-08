@@ -66,7 +66,7 @@ export class ClipartsController {
   @ApiOperation({ summary: 'Créer un nouveau clipart' })
   @ApiResponse({ status: 201, description: 'Clipart créé' })
   async create(@Body() createDto: CreateClipartDto, @Request() req) {
-    return this.clipartsService.create(createDto, req.user.id, req.user.brandId || null);
+    return this.clipartsService.create(createDto as unknown as Parameters<ClipartsService['create']>[0], req.user.id, req.user.brandId || null);
   }
 
   @Put(':id')

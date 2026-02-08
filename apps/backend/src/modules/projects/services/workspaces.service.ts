@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
@@ -109,7 +110,7 @@ export class WorkspacesService {
         slug: dto.slug || dto.name.toLowerCase().replace(/\s+/g, '-'),
         description: dto.description,
         environment: dto.environment,
-        settings: (dto.settings || dto.config || {}) as Record<string, unknown>,
+        settings: (dto.settings || dto.config || {}) as Prisma.InputJsonValue,
       },
       select: {
         id: true,
@@ -142,16 +143,17 @@ export class WorkspacesService {
   ) {
     await this.findOne(id, brandId);
 
+    const updateData: Prisma.WorkspaceUpdateInput = {
+      ...(dto.name && { name: dto.name }),
+      ...(dto.slug && { slug: dto.slug }),
+      ...(dto.description !== undefined && { description: dto.description }),
+      ...(dto.environment && { environment: dto.environment }),
+      ...(dto.settings && { settings: dto.settings as Prisma.InputJsonValue }),
+      ...(dto.config && { settings: dto.config as Prisma.InputJsonValue }),
+    };
     const workspace = await this.prisma.workspace.update({
       where: { id },
-      data: {
-        ...(dto.name && { name: dto.name }),
-        ...(dto.slug && { slug: dto.slug }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.environment && { environment: dto.environment }),
-        ...(dto.settings && { settings: dto.settings as Record<string, unknown> }),
-        ...(dto.config && { settings: dto.config as Record<string, unknown> }), // Backward compat
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,

@@ -265,7 +265,7 @@ export class MagentoConnector {
         types: ['image', 'small_image', 'thumbnail'],
         file: media.url,
       })) || [],
-    }));
+    })) as unknown as MagentoProduct[];
   }
 
   /**
@@ -410,7 +410,7 @@ export class MagentoConnector {
         price: magentoProduct.price,
         images: magentoProduct.media_gallery_entries.map(media => media.file),
         isActive: magentoProduct.status === 1,
-      },
+      } as unknown as import('@prisma/client').Prisma.ProductCreateInput,
     });
 
     await this.prisma.productMapping.create({

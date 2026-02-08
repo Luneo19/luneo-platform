@@ -31,7 +31,7 @@ export class BrandsService {
         users: {
           connect: { id: userId },
         },
-      } as Prisma.BrandCreateInput,
+      } as unknown as Prisma.BrandCreateInput,
       include: {
         users: true,
       },
@@ -103,7 +103,7 @@ export class BrandsService {
       data: {
         ...webhookData,
         brandId,
-      } as Prisma.WebhookCreateInput,
+      } as unknown as Prisma.WebhookCreateInput,
     });
 
     // Invalider le cache des webhooks de la brand

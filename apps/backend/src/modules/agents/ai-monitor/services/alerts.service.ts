@@ -189,13 +189,14 @@ export class AlertsService {
     const byProvider: Record<string, { total: number; errors: number }> = {};
 
     for (const log of logs) {
-      if (!byProvider[log.provider]) {
-        byProvider[log.provider] = { total: 0, errors: 0 };
+      const providerKey = log.provider ?? 'unknown';
+      if (!byProvider[providerKey]) {
+        byProvider[providerKey] = { total: 0, errors: 0 };
       }
 
-      byProvider[log.provider].total++;
+      byProvider[providerKey].total++;
       if (!log.success) {
-        byProvider[log.provider].errors++;
+        byProvider[providerKey].errors++;
       }
     }
 

@@ -251,7 +251,7 @@ export class OrderRoutingService {
         artisanId,
         priceCents: quote.priceCents,
         leadTime: quote.leadTime,
-        breakdown: quote.breakdown as Record<string, unknown>,
+        breakdown: quote.breakdown as unknown as import('@prisma/client').Prisma.InputJsonValue,
         overallScore: routingScore,
         status: 'selected',
         selectedAt: new Date(),

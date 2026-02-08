@@ -61,8 +61,10 @@ export class AssetHubController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
+    const brandId = req.user?.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brandId');
     return this.fileService.findAll(
-      req.user.brandId,
+      brandId,
       { projectId, folderId, type, search },
       { page, limit },
     );
@@ -76,7 +78,9 @@ export class AssetHubController {
     @Param('id') id: string,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    return this.fileService.findOne(id, req.user.brandId);
+    const brandId = req.user?.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brandId');
+    return this.fileService.findOne(id, brandId);
   }
 
   @Post('files')
@@ -94,8 +98,10 @@ export class AssetHubController {
     if (!file) {
       throw new BadRequestException('File is required');
     }
+    const brandId = req.user?.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brandId');
     return this.fileService.upload(
-      req.user.brandId,
+      brandId,
       file as { buffer: Buffer; mimetype: string; originalname: string; size: number },
       dto,
       req.user.id,
@@ -111,7 +117,9 @@ export class AssetHubController {
     @Param('id') id: string,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    return this.fileService.remove(id, req.user.brandId);
+    const brandId = req.user?.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brandId');
+    return this.fileService.remove(id, brandId);
   }
 
   // ========================================
@@ -126,7 +134,9 @@ export class AssetHubController {
     @Request() req: ExpressRequest & { user: CurrentUser },
     @Query('parentId') parentId?: string,
   ) {
-    return this.folderService.findAll(req.user.brandId, parentId);
+    const brandId = req.user?.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brandId');
+    return this.folderService.findAll(brandId, parentId);
   }
 
   @Get('folders/:id')
@@ -137,7 +147,9 @@ export class AssetHubController {
     @Param('id') id: string,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    return this.folderService.findOne(id, req.user.brandId);
+    const brandId = req.user?.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brandId');
+    return this.folderService.findOne(id, brandId);
   }
 
   @Post('folders')
@@ -149,7 +161,9 @@ export class AssetHubController {
     @Body() dto: CreateFolderDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    return this.folderService.create(req.user.brandId, dto);
+    const brandId = req.user?.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brandId');
+    return this.folderService.create(brandId, dto);
   }
 
   @Delete('folders/:id')
@@ -161,6 +175,8 @@ export class AssetHubController {
     @Param('id') id: string,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    return this.folderService.remove(id, req.user.brandId);
+    const brandId = req.user?.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brandId');
+    return this.folderService.remove(id, brandId);
   }
 }

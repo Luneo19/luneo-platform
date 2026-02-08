@@ -113,8 +113,8 @@ export class LLMCostCalculatorService {
     const costs = COST_PER_1M_TOKENS[provider]?.[model];
 
     if (!costs) {
-      // Estimation conservatrice: moyenne input/output
-      const avgCost = (costs?.input || 5) + (costs?.output || 15) / 2;
+      // Estimation conservatrice: moyenne input/output (defaults when model unknown)
+      const avgCost = (5 + 15) / 2;
       return Math.round((estimatedTokens / 1_000_000) * avgCost * 100);
     }
 

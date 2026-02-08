@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateVisualCustomizerDto } from '../dto/create-visual-customizer.dto';
 import { UpdateVisualCustomizerDto } from '../dto/update-visual-customizer.dto';
@@ -148,8 +149,8 @@ export class VisualCustomizerService {
       data: {
         ...dto,
         projectId,
-        canvasConfig: (dto.canvasConfig || {}) as Record<string, unknown>,
-        uiConfig: (dto.uiConfig || {}) as Record<string, unknown>,
+        canvasConfig: (dto.canvasConfig || {}) as Prisma.InputJsonValue,
+        uiConfig: (dto.uiConfig || {}) as Prisma.InputJsonValue,
         isActive: dto.isActive ?? true,
       },
       select: {
@@ -184,7 +185,13 @@ export class VisualCustomizerService {
 
     const customizer = await this.prisma.visualCustomizer.update({
       where: { id },
-      data: dto as Record<string, unknown>,
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.canvasConfig !== undefined && { canvasConfig: dto.canvasConfig as Prisma.InputJsonValue }),
+        ...(dto.uiConfig !== undefined && { uiConfig: dto.uiConfig as Prisma.InputJsonValue }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      },
       select: {
         id: true,
         name: true,
@@ -238,7 +245,7 @@ export class VisualCustomizerService {
       data: {
         ...dto,
         customizerId,
-        config: (dto.config || {}) as Record<string, unknown>,
+        config: (dto.config || {}) as Prisma.InputJsonValue,
         order: dto.order || 0,
         isLocked: dto.isLocked ?? false,
         isVisible: dto.isVisible ?? true,

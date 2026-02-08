@@ -459,7 +459,7 @@ export class ShopifyConnector {
 
       if (mapping) {
         // Créer la commande LUNEO
-        await this.createLuneoOrder(integrationId, order, lineItem, mapping);
+        await this.createLuneoOrder(integrationId, order, lineItem, mapping as unknown as ProductMapping);
       }
     }
   }
@@ -491,7 +491,7 @@ export class ShopifyConnector {
         price: parseFloat(shopifyProduct.variants[0]?.price || '0'),
         images: shopifyProduct.images.map(img => img.src),
         isActive: shopifyProduct.status === 'active',
-      },
+      } as unknown as import('@prisma/client').Prisma.ProductCreateInput,
     });
 
     // Créer le mapping
@@ -567,7 +567,7 @@ export class ShopifyConnector {
         currency: shopifyOrder.currency,
         status: this.mapShopifyOrderStatus(shopifyOrder.financial_status) as OrderStatus,
         paymentStatus: this.mapShopifyPaymentStatus(shopifyOrder.financial_status) as PaymentStatus,
-        shippingAddress: shopifyOrder.shipping_address as Record<string, unknown>,
+        shippingAddress: shopifyOrder.shipping_address as unknown as import('@prisma/client').Prisma.InputJsonValue,
         metadata: {
           shopifyOrderId: shopifyOrder.id,
           shopifyOrderNumber: shopifyOrder.order_number,

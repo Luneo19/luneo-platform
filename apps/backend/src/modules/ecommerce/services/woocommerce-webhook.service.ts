@@ -122,7 +122,7 @@ export class WooCommerceWebhookService {
           images: product.images?.map(img => img.src) || [],
           isActive: product.status === 'publish',
           isPublic: product.status === 'publish',
-        },
+        } as unknown as import('@prisma/client').Prisma.ProductCreateInput,
       });
 
       // Create product mapping

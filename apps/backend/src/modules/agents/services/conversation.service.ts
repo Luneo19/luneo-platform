@@ -163,7 +163,8 @@ export class ConversationService {
     }
 
     if (Array.isArray(meta.actions)) {
-      result.actions = meta.actions.filter((action): action is ConversationMessageMetadata['actions'][0] => {
+      type ActionItem = NonNullable<ConversationMessageMetadata['actions']>[number];
+      result.actions = meta.actions.filter((action): action is ActionItem => {
         return (
           action &&
           typeof action === 'object' &&

@@ -64,15 +64,15 @@ export class OrderSyncService {
 
       switch (integration.platform) {
         case 'shopify':
-          orders = (await this.shopifyConnector.getOrders(integrationId)) as Array<Record<string, JsonValue>>;
+          orders = (await this.shopifyConnector.getOrders(integrationId)) as unknown as Array<Record<string, JsonValue>>;
           break;
 
         case 'woocommerce':
-          orders = (await this.woocommerceConnector.getOrders(integrationId)) as Array<Record<string, JsonValue>>;
+          orders = (await this.woocommerceConnector.getOrders(integrationId)) as unknown as Array<Record<string, JsonValue>>;
           break;
 
         case 'magento':
-          orders = (await this.magentoConnector.getOrders(integrationId)) as Array<Record<string, JsonValue>>;
+          orders = (await this.magentoConnector.getOrders(integrationId)) as unknown as Array<Record<string, JsonValue>>;
           break;
       }
 

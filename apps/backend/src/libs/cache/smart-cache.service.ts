@@ -314,15 +314,16 @@ export class SmartCacheService {
       const stats = await this.redisService.getStats();
       
       // Calculer le hit rate (approximatif)
-      const totalCommands = parseInt(stats.stats.match(/keyspace_hits:(\d+)/)?.[1] || '0') + 
-                           parseInt(stats.stats.match(/keyspace_misses:(\d+)/)?.[1] || '0');
-      const hits = parseInt(stats.stats.match(/keyspace_hits:(\d+)/)?.[1] || '0');
+      const statsStr = (stats.stats as string) ?? '';
+      const totalCommands = parseInt(statsStr.match(/keyspace_hits:(\d+)/)?.[1] || '0') + 
+                           parseInt(statsStr.match(/keyspace_misses:(\d+)/)?.[1] || '0');
+      const hits = parseInt(statsStr.match(/keyspace_hits:(\d+)/)?.[1] || '0');
       const hitRate = totalCommands > 0 ? (hits / totalCommands) * 100 : 0;
 
       return {
         hitRate: Math.round(hitRate * 100) / 100,
         memoryUsage: (stats.memory || {}) as Record<string, unknown>,
-        keyCounts: this.extractKeyCounts(stats.keyspace)
+        keyCounts: this.extractKeyCounts((stats.keyspace as string) ?? '')
       };
     } catch (error) {
       this.logger.error('Failed to get cache stats:', error);

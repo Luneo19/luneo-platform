@@ -136,8 +136,11 @@ export class NotificationsController {
   @ApiResponse({ status: 201, description: 'Notification créée' })
   async create(@Body() createNotificationDto: CreateNotificationDto, @Request() req) {
     return this.notificationsService.create({
-      ...createNotificationDto,
       userId: req.user.id,
+      type: createNotificationDto.type ?? 'info',
+      title: createNotificationDto.title,
+      message: createNotificationDto.message,
+      data: createNotificationDto.metadata,
     });
   }
 

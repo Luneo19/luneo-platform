@@ -60,7 +60,6 @@ export class GDPRService {
           where: { userId },
         }),
         this.auditLogs.getUserActivity(userId, 1000),
-        // @ts-expect-error - usageMetric model may exist at runtime (Prisma schema extension)
         this.prisma.usageMetric.findMany({
           where: {
             brand: {
@@ -288,7 +287,6 @@ export class GDPRService {
    */
   async getConsentHistory(userId: string): Promise<any[]> {
     try {
-      // @ts-expect-error - userConsent model may exist at runtime (Prisma schema extension)
       return await this.prisma.userConsent.findMany({
         where: { userId },
         orderBy: { recordedAt: 'desc' },

@@ -194,10 +194,10 @@ export class PlansService {
           const bonus = ADDON_BONUSES[addon.type];
           if (bonus) {
             for (const [key, value] of Object.entries(bonus)) {
-              if (typeof value === 'number' && typeof (baseLimits as Record<string, number>)[key] === 'number') {
+              if (typeof value === 'number' && typeof (baseLimits as unknown as Record<string, number>)[key] === 'number') {
                 // Ne pas ajouter de bonus si la limite est déjà illimitée (-1)
-                if ((baseLimits as Record<string, number>)[key] !== -1) {
-                  (baseLimits as Record<string, number>)[key] += value * (addon.quantity || 1);
+                if ((baseLimits as unknown as Record<string, number>)[key] !== -1) {
+                  (baseLimits as unknown as Record<string, number>)[key] += value * (addon.quantity || 1);
                 }
               }
             }

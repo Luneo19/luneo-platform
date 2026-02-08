@@ -138,7 +138,7 @@ export class ProductSyncService {
       },
     });
 
-    const productData = this.transformLuneoProductToExternal(product as Record<string, JsonValue>, integration.platform);
+    const productData = this.transformLuneoProductToExternal(product as unknown as Record<string, JsonValue>, integration.platform);
 
     switch (integration.platform) {
       case 'shopify':

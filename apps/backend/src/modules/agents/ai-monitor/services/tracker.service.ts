@@ -10,6 +10,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
@@ -55,9 +56,9 @@ export class TrackerService {
       // Persister en DB
       await this.prisma.aIUsageLog.create({
         data: {
-          brandId: tracking.brandId || null,
-          userId: tracking.userId,
-          agentId: tracking.agentId || null,
+          brandId: tracking.brandId ?? null,
+          userId: tracking.userId ?? '',
+          agentId: tracking.agentId ?? null,
           model: tracking.model,
           provider: tracking.provider,
           operation: tracking.operation,
@@ -69,8 +70,8 @@ export class TrackerService {
           costCents: tracking.costCents,
           latencyMs: tracking.latencyMs,
           success: tracking.success,
-          errorMessage: tracking.errorMessage || null,
-          metadata: (tracking.metadata || {}) as Record<string, unknown>,
+          errorMessage: tracking.errorMessage ?? null,
+          metadata: (tracking.metadata ?? {}) as Prisma.InputJsonValue,
         },
       });
 

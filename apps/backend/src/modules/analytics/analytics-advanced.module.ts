@@ -6,12 +6,13 @@
 
 import { Module } from '@nestjs/common';
 import { AnalyticsAdvancedService } from './services/analytics-advanced.service';
+import { AnalyticsCalculationsService } from './services/analytics-calculations.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
-  providers: [AnalyticsAdvancedService],
-  exports: [AnalyticsAdvancedService],
+  providers: [AnalyticsAdvancedService, AnalyticsCalculationsService],
+  exports: [AnalyticsAdvancedService, AnalyticsCalculationsService],
 })
 export class AnalyticsAdvancedModule {}
 

@@ -326,17 +326,18 @@ export class AnalyticsService {
       }
 
       // Par provider
-      if (!byProvider[log.provider]) {
-        byProvider[log.provider] = {
+      const providerKey = log.provider ?? 'unknown';
+      if (!byProvider[providerKey]) {
+        byProvider[providerKey] = {
           calls: 0,
           tokens: 0,
           costCents: 0,
         };
       }
 
-      byProvider[log.provider].calls++;
-      byProvider[log.provider].tokens += log.totalTokens;
-      byProvider[log.provider].costCents += Number(log.costCents);
+      byProvider[providerKey].calls++;
+      byProvider[providerKey].tokens += log.totalTokens;
+      byProvider[providerKey].costCents += Number(log.costCents);
 
       // Par intent (depuis metadata)
       const metadata = log.metadata as Record<string, unknown> | null;
@@ -372,32 +373,36 @@ export class AnalyticsService {
     analytics: DailyAnalytics,
   ): Promise<void> {
     try {
+      const compositeBrandId = brandId ?? null;
+      const compositeAgentId = null;
+      const avgLatency = analytics.avgLatencyMs ?? undefined;
+      const errorRateVal = analytics.errorCount > 0 ? analytics.errorCount / (analytics.conversationCount || 1) : 0;
       await this.prisma.aIAnalytics.upsert({
         where: {
           brandId_agentId_date: {
-            brandId: brandId || null,
-            agentId: null,
+            brandId: compositeBrandId as unknown as string,
+            agentId: compositeAgentId as unknown as string,
             date: new Date(date),
           },
         },
         create: {
-          brandId: brandId || null,
-          agentId: null,
+          brandId: compositeBrandId,
+          agentId: compositeAgentId,
           date: new Date(date),
           conversationCount: analytics.conversationCount,
           messageCount: analytics.messageCount,
           totalTokens: analytics.totalTokens,
           totalCostCents: analytics.totalCostCents,
-          averageLatencyMs: analytics.avgLatencyMs,
-          errorRate: analytics.errorCount > 0 ? analytics.errorCount / (analytics.conversationCount || 1) : 0,
+          averageLatencyMs: avgLatency,
+          errorRate: errorRateVal,
         },
         update: {
           conversationCount: analytics.conversationCount,
           messageCount: analytics.messageCount,
           totalTokens: analytics.totalTokens,
           totalCostCents: analytics.totalCostCents,
-          averageLatencyMs: analytics.avgLatencyMs,
-          errorRate: analytics.errorCount > 0 ? analytics.errorCount / (analytics.conversationCount || 1) : 0,
+          averageLatencyMs: avgLatency,
+          errorRate: errorRateVal,
         },
       });
     } catch (error) {

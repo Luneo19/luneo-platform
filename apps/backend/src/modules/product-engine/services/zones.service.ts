@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { 
@@ -30,7 +31,7 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
+      const rules = (product.rulesJson as unknown as ProductRules | null) ?? { zones: [] };
 
       const zoneId = `zone_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const newZone: ProductZone = {
@@ -42,7 +43,7 @@ export class ZonesService {
 
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as Record<string, unknown> },
+        data: { rulesJson: rules as unknown as Prisma.InputJsonValue },
       });
 
       // Invalider le cache
@@ -71,7 +72,7 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
+      const rules = (product.rulesJson as unknown as ProductRules | null) ?? { zones: [] };
       const zoneIndex = rules.zones.findIndex(z => z.id === zoneId);
 
       if (zoneIndex === -1) {
@@ -88,7 +89,7 @@ export class ZonesService {
       // Sauvegarder les règles mises à jour
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as Record<string, unknown> },
+        data: { rulesJson: rules as unknown as Prisma.InputJsonValue },
       });
 
       // Invalider le cache
@@ -117,7 +118,7 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
+      const rules = (product.rulesJson as unknown as ProductRules | null) ?? { zones: [] };
       const zoneIndex = rules.zones.findIndex(z => z.id === zoneId);
 
       if (zoneIndex === -1) {
@@ -128,7 +129,7 @@ export class ZonesService {
 
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as Record<string, unknown> },
+        data: { rulesJson: rules as unknown as Prisma.InputJsonValue },
       });
 
       // Invalider le cache
@@ -155,7 +156,7 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
+      const rules = (product.rulesJson as unknown as ProductRules | null) ?? { zones: [] };
       const originalZone = rules.zones.find(z => z.id === zoneId);
 
       if (!originalZone) {
@@ -176,7 +177,7 @@ export class ZonesService {
 
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as Record<string, unknown> },
+        data: { rulesJson: rules as unknown as Prisma.InputJsonValue },
       });
 
       // Invalider le cache
@@ -205,7 +206,7 @@ export class ZonesService {
         return [];
       }
 
-      const rules = product.rulesJson as ProductRules | null;
+      const rules = product.rulesJson as unknown as ProductRules | null;
       return rules?.zones ?? [];
     } catch (error) {
       this.logger.error(`Error getting zones for product ${productId}:`, error);
@@ -240,7 +241,7 @@ export class ZonesService {
         throw new NotFoundException(`Product ${productId} not found`);
       }
 
-      const rules = (product.rulesJson as ProductRules | null) ?? { zones: [] };
+      const rules = (product.rulesJson as unknown as ProductRules | null) ?? { zones: [] };
 
       // Réorganiser les zones selon l'ordre fourni
       const reorderedZones: ProductZone[] = [];
@@ -263,7 +264,7 @@ export class ZonesService {
 
       await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as Record<string, unknown> },
+        data: { rulesJson: rules as unknown as Prisma.InputJsonValue },
       });
 
       // Invalider le cache
@@ -476,7 +477,7 @@ export class ZonesService {
 
       // Analyser l'usage des zones
       for (const design of designs) {
-        const options = design.options as DesignOptions | null;
+        const options = design.options as unknown as DesignOptions | null;
         if (!options?.zones) continue;
 
         for (const [zoneId, zoneOptions] of Object.entries(options.zones)) {
@@ -487,7 +488,7 @@ export class ZonesService {
               stats[zoneId].successRate++;
             }
 
-            const zoneOpts = zoneOptions as Record<string, unknown>;
+            const zoneOpts = zoneOptions as unknown as Record<string, unknown>;
             for (const optionKey of Object.keys(zoneOpts)) {
               const existingOption = stats[zoneId].popularOptions.find(
                 (opt) => opt.option === optionKey

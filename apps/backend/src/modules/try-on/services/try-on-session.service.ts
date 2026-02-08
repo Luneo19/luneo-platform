@@ -50,7 +50,7 @@ export class TryOnSessionService {
         configurationId,
         sessionId,
         visitorId,
-        deviceInfo: (deviceInfo || {}) as Record<string, unknown>,
+        deviceInfo: typeof deviceInfo === 'object' && deviceInfo !== null ? JSON.stringify(deviceInfo) : (String(deviceInfo ?? '{}')),
         productsTried: [],
       },
       select: {

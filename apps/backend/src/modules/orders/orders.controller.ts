@@ -23,7 +23,7 @@ import { RequestRefundDto } from './dto/request-refund.dto';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { UserRole, OrderStatus } from '@prisma/client';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -135,7 +135,11 @@ export class OrdersController {
     description: 'Commande mise à jour',
   })
   async update(@Param('id') id: string, @Body() updateDto: UpdateOrderDto, @Request() req) {
-    return this.ordersService.update(id, updateDto, req.user);
+    return this.ordersService.update(
+      id,
+      updateDto as unknown as { status?: OrderStatus; trackingNumber?: string; notes?: string },
+      req.user,
+    );
   }
 
   @Post(':id/cancel')

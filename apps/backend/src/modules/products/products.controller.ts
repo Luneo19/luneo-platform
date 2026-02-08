@@ -141,7 +141,7 @@ export class ProductsController {
     if (!req.user.brandId) {
       throw new BadRequestException('User must have a brandId');
     }
-    return this.productsService.create(req.user.brandId, createProductDto as Record<string, JsonValue>, req.user);
+    return this.productsService.create(req.user.brandId, createProductDto as unknown as Record<string, JsonValue>, req.user);
   }
 
   @Post('brands/:brandId/products')
@@ -157,7 +157,7 @@ export class ProductsController {
     @Body() createProductDto: CreateProductDto,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
-    return this.productsService.create(brandId, createProductDto as Record<string, JsonValue>, req.user);
+    return this.productsService.create(brandId, createProductDto as unknown as Record<string, JsonValue>, req.user);
   }
 
   @Patch(':id')
@@ -176,7 +176,7 @@ export class ProductsController {
     if (!req.user.brandId) {
       throw new BadRequestException('User must have a brandId');
     }
-    return this.productsService.update(req.user.brandId, id, updateProductDto as Record<string, JsonValue>, req.user);
+    return this.productsService.update(req.user.brandId, id, updateProductDto as unknown as Record<string, JsonValue>, req.user);
   }
 
   @Patch('brands/:brandId/products/:id')
@@ -194,7 +194,7 @@ export class ProductsController {
     @Body() updateProductDto: UpdateProductDto,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
-    return this.productsService.update(brandId, id, updateProductDto as Record<string, JsonValue>, req.user);
+    return this.productsService.update(brandId, id, updateProductDto as unknown as Record<string, JsonValue>, req.user);
   }
 
   @Delete(':id')
@@ -248,7 +248,7 @@ export class ProductsController {
     if (!req.user.brandId) {
       throw new BadRequestException('User must have a brandId');
     }
-    return this.productsService.export(req.user.brandId, query as Record<string, unknown>, req.user);
+    return this.productsService.export(req.user.brandId, query as unknown as Record<string, unknown>, req.user);
   }
 
   @Post('import')

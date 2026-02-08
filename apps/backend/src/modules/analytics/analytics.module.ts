@@ -19,8 +19,7 @@ import { AnalyticsController } from './controllers/analytics.controller';
 import { AnalyticsAdvancedController } from './controllers/analytics-advanced.controller';
 // import { AdvancedAnalyticsController } from './controllers/advanced-analytics.controller'; // File not found
 import { AnalyticsExportController } from './controllers/export.controller';
-// DISABLED: excluded from tsconfig.build.json
-// import { PredictiveController } from './controllers/predictive.controller';
+import { PredictiveController } from './controllers/predictive.controller';
 import { ReportsController } from './controllers/reports.controller';
 import { WebVitalsController } from './controllers/web-vitals.controller';
 import { DownloadsController } from './controllers/downloads.controller';
@@ -33,8 +32,7 @@ import { AnalyticsAdvancedService } from './services/analytics-advanced.service'
 import { AdvancedAnalyticsService } from './services/advanced-analytics.service';
 import { AnalyticsExportService } from './services/export.service';
 import { AnalyticsCalculationsService } from './services/analytics-calculations.service';
-// DISABLED: excluded from tsconfig.build.json
-// import { PredictiveService } from './services/predictive.service';
+import { PredictiveService } from './services/predictive.service';
 import { ReportsService } from './services/reports.service';
 import { MetricsService } from './services/metrics.service';
 import { WebVitalsService } from './services/web-vitals.service';
@@ -45,8 +43,7 @@ import { DownloadsService } from './services/downloads.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { StorageModule } from '@/libs/storage/storage.module';
-// DISABLED: AgentsModule excluded from tsconfig.build.json
-// import { AgentsModule } from '@/modules/agents/agents.module';
+import { AgentsModule } from '@/modules/agents/agents.module';
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
 
 @Module({
@@ -76,14 +73,14 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
         },
       },
     ),
-    // forwardRef(() => AgentsModule), // DISABLED: excluded from tsconfig.build.json
+    forwardRef(() => AgentsModule),
   ],
   controllers: [
     AnalyticsController,
     AnalyticsAdvancedController,
     // AdvancedAnalyticsController, // File not found
     AnalyticsExportController,
-    // PredictiveController, // DISABLED: excluded from tsconfig.build.json
+    PredictiveController,
     ReportsController,
     WebVitalsController,
     DownloadsController,
@@ -96,7 +93,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     AdvancedAnalyticsService,
     AnalyticsExportService,
     AnalyticsCalculationsService,
-    // PredictiveService, // DISABLED: excluded from tsconfig.build.json
+    PredictiveService,
     ReportsService,
     MetricsService,
     WebVitalsService,
@@ -111,7 +108,7 @@ import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
     AdvancedAnalyticsService,
     AnalyticsExportService,
     AnalyticsCalculationsService,
-    // PredictiveService, // DISABLED: excluded from tsconfig.build.json
+    PredictiveService,
     ReportsService,
     MetricsService,
     WebVitalsService,

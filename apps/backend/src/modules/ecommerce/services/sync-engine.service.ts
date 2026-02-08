@@ -257,7 +257,7 @@ export class SyncEngineService {
       const data = job.data as Record<string, unknown>;
       return {
         id: job.id!,
-        type: (data.type as string) || 'product',
+        type: ((data.type as string) || 'product') as SyncJobType,
         status: state as JobStatus['status'],
         progress: typeof progress === 'number' ? progress : undefined,
         createdAt: new Date(job.timestamp),
@@ -348,7 +348,7 @@ export class SyncEngineService {
       );
 
       // ✅ Mapper en JobStatus
-      return await Promise.all(
+      return (await Promise.all(
         integrationJobs.map(async (job) => {
           const state = await job.getState();
           const progress = job.progress;
@@ -356,7 +356,7 @@ export class SyncEngineService {
           const jobData = job.data as Record<string, unknown>;
           return {
             id: job.id!,
-            type: (jobData.type as string) || 'product',
+            type: ((jobData.type as string) || 'product') as SyncJobType,
             status: state as JobStatus['status'],
             progress: typeof progress === 'number' ? progress : undefined,
             createdAt: new Date(job.timestamp),
@@ -365,7 +365,7 @@ export class SyncEngineService {
             error: job.failedReason || undefined,
           };
         }),
-      );
+      )) as unknown as JobStatus[];
     } catch (error) {
       this.logger.error(
         `Failed to get integration jobs: ${error instanceof Error ? error.message : 'Unknown'}`,

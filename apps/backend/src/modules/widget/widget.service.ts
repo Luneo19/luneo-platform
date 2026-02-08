@@ -138,7 +138,7 @@ export class WidgetService {
         canvasWidth: designData.canvas.width,
         canvasHeight: designData.canvas.height,
         canvasBackgroundColor: designData.canvas.backgroundColor,
-        designData: designData as Prisma.InputJsonValue,
+        designData: designData as unknown as Prisma.InputJsonValue,
         productId,
         userId: userId || null,
         brandId: (await this.prisma.product.findUnique({ where: { id: productId }, select: { brandId: true } }))?.brandId || null,
@@ -147,7 +147,7 @@ export class WidgetService {
         canvasWidth: designData.canvas.width,
         canvasHeight: designData.canvas.height,
         canvasBackgroundColor: designData.canvas.backgroundColor,
-        designData: designData as Prisma.InputJsonValue,
+        designData: designData as unknown as Prisma.InputJsonValue,
         updatedAt: new Date(),
       },
     });

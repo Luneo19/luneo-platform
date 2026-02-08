@@ -199,6 +199,7 @@ export class NovaService {
         messages,
         temperature: 0.7,
         maxTokens: 1024,
+        stream: false,
         brandId: validated.brandId,
         agentType: 'nova',
         enableFallback: true,

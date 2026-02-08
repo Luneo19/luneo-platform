@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateConfigurator3DConfigurationDto } from '../dto/create-configurator-3d.dto';
 import { UpdateConfigurator3DConfigurationDto } from '../dto/update-configurator-3d.dto';
@@ -155,8 +156,8 @@ export class Configurator3DService {
         description: dto.description,
         brandId: project.brandId, // Récupérer brandId depuis project
         projectId,
-        sceneConfig: (dto.sceneConfig || {}) as Record<string, unknown>,
-        uiConfig: (dto.uiConfig || {}) as Record<string, unknown>,
+        sceneConfig: (dto.sceneConfig || {}) as Prisma.InputJsonValue,
+        uiConfig: (dto.uiConfig || {}) as Prisma.InputJsonValue,
         isActive: dto.isActive ?? true,
       },
       select: {
@@ -191,7 +192,13 @@ export class Configurator3DService {
 
     const config = await this.prisma.configurator3DConfiguration.update({
       where: { id },
-      data: dto as Record<string, unknown>,
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.sceneConfig !== undefined && { sceneConfig: dto.sceneConfig as Prisma.InputJsonValue }),
+        ...(dto.uiConfig !== undefined && { uiConfig: dto.uiConfig as Prisma.InputJsonValue }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      },
       select: {
         id: true,
         name: true,
@@ -244,9 +251,9 @@ export class Configurator3DService {
       data: {
         ...dto,
         configurationId: configId,
-        defaultValue: (dto.defaultValue || {}) as Record<string, unknown>,
-        values: (dto.values || {}) as Record<string, unknown>,
-        constraints: (dto.constraints || {}) as Record<string, unknown>,
+        defaultValue: (typeof dto.defaultValue === 'object' && dto.defaultValue !== null ? JSON.stringify(dto.defaultValue) : dto.defaultValue ?? '{}') as string,
+        values: (dto.values || {}) as Prisma.InputJsonValue,
+        constraints: (dto.constraints || {}) as Prisma.InputJsonValue,
         order: dto.order || 0,
         isRequired: dto.isRequired ?? false,
       },

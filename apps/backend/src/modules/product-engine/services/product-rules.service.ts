@@ -32,7 +32,7 @@ export class ProductRulesService {
     // Vérifier le cache d'abord
     const cached = await this.cache.getSimple<string>(cacheKey);
     if (cached) {
-      return JSON.parse(cached) as ProductRules | null;
+      return JSON.parse(cached) as unknown as ProductRules | null;
     }
 
     try {
@@ -50,12 +50,12 @@ export class ProductRulesService {
         return null;
       }
 
-      const rules = product.rulesJson as Record<string, unknown>;
+      const rules = product.rulesJson as unknown as Record<string, unknown>;
       
       // Mettre en cache pour 1 heure
       await this.cache.setSimple(cacheKey, JSON.stringify(rules), 3600);
       
-      return rules;
+      return rules as unknown as ProductRules;
     } catch (error) {
       this.logger.error(`Error fetching product rules for ${productId}:`, error);
       throw error;
@@ -82,7 +82,7 @@ export class ProductRulesService {
       // Mettre en cache les nouvelles règles
       await this.cache.setSimple(`product_rules:${productId}`, JSON.stringify(rules), 3600);
 
-      return updatedProduct.rulesJson as Record<string, unknown>;
+      return updatedProduct.rulesJson as unknown as ProductRules;
     } catch (error) {
       this.logger.error(`Error updating product rules for ${productId}:`, error);
       throw error;
@@ -233,7 +233,7 @@ export class ProductRulesService {
 
     // Vérifier les polices autorisées
     if (zone.constraints?.allowedFonts && options.font) {
-      if (!zone.constraints.allowedFonts.includes(options.font)) {
+      if (!zone.constraints.allowedFonts.includes(options.font as string)) {
         warnings.push({
           code: 'FONT_NOT_RECOMMENDED',
           message: `La police "${options.font}" n'est pas recommandée pour cette zone`,
@@ -264,7 +264,7 @@ export class ProductRulesService {
 
     // Vérifier le type MIME
     if (zone.allowedMime && options.mimeType) {
-      if (!zone.allowedMime.includes(options.mimeType)) {
+      if (!zone.allowedMime.includes(options.mimeType as string)) {
         errors.push({
           code: 'INVALID_IMAGE_FORMAT',
           message: `Format d'image non autorisé. Formats acceptés: ${zone.allowedMime.join(', ')}`,
@@ -275,8 +275,8 @@ export class ProductRulesService {
     }
 
     // Vérifier la résolution
-    if (zone.maxResolution && options.width && options.height) {
-      if (options.width > zone.maxResolution.w || options.height > zone.maxResolution.h) {
+    if (zone.maxResolution && options.width != null && options.height != null) {
+      if (Number(options.width) > zone.maxResolution.w || Number(options.height) > zone.maxResolution.h) {
         warnings.push({
           code: 'IMAGE_TOO_LARGE',
           message: `L'image dépasse la résolution recommandée`,
@@ -317,7 +317,7 @@ export class ProductRulesService {
 
     // Vérifier les couleurs autorisées
     if (zone.constraints?.allowedColors) {
-      if (!zone.constraints.allowedColors.includes(options.color)) {
+      if (!zone.constraints.allowedColors.includes(options.color as string)) {
         errors.push({
           code: 'COLOR_NOT_ALLOWED',
           message: `Cette couleur n'est pas autorisée`,
@@ -349,7 +349,7 @@ export class ProductRulesService {
 
     // Vérifier que la valeur est dans les options autorisées
     const allowedOptions = zone.metadata?.options || [];
-    if (allowedOptions.length > 0 && !allowedOptions.includes(options.value)) {
+    if (allowedOptions.length > 0 && !allowedOptions.includes(options.value as string)) {
       errors.push({
         code: 'INVALID_SELECTION',
         message: `Cette option n'est pas disponible`,
@@ -371,8 +371,8 @@ export class ProductRulesService {
     if (!zone.constraints) return;
 
     // Vérifier la taille minimale
-    if (zone.constraints.minSize && options.width && options.height) {
-      if (options.width < zone.constraints.minSize.w || options.height < zone.constraints.minSize.h) {
+    if (zone.constraints.minSize && options.width != null && options.height != null) {
+      if (Number(options.width) < zone.constraints.minSize.w || Number(options.height) < zone.constraints.minSize.h) {
         errors.push({
           code: 'SIZE_TOO_SMALL',
           message: `La taille est trop petite. Minimum: ${zone.constraints.minSize.w}x${zone.constraints.minSize.h}px`,
@@ -383,8 +383,8 @@ export class ProductRulesService {
     }
 
     // Vérifier la taille maximale
-    if (zone.constraints.maxSize && options.width && options.height) {
-      if (options.width > zone.constraints.maxSize.w || options.height > zone.constraints.maxSize.h) {
+    if (zone.constraints.maxSize && options.width != null && options.height != null) {
+      if (Number(options.width) > zone.constraints.maxSize.w || Number(options.height) > zone.constraints.maxSize.h) {
         errors.push({
           code: 'SIZE_TOO_LARGE',
           message: `La taille est trop grande. Maximum: ${zone.constraints.maxSize.w}x${zone.constraints.maxSize.h}px`,

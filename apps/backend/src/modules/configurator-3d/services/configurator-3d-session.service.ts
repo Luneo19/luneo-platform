@@ -54,7 +54,7 @@ export class Configurator3DSessionService {
         visitorId,
         status: Configurator3DSessionStatus.ACTIVE,
         state: {} as Prisma.InputJsonValue,
-        deviceInfo: (deviceInfo || {}) as Prisma.InputJsonValue,
+        deviceInfo: typeof deviceInfo === 'object' && deviceInfo !== null ? JSON.stringify(deviceInfo) : (String(deviceInfo ?? '{}')),
       },
       select: {
         id: true,

@@ -221,17 +221,22 @@ export class RBACService {
         where.brandId = brandId;
       }
 
-      return await this.prisma.user.findMany({
+      const users = await this.prisma.user.findMany({
         where,
         select: {
           id: true,
           email: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           role: true,
           brandId: true,
           createdAt: true,
         },
       });
+      return users.map((u) => ({
+        ...u,
+        name: [u.firstName, u.lastName].filter(Boolean).join(' ') || null,
+      }));
     } catch (error) {
       this.logger.error(
         `Failed to get users by role: ${error.message}`,

@@ -321,7 +321,7 @@ export class WooCommerceConnector {
       switch (topic) {
         case 'product.created':
         case 'product.updated':
-          await this.handleProductWebhook(integration.id, payload);
+          await this.handleProductWebhook(integration.id, payload as unknown as WooCommerceProduct);
           break;
 
         case 'product.deleted':
@@ -330,7 +330,7 @@ export class WooCommerceConnector {
 
         case 'order.created':
         case 'order.updated':
-          await this.handleOrderWebhook(integration.id, payload);
+          await this.handleOrderWebhook(integration.id, payload as unknown as WooCommerceOrder);
           break;
 
         default:
@@ -430,7 +430,7 @@ export class WooCommerceConnector {
         price: parseFloat(wooProduct.price || '0'),
         images: wooProduct.images.map(img => img.src),
         isActive: wooProduct.status === 'publish',
-      },
+      } as unknown as import('@prisma/client').Prisma.ProductCreateInput,
     });
 
     await this.prisma.productMapping.create({
@@ -498,7 +498,7 @@ export class WooCommerceConnector {
         totalCents: Math.round(parseFloat(wooOrder.total) * 100),
         currency: wooOrder.currency,
         status: this.mapWooCommerceOrderStatus(wooOrder.status) as import('@prisma/client').OrderStatus,
-        shippingAddress: wooOrder.shipping as Record<string, unknown>,
+        shippingAddress: wooOrder.shipping as unknown as import('@prisma/client').Prisma.InputJsonValue,
         metadata: {
           woocommerceOrderId: wooOrder.id,
           lineItemId: lineItem.id,

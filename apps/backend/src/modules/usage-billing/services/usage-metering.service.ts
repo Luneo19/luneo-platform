@@ -56,7 +56,7 @@ export class UsageMeteringService {
             value,
             unit: usageMetric.unit,
             timestamp: usageMetric.timestamp,
-            metadata: metadata || undefined,
+            metadata: (metadata || undefined) as unknown as import('@prisma/client').Prisma.InputJsonValue | undefined,
           },
         });
       } catch (dbError: unknown) {
@@ -201,7 +201,8 @@ export class UsageMeteringService {
     const targetProductId = metricToStripeProductMap[metric];
 
     for (const item of subscription.items.data) {
-      const productId = item.price?.product?.id || item.price?.product;
+      const raw = item.price?.product;
+      const productId = typeof raw === 'string' ? raw : (raw as { id?: string })?.id;
       if (productId === targetProductId) {
         return item;
       }

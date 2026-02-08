@@ -150,7 +150,7 @@ export class ValidationEngine {
 
     // Vérifier le format
     if (zone.allowedMime && options.mimeType) {
-      if (!zone.allowedMime.includes(options.mimeType)) {
+      if (!zone.allowedMime.includes(options.mimeType as string)) {
         errors.push({
           code: 'INVALID_IMAGE_FORMAT',
           message: `Format d'image non autorisé. Formats acceptés: ${zone.allowedMime.join(', ')}`,
@@ -162,7 +162,7 @@ export class ValidationEngine {
 
     // Vérifier la résolution
     if (zone.maxResolution && options.width && options.height) {
-      if (options.width > zone.maxResolution.w || options.height > zone.maxResolution.h) {
+      if ((Number(options.width) > zone.maxResolution.w) || (Number(options.height) > zone.maxResolution.h)) {
         warnings.push({
           code: 'IMAGE_TOO_LARGE',
           message: `L'image dépasse la résolution recommandée`,
@@ -182,7 +182,7 @@ export class ValidationEngine {
     }
 
     // Vérifier la qualité de l'image
-    if (options.quality && options.quality < 0.8) {
+    if (options.quality != null && Number(options.quality) < 0.8) {
       warnings.push({
         code: 'LOW_IMAGE_QUALITY',
         message: `La qualité de l'image est faible`,
@@ -222,7 +222,7 @@ export class ValidationEngine {
 
     // Vérifier le pattern regex
     if (zone.constraints?.pattern) {
-      const regex = new RegExp(zone.constraints.pattern);
+      const regex = new RegExp(zone.constraints.pattern as unknown as string);
       if (!regex.test(options.text)) {
         errors.push({
           code: 'TEXT_PATTERN_MISMATCH',
@@ -235,7 +235,7 @@ export class ValidationEngine {
 
     // Vérifier les polices
     if (zone.constraints?.allowedFonts && options.font) {
-      if (!zone.constraints.allowedFonts.includes(options.font)) {
+      if (!zone.constraints.allowedFonts.includes(options.font as string)) {
         warnings.push({
           code: 'FONT_NOT_RECOMMENDED',
           message: `La police "${options.font}" n'est pas recommandée`,
@@ -275,7 +275,7 @@ export class ValidationEngine {
 
     // Vérifier les couleurs autorisées
     if (zone.constraints?.allowedColors) {
-      if (!zone.constraints.allowedColors.includes(options.color)) {
+      if (!zone.constraints.allowedColors.includes(options.color as string)) {
         errors.push({
           code: 'COLOR_NOT_ALLOWED',
           message: `Cette couleur n'est pas autorisée`,
@@ -286,7 +286,7 @@ export class ValidationEngine {
     }
 
     // Vérifier la cohérence des couleurs
-    if (options.color && !this.isValidColorFormat(options.color)) {
+    if (options.color && !this.isValidColorFormat(options.color as string)) {
       errors.push({
         code: 'INVALID_COLOR_FORMAT',
         message: `Format de couleur invalide`,
@@ -317,7 +317,7 @@ export class ValidationEngine {
 
     // Vérifier les options autorisées
     const allowedOptions = zone.metadata?.options || [];
-    if (allowedOptions.length > 0 && !allowedOptions.includes(options.value)) {
+    if (allowedOptions.length > 0 && !allowedOptions.includes(options.value as string)) {
       errors.push({
         code: 'INVALID_SELECTION',
         message: `Cette option n'est pas disponible`,
@@ -339,8 +339,8 @@ export class ValidationEngine {
     if (!zone.constraints) return;
 
     // Vérifier la taille minimale
-    if (zone.constraints.minSize && options.width && options.height) {
-      if (options.width < zone.constraints.minSize.w || options.height < zone.constraints.minSize.h) {
+    if (zone.constraints.minSize && options.width != null && options.height != null) {
+      if (Number(options.width) < zone.constraints.minSize.w || Number(options.height) < zone.constraints.minSize.h) {
         errors.push({
           code: 'SIZE_TOO_SMALL',
           message: `La taille est trop petite. Minimum: ${zone.constraints.minSize.w}x${zone.constraints.minSize.h}px`,
@@ -351,8 +351,8 @@ export class ValidationEngine {
     }
 
     // Vérifier la taille maximale
-    if (zone.constraints.maxSize && options.width && options.height) {
-      if (options.width > zone.constraints.maxSize.w || options.height > zone.constraints.maxSize.h) {
+    if (zone.constraints.maxSize && options.width != null && options.height != null) {
+      if (Number(options.width) > zone.constraints.maxSize.w || Number(options.height) > zone.constraints.maxSize.h) {
         errors.push({
           code: 'SIZE_TOO_LARGE',
           message: `La taille est trop grande. Maximum: ${zone.constraints.maxSize.w}x${zone.constraints.maxSize.h}px`,
@@ -427,8 +427,8 @@ export class ValidationEngine {
     const constraints = context.rules.globalConstraints;
 
     // Vérifier la quantité
-    if (constraints.minOrderQuantity && context.options.quantity) {
-      if (context.options.quantity < constraints.minOrderQuantity) {
+    if (constraints.minOrderQuantity && context.options.quantity != null) {
+      if (Number(context.options.quantity) < constraints.minOrderQuantity) {
         errors.push({
           code: 'MIN_QUANTITY_NOT_MET',
           message: `Quantité minimale: ${constraints.minOrderQuantity}`,
@@ -437,8 +437,8 @@ export class ValidationEngine {
       }
     }
 
-    if (constraints.maxOrderQuantity && context.options.quantity) {
-      if (context.options.quantity > constraints.maxOrderQuantity) {
+    if (constraints.maxOrderQuantity && context.options.quantity != null) {
+      if (Number(context.options.quantity) > constraints.maxOrderQuantity) {
         errors.push({
           code: 'MAX_QUANTITY_EXCEEDED',
           message: `Quantité maximale: ${constraints.maxOrderQuantity}`,
@@ -503,7 +503,7 @@ export class ValidationEngine {
           const limits = brand.limits as Record<string, unknown>;
           
           // Limite de zones
-          if (limits.maxZonesPerDesign && context.rules.zones.length > limits.maxZonesPerDesign) {
+          if (limits.maxZonesPerDesign != null && context.rules.zones.length > Number(limits.maxZonesPerDesign)) {
             errors.push({
               code: 'ZONES_LIMIT_EXCEEDED',
               message: `Limite de zones dépassée (${limits.maxZonesPerDesign})`,
@@ -512,7 +512,7 @@ export class ValidationEngine {
           }
 
           // Limite de complexité
-          if (limits.maxComplexity && this.calculateComplexity(context.options) > limits.maxComplexity) {
+          if (limits.maxComplexity != null && this.calculateComplexity(context.options) > Number(limits.maxComplexity)) {
             warnings.push({
               code: 'COMPLEXITY_WARNING',
               message: 'Le design est très complexe',

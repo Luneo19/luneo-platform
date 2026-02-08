@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateTryOnConfigurationDto } from '../dto/create-try-on-configuration.dto';
 import { UpdateTryOnConfigurationDto } from '../dto/update-try-on-configuration.dto';
@@ -143,8 +144,8 @@ export class TryOnConfigurationService {
       data: {
         ...dto,
         projectId,
-        settings: (dto.settings || {}) as Record<string, unknown>,
-        uiConfig: (dto.uiConfig || {}) as Record<string, unknown>,
+        settings: (dto.settings || {}) as Prisma.InputJsonValue,
+        uiConfig: (dto.uiConfig || {}) as Prisma.InputJsonValue,
         isActive: dto.isActive ?? true,
       },
       select: {
@@ -179,7 +180,13 @@ export class TryOnConfigurationService {
 
     const config = await this.prisma.tryOnConfiguration.update({
       where: { id },
-      data: dto as Record<string, unknown>,
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.productType !== undefined && { productType: dto.productType }),
+        ...(dto.settings !== undefined && { settings: dto.settings as Prisma.InputJsonValue }),
+        ...(dto.uiConfig !== undefined && { uiConfig: dto.uiConfig as Prisma.InputJsonValue }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      },
       select: {
         id: true,
         name: true,
@@ -260,9 +267,9 @@ export class TryOnConfigurationService {
         configurationId: configId,
         productId: dto.productId,
         modelId: dto.modelId,
-        anchorPoints: (dto.anchorPoints || {}) as Record<string, unknown>,
+        anchorPoints: (dto.anchorPoints || {}) as Prisma.InputJsonValue,
         scaleFactor: dto.scaleFactor || 1.0,
-        adjustments: (dto.adjustments || {}) as Record<string, unknown>,
+        adjustments: (dto.adjustments || {}) as Prisma.InputJsonValue,
       },
       select: {
         id: true,

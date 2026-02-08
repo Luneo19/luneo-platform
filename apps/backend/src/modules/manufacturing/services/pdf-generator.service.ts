@@ -11,9 +11,10 @@ export class PdfGeneratorService {
   async generate(snapshot: any): Promise<Buffer> {
     try {
       const specData = snapshot.specData as Record<string, unknown> | null | undefined;
-      const productName = specData?.productName || 'Design';
-      const zones = specData?.zones || [];
-      const snapshotId = snapshot.id || 'unknown';
+      const productName = (specData?.productName as string | undefined) || 'Design';
+      type ZoneShape = { name?: string; type?: string; input?: { text?: string; font?: string; size?: number; color?: string; imageUrl?: string } };
+      const zones = (specData?.zones || []) as ZoneShape[];
+      const snapshotId = (snapshot.id as string | undefined) || 'unknown';
 
       // Construire le contenu texte du PDF
       const lines: string[] = [
@@ -25,8 +26,9 @@ export class PdfGeneratorService {
         '',
       ];
 
-      if (specData?.dimensions) {
-        lines.push(`Dimensions: ${specData.dimensions.width || 0}mm x ${specData.dimensions.height || 0}mm`);
+      const dimensions = specData?.dimensions as { width?: number; height?: number } | undefined;
+      if (dimensions) {
+        lines.push(`Dimensions: ${dimensions.width || 0}mm x ${dimensions.height || 0}mm`);
         lines.push('');
       }
 
@@ -45,7 +47,7 @@ export class PdfGeneratorService {
 
       // Générer un PDF brut minimal (conforme à la spec PDF 1.4)
       const content = lines.join('\n');
-      const pdf = this.buildMinimalPdf(content, productName);
+      const pdf = this.buildMinimalPdf(content, productName as string);
       
       this.logger.log(`PDF generated for snapshot ${snapshotId}: ${pdf.length} bytes`);
       return pdf;

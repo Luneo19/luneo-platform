@@ -64,6 +64,7 @@ export class SupportController {
   async createTicket(@Body() createDto: CreateSupportTicketDto, @Request() req) {
     return this.supportService.createTicket({
       ...createDto,
+      description: createDto.message,
       userId: req.user.id,
     });
   }

@@ -59,7 +59,7 @@ export class Render2DService {
       const canvas = await this.createCanvas(request.options);
       
       // Appliquer les éléments du design
-      const processedCanvas = await this.applyDesignElements(canvas, designData as Record<string, JsonValue>, request.options);
+      const processedCanvas = await this.applyDesignElements(canvas, designData as unknown as Record<string, JsonValue>, request.options);
       
       // Finaliser le rendu
       const finalImage = await this.finalizeRender(processedCanvas, request.options);

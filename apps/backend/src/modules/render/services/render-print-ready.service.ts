@@ -485,7 +485,7 @@ export class RenderPrintReadyService {
         opacity: layer.opacity || 1,
         visible: layer.visible ?? true,
         locked: layer.locked ?? false,
-        data: layer.data as TextLayerData | ImageLayerData | ShapeLayerData,
+        data: layer.data as unknown as TextLayerData | ImageLayerData | ShapeLayerData,
       })),
       metadata: {
         createdAt: design.createdAt.toISOString(),

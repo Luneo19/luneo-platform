@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface Trace {
@@ -127,7 +128,7 @@ export class TracingService {
         serviceName: span.service,
         duration: span.duration ?? 0,
         status: span.status === 'success' ? 'ok' : 'error',
-        metadata: span.tags || span.logs ? { tags: span.tags, logs: span.logs } : null,
+        metadata: (span.tags || span.logs ? { tags: span.tags, logs: span.logs } : undefined) as Prisma.InputJsonValue | undefined,
       },
     });
     if (span.status === 'error') {

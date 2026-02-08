@@ -293,15 +293,15 @@ export class BillingSyncService {
       return invoices.data.map(invoice => ({
         id: invoice.id,
         number: invoice.number,
-        status: invoice.status,
+        status: invoice.status as string | null,
         amountDue: invoice.amount_due,
         amountPaid: invoice.amount_paid,
         currency: invoice.currency,
         created: new Date(invoice.created * 1000),
         periodStart: new Date((invoice.period_start || invoice.created) * 1000),
         periodEnd: new Date((invoice.period_end || invoice.created) * 1000),
-        pdfUrl: invoice.invoice_pdf,
-        hostedUrl: invoice.hosted_invoice_url,
+        pdfUrl: invoice.invoice_pdf ?? null,
+        hostedUrl: invoice.hosted_invoice_url ?? null,
       }));
     } catch (error) {
       this.logger.error(`Failed to get invoice history: ${error}`);

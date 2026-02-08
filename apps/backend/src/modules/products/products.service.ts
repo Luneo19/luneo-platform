@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
-import { UserRole } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 import { normalizePagination, createPaginationResult, PaginationParams, PaginationResult } from '@/libs/prisma/pagination.helper';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
 import { AppErrorFactory, AuthorizationError, ErrorCode, ValidationError } from '@/common/errors/app-error';
@@ -127,7 +127,7 @@ export class ProductsService {
       data: {
         ...createProductDto,
         brandId,
-      } as Prisma.ProductCreateInput,
+      } as unknown as Prisma.ProductCreateInput,
       select: {
         id: true,
         name: true,

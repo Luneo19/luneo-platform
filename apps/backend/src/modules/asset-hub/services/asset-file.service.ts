@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { UploadFileDto } from '../dto/upload-file.dto';
@@ -197,7 +198,7 @@ export class AssetFileService {
         url: cdnUrl,
         cdnUrl,
         type: dto.type,
-        metadata: (dto.metadata || {}) as Record<string, unknown>,
+        metadata: (dto.metadata || {}) as Prisma.InputJsonValue,
         tags: dto.tags || [],
         folderId: dto.folderId,
       },

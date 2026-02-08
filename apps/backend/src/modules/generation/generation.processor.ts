@@ -6,7 +6,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { AIProviderFactory } from './providers/ai-provider.factory';
 import { ImageProcessorService } from './services/image-processor.service';
-import { GenerationStatus } from '@prisma/client';
+import { GenerationStatus, Prisma } from '@prisma/client';
 
 interface GenerationJobData {
   generationId: string;
@@ -57,8 +57,8 @@ export class GenerationProcessor {
       
       const aiResult = await aiProvider.generateImage({
         prompt: data.finalPrompt,
-        size: `${data.outputWidth}x${data.outputHeight}`,
-        quality: data.quality as 'standard' | 'hd' | 'ultra',
+        size: `${data.outputWidth}x${data.outputHeight}` as '1024x1024' | '1792x1024' | '1024x1792',
+        quality: data.quality as 'standard' | 'hd',
       });
 
       await job.updateProgress(50);
@@ -145,7 +145,7 @@ export class GenerationProcessor {
           processingTime,
           tokensUsed: aiResult.costs.tokens,
           cost: aiResult.costs.costCents ? aiResult.costs.costCents / 100 : null,
-          aiResponse: aiResult.metadata as Record<string, unknown>,
+          aiResponse: aiResult.metadata as unknown as Prisma.InputJsonValue,
           completedAt: new Date(),
         },
       });
