@@ -275,7 +275,7 @@ const nextConfig = {
       },
       // Public assets - Medium cache
       {
-        source: '/(.*\\.(jpg|jpeg|png|gif|webp|avif|svg|ico|woff|woff2|ttf|eot))',
+        source: '/(?:.*\\.(?:jpg|jpeg|png|gif|webp|avif|svg|ico|woff|woff2|ttf|eot))',
         headers: [
           {
             key: 'Cache-Control',
