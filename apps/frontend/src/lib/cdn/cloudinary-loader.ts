@@ -7,9 +7,21 @@ import type { ImageLoaderProps } from 'next/image';
 
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
 
+// Local public assets that should NOT go through Cloudinary
+const LOCAL_ASSET_PATTERNS = [
+  '/logo', '/favicon', '/icon', '/apple-touch-icon', '/manifest',
+  '/placeholder-', '/herobanner',
+];
+
 export default function cloudinaryLoader({ src, width, quality }: ImageLoaderProps): string {
   if (!CLOUDINARY_CLOUD_NAME) {
-    // Fallback to Next.js Image Optimization if Cloudinary not configured
+    // Fallback to Next.js default if Cloudinary not configured
+    return src;
+  }
+
+  // Skip Cloudinary for local public assets (served directly by Next.js/Vercel)
+  const isLocalAsset = src.startsWith('/') && LOCAL_ASSET_PATTERNS.some(p => src.startsWith(p));
+  if (isLocalAsset) {
     return src;
   }
 

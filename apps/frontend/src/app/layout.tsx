@@ -193,7 +193,7 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#3b82f6" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Luneo" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

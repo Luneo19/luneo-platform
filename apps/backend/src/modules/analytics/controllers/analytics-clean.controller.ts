@@ -7,10 +7,13 @@ import {
   UseGuards,
   Request,
   Res,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { AnalyticsCleanService } from '../services/analytics-clean.service';
 import { TrackEventDto } from '../dto/track-event.dto';
 import { AnalyticsQueryDto } from '../dto/analytics-query.dto';
@@ -21,24 +24,22 @@ import { CurrentUser } from '@/common/types/user.types';
  * Focus sur l'essentiel : tracking, métriques, export
  */
 @ApiTags('analytics')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('analytics-clean')
 export class AnalyticsCleanController {
   constructor(private readonly analyticsService: AnalyticsCleanService) {}
 
   @Post('events')
+  @Public() // Public: Accept anonymous tracking events (login page, etc.)
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Track an analytics event' })
   @ApiResponse({ status: 201, description: 'Event tracked successfully' })
   async trackEvent(
-    @Request() req: Express.Request & { user: CurrentUser },
+    @Request() req: Express.Request & { user?: CurrentUser },
     @Body() dto: TrackEventDto,
   ) {
-    await this.analyticsService.trackEvent(
-      req.user.brandId,
-      req.user.id,
-      dto,
-    );
+    const brandId = (req as any).user?.brandId || 'anonymous';
+    const userId = (req as any).user?.id || 'anonymous';
+    await this.analyticsService.trackEvent(brandId, userId, dto);
     return { success: true, message: 'Event tracked' };
   }
 

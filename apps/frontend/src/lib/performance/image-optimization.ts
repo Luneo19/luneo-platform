@@ -23,7 +23,7 @@ interface ImageTransformOptions {
 interface ResponsiveImageConfig {
   src: string;
   sizes: string;
-  srcSet: { width: number; url: string }[];
+  srcSet: string;
 }
 
 // Cloudinary configuration
@@ -109,7 +109,7 @@ export function getResponsiveImage(
   return {
     src: getCloudinaryUrl(publicId, { ...baseOptions, width: widths[Math.floor(widths.length / 2)] }),
     sizes,
-    srcSet,
+    srcSet: srcSetString,
   };
 }
 
