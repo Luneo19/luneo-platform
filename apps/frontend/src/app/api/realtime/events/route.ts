@@ -32,7 +32,7 @@ async function fetchRealEvents(channels: string[], since?: number): Promise<Real
     params.append('channels', channels.join(','));
     if (since) params.append('since', since.toString());
     
-    const response = await fetch(`${API_BASE}/api/v1/events/stream?${params}`, {
+    const response = await fetch(`${getBackendUrl()}/api/v1/events/stream?${params}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -68,12 +68,12 @@ RUN echo "Checking for Prisma Client..." && \
         fi; \
     fi
 
-    # Build the application (SWC for fast compilation, skip TS type-checking)
-    WORKDIR /app/apps/backend
-    RUN nest build --builder swc -p tsconfig.build.json || \
-        npx swc src -d dist --config-file .swcrc 2>/dev/null || \
-        npx tsc -p tsconfig.build.json --noEmit false --skipLibCheck --noCheck 2>/dev/null || \
-        pnpm build
+# Build the application using tsconfig.docker.json (relaxed strict checks, rootDir: ".")
+# tsc emits JS even with type errors (noEmitOnError: false), so || true is safe
+WORKDIR /app/apps/backend
+RUN nest build --tsc -p tsconfig.docker.json || true
+# Verify build output exists
+RUN test -f dist/src/main.js || (echo "ERROR: dist/src/main.js not found after build" && ls -R dist/ 2>/dev/null && exit 1)
 
 # ============================================
 # STAGE 2: Production - Image finale légère
@@ -110,11 +110,12 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 # Copier package.json et pnpm-lock.yaml (nécessaires pour pnpm)
-COPY --chown=nestjs:nodejs package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY --chown=nestjs:nodejs apps/backend/package.json ./apps/backend/
+# Note: --chown removed; ownership is set later via chown -R after user creation
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend/package.json ./apps/backend/
 
 # Copier les packages nécessaires AVANT de copier node_modules
-COPY --chown=nestjs:nodejs packages ./packages/
+COPY packages ./packages/
 
 # Installer les dépendances de production + prisma (nécessaire pour générer Prisma Client)
 # Cela garantit que la structure pnpm est correcte et que les modules sont accessibles
@@ -122,7 +123,7 @@ COPY --chown=nestjs:nodejs packages ./packages/
 RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier le schéma Prisma depuis le builder
-COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/prisma ./apps/backend/prisma
+COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
 # Copier le Prisma Client généré depuis le builder via tar
 # Le tar a été créé avec succès dans le builder (7.8M), donc on l'utilise directement
@@ -144,24 +145,7 @@ RUN echo "Extracting Prisma Client from builder..." && \
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
 
 # Copier uniquement les fichiers nécessaires depuis le builder
-COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/dist ./apps/backend/dist
-
-# Créer le script de démarrage
-# Le script doit être exécuté depuis la racine pour que pnpm trouve les node_modules
-RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Verification Prisma Client..."\n# Avec pnpm, le Prisma Client peut être dans .pnpm/@prisma+client/.../node_modules/.prisma\nPRISMA_CLIENT_DIR=$(find /app/node_modules -path "*/.prisma/client" -type d 2>/dev/null | head -1)\nif [ -n "$PRISMA_CLIENT_DIR" ]; then\n  echo "✅ Prisma Client found at: $PRISMA_CLIENT_DIR"\n  ls -la "$PRISMA_CLIENT_DIR" | head -5\nelif [ -d "/app/node_modules/.prisma/client" ]; then\n  echo "✅ Prisma Client found in /app/node_modules/.prisma/client"\n  ls -la /app/node_modules/.prisma/client | head -5\nelif [ -d "/app/apps/backend/node_modules/.prisma/client" ]; then\n  echo "✅ Prisma Client found in /app/apps/backend/node_modules/.prisma/client"\nelse\n  echo "❌ WARNING: Prisma Client not found in expected locations"\n  echo "Searching for Prisma Client..."\n  find /app/node_modules -name ".prisma" -type d 2>/dev/null | head -5\nfi\necho "🔄 Exécution des migrations Prisma (dans start.sh - fallback si main.ts échoue)..."\ncd /app/apps/backend\n# Essayer d utiliser le binaire Prisma directement, sinon utiliser npx avec version spécifique\nif [ -f "/app/node_modules/.bin/prisma" ]; then\n  /app/node_modules/.bin/prisma migrate deploy || echo "⚠️ Migrations dans start.sh échouées (main.ts les gérera)"\nelif [ -f "/app/apps/backend/node_modules/.bin/prisma" ]; then\n  /app/apps/backend/node_modules/.bin/prisma migrate deploy || echo "⚠️ Migrations dans start.sh échouées (main.ts les gérera)"\nelse\n  # Fallback: utiliser npx avec version spécifique (évite Prisma 7.x)\n  npx --yes prisma@5.22.0 migrate deploy || echo "⚠️ Migrations dans start.sh échouées (main.ts les gérera)"\nfi\necho "🚀 Démarrage de l application (main.ts gérera les migrations et le seed si nécessaire)..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
-
-# Nettoyer les fichiers inutiles pour réduire la taille
-
-# Nettoyer les fichiers inutiles
-# IMPORTANT: Ne PAS supprimer .prisma/client car il est nécessaire au runtime
-RUN rm -rf /app/node_modules/.cache \
-    && rm -rf /tmp/* \
-    && rm -rf /var/cache/apk/* \
-    && find /app/node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" -o -name "*.test.js" -o -name "*.spec.js" \) ! -path "*/node_modules/.prisma/*" -exec rm -rf {} + 2>/dev/null || true \
-    && find /app/node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.ts" ! -path "*/node_modules/.prisma/*" ! -path "*/node_modules/@prisma/*" \) -delete 2>/dev/null || true \
-    && find /app/node_modules -type d -empty ! -path "*/node_modules/.prisma/*" -delete 2>/dev/null || true \
-    && echo "Verifying Prisma Client after cleanup..." && \
-    ls -la /app/node_modules/.prisma/client 2>/dev/null | head -3 || echo "WARNING: Prisma Client not found after cleanup"
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 
 # Security: run as non-root user (Alpine: -S = system, -g/-u = gid/uid)
 RUN addgroup -g 1001 -S nodejs && \
@@ -170,7 +154,20 @@ RUN addgroup -g 1001 -S nodejs && \
 # Ensure app files are owned by non-root user (pnpm/tar run as root)
 RUN chown -R nestjs:nodejs /app
 
+# Créer le script de démarrage AFTER user creation so chown covers it
+RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Verification Prisma Client..."\nPRISMA_CLIENT_DIR=$(find /app/node_modules -path "*/.prisma/client" -type d 2>/dev/null | head -1)\nif [ -n "$PRISMA_CLIENT_DIR" ]; then\n  echo "Prisma Client found at: $PRISMA_CLIENT_DIR"\nelse\n  echo "WARNING: Prisma Client not found"\nfi\necho "Running Prisma migrations..."\ncd /app/apps/backend\nPRISMA_BIN=$(find /app/node_modules -name "prisma" -path "*/.bin/prisma" -type f 2>/dev/null | head -1)\nif [ -n "$PRISMA_BIN" ] && [ -x "$PRISMA_BIN" ]; then\n  "$PRISMA_BIN" migrate deploy || echo "Migrations skipped (main.ts will handle)"\nelif [ -f "/app/node_modules/.bin/prisma" ]; then\n  /app/node_modules/.bin/prisma migrate deploy || echo "Migrations skipped (main.ts will handle)"\nelse\n  echo "Prisma binary not found, skipping migrations (main.ts will handle)"\nfi\necho "Starting application..."\ncd /app/apps/backend\nexec node dist/src/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+
+# Fix ownership of start.sh
+RUN chown nestjs:nodejs /app/start.sh
+
 USER nestjs
+
+# Nettoyer les fichiers inutiles pour réduire la taille
+# IMPORTANT: Ne PAS supprimer .prisma/client car il est nécessaire au runtime
+RUN rm -rf /app/node_modules/.cache \
+    && rm -rf /tmp/* \
+    && echo "Verifying Prisma Client after cleanup..." && \
+    ls -la /app/node_modules/.prisma/client 2>/dev/null | head -3 || echo "WARNING: Prisma Client not found after cleanup"
 
 # Health check for container orchestrators (Railway, Docker Compose, K8s)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
