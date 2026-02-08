@@ -265,10 +265,10 @@ export class RenderWorker {
       const product = await this.getProduct(productId);
       const renderType = product?.model3dUrl ? '3d' : '2d';
 
-      // Créer la requête de rendu
+      // Créer la requête de rendu (renderType is '2d' | '3d', compatible with RenderRequest.type)
       const renderRequest = {
         id: renderId,
-        type: renderType as any,
+        type: renderType as '2d' | '3d',
         productId,
         designId,
         options: previewOptions,
@@ -557,7 +557,6 @@ export class RenderWorker {
         id: true,
         name: true,
         model3dUrl: true,
-        // @ts-ignore - baseAssetUrl exists in schema but Prisma client may need regeneration
         baseAssetUrl: true,
         images: true,
       },
@@ -569,7 +568,7 @@ export class RenderWorker {
    */
   private async getAssetsToExport(designId?: string, productId?: string): Promise<any[]> {
     if (designId) {
-      return (this.prisma as any).asset.findMany({
+      return this.prisma.asset.findMany({
         where: { designId },
         select: {
           id: true,

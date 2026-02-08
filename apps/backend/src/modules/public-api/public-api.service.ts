@@ -1,13 +1,13 @@
 /**
  * Public API Service
- * API-04: Suppression du hack (global as any).currentBrandId
- * brandId est maintenant passé explicitement à chaque méthode
+ * brandId is passed explicitly to each method (no global state).
  */
 
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { CreateDesignDto, CreateOrderDto, GetAnalyticsDto } from './dto';
+import { CreateDesignDto, CreateOrderDto, GetAnalyticsDto, WebhookEvent } from './dto';
 import { WebhookService } from './webhooks/webhooks.service';
 import { AnalyticsService } from './analytics/analytics.service';
 import * as crypto from 'crypto';
@@ -152,7 +152,7 @@ export class PublicApiService {
     });
 
     // Trigger webhook for design creation
-    await this.webhookService.sendWebhook('design.created' as any, {
+    await this.webhookService.sendWebhook(WebhookEvent.DESIGN_CREATED, {
       designId: design.id,
       brandId,
       status: design.status,
@@ -230,7 +230,7 @@ export class PublicApiService {
         },
         customerEmail: createOrderDto.customerEmail,
         customerName: createOrderDto.customerName,
-        shippingAddress: createOrderDto.shippingAddress as any,
+        shippingAddress: createOrderDto.shippingAddress as unknown as Prisma.InputJsonValue,
       },
       select: {
         id: true,
@@ -248,7 +248,7 @@ export class PublicApiService {
     });
 
     // Trigger webhook for order creation
-    await this.webhookService.sendWebhook('order.created' as any, {
+    await this.webhookService.sendWebhook(WebhookEvent.ORDER_CREATED, {
       orderId: order.id,
       brandId,
       status: order.status,
@@ -293,15 +293,15 @@ export class PublicApiService {
 
   async getOrders(brandId: string, page: number = 1, limit: number = 10, status?: string) {
     const skip = (page - 1) * limit;
-    
-    const where: any = { brandId };
+
+    const where: { brandId: string; status?: string } = { brandId };
     if (status) {
       where.status = status;
     }
-    
+
     const [orders, total] = await Promise.all([
       this.prisma.order.findMany({
-        where,
+        where: where as Prisma.OrderWhereInput,
         skip,
         take: limit,
         select: {
@@ -321,7 +321,7 @@ export class PublicApiService {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.order.count({ where }),
+      this.prisma.order.count({ where: where as Prisma.OrderWhereInput }),
     ]);
 
     return {
@@ -339,7 +339,7 @@ export class PublicApiService {
     return this.analyticsService.getAnalytics(brandId, query);
   }
 
-  async testWebhook(brandId: string, payload: any) {
-    return this.webhookService.sendWebhook('test' as any, payload, brandId);
+  async testWebhook(brandId: string, payload: Record<string, unknown>) {
+    return this.webhookService.sendWebhook(WebhookEvent.TEST, payload, brandId);
   }
 }

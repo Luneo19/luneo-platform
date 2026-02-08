@@ -90,8 +90,8 @@ function CookieBannerContent() {
     // Implémenter les préférences
     if (prefs.analytics) {
       // Activer Google Analytics / Vercel Analytics
-      if (typeof window !== 'undefined' && (window as any).va) {
-        (window as any).va('event', 'cookie-consent', { analytics: true });
+      if (typeof window !== 'undefined' && (window as Window & { va?: (action: string, name: string, opts?: object) => void }).va) {
+        (window as Window & { va: (action: string, name: string, opts?: object) => void }).va('event', 'cookie-consent', { analytics: true });
       }
     }
 

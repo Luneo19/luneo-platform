@@ -40,7 +40,11 @@ const createPrismaMock = <T = any>(): jest.MockedFunction<(...args: any[]) => Pr
   mockResolvedValue: (value: T) => jest.MockedFunction<(...args: any[]) => Promise<T>>;
   mockRejectedValue: (error: any) => jest.MockedFunction<(...args: any[]) => Promise<T>>;
 } => {
-  const mockFn = jest.fn<Promise<T>, any[]>() as any;
+  type PrismaMockFn = jest.Mock<Promise<T>, any[]> & {
+    mockResolvedValue: (value: T) => PrismaMockFn;
+    mockRejectedValue: (error: unknown) => PrismaMockFn;
+  };
+  const mockFn = jest.fn<Promise<T>, any[]>() as unknown as PrismaMockFn;
   // S'assurer que mockResolvedValue et mockRejectedValue sont disponibles
   mockFn.mockResolvedValue = (value: T) => {
     mockFn.mockReturnValue(Promise.resolve(value));

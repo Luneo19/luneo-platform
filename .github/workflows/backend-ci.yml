@@ -83,11 +83,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Railway
-        uses: bervProject/railway-deploy@v0.1.0
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: backend
-          environment: staging
+        run: |
+          npm install -g @railway/cli
+          railway up --service backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   deploy-production:
     name: Deploy to Production (Railway)
@@ -99,8 +99,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Railway
-        uses: bervProject/railway-deploy@v0.1.0
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: backend
-          environment: production
+        run: |
+          npm install -g @railway/cli
+          railway up --service backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

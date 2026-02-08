@@ -23,13 +23,13 @@ const AI_FEATURES = [
 
 export function AiMlTab() {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <SparklesIcon className="w-5 h-5 text-purple-400" />
           Intelligence Artificielle & Machine Learning
         </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-gray-600">
           Fonctionnalités avancées d&apos;IA/ML pour optimiser votre programme d&apos;affiliation
         </CardDescription>
       </CardHeader>
@@ -38,7 +38,7 @@ export function AiMlTab() {
           {AI_FEATURES.map((feature, idx) => {
             const Icon = feature.icon;
             return (
-              <Card key={idx} className="bg-gray-900/50 border-gray-700">
+              <Card key={idx} className="bg-gray-100 border-gray-200">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <Icon className="w-5 h-5 text-purple-400" />
@@ -47,7 +47,7 @@ export function AiMlTab() {
                   <CardTitle className="text-white text-base mt-2">{feature.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-400 mb-4">{feature.description}</p>
+                  <p className="text-sm text-gray-600 mb-4">{feature.description}</p>
                   <Button size="sm" variant="outline" className="w-full border-purple-500/50 text-purple-400">
                     Configurer
                   </Button>

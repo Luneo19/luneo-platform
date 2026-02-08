@@ -22,7 +22,7 @@ The following items have been implemented and are in place:
 
 ## Environment variables
 
-- [ ] **DATABASE_URL** – PostgreSQL connection string
+- [ ] **DATABASE_URL** – PostgreSQL connection string. For production, add pooling params to the URL, e.g. `?schema=public&connection_limit=10&pool_timeout=20&connect_timeout=10` (see `.env.example`).
 - [ ] **JWT_SECRET** – Min 32 characters
 - [ ] **JWT_REFRESH_SECRET** – Min 32 characters
 - [ ] **STRIPE_SECRET_KEY** – Stripe secret key (starts with `sk_`)
@@ -33,6 +33,10 @@ The following items have been implemented and are in place:
   - **SENDGRID_API_KEY**, or
   - **MAILGUN_API_KEY** + **MAILGUN_DOMAIN**, or
   - **SMTP_HOST** + **SMTP_FROM** (or **FROM_EMAIL**)
+
+## Database connection pooling
+
+- [ ] **Production DATABASE_URL** includes pooling query params when using a single connection string (e.g. Neon, Supabase direct): `connection_limit=10`, `pool_timeout=20`, `connect_timeout=10`. If you use an external connection pooler (e.g. PgBouncer, Neon pooler), use the pooler URL and follow the provider’s recommended limits.
 
 ## Infrastructure
 
@@ -60,6 +64,39 @@ The following items have been implemented and are in place:
 - [ ] Verify `/api/v1/health` returns `status: "ok"`
 - [ ] Test onboarding flow: register -> select industry -> complete -> adaptive dashboard
 - [ ] Configure Stripe webhook endpoint: `https://your-domain.com/api/v1/billing/webhook`
+
+## Database backup strategy
+
+- [ ] **Automated daily backups** – Configure your PostgreSQL provider (Neon/Supabase/RDS) for automated daily snapshots
+- [ ] **Point-in-time recovery (PITR)** – Enable WAL archiving for point-in-time recovery (supported by Neon/Supabase natively)
+- [ ] **Backup retention** – Minimum 7 days for daily backups, 30 days for weekly backups
+- [ ] **Backup testing** – Quarterly restore test to verify backup integrity
+- [ ] **Cross-region replication** – For disaster recovery, consider a read replica in a different region
+
+### Backup commands (manual, if needed)
+
+```bash
+# Export database (pg_dump)
+pg_dump $DATABASE_URL --format=custom --file=backup_$(date +%Y%m%d).dump
+
+# Restore from backup
+pg_restore --dbname=$DATABASE_URL backup_20260208.dump
+```
+
+## Alerting and monitoring
+
+- [ ] **Sentry alerts** – Configure alert rules in Sentry dashboard:
+  - Error spike: alert when error rate exceeds 10/min for 5 minutes
+  - New issue: notify on first occurrence of any new error
+  - Regression: alert when a previously resolved issue recurs
+- [ ] **Uptime monitoring** – Set up external health check monitoring (e.g. Better Stack, Pingdom):
+  - Backend: `https://api.luneo.app/health` (interval: 1 min, alert after 2 failures)
+  - Frontend: `https://luneo.app/api/health` (interval: 1 min, alert after 2 failures)
+- [ ] **SSL certificate expiry** – Monitor SSL certificate expiration (30-day warning)
+- [ ] **Notification channels** – Configure at least 2 channels:
+  - Primary: Slack (`SLACK_WEBHOOK_URL` in GitHub secrets)
+  - Secondary: Email to ops team
+- [ ] **On-call rotation** – Define who receives production alerts
 
 ## Optional but recommended
 

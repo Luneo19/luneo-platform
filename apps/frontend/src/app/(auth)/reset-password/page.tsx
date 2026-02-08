@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
@@ -105,7 +106,7 @@ function ResetPasswordPageContent() {
         if (isMounted) {
           setIsReady(true);
           // Store token in state or use it directly in handleSubmit
-          (window as any).__resetToken = token;
+          (window as Window & { __resetToken?: string }).__resetToken = token;
         }
       } catch (err) {
         logger.error('Token validation error', {
@@ -149,7 +150,7 @@ function ResetPasswordPageContent() {
     try {
       // Get token from URL or stored value
       const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token') || (window as any).__resetToken;
+      const token = urlParams.get('token') || (window as Window & { __resetToken?: string }).__resetToken;
 
       if (!token) {
         setError('Token de réinitialisation manquant');
@@ -157,7 +158,7 @@ function ResetPasswordPageContent() {
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const apiUrl = getBackendUrl();
       const response = await fetch(`${apiUrl}/api/v1/auth/reset-password`, {
         method: 'POST',
         headers: {

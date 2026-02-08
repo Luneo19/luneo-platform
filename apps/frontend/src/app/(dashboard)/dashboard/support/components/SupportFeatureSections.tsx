@@ -67,25 +67,25 @@ const ANALYTICS_METRICS = [
 export function SupportFeatureSections() {
   return (
     <>
-      <Card className="bg-slate-900/50 border-slate-700 mt-6">
+      <Card className="bg-gray-50 border-gray-200 mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-cyan-400" />
             Fonctionnalités Avancées de Support - Section Professionnelle
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Dernières fonctionnalités avancées pour un support client de niveau entreprise mondiale
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Outils de Support Avancés</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Outils de Support Avancés</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {ADVANCED_TOOLS.map((tool, idx) => {
                   const Icon = tool.icon;
                   return (
-                    <Card key={idx} className="bg-slate-800/50 border-slate-700 hover:border-cyan-500/50 transition-colors">
+                    <Card key={idx} className="bg-white border-gray-200 hover:border-cyan-500/50 transition-colors">
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-cyan-500/10 rounded-lg">
@@ -93,10 +93,10 @@ export function SupportFeatureSections() {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-1">
-                              <h5 className="font-semibold text-white text-sm">{tool.name}</h5>
+                              <h5 className="font-semibold text-gray-900 text-sm">{tool.name}</h5>
                               <Badge className="bg-green-500 text-xs">{tool.status}</Badge>
                             </div>
-                            <p className="text-xs text-slate-400">{tool.description}</p>
+                            <p className="text-xs text-gray-600">{tool.description}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -106,7 +106,7 @@ export function SupportFeatureSections() {
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Métriques de Performance</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Métriques de Performance</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {PERFORMANCE_METRICS.map((metric, idx) => {
                   const Icon = metric.icon;
@@ -116,14 +116,14 @@ export function SupportFeatureSections() {
                   };
                   const colors = statusColors[metric.status] || statusColors.good;
                   return (
-                    <Card key={idx} className={`${colors.bg} border-slate-700`}>
+                    <Card key={idx} className={`${colors.bg} border-gray-200`}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Icon className={`w-4 h-4 ${colors.text}`} />
-                          <p className="text-xs text-slate-400">{metric.metric}</p>
+                          <p className="text-xs text-gray-600">{metric.metric}</p>
                         </div>
                         <p className={`text-2xl font-bold ${colors.text} mb-1`}>{metric.value}</p>
-                        <p className="text-xs text-slate-500">Cible: {metric.target}</p>
+                        <p className="text-xs text-gray-500">Cible: {metric.target}</p>
                       </CardContent>
                     </Card>
                   );
@@ -131,7 +131,7 @@ export function SupportFeatureSections() {
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Statistiques de Support</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Statistiques de Support</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {SUPPORT_STATS.map((stat, idx) => {
                   const Icon = stat.icon;
@@ -143,12 +143,12 @@ export function SupportFeatureSections() {
                   };
                   const colors = colorClasses[stat.color] || colorClasses.cyan;
                   return (
-                    <Card key={idx} className={`${colors.bg} border-slate-700`}>
+                    <Card key={idx} className={`${colors.bg} border-gray-200`}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
                           <Icon className={`w-5 h-5 ${colors.text}`} />
                         </div>
-                        <p className="text-xs text-slate-400 mb-1">{stat.label}</p>
+                        <p className="text-xs text-gray-600 mb-1">{stat.label}</p>
                         <p className={`text-xl font-bold ${colors.text}`}>{stat.value}</p>
                       </CardContent>
                     </Card>
@@ -160,13 +160,13 @@ export function SupportFeatureSections() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/50 border-slate-700 mt-6">
+      <Card className="bg-gray-50 border-gray-200 mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Award className="w-5 h-5 text-cyan-400" />
             Standards de Qualité de Support
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Garantir la qualité professionnelle de tous vos services de support
           </CardDescription>
         </CardHeader>
@@ -175,12 +175,12 @@ export function SupportFeatureSections() {
             {QUALITY_STANDARDS.map((item, idx) => {
               const Icon = item.icon;
               return (
-                <Card key={idx} className="bg-slate-800/50 border-slate-700">
+                <Card key={idx} className="bg-white border-gray-200">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3 mb-2">
                       <Icon className="w-5 h-5 text-cyan-400" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-white">{item.standard}</p>
+                        <p className="text-sm font-medium text-gray-900">{item.standard}</p>
                         <p className="text-lg font-bold text-cyan-400">{item.value}</p>
                       </div>
                       <Badge className="bg-green-500">{item.status}</Badge>
@@ -193,38 +193,38 @@ export function SupportFeatureSections() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/50 border-slate-700 mt-6">
+      <Card className="bg-gray-50 border-gray-200 mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-cyan-400" />
             Automatisation du Workflow de Support
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Automatisez vos processus de support client
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div>
-            <h4 className="text-sm font-semibold text-white mb-3">Règles d&apos;Automatisation</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Règles d&apos;Automatisation</h4>
             <div className="space-y-3">
               {AUTOMATION_RULES.map((rule, idx) => (
-                <Card key={idx} className="bg-slate-800/50 border-slate-700">
+                <Card key={idx} className="bg-white border-gray-200">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h5 className="font-semibold text-white text-sm">{rule.name}</h5>
-                          <Badge className={rule.enabled ? 'bg-green-500' : 'bg-slate-600'}>
+                          <h5 className="font-semibold text-gray-900 text-sm">{rule.name}</h5>
+                          <Badge className={rule.enabled ? 'bg-green-500' : 'bg-gray-400'}>
                             {rule.enabled ? 'Actif' : 'Inactif'}
                           </Badge>
                         </div>
-                        <p className="text-xs text-slate-400 mb-2">{rule.description}</p>
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                        <p className="text-xs text-gray-600 mb-2">{rule.description}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>Déclencheur: {rule.trigger}</span>
                           <span>Actions: {rule.actions}</span>
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" className="border-slate-600">
+                      <Button size="sm" variant="outline" className="border-gray-200">
                         <Edit className="w-4 h-4" />
                       </Button>
                     </div>
@@ -236,13 +236,13 @@ export function SupportFeatureSections() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/50 border-slate-700 mt-6">
+      <Card className="bg-gray-50 border-gray-200 mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-cyan-400" />
             Tableau de Bord Analytique
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Analysez les performances de votre support
           </CardDescription>
         </CardHeader>
@@ -252,14 +252,14 @@ export function SupportFeatureSections() {
               const Icon = metric.icon;
               const trendColor = metric.trend === 'up' ? 'text-green-400' : 'text-red-400';
               return (
-                <Card key={idx} className="bg-slate-800/50 border-slate-700">
+                <Card key={idx} className="bg-white border-gray-200">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <Icon className="w-4 h-4 text-slate-400" />
+                      <Icon className="w-4 h-4 text-gray-600" />
                       <span className={`text-xs font-medium ${trendColor}`}>{metric.change}</span>
                     </div>
-                    <p className="text-xs text-slate-400 mb-1">{metric.label}</p>
-                    <p className="text-xl font-bold text-white">{metric.value}</p>
+                    <p className="text-xs text-gray-600 mb-1">{metric.label}</p>
+                    <p className="text-xl font-bold text-gray-900">{metric.value}</p>
                   </CardContent>
                 </Card>
               );

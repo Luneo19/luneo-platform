@@ -16,34 +16,34 @@ interface GeographicAnalysisProps {
 export function GeographicAnalysis({ geographicData }: GeographicAnalysisProps) {
   if (geographicData.length === 0) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Analyse Géographique</CardTitle>
-          <CardDescription>Aucune donnée disponible</CardDescription>
+          <CardTitle className="text-gray-900">Analyse Géographique</CardTitle>
+          <CardDescription className="text-gray-600">Aucune donnée disponible</CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-gray-900 flex items-center gap-2">
           <Globe className="w-5 h-5 text-blue-400" />
           Analyse Géographique
         </CardTitle>
-        <CardDescription>Répartition par pays</CardDescription>
+        <CardDescription className="text-gray-600">Répartition par pays</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {geographicData.slice(0, 10).map((country) => (
             <div
               key={country.country}
-              className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg"
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
               <div className="flex-1">
-                <p className="text-white font-medium">{country.country}</p>
-                <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+                <p className="text-gray-900 font-medium">{country.country}</p>
+                <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
                   <span>{formatNumber(country.users)} utilisateurs</span>
                   <span>•</span>
                   <span>{formatPrice(country.revenue, 'EUR')}</span>

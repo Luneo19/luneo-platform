@@ -7,8 +7,9 @@ import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 const PODSubmitSchema = z.object({
   orderId: z.string().cuid(),
@@ -25,7 +26,8 @@ export async function POST(
 ) {
   return ApiResponseBuilder.handle(
     async () => {
-      const { provider } = typeof (params as any).then === 'function' ? await (params as Promise<{ provider: string }>) : (params as { provider: string });
+      const resolvedParams = params instanceof Promise ? await params : params;
+      const { provider } = resolvedParams;
       const body = await request.json().catch(() => {
         throw { status: 400, message: 'Body JSON invalide', code: 'INVALID_JSON' };
       });

@@ -95,11 +95,12 @@ export function useBilling() {
           return { success: true, url };
         }
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erreur lors de la création de la session de paiement';
         logger.error('Error creating checkout session', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors de la création de la session de paiement',
+          description: message,
           variant: 'destructive',
         });
         return { success: false };

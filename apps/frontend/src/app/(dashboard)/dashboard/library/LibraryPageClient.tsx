@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { QuotaWarningBanner } from '@/components/shared/QuotaWarningBanner';
 import { LibraryHeader } from './components/LibraryHeader';
 import { LibraryFilters } from './components/LibraryFilters';
 import { LibraryGrid } from './components/LibraryGrid';
@@ -67,11 +68,11 @@ export function LibraryPageClient() {
   if (isLoading && page === 1) {
     return (
       <div className="space-y-6 pb-10">
-        <div className="h-16 bg-gray-800 rounded animate-pulse" />
-        <div className="h-20 bg-gray-800 rounded animate-pulse" />
+        <div className="h-16 bg-gray-200 rounded animate-pulse" />
+        <div className="h-20 bg-gray-200 rounded animate-pulse" />
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="aspect-square bg-gray-800 rounded animate-pulse" />
+            <div key={i} className="aspect-square bg-gray-200 rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -80,6 +81,7 @@ export function LibraryPageClient() {
 
   return (
     <div className="space-y-6 pb-10">
+      <QuotaWarningBanner metric="designs" />
       <LibraryHeader
         viewMode={viewMode}
         onViewModeChange={setViewMode}

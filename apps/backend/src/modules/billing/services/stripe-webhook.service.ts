@@ -9,13 +9,14 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { Prisma, SubscriptionStatus } from '@prisma/client';
 import { CreditsService } from '@/libs/credits/credits.service';
 import { CurrencyUtils } from '@/config/currency.config';
 import { EmailService } from '@/modules/email/email.service';
 import { StripeClientService } from './stripe-client.service';
 import type Stripe from 'stripe';
 
-type WebhookResult = { processed: boolean; result?: any };
+type WebhookResult = { processed: boolean; result?: Record<string, unknown> };
 
 @Injectable()
 export class StripeWebhookService {
@@ -43,7 +44,7 @@ export class StripeWebhookService {
       });
       if (existingEvent?.processed) {
         this.logger.debug(`Webhook event already processed: ${event.id}`);
-        return { processed: true, result: existingEvent.result as any };
+        return { processed: true, result: existingEvent.result as Record<string, unknown> | null };
       }
 
       await this.prisma.processedWebhookEvent.upsert({
@@ -188,7 +189,7 @@ export class StripeWebhookService {
     // Subscription checkout
     if (session.mode === 'subscription' && session.customer) {
       const customerId = typeof session.customer === 'string' ? session.customer : session.customer.id;
-      const subscriptionId = typeof session.subscription === 'string' ? session.subscription : (session.subscription as any)?.id;
+      const subscriptionId = typeof session.subscription === 'string' ? session.subscription : (session.subscription as { id?: string } | null)?.id;
 
       if (session.metadata?.userId) {
         const user = await this.prisma.user.findUnique({ where: { id: session.metadata.userId }, include: { brand: true } });
@@ -212,7 +213,7 @@ export class StripeWebhookService {
 
           await this.prisma.brand.update({
             where: { id: user.brandId },
-            data: { stripeCustomerId: customerId, stripeSubscriptionId: subscriptionId || undefined, plan: planId, subscriptionStatus: subscriptionStatus as any, trialEndsAt, planExpiresAt: currentPeriodEnd },
+            data: { stripeCustomerId: customerId, stripeSubscriptionId: subscriptionId || undefined, plan: planId, subscriptionStatus: subscriptionStatus as SubscriptionStatus, trialEndsAt, planExpiresAt: currentPeriodEnd },
           });
           this.logger.log(`Brand ${user.brandId} updated with subscription ${subscriptionId}, plan: ${planId}, status: ${subscriptionStatus}`);
         }
@@ -274,18 +275,13 @@ export class StripeWebhookService {
     const addonPriceIdSet = new Set<string>();
     const addonPriceIdToType: Record<string, string> = {};
     for (const [addonKey, addonConf] of Object.entries(addonsConfig)) {
-      const conf = addonConf as any;
+      const conf = addonConf as Record<string, string>;
       if (conf?.monthly) { addonPriceIdSet.add(conf.monthly); addonPriceIdToType[conf.monthly] = addonKey; }
       if (conf?.yearly) { addonPriceIdSet.add(conf.yearly); addonPriceIdToType[conf.yearly] = addonKey; }
     }
 
     const planItem = subscription.items.data.find(item => !addonPriceIdSet.has(item.price.id));
     const planName = planItem?.price?.nickname || subscription.metadata?.planId || brand.plan || 'starter';
-
-    await this.prisma.brand.update({
-      where: { id: brand.id },
-      data: { stripeSubscriptionId: subscription.id, subscriptionStatus: appStatus, plan: planName, planExpiresAt: currentPeriodEnd, trialEndsAt: trialEnd },
-    });
 
     // Sync active add-ons
     const activeAddons: Array<{ type: string; quantity: number; stripePriceId: string }> = [];
@@ -297,10 +293,18 @@ export class StripeWebhookService {
       }
     }
     const currentLimits = (brand.limits as Record<string, any>) || {};
-    await this.prisma.brand.update({
-      where: { id: brand.id },
-      data: { limits: { ...currentLimits, activeAddons, addonsUpdatedAt: new Date().toISOString() } },
-    });
+
+    // Wrap both updates in a transaction to prevent race conditions
+    await this.prisma.$transaction([
+      this.prisma.brand.update({
+        where: { id: brand.id },
+        data: { stripeSubscriptionId: subscription.id, subscriptionStatus: appStatus, plan: planName, planExpiresAt: currentPeriodEnd, trialEndsAt: trialEnd },
+      }),
+      this.prisma.brand.update({
+        where: { id: brand.id },
+        data: { limits: { ...currentLimits, activeAddons, addonsUpdatedAt: new Date().toISOString() } },
+      }),
+    ]);
 
     if (activeAddons.length > 0) {
       this.logger.log(`Synced ${activeAddons.length} add-ons for brand ${brand.id}: ${activeAddons.map(a => `${a.type} x${a.quantity}`).join(', ')}`);
@@ -335,7 +339,7 @@ export class StripeWebhookService {
     const currentLimits = (brand.limits as Record<string, any>) || {};
     await this.prisma.brand.update({
       where: { id: brand.id },
-      data: { plan: 'starter', subscriptionStatus: 'CANCELED', stripeSubscriptionId: null, planExpiresAt: null, limits: { ...currentLimits, activeAddons: [], addonsUpdatedAt: new Date().toISOString(), canceledAt: new Date().toISOString() } as any },
+      data: { plan: 'starter', subscriptionStatus: SubscriptionStatus.CANCELED, stripeSubscriptionId: null, planExpiresAt: null, limits: { ...currentLimits, activeAddons: [], addonsUpdatedAt: new Date().toISOString(), canceledAt: new Date().toISOString() } as Prisma.InputJsonValue },
     });
     this.logger.log(`Brand ${brand.id} downgraded to starter plan, add-ons cleared`);
 

@@ -43,7 +43,7 @@ export async function exportKonvaStage(
         dataURL = stage.toDataURL({ pixelRatio: 2, quality, mimeType: 'image/jpeg' });
         break;
       case 'svg':
-        dataURL = (stage as any).toSVG?.();
+        dataURL = (stage as Konva.Stage & { toSVG?: () => string }).toSVG?.();
         if (!dataURL) {
           const fallback = stage.toDataURL({ pixelRatio: 2, quality });
           return new Blob([fallback], { type: 'image/png' });

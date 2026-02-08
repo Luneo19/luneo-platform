@@ -18,7 +18,7 @@ function PricingPageContent() {
       <PricingHero isYearly={isYearly} onYearlyChange={setIsYearly} />
       <section className="py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
             {mergedPlans.map((plan) => (
               <PricingPlanCard key={plan.id} plan={plan} isYearly={isYearly} onCheckout={handleCheckout} />
             ))}

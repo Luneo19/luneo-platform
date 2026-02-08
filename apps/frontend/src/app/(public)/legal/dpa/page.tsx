@@ -1,12 +1,26 @@
-'use client';
-
-import React, { memo, useMemo } from 'react';
+import React from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, FileText } from 'lucide-react';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+export const metadata: Metadata = {
+  title: 'Accord de traitement des données (DPA) - Luneo',
+  description:
+    'Data Processing Agreement Luneo conforme au RGPD Article 28. Sous-traitance et sécurité des données.',
+  openGraph: {
+    title: 'DPA - Accord de traitement des données - Luneo',
+    description: 'Data Processing Agreement conforme RGPD Article 28.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DPA - Luneo',
+    description: 'Accord de traitement des données (DPA) Luneo.',
+  },
+};
 
 function DPAPageContent() {
-  const lastUpdate = useMemo(() => new Date().toLocaleDateString('fr-FR'), []);
+  const lastUpdate = new Date().toLocaleDateString('fr-FR');
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -215,12 +229,6 @@ function DPAPageContent() {
   );
 }
 
-const DPAPageMemo = memo(DPAPageContent);
-
 export default function DPAPage() {
-  return (
-    <ErrorBoundary componentName="DPAPage">
-      <DPAPageMemo />
-    </ErrorBoundary>
-  );
+  return <DPAPageContent />;
 }

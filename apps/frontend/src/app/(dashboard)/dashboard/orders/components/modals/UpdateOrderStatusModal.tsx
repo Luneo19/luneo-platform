@@ -69,7 +69,7 @@ export function UpdateOrderStatusModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>Modifier le statut de la commande</DialogTitle>
           <DialogDescription>
@@ -78,9 +78,9 @@ export function UpdateOrderStatusModal({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label className="text-gray-300">Nouveau statut *</Label>
+            <Label className="text-gray-700">Nouveau statut *</Label>
             <Select value={status} onValueChange={(value) => setStatus(value as OrderStatus)}>
-              <SelectTrigger className="bg-gray-900 border-gray-600 text-white mt-1">
+              <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -93,13 +93,13 @@ export function UpdateOrderStatusModal({
             </Select>
           </div>
           <div>
-            <Label className="text-gray-300">Notes (optionnel)</Label>
+            <Label className="text-gray-700">Notes (optionnel)</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ajoutez des notes sur ce changement de statut..."
               rows={3}
-              className="bg-gray-900 border-gray-600 text-white mt-1 resize-none"
+              className="bg-white border-gray-200 text-gray-900 mt-1 resize-none"
             />
           </div>
           <DialogFooter>
@@ -107,7 +107,7 @@ export function UpdateOrderStatusModal({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-600"
+              className="border-gray-200"
             >
               Annuler
             </Button>

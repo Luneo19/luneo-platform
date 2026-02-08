@@ -62,10 +62,10 @@ export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
   return (
     <div className="space-y-6">
       {/* Change Password */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Mot de passe</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Mot de passe</CardTitle>
+          <CardDescription className="text-gray-600">
             Changez votre mot de passe pour sécuriser votre compte
           </CardDescription>
         </CardHeader>
@@ -82,10 +82,10 @@ export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
 
       {/* Active Sessions */}
       {sessions.length > 0 && (
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="text-white">Sessions actives</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-gray-900">Sessions actives</CardTitle>
+            <CardDescription className="text-gray-600">
               Gérez vos sessions actives sur différents appareils
             </CardDescription>
           </CardHeader>
@@ -93,11 +93,11 @@ export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
             {sessions.map((session) => (
               <div
                 key={session.id}
-                className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-gray-700"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
               >
                 <div>
-                  <p className="text-white font-medium">{session.device}</p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-gray-900 font-medium">{session.device}</p>
+                  <p className="text-sm text-gray-600">
                     {session.browser} • {session.location} • {session.ip}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
@@ -116,7 +116,7 @@ export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
                       size="sm"
                       onClick={() => revokeMutation.mutate(session.id)}
                       disabled={revokeMutation.isPending}
-                      className="border-gray-600"
+                      className="border-gray-200"
                     >
                       Révoquer
                     </Button>
@@ -129,10 +129,10 @@ export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
       )}
 
       {/* Delete Account */}
-      <Card className="bg-gray-800/50 border-gray-700 border-red-500/30">
+      <Card className="bg-white border-gray-200 border-red-500/30">
         <CardHeader>
           <CardTitle className="text-red-400">Zone de danger</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-gray-600">
             Actions irréversibles sur votre compte
           </CardDescription>
         </CardHeader>

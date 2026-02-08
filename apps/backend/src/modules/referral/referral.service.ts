@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { EmailService } from '@/modules/email/email.service';
 
 @Injectable()
 export class ReferralService {
@@ -9,6 +10,7 @@ export class ReferralService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   /**
@@ -134,7 +136,7 @@ export class ReferralService {
       totalEarnings,
       pendingEarnings,
       referralCode,
-      referralLink: `${this.configService.get('app.frontendUrl') || 'https://www.luneo.app'}/signup?ref=${userId.substring(0, 8)}`,
+      referralLink: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000'}/signup?ref=${userId.substring(0, 8)}`,
       recentReferrals,
     };
   }
@@ -156,67 +158,43 @@ export class ReferralService {
       this.logger.warn('Failed to save referral application', { error });
     }
 
-    // Envoyer email via service email (à implémenter)
-    const sendGridKey = this.configService.get<string>('SENDGRID_API_KEY');
-    if (sendGridKey) {
-      try {
-        // Email à l'équipe
-        await fetch('https://api.sendgrid.com/v3/mail/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${sendGridKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            personalizations: [{
-              to: [{ email: 'affiliate@luneo.app' }],
-              subject: `Nouvelle demande d'affiliation - ${email}`,
-            }],
-            from: { email: 'noreply@luneo.app', name: 'Luneo System' },
-            content: [{
-              type: 'text/html',
-              value: `
-                <div style="font-family: Arial, sans-serif;">
-                  <h2>Nouvelle demande d'affiliation</h2>
-                  <p><strong>Email:</strong> ${email}</p>
-                  <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR')}</p>
-                </div>
-              `,
-            }],
-          }),
-        });
+    // Envoyer email via EmailService (SendGrid/Mailgun selon config)
+    const fromEmail = this.configService.get<string>('SENDGRID_FROM_EMAIL') || process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app';
+    const contactEmail = this.configService.get<string>('CONTACT_EMAIL') || process.env.CONTACT_EMAIL || 'affiliate@luneo.app';
+    const frontendUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+    try {
+      // Email à l'équipe
+      await this.emailService.sendEmail({
+        to: contactEmail,
+        subject: `Nouvelle demande d'affiliation - ${email}`,
+        from: fromEmail,
+        html: `
+          <div style="font-family: Arial, sans-serif;">
+            <h2>Nouvelle demande d'affiliation</h2>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+          </div>
+        `,
+      });
 
-        // Email de confirmation au demandeur
-        await fetch('https://api.sendgrid.com/v3/mail/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${sendGridKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            personalizations: [{
-              to: [{ email }],
-              subject: 'Votre demande d\'affiliation Luneo',
-            }],
-            from: { email: 'affiliate@luneo.app', name: 'Luneo Affiliation' },
-            content: [{
-              type: 'text/html',
-              value: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #9333ea;">Merci pour votre intérêt !</h2>
-                  <p>Bonjour,</p>
-                  <p>Nous avons bien reçu votre demande pour rejoindre le programme d'affiliation Luneo.</p>
-                  <p>Notre équipe va examiner votre candidature et vous recontactera sous 24 à 48h avec tous les détails pour commencer.</p>
-                  <p>En attendant, n'hésitez pas à créer un compte sur <a href="${this.configService.get('app.frontendUrl') || 'https://luneo.app'}/register" style="color: #9333ea;">Luneo</a> si ce n'est pas déjà fait.</p>
-                  <p style="margin-top: 30px;">À très vite,<br/>L'équipe Luneo</p>
-                </div>
-              `,
-            }],
-          }),
-        });
-      } catch (emailError) {
-        this.logger.warn('Email notification failed', { error: emailError });
-      }
+      // Email de confirmation au demandeur
+      await this.emailService.sendEmail({
+        to: email,
+        subject: 'Votre demande d\'affiliation Luneo',
+        from: fromEmail,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #9333ea;">Merci pour votre intérêt !</h2>
+            <p>Bonjour,</p>
+            <p>Nous avons bien reçu votre demande pour rejoindre le programme d'affiliation Luneo.</p>
+            <p>Notre équipe va examiner votre candidature et vous recontactera sous 24 à 48h avec tous les détails pour commencer.</p>
+            <p>En attendant, n'hésitez pas à créer un compte sur <a href="${frontendUrl}/register" style="color: #9333ea;">Luneo</a> si ce n'est pas déjà fait.</p>
+            <p style="margin-top: 30px;">À très vite,<br/>L'équipe Luneo</p>
+          </div>
+        `,
+      });
+    } catch (emailError) {
+      this.logger.warn('Email notification failed', { error: emailError });
     }
 
     return {
@@ -304,37 +282,24 @@ export class ReferralService {
       },
     });
 
-    // Notifier l'équipe
-    const sendGridKey = this.configService.get<string>('SENDGRID_API_KEY');
-    if (sendGridKey) {
-      try {
-        await fetch('https://api.sendgrid.com/v3/mail/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${sendGridKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            personalizations: [{
-              to: [{ email: 'finance@luneo.app' }],
-              subject: `[Retrait] ${withdrawal.id} - ${totalPending.toFixed(2)}€`,
-            }],
-            from: { email: 'noreply@luneo.app', name: 'Luneo System' },
-            content: [{
-              type: 'text/html',
-              value: `
-                <h2>Nouvelle demande de retrait</h2>
-                <p><strong>ID:</strong> ${withdrawal.id}</p>
-                <p><strong>Utilisateur:</strong> ${user.email}</p>
-                <p><strong>Montant:</strong> ${totalPending.toFixed(2)}€</p>
-                <p><strong>IBAN:</strong> ${user.userProfile?.iban?.substring(0, 4)}****${user.userProfile?.iban?.substring(user.userProfile.iban.length - 4)}</p>
-              `,
-            }],
-          }),
-        });
-      } catch (emailError) {
-        this.logger.warn('Withdrawal notification email failed', { error: emailError });
-      }
+    // Notifier l'équipe via EmailService
+    const financeEmail = this.configService.get<string>('FINANCE_EMAIL') || process.env.FINANCE_EMAIL || 'finance@luneo.app';
+    const fromEmail = this.configService.get<string>('SENDGRID_FROM_EMAIL') || process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app';
+    try {
+      await this.emailService.sendEmail({
+        to: financeEmail,
+        subject: `[Retrait] ${withdrawal.id} - ${totalPending.toFixed(2)}€`,
+        from: fromEmail,
+        html: `
+          <h2>Nouvelle demande de retrait</h2>
+          <p><strong>ID:</strong> ${withdrawal.id}</p>
+          <p><strong>Utilisateur:</strong> ${user.email}</p>
+          <p><strong>Montant:</strong> ${totalPending.toFixed(2)}€</p>
+          <p><strong>IBAN:</strong> ${user.userProfile?.iban?.substring(0, 4)}****${user.userProfile?.iban?.substring(user.userProfile.iban.length - 4)}</p>
+        `,
+      });
+    } catch (emailError) {
+      this.logger.warn('Withdrawal notification email failed', { error: emailError });
     }
 
     this.logger.log('Withdrawal requested', {

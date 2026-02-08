@@ -162,7 +162,12 @@ export class NotificationsService {
       await this.saveUserSubscriptions(userId, existing);
       this.logger.log(`Push subscription added for user ${userId} (Redis: ${this.redisAvailable})`);
       
-      return { success: true };
+      return {
+        success: true,
+        channel: 'push',
+        subscribedAt: new Date().toISOString(),
+        endpointHint: subscription.endpoint?.substring(0, 50) ?? undefined,
+      };
     } catch (error) {
       this.logger.error(`Failed to subscribe user ${userId} to push`, error);
       return { success: false };

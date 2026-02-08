@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import React, { memo, useCallback, useState } from 'react';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '../../lib/logger';
 import { useIsAuthenticated } from '@/lib/hooks/useAuth';
 
@@ -51,7 +52,7 @@ const Header = memo(function Header({
 
   const handleLogout = useCallback(async () => {
     setShowUserMenu(false);
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_URL = getBackendUrl();
     try {
       await fetch(`${API_URL}/api/v1/auth/logout`, {
         method: 'POST',
@@ -150,11 +151,13 @@ const Header = memo(function Header({
                     <div className="px-4 py-3 border-b border-gray-200">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
-                          <span className="text-white font-medium">EA</span>
+                          <span className="text-white font-medium">
+                            {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : '??'}
+                          </span>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">Emmanuel Abougadous</p>
-                          <p className="text-xs text-gray-600">emmanuel@luneo.app</p>
+                          <p className="text-sm font-medium text-gray-900">{user?.name || 'Utilisateur'}</p>
+                          <p className="text-xs text-gray-600">{user?.email || ''}</p>
                         </div>
                       </div>
                     </div>

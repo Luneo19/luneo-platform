@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { getBackendUrl } from '@/lib/api/server-url';
 
 // Validation schema
 const SubscribeSchema = z.object({
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Option 2: Store subscription via backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const backendUrl = getBackendUrl();
     try {
       await fetch(`${backendUrl}/api/v1/newsletter/subscribe`, {
         method: 'POST',
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
               to: [{ email }],
               subject: '✅ Bienvenue dans la newsletter Luneo !',
             }],
-            from: { email: 'noreply@luneo.app', name: 'Luneo' },
+            from: { email: process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app', name: 'Luneo' },
             content: [{
               type: 'text/html',
               value: `
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
                   </p>
                   
                   <div style="text-align: center; margin: 30px 0;">
-                    <a href="https://luneo.app/demo" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/demo" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
                       Voir les démos
                     </a>
                   </div>
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
                   
                   <p style="color: #9ca3af; font-size: 12px; text-align: center;">
                     Vous recevez cet email car vous vous êtes inscrit à la newsletter Luneo.<br>
-                    <a href="https://luneo.app/unsubscribe?email=${encodeURIComponent(email)}" style="color: #6b7280;">Se désabonner</a>
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/unsubscribe?email=${encodeURIComponent(email)}" style="color: #6b7280;">Se désabonner</a>
                   </p>
                 </div>
               `,

@@ -3,8 +3,9 @@ import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { sendEmailSchema } from '@/lib/validation/zod-schemas';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 /**
  * POST /api/email/send
@@ -22,13 +23,13 @@ export async function POST(request: NextRequest) {
       to: string;
       subject: string;
       template?: string;
-      data?: Record<string, any>;
+      data?: Record<string, unknown>;
       html?: string;
       text?: string;
     };
 
     // Préparer les données d'email
-    const emailData: any = {
+    const emailData: Record<string, unknown> = {
       to,
       subject,
       from: process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app',

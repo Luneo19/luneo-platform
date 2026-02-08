@@ -18,11 +18,11 @@ export function CustomizeHeader({ onRefresh, onNewProduct }: CustomizeHeaderProp
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3 mb-2">
+        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3 mb-2">
           <Palette className="w-8 h-8 text-cyan-400" />
           Personnalisation
         </h1>
-        <p className="text-slate-400">
+        <p className="text-gray-600">
           Gérez vos produits personnalisables, templates et analytics
         </p>
       </div>
@@ -30,7 +30,7 @@ export function CustomizeHeader({ onRefresh, onNewProduct }: CustomizeHeaderProp
         <Button
           variant="outline"
           onClick={onRefresh}
-          className="border-slate-700"
+          className="border-gray-200"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
           Actualiser

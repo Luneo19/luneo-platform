@@ -60,11 +60,11 @@ export function MonitoringAlerts({ alerts, onRefresh }: MonitoringAlertsProps) {
 
   if (alerts.length === 0) {
     return (
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-white border-gray-200">
         <CardContent className="p-8 text-center">
           <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
-          <p className="text-slate-300 text-lg font-semibold mb-2">Aucune alerte</p>
-          <p className="text-slate-400">Tous les systèmes fonctionnent normalement</p>
+          <p className="text-gray-700 text-lg font-semibold mb-2">Aucune alerte</p>
+          <p className="text-gray-600">Tous les systèmes fonctionnent normalement</p>
         </CardContent>
       </Card>
     );
@@ -74,13 +74,13 @@ export function MonitoringAlerts({ alerts, onRefresh }: MonitoringAlertsProps) {
     <div className="space-y-6">
       {/* Critical Alerts */}
       {criticalAlerts.length > 0 && (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="w-5 h-5" />
               Alertes critiques ({criticalAlerts.length})
             </CardTitle>
-            <CardDescription>Action requise immédiatement</CardDescription>
+            <CardDescription className="text-gray-600">Action requise immédiatement</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -107,8 +107,8 @@ export function MonitoringAlerts({ alerts, onRefresh }: MonitoringAlertsProps) {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-slate-300 mb-2">{alert.message}</p>
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                        <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>Source: {alert.source}</span>
                           <span>{new Date(alert.timestamp).toLocaleString('fr-FR')}</span>
                         </div>
@@ -124,13 +124,13 @@ export function MonitoringAlerts({ alerts, onRefresh }: MonitoringAlertsProps) {
 
       {/* Warning Alerts */}
       {warningAlerts.length > 0 && (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-yellow-400">
               <AlertTriangle className="w-5 h-5" />
               Alertes d'avertissement ({warningAlerts.length})
             </CardTitle>
-            <CardDescription>Surveillance recommandée</CardDescription>
+            <CardDescription className="text-gray-600">Surveillance recommandée</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -152,8 +152,8 @@ export function MonitoringAlerts({ alerts, onRefresh }: MonitoringAlertsProps) {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-slate-300 mb-2">{alert.message}</p>
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                        <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>Source: {alert.source}</span>
                           <span>{new Date(alert.timestamp).toLocaleString('fr-FR')}</span>
                         </div>
@@ -169,13 +169,13 @@ export function MonitoringAlerts({ alerts, onRefresh }: MonitoringAlertsProps) {
 
       {/* Info Alerts */}
       {infoAlerts.length > 0 && (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-400">
               <Info className="w-5 h-5" />
               Alertes informatives ({infoAlerts.length})
             </CardTitle>
-            <CardDescription>Informations générales</CardDescription>
+            <CardDescription className="text-gray-600">Informations générales</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -192,8 +192,8 @@ export function MonitoringAlerts({ alerts, onRefresh }: MonitoringAlertsProps) {
                           <Icon className="w-5 h-5" />
                           <span className="font-semibold">{alert.title}</span>
                         </div>
-                        <p className="text-sm text-slate-300 mb-2">{alert.message}</p>
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                        <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>Source: {alert.source}</span>
                           <span>{new Date(alert.timestamp).toLocaleString('fr-FR')}</span>
                         </div>

@@ -3,8 +3,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { EmailService } from './email.service';
 import { MailgunService } from './mailgun.service';
 import { SendGridService } from './sendgrid.service';
-import { JsonValue } from '@/common/types/utility-types';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { SendGridTemplateDto } from './dto/sendgrid-template.dto';
+import { SendGridScheduledDto } from './dto/sendgrid-scheduled.dto';
 
 export class SendEmailDto {
   to!: string | string[];
@@ -108,7 +109,7 @@ export class EmailController {
   async sendPasswordResetTest(@Body() testData: TestEmailDto) {
     try {
       const resetToken = 'test-reset-token-' + Date.now();
-      const resetUrl = 'https://app.luneo.com/reset-password';
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
       
       const result = await this.emailService.sendPasswordResetEmail(
         testData.email,
@@ -143,7 +144,7 @@ export class EmailController {
   async sendConfirmationTest(@Body() testData: TestEmailDto) {
     try {
       const confirmationToken = 'test-confirmation-token-' + Date.now();
-      const confirmationUrl = 'https://app.luneo.com/confirm-email';
+      const confirmationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/confirm-email`;
       
       const result = await this.emailService.sendConfirmationEmail(
         testData.email,
@@ -208,12 +209,7 @@ export class EmailController {
   @Post('sendgrid/template')
   @ApiOperation({ summary: 'Send email with SendGrid template' })
   @ApiResponse({ status: 200, description: 'SendGrid template email sent successfully' })
-  async sendSendGridTemplate(@Body() data: {
-    email: string;
-    templateId: string;
-    templateData: Record<string, JsonValue>;
-    subject?: string;
-  }) {
+  async sendSendGridTemplate(@Body() data: SendGridTemplateDto) {
     try {
       const result = await this.sendgridService.sendTemplateEmail(
         data.email,
@@ -242,12 +238,7 @@ export class EmailController {
   @Post('sendgrid/scheduled')
   @ApiOperation({ summary: 'Send scheduled email via SendGrid' })
   @ApiResponse({ status: 200, description: 'Scheduled email sent successfully' })
-  async sendSendGridScheduled(@Body() data: {
-    email: string;
-    subject: string;
-    html: string;
-    sendAt: string; // ISO date string
-  }) {
+  async sendSendGridScheduled(@Body() data: SendGridScheduledDto) {
     try {
       const sendAt = new Date(data.sendAt);
       const result = await this.sendgridService.sendScheduledEmail(

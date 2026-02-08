@@ -49,7 +49,7 @@ export function ARModelsGrid({
   if (models.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucun modèle trouvé</p>
+        <p className="text-gray-600">Aucun modèle trouvé</p>
       </div>
     );
   }
@@ -70,7 +70,7 @@ export function ARModelsGrid({
       {models.map((model) => (
         <Card
           key={model.id}
-          className="bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-colors group"
+          className="bg-white border-gray-200 hover:border-cyan-500/50 transition-colors group"
         >
           <div className="relative aspect-square overflow-hidden rounded-t-lg">
             <Image
@@ -107,8 +107,8 @@ export function ARModelsGrid({
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-white truncate">{model.name}</h3>
-                <p className="text-xs text-gray-400 mt-1">
+                <h3 className="font-medium text-gray-900 truncate">{model.name}</h3>
+                <p className="text-xs text-gray-600 mt-1">
                   {formatDate(model.createdAt)}
                 </p>
               </div>
@@ -118,10 +118,10 @@ export function ARModelsGrid({
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                <DropdownMenuContent align="end" className="bg-white border-gray-200">
                   <DropdownMenuItem
                     onClick={() => onPreview(model)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Prévisualiser
@@ -161,7 +161,7 @@ export function ARModelsGrid({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+            <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">
               <span>{formatBytes(model.fileSize)}</span>
               <span>•</span>
               <span>{model.views} vues</span>
@@ -171,7 +171,7 @@ export function ARModelsGrid({
             {model.tags && model.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {model.tags.slice(0, 2).map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs border-gray-600 text-gray-300">
+                  <Badge key={tag} variant="outline" className="text-xs border-gray-200 text-gray-700">
                     {tag}
                   </Badge>
                 ))}

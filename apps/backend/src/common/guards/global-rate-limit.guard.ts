@@ -21,7 +21,7 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if rate limiting is skipped
-    const reflector = (this as any).reflector as Reflector;
+    const reflector = (this as unknown as { reflector: Reflector }).reflector;
     const skipRateLimit = reflector.getAllAndOverride<boolean>(
       RATE_LIMIT_SKIP_METADATA,
       [context.getHandler(), context.getClass()],
@@ -42,7 +42,7 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
 
   protected async getTracker(req: Request): Promise<string> {
     // Use user ID if authenticated, otherwise use IP
-    const userId = (req as any).user?.id;
+    const userId = (req as Request & { user?: { id?: string } }).user?.id;
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     
     return userId ? `user:${userId}` : `ip:${ip}`;

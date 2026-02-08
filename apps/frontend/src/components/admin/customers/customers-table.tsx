@@ -131,7 +131,7 @@ export function CustomersTable({
       const response = await endpoints.admin.customers.bulkAction({
         customerIds,
         action: action as 'email' | 'export' | 'tag' | 'segment' | 'delete',
-      }) as any;
+      }) as { data?: { data?: unknown[] }; [key: string]: unknown };
 
       if (action === 'export') {
         // Download CSV

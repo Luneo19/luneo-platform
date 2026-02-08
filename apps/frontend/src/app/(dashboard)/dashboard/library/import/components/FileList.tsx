@@ -45,14 +45,14 @@ export function FileList({ files, onRemove }: FileListProps) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-white">
+      <h3 className="text-lg font-semibold text-gray-900">
         Fichiers sélectionnés ({files.length})
       </h3>
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {files.map((file) => {
           const Icon = getFileIcon(file.type);
           return (
-            <Card key={file.id} className="bg-gray-800/50 border-gray-700">
+            <Card key={file.id} className="bg-white border-gray-200">
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   {file.preview ? (
@@ -65,15 +65,15 @@ export function FileList({ files, onRemove }: FileListProps) {
                       />
                     </div>
                   ) : (
-                    <div className="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-8 h-8 text-gray-400" />
+                    <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-8 h-8 text-gray-600" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{file.name}</p>
-                        <p className="text-xs text-gray-400 mt-1">{formatBytes(file.size)}</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                        <p className="text-xs text-gray-600 mt-1">{formatBytes(file.size)}</p>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
                         {getStatusBadge(file.status)}
@@ -92,7 +92,7 @@ export function FileList({ files, onRemove }: FileListProps) {
                     {file.status === 'uploading' && (
                       <div className="mt-2">
                         <Progress value={file.progress} className="h-2" />
-                        <p className="text-xs text-gray-400 mt-1">{file.progress}%</p>
+                        <p className="text-xs text-gray-600 mt-1">{file.progress}%</p>
                       </div>
                     )}
                     {file.status === 'error' && file.error && (

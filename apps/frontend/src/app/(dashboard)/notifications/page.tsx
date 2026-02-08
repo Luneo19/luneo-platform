@@ -20,10 +20,10 @@ function NotificationsPageContent() {
 
   if (s.loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto" />
-          <p className="mt-4 text-gray-300">Chargement des notifications...</p>
+          <p className="mt-4 text-gray-700">Chargement des notifications...</p>
         </div>
       </div>
     );
@@ -42,7 +42,7 @@ function NotificationsPageContent() {
       />
       <NotificationsStatsGrid stats={s.stats} />
       <Tabs value={s.activeTab} onValueChange={(v) => s.setActiveTab(v as typeof s.activeTab)} className="space-y-6">
-        <TabsList className="bg-gray-900/50 border border-gray-700">
+        <TabsList className="bg-white/50 border border-gray-200">
           <TabsTrigger value="all" className="data-[state=active]:bg-cyan-600">Toutes ({s.stats.total})</TabsTrigger>
           <TabsTrigger value="unread" className="data-[state=active]:bg-cyan-600">Non lues ({s.stats.unread})</TabsTrigger>
           <TabsTrigger value="archived" className="data-[state=active]:bg-cyan-600">Archivées ({s.stats.archived})</TabsTrigger>

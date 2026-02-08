@@ -3,21 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { endpoints } from '@/lib/api/client';
-import { formatNumber, formatPrice, formatRelativeDate } from '@/lib/utils/formatters';
 import type { CreditPack, CreditTransaction, CreditStats, CreditsTab } from '../components/types';
-
-const MOCK_PACKS: CreditPack[] = [
-  { id: 'pack-100', name: 'Pack 100', credits: 100, priceCents: 1900, price: 19, isActive: true, isFeatured: false, description: 'Idéal pour tester', features: ['100 crédits', 'Valable 6 mois', 'Support email'] },
-  { id: 'pack-500', name: 'Pack 500', credits: 500, priceCents: 7900, price: 79, isActive: true, isFeatured: true, savings: 20, badge: 'Meilleur rapport', description: 'Le plus populaire', features: ['500 crédits', 'Valable 12 mois', 'Support prioritaire', 'Économie de 20%'] },
-  { id: 'pack-1000', name: 'Pack 1000', credits: 1000, priceCents: 13900, price: 139, isActive: true, isFeatured: false, savings: 30, badge: 'Meilleure valeur', description: 'Pour les utilisateurs intensifs', features: ['1000 crédits', 'Valable 12 mois', 'Support prioritaire', 'Économie de 30%'] },
-];
-
-const MOCK_TRANSACTIONS: CreditTransaction[] = [
-  { id: '1', type: 'purchase', amount: 500, balanceBefore: 0, balanceAfter: 500, packId: 'pack-500', packName: 'Pack 500', createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
-  { id: '2', type: 'usage', amount: -50, balanceBefore: 500, balanceAfter: 450, source: '/api/ai/generate-2d', metadata: { model: 'dalle-3', cost: 50 }, createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) },
-  { id: '3', type: 'usage', amount: -100, balanceBefore: 450, balanceAfter: 350, source: '/api/ai/generate-3d', metadata: { model: 'midjourney', cost: 100 }, createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
-  { id: '4', type: 'bonus', amount: 100, balanceBefore: 350, balanceAfter: 450, source: 'referral', metadata: { referralCode: 'REF123' }, createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
-];
+import { logger } from '@/lib/logger';
 
 const INITIAL_STATS: CreditStats = {
   currentBalance: 0,
@@ -34,9 +21,46 @@ const INITIAL_STATS: CreditStats = {
   trends: [],
 };
 
+function normalizePack(raw: Record<string, unknown>): CreditPack {
+  const priceCents = Number(raw.priceCents ?? raw.price_cents ?? 0);
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    credits: Number(raw.credits ?? 0),
+    priceCents,
+    price: priceCents / 100,
+    stripePriceId: raw.stripePriceId != null ? String(raw.stripePriceId) : undefined,
+    isActive: Boolean(raw.isActive ?? raw.is_active ?? true),
+    isFeatured: Boolean(raw.isFeatured ?? raw.is_featured ?? false),
+    savings: raw.savings != null ? Number(raw.savings) : undefined,
+    badge: raw.badge != null ? String(raw.badge) : undefined,
+    description: raw.description != null ? String(raw.description) : undefined,
+    features: Array.isArray(raw.features) ? raw.features.map(String) : undefined,
+  };
+}
+
+function normalizeTransaction(raw: Record<string, unknown>): CreditTransaction {
+  const pack = raw.pack as Record<string, unknown> | undefined;
+  const createdAt = raw.createdAt ?? raw.created_at;
+  return {
+    id: String(raw.id ?? ''),
+    type: (raw.type as CreditTransaction['type']) ?? 'usage',
+    amount: Number(raw.amount ?? 0),
+    balanceBefore: Number(raw.balanceBefore ?? raw.balance_before ?? 0),
+    balanceAfter: Number(raw.balanceAfter ?? raw.balance_after ?? 0),
+    source: raw.source != null ? String(raw.source) : undefined,
+    metadata: (raw.metadata as Record<string, unknown>) ?? undefined,
+    packId: raw.packId != null ? String(raw.packId) : undefined,
+    packName: pack ? String(pack.name ?? '') : (raw.packName != null ? String(raw.packName) : undefined),
+    createdAt: createdAt instanceof Date ? createdAt : new Date(createdAt as string | number),
+  };
+}
+
 export function useCreditsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [creditPacks, setCreditPacks] = useState<CreditPack[]>([]);
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showAutoRefillModal, setShowAutoRefillModal] = useState(false);
@@ -49,8 +73,48 @@ export function useCreditsPage() {
   const [autoRefillPack, setAutoRefillPack] = useState<string | null>(null);
   const [stats, setStats] = useState<CreditStats>(INITIAL_STATS);
 
-  const creditPacks = useMemo(() => MOCK_PACKS, []);
-  const transactions = useMemo(() => MOCK_TRANSACTIONS, []);
+  const fetchPacks = useCallback(async () => {
+    try {
+      const response = await endpoints.credits.packs();
+      const data = response as { packs?: unknown[] } | unknown[];
+      const list = Array.isArray(data) ? data : (data?.packs ?? []);
+      const normalized = (list || []).map((p) => normalizePack(p as Record<string, unknown>));
+      setCreditPacks(normalized);
+      return normalized;
+    } catch (error) {
+      logger.error('Failed to fetch credit packs', { error });
+      setCreditPacks([]);
+      return [];
+    }
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
+    try {
+      const response = await endpoints.credits.transactions({ limit: 100, offset: 0 });
+      const data = response as { transactions?: unknown[] };
+      const list = data?.transactions ?? [];
+      const normalized = (Array.isArray(list) ? list : []).map((t) =>
+        normalizeTransaction(t as Record<string, unknown>)
+      );
+      setTransactions(normalized);
+      return normalized;
+    } catch (error) {
+      logger.error('Failed to fetch transactions', { error });
+      setTransactions([]);
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([fetchPacks(), fetchTransactions()]).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchPacks, fetchTransactions]);
 
   useEffect(() => {
     const currentBalance = transactions.reduce((acc, t) => acc + t.amount, 0);
@@ -67,9 +131,24 @@ export function useCreditsPage() {
     transactions.forEach((t) => {
       byType[t.type] = (byType[t.type] || 0) + Math.abs(t.amount);
       if (t.source) byEndpoint[t.source] = (byEndpoint[t.source] || 0) + Math.abs(t.amount);
-      if (t.metadata && typeof t.metadata === 'object' && 'model' in t.metadata) byModel[String((t.metadata as { model?: string }).model)] = (byModel[String((t.metadata as { model?: string }).model)] || 0) + Math.abs(t.amount);
+      if (t.metadata && typeof t.metadata === 'object' && 'model' in t.metadata)
+        byModel[String((t.metadata as { model?: string }).model)] =
+          (byModel[String((t.metadata as { model?: string }).model)] || 0) + Math.abs(t.amount);
     });
-    setStats({ currentBalance, totalPurchased, totalUsed, totalRefunded, totalBonus, usageRate, avgCostPerGeneration, totalGenerations, byType, byEndpoint, byModel, trends: [] });
+    setStats({
+      currentBalance,
+      totalPurchased,
+      totalUsed,
+      totalRefunded,
+      totalBonus,
+      usageRate,
+      avgCostPerGeneration,
+      totalGenerations,
+      byType,
+      byEndpoint,
+      byModel,
+      trends: [],
+    });
   }, [transactions]);
 
   const filteredTransactions = useMemo(() => {
@@ -84,10 +163,9 @@ export function useCreditsPage() {
   }, [transactions, filterType, filterDateRange]);
 
   const handlePurchase = useCallback((packId: string) => {
-    if (!creditPacks.find((p) => p.id === packId)) return;
     setSelectedPack(packId);
     setShowPurchaseModal(true);
-  }, [creditPacks]);
+  }, []);
 
   const handleConfirmPurchase = useCallback(async () => {
     if (!selectedPack) return;
@@ -98,10 +176,15 @@ export function useCreditsPage() {
     }
     try {
       const data = await endpoints.credits.buy({ packSize: pack.credits });
-      if (data?.url) window.location.href = data.url;
+      const payload = data as { url?: string };
+      if (payload?.url) window.location.href = payload.url;
       else toast({ title: 'Erreur', description: 'URL de paiement non disponible', variant: 'destructive' });
     } catch (error: unknown) {
-      toast({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur lors de la création de la session de paiement', variant: 'destructive' });
+      toast({
+        title: 'Erreur',
+        description: error instanceof Error ? error.message : 'Erreur lors de la création de la session de paiement',
+        variant: 'destructive',
+      });
     }
   }, [selectedPack, creditPacks, toast]);
 
@@ -114,10 +197,6 @@ export function useCreditsPage() {
     setShowAutoRefillModal(false);
     toast({ title: 'Succès', description: 'Recharge automatique activée' });
   }, [autoRefillPack, toast]);
-
-  useEffect(() => {
-    setLoading(false);
-  }, []);
 
   return {
     loading,

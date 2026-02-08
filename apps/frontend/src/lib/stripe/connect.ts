@@ -26,8 +26,9 @@ function getStripeInstance(): Stripe {
   }
 
   try {
+    // Stripe API version type may not include every version string; use type assertion for custom version
     return new Stripe(secretKey, {
-      apiVersion: '2025-10-29.clover' as any,
+      apiVersion: '2025-10-29.clover' as Stripe.LatestApiVersion,
       maxNetworkRetries: 3,
       timeout: 30000,
       typescript: true,
@@ -159,9 +160,10 @@ export async function createConnectAccount(data: ConnectAccountData): Promise<St
     });
 
     return account;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Enhanced error logging and handling
-    if (error?.type === 'StripeAuthenticationError') {
+    const err = error as { type?: string; code?: string; param?: string; message?: string };
+    if (err?.type === 'StripeAuthenticationError') {
       logger.error('Stripe authentication failed', error, {
         message: 'Invalid Stripe API key or configuration issue',
       });
@@ -170,12 +172,12 @@ export async function createConnectAccount(data: ConnectAccountData): Promise<St
       );
     }
     
-    if (error?.type === 'StripeAPIError') {
+    if (err?.type === 'StripeAPIError') {
       logger.error('Stripe API error', error, {
-        code: error.code,
-        param: error.param,
+        code: err.code,
+        param: err.param,
       });
-      throw new Error(`Stripe API error: ${error.message || 'Unknown error'}`);
+      throw new Error(`Stripe API error: ${err.message || 'Unknown error'}`);
     }
 
     logger.error('Failed to create Stripe Connect account', error, {
@@ -219,7 +221,7 @@ export async function createAccountLink(
     });
 
     return accountLink;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Failed to create Stripe account link', error, {
       accountId,
       refreshUrl,
@@ -246,7 +248,7 @@ export async function createLoginLink(accountId: string): Promise<Stripe.LoginLi
     });
 
     return loginLink;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Failed to create Stripe login link', error, {
       accountId,
     });
@@ -287,8 +289,9 @@ export async function getAccountStatus(accountId: string): Promise<ConnectAccoun
     });
 
     return status;
-  } catch (error: any) {
-    if (error?.type === 'StripeInvalidRequestError' && error?.code === 'resource_missing') {
+  } catch (error: unknown) {
+    const err = error as { type?: string; code?: string };
+    if (err?.type === 'StripeInvalidRequestError' && err?.code === 'resource_missing') {
       logger.error('Stripe account not found', error, { accountId });
       throw new Error(`Stripe Connect account not found: ${accountId}`);
     }

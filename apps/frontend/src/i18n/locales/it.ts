@@ -3,6 +3,6 @@
 import itJson from './it.json';
 import enJson from './en.json';
 
-const messages = itJson as any;
+const messages = itJson as Record<string, string>;
 
 export default messages;

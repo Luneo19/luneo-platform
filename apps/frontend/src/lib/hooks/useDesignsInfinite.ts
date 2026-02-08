@@ -18,11 +18,11 @@ function mapDesign(d: Record<string, unknown>): Design {
   return {
     id: (d.id as string) ?? '',
     prompt: (d.prompt as string) ?? '',
-    generated_image_url: (d.imageUrl ?? (d as any).generated_image_url) as string,
-    preview_url: (d.previewUrl ?? (d as any).preview_url) as string,
-    style: ((d as any).style as string) ?? 'default',
+    generated_image_url: String(d.imageUrl ?? d.generated_image_url ?? ''),
+    preview_url: String(d.previewUrl ?? d.preview_url ?? ''),
+    style: (d.style as string) ?? 'default',
     status: (d.status as string) ?? 'draft',
-    created_at: (d.createdAt ?? (d as any).created_at) as string,
+    created_at: String(d.createdAt ?? d.created_at ?? ''),
   };
 }
 

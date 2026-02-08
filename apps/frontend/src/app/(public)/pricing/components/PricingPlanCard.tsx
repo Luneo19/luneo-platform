@@ -29,7 +29,7 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
     isYearly && price && price > 0 ? `Facturé ${plan.priceYearly}€/an` : null;
 
   const handleClick = async () => {
-    if (plan.id === 'starter') {
+    if (plan.id === 'free' || plan.id === 'starter') {
       window.location.href = plan.ctaHref || '/register';
       return;
     }

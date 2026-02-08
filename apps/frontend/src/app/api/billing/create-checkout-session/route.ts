@@ -57,37 +57,54 @@ export async function POST(request: NextRequest) {
     // Initialiser Stripe
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-    // Configuration des Price IDs Stripe - Tarifs Luneo 2025
-    // Starter: 29€/mois, 278.40€/an (-20%)
-    // Professional: 49€/mois, 470.40€/an (-20%)
-    // Business: 99€/mois, 950.40€/an (-20%)
-    // Enterprise: Sur demande
-    
-    // Fonction helper pour nettoyer les Price IDs (enlever espaces, retours à la ligne, etc.)
+    // Configuration des Price IDs Stripe - uniquement via variables d'environnement
     const cleanPriceIdValue = (priceId: string | undefined | null): string | null => {
       if (!priceId) return null;
       const cleaned = priceId.trim().replace(/\s+/g, '').replace(/\n/g, '');
       return cleaned || null;
     };
-    
+
+    const PRICE_IDS = {
+      starter_monthly: cleanPriceIdValue(process.env.STRIPE_PRICE_STARTER_MONTHLY),
+      starter_yearly: cleanPriceIdValue(process.env.STRIPE_PRICE_STARTER_YEARLY),
+      professional_monthly: cleanPriceIdValue(process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY),
+      professional_yearly: cleanPriceIdValue(process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY),
+      business_monthly: cleanPriceIdValue(process.env.STRIPE_PRICE_BUSINESS_MONTHLY),
+      business_yearly: cleanPriceIdValue(process.env.STRIPE_PRICE_BUSINESS_YEARLY),
+    };
+
     const planPrices: Record<string, { monthly: string | null; yearly: string | null }> = {
       starter: {
-        monthly: cleanPriceIdValue(process.env.STRIPE_PRICE_STARTER_MONTHLY) || 'price_1SY2bqKG9MsM6fdSlgkR5hNX',
-        yearly: cleanPriceIdValue(process.env.STRIPE_PRICE_STARTER_YEARLY) || 'price_1SY2bxKG9MsM6fdSe78TX8fZ',
+        monthly: PRICE_IDS.starter_monthly,
+        yearly: PRICE_IDS.starter_yearly,
       },
       professional: {
-        monthly: cleanPriceIdValue(process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY) || 'price_1SqLIkKG9MsM6fdSt59Vg3F1',
-        yearly: cleanPriceIdValue(process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY) || 'price_1SqLIlKG9MsM6fdSDh9Xya8V',
+        monthly: PRICE_IDS.professional_monthly,
+        yearly: PRICE_IDS.professional_yearly,
       },
       business: {
-        monthly: cleanPriceIdValue(process.env.STRIPE_PRICE_BUSINESS_MONTHLY) || 'price_1SqLImKG9MsM6fdS9rmCQyIE',
-        yearly: cleanPriceIdValue(process.env.STRIPE_PRICE_BUSINESS_YEARLY) || 'price_1SqLImKG9MsM6fdSO6ihDDpO',
+        monthly: PRICE_IDS.business_monthly,
+        yearly: PRICE_IDS.business_yearly,
       },
       enterprise: {
         monthly: null, // Sur demande
         yearly: null,  // Sur demande
       },
     };
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    const missingPrices: string[] = [];
+    if (!PRICE_IDS.starter_monthly || !PRICE_IDS.starter_yearly) missingPrices.push('starter');
+    if (!PRICE_IDS.professional_monthly || !PRICE_IDS.professional_yearly) missingPrices.push('professional');
+    if (!PRICE_IDS.business_monthly || !PRICE_IDS.business_yearly) missingPrices.push('business');
+    if (isProduction && missingPrices.length > 0) {
+      logger.error('Stripe price IDs missing in production', { missingPrices });
+      throw {
+        status: 500,
+        message: 'Configuration Stripe manquante (Price IDs)',
+        code: 'CONFIGURATION_ERROR',
+      };
+    }
 
     // Sélectionner le bon Price ID selon le cycle
     const priceConfig = planPrices[planId as keyof typeof planPrices];
@@ -107,7 +124,7 @@ export async function POST(request: NextRequest) {
         status: 400,
         message: 'Le plan Enterprise est disponible sur demande. Veuillez nous contacter.',
         code: 'ENTERPRISE_CONTACT_REQUIRED',
-        contactUrl: 'https://luneo.app/contact',
+        contactUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/contact`,
       };
     }
 
@@ -138,6 +155,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer l'URL de base depuis l'environnement ou utiliser l'URL de la requête
+    const defaultBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
     
     // Si pas configuré ou invalide, utiliser l'origine de la requête
@@ -150,17 +168,17 @@ export async function POST(request: NextRequest) {
           const url = new URL(origin);
           baseUrl = `${url.protocol}//${url.host}`;
         } catch {
-          baseUrl = 'https://luneo.app';
+          baseUrl = defaultBaseUrl;
         }
       } else if (referer) {
         try {
           const url = new URL(referer);
           baseUrl = `${url.protocol}//${url.host}`;
         } catch {
-          baseUrl = 'https://luneo.app';
+          baseUrl = defaultBaseUrl;
         }
       } else {
-        baseUrl = 'https://luneo.app';
+        baseUrl = defaultBaseUrl;
       }
     }
     
@@ -173,7 +191,7 @@ export async function POST(request: NextRequest) {
       baseUrl = `${testUrl.protocol}//${testUrl.host}`;
     } catch (error) {
       logger.error('Invalid baseUrl, using default', { baseUrl, error });
-      baseUrl = 'https://luneo.app';
+      baseUrl = defaultBaseUrl;
     }
     
     // Vérifier que les URLs de redirection sont valides
@@ -279,7 +297,9 @@ export async function POST(request: NextRequest) {
     let session: Stripe.Checkout.Session;
     try {
       session = await stripe.checkout.sessions.create(sessionConfig);
-    } catch (stripeError: any) {
+    } catch (stripeError: unknown) {
+      const message = stripeError instanceof Error ? stripeError.message : 'Unknown error';
+      const stripeErr = stripeError as { type?: string; code?: string };
       logger.error('Error creating Stripe checkout session', stripeError, {
         planId,
         billing,
@@ -287,10 +307,10 @@ export async function POST(request: NextRequest) {
       });
       throw {
         status: 500,
-        message: `Erreur lors de la création de la session de paiement: ${stripeError.message}`,
+        message: `Erreur lors de la création de la session de paiement: ${message}`,
         code: 'STRIPE_ERROR',
-        details: stripeError.type || 'unknown',
-        stripeCode: stripeError.code || null,
+        details: stripeErr.type || 'unknown',
+        stripeCode: stripeErr.code ?? null,
       };
     }
 

@@ -16,23 +16,23 @@ const WORKFLOWS = Array.from({ length: 6 }, (_, i) => ({
 
 export function WorkflowTab() {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-gray-900 flex items-center gap-2">
           <Workflow className="w-5 h-5 text-purple-400" />
           Automatisation de Workflow
         </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-gray-600">
           Automatisez vos processus d&apos;affiliation avec des workflows avancés
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid md:grid-cols-2 gap-4">
           {WORKFLOWS.map((workflow) => (
-            <Card key={workflow.id} className="bg-gray-900/50 border-gray-700">
+            <Card key={workflow.id} className="bg-gray-100 border-gray-200">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-white text-base">{workflow.name}</CardTitle>
+                  <CardTitle className="text-gray-900 text-base">{workflow.name}</CardTitle>
                   <Badge
                     className={
                       workflow.status === 'active'
@@ -47,15 +47,15 @@ export function WorkflowTab() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-400 mb-4">{workflow.description}</p>
+                <p className="text-sm text-gray-600 mb-4">{workflow.description}</p>
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Exécutions</span>
-                    <span className="text-white font-medium">{workflow.runs}</span>
+                    <span className="text-gray-600">Exécutions</span>
+                    <span className="text-gray-900 font-medium">{workflow.runs}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Taux de succès</span>
-                    <span className="text-white font-medium">{workflow.success.toFixed(1)}%</span>
+                    <span className="text-gray-600">Taux de succès</span>
+                    <span className="text-gray-900 font-medium">{workflow.success.toFixed(1)}%</span>
                   </div>
                 </div>
                 <Button size="sm" variant="outline" className="w-full border-purple-500/50 text-purple-400">

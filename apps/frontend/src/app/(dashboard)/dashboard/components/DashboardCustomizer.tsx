@@ -110,10 +110,10 @@ export function DashboardCustomizer() {
 
   return (
     <Dialog open={isCustomizing} onOpenChange={(open) => !open && toggleCustomizing()}>
-      <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white">Personnaliser le tableau de bord</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-gray-900">Personnaliser le tableau de bord</DialogTitle>
+          <DialogDescription className="text-gray-600">
             Choisissez les widgets affichés et leur ordre.
           </DialogDescription>
         </DialogHeader>
@@ -121,23 +121,23 @@ export function DashboardCustomizer() {
           {orderedWidgets.map((w, i) => (
             <div
               key={w.id}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 p-2"
+              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2"
             >
               <Checkbox
                 checked={visible[w.widgetSlug] ?? w.isDefaultVisible}
                 onCheckedChange={(checked) =>
                   handleToggle(w.widgetSlug, checked === true)
                 }
-                className="border-slate-600 data-[state=checked]:bg-slate-600"
+                className="border-gray-300 data-[state=checked]:bg-gray-600"
               />
-              <span className="flex-1 text-sm text-slate-200 truncate">
+              <span className="flex-1 text-sm text-gray-700 truncate">
                 {w.widgetSlug}
               </span>
               <div className="flex items-center gap-0">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-slate-400 hover:text-white"
+                  className="h-8 w-8 text-gray-600 hover:text-gray-900"
                   onClick={() => handleMove(w.widgetSlug, 'up')}
                   disabled={i === 0}
                 >
@@ -146,7 +146,7 @@ export function DashboardCustomizer() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-slate-400 hover:text-white"
+                  className="h-8 w-8 text-gray-600 hover:text-gray-900"
                   onClick={() => handleMove(w.widgetSlug, 'down')}
                   disabled={i === orderedWidgets.length - 1}
                 >
@@ -159,14 +159,14 @@ export function DashboardCustomizer() {
         <DialogFooter className="gap-2 sm:gap-0">
           <Button
             variant="outline"
-            className="border-slate-600 text-slate-300"
+            className="border-gray-300 text-gray-700"
             onClick={handleReset}
             disabled={saving}
           >
             Réinitialiser
           </Button>
           <Button
-            className="bg-slate-600 hover:bg-slate-500"
+            className="bg-gray-600 hover:bg-gray-500 text-white"
             onClick={handleSave}
             disabled={saving}
           >

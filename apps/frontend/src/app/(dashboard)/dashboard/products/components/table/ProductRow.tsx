@@ -52,13 +52,13 @@ export const ProductRow = memo(function ProductRow({
     STATUS_OPTIONS.find((s) => s.value === product.status) || STATUS_OPTIONS[0];
 
   return (
-    <tr className="border-b border-gray-700 hover:bg-gray-800/50 transition-colors">
+    <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
       <td className="p-4">
         <Checkbox checked={isSelected} onCheckedChange={onSelect} />
       </td>
       <td className="p-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-lg bg-gray-900 relative overflow-hidden flex-shrink-0">
+          <div className="w-12 h-12 rounded-lg bg-gray-100 relative overflow-hidden flex-shrink-0">
             {product.image_url ? (
               <Image
                 src={product.image_url}
@@ -69,12 +69,12 @@ export const ProductRow = memo(function ProductRow({
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Package className="w-6 h-6 text-gray-700" />
+                <Package className="w-6 h-6 text-gray-400" />
               </div>
             )}
           </div>
           <div className="min-w-0">
-            <h3 className="font-medium text-white truncate">{product.name}</h3>
+            <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
             {product.sku && (
               <p className="text-xs text-gray-500">SKU: {product.sku}</p>
             )}
@@ -88,7 +88,7 @@ export const ProductRow = memo(function ProductRow({
       </td>
       <td className="p-4">
         {product.price && product.price > 0 ? (
-          <span className="font-medium text-white">
+          <span className="font-medium text-gray-900">
             {formatPrice(product.price, product.currency)}
           </span>
         ) : (
@@ -110,13 +110,13 @@ export const ProductRow = memo(function ProductRow({
         </Badge>
       </td>
       <td className="p-4">
-        <span className="text-gray-400">{product.views}</span>
+        <span className="text-gray-600">{product.views}</span>
       </td>
       <td className="p-4">
-        <span className="text-gray-400">{product.orders}</span>
+        <span className="text-gray-600">{product.orders}</span>
       </td>
       <td className="p-4">
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-gray-600">
           {formatDate(product.createdAt)}
         </span>
       </td>
@@ -127,20 +127,20 @@ export const ProductRow = memo(function ProductRow({
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
-            <DropdownMenuItem onClick={onView} className="text-white">
+          <DropdownMenuContent align="end" className="bg-white border-gray-200">
+            <DropdownMenuItem onClick={onView} className="text-gray-900">
               <Eye className="w-4 h-4 mr-2" />
               Voir
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onEdit} className="text-white">
+            <DropdownMenuItem onClick={onEdit} className="text-gray-900">
               <Edit className="w-4 h-4 mr-2" />
               Modifier
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-white">
+            <DropdownMenuItem className="text-gray-900">
               <Copy className="w-4 h-4 mr-2" />
               Dupliquer
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-gray-700" />
+            <DropdownMenuSeparator className="bg-gray-200" />
             <DropdownMenuItem onClick={onDelete} className="text-red-400">
               <Trash2 className="w-4 h-4 mr-2" />
               Supprimer

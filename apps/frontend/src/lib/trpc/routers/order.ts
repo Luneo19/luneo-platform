@@ -88,7 +88,7 @@ export const orderRouter = router({
 
       // Map frontend input to backend CreateOrderDto shape
       const createBody = {
-        items: input.items.map((item: any) => ({
+        items: input.items.map((item: { productId: string; designId?: string; quantity: number; metadata?: Record<string, unknown> }) => ({
           product_id: item.productId,
           design_id: item.designId,
           quantity: item.quantity,
@@ -105,7 +105,7 @@ export const orderRouter = router({
           postalCode: input.shippingAddress.postalCode,
           country: input.shippingAddress.country,
         },
-        shippingMethod: (input.metadata as any)?.shippingMethod || 'standard',
+        shippingMethod: (input.metadata as Record<string, unknown>)?.shippingMethod as string | undefined || 'standard',
         metadata: {
           items: input.items,
           billingAddress: input.billingAddress,
@@ -160,7 +160,7 @@ export const orderRouter = router({
         throw new Error('Order not found');
       }
 
-      return order as any;
+      return order as Record<string, unknown>;
     }),
 
   list: protectedProcedure
@@ -185,8 +185,8 @@ export const orderRouter = router({
         status: input.status,
       });
 
-      const data = result as { orders?: any[]; pagination?: { total: number } };
-      const orders = data.orders ?? (result as any).data ?? [];
+      const data = result as { orders?: unknown[]; pagination?: { total: number } };
+      const orders = data.orders ?? (result as { data?: unknown[] }).data ?? [];
       const total = data.pagination?.total ?? orders.length;
 
       return {
@@ -220,7 +220,7 @@ export const orderRouter = router({
 
       logger.info('Order updated', { orderId: id, status: data.status });
 
-      return order as any;
+      return order as Record<string, unknown>;
     }),
 
   // ========================================
@@ -244,7 +244,7 @@ export const orderRouter = router({
         throw new Error('Order not found');
       }
 
-      if ((existingOrder as any).status === OrderStatus.DELIVERED) {
+      if ((existingOrder as { status?: string }).status === OrderStatus.DELIVERED) {
         throw new Error('Cannot cancel delivered order');
       }
 
@@ -252,7 +252,7 @@ export const orderRouter = router({
 
       logger.info('Order cancelled', { orderId: input.id, reason: input.reason });
 
-      return order as any;
+      return order as Record<string, unknown>;
     }),
 
   // ========================================
@@ -278,14 +278,14 @@ export const orderRouter = router({
         throw new Error('Order not found');
       }
 
-      const items = (orderWithItems as any).items ?? [];
+      const items = (orderWithItems as { items?: { id: string }[] }).items ?? [];
       if (!items.length) {
         throw new Error('Order has no items');
       }
 
       const { productionService } = await import('@/lib/services/ProductionService');
 
-      const batchItems = items.map((item: any) => ({
+      const batchItems = items.map((item: { id: string }) => ({
         id: item.id,
         format: input.formats?.[0] || 'pdf',
         quality: input.quality || 'standard',
@@ -327,7 +327,7 @@ export const orderRouter = router({
       const jobStatus = cacheService.get<{
         status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
         progress: number;
-        files?: Array<{ itemId: string; format: string; url: string; size: number; metadata?: any }>;
+        files?: Array<{ itemId: string; format: string; url: string; size: number; metadata?: Record<string, unknown> }>;
         error?: string;
         orderId?: string;
       }>(`production:job:${input.jobId}`);
@@ -388,7 +388,7 @@ export const orderRouter = router({
         trackingNumber: input.trackingNumber,
       });
 
-      return order as any;
+      return order as Record<string, unknown>;
     }),
 
   markAsDelivered: protectedProcedure
@@ -407,7 +407,7 @@ export const orderRouter = router({
 
       logger.info('Order marked as delivered', { orderId: input.orderId });
 
-      return order as any;
+      return order as Record<string, unknown>;
     }),
 });
 

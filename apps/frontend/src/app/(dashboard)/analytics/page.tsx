@@ -1,6 +1,8 @@
 /** * ★★★ ANALYTICS DASHBOARD PREMIUM ★★★ * Dashboard analytics ultra-premium avec React Query, design luxueux et UX optimisée * - React Query avec cache intelligent * - Design system premium * - KPIs ultra performants * - Graphiques élégants * - Gestion d'erreurs complète * - Skeleton loaders * - Toast notifications */ 'use client';
 import { useState, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradeRequiredPage } from '@/components/shared/UpgradeRequiredPage';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -160,7 +162,7 @@ function AnalyticsLuxuryPageContent() {
   // RENDER
   // ========================================
   return (
-    <div className="via-charcoal-800 min-h-screen bg-gradient-to-br from-obsidian-black via-obsidian-black to-neutral-50 dark:from-neutral-900 dark:to-neutral-900">
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100">
       {' '}
       <main
         id="main-content"
@@ -175,11 +177,11 @@ function AnalyticsLuxuryPageContent() {
             {' '}
             <div>
               {' '}
-              <h1 className="mb-2 text-5xl font-bold tracking-tight text-gladia-white">
+              <h1 className="mb-2 text-5xl font-bold tracking-tight text-gray-900">
                 {' '}
                 Analytics{' '}
               </h1>{' '}
-              <p className="text-gladia-gray-200 text-xl">
+              <p className="text-gray-600 text-xl">
                 {' '}
                 Insights performants et métriques en temps réel{' '}
               </p>{' '}
@@ -192,7 +194,7 @@ function AnalyticsLuxuryPageContent() {
               >
                 {' '}
                 <SelectTrigger
-                  className="luxury-button border-gladia-border-transparent w-[200px]"
+                  className="border-gray-200 w-[200px]"
                   aria-label="Sélectionner la période"
                 >
                   {' '}
@@ -209,7 +211,7 @@ function AnalyticsLuxuryPageContent() {
               </Select>{' '}
               <Button
                 variant="outline"
-                className="luxury-button border-gladia-border-transparent font-semibold"
+                className="border-gray-200 font-semibold"
                 onClick={handleExport}
                 disabled={isExporting}
                 aria-label="Exporter les données analytics"
@@ -253,11 +255,11 @@ function AnalyticsLuxuryPageContent() {
           <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {' '}
             {/* Total Events */}{' '}
-            <Card className="luxury-kpi border-gladia-border-transparent animate-fade-in-up hover:gladia-hover-glow">
+            <Card className="border-gray-200 animate-fade-in-up hover:shadow-md transition-shadow">
               {' '}
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 {' '}
-                <CardTitle className="text-gladia-gray-200 text-sm font-semibold uppercase tracking-wide">
+                <CardTitle className="text-gray-600 text-sm font-semibold uppercase tracking-wide">
                   {' '}
                   Événements{' '}
                 </CardTitle>{' '}
@@ -266,7 +268,7 @@ function AnalyticsLuxuryPageContent() {
                   aria-hidden="true"
                 >
                   {' '}
-                  <Activity className="text-brand-600 dark:text-brand-400 h-5 w-5" />{' '}
+                  <Activity className="text-brand-600 h-5 w-5" />{' '}
                 </div>{' '}
               </CardHeader>{' '}
               <CardContent>
@@ -276,7 +278,7 @@ function AnalyticsLuxuryPageContent() {
                   <div>
                     {' '}
                     <div
-                      className="mb-1 text-4xl font-bold text-gladia-white"
+                      className="mb-1 text-4xl font-bold text-gray-900"
                       aria-label={`${metrics.totalEvents.toLocaleString()} événements`}
                     >
                       {' '}
@@ -301,7 +303,7 @@ function AnalyticsLuxuryPageContent() {
                         {' '}
                         {trends?.events.value}%{' '}
                       </span>{' '}
-                      <span className="text-xs text-gladia-gray-500">
+                      <span className="text-xs text-gray-500">
                         vs période précédente
                       </span>{' '}
                     </div>{' '}
@@ -311,13 +313,13 @@ function AnalyticsLuxuryPageContent() {
             </Card>{' '}
             {/* Page Views */}{' '}
             <Card
-              className="luxury-kpi border-gladia-border-transparent animate-fade-in-up hover:gladia-hover-glow"
+              className="border-gray-200 animate-fade-in-up hover:shadow-md transition-shadow"
               style={{ animationDelay: '0.1s' }}
             >
               {' '}
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 {' '}
-                <CardTitle className="text-gladia-gray-200 text-sm font-semibold uppercase tracking-wide">
+                <CardTitle className="text-gray-600 text-sm font-semibold uppercase tracking-wide">
                   {' '}
                   Vues{' '}
                 </CardTitle>{' '}
@@ -326,7 +328,7 @@ function AnalyticsLuxuryPageContent() {
                   aria-hidden="true"
                 >
                   {' '}
-                  <BarChart3 className="text-success-600 dark:text-success-400 h-5 w-5" />{' '}
+                  <BarChart3 className="text-success-600 h-5 w-5" />{' '}
                 </div>{' '}
               </CardHeader>{' '}
               <CardContent>
@@ -336,7 +338,7 @@ function AnalyticsLuxuryPageContent() {
                   <div>
                     {' '}
                     <div
-                      className="mb-1 text-4xl font-bold text-gladia-white"
+                      className="mb-1 text-4xl font-bold text-gray-900"
                       aria-label={`${metrics.pageViews.toLocaleString()} vues`}
                     >
                       {' '}
@@ -344,7 +346,7 @@ function AnalyticsLuxuryPageContent() {
                     </div>{' '}
                     <div className="mt-2 flex items-center gap-2">
                       {' '}
-                      <span className="text-xs text-gladia-gray-500">
+                      <span className="text-xs text-gray-500">
                         Pages consultées
                       </span>{' '}
                     </div>{' '}
@@ -354,13 +356,13 @@ function AnalyticsLuxuryPageContent() {
             </Card>{' '}
             {/* Conversions */}{' '}
             <Card
-              className="luxury-kpi border-gladia-border-transparent animate-fade-in-up hover:gladia-hover-glow"
+              className="border-gray-200 animate-fade-in-up hover:shadow-md transition-shadow"
               style={{ animationDelay: '0.2s' }}
             >
               {' '}
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 {' '}
-                <CardTitle className="text-gladia-gray-200 text-sm font-semibold uppercase tracking-wide">
+                <CardTitle className="text-gray-600 text-sm font-semibold uppercase tracking-wide">
                   {' '}
                   Conversions{' '}
                 </CardTitle>{' '}
@@ -369,7 +371,7 @@ function AnalyticsLuxuryPageContent() {
                   aria-hidden="true"
                 >
                   {' '}
-                  <Target className="text-warning-600 dark:text-warning-400 h-5 w-5" />{' '}
+                  <Target className="text-warning-600 h-5 w-5" />{' '}
                 </div>{' '}
               </CardHeader>{' '}
               <CardContent>
@@ -379,7 +381,7 @@ function AnalyticsLuxuryPageContent() {
                   <div>
                     {' '}
                     <div
-                      className="mb-1 text-4xl font-bold text-gladia-white"
+                      className="mb-1 text-4xl font-bold text-gray-900"
                       aria-label={`${metrics.conversions.toLocaleString()} conversions`}
                     >
                       {' '}
@@ -411,22 +413,22 @@ function AnalyticsLuxuryPageContent() {
             </Card>{' '}
             {/* Conversion Rate */}{' '}
             <Card
-              className="luxury-kpi border-gladia-border-transparent animate-fade-in-up hover:gladia-hover-glow"
+              className="border-gray-200 animate-fade-in-up hover:shadow-md transition-shadow"
               style={{ animationDelay: '0.3s' }}
             >
               {' '}
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 {' '}
-                <CardTitle className="text-gladia-gray-200 text-sm font-semibold uppercase tracking-wide">
+                <CardTitle className="text-gray-600 text-sm font-semibold uppercase tracking-wide">
                   {' '}
                   Taux de Conversion{' '}
                 </CardTitle>{' '}
                 <div
-                  className="from-luxury-gold-500/20 to-luxury-gold-600/20 rounded-lg bg-gradient-to-br p-2"
+                  className="from-yellow-500/20 to-yellow-600/20 rounded-lg bg-gradient-to-br p-2"
                   aria-hidden="true"
                 >
                   {' '}
-                  <Award className="text-gladia-brand-600 h-5 w-5" />{' '}
+                  <Award className="text-brand-600 h-5 w-5" />{' '}
                 </div>{' '}
               </CardHeader>{' '}
               <CardContent>
@@ -436,7 +438,7 @@ function AnalyticsLuxuryPageContent() {
                   <div>
                     {' '}
                     <div
-                      className="mb-1 text-4xl font-bold text-gladia-white"
+                      className="mb-1 text-4xl font-bold text-gray-900"
                       aria-label={`Taux de conversion ${metrics.conversionRate.toFixed(2)}%`}
                     >
                       {' '}
@@ -481,7 +483,7 @@ function AnalyticsLuxuryPageContent() {
               title="Erreur de chargement du graphique"
             />
           ) : (
-            <Card className="gladia-card border-gladia-border-transparent hover:gladia-hover-glow">
+            <Card className="border-gray-200 hover:shadow-md transition-shadow">
               {' '}
               <CardHeader>
                 {' '}
@@ -489,10 +491,10 @@ function AnalyticsLuxuryPageContent() {
                   {' '}
                   <div>
                     {' '}
-                    <CardTitle className="mb-2 text-2xl font-bold text-gladia-white">
+                    <CardTitle className="mb-2 text-2xl font-bold text-gray-900">
                       Évolution Temporelle
                     </CardTitle>{' '}
-                    <CardDescription className="text-gladia-gray-200">
+                    <CardDescription className="text-gray-600">
                       {' '}
                       Nombre d'événements par jour{' '}
                     </CardDescription>{' '}
@@ -580,7 +582,7 @@ function AnalyticsLuxuryPageContent() {
               title="Erreur de chargement du graphique"
             />
           ) : (
-            <Card className="gladia-card border-gladia-border-transparent hover:gladia-hover-glow">
+            <Card className="border-gray-200 hover:shadow-md transition-shadow">
               {' '}
               <CardHeader>
                 {' '}
@@ -588,10 +590,10 @@ function AnalyticsLuxuryPageContent() {
                   {' '}
                   <div>
                     {' '}
-                    <CardTitle className="mb-2 text-2xl font-bold text-gladia-white">
+                    <CardTitle className="mb-2 text-2xl font-bold text-gray-900">
                       Top Événements
                     </CardTitle>{' '}
-                    <CardDescription className="text-gladia-gray-200">
+                    <CardDescription className="text-gray-600">
                       {' '}
                       Répartition des événements{' '}
                     </CardDescription>{' '}
@@ -645,7 +647,19 @@ function AnalyticsLuxuryPageContent() {
 export default function AnalyticsPage() {
   return (
     <ErrorBoundary>
-      <AnalyticsLuxuryPageContent />
+      <PlanGate
+        minimumPlan="business"
+        showUpgradePrompt
+        fallback={
+          <UpgradeRequiredPage
+            feature="Analytics Avances"
+            requiredPlan="business"
+            description="Les analytics avances avec KPIs, graphiques et rapports detailles sont disponibles a partir du plan Business."
+          />
+        }
+      >
+        <AnalyticsLuxuryPageContent />
+      </PlanGate>
     </ErrorBoundary>
   );
 }

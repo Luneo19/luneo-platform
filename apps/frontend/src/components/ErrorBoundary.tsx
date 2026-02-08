@@ -163,7 +163,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   private sendToSentry(error: Error, errorInfo: ErrorInfo) {
     if (typeof window !== 'undefined') {
       try {
-        const sentry = (window as any).Sentry;
+        const sentry = (window as Window & { Sentry?: { captureException: (error: Error, options?: object) => void } }).Sentry;
         if (sentry && sentry.captureException) {
           sentry.captureException(error, {
             contexts: {

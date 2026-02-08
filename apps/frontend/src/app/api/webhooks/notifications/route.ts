@@ -2,8 +2,9 @@ import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { webhookNotificationSchema } from '@/lib/validation/zod-schemas';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 /**
  * POST /api/webhooks/notifications

@@ -34,7 +34,12 @@ export interface SSOUser {
   id: string;
   email: string;
   name?: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
+}
+
+export interface BrandSettings {
+  sso?: SSOConfig;
+  [key: string]: unknown;
 }
 
 // ========================================
@@ -63,17 +68,15 @@ export class SSOService {
   async getConfig(brandId: string): Promise<SSOConfig | null> {
     try {
       const { api } = await import('@/lib/api/client');
-      const brand = await (api as any).get(`/api/v1/brands/${brandId}`).catch(() => null) as { settings?: any } | null;
+      const response = await api.get<{ data?: { settings?: BrandSettings } }>(`/api/v1/brands/${brandId}`).catch(() => null);
+      const brand = response?.data;
 
-      if (brand?.settings) {
-        const settings = brand.settings as any;
-        if (settings.sso) {
-          return settings.sso as SSOConfig;
-        }
+      if (brand?.data?.settings?.sso) {
+        return brand.data.settings.sso as SSOConfig;
       }
 
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching SSO config', { error, brandId });
       throw error;
     }
@@ -87,16 +90,16 @@ export class SSOService {
       logger.info('Updating SSO config', { brandId, provider: config.provider });
 
       const { api } = await import('@/lib/api/client');
-      const brand = await (api as any).get(`/api/v1/brands/${brandId}`).catch(() => null);
-      const currentSettings = (brand?.settings as any) || {};
-      currentSettings.sso = config;
+      const response = await api.get<{ settings?: BrandSettings }>(`/api/v1/brands/${brandId}`).catch(() => null);
+      const body = response?.data;
+      const currentSettings: BrandSettings = { ...(body?.settings ?? {}), sso: config };
 
-      await (api as any).patch(`/api/v1/brands/${brandId}`, {
+      await api.patch(`/api/v1/brands/${brandId}`, {
         settings: currentSettings,
       });
 
       logger.info('SSO config updated', { brandId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating SSO config', { error, brandId });
       throw error;
     }
@@ -123,7 +126,7 @@ export class SSOService {
       logger.info('SAML login URL generated', { brandId, relayState });
 
       return loginUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating SAML login URL', { error, brandId });
       throw error;
     }
@@ -137,8 +140,9 @@ export class SSOService {
     // In production, use a library like saml2-js or xmlbuilder
     const requestId = `_${crypto.randomBytes(16).toString('hex')}`;
     const issueInstant = new Date().toISOString();
-    const entityId = config.entityId || process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
-    const acsUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/api/auth/saml/callback`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const entityId = config.entityId || appUrl;
+    const acsUrl = `${appUrl}/api/auth/saml/callback`;
 
     // Simple SAML AuthnRequest (in production, use proper XML library)
     const samlRequest = `<?xml version="1.0" encoding="UTF-8"?>
@@ -199,7 +203,7 @@ export class SSOService {
       logger.info('SAML response processed', { brandId, userId: user.id });
 
       return user;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error processing SAML response', { error, brandId });
       throw error;
     }
@@ -242,7 +246,7 @@ export class SSOService {
       });
 
       return `${config.authorizationUrl}?${params.toString()}`;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating OIDC authorization URL', { error, brandId });
       throw error;
     }
@@ -291,8 +295,9 @@ export class SSOService {
         throw new Error(`OIDC token exchange failed: ${error}`);
       }
 
-      const tokens = await tokenResponse.json();
-      const { access_token, id_token } = tokens;
+      const tokens = (await tokenResponse.json()) as { access_token?: string; id_token?: string };
+      const access_token = tokens.access_token ?? '';
+      const id_token = tokens.id_token ?? '';
 
       // Get user info
       const user = await this.getOIDCUserInfo(config, access_token);
@@ -304,7 +309,7 @@ export class SSOService {
         idToken: id_token,
         user,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error exchanging OIDC code', { error, brandId });
       throw error;
     }
@@ -321,7 +326,7 @@ export class SSOService {
     try {
       const result = await this.exchangeOIDCCode(brandId, code, redirectUri);
       return result.user;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error handling OIDC callback', { error, brandId });
       throw error;
     }
@@ -349,13 +354,17 @@ export class SSOService {
       throw new Error(`OIDC userInfo failed: ${error}`);
     }
 
-    const userInfo = await userInfoResponse.json();
+    const userInfo = (await userInfoResponse.json()) as Record<string, unknown>;
 
     // Map OIDC user info to SSOUser
+    const sub = userInfo.sub ?? userInfo.id;
+    const id = typeof sub === 'string' ? sub : crypto.randomUUID();
+    const email = [userInfo.email, userInfo.email_address].find((v) => typeof v === 'string') as string | undefined;
+    const name = [userInfo.name, userInfo.display_name, userInfo.preferred_username].find((v) => typeof v === 'string') as string | undefined;
     return {
-      id: userInfo.sub || userInfo.id || crypto.randomUUID(),
-      email: userInfo.email || userInfo.email_address || '',
-      name: userInfo.name || userInfo.display_name || userInfo.preferred_username,
+      id,
+      email: email ?? '',
+      name,
       attributes: userInfo,
     };
   }
@@ -371,7 +380,7 @@ export class SSOService {
     try {
       const config = await this.getConfig(brandId);
       return config?.enabled || false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error checking SSO status', { error, brandId });
       return false;
     }

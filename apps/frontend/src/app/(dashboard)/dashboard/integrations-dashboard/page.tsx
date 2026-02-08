@@ -734,7 +734,7 @@ function IntegrationsDashboardPageContent() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as string)} className="space-y-6">
         <TabsList className="bg-gray-900/50 border border-gray-700">
           <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-600">
             Vue d'ensemble

@@ -37,7 +37,7 @@ export function TemplatesGrid({
   if (templates.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucun template trouvé</p>
+        <p className="text-gray-600">Aucun template trouvé</p>
       </div>
     );
   }
@@ -88,8 +88,8 @@ export function TemplatesGrid({
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-white truncate">{template.name}</h3>
-                <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                <h3 className="font-medium text-gray-900 truncate">{template.name}</h3>
+                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                   {template.description}
                 </p>
               </div>
@@ -99,31 +99,31 @@ export function TemplatesGrid({
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                <DropdownMenuContent align="end" className="bg-white border-gray-200">
                   <DropdownMenuItem
                     onClick={() => onPreview(template)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Prévisualiser
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onDownload(template)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Télécharger
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onToggleFavorite(template.id)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Heart className="w-4 h-4 mr-2" />
                     {template.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onShare(template)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Share2 className="w-4 h-4 mr-2" />
                     Partager
@@ -140,8 +140,8 @@ export function TemplatesGrid({
               <span>{template.downloads} téléchargements</span>
             </div>
             {template.type === 'premium' && template.price && (
-              <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                <span className="text-sm font-medium text-white">
+              <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                <span className="text-sm font-medium text-gray-900">
                   {formatPrice(template.price, 'EUR')}
                 </span>
                 <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
@@ -153,7 +153,7 @@ export function TemplatesGrid({
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full mt-2 border-gray-600"
+                className="w-full mt-2 border-gray-200"
                 onClick={() => onDownload(template)}
               >
                 <Download className="w-4 h-4 mr-2" />

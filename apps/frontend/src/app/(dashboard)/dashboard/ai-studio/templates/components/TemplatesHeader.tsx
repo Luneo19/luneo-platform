@@ -18,20 +18,20 @@ export function TemplatesHeader({ viewMode, onViewModeChange }: TemplatesHeaderP
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
           <Layers className="w-8 h-8 text-purple-400" />
           Templates IA
         </h1>
-        <p className="text-gray-400 mt-1">
+        <p className="text-gray-600 mt-1">
           Bibliothèque de templates générés par IA
         </p>
       </div>
       <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
-        <TabsList className="bg-gray-800 border-gray-700">
-          <TabsTrigger value="grid" className="data-[state=active]:bg-gray-700">
+        <TabsList className="bg-gray-100 border-gray-200">
+          <TabsTrigger value="grid" className="data-[state=active]:bg-gray-200">
             <Grid className="w-4 h-4" />
           </TabsTrigger>
-          <TabsTrigger value="list" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger value="list" className="data-[state=active]:bg-gray-200">
             <List className="w-4 h-4" />
           </TabsTrigger>
         </TabsList>

@@ -29,11 +29,11 @@ export function CustomizerToolbar({
     <>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
             <Palette className="w-8 h-8 text-cyan-400" />
             Customizer
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="text-gray-600 mt-1">
             Personnalisez vos produits avec notre éditeur visuel avancé
           </p>
         </div>
@@ -41,7 +41,7 @@ export function CustomizerToolbar({
           <Button
             variant="outline"
             onClick={onOpenTemplates}
-            className="border-gray-600"
+            className="border-gray-200"
           >
             <LayoutTemplate className="w-4 h-4 mr-2" />
             Templates
@@ -49,7 +49,7 @@ export function CustomizerToolbar({
           <Button
             variant="outline"
             onClick={onOpenAssets}
-            className="border-gray-600"
+            className="border-gray-200"
           >
             <Folder className="w-4 h-4 mr-2" />
             Bibliothèque
@@ -57,7 +57,7 @@ export function CustomizerToolbar({
         </div>
       </div>
 
-      <TabsList className="bg-gray-900/50 border border-gray-700">
+      <TabsList className="bg-gray-50 border border-gray-200">
         <TabsTrigger value="products" className="data-[state=active]:bg-cyan-600">
           Produits ({productsCount})
         </TabsTrigger>

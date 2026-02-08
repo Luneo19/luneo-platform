@@ -17,8 +17,8 @@ export function TemplatesTab({ templates, onUseTemplate }: TemplatesTabProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Templates de génération 3D</h3>
-          <p className="text-sm text-slate-400">Démarrez rapidement avec des templates pré-configurés</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Templates de génération 3D</h3>
+          <p className="text-sm text-gray-600">Démarrez rapidement avec des templates pré-configurés</p>
         </div>
       </div>
 
@@ -26,10 +26,10 @@ export function TemplatesTab({ templates, onUseTemplate }: TemplatesTabProps) {
         {templates.map((template) => (
           <Card
             key={template.id}
-            className="bg-slate-900/50 border-slate-700 hover:border-cyan-500/50 transition-all cursor-pointer"
+            className="bg-gray-50 border-gray-200 hover:border-cyan-500/50 transition-all cursor-pointer"
             onClick={() => onUseTemplate(template)}
           >
-            <div className="relative aspect-square bg-slate-800">
+            <div className="relative aspect-square bg-gray-100">
               <Image
                 src={template.thumbnail}
                 alt={template.name}
@@ -46,13 +46,13 @@ export function TemplatesTab({ templates, onUseTemplate }: TemplatesTabProps) {
             </div>
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-white text-sm line-clamp-1">{template.name}</h3>
-                <Badge variant="outline" className="text-xs border-slate-600">
+                <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">{template.name}</h3>
+                <Badge variant="outline" className="text-xs border-gray-200">
                   {template.category}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-400 line-clamp-2 mb-3">{template.description}</p>
-              <div className="flex items-center justify-between text-xs text-slate-500">
+              <p className="text-xs text-gray-600 line-clamp-2 mb-3">{template.description}</p>
+              <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>{template.uses} utilisations</span>
                 <Button variant="ghost" size="sm" className="h-6 text-xs">
                   Utiliser
@@ -63,7 +63,7 @@ export function TemplatesTab({ templates, onUseTemplate }: TemplatesTabProps) {
         ))}
       </div>
 
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-gray-50 border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Tag className="w-5 h-5" />
@@ -78,7 +78,7 @@ export function TemplatesTab({ templates, onUseTemplate }: TemplatesTabProps) {
                   key={idx}
                   variant={idx === 0 ? 'default' : 'outline'}
                   size="sm"
-                  className={idx === 0 ? 'bg-cyan-600' : 'border-slate-600'}
+                  className={idx === 0 ? 'bg-cyan-600' : 'border-gray-200'}
                 >
                   {cat}
                 </Button>
@@ -88,7 +88,7 @@ export function TemplatesTab({ templates, onUseTemplate }: TemplatesTabProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-gray-50 border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
@@ -102,19 +102,19 @@ export function TemplatesTab({ templates, onUseTemplate }: TemplatesTabProps) {
               .sort((a, b) => b.uses - a.uses)
               .slice(0, 5)
               .map((template, idx) => (
-                <div key={template.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                <div key={template.id} className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-700 rounded flex items-center justify-center">
-                      <span className="text-xs font-bold text-cyan-400">#{idx + 1}</span>
+                    <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
+                      <span className="text-xs font-bold text-cyan-600">#{idx + 1}</span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">{template.name}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-medium text-gray-900">{template.name}</p>
+                      <p className="text-xs text-gray-600">
                         {template.category} · {template.uses} utilisations
                       </p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="border-slate-600" onClick={() => onUseTemplate(template)}>
+                  <Button size="sm" variant="outline" className="border-gray-200" onClick={() => onUseTemplate(template)}>
                     Utiliser
                   </Button>
                 </div>
@@ -127,8 +127,8 @@ export function TemplatesTab({ templates, onUseTemplate }: TemplatesTabProps) {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-white mb-2">Créer votre Template</h3>
-              <p className="text-sm text-slate-300">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Créer votre Template</h3>
+              <p className="text-sm text-gray-700">
                 Enregistrez vos configurations favorites comme templates réutilisables
               </p>
             </div>

@@ -61,17 +61,17 @@ export function GenerateResultsPanel({
   return (
     <div className="lg:col-span-2 space-y-6">
       {!hasModels && !isGenerating ? (
-        <Card className="bg-slate-900/50 border-slate-700">
+        <Card className="bg-gray-50 border-gray-200">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-24 h-24 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full flex items-center justify-center mb-4">
               <Box className="w-12 h-12 text-cyan-400" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Aucun modèle généré</h3>
-            <p className="text-slate-400 text-center max-w-md mb-4">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun modèle généré</h3>
+            <p className="text-gray-600 text-center max-w-md mb-4">
               Configurez vos paramètres et cliquez sur &quot;Générer le modèle 3D&quot; pour créer votre premier
               modèle
             </p>
-            <Button variant="outline" onClick={() => setActiveTab('templates')} className="border-slate-700">
+            <Button variant="outline" onClick={() => setActiveTab('templates')} className="border-gray-200">
               <Sparkles className="w-4 h-4 mr-2" />
               Voir les templates
             </Button>
@@ -80,12 +80,12 @@ export function GenerateResultsPanel({
       ) : (
         <>
           {isGenerating && (
-            <Card className="bg-slate-900/50 border-slate-700">
+            <Card className="bg-gray-50 border-gray-200">
               <CardContent className="flex flex-col items-center justify-center py-16">
                 <Loader2 className="w-16 h-16 text-cyan-400 animate-spin mb-4" />
-                <p className="text-slate-400 mb-2">Génération 3D en cours...</p>
+                <p className="text-gray-600 mb-2">Génération 3D en cours...</p>
                 <Progress value={generationProgress} className="w-full max-w-md" />
-                <p className="text-sm text-slate-500 mt-2">{generationProgress}%</p>
+                <p className="text-sm text-gray-500 mt-2">{generationProgress}%</p>
               </CardContent>
             </Card>
           )}
@@ -93,16 +93,16 @@ export function GenerateResultsPanel({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
                   <Input
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Rechercher..."
-                    className="pl-10 bg-slate-800 border-slate-700 text-white"
+                    className="pl-10 bg-white border-gray-200 text-gray-900"
                   />
                 </div>
                 <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
                     <SelectValue placeholder="Catégorie" />
                   </SelectTrigger>
                   <SelectContent>
@@ -115,7 +115,7 @@ export function GenerateResultsPanel({
                   </SelectContent>
                 </Select>
                 <Select value={filterComplexity} onValueChange={setFilterComplexity}>
-                  <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
                     <SelectValue placeholder="Complexité" />
                   </SelectTrigger>
                   <SelectContent>
@@ -125,12 +125,12 @@ export function GenerateResultsPanel({
                     <SelectItem value="high">Élevée</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="flex gap-1 border border-slate-700 rounded-lg p-1">
+                <div className="flex gap-1 border border-gray-200 rounded-lg p-1">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('grid')}
-                    className={viewMode === 'grid' ? 'bg-slate-700' : ''}
+                    className={viewMode === 'grid' ? 'bg-gray-200' : ''}
                   >
                     <Grid className="w-4 h-4" />
                   </Button>
@@ -138,7 +138,7 @@ export function GenerateResultsPanel({
                     variant={viewMode === 'list' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('list')}
-                    className={viewMode === 'list' ? 'bg-slate-700' : ''}
+                    className={viewMode === 'list' ? 'bg-gray-200' : ''}
                   >
                     <List className="w-4 h-4" />
                   </Button>

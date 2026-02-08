@@ -45,7 +45,7 @@ export function UsageQuotaTopupHistory({
             Actualiser
           </Button>
           <Button asChild size="sm" variant="outline" className="border-gray-700 text-gray-200">
-            <Link href="/billing">Ouvrir la facturation</Link>
+            <Link href="/dashboard/billing">Ouvrir la facturation</Link>
           </Button>
         </div>
       </div>

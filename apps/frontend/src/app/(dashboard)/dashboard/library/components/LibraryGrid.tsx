@@ -30,7 +30,7 @@ export function LibraryGrid({ templates, onPreview, onToggleFavorite, onDelete }
   if (templates.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucun template trouvé</p>
+        <p className="text-gray-600">Aucun template trouvé</p>
       </div>
     );
   }
@@ -40,7 +40,7 @@ export function LibraryGrid({ templates, onPreview, onToggleFavorite, onDelete }
       {templates.map((template) => (
         <Card
           key={template.id}
-          className="bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-colors group"
+          className="bg-white border-gray-200 hover:border-cyan-500/50 transition-colors group"
         >
           <div className="relative aspect-square overflow-hidden rounded-t-lg">
             <Image
@@ -76,8 +76,8 @@ export function LibraryGrid({ templates, onPreview, onToggleFavorite, onDelete }
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-white truncate">{template.name}</h3>
-                <p className="text-xs text-gray-400 mt-1">{formatDate(new Date(template.createdAt))}</p>
+                <h3 className="font-medium text-gray-900 truncate">{template.name}</h3>
+                <p className="text-xs text-gray-600 mt-1">{formatDate(new Date(template.createdAt))}</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -85,22 +85,22 @@ export function LibraryGrid({ templates, onPreview, onToggleFavorite, onDelete }
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                <DropdownMenuContent align="end" className="bg-white border-gray-200">
                   <DropdownMenuItem
                     onClick={() => onPreview(template)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Prévisualiser
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onToggleFavorite(template.id, template.isFavorite)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Star className="w-4 h-4 mr-2" />
                     {template.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-gray-300 cursor-pointer">
+                  <DropdownMenuItem className="text-gray-700 cursor-pointer">
                     <Download className="w-4 h-4 mr-2" />
                     Télécharger
                   </DropdownMenuItem>

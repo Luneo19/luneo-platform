@@ -54,7 +54,7 @@ export function TicketDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl bg-gray-800 border-gray-700 text-white max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl bg-white border-gray-200 text-gray-900 max-h-[90vh] overflow-hidden flex flex-col">
         <TicketDetailHeader
           ticket={ticket}
           sla={calculatedSla}
@@ -69,14 +69,14 @@ export function TicketDetailDialog({
           formatRelativeTime={formatRelativeTime}
           onOpenTemplates={onOpenTemplates}
         />
-        <div className="flex-shrink-0 pt-4 border-t border-gray-700">
+        <div className="flex-shrink-0 pt-4 border-t border-gray-200">
           <div className="flex gap-3">
             <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Tapez votre message..."
               rows={3}
-              className="flex-1 bg-gray-900 border-gray-600 text-white resize-none"
+              className="flex-1 bg-gray-50 border-gray-200 text-gray-900 resize-none"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                   e.preventDefault();
@@ -96,7 +96,7 @@ export function TicketDetailDialog({
                   <Send className="w-4 h-4" />
                 )}
               </Button>
-              <Button variant="outline" size="icon" className="border-gray-600">
+              <Button variant="outline" size="icon" className="border-gray-200">
                 <Paperclip className="w-4 h-4" />
               </Button>
             </div>

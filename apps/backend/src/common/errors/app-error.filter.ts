@@ -46,10 +46,11 @@ export class AppErrorFilter implements ExceptionFilter {
       
       // Convert to AppError format
       if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+        const resp = exceptionResponse as { error?: string; message?: string };
         errorResponse = {
           success: false,
-          error: (exceptionResponse as any).error || 'HTTP_ERROR',
-          message: (exceptionResponse as any).message || exception.message,
+          error: resp.error || 'HTTP_ERROR',
+          message: resp.message || exception.message,
           statusCode: status,
           timestamp: new Date().toISOString(),
         };

@@ -9,8 +9,9 @@ import type { TeamMember, PendingInvite, TeamStats } from '../types';
 export function useTeamMembers() {
   const teamQuery = trpc.team.listMembers.useQuery();
 
+  type MemberLike = { id: string; name?: string; email: string; role?: string; avatar?: string; joinedAt?: string | Date; lastActive?: string | Date; permissions?: string[]; metadata?: unknown };
   const members: TeamMember[] = useMemo(() => {
-    return (teamQuery.data?.members || []).map((m: any) => ({
+    return (teamQuery.data?.members || []).map((m: MemberLike) => ({
       id: m.id,
       name: m.name || m.email,
       email: m.email,
@@ -24,15 +25,16 @@ export function useTeamMembers() {
     }));
   }, [teamQuery.data]);
 
+  type InviteLike = { id: string; email: string; role?: string; invitedBy?: string; invitedAt?: string | Date; expiresAt?: string | Date; status?: string };
   const pendingInvites: PendingInvite[] = useMemo(() => {
-    return (teamQuery.data?.pendingInvites || []).map((i: any) => ({
+    return (teamQuery.data?.pendingInvites || []).map((i: InviteLike) => ({
       id: i.id,
       email: i.email,
-      role: (i.role || 'MEMBER') as any,
+      role: (i.role || 'MEMBER') as 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER',
       invitedBy: i.invitedBy,
-      invitedAt: i.invitedAt ? new Date(i.invitedAt) : new Date(),
-      expiresAt: i.expiresAt ? new Date(i.expiresAt) : new Date(),
-      status: (i.status || 'pending') as any,
+      invitedAt: i.invitedAt ? new Date(i.invitedAt as string) : new Date(),
+      expiresAt: i.expiresAt ? new Date(i.expiresAt as string) : new Date(),
+      status: (i.status || 'pending') as 'pending' | 'accepted' | 'expired',
     }));
   }, [teamQuery.data]);
 

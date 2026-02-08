@@ -17,13 +17,26 @@ import type {
   ProductAnalyticsRequest,
 } from '@/lib/types/product';
 
+/** Minimal tRPC product client shape used by ProductService (avoids full AppRouter dependency here) */
+interface ProductTRPCClient {
+  product: {
+    create: { mutate: (req: CreateProductRequest) => Promise<{ id: string } & Record<string, unknown>> };
+    update: { mutate: (req: UpdateProductRequest) => Promise<Record<string, unknown>> };
+    delete: { mutate: (arg: { id: string }) => Promise<void> };
+    getById: { query: (arg: { id: string }) => Promise<Record<string, unknown> | null> };
+    list: { query: (req?: ProductListRequest) => Promise<Record<string, unknown>> };
+    uploadModel: { mutate: (req: UploadModelRequest) => Promise<Record<string, unknown>> };
+    getAnalytics: { query: (req: ProductAnalyticsRequest) => Promise<Record<string, unknown>> };
+  };
+}
+
 // ========================================
 // SERVICE
 // ========================================
 
 export class ProductService {
   private static instance: ProductService;
-  private cache: Map<string, any> = new Map();
+  private cache: Map<string, unknown> = new Map();
 
   private constructor() {}
 
@@ -43,11 +56,11 @@ export class ProductService {
    */
   async create(request: CreateProductRequest) {
     try {
-      const client = trpcVanilla as any;
+      const client = trpcVanilla as unknown as ProductTRPCClient;
       const product = await client.product.create.mutate(request);
       logger.info('Product created', { productId: product.id });
       return product;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error creating product', { error, request });
       throw error;
     }
@@ -58,12 +71,12 @@ export class ProductService {
    */
   async update(request: UpdateProductRequest) {
     try {
-      const client = trpcVanilla as any;
+      const client = trpcVanilla as unknown as ProductTRPCClient;
       const product = await client.product.update.mutate(request);
       this.cache.delete(request.id); // Invalidate cache
       logger.info('Product updated', { productId: request.id });
       return product;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating product', { error, request });
       throw error;
     }
@@ -74,12 +87,12 @@ export class ProductService {
    */
   async delete(productId: string) {
     try {
-      const client = trpcVanilla as any;
+      const client = trpcVanilla as unknown as ProductTRPCClient;
       await client.product.delete.mutate({ id: productId });
       this.cache.delete(productId); // Invalidate cache
       logger.info('Product deleted', { productId });
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error deleting product', { error, productId });
       throw error;
     }
@@ -100,7 +113,8 @@ export class ProductService {
       }
 
       // Fetch
-      const client = trpcVanilla as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC vanilla client typing requires runtime cast
+      const client = trpcVanilla as unknown as Record<string, Record<string, { query: (input: unknown) => Promise<unknown> }>>;
       const product = await client.product.getById.query({ id: productId });
 
       // Cache
@@ -109,7 +123,7 @@ export class ProductService {
       }
 
       return product;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching product', { error, productId });
       throw error;
     }
@@ -120,9 +134,10 @@ export class ProductService {
    */
   async list(request?: ProductListRequest) {
     try {
-      const client = trpcVanilla as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC vanilla client typing requires runtime cast
+      const client = trpcVanilla as unknown as Record<string, Record<string, { query: (input: unknown) => Promise<unknown> }>>;
       return await client.product.list.query(request);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing products', { error, request });
       throw error;
     }
@@ -137,12 +152,12 @@ export class ProductService {
    */
   async uploadModel(request: UploadModelRequest) {
     try {
-      const client = trpcVanilla as any;
+      const client = trpcVanilla as unknown as ProductTRPCClient;
       const product = await client.product.uploadModel.mutate(request);
       this.cache.delete(request.productId); // Invalidate cache
       logger.info('Model uploaded', { productId: request.productId });
       return product;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error uploading model', { error, request });
       throw error;
     }
@@ -157,9 +172,10 @@ export class ProductService {
    */
   async getAnalytics(request: ProductAnalyticsRequest) {
     try {
-      const client = trpcVanilla as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC vanilla client typing requires runtime cast
+      const client = trpcVanilla as unknown as Record<string, Record<string, { query: (input: unknown) => Promise<unknown> }>>;
       return await client.product.getAnalytics.query(request);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching product analytics', { error, request });
       throw error;
     }

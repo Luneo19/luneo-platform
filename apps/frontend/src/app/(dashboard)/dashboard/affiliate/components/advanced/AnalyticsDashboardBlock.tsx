@@ -9,9 +9,9 @@ interface AnalyticsDashboardBlockProps {
 
 export function AnalyticsDashboardBlock({ title }: AnalyticsDashboardBlockProps) {
   return (
-    <Card className="bg-gray-800/50 border-gray-700 mt-6">
+    <Card className="bg-gray-50 border-gray-200 mt-6">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-gray-900 flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-cyan-400" />
           {title}
         </CardTitle>
@@ -19,10 +19,10 @@ export function AnalyticsDashboardBlock({ title }: AnalyticsDashboardBlockProps)
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {['Clics', 'Conversions', 'Revenus'].map((label, i) => (
-            <Card key={label} className="bg-gray-900/50 border-gray-700">
+            <Card key={label} className="bg-gray-100 border-gray-200">
               <CardContent className="p-4">
-                <p className="text-sm text-gray-400">{label}</p>
-                <p className="text-2xl font-bold text-white mt-1">—</p>
+                <p className="text-sm text-gray-600">{label}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">—</p>
               </CardContent>
             </Card>
           ))}

@@ -59,9 +59,9 @@ export class PODMappingService {
         return {};
       }
 
-      const metadata = product.metadata as any;
+      const metadata = product.metadata as Record<string, unknown>;
       return metadata?.pod || {};
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting POD config', { error, productId });
       return {};
     }
@@ -76,13 +76,13 @@ export class PODMappingService {
     config: PODVariantMapping
   ): Promise<void> {
     try {
-      const product = await endpoints.products.get(productId).catch(() => null) as { metadata?: any } | null;
+      const product = await endpoints.products.get(productId).catch(() => null) as { metadata?: Record<string, unknown> & { pod?: Record<string, PODVariantMapping> } } | null;
 
       if (!product) {
         throw new Error('Product not found');
       }
 
-      const metadata = (product.metadata as any) || {};
+      const metadata = (product.metadata as Record<string, unknown> & { pod?: Record<string, PODVariantMapping> }) || {};
       const podConfig = metadata.pod || {};
 
       podConfig[provider] = {
@@ -101,7 +101,7 @@ export class PODMappingService {
       });
 
       logger.info('POD config updated', { productId, provider, config });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating POD config', { error, productId, provider });
       throw error;
     }
@@ -146,7 +146,7 @@ export class PODMappingService {
 
       // Fallback to default based on provider
       return this.getDefaultVariantId(provider);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting variant ID', { error, productId, provider });
       return this.getDefaultVariantId(provider);
     }
@@ -214,7 +214,7 @@ export class PODMappingService {
       }
 
       return `product_${productId}`; // Generate from product ID
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting product UID', { error, productId, provider });
       return `product_${productId}`;
     }

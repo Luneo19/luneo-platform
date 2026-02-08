@@ -35,10 +35,10 @@ export function CustomizerExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>Exporter le design</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Choisissez le format d&apos;export pour télécharger votre design
           </DialogDescription>
         </DialogHeader>
@@ -46,10 +46,10 @@ export function CustomizerExportDialog({
           <div className="grid gap-2">
             <Label htmlFor="format">Format</Label>
             <Select value={format} onValueChange={setFormat}>
-              <SelectTrigger id="format" className="bg-gray-900 border-gray-600 text-white">
+              <SelectTrigger id="format" className="bg-white border-gray-200 text-gray-900">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 text-white">
+              <SelectContent className="bg-white border-gray-200 text-gray-900">
                 {EXPORT_FORMATS.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
                     {f.label} — {f.description}
@@ -60,7 +60,7 @@ export function CustomizerExportDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Annuler
           </Button>
           <Button onClick={handleExport} className="bg-cyan-600 hover:bg-cyan-700">

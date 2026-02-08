@@ -6,11 +6,7 @@
   "description": "Luneo Enterprise SaaS - Plateforme IA de personnalisation de produits",
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "packages/virtual-try-on",
-    "packages/ar-export",
-    "packages/optimization",
-    "packages/bulk-generator"
+    "packages/*"
   ],
   "scripts": {
     "build": "turbo run build",
@@ -25,18 +21,10 @@
   "devDependencies": {
     "@turbo/gen": "^1.10.12",
     "turbo": "^1.10.12",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.0"
   },
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=8.x"
-  },
-  "dependencies": {
-    "@prisma/client": "5.22.0",
-    "argon2": "^0.44.0",
-    "next": "^15.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "stripe": "^19.1.0"
   }
 }

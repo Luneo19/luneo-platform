@@ -85,8 +85,8 @@
 
 ### Database
 - ORM : Prisma
-- Migrations : `npx prisma migrate dev`
-- Seeds : `npm run seed` (si disponible)
+- Migrations : `pnpm exec prisma migrate dev`
+- Seeds : `pnpm run seed` (si disponible)
 
 ---
 
@@ -95,16 +95,16 @@
 ### Backend
 ```bash
 cd apps/backend
-npm run test          # Tests unitaires
-npm run test:e2e      # Tests E2E
-npm run test:cov      # Coverage
+pnpm run test          # Tests unitaires
+pnpm run test:e2e      # Tests E2E
+pnpm run test:cov      # Coverage
 ```
 
 ### Frontend
 ```bash
 cd apps/frontend
-npm run test          # Tests unitaires (Vitest)
-npm run test:e2e      # Tests E2E (Playwright)
+pnpm run test          # Tests unitaires (Vitest)
+pnpm run test:e2e      # Tests E2E (Playwright)
 ```
 
 ---
@@ -122,15 +122,15 @@ npm run test:e2e      # Tests E2E (Playwright)
 ```bash
 # Development
 pnpm dev              # Start all services
-cd apps/backend && npm run start:dev
-cd apps/frontend && npm run dev
+cd apps/backend && pnpm run start:dev
+cd apps/frontend && pnpm run dev
 
 # Build
 pnpm build            # Build all
 
 # Database
-cd apps/backend && npx prisma studio
-cd apps/backend && npx prisma migrate dev
+cd apps/backend && pnpm exec prisma studio
+cd apps/backend && pnpm exec prisma migrate dev
 
 # Linting
 pnpm lint

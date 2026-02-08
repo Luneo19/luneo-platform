@@ -82,6 +82,9 @@ import { useSolutionData } from '@/lib/hooks/useSolutionData';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 
+// Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
+const APP_URL = 'https://luneo.app';
+
 // ============================================
 // TYPES
 // ============================================
@@ -532,10 +535,9 @@ function DemoCanvas() {
                 }}
                 drag
                 dragMomentum={false}
-                // @ts-ignore - framer-motion drag handler
-                onDragEnd={(event: any, info: any) => {
-                  setElements(prev => prev.map(el => 
-                    el.id === element.id 
+                onDragEnd={(_event, info: { offset: { x: number; y: number } }) => {
+                  setElements(prev => prev.map(el =>
+                    el.id === element.id
                       ? { ...el, x: el.x + info.offset.x, y: el.y + info.offset.y }
                       : el
                   ));
@@ -924,6 +926,31 @@ function CustomizerPageContent() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Luneo Product Customizer',
+            description: 'Embeddable product customization platform for e-commerce stores',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            url: `${APP_URL}/solutions/customizer`,
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'EUR',
+              description: 'Free tier available',
+            },
+            provider: {
+              '@type': 'Organization',
+              name: 'Luneo',
+              url: APP_URL,
+            },
+          }),
+        }}
+      />
       <PageHero
         title="Personnalisation Produits"
         description="Éditeur canvas professionnel avec texte, images, formes, cliparts. Layers illimités, export PNG/SVG haute qualité, et intégration e-commerce native."
@@ -1369,7 +1396,7 @@ import { LuneoCustomizer } from '@luneo/customizer';
 
 // Option 2: Iframe simple
 <iframe
-  src="https://app.luneo.app/embed/customizer?product=tshirt"
+  src="${APP_URL}/embed/customizer?product=tshirt"
   width="100%"
   height="800"
 />`}

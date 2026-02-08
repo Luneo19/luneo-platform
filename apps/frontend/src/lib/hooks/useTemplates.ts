@@ -10,7 +10,7 @@ interface Template {
   subcategory?: string;
   preview_url: string;
   thumbnail_url?: string;
-  konva_json: any;
+  konva_json: Record<string, unknown>;
   width: number;
   height: number;
   unit: string;

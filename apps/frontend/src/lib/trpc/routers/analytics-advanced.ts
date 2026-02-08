@@ -55,8 +55,8 @@ export const analyticsAdvancedRouter = router({
         });
       }
 
-      const response = await api.get<any>('/api/v1/analytics-advanced/funnels').catch(() => ({ funnels: [] }));
-      const funnels = (response as any).funnels ?? (response as any).data ?? [];
+      const response = await api.get<{ funnels?: unknown[]; data?: unknown[] }>('/api/v1/analytics-advanced/funnels').catch(() => ({ funnels: [] }));
+      const funnels = response?.funnels ?? response?.data ?? [];
 
       return {
         success: true,
@@ -104,7 +104,7 @@ export const analyticsAdvancedRouter = router({
           });
         }
 
-        const funnel = await api.get<any>(`/api/v1/analytics-advanced/funnels/${input.funnelId}`).catch(() => null);
+        const funnel = await api.get<{ steps?: unknown[] }>(`/api/v1/analytics-advanced/funnels/${input.funnelId}`).catch(() => null);
         if (!funnel) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -112,15 +112,16 @@ export const analyticsAdvancedRouter = router({
           });
         }
 
-        const steps = Array.isArray((funnel as any).steps) ? (funnel as any).steps : [];
+        const steps = Array.isArray(funnel.steps) ? funnel.steps : [];
         const startDate = input.filters?.startDate ? new Date(input.filters.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const endDate = input.filters?.endDate ? new Date(input.filters.endDate) : new Date();
 
-        const funnelDataResponse = await api.get<any>(`/api/v1/analytics-advanced/funnels/${input.funnelId}/data`, {
+        const funnelDataResponse = await api.get<{ steps?: unknown[]; data?: unknown[] }>(`/api/v1/analytics-advanced/funnels/${input.funnelId}/data`, {
           params: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
         }).catch(() => ({ steps: [] }));
 
-        const funnelData = (funnelDataResponse as any).steps ?? (funnelDataResponse as any).data ?? steps.map((step: any, index: number) => {
+        type StepLike = { id: string; name: string };
+        const funnelData = funnelDataResponse?.steps ?? funnelDataResponse?.data ?? steps.map((step: StepLike, index: number) => {
           const eventCount = 0;
           const previousCount = index > 0 ? 0 : eventCount;
 
@@ -237,10 +238,11 @@ export const analyticsAdvancedRouter = router({
         const cohortsRes = await api.get<any>('/api/v1/analytics-advanced/cohorts', {
           params: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
         }).catch(() => []);
-        const cohorts = Array.isArray(cohortsRes) ? cohortsRes : (cohortsRes as any)?.cohorts ?? (cohortsRes as any)?.data ?? [];
+        const cohortsRaw = cohortsRes as unknown[] | { cohorts?: unknown[]; data?: unknown[] };
+        const cohorts = Array.isArray(cohortsRes) ? cohortsRes : (cohortsRaw && typeof cohortsRaw === 'object' ? (cohortsRaw.cohorts ?? cohortsRaw.data ?? []) : []);
 
-        // Formater les cohortes
-        const formattedCohorts = cohorts.map((cohort: any) => ({
+        type CohortLike = { cohortDate?: string | Date; userCount?: number; period?: number; retention?: number; revenue?: number };
+        const formattedCohorts = (cohorts as CohortLike[]).map((cohort) => ({
           cohort: new Date(cohort.cohortDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
           users: cohort.userCount,
           retention30: cohort.period === 30 ? cohort.retention : null,
@@ -292,16 +294,18 @@ export const analyticsAdvancedRouter = router({
         });
       }
 
-        const segmentsRes = await api.get<any>('/api/v1/analytics-advanced/segments').catch(() => []);
-        const segments = Array.isArray(segmentsRes) ? segmentsRes : (segmentsRes as any)?.segments ?? (segmentsRes as any)?.data ?? [];
+        const segmentsRes = await api.get<unknown[] | { segments?: unknown[]; data?: unknown[] }>('/api/v1/analytics-advanced/segments').catch(() => []);
+        const segmentsRaw = segmentsRes;
+        const segments = Array.isArray(segmentsRes) ? segmentsRes : (segmentsRaw && typeof segmentsRaw === 'object' ? (segmentsRaw.segments ?? segmentsRaw.data ?? []) : []);
 
+        type SegmentLike = { id: string; name: string; description?: string; criteria?: Record<string, unknown>; userCount?: number; isActive?: boolean };
         return {
           success: true,
-          segments: segments.map((segment: any) => ({
+          segments: (segments as SegmentLike[]).map((segment) => ({
             id: segment.id,
             name: segment.name,
             description: segment.description,
-            criteria: segment.criteria as any,
+            criteria: segment.criteria ?? {},
             userCount: segment.userCount,
             isActive: segment.isActive,
           })),
@@ -332,8 +336,9 @@ export const analyticsAdvancedRouter = router({
         });
       }
 
-        const predictionsRes = await api.get<any>('/api/v1/analytics-advanced/predictions', { params: { type: 'revenue', take: 3 } }).catch(() => []);
-        const predictions = Array.isArray(predictionsRes) ? predictionsRes : (predictionsRes as any)?.predictions ?? (predictionsRes as any)?.data ?? [];
+        const predictionsRes = await api.get<unknown[] | { predictions?: unknown[]; data?: unknown[] }>('/api/v1/analytics-advanced/predictions', { params: { type: 'revenue', take: 3 } }).catch(() => []);
+        const predRaw = predictionsRes as unknown[] | { predictions?: unknown[]; data?: unknown[] };
+        const predictions = Array.isArray(predictionsRes) ? predictionsRes : (predRaw && typeof predRaw === 'object' ? (predRaw.predictions ?? predRaw.data ?? []) : []);
 
         // Formater les prédictions en scénarios
         const formattedPredictions = predictions.map(
@@ -344,7 +349,7 @@ export const analyticsAdvancedRouter = router({
             scenario: scenarios[index] || 'conservative',
             revenue: pred.value,
             probability: probabilities[index] || 35,
-            factors: (pred.metadata as any)?.factors || ['Croissance normale'],
+            factors: (pred.metadata as Record<string, unknown>)?.factors as string[] | undefined || ['Croissance normale'],
             confidence: pred.confidence * 100,
           };
         });
@@ -388,12 +393,14 @@ export const analyticsAdvancedRouter = router({
       }
 
         const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        const correlationsRes = await api.get<any>('/api/v1/analytics/advanced/correlations', {
+        const correlationsRes = await api.get<{ correlations?: unknown[]; data?: unknown[] } | null>('/api/v1/analytics/advanced/correlations', {
           params: { since },
         }).catch(() => null);
-        const rawCorrelations = (correlationsRes as any)?.correlations ?? (correlationsRes as any)?.data ?? [];
+        const corrRaw = correlationsRes as { correlations?: unknown[]; data?: unknown[] } | null;
+        const rawCorrelations = corrRaw?.correlations ?? corrRaw?.data ?? [];
+        type CorrLike = { metric1?: string; metric2?: string; metric_a?: string; metric_b?: string; correlation?: number; significance?: string; insight?: string };
         const correlations = Array.isArray(rawCorrelations) && rawCorrelations.length > 0
-          ? rawCorrelations.map((c: any) => ({
+          ? (rawCorrelations as CorrLike[]).map((c) => ({
               metric1: c.metric1 ?? c.metric_a ?? '',
               metric2: c.metric2 ?? c.metric_b ?? '',
               correlation: typeof c.correlation === 'number' ? c.correlation : 0.78,
@@ -441,12 +448,14 @@ export const analyticsAdvancedRouter = router({
       }
 
         const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const anomaliesRes = await api.get<any>('/api/v1/analytics/advanced/anomalies', {
+        const anomaliesRes = await api.get<{ anomalies?: unknown[]; data?: unknown[] } | null>('/api/v1/analytics/advanced/anomalies', {
           params: { since },
         }).catch(() => null);
-        const rawAnomalies = (anomaliesRes as any)?.anomalies ?? (anomaliesRes as any)?.data ?? [];
+        const anomRaw = anomaliesRes as { anomalies?: unknown[]; data?: unknown[] } | null;
+        const rawAnomalies = anomRaw?.anomalies ?? anomRaw?.data ?? [];
+        type AnomLike = { id?: string; type?: string; date?: string; value?: string; expected?: string; severity?: string; cause?: string; action?: string };
         const anomalies = Array.isArray(rawAnomalies) && rawAnomalies.length > 0
-          ? rawAnomalies.map((a: any) => ({
+          ? (rawAnomalies as AnomLike[]).map((a) => ({
               id: a.id ?? `anomaly-${Date.now()}`,
               type: a.type ?? 'Anomalie',
               date: a.date ? new Date(a.date) : new Date(),

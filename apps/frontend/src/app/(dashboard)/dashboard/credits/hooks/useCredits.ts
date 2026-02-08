@@ -395,7 +395,7 @@ export function useCredits() {
         description: 'Export CSV réussi !',
       });
       setShowExportModal(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erreur',
         description: "Échec de l'export CSV",
@@ -444,7 +444,7 @@ export function useCredits() {
         description: 'Export JSON réussi !',
       });
       setShowExportModal(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erreur',
         description: "Échec de l'export JSON",

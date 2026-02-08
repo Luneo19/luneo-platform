@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+/** Note: snake_case keys in anchorPoints example (e.g. left_temple, right_temple) maintained for API backwards compatibility */
 export class AddProductMappingDto {
   @ApiProperty({
     description: 'ID du produit à mapper',

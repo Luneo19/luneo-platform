@@ -101,11 +101,18 @@ export class IndustryService {
     if (!existing) {
       throw new NotFoundException(`Industry not found: ${slug}`);
     }
-    await this.prisma.industry.update({
+    const industry = await this.prisma.industry.update({
       where: { slug },
       data: { isActive: false },
     });
     this.logger.log(`Industry soft-deleted: ${slug}`);
-    return { success: true };
+    return {
+      success: true,
+      slug: industry.slug,
+      labelEn: industry.labelEn,
+      labelFr: industry.labelFr,
+      status: 'inactive',
+      updatedAt: industry.updatedAt?.toISOString() ?? new Date().toISOString(),
+    };
   }
 }

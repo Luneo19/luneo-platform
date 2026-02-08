@@ -12,8 +12,9 @@ import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { v2 as cloudinary } from 'cloudinary';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

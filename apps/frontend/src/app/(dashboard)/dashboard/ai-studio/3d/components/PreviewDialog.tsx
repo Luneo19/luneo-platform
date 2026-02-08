@@ -25,14 +25,14 @@ export function PreviewDialog({ open, onOpenChange, model, onExportClick }: Prev
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Aperçu du modèle 3D</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-gray-600">
             {model.name || model.prompt}
           </DialogDescription>
         </DialogHeader>
-        <div className="relative aspect-video bg-slate-800 rounded-lg overflow-hidden mt-6">
+        <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden mt-6">
           <Image
             src={model.thumbnail}
             alt={model.prompt}
@@ -42,7 +42,7 @@ export function PreviewDialog({ open, onOpenChange, model, onExportClick }: Prev
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-slate-700">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Fermer
           </Button>
           <Button

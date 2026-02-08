@@ -3,7 +3,7 @@
 import React, { memo, useMemo } from 'react';
 import Link from 'next/link';
 import { Webhook } from 'lucide-react';
-import { logger } from '../../../../../lib/logger';
+import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
 

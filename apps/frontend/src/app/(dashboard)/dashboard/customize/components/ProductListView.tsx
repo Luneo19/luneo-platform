@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Box, Eye, Heart, MoreVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,19 +44,21 @@ export function ProductListView({ products }: ProductListViewProps) {
             exit={{ opacity: 0, x: 20 }}
             transition={{ delay: index * 0.05 }}
           >
-            <Card className="bg-slate-900/50 border-slate-700 hover:border-cyan-500/50 transition-colors">
+            <Card className="bg-white border-gray-200 hover:border-cyan-500/50 transition-colors">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  <div className="relative w-16 h-16 bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
+                  <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                    <Image
                       src={thumbnail}
                       alt={product.name}
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
-                      <h3 className="font-semibold text-white truncate">{product.name}</h3>
+                      <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -70,24 +73,24 @@ export function ProductListView({ products }: ProductListViewProps) {
                       </DropdownMenu>
                     </div>
                     {product.description && (
-                      <p className="text-sm text-slate-400 line-clamp-1 mb-2">{product.description}</p>
+                      <p className="text-sm text-gray-600 line-clamp-1 mb-2">{product.description}</p>
                     )}
                     <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="border-slate-600">
+                      <Badge variant="outline" className="border-gray-300">
                         {product.category}
                       </Badge>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <span className="text-xs text-gray-600 flex items-center gap-1">
                         <Eye className="w-3 h-3" />
                         {views}
                       </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <span className="text-xs text-gray-600 flex items-center gap-1">
                         <Heart className="w-3 h-3" />
                         {favorites}
                       </span>
                       <Badge
                         variant={product.isActive ? 'default' : 'secondary'}
                         className={cn(
-                          product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'
+                          product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-200 text-gray-600'
                         )}
                       >
                         {product.isActive ? 'Actif' : 'Inactif'}

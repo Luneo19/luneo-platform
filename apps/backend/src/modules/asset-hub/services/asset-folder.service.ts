@@ -158,12 +158,18 @@ export class AssetFolderService {
       );
     }
 
-    await this.prisma.assetFolder.delete({
+    const deleted = await this.prisma.assetFolder.delete({
       where: { id },
     });
 
     this.logger.log(`Asset folder deleted: ${id}`);
 
-    return { success: true };
+    return {
+      success: true,
+      id: deleted.id,
+      name: deleted.name,
+      parentId: deleted.parentId ?? undefined,
+      deletedAt: new Date().toISOString(),
+    };
   }
 }

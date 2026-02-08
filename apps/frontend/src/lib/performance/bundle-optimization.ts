@@ -22,14 +22,14 @@ export async function loadHeavyLibrary(libraryName: string) {
       return await import('@react-three/drei');
     case 'chartjs':
       try {
-        // @ts-expect-error - chart.js is optional
+        // @ts-expect-error -- chart.js is optional; types may be missing when package not installed
         return await import('chart.js');
       } catch {
         return null;
       }
     case 'react-chartjs-2':
       try {
-        // @ts-expect-error - react-chartjs-2 is optional
+        // @ts-expect-error -- react-chartjs-2 is optional; types may be missing when package not installed
         return await import('react-chartjs-2');
       } catch {
         return null;

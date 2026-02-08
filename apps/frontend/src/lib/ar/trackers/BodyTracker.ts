@@ -14,16 +14,11 @@
  * - ✅ Cleanup des ressources
  */
 
-// @mediapipe/pose is optional - only used in browser context
-// Using any types to avoid build-time errors when package is not installed
-// Dynamic import will be used at runtime
+// @mediapipe/pose is optional - only used in browser context (see src/types/mediapipe-pose.d.ts)
 import { Camera } from '@mediapipe/camera_utils';
+import type { Pose, PoseResults } from '@mediapipe/pose';
 import type { TrackingData } from '../AREngine';
 import { logger } from '@/lib/logger';
-
-// Type aliases for flexibility (MediaPipe may not be installed)
-type PoseType = any;
-type PoseResultsType = any;
 
 /**
  * Configuration du Body Tracker
@@ -61,7 +56,7 @@ export const BODY_LANDMARKS_INDICES = {
 } as const;
 
 export class BodyTracker {
-  private pose: PoseType | null = null;
+  private pose: Pose | null = null;
   private camera: Camera | null = null;
   private config: Required<BodyTrackerConfig>;
   private videoElement: HTMLVideoElement | null = null;
@@ -93,15 +88,14 @@ export class BodyTracker {
         this.videoElement = videoElement;
       }
 
-      // Créer Pose (dynamic import to avoid build errors)
-      // @ts-ignore - @mediapipe/pose may not be installed, handled at runtime
-      const PoseClass = require('@mediapipe/pose').Pose;
-      // @ts-ignore - Pose constructor type not available at build time
+      // Créer Pose (require used so optional dependency does not break build if missing)
+      // @ts-expect-error -- @mediapipe/pose is optional; module may be unresolved at build time
+      const { Pose: PoseClass } = require('@mediapipe/pose');
       this.pose = new PoseClass({
         locateFile: (file: string) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
         },
-      }) as PoseType;
+      });
 
       // Configurer Pose
       this.pose.setOptions({
@@ -112,8 +106,7 @@ export class BodyTracker {
       });
 
       // Setup callback
-      // @ts-ignore - MediaPipe types not available at build time
-      this.pose.onResults((results: PoseResultsType) => this.onResults(results));
+      this.pose.onResults((results: PoseResults) => this.onResults(results));
 
       // Créer Camera si videoElement fourni
       if (this.videoElement) {
@@ -195,16 +188,14 @@ export class BodyTracker {
   /**
    * Callback MediaPipe results
    */
-  private onResults(results: PoseResultsType): void {
-    // @ts-ignore - MediaPipe types not available at build time
+  private onResults(results: PoseResults): void {
     if (!results.poseLandmarks || results.poseLandmarks.length === 0) {
       this.lastResult = null;
       return;
     }
 
     // Convertir landmarks en format TrackingData
-    // @ts-ignore - MediaPipe types not available at build time
-    const landmarks = (results.poseLandmarks || []).map((lm: { x: number; y: number; z?: number }) => [lm.x, lm.y, lm.z || 0]);
+    const landmarks = (results.poseLandmarks || []).map((lm) => [lm.x, lm.y, lm.z ?? 0]);
 
     // Calculer bounding box
     const xs = landmarks.map((lm: number[]) => lm[0]);
@@ -214,13 +205,11 @@ export class BodyTracker {
     const minY = Math.min(...ys);
     const maxY = Math.max(...ys);
 
-    // @ts-ignore - MediaPipe types not available at build time
     const firstLandmark = results.poseLandmarks?.[0];
     this.lastResult = {
       type: 'body',
       landmarks,
-      // @ts-ignore - MediaPipe types not available at build time
-      confidence: firstLandmark?.visibility || 0.5,
+      confidence: firstLandmark?.visibility ?? 0.5,
       boundingBox: {
         x: minX,
         y: minY,

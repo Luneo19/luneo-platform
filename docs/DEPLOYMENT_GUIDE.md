@@ -1,275 +1,278 @@
-# 🚀 Guide de Déploiement Production - Luneo Platform
+# Luneo -- Guide de Deploiement Production
 
-**Date:** Décembre 2024  
-**Status:** Guide complet de déploiement
+## Pre-requis
+
+- Compte GitHub avec acces admin au repo
+- Compte Railway avec projet cree
+- Compte Vercel avec projet cree
+- Compte Stripe (mode live)
+- Compte Cloudinary
+- Redis (Upstash recommande)
+- Base de donnees PostgreSQL (Neon, Supabase, ou Railway Postgres)
 
 ---
 
-## 🎯 Vue d'Ensemble
+## Etape 1: Secrets GitHub Actions
 
-Ce guide détaille le processus complet de déploiement en production pour Luneo Platform.
+Aller dans **GitHub > repo > Settings > Secrets and variables > Actions > New repository secret**
+
+### Secrets obligatoires
+
+| Secret | Description | Ou le trouver |
+|--------|-------------|---------------|
+| `DOCKER_USERNAME` | Nom utilisateur Docker Hub | hub.docker.com > Account Settings |
+| `DOCKER_PASSWORD` | Token Docker Hub | hub.docker.com > Account Settings > Security > Access Tokens |
+| `RAILWAY_TOKEN` | Token API Railway | railway.app > Account Settings > Tokens |
+| `VERCEL_TOKEN` | Token API Vercel | vercel.com > Settings > Tokens |
+| `VERCEL_ORG_ID` | ID organisation Vercel | vercel.com > Settings > General |
+| `VERCEL_PROJECT_ID` | ID projet frontend Vercel | vercel.com > Project Settings > General |
+| `CODECOV_TOKEN` | Token Codecov | codecov.io > repo > Settings |
+| `STRIPE_SECRET_KEY` | Cle secrete Stripe (pour tests CI) | dashboard.stripe.com > Developers > API keys |
+| `STRIPE_PUBLISHABLE_KEY` | Cle publique Stripe | dashboard.stripe.com > Developers > API keys |
+
+### Secrets optionnels
+
+| Secret | Description |
+|--------|-------------|
+| `SLACK_WEBHOOK_URL` | Webhook Slack pour notifications deploy |
+| `SNYK_TOKEN` | Token Snyk pour security scan |
+| `VERCEL_BACKEND_PROJECT_ID` | ID projet backend Vercel (staging) |
+| `VERCEL_FRONTEND_PROJECT_ID` | ID projet frontend Vercel (staging) |
+| `TURBO_TOKEN` | Token Turborepo (cache distant) |
+
+### Variables (pas secrets)
+
+Aller dans **Actions > Variables** (pas Secrets):
+
+| Variable | Valeur |
+|----------|--------|
+| `TURBO_TEAM` | Nom de votre equipe Turbo |
 
 ---
 
-## 📋 Pré-requis
+## Etape 2: Creer l'environnement "staging"
 
-### 1. Comptes et Services
+1. GitHub > repo > **Settings > Environments**
+2. Cliquer **New environment**
+3. Nom: **staging**
+4. Sauvegarder
 
-#### Requis
-- ✅ **Vercel** - Déploiement frontend
-- ✅ **Railway/Hetzner** - Déploiement backend (si applicable)
-- ✅ **Supabase** - Base de données et auth
-- ✅ **Stripe** - Paiements
-- ✅ **Sentry** - Error tracking
-- ✅ **Upstash** - Redis
-- ✅ **Cloudinary** - Stockage images
-- ✅ **OpenAI** - Génération IA
+Cela supprime les warnings "Value staging is not valid" dans l'IDE.
 
-### 2. Variables d'Environnement
+---
 
-#### Frontend (Vercel)
+## Etape 3: Variables d'environnement Railway (Backend)
 
-**Obligatoires:**
-```bash
-NEXT_PUBLIC_APP_URL=https://luneo.app
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
-SUPABASE_SERVICE_ROLE_KEY=xxx
-STRIPE_SECRET_KEY=sk_live_xxx
-STRIPE_PUBLISHABLE_KEY=pk_live_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-OPENAI_API_KEY=sk-xxx
-CLOUDINARY_CLOUD_NAME=xxx
-CLOUDINARY_API_KEY=xxx
-CLOUDINARY_API_SECRET=xxx
-SENTRY_DSN=https://xxx@sentry.io/xxx
-UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
-UPSTASH_REDIS_REST_TOKEN=xxx
-DATABASE_URL=postgresql://xxx
+Dans Railway > projet > service backend > **Variables**, ajouter:
+
+### Application
+```
 NODE_ENV=production
+PORT=3000
+API_PREFIX=/api/v1
+FRONTEND_URL=https://app.luneo.app
+BACKEND_URL=https://api.luneo.app
 ```
 
-**Optionnelles:**
-```bash
-NEXT_PUBLIC_VERCEL_ENV=production
-ANALYZE=false
+### Base de donnees
+```
+DATABASE_URL=postgresql://user:password@host:5432/luneo?schema=public&connection_limit=10&pool_timeout=20&connect_timeout=10
 ```
 
----
-
-## 🔍 Vérifications Pré-Déploiement
-
-### 1. Code Quality
-
-#### Tests
-```bash
-cd apps/frontend
-npm run test
+### Redis
+```
+REDIS_URL=rediss://default:token@endpoint.upstash.io:6379
 ```
 
-#### Build
-```bash
-npm run build
+### Authentification
+```
+JWT_SECRET=<generer: openssl rand -hex 32>
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=<generer: openssl rand -hex 32>
+JWT_REFRESH_EXPIRES_IN=7d
 ```
 
-#### Linting
-```bash
-npm run lint
+### OAuth
+```
+GOOGLE_CLIENT_ID=<votre-id>
+GOOGLE_CLIENT_SECRET=<votre-secret>
+GOOGLE_CALLBACK_URL=https://api.luneo.app/api/v1/auth/google/callback
+GITHUB_CLIENT_ID=<votre-id>
+GITHUB_CLIENT_SECRET=<votre-secret>
+GITHUB_CALLBACK_URL=https://api.luneo.app/api/v1/auth/github/callback
 ```
 
-### 2. Sécurité
-
-#### Security Audit
-- ✅ Score: 93/100
-- ✅ CSP avec nonces
-- ✅ Rate limiting activé
-- ✅ CSRF protection
-
-#### Variables d'Environnement
-- [ ] Toutes les variables configurées
-- [ ] Secrets sécurisés
-- [ ] Pas de secrets dans le code
-
-### 3. Database
-
-#### Migrations
-```bash
-cd apps/frontend
-npx prisma migrate deploy
+### Stripe
+```
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_PRICE_STARTER_MONTHLY=price_...
+STRIPE_PRICE_STARTER_YEARLY=price_...
+STRIPE_PRICE_PRO_MONTHLY=price_...
+STRIPE_PRICE_PRO_YEARLY=price_...
+STRIPE_PRICE_BUSINESS_MONTHLY=price_...
+STRIPE_PRICE_BUSINESS_YEARLY=price_...
+STRIPE_PRICE_ENTERPRISE_MONTHLY=price_...
+STRIPE_PRICE_ENTERPRISE_YEARLY=price_...
+STRIPE_SUCCESS_URL=https://app.luneo.app/dashboard/billing/success
+STRIPE_CANCEL_URL=https://app.luneo.app/dashboard/billing/cancel
+STRIPE_TRIAL_PERIOD_DAYS=14
 ```
 
-#### Vérification
-```bash
-npx prisma db pull
-npx prisma generate
+### Media
+```
+CLOUDINARY_CLOUD_NAME=<votre-cloud>
+CLOUDINARY_API_KEY=<votre-key>
+CLOUDINARY_API_SECRET=<votre-secret>
 ```
 
----
-
-## 🚀 Déploiement
-
-### Option 1: Déploiement Automatique (CI/CD)
-
-#### Via GitHub Actions
-1. Push sur `main` branch
-2. CI/CD pipeline s'exécute automatiquement
-3. Tests et build
-4. Déploiement staging automatique
-5. Déploiement production après validation
-
-#### Configuration
-- **Fichier:** `.github/workflows/ci.yml`
-- **Staging:** Déploiement automatique
-- **Production:** Déploiement après validation
-
-### Option 2: Déploiement Manuel
-
-#### Via Vercel CLI
-```bash
-# Installer Vercel CLI
-npm i -g vercel
-
-# Login
-vercel login
-
-# Déploiement
-cd apps/frontend
-vercel --prod
+### Email
 ```
-
-#### Via Vercel Dashboard
-1. Aller sur [vercel.com](https://vercel.com)
-2. Sélectionner le projet
-3. Aller dans "Deployments"
-4. Cliquer sur "Deploy" ou promouvoir un déploiement
-
----
-
-## 📊 Post-Déploiement
-
-### Vérifications Immédiates
-
-#### 1. Health Checks
-```bash
-# Frontend
-curl https://luneo.app/api/health
-
-# Backend (si applicable)
-curl https://api.luneo.app/health
+SENDGRID_API_KEY=SG.xxx
+SENDGRID_FROM_EMAIL=no-reply@luneo.app
+SENDGRID_FROM_NAME=Luneo
+SENDGRID_REPLY_TO=support@luneo.app
 ```
-
-#### 2. Application
-- [ ] Application accessible
-- [ ] Pages principales chargent
-- [ ] Pas d'erreurs console
-- [ ] Performance acceptable
-
-#### 3. Fonctionnalités Critiques
-- [ ] Authentification fonctionne
-- [ ] Dashboard accessible
-- [ ] AI Studio fonctionne
-- [ ] Checkout Stripe fonctionne
-- [ ] API endpoints fonctionnent
 
 ### Monitoring
-
-#### Sentry
-- Vérifier dashboard Sentry
-- Aucune erreur critique
-- Performance acceptable
-
-#### Vercel Analytics
-- Vérifier métriques
-- Core Web Vitals acceptables
-- Pas de régression performance
-
-#### Logs
-- Vérifier logs Vercel
-- Aucune erreur critique
-- Performance acceptable
-
----
-
-## 🔄 Rollback
-
-### Processus de Rollback
-
-#### Via Vercel Dashboard
-1. Aller dans "Deployments"
-2. Sélectionner version précédente stable
-3. Cliquer sur "Promote to Production"
-4. Confirmer
-
-#### Via Vercel CLI
-```bash
-vercel rollback
+```
+SENTRY_DSN=https://xxx@sentry.io/xxx
+SENTRY_ENVIRONMENT=production
 ```
 
-#### Vérifications Après Rollback
-- [ ] Application accessible
-- [ ] Fonctionnalités critiques OK
-- [ ] Aucune erreur critique
-- [ ] Performance acceptable
+### CORS et Securite
+```
+CORS_ORIGINS=https://app.luneo.app,https://luneo.app,https://www.luneo.app
+ADMIN_DEFAULT_PASSWORD=<mot-de-passe-fort>
+ADMIN_EMAIL=admin@luneo.app
+SEED_SAMPLE_DATA=false
+SKIP_EMAIL_VERIFICATION=false
+```
 
 ---
 
-## 🚨 Troubleshooting
+## Etape 4: Variables d'environnement Vercel (Frontend)
 
-### Problèmes Courants
+Dans Vercel > projet > **Settings > Environment Variables**, ajouter:
 
-#### Build Failed
-- Vérifier variables d'environnement
-- Vérifier logs de build
-- Vérifier dépendances
+### URLs
+```
+NEXT_PUBLIC_APP_URL=https://app.luneo.app
+NEXT_PUBLIC_API_URL=https://api.luneo.app
+NEXT_PUBLIC_SITE_URL=https://luneo.app
+```
 
-#### Application Non Accessible
-- Vérifier DNS
-- Vérifier SSL/TLS
-- Vérifier health checks
+### Auth
+```
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=<votre-id>
+NEXT_PUBLIC_GITHUB_CLIENT_ID=<votre-id>
+```
 
-#### Erreurs Runtime
-- Vérifier Sentry
-- Vérifier logs
-- Vérifier variables d'environnement
+### Stripe
+```
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_STARTER_MONTHLY=price_...
+STRIPE_PRICE_STARTER_YEARLY=price_...
+STRIPE_PRICE_PROFESSIONAL_MONTHLY=price_...
+STRIPE_PRICE_PROFESSIONAL_YEARLY=price_...
+STRIPE_PRICE_BUSINESS_MONTHLY=price_...
+STRIPE_PRICE_BUSINESS_YEARLY=price_...
+```
+
+### Media et monitoring
+```
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=<votre-cloud>
+CLOUDINARY_API_KEY=<votre-key>
+CLOUDINARY_API_SECRET=<votre-secret>
+NEXT_PUBLIC_SENTRY_DSN=https://xxx@sentry.io/xxx
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+```
+
+### Redis (rate limiting)
+```
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=xxx
+```
+
+### Email
+```
+SENDGRID_API_KEY=SG.xxx
+SENDGRID_FROM_EMAIL=no-reply@luneo.app
+CONTACT_EMAIL=contact@luneo.app
+```
 
 ---
 
-## 📝 Checklist Complète
+## Etape 5: Deployer
 
-Voir **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** pour checklist détaillée.
+### Backend (Railway)
+```bash
+# 1. Migrer la base de donnees
+cd apps/backend
+pnpm prisma migrate deploy
 
----
+# 2. Seeder (admin uniquement)
+SEED_SAMPLE_DATA=false pnpm prisma db seed
 
-## 🎯 Best Practices
+# 3. Le deploy se fait automatiquement via CI/CD sur push main
+git push origin main
+```
 
-### 1. Déploiement Progressif
-- Toujours déployer staging d'abord
-- Tester staging avant production
-- Déployer production après validation
-
-### 2. Monitoring
-- Surveiller Sentry après déploiement
-- Vérifier performance
-- Réagir rapidement aux erreurs
-
-### 3. Documentation
-- Documenter changements
-- Mettre à jour changelog
-- Communiquer changements
+### Frontend (Vercel)
+Le deploy se fait automatiquement via le CI/CD ou via Vercel Git integration.
 
 ---
 
-**Dernière mise à jour:** Décembre 2024
+## Etape 6: Verification post-deploiement
 
+### Backend
+```bash
+# Health check
+curl https://api.luneo.app/health
+# Reponse attendue: { "status": "ok" }
 
+# Health detaille
+curl https://api.luneo.app/health/terminus
+# Reponse attendue: { "status": "ok", "info": { "database": {...}, "redis": {...} } }
+```
 
+### Frontend
+- [ ] Page d'accueil: https://app.luneo.app
+- [ ] Page login: https://app.luneo.app/login
+- [ ] Page pricing: https://app.luneo.app/pricing
 
+### Flux complet
+1. Creer un compte (inscription)
+2. Verifier l'email (si SKIP_EMAIL_VERIFICATION=false)
+3. Completer l'onboarding
+4. Acceder au dashboard
+5. Tester le checkout Stripe (plan Starter)
+6. Verifier la redirection post-paiement
+7. Verifier les credits et limites du plan
+8. Creer un design
+9. Tester l'export
 
+### Webhooks Stripe
+1. Stripe Dashboard > Developers > Webhooks
+2. Ajouter endpoint: `https://api.luneo.app/api/v1/billing/webhook`
+3. Evenements: `checkout.session.completed`, `customer.subscription.*`, `invoice.*`
+4. Tester avec "Send test webhook"
 
+---
 
+## Etape 7: Monitoring post-deploiement
 
+### Sentry
+1. Verifier les erreurs dans le dashboard Sentry
+2. Configurer les alertes: Error spike > 10x, New issue, p95 > 2s
 
+### Uptime
+Configurer Better Stack ou Pingdom:
+- `GET https://api.luneo.app/health` (toutes les 1 min)
+- `GET https://app.luneo.app` (toutes les 5 min)
 
-
-
-
+### Slack
+Si `SLACK_WEBHOOK_URL` est configure, les deployments envoient des notifications.

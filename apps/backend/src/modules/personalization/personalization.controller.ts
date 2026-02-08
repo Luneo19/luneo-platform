@@ -11,13 +11,13 @@ import { PersonalizationService } from './personalization.service';
 import { ValidateZoneInputDto } from './dto/validate-zone-input.dto';
 import { NormalizeTextDto } from './dto/normalize-text.dto';
 import { AutoFitDto } from './dto/auto-fit.dto';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandScopedGuard } from '@/common/guards/brand-scoped.guard';
 import { BrandScoped } from '@/common/decorators/brand-scoped.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 @ApiTags('personalization')
-@Controller('v1/personalization')
+@Controller('personalization')
 @UseGuards(JwtAuthGuard, BrandScopedGuard)
 @ApiBearerAuth()
 @BrandScoped()

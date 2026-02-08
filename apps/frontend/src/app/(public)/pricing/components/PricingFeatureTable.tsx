@@ -74,19 +74,22 @@ export function PricingFeatureTable({
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
-            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-              Fonctionnalité
+            <th className="px-4 py-4 text-left text-sm font-semibold text-gray-900">
+              Fonctionnalite
             </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+            <th className="px-3 py-4 text-center text-sm font-semibold text-gray-400">
+              Free
+            </th>
+            <th className="px-3 py-4 text-center text-sm font-semibold text-gray-900">
               Starter
             </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+            <th className="px-3 py-4 text-center text-sm font-semibold text-blue-600">
               Professional
             </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+            <th className="px-3 py-4 text-center text-sm font-semibold text-gray-900">
               Business
             </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+            <th className="px-3 py-4 text-center text-sm font-semibold text-gray-900">
               Enterprise
             </th>
           </tr>
@@ -95,10 +98,10 @@ export function PricingFeatureTable({
           {filteredFeatures.length === 0 ? (
             <tr>
               <td
-                colSpan={5}
+                colSpan={6}
                 className="px-6 py-8 text-center text-sm text-gray-500"
               >
-                Aucune fonctionnalité dans cette catégorie
+                Aucune fonctionnalite dans cette categorie
               </td>
             </tr>
           ) : (
@@ -122,16 +125,19 @@ export function PricingFeatureTable({
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-3 py-4 text-center">
+                  {formatCell(feature.free)}
+                </td>
+                <td className="px-3 py-4 text-center">
                   {formatCell(feature.starter)}
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-3 py-4 text-center">
                   {formatCell(feature.professional)}
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-3 py-4 text-center">
                   {formatCell(feature.business)}
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-3 py-4 text-center">
                   {formatCell(feature.enterprise)}
                 </td>
               </tr>

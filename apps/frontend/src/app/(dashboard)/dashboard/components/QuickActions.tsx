@@ -66,7 +66,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 
 function QuickActionsContent() {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
         <CardTitle>Actions rapides</CardTitle>
         <CardDescription>Accès rapide aux fonctionnalités</CardDescription>
@@ -79,12 +79,12 @@ function QuickActionsContent() {
               <Link key={action.href} href={action.href as string}>
                 <Button
                   variant="outline"
-                  className="w-full h-auto flex flex-col items-center gap-2 p-4 border-gray-700 hover:border-blue-500 hover:bg-blue-500/10"
+                  className="w-full h-auto flex flex-col items-center gap-2 p-4 border-gray-200 hover:border-blue-500 hover:bg-blue-500/10"
                 >
                   {Icon && React.createElement(Icon, { className: 'h-5 w-5' })}
                   <div className="text-center">
                     <p className="text-sm font-medium">{action.label}</p>
-                    <p className="text-xs text-gray-400">{action.description}</p>
+                    <p className="text-xs text-gray-600">{action.description}</p>
                   </div>
                 </Button>
               </Link>

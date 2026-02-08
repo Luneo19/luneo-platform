@@ -5,6 +5,7 @@ import { StorageService } from '@/libs/storage/storage.service';
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { Prisma, OrderStatus } from '@prisma/client';
 
 interface ProductionJobData {
   orderId: string;
@@ -172,8 +173,7 @@ export class ProductionWorker {
       this.logger.log(`Starting quality control for order ${orderId}`);
 
       // Récupérer les assets du design
-      // @ts-ignore - asset exists in schema but Prisma client may need regeneration
-      const assets = await (this.prisma as any).asset.findMany({
+      const assets = await this.prisma.asset.findMany({
         where: { designId },
         select: {
           id: true,
@@ -183,9 +183,19 @@ export class ProductionWorker {
         },
       });
 
-      // Vérifier la qualité de chaque asset
+      // Vérifier la qualité de chaque asset (normalize metadata: JsonValue → Record<string, unknown>)
       const qualityChecks = await Promise.all(
-        assets.map(asset => this.checkAssetQuality(asset))
+        assets.map(asset =>
+          this.checkAssetQuality({
+            ...asset,
+            metadata:
+              asset.metadata != null &&
+              typeof asset.metadata === 'object' &&
+              !Array.isArray(asset.metadata)
+                ? (asset.metadata as Record<string, unknown>)
+                : undefined,
+          })
+        )
       );
 
       // Analyser les résultats
@@ -345,12 +355,12 @@ export class ProductionWorker {
   /**
    * Récupère un design
    */
-  private async getDesign(designId: string): Promise<any> {
+  private async getDesign(designId: string): Promise<Record<string, unknown>> {
     const design = await this.prisma.design.findUnique({
       where: { id: designId },
       include: {
         assets: true,
-      } as any,
+      },
     });
 
     if (!design) {
@@ -485,7 +495,7 @@ export class ProductionWorker {
       }
     );
 
-    return uploadResult as any;
+    return typeof uploadResult === 'string' ? uploadResult : (uploadResult as { url?: string })?.url ?? '';
   }
 
   /**
@@ -495,7 +505,6 @@ export class ProductionWorker {
     await this.prisma.order.update({
       where: { id: orderId },
       data: {
-        // @ts-ignore - productionBundleUrl exists in schema but Prisma client may need regeneration
         productionBundleUrl: bundleUrl,
         metadata: {
           bundleGeneratedAt: new Date(),
@@ -553,8 +562,8 @@ export class ProductionWorker {
     await this.prisma.order.update({
       where: { id: orderId },
       data: {
-        status: status as any,
-        ...(error && { metadata: { error, updatedAt: new Date() } as any }),
+        status: status as OrderStatus,
+        ...(error && { metadata: { error, updatedAt: new Date() } as Prisma.InputJsonValue }),
       },
     });
   }
@@ -714,9 +723,9 @@ export class ProductionWorker {
    */
   private extractZonesFromDesign(design: any): any[] {
     if (!design.optionsJson?.zones) return [];
-    return Object.entries(design.optionsJson.zones).map(([id, data]) => ({
+    return Object.entries(design.optionsJson.zones as Record<string, Record<string, unknown>>).map(([id, data]) => ({
       id,
-      ...(data as any),
+      ...data,
     }));
   }
 
@@ -795,7 +804,7 @@ export class ProductionWorker {
       }
     );
 
-    return uploadResult as any;
+    return typeof uploadResult === 'string' ? uploadResult : (uploadResult as { url?: string })?.url ?? '';
   }
 
   /**

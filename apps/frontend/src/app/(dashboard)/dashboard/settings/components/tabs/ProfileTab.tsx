@@ -31,73 +31,73 @@ export function ProfileTab({ profile, onProfileChange }: ProfileTabProps) {
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Informations personnelles</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle className="text-gray-900">Informations personnelles</CardTitle>
+        <CardDescription className="text-gray-600">
           Gérez vos informations de profil
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-gray-300">Nom</Label>
+            <Label className="text-gray-700">Nom</Label>
             <Input
               value={localProfile.name || ''}
               onChange={(e) => setLocalProfile({ ...localProfile, name: e.target.value })}
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
             />
           </div>
           <div>
-            <Label className="text-gray-300">Email</Label>
+            <Label className="text-gray-700">Email</Label>
             <Input
               value={profile.email}
               disabled
-              className="bg-gray-900/50 border-gray-600 text-gray-500 mt-1"
+              className="bg-gray-50 border-gray-200 text-gray-500 mt-1"
             />
             <p className="text-xs text-gray-500 mt-1">L'email ne peut pas être modifié</p>
           </div>
           <div>
-            <Label className="text-gray-300">Téléphone</Label>
+            <Label className="text-gray-700">Téléphone</Label>
             <Input
               value={localProfile.phone || ''}
               onChange={(e) => setLocalProfile({ ...localProfile, phone: e.target.value })}
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
             />
           </div>
           <div>
-            <Label className="text-gray-300">Entreprise</Label>
+            <Label className="text-gray-700">Entreprise</Label>
             <Input
               value={localProfile.company || ''}
               onChange={(e) => setLocalProfile({ ...localProfile, company: e.target.value })}
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
             />
           </div>
           <div>
-            <Label className="text-gray-300">Site web</Label>
+            <Label className="text-gray-700">Site web</Label>
             <Input
               value={localProfile.website || ''}
               onChange={(e) => setLocalProfile({ ...localProfile, website: e.target.value })}
               placeholder="https://example.com"
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
             />
           </div>
           <div>
-            <Label className="text-gray-300">Localisation</Label>
+            <Label className="text-gray-700">Localisation</Label>
             <Input
               value={localProfile.location || ''}
               onChange={(e) => setLocalProfile({ ...localProfile, location: e.target.value })}
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
             />
           </div>
         </div>
         <div>
-          <Label className="text-gray-300">Bio</Label>
+          <Label className="text-gray-700">Bio</Label>
           <Textarea
             value={localProfile.bio || ''}
             onChange={(e) => setLocalProfile({ ...localProfile, bio: e.target.value })}
             rows={4}
-            className="bg-gray-900 border-gray-600 text-white mt-1"
+            className="bg-white border-gray-200 text-gray-900 mt-1"
             placeholder="Décrivez-vous en quelques mots..."
           />
         </div>

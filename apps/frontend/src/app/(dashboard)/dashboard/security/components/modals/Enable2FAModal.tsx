@@ -70,7 +70,7 @@ export function Enable2FAModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md">
         <DialogHeader>
           <DialogTitle>Activer l'authentification à deux facteurs</DialogTitle>
           <DialogDescription>
@@ -92,21 +92,21 @@ export function Enable2FAModal({
               />
             </div>
             <div>
-              <Label className="text-gray-300">Code de vérification</Label>
+              <Label className="text-gray-700">Code de vérification</Label>
               <Input
                 type="text"
                 value={token}
                 onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="000000"
                 maxLength={6}
-                className="bg-gray-900 border-gray-600 text-white mt-1 text-center text-2xl tracking-widest"
+                className="bg-white border-gray-200 text-gray-900 mt-1 text-center text-2xl tracking-widest"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Entrez le code à 6 chiffres de votre application
               </p>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose} className="border-gray-600">
+              <Button variant="outline" onClick={handleClose} className="border-gray-200">
                 Annuler
               </Button>
               <Button
@@ -131,7 +131,7 @@ export function Enable2FAModal({
         ) : step === 'verify' ? (
           <div className="space-y-4 mt-4 text-center">
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto" />
-            <p className="text-gray-300">
+            <p className="text-gray-700">
               L'authentification à deux facteurs a été activée avec succès !
             </p>
             {backupCodes && (
@@ -139,7 +139,7 @@ export function Enable2FAModal({
                 <p className="text-sm text-yellow-400 mb-2">
                   ⚠️ Enregistrez vos codes de secours maintenant
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-600">
                   Ces codes ne seront affichés qu'une seule fois
                 </p>
               </div>

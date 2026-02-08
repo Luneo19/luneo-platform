@@ -30,12 +30,12 @@ export function TicketDetailContent({
     <ScrollArea className="flex-1 pr-4">
       <div className="space-y-6">
         {sla.status !== 'on-track' && (
-          <Card className="bg-gray-900/50 border-gray-700">
+          <Card className="bg-gray-50 border-gray-200">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white mb-1">SLA</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm font-medium text-gray-900 mb-1">SLA</p>
+                  <p className="text-xs text-gray-600">
                     Temps de résolution: {sla.resolutionTime.toFixed(1)}h restantes
                   </p>
                 </div>
@@ -61,23 +61,23 @@ export function TicketDetailContent({
           </Card>
         )}
 
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-50 border-gray-200">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Description</CardTitle>
+            <CardTitle className="text-lg text-gray-900">Description</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-300 whitespace-pre-wrap">{ticket.description}</p>
+            <p className="text-gray-700 whitespace-pre-wrap">{ticket.description}</p>
           </CardContent>
         </Card>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg text-white">Messages</h3>
+            <h3 className="font-semibold text-lg text-gray-900">Messages</h3>
             <Button
               variant="outline"
               size="sm"
               onClick={onOpenTemplates}
-              className="border-gray-600"
+              className="border-gray-200"
             >
               <FileText className="w-4 h-4 mr-2" />
               Templates
@@ -89,7 +89,7 @@ export function TicketDetailContent({
                 <Card
                   key={message.id}
                   className={cn(
-                    'bg-gray-900/50 border-gray-700',
+                    'bg-gray-50 border-gray-200',
                     message.isInternal && 'border-yellow-500/30 bg-yellow-500/5'
                   )}
                 >
@@ -100,7 +100,7 @@ export function TicketDetailContent({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-white">
+                          <span className="font-medium text-gray-900">
                             {message.author || 'Utilisateur'}
                           </span>
                           {message.isInternal && (
@@ -112,11 +112,11 @@ export function TicketDetailContent({
                             {formatRelativeTime(message.createdAt)}
                           </span>
                         </div>
-                        <p className="text-gray-300 whitespace-pre-wrap">{message.content}</p>
+                        <p className="text-gray-700 whitespace-pre-wrap">{message.content}</p>
                         {message.attachments && message.attachments.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {message.attachments.map((attachment: { id: string; name: string }, i: number) => (
-                              <Badge key={attachment.id ?? i} variant="outline" className="border-gray-600">
+                              <Badge key={attachment.id ?? i} variant="outline" className="border-gray-200">
                                 <File className="w-3 h-3 mr-1" />
                                 {attachment.name}
                               </Badge>
@@ -130,31 +130,31 @@ export function TicketDetailContent({
               ))}
             </div>
           ) : (
-            <Card className="bg-gray-900/50 border-gray-700 p-8 text-center">
-              <MessageSquare className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400">Aucun message pour le moment</p>
+            <Card className="bg-gray-50 border-gray-200 p-8 text-center">
+              <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600">Aucun message pour le moment</p>
             </Card>
           )}
         </div>
 
         {activities.length > 0 && (
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg text-white">Historique</h3>
+            <h3 className="font-semibold text-lg text-gray-900">Historique</h3>
             <div className="space-y-2">
               {activities.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-start gap-3 text-sm text-gray-400 pl-4 border-l-2 border-gray-700"
+                  className="flex items-start gap-3 text-sm text-gray-600 pl-4 border-l-2 border-gray-200"
                 >
                   <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
                     <p>
-                      <span className="font-medium text-white">{activity.action || activity.description}</span>
+                      <span className="font-medium text-gray-900">{activity.action || activity.description}</span>
                       {activity.oldValue && activity.newValue && (
                         <span>
                           {' '}
                           de <span className="text-gray-500">{activity.oldValue}</span> à{' '}
-                          <span className="text-white">{activity.newValue}</span>
+                          <span className="text-gray-900">{activity.newValue}</span>
                         </span>
                       )}
                     </p>

@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder, validateRequest, validateWithZodSchema } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { changePasswordSchema } from '@/lib/validation/zod-schemas';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 /**
  * PUT /api/profile/password

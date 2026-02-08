@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { UploadFileDto } from '../dto/upload-file.dto';
@@ -13,6 +13,19 @@ import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
 @Injectable()
 export class AssetFileService {
   private readonly logger = new Logger(AssetFileService.name);
+
+  /** Upload size limits per file type (in bytes) */
+  private static readonly MAX_FILE_SIZES: Record<string, number> = {
+    IMAGE: 10 * 1024 * 1024,      // 10 MB
+    VIDEO: 100 * 1024 * 1024,     // 100 MB
+    DOCUMENT: 25 * 1024 * 1024,   // 25 MB
+    FONT: 5 * 1024 * 1024,        // 5 MB
+    MODEL_3D: 50 * 1024 * 1024,   // 50 MB
+    AUDIO: 20 * 1024 * 1024,      // 20 MB
+    OTHER: 10 * 1024 * 1024,      // 10 MB (default)
+  };
+
+  private static readonly ABSOLUTE_MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
   constructor(
     private prisma: PrismaService,
@@ -148,6 +161,19 @@ export class AssetFileService {
     dto: UploadFileDto,
     uploadedById: string,
   ) {
+    // Validate file size against type-specific limits
+    const maxSize = AssetFileService.MAX_FILE_SIZES[dto.type] || AssetFileService.MAX_FILE_SIZES.OTHER;
+    if (file.size > maxSize) {
+      throw new BadRequestException(
+        `File size (${Math.round(file.size / 1024 / 1024)}MB) exceeds limit for type ${dto.type}. Maximum: ${Math.round(maxSize / 1024 / 1024)}MB`,
+      );
+    }
+    if (file.size > AssetFileService.ABSOLUTE_MAX_FILE_SIZE) {
+      throw new BadRequestException(
+        `File size exceeds absolute maximum of ${Math.round(AssetFileService.ABSOLUTE_MAX_FILE_SIZE / 1024 / 1024)}MB`,
+      );
+    }
+
     // Générer storage key unique
     const storageKey = `assets/${organizationId}/${Date.now()}-${file.originalname}`;
 
@@ -171,7 +197,7 @@ export class AssetFileService {
         url: cdnUrl,
         cdnUrl,
         type: dto.type,
-        metadata: (dto.metadata || {}) as any,
+        metadata: (dto.metadata || {}) as Record<string, unknown>,
         tags: dto.tags || [],
         folderId: dto.folderId,
       },
@@ -211,6 +237,13 @@ export class AssetFileService {
 
     this.logger.log(`Asset file deleted: ${id}`);
 
-    return { success: true };
+    return {
+      success: true,
+      id,
+      url: file?.url ?? undefined,
+      size: file?.sizeBytes ?? file?.size ?? undefined,
+      type: file?.type ?? file?.mimeType ?? undefined,
+      deletedAt: new Date().toISOString(),
+    };
   }
 }

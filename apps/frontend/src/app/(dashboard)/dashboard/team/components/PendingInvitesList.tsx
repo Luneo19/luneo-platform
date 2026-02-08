@@ -23,10 +23,10 @@ export function PendingInvitesList({ invites, onCancel }: PendingInvitesListProp
   }
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Invitations en attente</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle className="text-gray-900">Invitations en attente</CardTitle>
+        <CardDescription className="text-gray-600">
           {invites.length} invitation{invites.length > 1 ? 's' : ''} en attente
         </CardDescription>
       </CardHeader>
@@ -38,14 +38,14 @@ export function PendingInvitesList({ invites, onCancel }: PendingInvitesListProp
           return (
             <div
               key={invite.id}
-              className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-gray-700"
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
             >
               <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-gray-400" />
+                <Mail className="w-5 h-5 text-gray-600" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-white font-medium">{invite.email}</p>
-                    <Badge variant="outline" className="border-gray-600 text-gray-400">
+                    <p className="text-gray-900 font-medium">{invite.email}</p>
+                    <Badge variant="outline" className="border-gray-200 text-gray-600">
                       {roleInfo.name}
                     </Badge>
                     {isExpired && (

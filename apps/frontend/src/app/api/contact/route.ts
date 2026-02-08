@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { getBackendUrl } from '@/lib/api/server-url';
 
 // Validation schema
 const ContactSchema = z.object({
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     // ✅ Verify CAPTCHA (if provided)
     if (captchaToken) {
       try {
-        const secretKey = process.env.RECAPTCHA_SECRET_KEY || process.env.NEXT_PUBLIC_RECAPTCHA_SECRET_KEY;
+        const secretKey = process.env.RECAPTCHA_SECRET_KEY;
         if (secretKey) {
           const verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
           const response = await fetch(verifyUrl, {
@@ -142,8 +143,8 @@ export async function POST(request: NextRequest) {
             };
           }
         }
-      } catch (error: any) {
-        if (error.status) {
+      } catch (error: unknown) {
+        if (typeof error === 'object' && error !== null && 'status' in error) {
           throw error;
         }
         logger.error('CAPTCHA verification error', { error });
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
     } else {
       // In production, CAPTCHA is required
       if (process.env.NODE_ENV === 'production') {
-        const secretKey = process.env.RECAPTCHA_SECRET_KEY || process.env.NEXT_PUBLIC_RECAPTCHA_SECRET_KEY;
+        const secretKey = process.env.RECAPTCHA_SECRET_KEY;
         if (secretKey) {
           throw {
             status: 400,
@@ -188,10 +189,10 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             personalizations: [{
-              to: [{ email: 'contact@luneo.app' }],
+              to: [{ email: process.env.CONTACT_EMAIL || 'contact@luneo.app' }],
               subject: `[Contact ${type}] ${subject}`,
             }],
-            from: { email: 'noreply@luneo.app', name: 'Luneo Contact' },
+            from: { email: process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app', name: 'Luneo Contact' },
             reply_to: { email: email, name: name },
             content: [{
               type: 'text/html',
@@ -228,7 +229,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Option 2: Store contact message via backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const backendUrl = getBackendUrl();
     try {
       await fetch(`${backendUrl}/api/v1/contact`, {
         method: 'POST',

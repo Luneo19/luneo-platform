@@ -97,19 +97,17 @@ export class TokenService {
 
       // SEC-08: Détection de réutilisation de token
       // Si le token a déjà été utilisé, c'est une potentielle attaque
-      // Note: Temporary type assertions until Prisma client is regenerated with new fields
-      const tokenRecordAny = tokenRecord as any;
-      if (tokenRecordAny.usedAt || tokenRecordAny.revokedAt) {
+      if (tokenRecord.usedAt || tokenRecord.revokedAt) {
         this.logger.warn(
           `Refresh token reuse detected for user ${tokenRecord.userId}. ` +
-          `Token family ${tokenRecordAny.family} will be invalidated. ` +
+          `Token family ${tokenRecord.family} will be invalidated. ` +
           `Potential token theft attempt.`
         );
         
         // Invalider toute la famille de tokens (sécurité)
         await this.prisma.refreshToken.updateMany({
-          where: { family: tokenRecordAny.family } as any,
-          data: { revokedAt: new Date() } as any,
+          where: { family: tokenRecord.family },
+          data: { revokedAt: new Date() },
         });
         
         throw new UnauthorizedException('Refresh token has been revoked. Please login again.');
@@ -128,17 +126,16 @@ export class TokenService {
       );
 
       // SEC-08: Marquer l'ancien token comme utilisé (pas supprimer, pour détecter réutilisation)
-      // Note: Temporary type assertion until Prisma client is regenerated with new fields
       await this.prisma.refreshToken.update({
         where: { id: tokenRecord.id },
-        data: { usedAt: new Date() } as any,
+        data: { usedAt: new Date() },
       });
 
       // Save new refresh token with same family
       await this.saveRefreshToken(
         tokenRecord.user.id, 
         tokens.refreshToken,
-        (tokenRecord as any).family, // Conserver la famille pour traçabilité
+        tokenRecord.family, // Conserver la famille pour traçabilité
       );
 
       return {
@@ -178,20 +175,18 @@ export class TokenService {
    * Cette méthode peut être appelée par un cron job ou un scheduler
    */
   async cleanupExpiredTokens() {
-    // Note: revokedAt and usedAt fields require Prisma client regeneration
-    // Using type assertion until the client is updated
     const result = await this.prisma.refreshToken.deleteMany({
       where: {
         OR: [
           { expiresAt: { lt: new Date() } },
-          { revokedAt: { not: null } } as any,
+          { revokedAt: { not: null } },
           // Supprimer aussi les tokens utilisés de plus de 24h
           // (garde une fenêtre pour détecter les réutilisations récentes)
           {
             usedAt: { 
               lt: new Date(Date.now() - 24 * 60 * 60 * 1000) 
             },
-          } as any,
+          },
         ],
       },
     });

@@ -30,10 +30,10 @@ export function CreditsHistoryTab({
 }: CreditsHistoryTabProps) {
   return (
     <div className="space-y-6">
-      <Card className="p-4 bg-gray-800/50 border-gray-700">
+      <Card className="p-4 bg-white border-gray-200">
         <div className="flex flex-col lg:flex-row gap-4">
           <Select value={filterType} onValueChange={onFilterTypeChange}>
-            <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-[180px] bg-white border-gray-300 text-gray-900">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
@@ -44,7 +44,7 @@ export function CreditsHistoryTab({
             </SelectContent>
           </Select>
           <Select value={filterDateRange} onValueChange={onFilterDateRangeChange}>
-            <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-[180px] bg-white border-gray-300 text-gray-900">
               <SelectValue placeholder="Période" />
             </SelectTrigger>
             <SelectContent>
@@ -55,24 +55,24 @@ export function CreditsHistoryTab({
               <SelectItem value="1y">1 an</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={onExport} className="border-gray-600">
+          <Button variant="outline" onClick={onExport} className="border-gray-300">
             <Download className="w-4 h-4 mr-2" />
             Exporter
           </Button>
         </div>
       </Card>
 
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Historique des transactions</CardTitle>
-          <CardDescription className="text-gray-400">Toutes vos transactions de crédits</CardDescription>
+          <CardTitle className="text-gray-900">Historique des transactions</CardTitle>
+          <CardDescription className="text-gray-600">Toutes vos transactions de crédits</CardDescription>
         </CardHeader>
         <CardContent>
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-12">
-              <History className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Aucune transaction</h3>
-              <p className="text-gray-400">
+              <History className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune transaction</h3>
+              <p className="text-gray-600">
                 {filterType !== 'all' || filterDateRange !== 'all'
                   ? 'Aucune transaction ne correspond à vos filtres'
                   : 'Votre historique de transactions apparaîtra ici'}
@@ -81,12 +81,12 @@ export function CreditsHistoryTab({
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-300">Type</TableHead>
-                  <TableHead className="text-gray-300">Description</TableHead>
-                  <TableHead className="text-gray-300">Montant</TableHead>
-                  <TableHead className="text-gray-300">Solde après</TableHead>
-                  <TableHead className="text-gray-300">Date</TableHead>
+                <TableRow className="border-gray-200">
+                  <TableHead className="text-gray-700">Type</TableHead>
+                  <TableHead className="text-gray-700">Description</TableHead>
+                  <TableHead className="text-gray-700">Montant</TableHead>
+                  <TableHead className="text-gray-700">Solde après</TableHead>
+                  <TableHead className="text-gray-700">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -94,7 +94,7 @@ export function CreditsHistoryTab({
                   const config: TransactionTypeConfig = TRANSACTION_TYPE_CONFIG[transaction.type];
                   const Icon = config.icon;
                   return (
-                    <TableRow key={transaction.id} className="border-gray-700 hover:bg-gray-800/50">
+                    <TableRow key={transaction.id} className="border-gray-200 hover:bg-gray-50">
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className={`w-8 h-8 rounded-lg ${config.bg} flex items-center justify-center`}>
@@ -107,7 +107,7 @@ export function CreditsHistoryTab({
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="text-sm font-medium text-white">
+                          <p className="text-sm font-medium text-gray-900">
                             {transaction.type === 'purchase' && transaction.packName
                               ? `Achat ${transaction.packName}`
                               : transaction.type === 'usage' && transaction.source
@@ -115,17 +115,17 @@ export function CreditsHistoryTab({
                                 : config.label}
                           </p>
                           {transaction.metadata && typeof transaction.metadata === 'object' && 'model' in transaction.metadata && (
-                            <p className="text-xs text-gray-400">Modèle: {String((transaction.metadata as { model?: string }).model)}</p>
+                            <p className="text-xs text-gray-600">Modèle: {String((transaction.metadata as { model?: string }).model)}</p>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={cn('text-sm font-bold', transaction.amount > 0 ? 'text-green-400' : 'text-red-400')}>
+                        <span className={cn('text-sm font-bold', transaction.amount > 0 ? 'text-green-600' : 'text-red-600')}>
                           {transaction.amount > 0 ? '+' : ''}{formatNumber(transaction.amount)}
                         </span>
                       </TableCell>
-                      <TableCell className="text-gray-300">{formatNumber(transaction.balanceAfter)}</TableCell>
-                      <TableCell className="text-gray-400 text-sm">{formatRelativeDate(transaction.createdAt)}</TableCell>
+                      <TableCell className="text-gray-700">{formatNumber(transaction.balanceAfter)}</TableCell>
+                      <TableCell className="text-gray-600 text-sm">{formatRelativeDate(transaction.createdAt)}</TableCell>
                     </TableRow>
                   );
                 })}

@@ -6,6 +6,7 @@
  * - Appel direct au backend NestJS
  */
 
+import { getBackendUrl } from '@/lib/api/server-url';
 import { cookies } from 'next/headers';
 import { serverLogger } from '@/lib/logger-server';
 
@@ -15,9 +16,6 @@ export interface AuthUser {
   role?: string;
   brandId?: string;
 }
-
-const getBackendUrl = () =>
-  process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? 'https://api.luneo.app' : 'http://localhost:3001');
 
 /**
  * Récupère l'utilisateur depuis les cookies JWT (backend NestJS)

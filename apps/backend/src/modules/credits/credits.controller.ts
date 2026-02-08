@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -13,7 +15,15 @@ import {
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { CreditsService } from '@/libs/credits/credits.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { PrismaService } from '@/libs/prisma/prisma.service';
+import { AddCreditsDto } from './dto/add-credits.dto';
+import { CheckCreditsDto } from './dto/check-credits.dto';
+import { BuyCreditsDto } from './dto/buy-credits.dto';
+import { CreateCreditPackDto } from './dto/create-credit-pack.dto';
+import { UpdateCreditPackDto } from './dto/update-credit-pack.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '@/common/guards/roles.guard';
+import { Prisma, UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { BillingService } from '@/modules/billing/billing.service';
@@ -32,6 +42,7 @@ export class CreditsController {
     private readonly creditsService: CreditsService,
     private readonly billingService: BillingService,
     private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private async getStripe(): Promise<Stripe> {
@@ -61,21 +72,13 @@ export class CreditsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Add credits to user account (admin/webhook)' })
   @ApiResponse({ status: 200, description: 'Credits added successfully' })
-  async addCredits(
-    @Body() body: {
-      userId: string;
-      amount: number;
-      packId?: string;
-      stripeSessionId?: string;
-      stripePaymentId?: string;
-    },
-  ) {
+  async addCredits(@Body() dto: AddCreditsDto) {
     return this.creditsService.addCredits(
-      body.userId,
-      body.amount,
-      body.packId,
-      body.stripeSessionId,
-      body.stripePaymentId,
+      dto.userId,
+      dto.amount,
+      dto.packId,
+      dto.stripeSessionId,
+      dto.stripePaymentId,
     );
   }
 
@@ -91,13 +94,12 @@ export class CreditsController {
   @ApiResponse({ status: 200, description: 'Transactions retrieved successfully' })
   async getTransactions(
     @Request() req: ExpressRequest & { user: CurrentUser },
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
+    @Query() query: PaginationQueryDto,
   ) {
     return this.creditsService.getTransactionHistory(
       req.user.id,
-      limit ? parseInt(limit, 10) : 50,
-      offset ? parseInt(offset, 10) : 0,
+      query.limit ?? 50,
+      query.offset ?? 0,
     );
   }
 
@@ -107,9 +109,9 @@ export class CreditsController {
   @ApiResponse({ status: 200, description: 'Check completed' })
   async checkCredits(
     @Request() req: ExpressRequest & { user: CurrentUser },
-    @Body() body: { endpoint: string; amount?: number },
+    @Body() dto: CheckCreditsDto,
   ) {
-    return this.creditsService.checkCredits(req.user.id, body.endpoint, body.amount);
+    return this.creditsService.checkCredits(req.user.id, dto.endpoint, dto.amount);
   }
 
   @Post('buy')
@@ -117,19 +119,19 @@ export class CreditsController {
   @ApiOperation({ summary: 'Create Stripe Checkout session to buy credits' })
   @ApiResponse({ status: 200, description: 'Checkout session created' })
   async buyCredits(
-    @Body() body: { packSize: number },
+    @Body() dto: BuyCreditsDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     const packs = await this.creditsService.getAvailablePacks();
-    const pack = packs.find((p: any) => p.credits === body.packSize);
-    
+    const pack = packs.find((p: any) => p.credits === dto.packSize);
+
     if (!pack) {
-      throw new BadRequestException(`Pack with ${body.packSize} credits not found`);
+      throw new BadRequestException(`Pack with ${dto.packSize} credits not found`);
     }
 
     // Get Stripe Price ID from pack or env vars
     let priceId = pack.stripePriceId || pack.stripe_price_id;
-    
+
     if (!priceId) {
       // Fallback to env vars
       const packPrices: Record<number, string> = {
@@ -137,16 +139,16 @@ export class CreditsController {
         500: this.configService.get<string>('stripe.priceCredits500') || '',
         1000: this.configService.get<string>('stripe.priceCredits1000') || '',
       };
-      priceId = packPrices[body.packSize];
+      priceId = packPrices[dto.packSize];
     }
 
     if (!priceId) {
-      throw new BadRequestException(`Stripe Price ID not configured for pack ${body.packSize}`);
+      throw new BadRequestException(`Stripe Price ID not configured for pack ${dto.packSize}`);
     }
 
     // Create Stripe Checkout session
     const stripe = await this.getStripe();
-    const frontendUrl = this.configService.get<string>('app.frontendUrl') || 'https://luneo.app';
+    const frontendUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
     
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -163,8 +165,8 @@ export class CreditsController {
       customer_email: req.user.email,
       metadata: {
         userId: req.user.id,
-        packSize: body.packSize.toString(),
-        credits: body.packSize.toString(),
+        packSize: dto.packSize.toString(),
+        credits: dto.packSize.toString(),
         packId: pack.id,
         type: 'credits_purchase',
       },
@@ -177,6 +179,71 @@ export class CreditsController {
       sessionId: session.id,
       pack,
     };
+  }
+
+  // ========================================
+  // ADMIN - Credit packs CRUD (PLATFORM_ADMIN only)
+  // ========================================
+
+  @Get('admin/packs')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'List all credit packs (admin)' })
+  @ApiResponse({ status: 200, description: 'All packs retrieved' })
+  async getAdminPacks() {
+    return this.prisma.creditPack.findMany({
+      orderBy: [{ credits: 'asc' }],
+    });
+  }
+
+  @Post('admin/packs')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Create a credit pack' })
+  @ApiResponse({ status: 201, description: 'Pack created' })
+  async createPack(@Body() dto: CreateCreditPackDto) {
+    return this.prisma.creditPack.create({
+      data: {
+        name: dto.name,
+        credits: dto.credits,
+        priceCents: dto.priceCents,
+        stripePriceId: dto.stripePriceId ?? null,
+        isActive: dto.isActive ?? true,
+        isFeatured: dto.isFeatured ?? false,
+        savings: dto.savings ?? null,
+        badge: dto.badge ?? dto.description ?? null,
+      },
+    });
+  }
+
+  @Put('admin/packs/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Update a credit pack' })
+  @ApiResponse({ status: 200, description: 'Pack updated' })
+  async updatePack(@Param('id') id: string, @Body() dto: UpdateCreditPackDto) {
+    const data: Prisma.CreditPackUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.credits !== undefined) data.credits = dto.credits;
+    if (dto.priceCents !== undefined) data.priceCents = dto.priceCents;
+    if (dto.stripePriceId !== undefined) data.stripePriceId = dto.stripePriceId;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.isFeatured !== undefined) data.isFeatured = dto.isFeatured;
+    if (dto.savings !== undefined) data.savings = dto.savings;
+    if (dto.description !== undefined) data.badge = dto.description;
+    return this.prisma.creditPack.update({
+      where: { id },
+      data,
+    });
+  }
+
+  @Delete('admin/packs/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Delete a credit pack' })
+  @ApiResponse({ status: 200, description: 'Pack deleted' })
+  async deletePack(@Param('id') id: string) {
+    return this.prisma.creditPack.delete({ where: { id } });
   }
 }
 

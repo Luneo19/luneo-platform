@@ -70,7 +70,7 @@ export class TrackerService {
           latencyMs: tracking.latencyMs,
           success: tracking.success,
           errorMessage: tracking.errorMessage || null,
-          metadata: (tracking.metadata || {}) as any,
+          metadata: (tracking.metadata || {}) as Record<string, unknown>,
         },
       });
 

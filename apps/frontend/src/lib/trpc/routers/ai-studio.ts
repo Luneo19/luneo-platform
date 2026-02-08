@@ -68,7 +68,7 @@ export const aiStudioRouter = router({
         // Vérifier le budget / crédits via l'API backend
         try {
           const balance = await api.get<{ balance?: number }>('/api/v1/credits/balance');
-          const credits = (balance as any)?.balance ?? 0;
+          const credits = balance?.balance ?? 0;
           const requiredCredits = input.type === 'MODEL_3D' ? 4 : input.type === 'ANIMATION' ? 5 : 2;
           if (credits < requiredCredits) {
             throw new TRPCError({
@@ -81,7 +81,7 @@ export const aiStudioRouter = router({
           // Si l'API crédits n'est pas disponible, on continue
         }
 
-        const generation = await api.post<any>('/api/v1/ai-studio/generations', {
+        const generation = await api.post<{ id: string; type: string; prompt: string; negativePrompt?: string; model: string; provider?: string; parameters?: Record<string, unknown>; status: string; resultUrl?: string; thumbnailUrl?: string; credits?: number; costCents?: number; duration?: number; quality?: number; error?: string; userId?: string; brandId?: string; parentGenerationId?: string; createdAt?: unknown; completedAt?: unknown; updatedAt?: unknown }>('/api/v1/ai-studio/generations', {
           type: input.type,
           prompt: input.prompt,
           negativePrompt: input.parameters.negativePrompt,
@@ -116,7 +116,7 @@ export const aiStudioRouter = router({
             negativePrompt: generation.negativePrompt,
             model: generation.model,
             provider: generation.provider,
-            parameters: generation.parameters as any,
+            parameters: generation.parameters ?? {},
             status: generation.status,
             resultUrl: generation.resultUrl,
             thumbnailUrl: generation.thumbnailUrl,
@@ -160,22 +160,23 @@ export const aiStudioRouter = router({
           });
         }
 
-        const res = await api.get<any>('/api/v1/ai-studio/generations', {
+        const res = await api.get<{ generations?: unknown[]; data?: unknown[]; total?: number; pagination?: { total?: number } }>('/api/v1/ai-studio/generations', {
           params: { type: input?.type, status: input?.status, model: input?.model, limit: input?.limit ?? 50, offset: input?.offset ?? 0 },
         }).catch(() => ({ generations: [], total: 0 }));
-        const generations = (res as any).generations ?? (res as any).data ?? [];
-        const total = (res as any).total ?? (res as any).pagination?.total ?? (Array.isArray(generations) ? generations.length : 0);
+        const generations = res?.generations ?? res?.data ?? [];
+        const total = res?.total ?? res?.pagination?.total ?? (Array.isArray(generations) ? generations.length : 0);
 
+        type GenLike = { id: string; type: string; prompt: string; negativePrompt?: string; model: string; provider?: string; parameters?: Record<string, unknown>; status: string; resultUrl?: string; thumbnailUrl?: string; credits?: number; costCents?: number; duration?: number; quality?: number; error?: string; userId?: string; brandId?: string; parentGenerationId?: string; createdAt?: unknown; completedAt?: unknown; updatedAt?: unknown };
         return {
           success: true,
-          generations: generations.map((gen: any) => ({
+          generations: (Array.isArray(generations) ? generations : []).map((gen: GenLike) => ({
             id: gen.id,
             type: gen.type,
             prompt: gen.prompt,
             negativePrompt: gen.negativePrompt,
             model: gen.model,
             provider: gen.provider,
-            parameters: gen.parameters as any,
+            parameters: gen.parameters ?? {},
             status: gen.status,
             resultUrl: gen.resultUrl,
             thumbnailUrl: gen.thumbnailUrl,
@@ -212,14 +213,15 @@ export const aiStudioRouter = router({
     .input(z.object({ type: AIGenerationTypeSchema.optional() }).optional())
     .query(async ({ input, ctx }) => {
       try {
-        const res = await api.get<any>('/api/v1/ai-studio/models', {
+        const res = await api.get<{ models?: unknown[]; data?: unknown[] } | null>('/api/v1/ai-studio/models', {
           params: input?.type ? { type: input.type } : undefined,
         }).catch(() => null);
-        const list = (res as any)?.models ?? (res as any)?.data ?? [];
+        const list = res?.models ?? res?.data ?? [];
+        type ModelLike = { id: string; name: string; provider?: string; type?: string; costPerGeneration?: number; avgTime?: number; quality?: number; isActive?: boolean };
         if (Array.isArray(list) && list.length > 0) {
           return {
             success: true,
-            models: list.map((m: any) => ({
+            models: (list as ModelLike[]).map((m) => ({
               id: m.id,
               name: m.name,
               provider: m.provider,
@@ -265,8 +267,8 @@ export const aiStudioRouter = router({
     .input(z.object({ prompt: z.string() }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const res = await api.post<any>('/api/v1/ai-studio/optimize-prompt', { prompt: input.prompt }).catch(() => null);
-        const opt = (res as any)?.optimization ?? (res as any)?.data ?? res;
+        const res = await api.post<{ optimization?: { original?: string; optimized?: string; improvement?: string; before?: number; after?: number }; data?: Record<string, unknown> } | null>('/api/v1/ai-studio/optimize-prompt', { prompt: input.prompt }).catch(() => null);
+        const opt = res?.optimization ?? res?.data ?? res;
         if (opt && typeof opt.original === 'string' && typeof opt.optimized === 'string') {
           return {
             success: true,
@@ -311,19 +313,21 @@ export const aiStudioRouter = router({
         throw new Error('User must have a brandId');
       }
 
-        const collectionsRes = await api.get<any>('/api/v1/ai-studio/collections').catch(() => []);
-        const collections = Array.isArray(collectionsRes) ? collectionsRes : (collectionsRes as any)?.collections ?? (collectionsRes as any)?.data ?? [];
+        const collectionsRes = await api.get<unknown[] | { collections?: unknown[]; data?: unknown[] }>('/api/v1/ai-studio/collections').catch(() => []);
+        const collectionsRaw = collectionsRes;
+        const collections = Array.isArray(collectionsRes) ? collectionsRes : (collectionsRaw && typeof collectionsRaw === 'object' ? (collectionsRaw.collections ?? collectionsRaw.data ?? []) : []);
 
+        type CollLike = { id: string; name: string; description?: string; isShared?: boolean; userId?: string; brandId?: string; generations?: unknown[]; createdAt?: unknown; updatedAt?: unknown };
         return {
           success: true,
-          collections: collections.map((collection: any) => ({
+          collections: (collections as CollLike[]).map((collection) => ({
             id: collection.id,
             name: collection.name,
             description: collection.description,
             isShared: collection.isShared,
             userId: collection.userId,
             brandId: collection.brandId,
-            generationCount: Array.isArray((collection as any).generations) ? (collection as any).generations.length : 0,
+            generationCount: Array.isArray(collection.generations) ? collection.generations.length : 0,
             createdAt: collection.createdAt,
             updatedAt: collection.updatedAt,
           })),
@@ -350,10 +354,10 @@ export const aiStudioRouter = router({
         throw new Error('User must have a brandId');
       }
 
-        const analyticsRes = await api.get<any>('/api/v1/ai-studio/analytics').catch(() => ({}));
-        const totalGenerations = (analyticsRes as any).totalGenerations ?? 0;
-        const completedGenerations = (analyticsRes as any).completedGenerations ?? 0;
-        const generations = (analyticsRes as any).generations ?? [];
+        const analyticsRes = await api.get<{ totalGenerations?: number; completedGenerations?: number; generations?: { duration?: number | null; costCents?: number }[]; satisfaction?: number }>('/api/v1/ai-studio/analytics').catch(() => ({}));
+        const totalGenerations = analyticsRes?.totalGenerations ?? 0;
+        const completedGenerations = analyticsRes?.completedGenerations ?? 0;
+        const generations = analyticsRes?.generations ?? [];
 
         const successRate = totalGenerations > 0 ? (completedGenerations / totalGenerations) * 100 : 0;
         const avgTime = generations.length > 0
@@ -371,20 +375,20 @@ export const aiStudioRouter = router({
         const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const previous30Days = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
-        const trendsRes = await api.get<any>('/api/v1/ai-studio/analytics/trends', {
+        const trendsRes = await api.get<{ currentPeriod?: number; previousPeriod?: number; trends?: { success?: string; cost?: string }; success?: string; cost?: string }>('/api/v1/ai-studio/analytics/trends', {
           params: { last30Days: last30Days.toISOString(), previous30Days: previous30Days.toISOString() },
         }).catch(() => ({}));
-        const currentPeriod = (trendsRes as any).currentPeriod ?? 0;
-        const previousPeriod = (trendsRes as any).previousPeriod ?? 0;
+        const currentPeriod = trendsRes?.currentPeriod ?? 0;
+        const previousPeriod = trendsRes?.previousPeriod ?? 0;
 
         const generationsTrend = previousPeriod > 0
           ? `${((currentPeriod - previousPeriod) / previousPeriod * 100).toFixed(1)}%`
           : '+0%';
 
-        const trendsPayload = (trendsRes as any).trends ?? (trendsRes as any);
+        const trendsPayload = trendsRes?.trends ?? trendsRes;
         const successTrend = typeof trendsPayload?.success === 'string' ? trendsPayload.success : '+2.3%';
         const costTrend = typeof trendsPayload?.cost === 'string' ? trendsPayload.cost : '+12%';
-        const satisfaction = typeof (analyticsRes as any).satisfaction === 'number' ? (analyticsRes as any).satisfaction : 4.7;
+        const satisfaction = typeof analyticsRes?.satisfaction === 'number' ? analyticsRes.satisfaction : 4.7;
 
         return {
           success: true,

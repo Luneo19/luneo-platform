@@ -30,7 +30,7 @@ export interface Notification {
     | 'system';
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   read: boolean;
   readAt?: Date;
   createdAt: Date;
@@ -43,7 +43,7 @@ export interface CreateNotificationRequest {
   type: Notification['type'];
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   actionUrl?: string;
   actionLabel?: string;
   sendEmail?: boolean;
@@ -102,7 +102,7 @@ export class NotificationService {
       });
 
       // Create notification via backend API
-      const created = await api.post<Notification>('/api/v1/notifications', {
+      const created = await api.post<Notification & { readAt?: string }>('/api/v1/notifications', {
         type: request.type,
         title: request.title,
         message: request.message,
@@ -152,7 +152,7 @@ export class NotificationService {
       });
 
       return notification;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error creating notification', { error, request });
       throw error;
     }
@@ -191,46 +191,40 @@ export class NotificationService {
         }
       }
 
-      // Fetch from database using Prisma
-      const where: any = {
-        userId,
-      };
-
-      if (options?.unreadOnly) {
-        where.read = false;
-      }
-      const optionsWithType = options as typeof options & {
-        type?: Notification['type'];
-      };
-      if (optionsWithType?.type) {
-        where.type = optionsWithType.type;
+      interface NotificationsApiResponse {
+        notifications?: Array<{ id: string; userId: string; type: string; title: string; message: string; data?: Record<string, unknown>; read: boolean; readAt?: Date | string | null; createdAt: Date | string; actionUrl?: string | null; actionLabel?: string | null }>;
+        data?: unknown[];
+        pagination?: { total?: number };
+        total?: number;
+        unreadCount?: number;
       }
 
-      const response = await api.get('/api/v1/notifications', {
+      const response = await api.get<NotificationsApiResponse>('/api/v1/notifications', {
         params: {
           userId,
           limit: options?.limit || 20,
           offset: options?.offset || 0,
           unreadOnly: options?.unreadOnly || false,
-          type: (options as any)?.type,
+          type: options?.type,
         },
       });
-      const resData = (response as any)?.data;
-      const dbNotifications = resData?.notifications || resData?.data || [];
-      const total = resData?.pagination?.total ?? resData?.total ?? dbNotifications.length;
-      const unreadCount = resData?.unreadCount ?? dbNotifications.filter((n: any) => !n.read).length;
 
-      const notifications: Notification[] = dbNotifications.map(
+      const dbNotifications = response?.notifications ?? response?.data ?? [];
+      const list = Array.isArray(dbNotifications) ? dbNotifications : [];
+      const total = response?.pagination?.total ?? response?.total ?? list.length;
+      const unreadCount = response?.unreadCount ?? list.filter((n: { read?: boolean }) => !n.read).length;
+
+      const notifications: Notification[] = list.map(
         (n: {
           id: string;
           userId: string;
           type: string;
           title: string;
           message: string;
-          data: unknown;
+          data?: Record<string, unknown>;
           read: boolean;
-          readAt: Date | null;
-          createdAt: Date;
+          readAt?: Date | string | null;
+          createdAt: Date | string;
           actionUrl?: string | null;
           actionLabel?: string | null;
         }) => ({
@@ -239,12 +233,12 @@ export class NotificationService {
           type: n.type as Notification['type'],
           title: n.title,
           message: n.message,
-          data: n.data as Record<string, any> | undefined,
+          data: n.data,
           read: n.read,
-          readAt: n.readAt || undefined,
-          createdAt: n.createdAt,
-          actionUrl: n.actionUrl || undefined,
-          actionLabel: n.actionLabel || undefined,
+          readAt: n.readAt ?? undefined,
+          createdAt: typeof n.createdAt === 'string' ? new Date(n.createdAt) : n.createdAt,
+          actionUrl: n.actionUrl ?? undefined,
+          actionLabel: n.actionLabel ?? undefined,
         })
       );
 
@@ -260,7 +254,7 @@ export class NotificationService {
       }
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing notifications', { error, userId });
       throw error;
     }
@@ -278,8 +272,21 @@ export class NotificationService {
 
       await endpoints.notifications.markAsRead(notificationId);
 
-      const res = await api.get<any>(`/api/v1/notifications/${notificationId}`).catch(() => null);
-      const raw = res?.data ?? res;
+      interface NotificationApiRow {
+        id: string;
+        userId: string;
+        type: string;
+        title: string;
+        message: string;
+        data?: Record<string, unknown>;
+        read?: boolean;
+        readAt?: string | Date | null;
+        createdAt: string | Date;
+        actionUrl?: string | null;
+        actionLabel?: string | null;
+      }
+      const res = await api.get<NotificationApiRow>(`/api/v1/notifications/${notificationId}`).catch(() => null);
+      const raw = res ?? null;
       if (raw) {
         const notification: Notification = {
           id: raw.id,
@@ -287,7 +294,7 @@ export class NotificationService {
           type: raw.type as Notification['type'],
           title: raw.title,
           message: raw.message,
-          ...(raw.data != null ? { data: raw.data as Record<string, any> } : {}),
+          ...(raw.data != null ? { data: raw.data } : {}),
           read: raw.read ?? true,
           ...(raw.readAt != null ? { readAt: typeof raw.readAt === 'string' ? new Date(raw.readAt) : raw.readAt } : {}),
           createdAt: typeof raw.createdAt === 'string' ? new Date(raw.createdAt) : raw.createdAt,
@@ -310,7 +317,7 @@ export class NotificationService {
       };
       logger.info('Notification marked as read', { notificationId, userId });
       return notification;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error marking notification as read', {
         error,
         notificationId,
@@ -329,7 +336,7 @@ export class NotificationService {
       await api.post('/api/v1/notifications/read-all', {});
 
       logger.info('All notifications marked as read', { userId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error marking all notifications as read', {
         error,
         userId,
@@ -351,7 +358,7 @@ export class NotificationService {
       await api.delete(`/api/v1/notifications/${notificationId}`);
 
       logger.info('Notification deleted', { notificationId, userId: _userId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error deleting notification', { error, notificationId });
       throw error;
     }
@@ -422,7 +429,7 @@ export class NotificationService {
         email: userEmail,
         type: request.type,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error sending email notification', { error, request });
       // Don't throw - email failures shouldn't break the notification creation
     }
@@ -450,7 +457,7 @@ export class NotificationService {
             ${actionButton}
             <p style="margin-top: 30px; font-size: 12px; color: #666;">
               Vous recevez cet email car vous avez activé les notifications par email pour ce type d'événement.
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/settings/notifications" style="color: #0070f3;">Gérer mes préférences</a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/notifications" style="color: #0070f3;">Gérer mes préférences</a>
             </p>
           </div>
         </body>
@@ -497,7 +504,7 @@ export class NotificationService {
         userId: request.userId,
         type: request.type,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error sending push notification', { error, request });
     }
   }
@@ -507,7 +514,7 @@ export class NotificationService {
    */
   private async sendPushToSubscription(
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
-    payload: { title: string; body: string; data?: any; icon?: string; badge?: string; url?: string }
+    payload: { title: string; body: string; data?: Record<string, unknown>; icon?: string; badge?: string; url?: string }
   ): Promise<void> {
     try {
       await api.post('/api/v1/notifications/push/send', {
@@ -527,7 +534,7 @@ export class NotificationService {
         endpoint: subscription.endpoint.substring(0, 50) + '...',
         title: payload.title,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Failed to send push notification', {
         error,
         endpoint: subscription.endpoint.substring(0, 50) + '...',
@@ -683,8 +690,8 @@ export class NotificationService {
           inApp: { ...this.defaultPreferences.inApp, ...(userPrefs.inApp || {}) },
         };
       }
-      const me = await endpoints.auth.me().catch(() => null);
-      const prefs = (me as any)?.notificationPreferences;
+      const me = await endpoints.auth.me().catch(() => null) as { notificationPreferences?: NotificationPreferences } | null;
+      const prefs = me?.notificationPreferences;
       if (prefs) {
         return {
           email: { ...this.defaultPreferences.email, ...(prefs.email || {}) },
@@ -693,7 +700,7 @@ export class NotificationService {
         };
       }
       return this.defaultPreferences;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching notification preferences', { error, userId });
       return this.defaultPreferences;
     }
@@ -720,7 +727,7 @@ export class NotificationService {
 
       logger.info('Notification preferences updated', { userId });
       return updated;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating notification preferences', {
         error,
         userId,

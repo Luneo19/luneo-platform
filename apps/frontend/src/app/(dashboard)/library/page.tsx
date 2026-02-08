@@ -391,7 +391,7 @@ function LibraryPageContent() {
         </div>
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
+          onChange={(e) => setSortBy(e.target.value as 'recent' | 'popular' | 'name')}
           className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
         >
           <option value="recent">Plus récents</option>

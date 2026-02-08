@@ -27,6 +27,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from '@/common/guards/roles.guard';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { UserRole } from '@prisma/client';
@@ -124,9 +125,9 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Mot de passe changé avec succès' })
   async changePassword(
     @Request() req: ExpressRequest & { user: CurrentUser },
-    @Body() body: { current_password: string; new_password: string }
+    @Body() dto: ChangePasswordDto,
   ) {
-    return this.usersService.changePassword(req.user.id, body.current_password, body.new_password);
+    return this.usersService.changePassword(req.user.id, dto.current_password, dto.new_password);
   }
 
   @Get('me/sessions')

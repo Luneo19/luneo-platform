@@ -92,8 +92,10 @@ export const analyticsRouter = router({
             : Promise.resolve([]),
         ]);
 
-        const currentOrders = Array.isArray(ordersCurrent) ? ordersCurrent : (ordersCurrent as any)?.orders ?? (ordersCurrent as any)?.data ?? [];
-        const previousOrders = Array.isArray(ordersPrevious) ? ordersPrevious : (ordersPrevious as any)?.orders ?? (ordersPrevious as any)?.data ?? [];
+        const currRaw = ordersCurrent as unknown[] | { orders?: unknown[]; data?: unknown[] };
+        const currentOrders = Array.isArray(ordersCurrent) ? ordersCurrent : (currRaw && typeof currRaw === 'object' ? (currRaw.orders ?? currRaw.data ?? []) : []);
+        const prevRaw = ordersPrevious as unknown[] | { orders?: unknown[]; data?: unknown[] };
+        const previousOrders = Array.isArray(ordersPrevious) ? ordersPrevious : (prevRaw && typeof prevRaw === 'object' ? (prevRaw.orders ?? prevRaw.data ?? []) : []);
 
         // Calculate metrics
         const revenue =

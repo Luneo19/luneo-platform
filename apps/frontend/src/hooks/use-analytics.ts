@@ -39,7 +39,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function fetchAnalyticsMetrics(period: TimeRange): Promise<AnalyticsMetrics> {
   try {
-    const res = await fetch(`${API_BASE}/api/analytics/metrics?period=${period}`, {
+    const res = await fetch(`${API_BASE}/api/v1/analytics-clean/metrics?period=${period}`, {
       credentials: 'include',
     });
     if (!res.ok) throw new Error('Failed to fetch metrics');
@@ -63,7 +63,7 @@ async function fetchAnalyticsMetrics(period: TimeRange): Promise<AnalyticsMetric
 
 async function fetchAnalyticsTimeSeries(period: TimeRange): Promise<TimeSeriesData[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/analytics/timeseries?period=${period}`, {
+    const res = await fetch(`${API_BASE}/api/v1/analytics-clean/time-series?period=${period}`, {
       credentials: 'include',
     });
     if (!res.ok) throw new Error('Failed to fetch time series');
@@ -75,7 +75,7 @@ async function fetchAnalyticsTimeSeries(period: TimeRange): Promise<TimeSeriesDa
 
 async function fetchTopEvents(period: TimeRange): Promise<TopEvent[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/analytics/top-events?period=${period}`, {
+    const res = await fetch(`${API_BASE}/api/v1/analytics-clean/top-events?period=${period}`, {
       credentials: 'include',
     });
     if (!res.ok) throw new Error('Failed to fetch top events');

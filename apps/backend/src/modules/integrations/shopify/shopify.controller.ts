@@ -343,7 +343,13 @@ export class ShopifyController {
       throw new BadRequestException('productId is required');
     }
     await this.shopifyService.syncProductToShopify(brand.id, productId);
-    return { success: true };
+    return {
+      success: true,
+      productId,
+      status: 'synced',
+      message: 'Product synced to Shopify',
+      syncedAt: new Date().toISOString(),
+    };
   }
 
   /**
@@ -365,7 +371,13 @@ export class ShopifyController {
       throw new BadRequestException('externalId is required');
     }
     await this.shopifyService.deleteProductFromShopify(brand.id, externalId);
-    return { success: true };
+    return {
+      success: true,
+      externalId,
+      status: 'deleted',
+      message: 'Product removed from Shopify',
+      deletedAt: new Date().toISOString(),
+    };
   }
 
   /**

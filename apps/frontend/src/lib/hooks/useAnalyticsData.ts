@@ -167,8 +167,10 @@ export function useAnalyticsData(
       // Récupérer devices depuis l'API
       try {
         const devicesData = await api.get(`/api/v1/analytics/dashboard?period=${timeRange}`);
-        const data = (devicesData as any).success === true ? (devicesData as any).data : devicesData;
-          if (data?.devices && Array.isArray(data.devices)) {
+        const devRes = devicesData as Record<string, unknown>;
+        const data = devRes?.success === true ? devRes.data : devicesData;
+          if (data && typeof data === 'object' && 'devices' in data && Array.isArray((data as { devices?: unknown }).devices)) {
+            const dataWithDevices = data as { devices: { name: string; count: number; percentage: number }[] };
             // Map API response to expected format
             const mappedDevices = data.devices.map((d: { name: string; count: number; percentage: number }) => ({
               name: d.name,
@@ -198,9 +200,10 @@ export function useAnalyticsData(
       // Récupérer top pages depuis l'API
       try {
         const pagesData = await api.get(`/api/v1/analytics/pages?period=${timeRange}`);
-        const data = (pagesData as any).success === true ? (pagesData as any).data : pagesData;
-          if (data?.pages && Array.isArray(data.pages)) {
-            setTopPages(data.pages);
+        const pgRes = pagesData as Record<string, unknown>;
+        const data = pgRes?.success === true ? pgRes.data : pagesData;
+          if (data && typeof data === 'object' && 'pages' in data && Array.isArray((data as { pages?: unknown[] }).pages)) {
+            setTopPages((data as { pages: TopPage[] }).pages);
           } else {
             setTopPages([]);
           }
@@ -212,9 +215,10 @@ export function useAnalyticsData(
       // Récupérer top countries depuis l'API
       try {
         const countriesData = await api.get(`/api/v1/analytics/countries?period=${timeRange}`);
-        const data = (countriesData as any).success === true ? (countriesData as any).data : countriesData;
-          if (data?.countries && Array.isArray(data.countries)) {
-            setTopCountries(data.countries);
+        const coRes = countriesData as Record<string, unknown>;
+        const data = coRes?.success === true ? coRes.data : countriesData;
+          if (data && typeof data === 'object' && 'countries' in data && Array.isArray((data as { countries?: unknown[] }).countries)) {
+            setTopCountries((data as { countries: CountryData[] }).countries);
           } else {
             setTopCountries([]);
           }
@@ -226,7 +230,8 @@ export function useAnalyticsData(
       // Récupérer realtime users depuis l'API
       try {
         const realtimeData = await api.get('/api/v1/analytics/realtime');
-        const data = (realtimeData as any).success === true ? (realtimeData as any).data : realtimeData;
+        const rtRes = realtimeData as Record<string, unknown>;
+        const data = rtRes?.success === true ? rtRes.data : realtimeData;
           if (data?.users && Array.isArray(data.users)) {
             setRealtimeUsers(data.users);
           } else {

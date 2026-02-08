@@ -506,15 +506,16 @@ function TryOnDemo({
         };
 
         mediaRecorder.start();
-        (videoRef.current as any).mediaRecorder = mediaRecorder;
+        (videoRef.current as HTMLVideoElement & { mediaRecorder?: MediaRecorder }).mediaRecorder = mediaRecorder;
         setIsRecording(true);
       }
     } else {
       // Stop recording
-      if (videoRef.current && (videoRef.current as any).mediaRecorder) {
-        const mediaRecorder = (videoRef.current as any).mediaRecorder;
+      const videoEl = videoRef.current as (HTMLVideoElement & { mediaRecorder?: MediaRecorder | null }) | null;
+      if (videoEl?.mediaRecorder) {
+        const mediaRecorder = videoEl.mediaRecorder;
         mediaRecorder.stop();
-        (videoRef.current as any).mediaRecorder = null;
+        videoEl.mediaRecorder = null;
         setIsRecording(false);
       }
     }

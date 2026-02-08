@@ -114,7 +114,7 @@ export function CreateOrderModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl bg-gray-800 border-gray-700 text-white max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl bg-white border-gray-200 text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nouvelle commande</DialogTitle>
           <DialogDescription>
@@ -125,13 +125,13 @@ export function CreateOrderModal({
           {/* Items */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-gray-300">Articles *</Label>
+              <Label className="text-gray-700">Articles *</Label>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleAddItem}
-                className="border-gray-600"
+                className="border-gray-200"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter un article
@@ -141,7 +141,7 @@ export function CreateOrderModal({
               {items.map((item, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-12 gap-2 p-3 bg-gray-900/50 rounded-lg border border-gray-700"
+                  className="grid grid-cols-12 gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
                 >
                   <div className="col-span-5">
                     <Input
@@ -150,7 +150,7 @@ export function CreateOrderModal({
                       onChange={(e) =>
                         handleItemChange(index, 'productName', e.target.value)
                       }
-                      className="bg-gray-900 border-gray-600 text-white"
+                      className="bg-white border-gray-200 text-gray-900"
                       required
                     />
                   </div>
@@ -167,7 +167,7 @@ export function CreateOrderModal({
                         )
                       }
                       min="1"
-                      className="bg-gray-900 border-gray-600 text-white"
+                      className="bg-white border-gray-200 text-gray-900"
                       required
                     />
                   </div>
@@ -184,7 +184,7 @@ export function CreateOrderModal({
                           parseFloat(e.target.value) || 0
                         )
                       }
-                      className="bg-gray-900 border-gray-600 text-white"
+                      className="bg-white border-gray-200 text-gray-900"
                       required
                     />
                   </div>
@@ -192,7 +192,7 @@ export function CreateOrderModal({
                     <Input
                       value={`€${item.totalPrice.toFixed(2)}`}
                       disabled
-                      className="bg-gray-800 border-gray-700 text-gray-400"
+                      className="bg-gray-100 border-gray-200 text-gray-600"
                     />
                   </div>
                   <div className="col-span-1">
@@ -213,7 +213,7 @@ export function CreateOrderModal({
 
           {/* Shipping Address */}
           <div>
-            <Label className="text-gray-300 mb-4 block">Adresse de livraison *</Label>
+            <Label className="text-gray-700 mb-4 block">Adresse de livraison *</Label>
             <div className="space-y-3">
               <Input
                 placeholder="Nom complet"
@@ -221,7 +221,7 @@ export function CreateOrderModal({
                 onChange={(e) =>
                   setShippingAddress({ ...shippingAddress, name: e.target.value })
                 }
-                className="bg-gray-900 border-gray-600 text-white"
+                className="bg-white border-gray-200 text-gray-900"
                 required
               />
               <Input
@@ -233,7 +233,7 @@ export function CreateOrderModal({
                     street: e.target.value,
                   })
                 }
-                className="bg-gray-900 border-gray-600 text-white"
+                className="bg-white border-gray-200 text-gray-900"
                 required
               />
               <div className="grid grid-cols-2 gap-3">
@@ -246,7 +246,7 @@ export function CreateOrderModal({
                       postal_code: e.target.value,
                     })
                   }
-                  className="bg-gray-900 border-gray-600 text-white"
+                  className="bg-white border-gray-200 text-gray-900"
                   required
                 />
                 <Input
@@ -258,7 +258,7 @@ export function CreateOrderModal({
                       city: e.target.value,
                     })
                   }
-                  className="bg-gray-900 border-gray-600 text-white"
+                  className="bg-white border-gray-200 text-gray-900"
                   required
                 />
               </div>
@@ -272,7 +272,7 @@ export function CreateOrderModal({
                       country: e.target.value,
                     })
                   }
-                  className="bg-gray-900 border-gray-600 text-white"
+                  className="bg-white border-gray-200 text-gray-900"
                   required
                 />
                 <Input
@@ -284,7 +284,7 @@ export function CreateOrderModal({
                       phone: e.target.value,
                     })
                   }
-                  className="bg-gray-900 border-gray-600 text-white"
+                  className="bg-white border-gray-200 text-gray-900"
                 />
               </div>
             </div>
@@ -292,13 +292,13 @@ export function CreateOrderModal({
 
           {/* Notes */}
           <div>
-            <Label className="text-gray-300">Notes client (optionnel)</Label>
+            <Label className="text-gray-700">Notes client (optionnel)</Label>
             <Textarea
               value={customerNotes}
               onChange={(e) => setCustomerNotes(e.target.value)}
               placeholder="Notes additionnelles..."
               rows={3}
-              className="bg-gray-900 border-gray-600 text-white mt-1 resize-none"
+              className="bg-white border-gray-200 text-gray-900 mt-1 resize-none"
             />
           </div>
 
@@ -307,7 +307,7 @@ export function CreateOrderModal({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-600"
+              className="border-gray-200"
             >
               Annuler
             </Button>

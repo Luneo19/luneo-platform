@@ -33,10 +33,10 @@ export function StatsCards({ stats }: StatsCardsProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Card className="p-4 bg-slate-900/50 border-slate-700">
+            <Card className="p-4 bg-gray-50 border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">{stat.label}</p>
+                  <p className="text-sm text-gray-600">{stat.label}</p>
                   <p
                     className={cn(
                       'text-xl font-bold',

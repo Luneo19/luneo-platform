@@ -14,7 +14,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Setup2FADto } from './dto/setup-2fa.dto';
 import { Verify2FADto } from './dto/verify-2fa.dto';
 import { Login2FADto } from './dto/login-2fa.dto';
-import { UserRole } from '@prisma/client';
+import { UserRole, Prisma } from '@prisma/client';
 import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
@@ -123,7 +123,7 @@ export class AuthService {
           },
         );
 
-        const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'https://app.luneo.app';
+        const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
         const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
         // Queue email asynchronously - don't await to not block signup response
@@ -353,6 +353,10 @@ export class AuthService {
       if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
         throw error;
       }
+      this.logger.error(
+        `Login with 2FA failed (invalid or expired temp token): ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw new UnauthorizedException('Invalid or expired temporary token');
     }
   }
@@ -576,7 +580,7 @@ export class AuthService {
     if (brandId) {
       await this.prisma.brand.update({
         where: { id: brandId },
-        data: { settings: settings as any },
+        data: { settings: settings as Prisma.InputJsonValue },
       });
     }
 
@@ -646,7 +650,7 @@ export class AuthService {
     );
 
     // Get app URL from config
-    const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://app.luneo.app';
+    const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
 
     // Queue reset email asynchronously - don't await to not block response

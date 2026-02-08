@@ -84,7 +84,7 @@ function AssetHubDemo({
       input.onchange = (e) => {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files[0]) {
-          handleFileUpload({ target } as any);
+          handleFileUpload(e as React.ChangeEvent<HTMLInputElement>);
         }
       };
       input.click();

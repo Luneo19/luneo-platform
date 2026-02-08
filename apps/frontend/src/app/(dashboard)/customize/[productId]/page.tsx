@@ -29,7 +29,7 @@ const ProductCustomizer = dynamic(
 function CustomizePageContent() {
   const params = useParams();
   const productId = params.productId as string;
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

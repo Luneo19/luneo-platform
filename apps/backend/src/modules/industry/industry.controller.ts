@@ -15,7 +15,7 @@ import { UpdateIndustryDto } from './dto/update-industry.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { Roles } from '@/common/guards/roles.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('industries')
 @Controller('industries')

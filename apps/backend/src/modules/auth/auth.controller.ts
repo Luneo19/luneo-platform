@@ -27,12 +27,14 @@ import { Setup2FADto } from './dto/setup-2fa.dto';
 import { Verify2FADto } from './dto/verify-2fa.dto';
 import { Login2FADto } from './dto/login-2fa.dto';
 import { OnboardingDto } from './dto/onboarding.dto';
+import { CheckPermissionDto } from './dto/check-permission.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { AuthCookiesHelper } from './auth-cookies.helper';
 import { AuthGuard } from '@nestjs/passport';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
+import { RATE_LIMITS } from '@/common/constants/app.constants';
 import { RBACService } from '@/modules/security/services/rbac.service';
 import { Permission } from '@/modules/security/interfaces/rbac.interface';
 
@@ -45,9 +47,15 @@ export class AuthController {
     private readonly rbacService: RBACService,
   ) {}
 
+  /** Frontend base URL for OAuth/callback redirects (config or env, fallback localhost). */
+  private getFrontendUrl(): string {
+    return this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+  }
+
   @Post('signup')
   /** @Public: user registration — no auth yet */
   @Public()
+  @Throttle({ default: RATE_LIMITS.AUTH.SIGNUP })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
     summary: 'Inscription d\'un nouvel utilisateur',
@@ -127,20 +135,16 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data (tokens are in httpOnly cookies)
-    // Tokens removed from response for security (httpOnly cookies only)
-    // Using res.json() because passthrough is false
+    // Return user data only; tokens are set in httpOnly cookies (not exposed in body for security)
     return res.status(HttpStatus.CREATED).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     });
   }
 
   @Post('login')
   /** @Public: login — returns tokens/cookies */
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute max
+  @Throttle({ default: RATE_LIMITS.AUTH.LOGIN })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Connexion utilisateur',
@@ -212,15 +216,12 @@ export class AuthController {
         this.configService,
       );
       
-      // Return user data with tokens (using res.json because passthrough is false)
+      // Return user data only; tokens are in httpOnly cookies
       return res.status(HttpStatus.OK).json({
         user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
       });
     }
     
-    // Fallback return (shouldn't happen but needed for TypeScript)
     return res.status(HttpStatus.OK).json({
       user: result.user,
     });
@@ -228,7 +229,7 @@ export class AuthController {
 
   @Post('login/2fa')
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 tentatives par minute
+  @Throttle({ default: RATE_LIMITS.AUTH.REFRESH })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Connexion avec code 2FA' })
   async loginWith2FA(
@@ -246,10 +247,9 @@ export class AuthController {
       this.configService,
     );
     
+    // Tokens are in httpOnly cookies
     return res.status(HttpStatus.OK).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     });
   }
 
@@ -353,11 +353,9 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data with tokens (using res.json because passthrough is false)
+    // Tokens are in httpOnly cookies
     return res.status(HttpStatus.OK).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     });
   }
 
@@ -433,16 +431,9 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async checkPermission(
     @Request() req: { user: { id: string } },
-    @Body() body: { permission: string; resource?: string; resourceId?: string },
+    @Body() dto: CheckPermissionDto,
   ) {
-    const permissionStr = body?.permission;
-    if (!permissionStr || typeof permissionStr !== 'string') {
-      return { allowed: false };
-    }
-    const validPermission = Object.values(Permission).includes(permissionStr as Permission);
-    const allowed = validPermission
-      ? await this.rbacService.userHasPermission(req.user.id, permissionStr as Permission)
-      : false;
+    const allowed = await this.rbacService.userHasPermission(req.user.id, dto.permission as Permission);
     return { allowed };
   }
 
@@ -486,7 +477,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @Public()
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 requests per minute max (prevent email enumeration/spam)
+  @Throttle({ default: RATE_LIMITS.AUTH.FORGOT_PASSWORD })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Demander la réinitialisation du mot de passe' })
   @ApiResponse({
@@ -507,7 +498,7 @@ export class AuthController {
 
   @Post('reset-password')
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute max (prevent brute-force token guessing)
+  @Throttle({ default: RATE_LIMITS.AUTH.RESET_PASSWORD })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Réinitialiser le mot de passe avec un token' })
   @ApiResponse({
@@ -569,8 +560,7 @@ export class AuthController {
     const user = req.user;
     
     if (!user) {
-      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+      return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed`);
     }
 
     // Generate tokens
@@ -588,8 +578,7 @@ export class AuthController {
     );
 
     // Redirect to frontend callback
-    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   @Get('github')
@@ -611,8 +600,7 @@ export class AuthController {
     const user = req.user;
     
     if (!user) {
-      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+      return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed`);
     }
 
     // Generate tokens
@@ -630,8 +618,7 @@ export class AuthController {
     );
 
     // Redirect to frontend callback
-    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   // ========================================
@@ -659,8 +646,7 @@ export class AuthController {
     const user = req.user;
     
     if (!user) {
-      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=saml_failed`);
+      return res.redirect(`${this.getFrontendUrl()}/login?error=saml_failed`);
     }
 
     // Generate tokens
@@ -678,8 +664,7 @@ export class AuthController {
     );
 
     // Redirect to frontend callback
-    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   @Get('oidc')
@@ -702,8 +687,7 @@ export class AuthController {
     const user = req.user;
     
     if (!user) {
-      const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=oidc_failed`);
+      return res.redirect(`${this.getFrontendUrl()}/login?error=oidc_failed`);
     }
 
     // Generate tokens
@@ -721,7 +705,6 @@ export class AuthController {
     );
 
     // Redirect to frontend callback
-    const frontendUrl = this.configService.get('app.frontendUrl') || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?next=/overview`);
+    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 }

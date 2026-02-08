@@ -218,6 +218,7 @@ function SecuritySettingsPageContent() {
                   Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy, etc.)
                 </p>
                 <div className="inline-block p-4 bg-white rounded-lg">
+                  {/* next/image not needed for data URLs */}
                   <img src={qrCodeUrl} alt="QR Code 2FA" className="w-64 h-64" />
                 </div>
                 <p className="text-xs text-slate-500 mt-2">

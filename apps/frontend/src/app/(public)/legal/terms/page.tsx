@@ -1,10 +1,24 @@
-'use client';
-
-import React, { memo } from 'react';
+import React from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+export const metadata: Metadata = {
+  title: 'Conditions d\'utilisation - Luneo',
+  description:
+    'Conditions d\'utilisation de la plateforme Luneo. Licence, propriété intellectuelle et responsabilités.',
+  openGraph: {
+    title: 'Conditions d\'utilisation - Luneo',
+    description: 'Conditions d\'utilisation de la plateforme Luneo.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Conditions d\'utilisation - Luneo',
+    description: 'Conditions d\'utilisation de la plateforme Luneo.',
+  },
+};
 
 function TermsPageContent() {
   return (
@@ -53,12 +67,6 @@ function TermsPageContent() {
   );
 }
 
-const TermsPageMemo = memo(TermsPageContent);
-
 export default function TermsPage() {
-  return (
-    <ErrorBoundary componentName="TermsPage">
-      <TermsPageMemo />
-    </ErrorBoundary>
-  );
+  return <TermsPageContent />;
 }

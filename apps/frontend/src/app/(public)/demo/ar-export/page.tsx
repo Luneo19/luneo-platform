@@ -297,7 +297,7 @@ await launchAR({ glbUrl: '/models/product.glb', usdzUrl: '/models/product.usdz',
                 <pre className="text-gray-300overflow-x-autooverflow-x-auto text-sm">
                   {' '}
                   <code>{`// Frontend call
-const response = await fetch('/api/v1/ar/convert-usdz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ glb_url: '/models/product.glb', product_name: 'Watch Classic', scale: 1.0, ar_model_id: 'model-123' })
+const response = await fetch('/api/v1/ar-studio/convert-usdz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ glb_url: '/models/product.glb', product_name: 'Watch Classic', scale: 1.0, ar_model_id: 'model-123' })
 }); const { usdz_url } = await response.json();
 // → 'https://storage.luneo.app/models/product.usdz' // Backend API (route.ts - 180 lignes)
 export async function POST(request: NextRequest) { // Check cache first const existing = await checkCache(ar_model_id); if (existing?.usdz_url) return existing; // Convert via external API const conversionResponse = await fetch(CONVERSION_API, { method: 'POST', body: JSON.stringify({ glb_url, scale, ... }) }); const { usdz_url } = await conversionResponse.json(); // Save to cache/DB via backend (e.g. Prisma or cache) return { success: true, usdz_url };

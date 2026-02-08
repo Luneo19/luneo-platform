@@ -135,7 +135,7 @@ function IntegrationsDashboardPageContent() {
         {categories.map((cat) => (
           <button
             key={cat.id}
-            onClick={() => setFilter(cat.id as any)}
+            onClick={() => setFilter(cat.id as 'all' | Integration['category'])}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === cat.id
                 ? 'bg-blue-600 text-white'

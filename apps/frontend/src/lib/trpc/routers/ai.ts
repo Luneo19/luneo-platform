@@ -81,8 +81,8 @@ export const aiRouter = router({
                 style: input.style,
                 generatedAt: new Date().toISOString(),
               },
-            } as any);
-            designId = (design as any).id;
+            } as Record<string, unknown>);
+            designId = (design as { id?: string }).id;
           }
         }
 
@@ -99,7 +99,7 @@ export const aiRouter = router({
           style: input.style,
           createdAt: new Date().toISOString(),
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
         logger.error('Error generating AI image', { error, input, userId: user.id });
         throw new TRPCError({
@@ -130,23 +130,37 @@ export const aiRouter = router({
           search: undefined,
         });
 
-        const data = result as { designs?: any[]; data?: any[]; pagination?: { total: number; hasNext?: boolean } };
+        interface DesignListItem {
+          id: string;
+          name?: string;
+          productId?: string;
+          previewUrl?: string;
+          renderUrl?: string;
+          createdAt?: Date | string;
+          metadata?: Record<string, unknown>;
+        }
+        interface DesignsListResponse {
+          designs?: DesignListItem[];
+          data?: DesignListItem[];
+          pagination?: { total: number; hasNext?: boolean };
+        }
+        const data = result as DesignsListResponse;
         const list = data.designs ?? data.data ?? [];
         const designs = Array.isArray(list) ? list : [];
-        const total = (data.pagination as any)?.total ?? designs.length;
+        const total = data.pagination?.total ?? designs.length;
         const skip = (input.page - 1) * input.limit;
 
         const filtered = input.productId
-          ? designs.filter((d: any) => d.productId === input.productId)
+          ? designs.filter((d) => d.productId === input.productId)
           : designs;
 
         return {
-          designs: filtered.map((d: any) => ({
+          designs: filtered.map((d) => ({
             id: d.id,
             name: d.name,
             url: d.previewUrl || d.renderUrl || `https://picsum.photos/seed/${d.id}/800/600`,
-            prompt: (d.metadata as any)?.prompt || '',
-            style: (d.metadata as any)?.style || 'photorealistic',
+            prompt: (d.metadata && typeof d.metadata === 'object' && 'prompt' in d.metadata ? String(d.metadata.prompt) : '') || '',
+            style: (d.metadata && typeof d.metadata === 'object' && 'style' in d.metadata ? String(d.metadata.style) : 'photorealistic') || 'photorealistic',
             createdAt: d.createdAt ? (d.createdAt instanceof Date ? d.createdAt.toISOString() : String(d.createdAt)) : '',
           })),
           pagination: {
@@ -158,7 +172,7 @@ export const aiRouter = router({
             hasPrev: input.page > 1,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error listing AI generated designs', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',

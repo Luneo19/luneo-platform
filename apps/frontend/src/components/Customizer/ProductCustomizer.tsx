@@ -90,7 +90,7 @@ function ProductCustomizerComponent({
       setSelectedNode(node);
 
       if (node && node.getClassName() === 'Text') {
-        const textNode = node as any;
+        const textNode = node as { fontSize: () => number; fontFamily: () => string; fill: () => string; fontStyle: () => string };
         setTextProps({
           fontSize: textNode.fontSize(),
           fontFamily: textNode.fontFamily(),
@@ -215,7 +215,7 @@ function ProductCustomizerComponent({
 
       if (data?.success) {
         setSaveSuccess(true);
-        onSave?.(data.data as any);
+        onSave?.(data.data as Record<string, unknown>);
 
         setTimeout(() => {
           onClose?.();
@@ -223,12 +223,12 @@ function ProductCustomizerComponent({
       } else {
         setSaveError((data as { error?: string })?.error || 'Erreur lors de la sauvegarde');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Save error', {
         error,
         productId,
         mode,
-        message: error.message,
+        message: error instanceof Error ? error.message : String(error),
       });
       setSaveError('Erreur de connexion');
     } finally {

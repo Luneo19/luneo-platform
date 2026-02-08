@@ -10,6 +10,8 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import dynamic from 'next/dynamic';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradeRequiredPage } from '@/components/shared/UpgradeRequiredPage';
 import { Configurator3DHeader } from './components/Configurator3DHeader';
 import { Configurator3DControls } from './components/Configurator3DControls';
 import { DesignTools } from './components/DesignTools';
@@ -23,10 +25,10 @@ const ProductConfigurator3D = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center h-96 bg-gray-900 rounded-lg">
+      <div className="flex items-center justify-center h-96 bg-gray-100 rounded-lg">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <p className="text-gray-400">Chargement du visualiseur 3D...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-500">Chargement du visualiseur 3D...</p>
         </div>
       </div>
     ),
@@ -34,6 +36,24 @@ const ProductConfigurator3D = dynamic(
 );
 
 export function Configurator3DPageClient() {
+  return (
+    <PlanGate
+      minimumPlan="professional"
+      showUpgradePrompt
+      fallback={
+        <UpgradeRequiredPage
+          feature="Configurateur 3D"
+          requiredPlan="professional"
+          description="Le configurateur 3D interactif est disponible a partir du plan Professional."
+        />
+      }
+    >
+      <Configurator3DPageContent />
+    </PlanGate>
+  );
+}
+
+function Configurator3DPageContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [showExportModal, setShowExportModal] = useState(false);

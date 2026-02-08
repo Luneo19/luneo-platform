@@ -34,10 +34,10 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
   return (
     <div className="space-y-6">
       {/* Theme */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Apparence</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Apparence</CardTitle>
+          <CardDescription className="text-gray-600">
             Choisissez votre thème préféré
           </CardDescription>
         </CardHeader>
@@ -52,15 +52,15 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
               return (
                 <button
                   key={theme.value}
-                  onClick={() => setPreferences({ ...preferences, theme: theme.value as any })}
+                  onClick={() => setPreferences({ ...preferences, theme: theme.value as UserPreferences['theme'] })}
                   className={`p-4 border-2 rounded-lg transition-all ${
                     preferences.theme === theme.value
                       ? 'border-cyan-500 bg-cyan-500/10'
-                      : 'border-gray-700 bg-gray-900/50 hover:border-gray-600'
+                      : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                  <p className="text-white text-sm">{theme.label}</p>
+                  <Icon className="w-6 h-6 mx-auto mb-2 text-gray-600" />
+                  <p className="text-gray-900 text-sm">{theme.label}</p>
                 </button>
               );
             })}
@@ -69,10 +69,10 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
       </Card>
 
       {/* Language */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Langue</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Langue</CardTitle>
+          <CardDescription className="text-gray-600">
             Choisissez votre langue préférée
           </CardDescription>
         </CardHeader>
@@ -81,7 +81,7 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
             value={preferences.language}
             onValueChange={(value) => setPreferences({ ...preferences, language: value })}
           >
-            <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -95,10 +95,10 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
       </Card>
 
       {/* Timezone */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Fuseau horaire</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Fuseau horaire</CardTitle>
+          <CardDescription className="text-gray-600">
             Choisissez votre fuseau horaire
           </CardDescription>
         </CardHeader>
@@ -107,7 +107,7 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
             value={preferences.timezone}
             onValueChange={(value) => setPreferences({ ...preferences, timezone: value })}
           >
-            <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -1,6 +1,8 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { UserRole } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import {
   Role,
   Permission,
@@ -145,9 +147,9 @@ export class RBACService {
    */
   async assignRole(userId: string, role: Role): Promise<void> {
     try {
-      await (this.prisma as any).user.update({
+      await this.prisma.user.update({
         where: { id: userId },
-        data: { role: role as any },
+        data: { role: role as unknown as UserRole },
       });
 
       // Invalider le cache
@@ -212,23 +214,23 @@ export class RBACService {
   /**
    * Lister les utilisateurs par rôle
    */
-  async getUsersByRole(role: Role, brandId?: string): Promise<any[]> {
+  async getUsersByRole(role: Role, brandId?: string): Promise<{ id: string; email: string; name: string | null; role: UserRole; brandId: string | null; createdAt: Date }[]> {
     try {
-      const where: any = { role };
+      const where: Prisma.UserWhereInput = { role: role as unknown as UserRole };
       if (brandId) {
         where.brandId = brandId;
       }
 
-      return await (this.prisma as any).user.findMany({
+      return await this.prisma.user.findMany({
         where,
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            brandId: true,
-            createdAt: true,
-          } as any,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          brandId: true,
+          createdAt: true,
+        },
       });
     } catch (error) {
       this.logger.error(
@@ -244,12 +246,12 @@ export class RBACService {
    */
   async getRoleStats(brandId?: string): Promise<Record<Role, number>> {
     try {
-      const where: any = {};
+      const where: Prisma.UserWhereInput = {};
       if (brandId) {
         where.brandId = brandId;
       }
 
-      const users = await (this.prisma as any).user.groupBy({
+      const users = await this.prisma.user.groupBy({
         by: ['role'],
         where,
         _count: true,

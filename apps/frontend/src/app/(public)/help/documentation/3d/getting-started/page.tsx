@@ -4,7 +4,7 @@ import React, { memo, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Copy, CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { logger } from '../../../../../../lib/logger';
+import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function ThreeDGettingStartedPageContent() {

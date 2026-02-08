@@ -118,7 +118,7 @@ const baseEnvSchema = z.object({
   
   // Security
   ENCRYPTION_KEY: z.string().optional(), // 64 hex chars for AES-256-GCM, required in production
-  CORS_ORIGIN: z.string().default('*'),
+  CORS_ORIGIN: z.string().default('http://localhost:3000'),
   RATE_LIMIT_TTL: z.string().transform(Number).default('60'),
   RATE_LIMIT_LIMIT: z.string().transform(Number).default('100'),
   
@@ -440,8 +440,8 @@ export const stripeConfig = registerAs('stripe', () => ({
     },
   },
   // URLs
-  successUrl: process.env.STRIPE_SUCCESS_URL || 'https://app.luneo.app/dashboard/billing/success',
-  cancelUrl: process.env.STRIPE_CANCEL_URL || 'https://app.luneo.app/dashboard/billing/cancel',
+  successUrl: process.env.STRIPE_SUCCESS_URL || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/billing/success`,
+  cancelUrl: process.env.STRIPE_CANCEL_URL || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/billing/cancel`,
   // Trial period (configurable)
   trialPeriodDays: parseInt(process.env.STRIPE_TRIAL_PERIOD_DAYS || '14', 10),
 }));
@@ -508,7 +508,7 @@ export const appConfig = registerAs('app', () => {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || process.env.$PORT || '3000', 10),
     apiPrefix: apiPrefix,
-    frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.luneo.app',
+    frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     corsOrigin: process.env.CORS_ORIGIN || '*',
     rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
     rateLimitLimit: parseInt(process.env.RATE_LIMIT_LIMIT || '100', 10),

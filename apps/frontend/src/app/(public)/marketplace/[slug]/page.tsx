@@ -5,7 +5,7 @@
  * MK-005: Preview de templates avec système de reviews
  */
 
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Star,
@@ -16,15 +16,10 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Play,
   Eye,
   Tag,
-  Calendar,
   FileText,
-  Layers,
-  Palette,
   User,
-  MessageSquare,
   ThumbsUp,
   Flag,
   Crown,
@@ -36,15 +31,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import type { Template, Review } from '@/lib/marketplace/types';
-import OptimizedImage from '../../../../components/optimized/OptimizedImage';
+import OptimizedImage from '@/components/optimized/OptimizedImage';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
-// Mock template data
-const MOCK_TEMPLATE: Template = {
+// Fallback template when API fails
+const FALLBACK_TEMPLATE: Template = {
   id: '1',
   name: 'T-Shirt Streetwear Pack',
   description: `Une collection complète de 12 designs streetwear pour t-shirts, parfaite pour les marques de mode urbaine.
@@ -94,7 +89,7 @@ Compatible avec Luneo, Photoshop et Illustrator.`,
   status: 'published',
 };
 
-const MOCK_REVIEWS: Review[] = [
+const FALLBACK_REVIEWS: Review[] = [
   {
     id: 'r1',
     templateId: '1',
@@ -133,14 +128,87 @@ const MOCK_REVIEWS: Review[] = [
   },
 ];
 
+function normalizeApiTemplate(raw: Record<string, unknown>): Template {
+  const creatorId = String(raw.creatorId ?? raw.creator_id ?? '');
+  const previewImages = Array.isArray(raw.previewImages)
+    ? (raw.previewImages as string[])
+    : Array.isArray(raw.preview_images)
+      ? (raw.preview_images as string[])
+      : [];
+  const thumb = raw.thumbnailUrl ?? raw.thumbnail_url;
+  const previewImage = typeof thumb === 'string' ? thumb : previewImages[0] || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800';
+  const toTs = (v: unknown) => (v instanceof Date ? v.getTime() : typeof v === 'string' ? new Date(v).getTime() : Date.now());
+  const creator = (raw.creator as Record<string, unknown>) || {};
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    description: String(raw.description ?? ''),
+    slug: String(raw.slug ?? ''),
+    previewImage,
+    previewImages: previewImages.length ? previewImages : [previewImage],
+    category: (raw.category as Template['category']) || 'other',
+    tags: Array.isArray(raw.tags) ? (raw.tags as string[]) : [],
+    price: raw.isFree || raw.is_free ? 0 : Math.round(Number(raw.priceCents ?? raw.price_cents ?? 0) / 100),
+    currency: 'EUR',
+    isPremium: Boolean(raw.priceCents ?? raw.price_cents),
+    isFeatured: Boolean(raw.featured ?? raw.isFeatured ?? raw.is_featured),
+    creatorId,
+    creator: {
+      id: String(creator.id ?? creatorId),
+      name: String(creator.name ?? creator.displayName ?? 'Créateur'),
+      username: String(creator.username ?? creatorId.slice(0, 8)),
+      avatar: creator.avatar != null ? String(creator.avatar) : undefined,
+      verified: Boolean(creator.verified),
+    },
+    downloads: Number(raw.downloads ?? 0),
+    views: Number(raw.views ?? raw.downloads ?? 0) * 2,
+    likes: Number(raw.likes ?? 0),
+    rating: Number(raw.averageRating ?? raw.average_rating ?? raw.rating ?? 0),
+    reviewCount: Number(raw.reviews ?? raw.reviewCount ?? 0),
+    format: 'json',
+    dimensions: { width: 4000, height: 4000 },
+    fileSize: Number(raw.fileSize ?? 0) || 1000000,
+    compatibility: ['luneo', 'photoshop', 'illustrator'],
+    createdAt: toTs(raw.createdAt ?? raw.created_at),
+    updatedAt: toTs(raw.updatedAt ?? raw.updated_at),
+    publishedAt: raw.publishedAt != null || raw.published_at != null ? toTs(raw.publishedAt ?? raw.published_at) : undefined,
+    status: (raw.status as Template['status']) || 'published',
+  };
+}
+
+function normalizeApiReview(raw: Record<string, unknown>): Review {
+  const user = (raw.user as Record<string, unknown>) || {};
+  const createdAt = raw.createdAt ?? raw.created_at;
+  const toTs = (v: unknown) => (v instanceof Date ? v.getTime() : typeof v === 'string' ? new Date(v).getTime() : Date.now());
+  return {
+    id: String(raw.id ?? ''),
+    templateId: String(raw.templateId ?? raw.template_id ?? ''),
+    userId: String(raw.userId ?? raw.user_id ?? ''),
+    user: {
+      name: String(user.name ?? 'Utilisateur'),
+      avatar: user.avatar != null ? String(user.avatar) : undefined,
+    },
+    rating: Number(raw.rating ?? 0),
+    title: String(raw.title ?? ''),
+    content: String(raw.content ?? ''),
+    helpful: Number(raw.helpful ?? 0),
+    createdAt: toTs(createdAt),
+    verified: Boolean(raw.verified),
+  };
+}
+
 function MarketplaceTemplatePageContent({ params }: { params: { slug: string } | Promise<{ slug: string }> }) {
   const [resolvedParams, setResolvedParams] = React.useState<{ slug: string } | null>(null);
-  const template = MOCK_TEMPLATE;
-  const reviews = MOCK_REVIEWS;
+  const [template, setTemplate] = useState<Template | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+
+  const slug = resolvedParams?.slug ?? '';
 
   React.useEffect(() => {
     if (params instanceof Promise) {
@@ -152,7 +220,53 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
     }
   }, [params]);
 
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await endpoints.marketplace.template(slug);
+        const raw = res as Record<string, unknown>;
+        if (!cancelled) setTemplate(normalizeApiTemplate(raw));
+      } catch (error) {
+        logger.error('Failed to fetch marketplace template', { error, slug });
+        if (!cancelled) setTemplate(FALLBACK_TEMPLATE);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  useEffect(() => {
+    if (!template?.id) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    (async () => {
+      try {
+        const res = await endpoints.marketplace.reviews(template.id);
+        const data = res as { reviews?: unknown[]; items?: unknown[] };
+        const list = data?.reviews ?? data?.items ?? [];
+        const normalized = (Array.isArray(list) ? list : []).map((r) => normalizeApiReview(r as Record<string, unknown>));
+        if (!cancelled) setReviews(normalized);
+      } catch {
+        if (!cancelled) setReviews(FALLBACK_REVIEWS);
+      } finally {
+        if (!cancelled) setReviewsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [template?.id]);
+
   // Rating distribution - memoized
+  const displayTemplate = template ?? FALLBACK_TEMPLATE;
+  const displayReviews = reviews.length ? reviews : FALLBACK_REVIEWS;
+
   const ratingDistribution = useMemo(() => [
     { stars: 5, count: 62, percentage: 70 },
     { stars: 4, count: 18, percentage: 20 },
@@ -175,16 +289,16 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
   }, []);
 
   const handlePreviousImage = useCallback(() => {
-    setCurrentImageIndex((prev) => 
-      prev === 0 ? template.previewImages.length - 1 : prev - 1
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? displayTemplate.previewImages.length - 1 : prev - 1
     );
-  }, [template.previewImages.length]);
+  }, [displayTemplate.previewImages.length]);
 
   const handleNextImage = useCallback(() => {
-    setCurrentImageIndex((prev) => 
-      prev === template.previewImages.length - 1 ? 0 : prev + 1
+    setCurrentImageIndex((prev) =>
+      prev === displayTemplate.previewImages.length - 1 ? 0 : prev + 1
     );
-  }, [template.previewImages.length]);
+  }, [displayTemplate.previewImages.length]);
 
   const handleImageSelect = useCallback((index: number) => {
     setCurrentImageIndex(index);
@@ -193,6 +307,14 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
   const handleToggleLike = useCallback(() => {
     setIsLiked((prev) => !prev);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+        <div className="text-slate-400">Chargement du template...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -203,7 +325,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
             Marketplace
           </Link>
           <ChevronRight className="w-4 h-4" />
-          <span className="text-white">{template.name}</span>
+          <span className="text-white">{displayTemplate.name}</span>
         </nav>
       </div>
 
@@ -219,13 +341,13 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   as="img"
-                  src={template.previewImages[currentImageIndex] || template.previewImage}
-                  alt={template.name}
+                  src={displayTemplate.previewImages[currentImageIndex] || displayTemplate.previewImage}
+                  alt={displayTemplate.name}
                   className="w-full h-full object-cover"
                 />
                 
                 {/* Navigation Arrows */}
-                {template.previewImages.length > 1 && (
+                {displayTemplate.previewImages.length > 1 && (
                   <>
                     <Button
                       variant="ghost"
@@ -248,7 +370,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
 
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex gap-2">
-                  {template.isFeatured && (
+                  {displayTemplate.isFeatured && (
                     <Badge className="bg-amber-500">
                       <Crown className="w-3 h-3 mr-1" />
                       Vedette
@@ -258,9 +380,9 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
               </div>
 
               {/* Thumbnails */}
-              {template.previewImages.length > 1 && (
+              {displayTemplate.previewImages.length > 1 && (
                 <div className="p-4 flex gap-2 overflow-x-auto">
-                  {template.previewImages.map((img, index) => (
+                  {displayTemplate.previewImages.map((img, index) => (
                     <button
                       key={index}
                       onClick={() => handleImageSelect(index)}
@@ -269,7 +391,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                         ${currentImageIndex === index ? 'border-blue-500' : 'border-transparent hover:border-slate-600'}
                       `}
                     >
-                      <OptimizedImage src={template.previewImages[index] || template.previewImage} alt={template.name} className="w-full h-full object-cover" />
+                      <OptimizedImage src={displayTemplate.previewImages[index] || displayTemplate.previewImage} alt={displayTemplate.name} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -281,7 +403,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
               <TabsList className="bg-slate-900 border border-slate-800">
                 <TabsTrigger value="overview">Description</TabsTrigger>
                 <TabsTrigger value="reviews">
-                  Avis ({template.reviewCount})
+                  Avis ({displayTemplate.reviewCount})
                 </TabsTrigger>
                 <TabsTrigger value="specs">Spécifications</TabsTrigger>
               </TabsList>
@@ -291,7 +413,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                   <CardContent className="p-6">
                     <div className="prose prose-invert max-w-none">
                       <p className="text-slate-300 whitespace-pre-line">
-                        {template.description}
+                        {displayTemplate.description}
                       </p>
                     </div>
 
@@ -299,7 +421,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                     <div className="mt-6 pt-6 border-t border-slate-800">
                       <h4 className="text-sm font-medium mb-3">Tags</h4>
                       <div className="flex flex-wrap gap-2">
-                        {template.tags.map((tag) => (
+                        {displayTemplate.tags.map((tag) => (
                           <Badge key={tag} variant="outline" className="border-slate-700">
                             <Tag className="w-3 h-3 mr-1" />
                             {tag}
@@ -318,20 +440,20 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                     <div className="flex flex-col md:flex-row gap-8">
                       {/* Average Rating */}
                       <div className="text-center">
-                        <div className="text-5xl font-bold mb-2">{template.rating}</div>
+                        <div className="text-5xl font-bold mb-2">{displayTemplate.rating}</div>
                         <div className="flex items-center justify-center gap-1 mb-2">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
                               className={`w-5 h-5 ${
-                                star <= Math.round(template.rating)
+                                star <= Math.round(displayTemplate.rating)
                                   ? 'text-amber-400 fill-amber-400'
                                   : 'text-slate-600'
                               }`}
                             />
                           ))}
                         </div>
-                        <p className="text-sm text-slate-400">{template.reviewCount} avis</p>
+                        <p className="text-sm text-slate-400">{displayTemplate.reviewCount} avis</p>
                       </div>
 
                       {/* Distribution */}
@@ -350,7 +472,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
 
                 {/* Reviews List */}
                 <div className="space-y-4">
-                  {reviews.map((review) => (
+                  {displayReviews.map((review) => (
                     <Card key={review.id} className="bg-slate-900 border-slate-800">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-4">
@@ -413,27 +535,27 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                     <div className="grid grid-cols-2 gap-6">
                       <div>
                         <h4 className="text-sm text-slate-400 mb-1">Format</h4>
-                        <p className="font-medium">{template.format.toUpperCase()}</p>
+                        <p className="font-medium">{displayTemplate.format.toUpperCase()}</p>
                       </div>
                       <div>
                         <h4 className="text-sm text-slate-400 mb-1">Dimensions</h4>
-                        <p className="font-medium">{template.dimensions.width} x {template.dimensions.height}px</p>
+                        <p className="font-medium">{displayTemplate.dimensions.width} x {displayTemplate.dimensions.height}px</p>
                       </div>
                       <div>
                         <h4 className="text-sm text-slate-400 mb-1">Taille du fichier</h4>
-                        <p className="font-medium">{formatFileSize(template.fileSize)}</p>
+                        <p className="font-medium">{formatFileSize(displayTemplate.fileSize)}</p>
                       </div>
                       <div>
                         <h4 className="text-sm text-slate-400 mb-1">Compatibilité</h4>
-                        <p className="font-medium capitalize">{template.compatibility.join(', ')}</p>
+                        <p className="font-medium capitalize">{displayTemplate.compatibility.join(', ')}</p>
                       </div>
                       <div>
                         <h4 className="text-sm text-slate-400 mb-1">Publié le</h4>
-                        <p className="font-medium">{formatDate(template.publishedAt || template.createdAt)}</p>
+                        <p className="font-medium">{formatDate(displayTemplate.publishedAt || displayTemplate.createdAt)}</p>
                       </div>
                       <div>
                         <h4 className="text-sm text-slate-400 mb-1">Dernière mise à jour</h4>
-                        <p className="font-medium">{formatDate(template.updatedAt)}</p>
+                        <p className="font-medium">{formatDate(displayTemplate.updatedAt)}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -448,9 +570,9 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
             <Card className="bg-slate-900 border-slate-800 sticky top-4">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  {template.price > 0 ? (
+                  {displayTemplate.price > 0 ? (
                     <div>
-                      <span className="text-4xl font-bold">{template.price}€</span>
+                      <span className="text-4xl font-bold">{displayTemplate.price}€</span>
                       <span className="text-slate-400 ml-2">TTC</span>
                     </div>
                   ) : (
@@ -461,7 +583,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                 <div className="space-y-3 mb-6">
                   <Button className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
                     <ShoppingCart className="w-5 h-5 mr-2" />
-                    {template.price > 0 ? 'Acheter maintenant' : 'Télécharger'}
+                    {displayTemplate.price > 0 ? 'Acheter maintenant' : 'Télécharger'}
                   </Button>
                   <Button variant="outline" className="w-full border-slate-700">
                     <Eye className="w-4 h-4 mr-2" />
@@ -476,7 +598,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                     onClick={handleToggleLike}
                   >
                     <Heart className={`w-4 h-4 mr-1 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                    {template.likes + (isLiked ? 1 : 0)}
+                    {displayTemplate.likes + (isLiked ? 1 : 0)}
                   </Button>
                   <Button variant="ghost" size="sm">
                     <Share2 className="w-4 h-4 mr-1" />
@@ -510,19 +632,19 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
               <CardContent>
                 <div className="flex items-center gap-4 mb-4">
                   <Avatar className="w-14 h-14">
-                    <AvatarImage src={template.creator.avatar} />
+                    <AvatarImage src={displayTemplate.creator.avatar} />
                     <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-lg">
-                      {template.creator.name.charAt(0)}
+                      {displayTemplate.creator.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">{template.creator.name}</span>
-                      {template.creator.verified && (
+                      <span className="font-semibold">{displayTemplate.creator.name}</span>
+                      {displayTemplate.creator.verified && (
                         <Check className="w-4 h-4 text-blue-400" />
                       )}
                     </div>
-                    <p className="text-sm text-slate-400">@{template.creator.username}</p>
+                    <p className="text-sm text-slate-400">@{displayTemplate.creator.username}</p>
                   </div>
                 </div>
                 <Button variant="outline" className="w-full border-slate-700">
@@ -537,15 +659,15 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
               <CardContent className="p-6">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-2xl font-bold">{template.downloads.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{displayTemplate.downloads.toLocaleString()}</p>
                     <p className="text-sm text-slate-400">Téléchargements</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{template.views.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{displayTemplate.views.toLocaleString()}</p>
                     <p className="text-sm text-slate-400">Vues</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{template.likes}</p>
+                    <p className="text-2xl font-bold">{displayTemplate.likes}</p>
                     <p className="text-sm text-slate-400">Likes</p>
                   </div>
                 </div>

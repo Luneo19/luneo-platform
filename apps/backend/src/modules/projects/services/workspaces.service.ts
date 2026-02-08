@@ -109,7 +109,7 @@ export class WorkspacesService {
         slug: dto.slug || dto.name.toLowerCase().replace(/\s+/g, '-'),
         description: dto.description,
         environment: dto.environment,
-        settings: (dto.settings || dto.config || {}) as any,
+        settings: (dto.settings || dto.config || {}) as Record<string, unknown>,
       },
       select: {
         id: true,
@@ -149,8 +149,8 @@ export class WorkspacesService {
         ...(dto.slug && { slug: dto.slug }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.environment && { environment: dto.environment }),
-        ...(dto.settings && { settings: dto.settings as any }),
-        ...(dto.config && { settings: dto.config as any }), // Backward compat
+        ...(dto.settings && { settings: dto.settings as Record<string, unknown> }),
+        ...(dto.config && { settings: dto.config as Record<string, unknown> }), // Backward compat
       },
       select: {
         id: true,
@@ -176,12 +176,19 @@ export class WorkspacesService {
   async remove(id: string, brandId: string) {
     await this.findOne(id, brandId);
 
-    await this.prisma.workspace.delete({
+    const deleted = await this.prisma.workspace.delete({
       where: { id },
+      select: { id: true, name: true, brandId: true },
     });
 
     this.logger.log(`Workspace deleted: ${id}`);
 
-    return { success: true };
+    return {
+      success: true,
+      id: deleted.id,
+      name: deleted.name,
+      brandId: deleted.brandId,
+      deletedAt: new Date().toISOString(),
+    };
   }
 }

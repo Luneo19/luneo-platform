@@ -46,15 +46,13 @@ export default defineConfig({
       include: [
         'src/**/*.{ts,tsx}',
       ],
-      // Seuils de coverage minimum (progressifs - objectif final: ≥70%)
-      // Actuellement désactivés pour permettre la génération du rapport
-      // À réactiver progressivement quand le coverage augmente
-      // thresholds: {
-      //   lines: 70,
-      //   functions: 70,
-      //   branches: 65,
-      //   statements: 70,
-      // },
+      // Coverage thresholds — increase progressively toward 70%
+      thresholds: {
+        lines: 40,
+        functions: 40,
+        branches: 30,
+        statements: 40,
+      },
     },
   },
   resolve: {

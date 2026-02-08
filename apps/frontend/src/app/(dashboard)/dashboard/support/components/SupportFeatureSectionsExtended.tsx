@@ -32,13 +32,13 @@ const REPEATED_TOOLS = [
 
 function RepeatedSectionCard({ sectionNumber }: { sectionNumber: number }) {
   return (
-    <Card className="bg-slate-900/50 border-slate-700 mt-6">
+    <Card className="bg-gray-50 border-gray-200 mt-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-cyan-400" />
           Fonctionnalités Avancées de Support - Section {sectionNumber}
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-gray-600">
           Fonctionnalités professionnelles pour un support client de niveau entreprise
         </CardDescription>
       </CardHeader>
@@ -47,7 +47,7 @@ function RepeatedSectionCard({ sectionNumber }: { sectionNumber: number }) {
           {REPEATED_TOOLS.map((tool, idx) => {
             const Icon = tool.icon;
             return (
-              <Card key={idx} className="bg-slate-800/50 border-slate-700 hover:border-cyan-500/50 transition-colors">
+              <Card key={idx} className="bg-white border-gray-200 hover:border-cyan-500/50 transition-colors">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-2 bg-cyan-500/10 rounded-lg">
@@ -55,10 +55,10 @@ function RepeatedSectionCard({ sectionNumber }: { sectionNumber: number }) {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <h5 className="font-semibold text-white text-sm">{tool.name}</h5>
+                        <h5 className="font-semibold text-gray-900 text-sm">{tool.name}</h5>
                         <Badge className="bg-green-500 text-xs">{tool.status}</Badge>
                       </div>
-                      <p className="text-xs text-slate-400">{tool.description}</p>
+                      <p className="text-xs text-gray-600">{tool.description}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -74,13 +74,13 @@ function RepeatedSectionCard({ sectionNumber }: { sectionNumber: number }) {
 export function SupportFeatureSectionsExtended() {
   return (
     <>
-      <Card className="bg-gradient-to-br from-slate-900 via-cyan-900/20 to-slate-900 border-cyan-500/50 mt-6">
+      <Card className="bg-gradient-to-br from-white via-cyan-50/20 to-white border-cyan-500/50 mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-cyan-400" />
             Résumé Final - Support Client
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Plateforme complète de support client avec fonctionnalités de niveau entreprise mondiale
           </CardDescription>
         </CardHeader>
@@ -97,14 +97,14 @@ export function SupportFeatureSectionsExtended() {
                 return (
                   <div key={idx} className="text-center">
                     <Icon className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-white mb-1">{item.value}</p>
-                    <p className="text-xs text-slate-400">{item.metric}</p>
+                    <p className="text-2xl font-bold text-gray-900 mb-1">{item.value}</p>
+                    <p className="text-xs text-gray-600">{item.metric}</p>
                   </div>
                 );
               })}
             </div>
-            <Separator className="bg-slate-700" />
-            <div className="flex items-center justify-center gap-2 text-sm text-slate-400">
+            <Separator className="bg-gray-200" />
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
               <Sparkles className="w-4 h-4 text-cyan-400" />
               <span>Plateforme de support client de niveau mondial</span>
               <Sparkles className="w-4 h-4 text-cyan-400" />
@@ -117,13 +117,13 @@ export function SupportFeatureSectionsExtended() {
         <RepeatedSectionCard key={n} sectionNumber={n} />
       ))}
 
-      <Card className="bg-slate-900/50 border-slate-700 mt-6">
+      <Card className="bg-gray-50 border-gray-200 mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5 text-cyan-400" />
             Fonctionnalités de Collaboration
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Collaborez efficacement sur les tickets de support
           </CardDescription>
         </CardHeader>
@@ -136,13 +136,13 @@ export function SupportFeatureSectionsExtended() {
             ].map((feature, idx) => {
               const Icon = feature.icon;
               return (
-                <Card key={idx} className="bg-slate-800/50 border-slate-700">
+                <Card key={idx} className="bg-white border-gray-200">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <Icon className="w-5 h-5 text-cyan-400 mt-1" />
                       <div className="flex-1">
-                        <h5 className="font-semibold text-white text-sm mb-1">{feature.name}</h5>
-                        <p className="text-xs text-slate-400 mb-2">{feature.description}</p>
+                        <h5 className="font-semibold text-gray-900 text-sm mb-1">{feature.name}</h5>
+                        <p className="text-xs text-gray-600 mb-2">{feature.description}</p>
                         {'members' in feature && <p className="text-xs text-cyan-400">{feature.members} membres</p>}
                         {'active' in feature && <p className="text-xs text-green-400">{feature.active} actifs</p>}
                         {'tickets' in feature && <p className="text-xs text-cyan-400">{feature.tickets} tickets</p>}
@@ -158,13 +158,13 @@ export function SupportFeatureSectionsExtended() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/50 border-slate-700 mt-6">
+      <Card className="bg-gray-50 border-gray-200 mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-cyan-400" />
             Base de Connaissances Avancée
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Gérer votre base de connaissances de manière professionnelle
           </CardDescription>
         </CardHeader>
@@ -185,12 +185,12 @@ export function SupportFeatureSectionsExtended() {
               };
               const colors = colorClasses[item.color] || colorClasses.cyan;
               return (
-                <Card key={idx} className={`${colors.bg} border-slate-700`}>
+                <Card key={idx} className={`${colors.bg} border-gray-200`}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3 mb-2">
                       <Icon className={`w-5 h-5 ${colors.text}`} />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-white">{item.category}</p>
+                        <p className="text-sm font-medium text-gray-900">{item.category}</p>
                         <p className={`text-xl font-bold ${colors.text}`}>{item.count}</p>
                       </div>
                     </div>

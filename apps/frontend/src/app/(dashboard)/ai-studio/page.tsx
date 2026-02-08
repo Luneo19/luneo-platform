@@ -101,10 +101,18 @@ const AI_TOOLS = [
 
 function AIStudioPageContent() {
   const { toast } = useToast();
+  interface AIStudioResult {
+    output?: { imageUrl?: string };
+  }
+  interface ExtractedColor {
+    hex: string;
+    name?: string;
+    percentage?: number;
+  }
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
-  const [extractedColors, setExtractedColors] = useState<any[]>([]);
+  const [result, setResult] = useState<AIStudioResult | null>(null);
+  const [extractedColors, setExtractedColors] = useState<ExtractedColor[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -167,7 +175,8 @@ function AIStudioPageContent() {
     setIsProcessing(true);
 
     try {
-      let data: any;
+      type AIApiResponse = { imageUrl?: string; outputUrl?: string; url?: string; design?: { preview_url?: string }; colors?: ExtractedColor[] };
+      let data: AIApiResponse;
 
       if (selectedTool === 'text_to_design') {
         if (!designPrompt.trim()) {
@@ -237,10 +246,11 @@ function AIStudioPageContent() {
         title: 'Succès',
         description: 'Traitement terminé avec succès',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
       toast({
         title: 'Erreur',
-        description: error.message || 'Une erreur est survenue',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -379,7 +389,7 @@ function AIStudioPageContent() {
                   {selectedTool === 'background_removal' && (
                     <div className="space-y-2">
                       <Label>Mode de détection</Label>
-                      <Select value={bgRemovalMode} onValueChange={(v: any) => setBgRemovalMode(v)}>
+                      <Select value={bgRemovalMode} onValueChange={(v: 'auto' | 'person' | 'product' | 'animal') => setBgRemovalMode(v)}>
                         <SelectTrigger className="bg-slate-800 border-slate-700">
                           <SelectValue />
                         </SelectTrigger>
@@ -477,7 +487,7 @@ function AIStudioPageContent() {
                     <div className="flex gap-4">
                       <div className="flex-1">
                         <Label className="mb-2 block">Style</Label>
-                        <Select value={designStyle} onValueChange={(v: any) => setDesignStyle(v)}>
+                        <Select value={designStyle} onValueChange={(v: 'modern' | 'vintage' | 'minimal' | 'bold' | 'playful') => setDesignStyle(v)}>
                           <SelectTrigger className="bg-slate-800 border-slate-700">
                             <SelectValue />
                           </SelectTrigger>

@@ -42,13 +42,13 @@ export function DesignTools({ configuration, onUpdate }: DesignToolsProps) {
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Outils de design</CardTitle>
+        <CardTitle className="text-gray-900">Outils de design</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label className="text-gray-300">Upload d'image</Label>
+          <Label className="text-gray-700">Upload d'image</Label>
           <div className="mt-2">
             <Input
               type="file"
@@ -59,17 +59,17 @@ export function DesignTools({ configuration, onUpdate }: DesignToolsProps) {
             />
             <Label
               htmlFor="image-upload"
-              className="flex items-center justify-center w-full p-4 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-cyan-500 transition-colors"
+              className="flex items-center justify-center w-full p-4 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-cyan-500 transition-colors"
             >
-              <Upload className="w-5 h-5 mr-2 text-gray-400" />
-              <span className="text-gray-400">Cliquez pour uploader</span>
+              <Upload className="w-5 h-5 mr-2 text-gray-600" />
+              <span className="text-gray-600">Cliquez pour uploader</span>
             </Label>
           </div>
         </div>
 
         {configuration.customImages && configuration.customImages.length > 0 && (
           <div>
-            <Label className="text-gray-300">Images uploadées</Label>
+            <Label className="text-gray-700">Images uploadées</Label>
             <div className="grid grid-cols-2 gap-2 mt-2">
               {configuration.customImages.map((img) => (
                 <div key={img.id} className="relative">

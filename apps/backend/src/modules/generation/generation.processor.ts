@@ -57,8 +57,8 @@ export class GenerationProcessor {
       
       const aiResult = await aiProvider.generateImage({
         prompt: data.finalPrompt,
-        size: `${data.outputWidth}x${data.outputHeight}` as any,
-        quality: data.quality as any,
+        size: `${data.outputWidth}x${data.outputHeight}`,
+        quality: data.quality as 'standard' | 'hd' | 'ultra',
       });
 
       await job.updateProgress(50);
@@ -145,7 +145,7 @@ export class GenerationProcessor {
           processingTime,
           tokensUsed: aiResult.costs.tokens,
           cost: aiResult.costs.costCents ? aiResult.costs.costCents / 100 : null,
-          aiResponse: aiResult.metadata as any,
+          aiResponse: aiResult.metadata as Record<string, unknown>,
           completedAt: new Date(),
         },
       });

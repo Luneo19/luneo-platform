@@ -10,6 +10,7 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TryOnProductType } from '@prisma/client';
 
+/** Note: snake_case keys in config example (e.g. face_detection, confidence_threshold) maintained for API backwards compatibility */
 export class CreateTryOnConfigurationDto {
   @ApiProperty({
     description: 'Nom de la configuration',

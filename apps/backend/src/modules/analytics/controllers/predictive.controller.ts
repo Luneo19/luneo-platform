@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
 import { PredictiveService } from '../services/predictive.service';
 import { MLPredictionService } from '../services/ml-prediction.service';
+import { PredictMLDto } from '../dto/predict-ml.dto';
 
 @ApiTags('Analytics - Predictive')
 @ApiBearerAuth()
@@ -87,11 +88,7 @@ export class PredictiveController {
   @ApiOperation({ summary: 'Prédiction ML (churn, LTV, conversion, revenue)' })
   async predictML(
     @CurrentBrand() brand: { id: string } | null,
-    @Body() body: {
-      type: 'churn' | 'ltv' | 'conversion' | 'revenue';
-      userId?: string;
-      features?: Record<string, any>;
-    },
+    @Body() body: PredictMLDto,
   ) {
     if (!brand) {
       throw new NotFoundException('Brand not found');

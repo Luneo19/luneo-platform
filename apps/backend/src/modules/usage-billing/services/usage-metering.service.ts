@@ -32,7 +32,7 @@ export class UsageMeteringService {
     brandId: string,
     metric: UsageMetricType,
     value: number = 1,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<UsageMetric> {
     try {
       // Créer l'enregistrement d'usage
@@ -59,8 +59,8 @@ export class UsageMeteringService {
             metadata: metadata || undefined,
           },
         });
-      } catch (dbError: any) {
-        this.logger.error(`Failed to persist usage metric to DB: ${dbError.message}`);
+      } catch (dbError: unknown) {
+        this.logger.error(`Failed to persist usage metric to DB: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
         // Continue - don't block the operation
       }
 
@@ -69,9 +69,9 @@ export class UsageMeteringService {
         await this.usageQueue.add('record-usage', {
           usageMetric,
         });
-      } catch (queueError: any) {
+      } catch (queueError: unknown) {
         // Queue peut ne pas être disponible - log mais ne pas bloquer
-        this.logger.warn(`Queue unavailable for usage metric: ${queueError.message}`);
+        this.logger.warn(`Queue unavailable for usage metric: ${queueError instanceof Error ? queueError.message : String(queueError)}`);
       }
 
       // Envoyer à Stripe si applicable (async, non-bloquant)
@@ -87,8 +87,8 @@ export class UsageMeteringService {
       );
 
       return usageMetric;
-    } catch (error) {
-      this.logger.error(`Failed to record usage: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      this.logger.error(`Failed to record usage: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
       throw error;
     }
   }
@@ -146,19 +146,19 @@ export class UsageMeteringService {
   /**
    * Récupérer la subscription Stripe d'un brand
    */
-  private async getStripeSubscription(brandId: string): Promise<any> {
+  private async getStripeSubscription(brandId: string): Promise<Stripe.Subscription | null> {
     try {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { stripeSubscriptionId: true } as any,
+        select: { stripeSubscriptionId: true },
       });
 
-      if (!(brand as any)?.stripeSubscriptionId) {
+      if (!brand?.stripeSubscriptionId) {
         return null;
       }
 
       const subscription = await this.stripe.subscriptions.retrieve(
-        (brand as any).stripeSubscriptionId,
+        brand.stripeSubscriptionId,
         {
           expand: ['items.data.price.product'],
         },
@@ -177,7 +177,7 @@ export class UsageMeteringService {
   /**
    * Trouver le subscription item pour une métrique
    */
-  private findSubscriptionItemForMetric(subscription: any, metric: UsageMetricType): any {
+  private findSubscriptionItemForMetric(subscription: Stripe.Subscription, metric: UsageMetricType): Stripe.SubscriptionItem | null {
     if (!subscription?.items?.data) {
       return null;
     }

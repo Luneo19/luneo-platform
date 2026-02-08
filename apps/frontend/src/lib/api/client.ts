@@ -35,22 +35,9 @@ interface GenerateDesignResponse {
 // API Base URL
 // Use NEXT_PUBLIC_API_URL from environment variables
 // IMPORTANT: Do NOT include /api in NEXT_PUBLIC_API_URL - endpoints already include /api/v1
-// For production: NEXT_PUBLIC_API_URL=https://api.luneo.app
-// For development: NEXT_PUBLIC_API_URL=http://localhost:3001
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? 'https://api.luneo.app' // Fallback for production
-    : 'http://localhost:3001'); // Fallback for development
-
-// Fail fast in production if API URL is not configured
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production' && API_BASE_URL.includes('localhost')) {
-  // Use dynamic import to avoid circular dependency with logger at module level
-  import('@/lib/logger').then(({ logger }) => {
-    logger.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set — API calls will fail in production');
-  }).catch(() => {
-    // Logger not available at this point — this is an early initialization warning
-  });
-}
+// For production: set NEXT_PUBLIC_API_URL (e.g. https://api.luneo.app)
+// For development: falls back to http://localhost:3001
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -68,19 +55,8 @@ const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // ✅ Tokens are now in httpOnly cookies
-    // Cookies are automatically sent with each request via withCredentials: true
-    // No need to manually add Authorization header - backend reads from cookies first
-    // Keep Authorization header as fallback for backward compatibility during migration
-    const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('accessToken') // Fallback only during migration
-      : null;
-    
-    // Only add Authorization header as fallback if token available in localStorage
-    // Primary method is httpOnly cookies (sent automatically)
-    if (token && !config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // ✅ Tokens are in httpOnly cookies — sent automatically via withCredentials: true
+    // No Authorization header needed — backend reads tokens from cookies
 
     // Add request timestamp
     config.headers['X-Request-Time'] = new Date().toISOString();
@@ -190,37 +166,75 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * API Client Methods
+ * Retry logic for 5xx errors and network failures
+ * Does NOT retry 4xx (client errors) — only server errors and network failures
+ */
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
+
+async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isAxiosErr = axios.isAxiosError(error);
+      const status = isAxiosErr ? error.response?.status : undefined;
+
+      // Don't retry client errors (4xx)
+      if (status && status >= 400 && status < 500) {
+        throw error;
+      }
+
+      // Exhausted retries
+      if (attempt === retries) {
+        throw error;
+      }
+
+      // Retry on 5xx or network error (no status = network failure)
+      const isRetryable = !status || status >= 500;
+      if (!isRetryable) {
+        throw error;
+      }
+
+      const delay = RETRY_DELAYS[attempt] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Retry logic exhausted');
+}
+
+/**
+ * API Client Methods — all methods use automatic retry for 5xx/network errors
  */
 export const api = {
   // Generic request method
-  request: <T = any>(config: AxiosRequestConfig): Promise<T> => {
-    return apiClient.request(config).then(res => res.data);
+  request: <T = unknown>(config: AxiosRequestConfig): Promise<T> => {
+    return withRetry(() => apiClient.request(config).then(res => res.data));
   },
 
   // GET request
   get: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.get(url, config).then(res => res.data);
+    return withRetry(() => apiClient.get(url, config).then(res => res.data));
   },
 
   // POST request
   post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.post(url, data, config).then(res => res.data);
+    return withRetry(() => apiClient.post(url, data, config).then(res => res.data));
   },
 
   // PUT request
   put: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.put(url, data, config).then(res => res.data);
+    return withRetry(() => apiClient.put(url, data, config).then(res => res.data));
   },
 
   // PATCH request
   patch: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.patch(url, data, config).then(res => res.data);
+    return withRetry(() => apiClient.patch(url, data, config).then(res => res.data));
   },
 
   // DELETE request
   delete: <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-    return apiClient.delete(url, config).then(res => res.data);
+    return withRetry(() => apiClient.delete(url, config).then(res => res.data));
   },
 };
 
@@ -260,22 +274,22 @@ export const endpoints = {
     list: (params?: { page?: number; limit?: number }) => 
       api.get('/api/v1/users', { params }),
     get: (id: string) => api.get(`/api/v1/users/${id}`),
-    update: (id: string, data: any) => api.put(`/api/v1/users/${id}`, data),
+    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/users/${id}`, data),
     delete: (id: string) => api.delete(`/api/v1/users/${id}`),
   },
 
   // Settings
   settings: {
     notifications: (preferences: Record<string, unknown>) =>
-      api.put<void>('/api/v1/settings/notifications', preferences),
+      api.put<{ success: boolean }>('/api/v1/settings/notifications', preferences),
   },
 
-  // Brands
+  // Brands (backend: GET/PUT /brands/settings)
   brands: {
-    current: () => api.get('/api/v1/brands/current'),
-    update: (data: any) => api.put('/api/v1/brands/current', data),
+    current: () => api.get('/api/v1/brands/settings'),
+    update: (data: Record<string, unknown>) => api.put('/api/v1/brands/settings', data),
     settings: () => api.get('/api/v1/brands/settings'),
-    updateSettings: (data: any) => api.put('/api/v1/brands/settings', data),
+    updateSettings: (data: Record<string, unknown>) => api.put('/api/v1/brands/settings', data),
   },
 
   // Products
@@ -283,8 +297,8 @@ export const endpoints = {
     list: (params?: { page?: number; limit?: number }) => 
       api.get('/api/v1/products', { params }),
     get: (id: string) => api.get(`/api/v1/products/${id}`),
-    create: (data: any) => api.post('/api/v1/products', data),
-    update: (id: string, data: any) => api.put(`/api/v1/products/${id}`, data),
+    create: (data: Record<string, unknown>) => api.post('/api/v1/products', data),
+    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/products/${id}`, data),
     delete: (id: string) => api.delete(`/api/v1/products/${id}`),
   },
 
@@ -301,7 +315,8 @@ export const endpoints = {
   ai: {
     generate: (data: { prompt: string; productId: string; options?: Record<string, unknown> }) =>
       api.post<GenerateDesignResponse>('/api/v1/ai/generate', data),
-    status: (jobId: string) => api.get(`/api/v1/generation/${jobId}/status`),
+    /** Generation status: param is the job/generation publicId (backend uses :publicId in route). */
+    status: (publicId: string) => api.get(`/api/v1/generation/${publicId}/status`),
     upscale: (designId: string) => api.post(`/api/v1/ai/upscale`, { designId }),
     removeBackground: (designId: string) => api.post(`/api/v1/ai/background-removal`, { designId }),
     extractColors: (imageUrl: string) => api.post(`/api/v1/ai/extract-colors`, { imageUrl }),
@@ -313,21 +328,22 @@ export const endpoints = {
     list: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
       api.get('/api/v1/orders', { params }),
     get: (id: string) => api.get(`/api/v1/orders/${id}`),
-    create: (data: any) => api.post('/api/v1/orders', data),
-    update: (id: string, data: any) => api.put(`/api/v1/orders/${id}`, data),
+    create: (data: Record<string, unknown>) => api.post('/api/v1/orders', data),
+    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/orders/${id}`, data),
     cancel: (id: string) => api.post(`/api/v1/orders/${id}/cancel`),
     updateStatus: (id: string, status: string) => api.put(`/api/v1/orders/${id}/status`, { status }),
     tracking: (id: string) => api.get(`/api/v1/orders/${id}/tracking`),
     refund: (id: string, reason: string) => api.post(`/api/v1/orders/${id}/refund`, { reason }),
   },
 
-  // Analytics
+  // Analytics (backend: GET /analytics/dashboard, /revenue, /realtime, designs, orders, etc.)
   analytics: {
-    overview: () => api.get('/api/v1/analytics/overview'),
-    designs: (params?: { startDate?: string; endDate?: string }) => 
-      api.get('/api/v1/analytics/designs', { params }),
-    orders: (params?: { startDate?: string; endDate?: string }) => 
-      api.get('/api/v1/analytics/orders', { params }),
+    overview: (params?: { period?: string }) =>
+      api.get('/api/v1/analytics/dashboard', { params }),
+    designs: (params?: { startDate?: string; endDate?: string }) =>
+      api.get<{ data: unknown[]; total: number }>('/api/v1/analytics/designs', { params }),
+    orders: (params?: { startDate?: string; endDate?: string }) =>
+      api.get<{ data: unknown[]; total: number }>('/api/v1/analytics/orders', { params }),
     revenue: (params?: { startDate?: string; endDate?: string }) => 
       api.get('/api/v1/analytics/revenue', { params }),
     export: {
@@ -352,10 +368,10 @@ export const endpoints = {
       api.get('/api/v1/credits/transactions', { params }),
   },
 
-  // Billing
+  // Billing (list plans: GET /pricing/plans; current: GET /plans/current)
   billing: {
     subscription: () => api.get('/api/v1/billing/subscription'),
-    plans: () => api.get('/api/v1/plans'),
+    plans: () => api.get('/api/v1/pricing/plans'),
     subscribe: (planId: string, email?: string) => api.post('/api/v1/billing/create-checkout-session', { planId, email }),
     cancel: () => api.post('/api/v1/billing/cancel-downgrade'),
     cancelSubscription: (immediate?: boolean) =>
@@ -394,9 +410,9 @@ export const endpoints = {
   // Integrations
   integrations: {
     list: () => api.get('/api/v1/integrations'),
-    enable: (type: string, config: any) => api.post(`/api/v1/integrations/${type}/enable`, config),
+    enable: (type: string, config: Record<string, unknown>) => api.post(`/api/v1/integrations/${type}/enable`, config),
     disable: (type: string) => api.delete(`/api/v1/integrations/${type}`),
-    test: (type: string, config: any) => api.post(`/api/v1/integrations/${type}/test`, config),
+    test: (type: string, config: Record<string, unknown>) => api.post(`/api/v1/integrations/${type}/test`, config),
   },
 
   // Team
@@ -406,7 +422,7 @@ export const endpoints = {
     invites: () => api.get('/api/v1/team/invite'),
     cancelInvite: (id: string) => api.delete(`/api/v1/team/invite/${id}`),
     get: (id: string) => api.get(`/api/v1/team/${id}`),
-    update: (id: string, data: any) => api.put(`/api/v1/team/${id}`, data),
+    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/team/${id}`, data),
     remove: (userId: string) => api.delete(`/api/v1/team/${userId}`),
   },
 
@@ -414,7 +430,7 @@ export const endpoints = {
   publicApi: {
     keys: {
       list: () => api.get('/api/v1/api-keys'),
-      create: (data: any) => api.post('/api/v1/api-keys', data),
+      create: (data: Record<string, unknown>) => api.post('/api/v1/api-keys', data),
       delete: (id: string) => api.delete(`/api/v1/api-keys/${id}`),
       regenerate: (id: string) => api.post(`/api/v1/api-keys/${id}/regenerate`),
     },
@@ -474,6 +490,20 @@ export const endpoints = {
     retry: (logId: string) => api.post(`/api/v1/webhooks/${logId}/retry`),
   },
 
+  // Marketplace (templates listing, detail, reviews)
+  marketplace: {
+    templates: (params?: Record<string, unknown>) =>
+      api.get<{ items?: unknown[]; templates?: unknown[] }>('/api/v1/marketplace/templates', { params }),
+    template: (slug: string) => api.get(`/api/v1/marketplace/templates/${encodeURIComponent(slug)}`),
+    reviews: (templateId: string) =>
+      api.get<{ reviews?: unknown[]; items?: unknown[] }>(`/api/v1/marketplace/templates/${templateId}/reviews`),
+  },
+
+  // AI Studio (3D templates, etc.)
+  aiStudio: {
+    templates: () => api.get<{ templates?: unknown[]; data?: unknown[] }>('/api/v1/ai-studio/templates'),
+  },
+
   // Admin
   admin: {
     metrics: () => api.get('/api/v1/admin/metrics'),
@@ -483,7 +513,7 @@ export const endpoints = {
       bulkAction: (data: {
         customerIds: string[];
         action: 'email' | 'export' | 'tag' | 'segment' | 'delete';
-        options?: Record<string, any>;
+        options?: Record<string, unknown>;
       }) => api.post('/api/v1/admin/customers/bulk-action', data),
     },
   },

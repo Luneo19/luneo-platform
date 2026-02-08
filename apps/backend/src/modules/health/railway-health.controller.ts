@@ -6,11 +6,11 @@ import { HealthService, EnrichedHealthResponse } from './health.service';
 /**
  * Railway Health Controller
  *
- * Provides the same enriched health at /health for Railway/load balancers.
+ * Provides enriched health at /health/railway for Railway/load balancers.
  * Uses HealthService for dependency checks (database, redis, stripe, email).
  */
 @ApiTags('Health')
-@Controller('health')
+@Controller('health/railway')
 export class RailwayHealthController {
   constructor(private readonly healthService: HealthService) {}
 

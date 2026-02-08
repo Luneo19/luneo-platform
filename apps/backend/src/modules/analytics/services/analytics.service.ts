@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { CurrencyUtils } from '@/config/currency.config';
@@ -1166,6 +1167,108 @@ export class AnalyticsService {
       this.logger.error(`Failed to get realtime users: ${error instanceof Error ? error.message : 'Unknown'}`);
       return { users: [] };
     }
+  }
+
+  /**
+   * Get design analytics: counts by status and daily counts for the period.
+   */
+  async getDesignsAnalytics(brandId?: string, startDateStr?: string, endDateStr?: string) {
+    const where: Record<string, unknown> = {};
+    if (brandId) where.brandId = brandId;
+    if (startDateStr || endDateStr) {
+      where.createdAt = {} as Record<string, unknown>;
+      if (startDateStr) (where.createdAt as Record<string, unknown>).gte = new Date(startDateStr);
+      if (endDateStr) (where.createdAt as Record<string, unknown>).lte = new Date(endDateStr);
+    }
+    const prismaWhere = where as Prisma.DesignWhereInput;
+
+    const [total, designsByStatus] = await Promise.all([
+      this.prisma.design.count({ where: prismaWhere }),
+      this.prisma.design.groupBy({
+        by: ['status'],
+        where: prismaWhere,
+        _count: { id: true },
+      }),
+    ]);
+
+    const start = (where.createdAt as { gte?: Date } | undefined)?.gte ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = (where.createdAt as { lte?: Date } | undefined)?.lte ?? new Date();
+    const dailyRaw = brandId
+      ? await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          FROM "Design"
+          WHERE brand_id = ${brandId}
+            AND created_at >= ${start}::timestamp
+            AND created_at <= ${end}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `
+      : await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          FROM "Design"
+          WHERE created_at >= ${start}::timestamp
+            AND created_at <= ${end}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `;
+    const daily = dailyRaw.map((d) => ({ date: d.date, count: Number(d.count) }));
+
+    return {
+      data: designsByStatus.map((d) => ({ status: d.status, count: d._count.id })),
+      daily,
+      total,
+    };
+  }
+
+  /**
+   * Get order analytics: counts by status and daily counts for the period.
+   */
+  async getOrdersAnalytics(brandId?: string, startDateStr?: string, endDateStr?: string) {
+    const where: Record<string, unknown> = {};
+    if (brandId) where.brandId = brandId;
+    if (startDateStr || endDateStr) {
+      where.createdAt = {} as Record<string, unknown>;
+      if (startDateStr) (where.createdAt as Record<string, unknown>).gte = new Date(startDateStr);
+      if (endDateStr) (where.createdAt as Record<string, unknown>).lte = new Date(endDateStr);
+    }
+    const prismaWhere = where as Prisma.OrderWhereInput;
+
+    const [total, ordersByStatus] = await Promise.all([
+      this.prisma.order.count({ where: prismaWhere }),
+      this.prisma.order.groupBy({
+        by: ['status'],
+        where: prismaWhere,
+        _count: { id: true },
+      }),
+    ]);
+
+    const start = (where.createdAt as { gte?: Date } | undefined)?.gte ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = (where.createdAt as { lte?: Date } | undefined)?.lte ?? new Date();
+    const dailyRaw = brandId
+      ? await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          FROM "Order"
+          WHERE brand_id = ${brandId}
+            AND created_at >= ${start}::timestamp
+            AND created_at <= ${end}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `
+      : await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          FROM "Order"
+          WHERE created_at >= ${start}::timestamp
+            AND created_at <= ${end}::timestamp
+          GROUP BY DATE(created_at)
+          ORDER BY date ASC
+        `;
+    const daily = dailyRaw.map((d) => ({ date: d.date, count: Number(d.count) }));
+
+    return {
+      data: ordersByStatus.map((o) => ({ status: o.status, count: o._count.id })),
+      daily,
+      total,
+    };
   }
 
   /**

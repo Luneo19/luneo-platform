@@ -105,7 +105,7 @@ function BraceletARViewerContent({ customization, modelUrl, usdzUrl }: BraceletA
           backgroundColor: '#0f172a',
         },
         className: 'rounded-lg',
-      } as any)}
+      } as React.JSX.IntrinsicElements['model-viewer'])}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-900/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-slate-700">
         <p className="text-xs text-slate-300 text-center">
           Appuyez sur le bouton AR pour visualiser en réalité augmentée

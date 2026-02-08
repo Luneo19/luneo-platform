@@ -89,9 +89,9 @@ export function MonitoringDashboardClient({
 
   if (error && !metrics) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white p-6">
+      <div className="min-h-screen bg-white text-gray-900 p-6">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Card className="bg-slate-900 border-red-500/50 max-w-md">
+          <Card className="bg-white border-red-500/50 max-w-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-400">
                 <AlertTriangle className="w-5 h-5" />
@@ -99,7 +99,7 @@ export function MonitoringDashboardClient({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-300 mb-4">{error}</p>
+              <p className="text-gray-700 mb-4">{error}</p>
               <Button onClick={handleRefresh} variant="outline">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Réessayer
@@ -120,7 +120,7 @@ export function MonitoringDashboardClient({
             <Activity className="w-8 h-8 text-green-400" />
             Monitoring
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-gray-600 mt-1">
             Surveillance en temps réel de la plateforme
           </p>
         </div>
@@ -136,7 +136,7 @@ export function MonitoringDashboardClient({
                   : 'bg-red-400 animate-pulse'
               )}
             />
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-gray-600">
               {overallHealth === 'healthy'
                 ? 'Système opérationnel'
                 : overallHealth === 'degraded'
@@ -149,7 +149,7 @@ export function MonitoringDashboardClient({
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="border-slate-700"
+            className="border-gray-200"
           >
             <RefreshCw className={cn('w-4 h-4 mr-2', isRefreshing && 'animate-spin')} />
             Actualiser
@@ -160,11 +160,11 @@ export function MonitoringDashboardClient({
       {/* Overview Cards */}
       {metrics && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-white border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Utilisateurs actifs</p>
+                  <p className="text-sm text-gray-600">Utilisateurs actifs</p>
                   <p className="text-3xl font-bold mt-1">{metrics.activeUsers}</p>
                 </div>
                 <div className="p-3 bg-blue-500/20 rounded-xl">
@@ -174,11 +174,11 @@ export function MonitoringDashboardClient({
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-white border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Requêtes/min</p>
+                  <p className="text-sm text-gray-600">Requêtes/min</p>
                   <p className="text-3xl font-bold mt-1">{metrics.requestsPerMinute}</p>
                 </div>
                 <div className="p-3 bg-green-500/20 rounded-xl">
@@ -188,11 +188,11 @@ export function MonitoringDashboardClient({
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-white border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Taux d'erreur</p>
+                  <p className="text-sm text-gray-600">Taux d'erreur</p>
                   <p className="text-3xl font-bold mt-1">{metrics.errorRate.toFixed(2)}%</p>
                 </div>
                 <div className="p-3 bg-red-500/20 rounded-xl">
@@ -202,11 +202,11 @@ export function MonitoringDashboardClient({
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-white border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Temps de réponse</p>
+                  <p className="text-sm text-gray-600">Temps de réponse</p>
                   <p className="text-3xl font-bold mt-1">{metrics.avgResponseTime}ms</p>
                 </div>
                 <div className="p-3 bg-cyan-500/20 rounded-xl">

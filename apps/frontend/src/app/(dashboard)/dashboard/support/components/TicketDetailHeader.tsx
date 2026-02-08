@@ -76,16 +76,16 @@ export function TicketDetailHeader({
             )}
           </div>
           <DialogTitle className="text-xl">{ticket.subject}</DialogTitle>
-          <DialogDescription className="text-gray-400 mt-2">
+          <DialogDescription className="text-gray-600 mt-2">
             {formatDate(ticket.createdAt)} • {ticket.messages?.length ?? 0} messages
           </DialogDescription>
         </div>
         <div className="flex items-center gap-2">
           <Select value={ticket.status} onValueChange={(v) => onUpdateStatus(ticket.id, v)}>
-            <SelectTrigger className="w-[150px] bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-[150px] bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+            <SelectContent className="bg-white border-gray-200 text-gray-900">
               <SelectItem value="OPEN">Ouvert</SelectItem>
               <SelectItem value="IN_PROGRESS">En cours</SelectItem>
               <SelectItem value="WAITING_CUSTOMER">En attente</SelectItem>
@@ -94,10 +94,10 @@ export function TicketDetailHeader({
             </SelectContent>
           </Select>
           <Select value={ticket.priority} onValueChange={(v) => onUpdatePriority(ticket.id, v)}>
-            <SelectTrigger className="w-[150px] bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-[150px] bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+            <SelectContent className="bg-white border-gray-200 text-gray-900">
               <SelectItem value="LOW">Basse</SelectItem>
               <SelectItem value="MEDIUM">Moyenne</SelectItem>
               <SelectItem value="HIGH">Haute</SelectItem>
@@ -106,29 +106,29 @@ export function TicketDetailHeader({
           </Select>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="border-gray-600">
+              <Button variant="outline" size="icon" className="border-gray-200">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
-              <DropdownMenuItem className="hover:bg-gray-700">
+            <DropdownMenuContent className="bg-white border-gray-200 text-gray-900">
+              <DropdownMenuItem className="hover:bg-gray-100">
                 <Copy className="w-4 h-4 mr-2" />
                 Dupliquer
               </DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-gray-700">
+              <DropdownMenuItem className="hover:bg-gray-100">
                 <Share2 className="w-4 h-4 mr-2" />
                 Partager
               </DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-gray-700">
+              <DropdownMenuItem className="hover:bg-gray-100">
                 <Download className="w-4 h-4 mr-2" />
                 Exporter
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700" />
-              <DropdownMenuItem className="hover:bg-gray-700" onClick={onOpenCSAT}>
+              <DropdownMenuSeparator className="bg-gray-200" />
+              <DropdownMenuItem className="hover:bg-gray-100" onClick={onOpenCSAT}>
                 <Star className="w-4 h-4 mr-2" />
                 Évaluer
               </DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-red-900/20 text-red-400">
+              <DropdownMenuItem className="hover:bg-red-50 text-red-600">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Supprimer
               </DropdownMenuItem>

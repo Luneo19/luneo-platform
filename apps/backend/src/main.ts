@@ -82,35 +82,16 @@ async function bootstrap() {
     }
   }
 
-  // Run database migrations and ensure critical columns (see migration-resolver.ts)
-  try {
-    logger.log('🔄 Running database migrations...');
-    const { runDatabaseMigrations, ensureCriticalColumns } = require('./migration-resolver');
-    runDatabaseMigrations(logger);
-  } catch (error: any) {
-    logger.error(`❌ Database migration failed: ${error.message}`);
-    logger.error(`Migration error stack: ${error.stack}`);
-    if (process.env.NODE_ENV === 'production') {
-      logger.error('⚠️ Continuing despite migration failure (may cause runtime errors)');
-    }
-  }
+  // NOTE: Database migrations are handled by start.sh (or Dockerfile CMD) BEFORE
+  // the application starts. Do NOT run migrations here to avoid double-run conflicts.
+  // See: Dockerfile -> start.sh -> prisma migrate deploy
 
+  // Run database seed only when RUN_SEED=true (e.g. first deploy) or in development
+  // In production, seed should be run explicitly via a separate command, not on every startup
+  const shouldSeed = process.env.RUN_SEED === 'true' || process.env.NODE_ENV !== 'production';
+  if (shouldSeed) {
   try {
-    logger.log('🔧 Verifying critical database columns...');
-    const { PrismaClient } = require('@prisma/client');
-    const tempPrisma = new PrismaClient();
-    const { ensureCriticalColumns } = require('./migration-resolver');
-    await ensureCriticalColumns(tempPrisma, logger);
-    await new Promise(resolve => setTimeout(resolve, 500));
-  } catch (columnError: any) {
-    logger.warn(`⚠️ Column verification (non-critical): ${columnError.message?.substring(0, 300)}`);
-    logger.warn('⚠️ Some columns may be missing - CacheWarmingService may fail');
-  }
-
-  // ALWAYS run database seed (at least admin creation), even if migrations failed
-  // The admin user is critical for the application to function
-  try {
-    logger.log('🌱 Running database seed (admin creation is critical)...');
+    logger.log('Running database seed...');
     const { execSync } = require('child_process');
     const path = require('path');
     const backendDir = path.join(__dirname, '../..');
@@ -126,7 +107,7 @@ async function bootstrap() {
       encoding: 'utf8'
     });
     logger.log(seedOutput);
-    logger.log('✅ Database seed completed successfully');
+    logger.log('Database seed completed successfully');
   } catch (seedError: any) {
     const seedErrorOutput = seedError.stderr?.toString() || seedError.stdout?.toString() || seedError.message || '';
     
@@ -139,12 +120,30 @@ async function bootstrap() {
       const bcrypt = require('bcryptjs');
       const tempPrisma = new PrismaClient();
       
-      const adminPassword = await bcrypt.hash('admin123', 13);
+      const defaultAdminPw = process.env.ADMIN_DEFAULT_PASSWORD;
+      const adminEmail = process.env.ADMIN_EMAIL;
+      if (!defaultAdminPw && process.env.NODE_ENV === 'production') {
+        logger.warn('ADMIN_DEFAULT_PASSWORD not set — skipping admin creation in production');
+        throw new Error('Cannot create admin without ADMIN_DEFAULT_PASSWORD in production');
+      }
+      if (!adminEmail && process.env.NODE_ENV === 'production') {
+        logger.warn('ADMIN_EMAIL not set — skipping admin creation in production');
+        throw new Error('Cannot create admin without ADMIN_EMAIL in production');
+      }
+      const finalAdminEmail = adminEmail || 'admin@localhost.dev';
+      // In production: use ADMIN_DEFAULT_PASSWORD. In dev: use env var or a secure random password
+      let passwordToHash = defaultAdminPw;
+      if (!passwordToHash) {
+        const crypto = require('crypto');
+        passwordToHash = crypto.randomBytes(16).toString('hex');
+        logger.warn(`DEV ONLY: Generated random admin password: ${passwordToHash}`);
+      }
+      const adminPassword = await bcrypt.hash(passwordToHash, 13);
       const adminUser = await tempPrisma.user.upsert({
-        where: { email: 'admin@luneo.com' },
+        where: { email: finalAdminEmail },
         update: {},
         create: {
-          email: 'admin@luneo.com',
+          email: finalAdminEmail,
           password: adminPassword,
           firstName: 'Admin',
           lastName: 'Luneo',
@@ -156,9 +155,12 @@ async function bootstrap() {
       logger.log(`✅ Admin user created directly: ${adminUser.email}`);
       await tempPrisma.$disconnect();
     } catch (directAdminError: any) {
-      logger.error(`❌ Failed to create admin directly: ${directAdminError.message?.substring(0, 300)}`);
-      logger.warn('⚠️ Admin user may already exist or database connection failed');
+      logger.error(`Failed to create admin directly: ${directAdminError.message?.substring(0, 300)}`);
+      logger.warn('Admin user may already exist or database connection failed');
     }
+  }
+  } else {
+    logger.log('Skipping database seed in production (set RUN_SEED=true to force)');
   }
 
   try {
@@ -172,10 +174,8 @@ async function bootstrap() {
     
     // Preserve raw body for Stripe webhook signature verification
     // This must be done BEFORE NestJS/JSON body parsing
+    // Single consolidated Stripe webhook endpoint: /api/v1/billing/webhook
     server.use('/api/v1/billing/webhook', express.raw({ type: 'application/json' }));
-    server.use('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }));
-    server.use('/billing/webhook', express.raw({ type: 'application/json' }));
-    server.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
     
     // Parse JSON and URL-encoded bodies for all other routes
     server.use(express.json());
@@ -185,19 +185,48 @@ async function bootstrap() {
     const cookieParser = require('cookie-parser');
     server.use(cookieParser());
     
+    // CSRF token middleware - generates and sets csrf_token cookie on every request
+    // This must run after cookieParser so we can read existing cookies
+    const { csrfTokenMiddleware } = require('./common/middleware/csrf-token.middleware');
+    server.use(csrfTokenMiddleware);
+    
+    // Correlation ID middleware — attaches X-Request-Id to every request
+    const { randomUUID } = require('crypto');
+    server.use((req: any, res: any, next: any) => {
+      const correlationId = req.headers['x-request-id'] || randomUUID();
+      req.headers['x-request-id'] = correlationId;
+      res.setHeader('X-Request-Id', correlationId);
+      next();
+    });
+    
     logger.log('Creating NestJS application with ExpressAdapter...');
+    
+    // Use Winston for structured logging in production, NestJS default in dev
+    const { winstonLogger } = require('./config/logger.config');
+    const WinstonLogger = {
+      log: (message: string) => winstonLogger.info(message),
+      error: (message: string, trace?: string) => winstonLogger.error(message, { trace }),
+      warn: (message: string) => winstonLogger.warn(message),
+      debug: (message: string) => winstonLogger.debug(message),
+      verbose: (message: string) => winstonLogger.verbose(message),
+    };
+    
     const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
       bodyParser: false, // We'll handle body parsing manually
+      logger: process.env.NODE_ENV === 'production' ? WinstonLogger : undefined,
     });
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
     
     // CORS - Configuration sécurisée avec liste d'origines explicites
     // IMPORTANT: Ne JAMAIS utiliser '*' en production avec credentials
+    const corsOrigins = process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
     const corsOriginEnv = configService.get('app.corsOrigin') || '';
     const nodeEnv = configService.get('app.nodeEnv') || 'development';
     
-    // Définir les origines autorisées explicitement
+    // Fallback: origines en dur si CORS_ORIGINS non défini
     const productionOrigins = [
       'https://app.luneo.app',
       'https://luneo.app',
@@ -212,23 +241,17 @@ async function bootstrap() {
       'http://127.0.0.1:3001',
     ];
     
-    // Combiner les origines selon l'environnement
-    let allowedOrigins: string[] = [];
+    // Utiliser CORS_ORIGINS si défini, sinon fallback selon l'environnement
+    let allowedOrigins: string[] =
+      corsOrigins.length > 0
+        ? corsOrigins
+        : nodeEnv === 'production'
+          ? [...productionOrigins]
+          : [...productionOrigins, ...developmentOrigins];
     
-    if (nodeEnv === 'production') {
-      // En production: origines de production + origines de l'env var (si spécifiées)
-      allowedOrigins = [...productionOrigins];
-      if (corsOriginEnv && corsOriginEnv !== '*') {
-        const envOrigins = corsOriginEnv.split(',').map(o => o.trim()).filter(Boolean);
-        allowedOrigins = [...new Set([...allowedOrigins, ...envOrigins])];
-      }
-    } else {
-      // En développement: toutes les origines + origines de l'env var
-      allowedOrigins = [...productionOrigins, ...developmentOrigins];
-      if (corsOriginEnv && corsOriginEnv !== '*') {
-        const envOrigins = corsOriginEnv.split(',').map(o => o.trim()).filter(Boolean);
-        allowedOrigins = [...new Set([...allowedOrigins, ...envOrigins])];
-      }
+    if (corsOriginEnv && corsOriginEnv !== '*' && allowedOrigins.length > 0) {
+      const envOrigins = corsOriginEnv.split(',').map(o => o.trim()).filter(Boolean);
+      allowedOrigins = [...new Set([...allowedOrigins, ...envOrigins])];
     }
     
     logger.log(`CORS: Environnement ${nodeEnv}, ${allowedOrigins.length} origines autorisées`);
@@ -378,6 +401,10 @@ async function bootstrap() {
   logger.log(`Starting NestJS application on port ${port}...`);
   logger.log(`Environment: PORT=${process.env.PORT}, NODE_ENV=${process.env.NODE_ENV}`);
   
+  // Enable graceful shutdown hooks (SIGTERM/SIGINT) so in-flight requests
+  // complete before the process exits during deployments.
+  app.enableShutdownHooks();
+
   // CRITICAL: Use app.listen() instead of server.listen()
   // app.listen() ensures NestJS properly registers all routes on the Express server
   // The ExpressAdapter connects NestJS to the Express server, but app.listen() is required

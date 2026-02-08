@@ -2,8 +2,9 @@ import { getUserFromRequest } from '@/lib/auth/get-user';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { v2 as cloudinary } from 'cloudinary';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 type DesignMaskRouteContext = {
   params: Promise<{ id: string }>;
@@ -87,7 +88,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
     }
 
     // Parse metadata
-    let metadata: any = {};
+    let metadata: Record<string, unknown> = {};
     if (metadataJson) {
       try {
         metadata = JSON.parse(metadataJson);
@@ -108,7 +109,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
     // Upload to Cloudinary
     let maskUrl: string;
     try {
-      const uploadResult = await new Promise<any>((resolve, reject) => {
+      const uploadResult = await new Promise<{ secure_url: string }>((resolve, reject) => {
         cloudinary.uploader
           .upload_stream(
             {
@@ -126,7 +127,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
       });
 
       maskUrl = uploadResult.secure_url;
-    } catch (uploadError: any) {
+    } catch (uploadError: unknown) {
       logger.error('Cloudinary mask upload error', uploadError, {
         designId,
         userId: user.id,

@@ -39,7 +39,7 @@ export async function exportToGLB(
     return new Promise((resolve, reject) => {
       exporter.parse(
         scene,
-        (result: any) => {
+        (result: unknown) => {
           try {
             if (result instanceof ArrayBuffer) {
               const blob = new Blob([result], { type: 'model/gltf-binary' });
@@ -86,7 +86,7 @@ export async function exportToGLTF(
     return new Promise((resolve, reject) => {
       exporter.parse(
         scene,
-        (result: any) => {
+        (result: unknown) => {
           try {
             if (typeof result === 'string') {
               resolve(result);
@@ -208,7 +208,7 @@ function disposeMaterial(material: THREE.Material): void {
   try {
     // Textures
     Object.keys(material).forEach((key) => {
-      const value = (material as any)[key];
+      const value = (material as Record<string, unknown>)[key];
       if (value && value instanceof THREE.Texture) {
         value.dispose();
       }

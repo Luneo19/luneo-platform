@@ -9,12 +9,15 @@ import * as crypto from 'crypto';
 import {
   WooCommerceProduct,
   WooCommerceOrder,
+  WooCommerceLineItem,
   EcommerceIntegration,
   SyncResult,
   SyncOptions,
 } from '../../interfaces/ecommerce.interface';
 // ENUM-01: Import des enums Prisma pour intégrité des données
 import { SyncLogStatus, SyncLogType, SyncDirection } from '@prisma/client';
+import type { EcommerceIntegration as PrismaEcommerceIntegration } from '@prisma/client';
+
 @Injectable()
 export class WooCommerceConnector {
   private readonly logger = new Logger(WooCommerceConnector.name);
@@ -59,7 +62,7 @@ export class WooCommerceConnector {
       await this.setupWebhooks(integration.id, siteUrl, consumerKey, consumerSecret);
 
       this.logger.log(`WooCommerce integration created for brand ${brandId}`);
-      return integration as any;
+      return integration as unknown as EcommerceIntegration;
     } catch (error) {
       this.logger.error(`Error connecting WooCommerce:`, error);
       throw error;
@@ -132,8 +135,8 @@ export class WooCommerceConnector {
     siteUrl: string,
     consumerKey: string,
     consumerSecret: string,
-    webhookData: any,
-  ): Promise<any> {
+    webhookData: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     const response = await firstValueFrom(
       this.httpService.post(`${siteUrl}/wp-json/wc/v3/webhooks`, webhookData, {
         auth: {
@@ -285,7 +288,7 @@ export class WooCommerceConnector {
   /**
    * Traite un webhook WooCommerce
    */
-  async handleWebhook(topic: string, payload: any, signature: string): Promise<void> {
+  async handleWebhook(topic: string, payload: Record<string, unknown>, signature: string): Promise<void> {
     this.logger.log(`Handling WooCommerce webhook: ${topic}`);
 
     try {
@@ -303,10 +306,11 @@ export class WooCommerceConnector {
       }
 
       // Valider la signature
+      const config = integration.config as Record<string, unknown>;
       const isValid = this.validateWebhookSignature(
         JSON.stringify(payload),
         signature,
-        (integration.config as any).webhookSecret || ''
+        (config.webhookSecret as string) || ''
       );
 
       if (!isValid) {
@@ -371,11 +375,12 @@ export class WooCommerceConnector {
   /**
    * Traite un webhook de suppression de produit
    */
-  private async handleProductDeleteWebhook(integrationId: string, payload: any): Promise<void> {
+  private async handleProductDeleteWebhook(integrationId: string, payload: Record<string, unknown>): Promise<void> {
+    const id = (payload as { id?: number }).id;
     const mapping = await this.prisma.productMapping.findFirst({
       where: {
         integrationId,
-        externalProductId: payload.id.toString(),
+        externalProductId: id != null ? String(id) : '',
       },
     });
 
@@ -418,14 +423,14 @@ export class WooCommerceConnector {
 
     const luneoProduct = await this.prisma.product.create({
       data: {
-        brandId: integration.brandId as any,
+        brandId: integration.brandId,
         name: wooProduct.name,
-        description: wooProduct.description,
-        sku: wooProduct.sku,
+        description: wooProduct.description ?? '',
+        sku: wooProduct.sku ?? '',
         price: parseFloat(wooProduct.price || '0'),
         images: wooProduct.images.map(img => img.src),
         isActive: wooProduct.status === 'publish',
-      } as any,
+      },
     });
 
     await this.prisma.productMapping.create({
@@ -467,10 +472,10 @@ export class WooCommerceConnector {
    * Crée une commande LUNEO à partir de WooCommerce
    */
   private async createLuneoOrder(
-    integration: any,
+    integration: PrismaEcommerceIntegration,
     wooOrder: WooCommerceOrder,
-    lineItem: any,
-    mapping: any,
+    lineItem: WooCommerceLineItem,
+    mapping: { luneoProductId: string },
   ): Promise<void> {
       const existingOrder = await this.prisma.order.findFirst({
         where: {
@@ -483,23 +488,23 @@ export class WooCommerceConnector {
 
     await this.prisma.order.create({
       data: {
-        brandId: integration.brandId as any,
-        productId: mapping.luneoProductId as any,
+        brandId: integration.brandId,
+        productId: mapping.luneoProductId,
         orderNumber: `WC-${wooOrder.id}`,
         customerEmail: wooOrder.billing.email,
         customerName: `${wooOrder.billing.first_name} ${wooOrder.billing.last_name}`,
         subtotalCents: Math.round(parseFloat(lineItem.total) * 100),
-        taxCents: Math.round(parseFloat(wooOrder.total_tax) * 100),
+        taxCents: Math.round(parseFloat(wooOrder.total_tax || '0') * 100),
         totalCents: Math.round(parseFloat(wooOrder.total) * 100),
         currency: wooOrder.currency,
-        status: this.mapWooCommerceOrderStatus(wooOrder.status) as any,
-        shippingAddress: wooOrder.shipping as any,
+        status: this.mapWooCommerceOrderStatus(wooOrder.status) as import('@prisma/client').OrderStatus,
+        shippingAddress: wooOrder.shipping as Record<string, unknown>,
         metadata: {
           woocommerceOrderId: wooOrder.id,
           lineItemId: lineItem.id,
           customMeta: lineItem.meta_data || [],
-        } as any,
-      } as any,
+        },
+      },
     });
 
     this.logger.log(`Created LUNEO order from WooCommerce order ${wooOrder.id}`);
@@ -564,12 +569,17 @@ export class WooCommerceConnector {
         },
       });
 
+      const statusMap: Record<import('@prisma/client').SyncLogStatus, 'success' | 'failed' | 'partial'> = {
+        SUCCESS: 'success',
+        FAILED: 'failed',
+        PARTIAL: 'partial',
+      };
       return {
         integrationId,
         platform: 'woocommerce',
         type: 'product',
         direction: 'import',
-        status: syncLog.status as any,
+        status: statusMap[syncLog.status],
         itemsProcessed,
         itemsFailed,
         duration: Date.now() - startTime,
@@ -591,7 +601,7 @@ export class WooCommerceConnector {
   /**
    * Récupère une intégration
    */
-  private async getIntegration(integrationId: string): Promise<any> {
+  private async getIntegration(integrationId: string): Promise<PrismaEcommerceIntegration> {
     const integration = await this.prisma.ecommerceIntegration.findUnique({
       where: { id: integrationId },
     });

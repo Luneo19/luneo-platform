@@ -68,7 +68,7 @@ export class LoggerService {
 
       if (this.configService.get<boolean>('SENTRY_ENABLED') && error) {
         try {
-          const Sentry = require('@sentry/node');
+          const Sentry = require('@sentry/nestjs');
           Sentry.captureException(error, { extra: errorContext });
         } catch {
           /* Sentry not installed */

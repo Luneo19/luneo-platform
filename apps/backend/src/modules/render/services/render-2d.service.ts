@@ -59,7 +59,7 @@ export class Render2DService {
       const canvas = await this.createCanvas(request.options);
       
       // Appliquer les éléments du design
-      const processedCanvas = await this.applyDesignElements(canvas, designData as any, request.options);
+      const processedCanvas = await this.applyDesignElements(canvas, designData as Record<string, JsonValue>, request.options);
       
       // Finaliser le rendu
       const finalImage = await this.finalizeRender(processedCanvas, request.options);
@@ -522,7 +522,7 @@ export class Render2DService {
     );
 
     return {
-      url: uploadResult as any,
+      url: typeof uploadResult === 'string' ? uploadResult : (uploadResult as { url?: string })?.url ?? '',
       size: imageBuffer.length,
     };
   }
@@ -600,12 +600,12 @@ export class Render2DService {
   /**
    * Obtient les métriques de rendu
    */
-  async getRenderMetrics(): Promise<any> {
+  async getRenderMetrics(): Promise<{ totalRenders: number; successfulRenders: number; failedRenders: number; averageRenderTime?: number }> {
     const cacheKey = 'render_metrics:2d';
     
     const cached = await this.cache.getSimple<string>(cacheKey);
     if (cached) {
-      return JSON.parse(cached) as any;
+      return JSON.parse(cached) as { totalRenders: number; successfulRenders: number; failedRenders: number; averageRenderTime?: number };
     }
 
     try {

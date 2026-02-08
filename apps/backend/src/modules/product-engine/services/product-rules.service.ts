@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import type { Prisma } from '@prisma/client';
 import { 
   ProductRules, 
   ProductZone, 
@@ -9,7 +10,8 @@ import {
   ValidationWarning,
   ZoneValidationContext,
   CompatibilityRule,
-  DesignOptions
+  DesignOptions,
+  GlobalConstraints
 } from '../interfaces/product-rules.interface';
 
 @Injectable()
@@ -48,7 +50,7 @@ export class ProductRulesService {
         return null;
       }
 
-      const rules = product.rulesJson as any;
+      const rules = product.rulesJson as Record<string, unknown>;
       
       // Mettre en cache pour 1 heure
       await this.cache.setSimple(cacheKey, JSON.stringify(rules), 3600);
@@ -70,7 +72,7 @@ export class ProductRulesService {
 
       const updatedProduct = await this.prisma.product.update({
         where: { id: productId },
-        data: { rulesJson: rules as any },
+        data: { rulesJson: rules as unknown as import('@prisma/client').Prisma.InputJsonValue },
         select: { id: true, rulesJson: true },
       });
 
@@ -80,7 +82,7 @@ export class ProductRulesService {
       // Mettre en cache les nouvelles règles
       await this.cache.setSimple(`product_rules:${productId}`, JSON.stringify(rules), 3600);
 
-      return updatedProduct.rulesJson as any;
+      return updatedProduct.rulesJson as Record<string, unknown>;
     } catch (error) {
       this.logger.error(`Error updating product rules for ${productId}:`, error);
       throw error;
@@ -192,7 +194,7 @@ export class ProductRulesService {
    */
   private validateTextZone(
     zone: ProductZone,
-    options: any,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -362,7 +364,7 @@ export class ProductRulesService {
    */
   private validateZoneConstraints(
     zone: ProductZone,
-    options: any,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -443,7 +445,7 @@ export class ProductRulesService {
    * Valide les contraintes globales
    */
   private validateGlobalConstraints(
-    constraints: any,
+    constraints: GlobalConstraints | null | undefined,
     options: DesignOptions
   ): {
     errors: ValidationError[];
@@ -482,7 +484,7 @@ export class ProductRulesService {
   /**
    * Évalue une condition de règle
    */
-  private evaluateRuleCondition(condition: Record<string, any>, options: DesignOptions): boolean {
+  private evaluateRuleCondition(condition: Record<string, unknown>, options: DesignOptions): boolean {
     for (const [key, value] of Object.entries(condition)) {
       if (!this.hasOptionValue(options, key, value)) {
         return false;
@@ -496,11 +498,11 @@ export class ProductRulesService {
    */
   private hasOption(options: DesignOptions, optionPath: string): boolean {
     const keys = optionPath.split('.');
-    let current = options as any;
+    let current: unknown = options;
     
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+        current = (current as Record<string, unknown>)[key];
       } else {
         return false;
       }
@@ -512,13 +514,13 @@ export class ProductRulesService {
   /**
    * Vérifie si une option a une valeur spécifique
    */
-  private hasOptionValue(options: DesignOptions, optionPath: string, expectedValue: any): boolean {
+  private hasOptionValue(options: DesignOptions, optionPath: string, expectedValue: unknown): boolean {
     const keys = optionPath.split('.');
-    let current = options as any;
+    let current: unknown = options;
     
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+        current = (current as Record<string, unknown>)[key];
       } else {
         return false;
       }
@@ -554,12 +556,12 @@ export class ProductRulesService {
   /**
    * Obtient les statistiques d'usage des règles
    */
-  async getRulesUsageStats(productId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<any> {
+  async getRulesUsageStats(productId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<{ period: string; startDate: Date; endDate: Date; designs: Record<string, number>; orders: number }> {
     const cacheKey = `rules_usage:${productId}:${period}`;
     
     const cached = await this.cache.getSimple<string>(cacheKey);
     if (cached) {
-      return JSON.parse(cached) as ProductRules | null;
+      return JSON.parse(cached) as { period: string; startDate: Date; endDate: Date; designs: Record<string, number>; orders: number };
     }
 
     try {

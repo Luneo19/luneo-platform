@@ -97,7 +97,7 @@ export class ArtisanOnboardingService {
         businessName: request.businessName,
         legalName: request.legalName,
         taxId: request.taxId,
-        address: request.address as any,
+        address: request.address as Record<string, unknown>,
         phone: request.phone,
         email: request.email,
         website: request.website,
@@ -206,13 +206,13 @@ export class ArtisanOnboardingService {
     }
 
     // Sauvegarder les documents
-    const kycDocuments = (artisan.kycDocuments as any) || [];
+    const kycDocuments = (artisan.kycDocuments as KYCDocument[]) || [];
     kycDocuments.push(...documents);
 
     await this.prisma.artisan.update({
       where: { id: artisanId },
       data: {
-        kycDocuments: kycDocuments as any,
+        kycDocuments: kycDocuments as unknown as Record<string, unknown>[],
         kycStatus: 'PENDING', // En attente de vérification
       },
     });

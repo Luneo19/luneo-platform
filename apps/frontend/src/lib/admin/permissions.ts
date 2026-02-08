@@ -4,10 +4,11 @@
  */
 
 import { getServerUser } from '@/lib/auth/get-user';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { redirect } from 'next/navigation';
 import { serverLogger } from '@/lib/logger-server';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = getBackendUrl();
 
 async function fetchAuthMe(cookie: string | null): Promise<{ id: string; email: string; role: string; brandId?: string | null; isActive?: boolean } | null> {
   if (!cookie) return null;
@@ -46,7 +47,7 @@ export async function checkAdminAccess(): Promise<boolean> {
     const cookie = (await headers()).get('cookie');
     const dbUser = await fetchAuthMe(cookie);
 
-    if (!dbUser || (dbUser as any).isActive === false) {
+    if (!dbUser || dbUser.isActive === false) {
       return false;
     }
 
@@ -101,7 +102,7 @@ export async function requireAdminAccess(): Promise<AdminUser> {
     isPlatformAdmin: dbUser?.role === 'PLATFORM_ADMIN',
   });
 
-  if (!dbUser || (dbUser as any).isActive === false || dbUser.role !== 'PLATFORM_ADMIN') {
+  if (!dbUser || dbUser.isActive === false || dbUser.role !== 'PLATFORM_ADMIN') {
     serverLogger.debug('[Admin Permissions] Access denied, redirecting');
     redirect('/dashboard?error=unauthorized');
   }
@@ -132,7 +133,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     const cookie = (await headers()).get('cookie');
     const dbUser = await fetchAuthMe(cookie);
 
-    if (!dbUser || (dbUser as any).isActive === false || dbUser.role !== 'PLATFORM_ADMIN') {
+    if (!dbUser || dbUser.isActive === false || dbUser.role !== 'PLATFORM_ADMIN') {
       return null;
     }
 

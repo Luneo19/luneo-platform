@@ -67,21 +67,21 @@ export function OrderDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Commande {order.order_number}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
           {/* Status et Informations principales */}
-          <Card className="bg-gray-900/50 border-gray-700">
+          <Card className="bg-gray-50 border-gray-200">
             <CardHeader>
               <CardTitle className="text-lg">Informations</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-400">Statut</p>
+                  <p className="text-sm text-gray-600">Statut</p>
                   <Badge
                     className={`bg-${statusConfig.bgColor} text-${statusConfig.color}-400 border-${statusConfig.color}-500/30 mt-1`}
                   >
@@ -89,18 +89,18 @@ export function OrderDetailDialog({
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Paiement</p>
-                  <p className="text-white mt-1">
+                  <p className="text-sm text-gray-600">Paiement</p>
+                  <p className="text-gray-900 mt-1">
                     {order.payment_status === 'paid' ? 'Payé' : 'Non payé'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Date de création</p>
-                  <p className="text-white mt-1">{formatDate(order.created_at)}</p>
+                  <p className="text-sm text-gray-600">Date de création</p>
+                  <p className="text-gray-900 mt-1">{formatDate(order.created_at)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Montant total</p>
-                  <p className="text-white font-bold mt-1">
+                  <p className="text-sm text-gray-600">Montant total</p>
+                  <p className="text-gray-900 font-bold mt-1">
                     {formatPrice(order.total_amount, order.currency)}
                   </p>
                 </div>
@@ -109,26 +109,26 @@ export function OrderDetailDialog({
           </Card>
 
           {/* Client */}
-          <Card className="bg-gray-900/50 border-gray-700">
+          <Card className="bg-gray-50 border-gray-200">
             <CardHeader>
               <CardTitle className="text-lg">Client</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-white">{order.customer_name || 'Non renseigné'}</p>
-                <p className="text-gray-400">{order.customer_email}</p>
+                <p className="text-gray-900">{order.customer_name || 'Non renseigné'}</p>
+                <p className="text-gray-600">{order.customer_email}</p>
               </div>
             </CardContent>
           </Card>
 
           {/* Adresse de livraison */}
           {order.shipping_address && (
-            <Card className="bg-gray-900/50 border-gray-700">
+            <Card className="bg-gray-50 border-gray-200">
               <CardHeader>
                 <CardTitle className="text-lg">Adresse de livraison</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-1 text-gray-300">
+                <div className="space-y-1 text-gray-700">
                   <p>{order.shipping_address.name}</p>
                   <p>{order.shipping_address.street}</p>
                   <p>
@@ -145,7 +145,7 @@ export function OrderDetailDialog({
 
           {/* Articles */}
           {order.items && order.items.length > 0 && (
-            <Card className="bg-gray-900/50 border-gray-700">
+            <Card className="bg-gray-50 border-gray-200">
               <CardHeader>
                 <CardTitle className="text-lg">Articles</CardTitle>
               </CardHeader>
@@ -154,15 +154,15 @@ export function OrderDetailDialog({
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between">
                       <div>
-                        <p className="text-white font-medium">{item.product_name}</p>
+                        <p className="text-gray-900 font-medium">{item.product_name}</p>
                         {item.design_name && (
-                          <p className="text-sm text-gray-400">{item.design_name}</p>
+                          <p className="text-sm text-gray-600">{item.design_name}</p>
                         )}
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-gray-600">
                           Quantité: {item.quantity}
                         </p>
                       </div>
-                      <p className="text-white font-bold">
+                      <p className="text-gray-900 font-bold">
                         {formatPrice(item.total_price, order.currency)}
                       </p>
                     </div>
@@ -174,14 +174,14 @@ export function OrderDetailDialog({
 
           {/* Tracking */}
           {order.tracking_number && (
-            <Card className="bg-gray-900/50 border-gray-700">
+            <Card className="bg-gray-50 border-gray-200">
               <CardHeader>
                 <CardTitle className="text-lg">Suivi</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-white">Numéro: {order.tracking_number}</p>
+                <p className="text-gray-900">Numéro: {order.tracking_number}</p>
                 {order.shipping_method && (
-                  <p className="text-gray-400 mt-1">
+                  <p className="text-gray-600 mt-1">
                     Transporteur: {order.shipping_method}
                   </p>
                 )}
@@ -189,14 +189,14 @@ export function OrderDetailDialog({
             </Card>
           )}
 
-          <Separator className="bg-gray-700" />
+          <Separator className="bg-gray-200" />
 
           {/* Actions */}
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-600"
+              className="border-gray-200"
             >
               Fermer
             </Button>
@@ -204,7 +204,7 @@ export function OrderDetailDialog({
               <Button
                 variant="outline"
                 onClick={onUpdateStatus}
-                className="border-gray-600"
+                className="border-gray-200"
               >
                 Modifier le statut
               </Button>

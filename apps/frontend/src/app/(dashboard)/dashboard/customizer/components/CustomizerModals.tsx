@@ -33,10 +33,10 @@ export function CustomizerModals({
   return (
     <>
       <Dialog open={showTemplates} onOpenChange={onTemplatesChange}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-6xl max-h-[90vh]">
+        <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-6xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Templates de design</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-gray-600">
               Choisissez un template pour commencer rapidement
             </DialogDescription>
           </DialogHeader>
@@ -57,8 +57,8 @@ export function CustomizerModals({
                       />
                     </div>
                     <div className="p-3">
-                      <h3 className="font-semibold text-white text-sm mb-1">{template.name}</h3>
-                      <div className="flex items-center justify-between text-xs text-gray-400">
+                      <h3 className="font-semibold text-gray-900 text-sm mb-1">{template.name}</h3>
+                      <div className="flex items-center justify-between text-xs text-gray-600">
                         <span>{template.category}</span>
                       </div>
                     </div>
@@ -71,10 +71,10 @@ export function CustomizerModals({
       </Dialog>
 
       <Dialog open={showAssets} onOpenChange={onAssetsChange}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-6xl max-h-[90vh]">
+        <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-6xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Bibliothèque d&apos;assets</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-gray-600">
               Parcourez votre bibliothèque d&apos;images, icônes et textures
             </DialogDescription>
           </DialogHeader>
@@ -83,7 +83,7 @@ export function CustomizerModals({
               {assets.map((asset) => (
                 <Card
                   key={asset.id}
-                  className="bg-gray-900/50 border-gray-700 hover:border-cyan-500/50 transition-all cursor-pointer"
+                  className="bg-gray-50 border-gray-200 hover:border-cyan-500/50 transition-all cursor-pointer"
                 >
                   <CardContent className="p-2">
                     <div className="relative aspect-square overflow-hidden rounded-lg mb-2">
@@ -94,7 +94,7 @@ export function CustomizerModals({
                         className="object-cover"
                       />
                     </div>
-                    <p className="text-xs text-white text-center truncate">{asset.name}</p>
+                    <p className="text-xs text-gray-900 text-center truncate">{asset.name}</p>
                   </CardContent>
                 </Card>
               ))}

@@ -1,13 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 
-// Plans Luneo - Tarification 2025
+// Plans Luneo - Tarification 2025 (aligned with backend plan-config.ts)
 const DEFAULT_PLANS = [
+  {
+    id: 'free',
+    name: 'Free',
+    description: 'Essayez Luneo gratuitement avec des fonctionnalites de base',
+    price: { monthly: 0, yearly: 0 },
+    currency: 'EUR',
+    features: [
+      { name: '5 designs/mois', included: true },
+      { name: 'Customizer 2D', included: true },
+      { name: '10 rendus 2D/mois', included: true },
+      { name: 'Export PNG', included: true },
+      { name: 'Support communautaire', included: true },
+      { name: '1 membre', included: true },
+      { name: '0.5 GB stockage', included: true },
+      { name: 'API access', included: false },
+      { name: '3D / AR', included: false },
+    ],
+    limits: {
+      designs: 5,
+      products: 2,
+      storage: '0.5 GB',
+      apiCalls: 1000,
+      teamMembers: 1,
+    },
+    popular: false,
+    stripePriceId: null,
+  },
   {
     id: 'starter',
     name: 'Starter',
-    description: 'Parfait pour découvrir Luneo et tester toutes les fonctionnalités de base',
-    price: { monthly: 29, yearly: 278.40 }, // -20% annuel
+    description: 'Parfait pour les createurs independants et petits projets',
+    price: { monthly: 19, yearly: 182.40 }, // -20% annuel
     currency: 'EUR',
     features: [
       { name: '50 designs/mois', included: true },
@@ -15,11 +42,11 @@ const DEFAULT_PLANS = [
       { name: '100 rendus 2D/mois', included: true },
       { name: '10 rendus 3D/mois', included: true },
       { name: 'Export PNG/PDF', included: true },
-      { name: 'Support standard', included: true },
-      { name: '3 membres d\'équipe', included: true },
+      { name: 'Support email', included: true },
+      { name: '3 membres d\'equipe', included: true },
       { name: '5 GB stockage', included: true },
       { name: 'API access', included: false },
-      { name: 'Branding personnalisé', included: false },
+      { name: 'Branding personnalise', included: false },
     ],
     limits: {
       designs: 50,
@@ -29,12 +56,12 @@ const DEFAULT_PLANS = [
       teamMembers: 3,
     },
     popular: false,
-    stripePriceId: null, // Starter est gratuit
+    stripePriceId: null,
   },
   {
     id: 'professional',
     name: 'Professional',
-    description: 'Pour les créateurs et PME qui veulent passer à la vitesse supérieure',
+    description: 'Pour les createurs et PME qui veulent passer a la vitesse superieure',
     price: { monthly: 49, yearly: 470.40 }, // -20% annuel
     currency: 'EUR',
     features: [
@@ -202,7 +229,7 @@ export async function GET(request: NextRequest) {
             };
           })
           .sort((a: any, b: any) => {
-            const order = ['starter', 'professional', 'business', 'enterprise'];
+            const order = ['free', 'starter', 'professional', 'business', 'enterprise'];
             return order.indexOf(a.id) - order.indexOf(b.id);
           });
 

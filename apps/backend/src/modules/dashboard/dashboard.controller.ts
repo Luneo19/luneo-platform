@@ -12,7 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { OnboardingGuard } from '@/common/guards/onboarding.guard';
 import { IndustryConfigGuard } from '@/common/guards/industry-config.guard';
 

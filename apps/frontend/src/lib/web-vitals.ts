@@ -42,23 +42,29 @@ function sendToAnalytics(metric: Metric) {
   }
 
   // Optionnel : Envoyer à Google Analytics
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', metric.name, {
-      value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
-      event_category: 'Web Vitals',
-      event_label: metric.id,
-      non_interaction: true,
-    });
+  if (typeof window !== 'undefined') {
+    const win = window as Window & { gtag?: (a: string, b: string, c: Record<string, unknown>) => void };
+    if (win.gtag) {
+      win.gtag('event', metric.name, {
+        value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
+        event_category: 'Web Vitals',
+        event_label: metric.id,
+        non_interaction: true,
+      });
+    }
   }
 
   // Envoyer à Sentry pour performance monitoring
-  if (typeof window !== 'undefined' && (window as any).Sentry) {
-    (window as any).Sentry.metrics.distribution('web_vital', metric.value, {
-      tags: {
-        metric_name: metric.name,
-        rating: metric.rating || 'unknown',
-      },
-    });
+  if (typeof window !== 'undefined') {
+    const win = window as Window & { Sentry?: { metrics: { distribution: (name: string, value: number, opts: { tags: Record<string, string> }) => void } } };
+    if (win.Sentry) {
+      win.Sentry.metrics.distribution('web_vital', metric.value, {
+        tags: {
+          metric_name: metric.name,
+          rating: metric.rating || 'unknown',
+        },
+      });
+    }
   }
 }
 

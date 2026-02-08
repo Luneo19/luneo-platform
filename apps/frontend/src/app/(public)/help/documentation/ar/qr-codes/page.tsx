@@ -17,15 +17,13 @@ function ARQRCodesPageContent() {
     setTimeout(() => setCopied(''), 2000);
   }, []);
 
-  const qrCodeExample = useMemo(() => `const response = await fetch('/api/v1/ar/qr-code', {
+  const qrCodeExample = useMemo(() => `const response = await fetch('/api/v1/ar-studio/models/ar_model_123/qr-code', {
   method: 'POST',
-  body: JSON.stringify({
-    productId: 'sneaker-pro',
-    arModelId: 'ar_model_123'
-  })
+  headers: { 'Content-Type': 'application/json' }
 });
 
-const { qrCodeUrl, arUrl } = await response.json();
+const { data } = await response.json();
+const { qrCodeUrl, arUrl } = data || {};
 // qrCodeUrl: https://cdn.luneo.app/qr/abc123.png
 // arUrl: https://ar.luneo.app/view/abc123`, []);
 

@@ -18,12 +18,13 @@ export function useApiKeys() {
       const data = await endpoints.publicApi.keys.list();
       const raw = data as { data?: { api_keys?: ApiKey[] }; api_keys?: ApiKey[] };
       setApiKeys(raw?.data?.api_keys ?? raw?.api_keys ?? []);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur chargement API keys', {
         error: err,
-        message: err.message,
+        message,
       });
-      setError(err.message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -43,16 +44,17 @@ export function useApiKeys() {
         key_info: raw?.data?.key_info ?? raw?.key_info,
         message: raw?.message ?? 'Clé créée',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur création API key', {
         error: err,
         name,
         permissions,
         rate_limit,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -67,14 +69,15 @@ export function useApiKeys() {
       const raw = data as { message?: string };
       await loadApiKeys();
       return { success: true, message: raw?.message ?? 'Clé supprimée' };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur suppression API key', {
         error: err,
         apiKeyId: id,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -89,15 +92,16 @@ export function useApiKeys() {
       const raw = data as { message?: string };
       await loadApiKeys();
       return { success: true, message: raw?.message ?? 'Clé mise à jour' };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur toggle API key', {
         error: err,
         apiKeyId: id,
         is_active,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }

@@ -14,20 +14,20 @@ interface CommissionsTabProps {
 
 export function CommissionsTab({ commissions }: CommissionsTabProps) {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Historique des commissions</CardTitle>
+        <CardTitle className="text-gray-900">Historique des commissions</CardTitle>
         <CardDescription className="text-gray-400">Toutes vos commissions et paiements</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow className="border-gray-700">
-              <TableHead className="text-gray-300">Référent</TableHead>
-              <TableHead className="text-gray-300">Montant</TableHead>
-              <TableHead className="text-gray-300">Statut</TableHead>
-              <TableHead className="text-gray-300">Date</TableHead>
-              <TableHead className="text-gray-300">Description</TableHead>
+            <TableRow className="border-gray-200">
+              <TableHead className="text-gray-700">Référent</TableHead>
+              <TableHead className="text-gray-700">Montant</TableHead>
+              <TableHead className="text-gray-700">Statut</TableHead>
+              <TableHead className="text-gray-700">Date</TableHead>
+              <TableHead className="text-gray-700">Description</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -36,8 +36,8 @@ export function CommissionsTab({ commissions }: CommissionsTabProps) {
               const Icon = config?.icon;
               if (!Icon) return null;
               return (
-                <TableRow key={commission.id} className="border-gray-700 hover:bg-gray-800/50">
-                  <TableCell className="text-white">{commission.referralEmail}</TableCell>
+                <TableRow key={commission.id} className="border-gray-200 hover:bg-gray-50">
+                  <TableCell className="text-gray-900">{commission.referralEmail}</TableCell>
                   <TableCell className="text-green-400 font-bold">{formatPrice(commission.amount)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn('text-xs', config.bg, config.color)}>
@@ -45,7 +45,7 @@ export function CommissionsTab({ commissions }: CommissionsTabProps) {
                       {config.label}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-gray-300 text-sm">
+                  <TableCell className="text-gray-700 text-sm">
                     {formatRelativeDate(commission.createdAt)}
                   </TableCell>
                   <TableCell className="text-gray-400 text-sm">{commission.description}</TableCell>

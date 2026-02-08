@@ -34,21 +34,21 @@ export function ExportDialog({
 }: ExportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>Exporter les tickets</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Choisissez le format d&apos;export
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label className="text-sm text-gray-300 mb-2 block">Format</Label>
+            <Label className="text-sm text-gray-600 mb-2 block">Format</Label>
             <Select defaultValue="csv">
-              <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+              <SelectTrigger className="bg-white border-gray-200 text-gray-900">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 text-white">
+              <SelectContent className="bg-white border-gray-200 text-gray-900">
                 <SelectItem value="csv">CSV</SelectItem>
                 <SelectItem value="pdf">PDF</SelectItem>
                 <SelectItem value="excel">Excel</SelectItem>
@@ -56,20 +56,20 @@ export function ExportDialog({
             </Select>
           </div>
           <div>
-            <Label className="text-sm text-gray-300 mb-2 block">Filtres appliqués</Label>
+            <Label className="text-sm text-gray-600 mb-2 block">Filtres appliqués</Label>
             <div className="flex flex-wrap gap-2">
               {filterStatus !== 'all' && (
-                <Badge variant="outline" className="border-gray-600">
+                <Badge variant="outline" className="border-gray-200">
                   Statut: {statusConfig[filterStatus]?.label}
                 </Badge>
               )}
               {filterPriority !== 'all' && (
-                <Badge variant="outline" className="border-gray-600">
+                <Badge variant="outline" className="border-gray-200">
                   Priorité: {priorityConfig[filterPriority]?.label}
                 </Badge>
               )}
               {filterCategory !== 'all' && (
-                <Badge variant="outline" className="border-gray-600">
+                <Badge variant="outline" className="border-gray-200">
                   Catégorie: {categoryConfig[filterCategory]?.label}
                 </Badge>
               )}
@@ -77,7 +77,7 @@ export function ExportDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Annuler
           </Button>
           <Button onClick={onExport} className="bg-cyan-600 hover:bg-cyan-700">

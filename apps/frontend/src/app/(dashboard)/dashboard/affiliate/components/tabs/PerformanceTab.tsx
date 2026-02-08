@@ -7,30 +7,30 @@ import { Zap } from 'lucide-react';
 export function PerformanceTab() {
   return (
     <div className="space-y-6">
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-gray-50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-400" />
             Performance
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-gray-600">
             Métriques de performance de vos liens et campagnes
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Score global</span>
-              <span className="text-sm font-medium text-white">—</span>
+              <span className="text-sm text-gray-600">Score global</span>
+              <span className="text-sm font-medium text-gray-900">—</span>
             </div>
-            <Progress value={0} className="h-2 bg-gray-700" />
+            <Progress value={0} className="h-2 bg-gray-200" />
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Temps de chargement</span>
-              <span className="text-sm font-medium text-white">—</span>
+              <span className="text-sm text-gray-600">Temps de chargement</span>
+              <span className="text-sm font-medium text-gray-900">—</span>
             </div>
-            <Progress value={0} className="h-2 bg-gray-700" />
+            <Progress value={0} className="h-2 bg-gray-200" />
           </div>
         </CardContent>
       </Card>

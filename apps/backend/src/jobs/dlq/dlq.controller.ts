@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Delete, Param, Query, UseGuards } from '@nestjs/common';
+import { Job } from 'bullmq';
 import { DLQService } from './dlq.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -28,7 +29,7 @@ export class DLQController {
         id: job.id,
         data: job.data,
         failedReason: job.failedReason,
-        failedAt: (job as any).timestamp || new Date(),
+        failedAt: (job as Job & { timestamp?: number }).timestamp || new Date(),
         attemptsMade: job.attemptsMade,
       })),
     };

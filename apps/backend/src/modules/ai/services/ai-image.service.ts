@@ -294,6 +294,7 @@ export class AIImageService {
         colorsFound: colorArray.length,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return { colors: colorArray as any };
     } catch (error) {
       this.logger.error(`Failed to extract colors: ${error.message}`, error.stack);

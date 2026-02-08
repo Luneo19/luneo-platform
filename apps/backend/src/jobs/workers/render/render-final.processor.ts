@@ -4,7 +4,8 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { Render3DService } from '@/modules/render/services/render-3d.service';
-import * as Sentry from '@sentry/node';
+import type { RenderRequest } from '@/modules/render/interfaces/render.interface';
+import * as Sentry from '@sentry/nestjs';
 import sharp from 'sharp';
 
 interface RenderFinalJob {
@@ -111,7 +112,7 @@ export class RenderFinalProcessor {
             format: type === 'ar' ? 'usdz' : type === 'manufacturing' ? 'gltf' : 'gltf',
           },
         };
-        const result = await this.render3DService.render3D(renderRequest as any);
+        const result = await this.render3DService.render3D(renderRequest as Parameters<typeof this.render3DService.render3D>[0]);
         modelUrl = result.url || '';
         thumbnailUrl = result.thumbnailUrl || modelUrl;
       } catch (renderError) {

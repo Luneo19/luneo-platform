@@ -80,7 +80,7 @@ function ARButtonContent({
         return;
       }
 
-      const xr = (navigator as any).xr;
+      const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
 
       // Check if AR is supported
       try {

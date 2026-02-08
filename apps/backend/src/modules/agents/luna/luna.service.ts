@@ -1215,8 +1215,11 @@ export class LunaService {
     if (jsonMatch) {
       try {
         parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-      } catch {
-        // Ignorer l'erreur de parsing
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse Luna LLM response JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error instanceof Error ? error.stack : undefined,
+        );
       }
     }
 

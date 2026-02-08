@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Param, UseGuards, Req, BadRequestException
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OnboardingService } from './onboarding.service';
 import { SaveStepDto } from './dto/save-step.dto';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('onboarding')
 @Controller('onboarding')

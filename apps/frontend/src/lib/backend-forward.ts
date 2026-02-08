@@ -4,18 +4,16 @@
  * Auth : cookies httpOnly (accessToken/refreshToken) transmis via header Cookie
  */
 
+import { getBackendUrl as getBackendUrlBase } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 
 /**
- * Configuration du backend
+ * Configuration du backend (base + /api suffix when needed)
  */
 const getBackendUrl = (): string => {
-  const url = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001';
-  if (url.includes('api.luneo.app') || url.includes('localhost:3001')) {
-    return url.endsWith('/api') ? url : `${url}/api`;
-  }
-  return url;
+  const url = getBackendUrlBase();
+  return url.endsWith('/api') ? url : `${url}/api`;
 };
 
 /**

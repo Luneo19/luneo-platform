@@ -23,10 +23,10 @@ function CreditsPageContent() {
 
   if (state.loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto" />
-          <p className="mt-4 text-gray-300">Chargement des crédits...</p>
+          <p className="mt-4 text-gray-700">Chargement des crédits...</p>
         </div>
       </div>
     );
@@ -43,7 +43,7 @@ function CreditsPageContent() {
       />
       <CreditsStatsGrid stats={state.stats} />
       <Tabs value={state.activeTab} onValueChange={(v) => state.setActiveTab(v as typeof state.activeTab)} className="space-y-6">
-        <TabsList className="bg-gray-900/50 border border-gray-700">
+        <TabsList className="bg-gray-50 border border-gray-200">
           <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-600">Vue d'ensemble</TabsTrigger>
           <TabsTrigger value="packs" className="data-[state=active]:bg-cyan-600">Packs ({state.creditPacks.length})</TabsTrigger>
           <TabsTrigger value="history" className="data-[state=active]:bg-cyan-600">Historique ({state.filteredTransactions.length})</TabsTrigger>

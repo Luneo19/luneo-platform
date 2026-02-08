@@ -45,6 +45,22 @@ const UpdateProductSchema = CreateProductSchema.partial().extend({
   id: z.string().min(1),
 });
 
+/** Product from API with brandId for ownership checks */
+interface ProductWithBrandId {
+  id: string;
+  brandId?: string;
+  isActive?: boolean;
+  metadata?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** Products list API response shape */
+interface ProductsListResponse {
+  products?: ProductWithBrandId[];
+  data?: ProductWithBrandId[];
+  pagination?: { total: number };
+}
+
 const UploadModelSchema = z.object({
   productId: z.string().min(1),
   fileUrl: z.string().url(),
@@ -86,14 +102,14 @@ export const productRouter = router({
           page: input.page,
           limit: input.limit,
           search: input.search,
-        } as any);
+        });
 
-        const data = result as { data?: any[]; products?: any[]; pagination?: { total: number } };
+        const data = result as ProductsListResponse;
         const products = data.products ?? data.data ?? [];
         const total = data.pagination?.total ?? (Array.isArray(products) ? products.length : 0);
 
         return {
-          products: (Array.isArray(products) ? products : []).map((p: any) => ({
+          products: (Array.isArray(products) ? products : []).map((p: ProductWithBrandId) => ({
             id: p.id,
             name: p.name,
             description: p.description,
@@ -114,7 +130,7 @@ export const productRouter = router({
             hasPrev: input.page > 1,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error listing products', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -150,9 +166,9 @@ export const productRouter = router({
           createdBy: ctx.user.id,
         });
 
-        logger.info('Product created', { productId: (product as any).id });
+        logger.info('Product created', { productId: (product as { id?: string }).id });
 
-        return product as any;
+        return product as Record<string, unknown>;
       } catch (error) {
         logger.error('Error creating product', { error, input });
         if (error instanceof TRPCError) {
@@ -182,7 +198,7 @@ export const productRouter = router({
           });
         }
 
-        const p = product as any;
+        const p = product as ProductWithBrandId;
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
           ctx.user?.brandId !== p.brandId
@@ -197,7 +213,7 @@ export const productRouter = router({
 
         logger.info('Product updated', { productId: id });
 
-        return updated as any;
+        return updated as Record<string, unknown>;
       } catch (error) {
         logger.error('Error updating product', { error, input });
         if (error instanceof TRPCError) {
@@ -225,7 +241,7 @@ export const productRouter = router({
           });
         }
 
-        const p = product as any;
+        const p = product as ProductWithBrandId;
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
           ctx.user?.brandId !== p.brandId
@@ -269,7 +285,7 @@ export const productRouter = router({
           });
         }
 
-        const p = product as any;
+        const p = product as ProductWithBrandId;
         if (!p.isActive && ctx.user?.brandId !== p.brandId) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -277,7 +293,7 @@ export const productRouter = router({
           });
         }
 
-        return product as any;
+        return product as Record<string, unknown>;
       } catch (error) {
         logger.error('Error fetching product', { error, input });
         if (error instanceof TRPCError) {
@@ -313,9 +329,9 @@ export const productRouter = router({
           page,
           limit: input?.limit ?? 20,
           search: input?.search,
-        } as any);
+        });
 
-        const data = result as { products?: any[]; data?: any[]; pagination?: { total: number } };
+        const data = result as ProductsListResponse;
         const products = data.products ?? data.data ?? [];
         const total = data.pagination?.total ?? (Array.isArray(products) ? products.length : 0);
 
@@ -352,7 +368,7 @@ export const productRouter = router({
           });
         }
 
-        const p = product as any;
+        const p = product as ProductWithBrandId;
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
           ctx.user?.brandId !== p.brandId
@@ -366,7 +382,7 @@ export const productRouter = router({
         const updated = await endpoints.products.update(input.productId, {
           model3dUrl: input.fileUrl,
           metadata: {
-            ...(p.metadata || {}),
+            ...(typeof p.metadata === 'object' && p.metadata !== null ? p.metadata : {}),
             modelUpload: {
               fileName: input.fileName,
               fileSize: input.fileSize,
@@ -378,7 +394,7 @@ export const productRouter = router({
 
         logger.info('Model uploaded', { productId: input.productId });
 
-        return updated as any;
+        return updated as Record<string, unknown>;
       } catch (error) {
         logger.error('Error uploading model', { error, input });
         if (error instanceof TRPCError) {
@@ -416,7 +432,7 @@ export const productRouter = router({
           });
         }
 
-        const p = product as any;
+        const p = product as ProductWithBrandId;
         if (
           ctx.user?.role !== 'PLATFORM_ADMIN' &&
           ctx.user?.brandId !== p.brandId

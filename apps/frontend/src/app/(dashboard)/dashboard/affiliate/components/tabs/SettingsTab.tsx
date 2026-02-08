@@ -38,55 +38,55 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-gray-50 border-gray-200">
           <CardHeader>
-            <CardTitle className="text-white">Paramètres du programme</CardTitle>
-            <CardDescription className="text-gray-400">Configurez vos préférences d&apos;affiliation</CardDescription>
+            <CardTitle className="text-gray-900">Paramètres du programme</CardTitle>
+            <CardDescription className="text-gray-600">Configurez vos préférences d&apos;affiliation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <Label className="text-gray-300 mb-2 block">Taux de commission</Label>
-              <div className="p-4 bg-gray-900/50 rounded-lg">
+              <Label className="text-gray-700 mb-2 block">Taux de commission</Label>
+              <div className="p-4 bg-gray-100 rounded-lg">
                 <p className="text-2xl font-bold text-purple-400">{COMMISSION_RATE}%</p>
-                <p className="text-sm text-gray-400 mt-1">Commission sur chaque conversion</p>
+                <p className="text-sm text-gray-600 mt-1">Commission sur chaque conversion</p>
               </div>
             </div>
-            <Separator className="bg-gray-700" />
+            <Separator className="bg-gray-200" />
             <div>
-              <Label className="text-gray-300 mb-2 block">Seuil de paiement minimum</Label>
-              <div className="p-4 bg-gray-900/50 rounded-lg">
+              <Label className="text-gray-700 mb-2 block">Seuil de paiement minimum</Label>
+              <div className="p-4 bg-gray-100 rounded-lg">
                 <p className="text-2xl font-bold text-yellow-400">{formatPrice(minPayoutThreshold)}</p>
-                <p className="text-sm text-gray-400 mt-1">Montant minimum pour demander un paiement</p>
+                <p className="text-sm text-gray-600 mt-1">Montant minimum pour demander un paiement</p>
               </div>
             </div>
-            <Separator className="bg-gray-700" />
+            <Separator className="bg-gray-200" />
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-gray-300">Notifications par email</Label>
+                <Label className="text-gray-700">Notifications par email</Label>
                 <Checkbox defaultChecked id="email-notifications" />
               </div>
-              <p className="text-xs text-gray-400">Recevez des notifications pour les nouvelles conversions et paiements</p>
+              <p className="text-xs text-gray-600">Recevez des notifications pour les nouvelles conversions et paiements</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-gray-300">Notifications push</Label>
+                <Label className="text-gray-700">Notifications push</Label>
                 <Checkbox defaultChecked id="push-notifications" />
               </div>
-              <p className="text-xs text-gray-400">Recevez des notifications push pour les événements importants</p>
+              <p className="text-xs text-gray-600">Recevez des notifications push pour les événements importants</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-gray-50 border-gray-200">
           <CardHeader>
-            <CardTitle className="text-white">Informations de paiement</CardTitle>
-            <CardDescription className="text-gray-400">Configurez vos méthodes de paiement</CardDescription>
+            <CardTitle className="text-gray-900">Informations de paiement</CardTitle>
+            <CardDescription className="text-gray-600">Configurez vos méthodes de paiement</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-gray-300 mb-2 block">Méthode de paiement préférée</Label>
+              <Label className="text-gray-700 mb-2 block">Méthode de paiement préférée</Label>
               <Select defaultValue="bank">
-                <SelectTrigger className="w-full bg-gray-900 border-gray-600 text-white">
+                <SelectTrigger className="w-full bg-white border-gray-200 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -98,14 +98,14 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300 mb-2 block">IBAN / Compte bancaire</Label>
-              <Input placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" className="bg-gray-900 border-gray-600 text-white" />
-              <p className="text-xs text-gray-400 mt-1">Utilisé pour les virements bancaires</p>
+              <Label className="text-gray-700 mb-2 block">IBAN / Compte bancaire</Label>
+              <Input placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" className="bg-white border-gray-200 text-gray-900" />
+              <p className="text-xs text-gray-600 mt-1">Utilisé pour les virements bancaires</p>
             </div>
             <div>
-              <Label className="text-gray-300 mb-2 block">Email PayPal</Label>
-              <Input placeholder="votre@email.com" className="bg-gray-900 border-gray-600 text-white" />
-              <p className="text-xs text-gray-400 mt-1">Utilisé pour les paiements PayPal</p>
+              <Label className="text-gray-700 mb-2 block">Email PayPal</Label>
+              <Input placeholder="votre@email.com" className="bg-white border-gray-200 text-gray-900" />
+              <p className="text-xs text-gray-600 mt-1">Utilisé pour les paiements PayPal</p>
             </div>
             <Button className="w-full bg-purple-600 hover:bg-purple-700">
               <Save className="w-4 h-4 mr-2" />
@@ -117,11 +117,11 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
 
       <Card className="bg-gradient-to-br from-purple-950/50 to-pink-950/50 border-purple-500/20">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
             <Trophy className="w-5 h-5 text-yellow-400" />
             Récompenses et Niveaux
           </CardTitle>
-          <CardDescription className="text-gray-400">Débloquez des récompenses en fonction de vos performances</CardDescription>
+          <CardDescription className="text-gray-600">Débloquez des récompenses en fonction de vos performances</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -129,15 +129,15 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
               <div
                 key={tier.level}
                 className={`p-4 rounded-lg border-2 transition-all ${
-                  tier.unlocked ? 'bg-gray-900/50 border-purple-500/50' : 'bg-gray-900/20 border-gray-700 opacity-50'
+                  tier.unlocked ? 'bg-gray-100 border-purple-500/50' : 'bg-white/20 border-gray-200 opacity-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-3xl">{tier.icon}</span>
                     <div>
-                      <h4 className="font-semibold text-white">{tier.level}</h4>
-                      <p className="text-xs text-gray-400">
+                      <h4 className="font-semibold text-gray-900">{tier.level}</h4>
+                      <p className="text-xs text-gray-600">
                         {tier.min}+ conversions
                         {tier.max !== Infinity && ` - ${tier.max} conversions`}
                       </p>
@@ -150,7 +150,7 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
                         Débloqué
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="border-gray-600">
+                      <Badge variant="outline" className="border-gray-200">
                         <Lock className="w-3 h-3 mr-1" />
                         Verrouillé
                       </Badge>
@@ -158,19 +158,19 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
                   </div>
                 </div>
                 {tier.unlocked && (
-                  <div className="mt-3 pt-3 border-t border-gray-700">
+                  <div className="mt-3 pt-3 border-t border-gray-200">
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-400">Bonus commission</p>
-                        <p className="text-white font-medium">+{tier.min * 0.5}%</p>
+                        <p className="text-gray-600">Bonus commission</p>
+                        <p className="text-gray-900 font-medium">+{tier.min * 0.5}%</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Paiements</p>
-                        <p className="text-white font-medium">Hebdomadaire</p>
+                        <p className="text-gray-600">Paiements</p>
+                        <p className="text-gray-900 font-medium">Hebdomadaire</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Support</p>
-                        <p className="text-white font-medium">Prioritaire</p>
+                        <p className="text-gray-600">Support</p>
+                        <p className="text-gray-900 font-medium">Prioritaire</p>
                       </div>
                     </div>
                   </div>
@@ -181,13 +181,13 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-gray-50 border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
             <Award className="w-5 h-5 text-yellow-400" />
             Achievements
           </CardTitle>
-          <CardDescription className="text-gray-400">Débloquez des achievements en atteignant des objectifs</CardDescription>
+          <CardDescription className="text-gray-600">Débloquez des achievements en atteignant des objectifs</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-3 gap-4">
@@ -195,19 +195,19 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
               <div
                 key={achievement.name}
                 className={`p-4 rounded-lg border-2 text-center transition-all ${
-                  achievement.unlocked ? 'bg-gray-900/50 border-yellow-500/50' : 'bg-gray-900/20 border-gray-700 opacity-50'
+                  achievement.unlocked ? 'bg-gray-100 border-yellow-500/50' : 'bg-white/20 border-gray-200 opacity-50'
                 }`}
               >
                 <div className="text-4xl mb-2">{achievement.icon}</div>
-                <h4 className="font-semibold text-white mb-1">{achievement.name}</h4>
-                <p className="text-xs text-gray-400 mb-2">{achievement.description}</p>
+                <h4 className="font-semibold text-gray-900 mb-1">{achievement.name}</h4>
+                <p className="text-xs text-gray-600 mb-2">{achievement.description}</p>
                 {achievement.unlocked ? (
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Débloqué
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="border-gray-600 text-xs">
+                  <Badge variant="outline" className="border-gray-200 text-xs">
                     Verrouillé
                   </Badge>
                 )}

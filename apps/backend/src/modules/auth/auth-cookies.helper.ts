@@ -15,7 +15,7 @@ export class AuthCookiesHelper {
     configService: ConfigService,
   ): void {
     const isProduction = configService.get('app.nodeEnv') === 'production';
-    const frontendUrl = configService.get('app.frontendUrl') || 'http://localhost:3000';
+    const frontendUrl = configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
     const domain = this.extractDomain(frontendUrl);
 
     // Access Token cookie (15 minutes)
@@ -46,7 +46,7 @@ export class AuthCookiesHelper {
     res: Response,
     configService: ConfigService,
   ): void {
-    const frontendUrl = configService.get('app.frontendUrl') || 'http://localhost:3000';
+    const frontendUrl = configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
     const domain = this.extractDomain(frontendUrl);
 
     res.clearCookie('accessToken', {

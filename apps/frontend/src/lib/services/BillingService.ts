@@ -81,6 +81,92 @@ export interface PaymentMethod {
   isDefault: boolean;
 }
 
+/** Raw API subscription shape (backend/Stripe) */
+interface RawSubscription {
+  id?: string;
+  plan?: string;
+  planId?: string;
+  status?: string;
+  brandId?: string;
+  currentPeriodStart?: string | number;
+  currentPeriodEnd?: string | number;
+  cancelAtPeriodEnd?: boolean;
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+  [key: string]: unknown;
+}
+
+/** API response for invoices list */
+interface InvoicesListResponse {
+  invoices?: unknown[];
+  data?: unknown[];
+  total?: number;
+  hasMore?: boolean;
+}
+
+/** Raw invoice line (API/Stripe) */
+interface RawInvoiceLine {
+  id?: string;
+  description?: string;
+  amount?: number;
+  quantity?: number;
+  unitPrice?: number;
+  unit_price?: number;
+  [key: string]: unknown;
+}
+
+/** Raw invoice (API/Stripe) */
+interface RawInvoice {
+  id?: string;
+  number?: string;
+  amount?: number;
+  amount_paid?: number;
+  currency?: string;
+  status?: string;
+  dueDate?: string;
+  due_date?: number;
+  paidAt?: string;
+  status_transitions?: { paid_at?: number };
+  pdfUrl?: string;
+  invoice_pdf?: string;
+  hostedInvoiceUrl?: string;
+  hosted_invoice_url?: string;
+  lineItems?: RawInvoiceLine[];
+  lines?: { data?: RawInvoiceLine[] };
+  createdAt?: string;
+  created?: number;
+  [key: string]: unknown;
+}
+
+/** PDF response shape */
+interface InvoicePdfResponse {
+  data?: { url?: string; invoice_pdf?: string };
+  url?: string;
+  invoice_pdf?: string;
+}
+
+/** Brand API response for billing limits */
+interface BrandWithLimits {
+  plan?: string;
+  limits?: BillingLimits;
+  [key: string]: unknown;
+}
+
+/** Payment method raw (API/Stripe) */
+interface RawPaymentMethod {
+  id?: string;
+  type?: string;
+  last4?: string;
+  brand?: string;
+  expiryMonth?: number;
+  exp_month?: number;
+  expiryYear?: number;
+  exp_year?: number;
+  isDefault?: boolean;
+  card?: { last4?: string; brand?: string; exp_month?: number; exp_year?: number };
+  [key: string]: unknown;
+}
+
 // ========================================
 // SERVICE
 // ========================================
@@ -101,18 +187,19 @@ export class BillingService {
   // SUBSCRIPTIONS
   // ========================================
 
-  private normalizeSubscription(raw: any): Subscription | null {
-    if (!raw) return null;
-    const plan = (raw.plan || raw.planId || 'free').toLowerCase();
+  private normalizeSubscription(raw: RawSubscription | Record<string, unknown> | null): Subscription | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as RawSubscription;
+    const plan = String(r.plan || r.planId || 'free').toLowerCase();
     return {
-      id: raw.id || `local_${raw.brandId || 'current'}`,
-      status: (raw.status || 'active') as Subscription['status'],
+      id: r.id || `local_${r.brandId || 'current'}`,
+      status: (r.status || 'active') as Subscription['status'],
       plan: ['free', 'starter', 'pro', 'enterprise'].includes(plan) ? plan as Subscription['plan'] : 'free',
-      currentPeriodStart: raw.currentPeriodStart ? new Date(raw.currentPeriodStart) : new Date(),
-      currentPeriodEnd: raw.currentPeriodEnd ? new Date(raw.currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      cancelAtPeriodEnd: !!raw.cancelAtPeriodEnd,
-      stripeSubscriptionId: raw.stripeSubscriptionId,
-      stripeCustomerId: raw.stripeCustomerId,
+      currentPeriodStart: r.currentPeriodStart ? new Date(r.currentPeriodStart) : new Date(),
+      currentPeriodEnd: r.currentPeriodEnd ? new Date(r.currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      cancelAtPeriodEnd: !!r.cancelAtPeriodEnd,
+      stripeSubscriptionId: r.stripeSubscriptionId,
+      stripeCustomerId: r.stripeCustomerId,
     };
   }
 
@@ -135,7 +222,7 @@ export class BillingService {
         cacheService.set(`subscription:${brandId}`, subscription, { ttl: 300 * 1000 });
       }
       return subscription;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching subscription', { error, brandId });
       throw error;
     }
@@ -161,7 +248,7 @@ export class BillingService {
       cacheService.delete(`subscription:${brandId}`);
       logger.info('Subscription updated', { brandId, plan: request.plan });
       return subscription;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating subscription', { error, brandId, request });
       throw error;
     }
@@ -183,7 +270,7 @@ export class BillingService {
 
       logger.info('Subscription cancelled', { brandId, cancelAtPeriodEnd });
       return subscription ?? this.normalizeSubscription({ plan: 'free', status: 'active' })!;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error cancelling subscription', { error, brandId });
       throw error;
     }
@@ -200,7 +287,7 @@ export class BillingService {
       cacheService.delete(`subscription:${brandId}`);
       logger.info('Subscription reactivated', { brandId });
       return subscription ?? this.normalizeSubscription({ plan: 'free', status: 'active' })!;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error reactivating subscription', { error, brandId });
       throw error;
     }
@@ -222,12 +309,12 @@ export class BillingService {
     }
   ): Promise<{ invoices: Invoice[]; total: number; hasMore: boolean }> {
     try {
-      const res = await api.get<{ data?: unknown[]; invoices?: unknown[]; total?: number; hasMore?: boolean }>(
+      const res = await api.get<InvoicesListResponse>(
         '/api/v1/billing/invoices',
         { params: { brandId, limit: options?.limit ?? 20, offset: options?.offset, status: options?.status } }
       );
-      const rawList = Array.isArray((res as any).invoices) ? (res as any).invoices : Array.isArray((res as any).data) ? (res as any).data : [];
-      const invoices: Invoice[] = rawList.map((inv: any) => ({
+      const rawList = Array.isArray(res?.invoices) ? res.invoices : Array.isArray(res?.data) ? res.data : [];
+      const invoices: Invoice[] = (rawList as RawInvoice[]).map((inv) => ({
         id: inv.id ?? '',
         number: inv.number ?? inv.id ?? '',
         amount: typeof inv.amount === 'number' ? inv.amount : (inv.amount_paid ?? 0) / 100,
@@ -237,13 +324,13 @@ export class BillingService {
         paidAt: inv.paidAt ? new Date(inv.paidAt) : inv.status_transitions?.paid_at ? new Date(inv.status_transitions.paid_at * 1000) : undefined,
         pdfUrl: inv.pdfUrl ?? inv.invoice_pdf,
         hostedInvoiceUrl: inv.hostedInvoiceUrl ?? inv.hosted_invoice_url,
-        lineItems: Array.isArray(inv.lineItems) ? inv.lineItems.map((line: any) => ({
+        lineItems: Array.isArray(inv.lineItems) ? inv.lineItems.map((line: RawInvoiceLine) => ({
           id: line.id ?? '',
           description: line.description ?? '',
           amount: typeof line.amount === 'number' ? line.amount : (line.amount ?? 0) / 100,
           quantity: line.quantity ?? 1,
           unitPrice: line.unitPrice ?? (line.amount ?? 0) / 100 / (line.quantity || 1),
-        })) : Array.isArray(inv.lines?.data) ? inv.lines.data.map((line: any) => {
+        })) : Array.isArray(inv.lines?.data) ? inv.lines.data.map((line: RawInvoiceLine) => {
           const quantity = line.quantity ?? 1;
           const unitPrice = quantity ? (line.amount ?? 0) / 100 / quantity : 0;
           return {
@@ -257,15 +344,15 @@ export class BillingService {
         createdAt: inv.createdAt ? new Date(inv.createdAt) : new Date((inv.created ?? 0) * 1000),
       }));
 
-      const total = (res as any).total ?? rawList.length;
-      const hasMore = (res as any).hasMore ?? false;
+      const total = res?.total ?? rawList.length;
+      const hasMore = res?.hasMore ?? false;
 
       return {
         invoices,
         total,
         hasMore,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing invoices', { error, brandId });
       throw error;
     }
@@ -276,10 +363,10 @@ export class BillingService {
    */
   async getInvoice(invoiceId: string): Promise<Invoice> {
     try {
-      const raw = await api.get<any>(`/api/v1/billing/invoices/${invoiceId}`);
-      const inv = raw?.data ?? raw;
+      const raw = await api.get<{ data?: RawInvoice } | RawInvoice>(`/api/v1/billing/invoices/${invoiceId}`);
+      const inv: RawInvoice = (raw && typeof raw === 'object' && 'data' in raw ? raw.data : raw) ?? {};
       const lineItems = Array.isArray(inv.lineItems)
-        ? inv.lineItems.map((line: any) => ({
+        ? inv.lineItems.map((line: RawInvoiceLine) => ({
             id: line.id ?? '',
             description: line.description ?? '',
             amount: typeof line.amount === 'number' ? line.amount : (line.amount ?? 0) / 100,
@@ -287,7 +374,7 @@ export class BillingService {
             unitPrice: line.unitPrice ?? 0,
           }))
         : Array.isArray(inv.lines?.data)
-          ? inv.lines.data.map((line: any) => {
+          ? inv.lines.data.map((line: RawInvoiceLine) => {
               const quantity = line.quantity ?? 1;
               const unitPrice = quantity ? (line.amount ?? 0) / 100 / quantity : 0;
               return {
@@ -313,7 +400,7 @@ export class BillingService {
         lineItems,
         createdAt: inv.createdAt ? new Date(inv.createdAt) : new Date((inv.created ?? 0) * 1000),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching invoice', { error, invoiceId });
       throw error;
     }
@@ -324,8 +411,8 @@ export class BillingService {
    */
   async downloadInvoice(invoiceId: string): Promise<{ url: string }> {
     try {
-      const response = await api.get(`/api/v1/billing/invoices/${invoiceId}/pdf`) as any;
-      const data = response?.data;
+      const response = await api.get<InvoicePdfResponse>(`/api/v1/billing/invoices/${invoiceId}/pdf`);
+      const data = response?.data ?? response;
       const url = data?.url || data?.invoice_pdf;
 
       if (!url) {
@@ -333,7 +420,7 @@ export class BillingService {
       }
 
       return { url };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error downloading invoice', { error, invoiceId });
       throw error;
     }
@@ -359,16 +446,18 @@ export class BillingService {
         '/api/v1/billing/usage',
         { params: { brandId, periodStart: start.toISOString(), periodEnd: end.toISOString() } }
       );
-      const data = (raw as any)?.data ?? raw;
+      const wrapped = raw as UsageMetrics | { data?: Partial<UsageMetrics> };
+      const data = wrapped && typeof wrapped === 'object' && 'data' in wrapped ? wrapped.data : (raw as Partial<UsageMetrics>);
+      const metrics = (data ?? {}) as Partial<UsageMetrics>;
       return {
-        customizations: data?.customizations ?? 0,
-        renders: data?.renders ?? 0,
-        apiCalls: data?.apiCalls ?? 0,
-        storageBytes: data?.storageBytes ?? 0,
-        periodStart: data?.periodStart ? new Date(data.periodStart) : start,
-        periodEnd: data?.periodEnd ? new Date(data.periodEnd) : end,
+        customizations: metrics.customizations ?? 0,
+        renders: metrics.renders ?? 0,
+        apiCalls: metrics.apiCalls ?? 0,
+        storageBytes: metrics.storageBytes ?? 0,
+        periodStart: metrics.periodStart ? new Date(metrics.periodStart as Date) : start,
+        periodEnd: metrics.periodEnd ? new Date(metrics.periodEnd as Date) : end,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching usage metrics', { error, brandId });
       throw error;
     }
@@ -410,9 +499,9 @@ export class BillingService {
    */
   async getBillingLimits(brandId: string): Promise<BillingLimits> {
     try {
-      const brand = await endpoints.brands.current().catch(() => null) as any;
+      const brand = (await endpoints.brands.current().catch(() => null)) as BrandWithLimits | null;
       const plan = (brand?.plan ?? 'free').toLowerCase();
-      const base = this.defaultLimits[plan] ?? this.defaultLimits.free;
+      const base = this.defaultLimits[plan as keyof typeof this.defaultLimits] ?? this.defaultLimits.free;
       const custom = brand?.limits;
       if (!custom) return base;
       return {
@@ -422,7 +511,7 @@ export class BillingService {
         storageBytes: custom.storageBytes ?? base.storageBytes,
         costLimitCents: custom.costLimitCents ?? base.costLimitCents,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching billing limits', { error, brandId });
       throw error;
     }
@@ -471,7 +560,7 @@ export class BillingService {
         limit,
         percentage: Math.min(percentage, 100),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error checking limit', { error, brandId, metric });
       throw error;
     }
@@ -487,8 +576,9 @@ export class BillingService {
   async listPaymentMethods(_brandId: string): Promise<PaymentMethod[]> {
     try {
       const data = await endpoints.billing.paymentMethods();
-      const list = Array.isArray(data) ? data : (data as any)?.paymentMethods ?? (data as any)?.data ?? [];
-      return (list as any[]).map((pm: any) => ({
+      const raw = data as RawPaymentMethod[] | { paymentMethods?: RawPaymentMethod[]; data?: RawPaymentMethod[] };
+      const list = Array.isArray(data) ? data : raw?.paymentMethods ?? raw?.data ?? [];
+      return (list as RawPaymentMethod[]).map((pm) => ({
         id: pm.id,
         type: (pm.type ?? 'card') as 'card' | 'bank_account',
         last4: pm.last4 ?? pm.card?.last4,
@@ -497,7 +587,7 @@ export class BillingService {
         expiryYear: pm.expiryYear ?? pm.card?.exp_year,
         isDefault: !!pm.isDefault,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing payment methods', { error, brandId: _brandId });
       throw error;
     }
@@ -513,7 +603,7 @@ export class BillingService {
     try {
       logger.info('Adding payment method', { brandId, paymentMethodId });
       const pm = await endpoints.billing.addPaymentMethod(paymentMethodId);
-      const data = (pm as any)?.paymentMethod ?? pm;
+      const data = (pm as { paymentMethod?: RawPaymentMethod } | RawPaymentMethod)?.paymentMethod ?? (pm as RawPaymentMethod);
       return {
         id: data?.id ?? paymentMethodId,
         type: (data?.type ?? 'card') as 'card' | 'bank_account',
@@ -523,7 +613,7 @@ export class BillingService {
         expiryYear: data?.expiryYear ?? data?.exp_year,
         isDefault: false,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error adding payment method', { error, brandId, paymentMethodId });
       throw error;
     }
@@ -539,7 +629,7 @@ export class BillingService {
         params: { paymentMethodId },
       });
       logger.info('Payment method removed', { paymentMethodId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error removing payment method', { error, paymentMethodId });
       throw error;
     }
@@ -556,7 +646,7 @@ export class BillingService {
       logger.info('Setting default payment method', { brandId: _brandId, paymentMethodId });
       await api.post('/api/v1/billing/payment-methods/default', { paymentMethodId });
       logger.info('Default payment method set', { brandId: _brandId, paymentMethodId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error setting default payment method', { error, brandId: _brandId, paymentMethodId });
       throw error;
     }
@@ -586,7 +676,7 @@ export class BillingService {
         status: refund.status ?? 'unknown',
         amount: refund.amount ?? 0,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error creating refund', { error, paymentIntentId });
       throw error;
     }

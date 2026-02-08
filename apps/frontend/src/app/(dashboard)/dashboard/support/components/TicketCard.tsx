@@ -50,7 +50,7 @@ export function TicketCard({
     >
       <Card
         className={cn(
-          'p-4 bg-gray-800/50 border-gray-700 hover:border-gray-600 transition-all cursor-pointer border-l-4 relative',
+          'p-4 bg-white border-gray-200 hover:border-gray-300 transition-all cursor-pointer border-l-4 relative',
           priorityConfig[ticket.priority]?.borderColor,
           isSelected && 'ring-2 ring-cyan-500'
         )}
@@ -91,8 +91,8 @@ export function TicketCard({
                 </Badge>
               )}
             </div>
-            <h3 className="font-semibold text-white truncate mb-1">{ticket.subject}</h3>
-            <p className="text-sm text-gray-400 line-clamp-2 mb-2">{ticket.description}</p>
+            <h3 className="font-semibold text-gray-900 truncate mb-1">{ticket.subject}</h3>
+            <p className="text-sm text-gray-600 line-clamp-2 mb-2">{ticket.description}</p>
             <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
@@ -112,7 +112,7 @@ export function TicketCard({
             {sla.status !== 'on-track' && (
               <div className="mt-2">
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-gray-400">Temps restant</span>
+                  <span className="text-gray-600">Temps restant</span>
                   <span className={cn(sla.status === 'breached' ? 'text-red-400' : 'text-yellow-400')}>
                     {sla.resolutionTime.toFixed(1)}h
                   </span>

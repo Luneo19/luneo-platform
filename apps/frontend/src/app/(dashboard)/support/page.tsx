@@ -272,7 +272,7 @@ function SupportPageContent() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">Priorité</label>
                   <select
                     value={newTicket.priority}
-                    onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as any })}
+                    onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' })}
                     className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white"
                   >
                     <option value="low">Basse</option>

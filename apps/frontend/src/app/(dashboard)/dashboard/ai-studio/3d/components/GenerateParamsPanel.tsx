@@ -82,19 +82,19 @@ export function GenerateParamsPanel({
   toast,
 }: GenerateParamsPanelProps) {
   return (
-    <Card className="bg-slate-900/50 border-slate-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-gray-900 flex items-center gap-2">
           <Wand2 className="w-5 h-5 text-cyan-400" />
           Paramètres 3D
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-gray-600">
           Configurez votre modèle 3D
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="prompt" className="text-white">
+          <Label htmlFor="prompt" className="text-gray-900">
             Description du modèle *
           </Label>
           <Textarea
@@ -102,16 +102,16 @@ export function GenerateParamsPanel({
             placeholder="Ex: Montre de luxe en or avec cadran bleu, style classique, détails précis..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="bg-slate-800 border-slate-700 text-white min-h-[100px] resize-none"
+            className="bg-white border-gray-200 text-gray-900 min-h-[100px] resize-none"
             rows={4}
           />
-          <p className="text-xs text-slate-400">{prompt.length}/500 caractères</p>
+          <p className="text-xs text-gray-600">{prompt.length}/500 caractères</p>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white">Catégorie</Label>
+          <Label className="text-gray-900">Catégorie</Label>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+            <SelectTrigger className="bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -125,9 +125,9 @@ export function GenerateParamsPanel({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white">Complexité</Label>
+          <Label className="text-gray-900">Complexité</Label>
           <Select value={complexity} onValueChange={setComplexity}>
-            <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+            <SelectTrigger className="bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -141,9 +141,9 @@ export function GenerateParamsPanel({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white">Résolution</Label>
+          <Label className="text-gray-900">Résolution</Label>
           <Select value={resolution} onValueChange={setResolution}>
-            <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+            <SelectTrigger className="bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -201,7 +201,7 @@ export function GenerateParamsPanel({
           variant="ghost"
           size="sm"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="w-full border-slate-700"
+          className="w-full border-gray-200"
         >
           {showAdvanced ? (
             <>
@@ -237,20 +237,20 @@ export function GenerateParamsPanel({
 
         {isGenerating && <Progress value={generationProgress} className="h-2" />}
 
-        <Separator className="bg-slate-700" />
+        <Separator className="bg-gray-200" />
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="text-white">Génération par lot</Label>
+            <Label className="text-gray-900">Génération par lot</Label>
             <Checkbox
               checked={enableBatch}
               onCheckedChange={(checked) => setEnableBatch(checked === true)}
-              className="border-slate-600"
+              className="border-gray-200"
             />
           </div>
           {enableBatch && (
-            <div className="space-y-3 p-3 bg-slate-800/50 rounded-lg">
+            <div className="space-y-3 p-3 bg-gray-100 rounded-lg">
               <div className="space-y-2">
-                <Label className="text-sm text-slate-300">Nombre de variantes</Label>
+                <Label className="text-sm text-gray-700">Nombre de variantes</Label>
                 <Slider
                   value={[batchCount]}
                   onValueChange={(value) => setBatchCount(value[0])}
@@ -259,22 +259,22 @@ export function GenerateParamsPanel({
                   step={1}
                   className="w-full"
                 />
-                <div className="flex justify-between text-xs text-slate-400">
+                <div className="flex justify-between text-xs text-gray-600">
                   <span>2 variantes</span>
-                  <span className="font-semibold text-cyan-400">{batchCount} variantes</span>
+                  <span className="font-semibold text-cyan-600">{batchCount} variantes</span>
                   <span>10 variantes</span>
                 </div>
               </div>
-              <div className="p-2 bg-slate-900/50 rounded text-xs text-slate-400">
+              <div className="p-2 bg-gray-50 rounded text-xs text-gray-600">
                 Coût total: {batchCount * 25} crédits ({batchCount} × 25)
               </div>
             </div>
           )}
         </div>
 
-        <Separator className="bg-slate-700" />
+        <Separator className="bg-gray-200" />
         <div className="space-y-2">
-          <Label className="text-white">Actions rapides</Label>
+          <Label className="text-gray-900">Actions rapides</Label>
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
@@ -287,7 +287,7 @@ export function GenerateParamsPanel({
                 setComplexity('high');
                 toast({ title: 'Template chargé', description: 'Prompt de montre de luxe chargé' });
               }}
-              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              className="border-gray-200 text-gray-700 hover:bg-gray-100"
             >
               <Sparkles className="w-3 h-3 mr-1" />
               Template Luxe
@@ -303,7 +303,7 @@ export function GenerateParamsPanel({
                 setComplexity('medium');
                 toast({ title: 'Template chargé', description: 'Prompt de mobilier moderne chargé' });
               }}
-              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              className="border-gray-200 text-gray-700 hover:bg-gray-100"
             >
               <Box className="w-3 h-3 mr-1" />
               Template Moderne
@@ -319,7 +319,7 @@ export function GenerateParamsPanel({
                 setComplexity('high');
                 toast({ title: 'Template chargé', description: "Prompt d'électronique futuriste chargé" });
               }}
-              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              className="border-gray-200 text-gray-700 hover:bg-gray-100"
             >
               <Zap className="w-3 h-3 mr-1" />
               Template Tech
@@ -335,7 +335,7 @@ export function GenerateParamsPanel({
                 setComplexity('ultra');
                 toast({ title: 'Template chargé', description: 'Prompt de bijou élégant chargé' });
               }}
-              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              className="border-gray-200 text-gray-700 hover:bg-gray-100"
             >
               <Diamond className="w-3 h-3 mr-1" />
               Template Bijou
@@ -343,14 +343,14 @@ export function GenerateParamsPanel({
           </div>
         </div>
 
-        <Separator className="bg-slate-700" />
+        <Separator className="bg-gray-200" />
         <Card className="bg-purple-500/10 border-purple-500/30">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-4 h-4 text-purple-400" />
               <Label className="text-sm text-purple-300">Suggestions IA</Label>
             </div>
-            <p className="text-xs text-slate-300 mb-2">
+            <p className="text-xs text-gray-700 mb-2">
               L&apos;IA peut améliorer votre prompt pour de meilleurs résultats
             </p>
             <Button

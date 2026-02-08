@@ -19,7 +19,7 @@ export function DashboardSkeleton() {
       {/* KPIs Skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="bg-gray-800/50 border-gray-700">
+          <Card key={i} className="bg-white border-gray-200">
             <CardContent className="p-6">
               <Skeleton className="h-4 w-24 mb-2" />
               <Skeleton className="h-8 w-32 mb-2" />
@@ -32,7 +32,7 @@ export function DashboardSkeleton() {
       {/* Charts and Sidebar Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <Skeleton className="h-6 w-32 mb-2" />
               <Skeleton className="h-4 w-48" />
@@ -43,7 +43,7 @@ export function DashboardSkeleton() {
           </Card>
         </div>
         <div className="space-y-6">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <Skeleton className="h-6 w-32" />
             </CardHeader>
@@ -55,7 +55,7 @@ export function DashboardSkeleton() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <Skeleton className="h-6 w-32" />
             </CardHeader>
@@ -71,7 +71,7 @@ export function DashboardSkeleton() {
       </div>
 
       {/* Recent Activity Skeleton */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <Skeleton className="h-6 w-40 mb-2" />
           <Skeleton className="h-4 w-64" />

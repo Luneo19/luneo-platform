@@ -17,20 +17,20 @@ interface FunnelAnalysisProps {
 export function FunnelAnalysis({ funnelData }: FunnelAnalysisProps) {
   if (funnelData.length === 0) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Analyse de Funnel</CardTitle>
-          <CardDescription>Aucune donnée disponible</CardDescription>
+          <CardTitle className="text-gray-900">Analyse de Funnel</CardTitle>
+          <CardDescription className="text-gray-600">Aucune donnée disponible</CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Analyse de Funnel</CardTitle>
-        <CardDescription>Parcours de conversion</CardDescription>
+        <CardTitle className="text-gray-900">Analyse de Funnel</CardTitle>
+        <CardDescription className="text-gray-600">Parcours de conversion</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {funnelData.map((step, index) => (
@@ -57,7 +57,7 @@ export function FunnelAnalysis({ funnelData }: FunnelAnalysisProps) {
             <Progress value={step.percentage} className="h-2" />
             {index < funnelData.length - 1 && (
               <div className="flex justify-center py-2">
-                <div className="w-px h-4 bg-gray-700" />
+                <div className="w-px h-4 bg-gray-200" />
               </div>
             )}
           </div>

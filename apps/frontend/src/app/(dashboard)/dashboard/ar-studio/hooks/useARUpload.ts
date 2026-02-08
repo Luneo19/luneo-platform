@@ -110,16 +110,17 @@ export function useARUpload() {
           clearInterval(progressInterval);
           throw error;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erreur lors de l\'upload';
         logger.error('Error uploading AR model', { error });
         setUploadProgress((prev) =>
           prev.map((item) =>
             item.file === file
-              ? { ...item, status: 'error', error: error.message }
+              ? { ...item, status: 'error', error: message }
               : item
           )
         );
-        return { success: false, error: error.message || 'Erreur lors de l\'upload' };
+        return { success: false, error: message };
       } finally {
         setIsUploading(false);
       }

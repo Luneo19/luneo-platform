@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AffiliateLink, AffiliateStats, Commission, Referral } from '../types';
 import { MIN_PAYOUT_THRESHOLD } from '../constants';
 
+const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+
 const initialStats: AffiliateStats = {
   totalReferrals: 0,
   activeReferrals: 0,
@@ -33,7 +35,7 @@ export function useAffiliatePage() {
       {
         id: '1',
         code: 'REF123',
-        url: 'https://luneo.com?ref=REF123',
+        url: `${APP_BASE_URL}?ref=REF123`,
         name: 'Lien principal',
         clicks: 1250,
         conversions: 45,
@@ -44,7 +46,7 @@ export function useAffiliatePage() {
       {
         id: '2',
         code: 'REF456',
-        url: 'https://luneo.com?ref=REF456',
+        url: `${APP_BASE_URL}?ref=REF456`,
         name: 'Lien blog',
         clicks: 890,
         conversions: 28,

@@ -125,9 +125,9 @@ export class ProductsService {
     // Optimisé: select au lieu de include
     return this.prisma.product.create({
       data: {
-        ...(createProductDto as any),
+        ...createProductDto,
         brandId,
-      } as any,
+      } as Prisma.ProductCreateInput,
       select: {
         id: true,
         name: true,
@@ -523,7 +523,7 @@ export class ProductsService {
     });
 
     const updatedModelConfig = {
-      ...(existingProduct?.modelConfig as any || {}),
+      ...((existingProduct?.modelConfig as Record<string, unknown>) || {}),
       modelUpload: {
         fileName: body.fileName,
         fileSize: body.fileSize,
@@ -536,7 +536,7 @@ export class ProductsService {
       where: { id: productId },
       data: {
         model3dUrl: finalModelUrl,
-        modelConfig: updatedModelConfig as any,
+        modelConfig: updatedModelConfig as unknown as import('@prisma/client').Prisma.InputJsonValue,
       },
       select: {
         id: true,

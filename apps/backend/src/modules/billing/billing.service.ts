@@ -10,6 +10,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { StripeClientService } from './services/stripe-client.service';
 import { StripeWebhookService } from './services/stripe-webhook.service';
@@ -804,7 +805,7 @@ export class BillingService {
         where: { id: brand.id },
         data: {
           plan: newPlanId,
-          subscriptionPlan: (planMapping[newPlanId] || 'STARTER') as any,
+          subscriptionPlan: (planMapping[newPlanId] || 'STARTER') as SubscriptionPlan,
           // Ne pas changer le status si c'est un downgrade programmé
           ...(isUpgrade ? { subscriptionStatus: 'ACTIVE' } : {}),
         },
@@ -1423,7 +1424,7 @@ export class BillingService {
   /**
    * Handle Stripe webhook events with idempotency protection
    */
-  async handleStripeWebhook(event: Stripe.Event): Promise<{ processed: boolean; result?: any }> {
+  async handleStripeWebhook(event: Stripe.Event): Promise<{ processed: boolean; result?: Record<string, unknown> }> {
     return this.webhookService.handleStripeWebhook(event);
   }
 
@@ -1485,7 +1486,7 @@ export class BillingService {
       await this.prisma.brand.update({
         where: { id: brandId },
         data: {
-          subscriptionStatus: newStatus as any,
+          subscriptionStatus: newStatus as SubscriptionStatus,
         },
       });
 

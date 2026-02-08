@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { getBackendUrl } from '@/lib/api/server-url';
 
 const UnsubscribeSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update subscription status via backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const backendUrl = getBackendUrl();
     try {
       await fetch(`${backendUrl}/api/v1/newsletter/unsubscribe`, {
         method: 'POST',

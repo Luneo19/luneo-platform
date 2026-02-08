@@ -15,7 +15,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 interface ProductConfigurator3DProps {
   productId: string;
   modelUrl: string;
-  onSave?: (configuration: any) => void;
+  onSave?: (configuration: Record<string, unknown>) => void;
   className?: string;
 }
 

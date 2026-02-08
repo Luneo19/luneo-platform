@@ -6,12 +6,11 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { serverFetch } from '@/lib/api/server-fetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OrdersPageClient } from './orders-page-client';
 import { OrdersPageSkeleton } from './orders-page-skeleton';
 import type { Order } from './types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface OrdersPageProps {
   searchParams: Promise<{
@@ -29,15 +28,13 @@ interface OrdersPageProps {
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const params = await searchParams;
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get('accessToken')?.value;
-  if (!accessToken) redirect('/login');
+  if (!cookieStore.get('accessToken')?.value) redirect('/login');
 
-  const userRes = await fetch(`${API_URL}/api/v1/auth/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: 'no-store',
-  });
-  const user = userRes.ok ? await userRes.json() : null;
-  if (!user) redirect('/login');
+  try {
+    await serverFetch('/api/v1/auth/me');
+  } catch {
+    redirect('/login');
+  }
 
   const page = parseInt(params.page || '1', 10);
   const limit = 20;
@@ -53,16 +50,10 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   let count = 0;
 
   try {
-    const ordersRes = await fetch(`${API_URL}/api/v1/orders?${searchParamsUrl.toString()}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: 'no-store',
-    });
-    if (ordersRes.ok) {
-      const data = await ordersRes.json();
-      const raw = Array.isArray(data.data) ? data.data : Array.isArray(data.orders) ? data.orders : data.items ?? [];
-      orders = raw as Order[];
-      count = data.pagination?.total ?? data.total ?? orders.length;
-    }
+    const data = await serverFetch<{ data?: Order[]; orders?: Order[]; items?: Order[]; pagination?: { total?: number }; total?: number }>(`/api/v1/orders?${searchParamsUrl.toString()}`);
+    const raw = Array.isArray(data.data) ? data.data : Array.isArray(data.orders) ? data.orders : data.items ?? [];
+    orders = raw as Order[];
+    count = data.pagination?.total ?? data.total ?? orders.length;
   } catch {
     // Fallback: show empty list
   }

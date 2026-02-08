@@ -52,7 +52,7 @@ export function ProductFilters({
   };
 
   return (
-    <Card className="p-4 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Search */}
         <div className="flex-1 relative">
@@ -63,7 +63,7 @@ export function ProductFilters({
               onFiltersChange({ ...filters, search: e.target.value })
             }
             placeholder="Rechercher par nom, description, SKU, tags..."
-            className="pl-10 bg-gray-900 border-gray-600 text-white"
+            className="pl-10 bg-white border-gray-200 text-gray-900"
           />
         </div>
 
@@ -74,7 +74,7 @@ export function ProductFilters({
             onFiltersChange({ ...filters, category: value })
           }
         >
-          <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+          <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Catégorie" />
           </SelectTrigger>
           <SelectContent>
@@ -99,7 +99,7 @@ export function ProductFilters({
             onFiltersChange({ ...filters, status: value })
           }
         >
-          <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+          <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
           <SelectContent>
@@ -121,7 +121,7 @@ export function ProductFilters({
           value={`${sortOption.field}-${sortOption.direction}`}
           onValueChange={handleSort}
         >
-          <SelectTrigger className="w-[200px] bg-gray-900 border-gray-600 text-white">
+          <SelectTrigger className="w-[200px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Trier par" />
           </SelectTrigger>
           <SelectContent>
@@ -134,7 +134,7 @@ export function ProductFilters({
         </Select>
 
         {/* View Mode Toggle */}
-        <div className="flex items-center gap-2 border border-gray-700 rounded-lg p-1 bg-gray-900">
+        <div className="flex items-center gap-2 border border-gray-200 rounded-lg p-1 bg-gray-50">
           {Object.entries(VIEW_MODES).map(([mode, config]) => {
             const Icon = config.icon;
             return (
@@ -147,7 +147,7 @@ export function ProductFilters({
                   'h-8',
                   viewMode === mode
                     ? 'bg-cyan-600 text-white'
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-gray-600 hover:text-gray-900'
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -164,11 +164,11 @@ export function ProductFilters({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="mt-4 pt-4 border-t border-gray-700 overflow-hidden"
+            className="mt-4 pt-4 border-t border-gray-200 overflow-hidden"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <Label className="text-gray-300">Prix minimum</Label>
+                <Label className="text-gray-700">Prix minimum</Label>
                 <Input
                   type="number"
                   value={filters.priceMin || ''}
@@ -181,11 +181,11 @@ export function ProductFilters({
                     })
                   }
                   placeholder="0.00"
-                  className="bg-gray-900 border-gray-600 text-white mt-1"
+                  className="bg-white border-gray-200 text-gray-900 mt-1"
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Prix maximum</Label>
+                <Label className="text-gray-700">Prix maximum</Label>
                 <Input
                   type="number"
                   value={filters.priceMax || ''}
@@ -198,11 +198,11 @@ export function ProductFilters({
                     })
                   }
                   placeholder="9999.99"
-                  className="bg-gray-900 border-gray-600 text-white mt-1"
+                  className="bg-white border-gray-200 text-gray-900 mt-1"
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Date de début</Label>
+                <Label className="text-gray-700">Date de début</Label>
                 <Input
                   type="date"
                   value={filters.dateFrom || ''}
@@ -212,11 +212,11 @@ export function ProductFilters({
                       dateFrom: e.target.value || null,
                     })
                   }
-                  className="bg-gray-900 border-gray-600 text-white mt-1"
+                  className="bg-white border-gray-200 text-gray-900 mt-1"
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Date de fin</Label>
+                <Label className="text-gray-700">Date de fin</Label>
                 <Input
                   type="date"
                   value={filters.dateTo || ''}
@@ -226,7 +226,7 @@ export function ProductFilters({
                       dateTo: e.target.value || null,
                     })
                   }
-                  className="bg-gray-900 border-gray-600 text-white mt-1"
+                  className="bg-white border-gray-200 text-gray-900 mt-1"
                 />
               </div>
               <div className="flex items-center gap-4">
@@ -241,7 +241,7 @@ export function ProductFilters({
                       })
                     }
                   />
-                  <Label htmlFor="active-only" className="text-gray-300 cursor-pointer">
+                  <Label htmlFor="active-only" className="text-gray-700 cursor-pointer">
                     Actifs uniquement
                   </Label>
                 </div>
@@ -256,7 +256,7 @@ export function ProductFilters({
                       })
                     }
                   />
-                  <Label htmlFor="public-only" className="text-gray-300 cursor-pointer">
+                  <Label htmlFor="public-only" className="text-gray-700 cursor-pointer">
                     Publics uniquement
                   </Label>
                 </div>
@@ -266,7 +266,7 @@ export function ProductFilters({
                   variant="outline"
                   size="sm"
                   onClick={onResetFilters}
-                  className="border-gray-600"
+                  className="border-gray-200"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Réinitialiser

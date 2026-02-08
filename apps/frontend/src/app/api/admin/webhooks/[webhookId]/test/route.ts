@@ -6,8 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 function forwardHeaders(request: NextRequest): HeadersInit {
   const headers: HeadersInit = {
@@ -28,7 +29,8 @@ export async function POST(
     if (!adminUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-    const { webhookId } = typeof (params as any).then === 'function' ? await (params as Promise<{ webhookId: string }>) : (params as { webhookId: string });
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const { webhookId } = resolvedParams;
     const body = await request.json().catch(() => ({}));
     const res = await fetch(`${API_URL}/api/v1/admin/webhooks/${webhookId}/test`, {
       method: 'POST',

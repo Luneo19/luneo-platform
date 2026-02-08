@@ -26,13 +26,14 @@ export function useProducts() {
       const pag = raw?.data?.pagination ?? raw?.pagination ?? { page: 1, limit: 20, total: 0, pages: 0 };
       setProducts(Array.isArray(list) ? list : []);
       setPagination(pag);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur chargement products', {
         error: err,
         page,
-        message: err.message,
+        message,
       });
-      setError(err.message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -48,14 +49,15 @@ export function useProducts() {
       const product = raw?.data?.product ?? raw?.product;
       await loadProducts();
       return { success: true, product };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur création product', {
         error: err,
         productData,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -71,15 +73,16 @@ export function useProducts() {
       const product = raw?.data?.product ?? raw?.product;
       await loadProducts();
       return { success: true, product };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur mise à jour product', {
         error: err,
         productId: id,
         updates,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -93,14 +96,15 @@ export function useProducts() {
       await endpoints.products.delete(id);
       await loadProducts();
       return { success: true, message: 'Produit supprimé' };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur suppression product', {
         error: err,
         productId: id,
-        message: err.message,
+        message,
       });
-      setError(err.message);
-      return { success: false, error: err.message };
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }

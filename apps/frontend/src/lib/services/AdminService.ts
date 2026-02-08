@@ -77,6 +77,13 @@ export interface UpdateBrandRequest {
   plan?: string;
 }
 
+/** Raw API shape for user list/item (backend may return various shapes) */
+type RawUserRecord = Record<string, unknown>;
+/** Raw API shape for brand list/item */
+type RawBrandRecord = Record<string, unknown>;
+/** Raw API shape for admin metrics response */
+type RawMetricsRecord = Record<string, unknown>;
+
 // ========================================
 // SERVICE
 // ========================================
@@ -97,17 +104,20 @@ export class AdminService {
   // USERS
   // ========================================
 
-  private mapUser(raw: any): User {
+  private mapUser(raw: RawUserRecord): User {
+    const firstName = raw.firstName as string | undefined;
+    const lastName = raw.lastName as string | undefined;
+    const namePart = [firstName, lastName].filter(Boolean).join(' ').trim() || undefined;
     return {
-      id: raw.id,
-      email: raw.email,
-      name: raw.name ?? ([raw.firstName, raw.lastName].filter(Boolean).join(' ').trim() || undefined),
-      role: raw.role,
-      brandId: raw.brandId ?? undefined,
-      isActive: raw.isActive ?? true,
-      emailVerified: raw.emailVerified,
-      lastLoginAt: raw.lastLoginAt ? new Date(raw.lastLoginAt) : undefined,
-      createdAt: new Date(raw.createdAt),
+      id: String(raw.id),
+      email: String(raw.email),
+      name: (raw.name as string | undefined) ?? namePart,
+      role: String(raw.role),
+      brandId: raw.brandId != null ? String(raw.brandId) : undefined,
+      isActive: raw.isActive !== false,
+      emailVerified: Boolean(raw.emailVerified),
+      lastLoginAt: raw.lastLoginAt != null ? new Date(raw.lastLoginAt as string | number) : undefined,
+      createdAt: new Date(raw.createdAt as string | number),
     };
   }
 
@@ -130,15 +140,15 @@ export class AdminService {
           search: options?.brandId,
         },
       });
-      const list = res?.data ?? res?.customers ?? res?.users ?? [];
+      const list = (res?.data ?? res?.customers ?? res?.users ?? []) as RawUserRecord[];
       const total = res?.total ?? res?.pagination?.total ?? list.length;
-      const users = (list as any[]).map((u: any) => this.mapUser(u));
+      const users = list.map((u) => this.mapUser(u));
       return {
         users,
         total,
         hasMore: (options?.offset ?? 0) + (options?.limit ?? 20) < total,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing users', { error, options });
       throw error;
     }
@@ -149,10 +159,10 @@ export class AdminService {
    */
   async getUserById(userId: string): Promise<User> {
     try {
-      const raw = await api.get<any>(`/api/v1/admin/customers/${userId}`);
+      const raw = await api.get<RawUserRecord>(`/api/v1/admin/customers/${userId}`);
       if (!raw) throw new Error('User not found');
-      return this.mapUser(raw);
-    } catch (error: any) {
+      return this.mapUser(raw as RawUserRecord);
+    } catch (error: unknown) {
       logger.error('Error fetching user', { error, userId });
       throw error;
     }
@@ -173,8 +183,8 @@ export class AdminService {
       });
       cacheService.clear();
       logger.info('User created', { userId: raw?.id, email: request.email });
-      return this.mapUser(raw);
-    } catch (error: any) {
+      return this.mapUser(raw as RawUserRecord);
+    } catch (error: unknown) {
       logger.error('Error creating user', { error, request });
       throw error;
     }
@@ -186,7 +196,7 @@ export class AdminService {
   async updateUser(request: UpdateUserRequest): Promise<User> {
     try {
       logger.info('Updating user', { userId: request.id });
-      const raw = await api.patch<any>(`/api/v1/admin/users/${request.id}`, {
+      const raw = await api.patch<RawUserRecord>(`/api/v1/admin/users/${request.id}`, {
         name: request.name,
         role: request.role,
         brandId: request.brandId,
@@ -194,8 +204,8 @@ export class AdminService {
       });
       cacheService.clear();
       logger.info('User updated', { userId: request.id });
-      return this.mapUser(raw);
-    } catch (error: any) {
+      return this.mapUser(raw as RawUserRecord);
+    } catch (error: unknown) {
       logger.error('Error updating user', { error, request });
       throw error;
     }
@@ -209,7 +219,7 @@ export class AdminService {
       logger.info('Suspending user', { userId });
 
       return await this.updateUser({ id: userId, isActive: false });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error suspending user', { error, userId });
       throw error;
     }
@@ -223,7 +233,7 @@ export class AdminService {
       logger.info('Activating user', { userId });
 
       return await this.updateUser({ id: userId, isActive: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error activating user', { error, userId });
       throw error;
     }
@@ -233,15 +243,15 @@ export class AdminService {
   // BRANDS
   // ========================================
 
-  private mapBrand(raw: any): Brand {
+  private mapBrand(raw: RawBrandRecord): Brand {
     return {
-      id: raw.id,
-      name: raw.name,
-      slug: raw.slug,
-      status: raw.status ?? 'active',
-      plan: raw.plan ?? 'free',
-      stripeCustomerId: raw.stripeCustomerId ?? undefined,
-      createdAt: new Date(raw.createdAt),
+      id: String(raw.id),
+      name: String(raw.name),
+      slug: String(raw.slug),
+      status: (raw.status as string) ?? 'active',
+      plan: (raw.plan as string) ?? 'free',
+      stripeCustomerId: raw.stripeCustomerId != null ? String(raw.stripeCustomerId) : undefined,
+      createdAt: new Date(raw.createdAt as string | number),
     };
   }
 
@@ -255,14 +265,14 @@ export class AdminService {
     offset?: number;
   }): Promise<{ brands: Brand[]; total: number; hasMore: boolean }> {
     try {
-      const res = await api.get<any>('/api/v1/admin/brands', {
+      const res = await api.get<{ brands?: RawBrandRecord[]; data?: RawBrandRecord[]; total?: number }>('/api/v1/admin/brands', {
         params: { limit: options?.limit ?? 20, offset: options?.offset ?? 0, status: options?.status, plan: options?.plan },
       });
-      const list = res?.brands ?? res?.data ?? [];
+      const list = (res?.brands ?? res?.data ?? []) as RawBrandRecord[];
       const total = res?.total ?? list.length;
-      const brands = (list as any[]).map((b: any) => this.mapBrand(b));
+      const brands = list.map((b) => this.mapBrand(b));
       return { brands, total, hasMore: (options?.offset ?? 0) + (options?.limit ?? 20) < total };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing brands', { error, options });
       throw error;
     }
@@ -273,10 +283,10 @@ export class AdminService {
    */
   async getBrandById(brandId: string): Promise<Brand> {
     try {
-      const raw = await api.get<any>(`/api/v1/admin/brands/${brandId}`);
+      const raw = await api.get<RawBrandRecord>(`/api/v1/admin/brands/${brandId}`);
       if (!raw) throw new Error('Brand not found');
-      return this.mapBrand(raw);
-    } catch (error: any) {
+      return this.mapBrand(raw as RawBrandRecord);
+    } catch (error: unknown) {
       logger.error('Error fetching brand', { error, brandId });
       throw error;
     }
@@ -288,15 +298,15 @@ export class AdminService {
   async createBrand(request: CreateBrandRequest): Promise<Brand> {
     try {
       logger.info('Creating brand', { name: request.name, slug: request.slug });
-      const raw = await api.post<any>('/api/v1/admin/brands', {
+      const raw = await api.post<RawBrandRecord>('/api/v1/admin/brands', {
         name: request.name,
         slug: request.slug,
         userId: request.userId,
       });
       cacheService.clear();
       logger.info('Brand created', { brandId: raw?.id });
-      return this.mapBrand(raw);
-    } catch (error: any) {
+      return this.mapBrand(raw as RawBrandRecord);
+    } catch (error: unknown) {
       logger.error('Error creating brand', { error, request });
       throw error;
     }
@@ -308,15 +318,15 @@ export class AdminService {
   async updateBrand(request: UpdateBrandRequest): Promise<Brand> {
     try {
       logger.info('Updating brand', { brandId: request.id });
-      const raw = await api.patch<any>(`/api/v1/admin/brands/${request.id}`, {
+      const raw = await api.patch<RawBrandRecord>(`/api/v1/admin/brands/${request.id}`, {
         name: request.name,
         status: request.status,
         plan: request.plan,
       });
       cacheService.clear();
       logger.info('Brand updated', { brandId: request.id });
-      return this.mapBrand(raw);
-    } catch (error: any) {
+      return this.mapBrand(raw as RawBrandRecord);
+    } catch (error: unknown) {
       logger.error('Error updating brand', { error, request });
       throw error;
     }
@@ -330,7 +340,7 @@ export class AdminService {
       logger.info('Suspending brand', { brandId });
 
       return await this.updateBrand({ id: brandId, status: 'SUSPENDED' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error suspending brand', { error, brandId });
       throw error;
     }
@@ -354,7 +364,7 @@ export class AdminService {
         }
       }
       const data = await endpoints.admin.metrics();
-      const m = (data as any) ?? {};
+      const m = (data as RawMetricsRecord | null | undefined) ?? {};
       const stats: SystemStats = {
         totalUsers: m.totalUsers ?? m.totalCustomers ?? 0,
         totalBrands: m.totalBrands ?? 0,
@@ -367,7 +377,7 @@ export class AdminService {
       };
       cacheService.set(cacheKey, stats, { ttl: 300 * 1000 });
       return stats;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching system stats', { error });
       throw error;
     }

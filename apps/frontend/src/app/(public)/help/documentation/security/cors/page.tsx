@@ -1,6 +1,4 @@
-'use client';
-
-import React, { memo } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -58,3 +56,10 @@ function SecurityCorsPageContent() {
   );
 }
 
+export default function SecurityCorsPage() {
+  return (
+    <ErrorBoundary componentName="SecurityCorsPage">
+      <SecurityCorsPageContent />
+    </ErrorBoundary>
+  );
+}

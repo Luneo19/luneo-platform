@@ -263,7 +263,7 @@ export class OAuthService {
       const deleted = await this.prisma.oAuthAccount.deleteMany({
         where: {
           userId,
-          provider: provider as any,
+          provider,
         },
       });
 

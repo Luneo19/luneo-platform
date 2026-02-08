@@ -45,7 +45,9 @@ export async function detectWebXRSupport(): Promise<boolean> {
   }
 
   try {
-    const xr = (navigator as any).xr;
+    const nav = navigator as Navigator & { xr?: { isSessionSupported: (mode: string) => Promise<boolean> } };
+    const xr = nav.xr;
+    if (!xr) return false;
     const supported = await xr.isSessionSupported('immersive-ar');
     return supported;
   } catch (error) {
@@ -121,7 +123,7 @@ export function detectDeviceInfo(): ARDeviceInfo {
  */
 export function calculatePlacement(
   productType: 'glasses' | 'jewelry' | 'watch' | 'ring' | 'earrings' | 'necklace',
-  landmarks?: any
+  landmarks?: Record<string, unknown>
 ): ARPlacement {
   const defaultPlacement: ARPlacement = {
     position: { x: 0, y: 0, z: 0 },

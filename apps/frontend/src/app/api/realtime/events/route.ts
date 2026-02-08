@@ -6,6 +6,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 
 // Store active connections (in production, use Redis pub/sub)
@@ -13,8 +14,6 @@ const connections = new Map<string, ReadableStreamDefaultController>();
 
 // Store last event timestamps per channel to avoid duplicates
 const lastEventTimestamps = new Map<string, number>();
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || '';
 
 interface RealtimeEvent {
   id: string;
@@ -58,7 +57,7 @@ async function fetchRealEvents(channels: string[], since?: number): Promise<Real
  */
 async function fetchRealtimeMetrics(): Promise<RealtimeEvent | null> {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/analytics/realtime`, {
+    const response = await fetch(`${getBackendUrl()}/api/v1/analytics/realtime`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -99,7 +98,7 @@ async function fetchRecentActivity(channels: string[]): Promise<RealtimeEvent[]>
   try {
     // Fetch recent designs
     if (channels.includes('designs') || channels.includes('default')) {
-      const response = await fetch(`${API_BASE}/api/v1/designs?limit=1&sort=createdAt:desc`, {
+      const response = await fetch(`${getBackendUrl()}/api/v1/designs?limit=1&sort=createdAt:desc`, {
         cache: 'no-store',
       });
       if (response.ok) {
@@ -130,7 +129,7 @@ async function fetchRecentActivity(channels: string[]): Promise<RealtimeEvent[]>
 
     // Fetch recent orders
     if (channels.includes('orders') || channels.includes('default')) {
-      const response = await fetch(`${API_BASE}/api/v1/orders?limit=1&sort=createdAt:desc`, {
+      const response = await fetch(`${getBackendUrl()}/api/v1/orders?limit=1&sort=createdAt:desc`, {
         cache: 'no-store',
       });
       if (response.ok) {
@@ -161,7 +160,7 @@ async function fetchRecentActivity(channels: string[]): Promise<RealtimeEvent[]>
 
     // Fetch notifications
     if (channels.includes('notifications') || channels.includes('default')) {
-      const response = await fetch(`${API_BASE}/api/v1/notifications?limit=1&unreadOnly=true`, {
+      const response = await fetch(`${getBackendUrl()}/api/v1/notifications?limit=1&unreadOnly=true`, {
         cache: 'no-store',
       });
       if (response.ok) {

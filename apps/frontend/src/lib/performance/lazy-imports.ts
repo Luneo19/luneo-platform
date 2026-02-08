@@ -25,19 +25,19 @@ export const LazyZoneConfigurator = dynamic(
     loading: Loading3D,
     ssr: false, // 3D components typically don't need SSR
   }
-) as any;
+) as React.ComponentType<unknown>;
 
 /**
  * Lazy load chart components (if using heavy chart libraries)
  */
 export const LazyChart = dynamic(
-  // @ts-expect-error - Chart component may not exist
+  // @ts-expect-error -- Chart component path may not exist in codebase; .catch() provides fallback at runtime
   () => import('@/components/charts/Chart').catch(() => ({ default: () => null })),
   {
     loading: LoadingChart,
     ssr: false,
   }
-) as any;
+) as React.ComponentType<unknown>;
 
 /**
  * Lazy load heavy analytics components
@@ -48,7 +48,7 @@ export const LazyAnalyticsDashboard = dynamic(
     loading: LoadingAnalytics,
     ssr: false,
   }
-) as any;
+) as React.ComponentType<unknown>;
 
 /**
  * Lazy load AR/VR components
@@ -59,31 +59,31 @@ export const LazyARViewer = dynamic(
     loading: LoadingAR,
     ssr: false,
   }
-) as any;
+) as React.ComponentType<unknown>;
 
 /**
  * Lazy load heavy editor components
  */
 export const LazyDesignEditor = dynamic(
-  // @ts-expect-error - DesignEditor component may not exist
+  // @ts-expect-error -- DesignEditor path may not exist in codebase; .catch() provides fallback at runtime
   () => import('@/components/editor/DesignEditor').catch(() => ({ default: () => null })),
   {
     loading: LoadingEditor,
     ssr: true, // Forms can benefit from SSR
   }
-) as any;
+) as React.ComponentType<unknown>;
 
 /**
  * Lazy load heavy form components
  */
 export const LazyAdvancedForm = dynamic(
-  // @ts-expect-error - AdvancedForm component may not exist
+  // @ts-expect-error -- AdvancedForm path may not exist in codebase; .catch() provides fallback at runtime
   () => import('@/components/forms/AdvancedForm').catch(() => ({ default: () => null })),
   {
     loading: LoadingForm,
     ssr: true, // Forms can benefit from SSR
   }
-) as any;
+) as React.ComponentType<unknown>;
 
 /**
  * Helper to create lazy-loaded component with custom loading state

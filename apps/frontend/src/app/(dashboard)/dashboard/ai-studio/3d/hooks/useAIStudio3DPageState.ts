@@ -2,18 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { AIStudioStats, AIStudioTab, GeneratedModel, GenerationTemplate } from '../types';
 import { formatDate, formatRelativeTime } from '../components/utils';
 
-const MOCK_TEMPLATES: GenerationTemplate[] = [
+// Fallback when API fails or /api/v1/ai-studio/templates is not implemented
+const FALLBACK_TEMPLATES: GenerationTemplate[] = [
   {
     id: 't1',
     name: 'Montre de Luxe',
     prompt: 'Montre de luxe en or avec cadran bleu, style classique, détails précis',
     category: 'jewelry',
     complexity: 'high',
-    thumbnail: '/placeholder-template.jpg',
+    thumbnail: '/placeholder-template.svg',
     uses: 892,
     description: 'Modèle 3D de montre haut de gamme',
   },
@@ -23,7 +25,7 @@ const MOCK_TEMPLATES: GenerationTemplate[] = [
     prompt: 'Chaise moderne design scandinave, bois et métal, minimaliste',
     category: 'furniture',
     complexity: 'medium',
-    thumbnail: '/placeholder-template.jpg',
+    thumbnail: '/placeholder-template.svg',
     uses: 654,
     description: 'Mobilier contemporain',
   },
@@ -33,7 +35,7 @@ const MOCK_TEMPLATES: GenerationTemplate[] = [
     prompt: 'Smartphone premium avec écran courbé, finition métallique, design pur',
     category: 'electronics',
     complexity: 'high',
-    thumbnail: '/placeholder-template.jpg',
+    thumbnail: '/placeholder-template.svg',
     uses: 432,
     description: 'Électronique moderne',
   },
@@ -43,11 +45,28 @@ const MOCK_TEMPLATES: GenerationTemplate[] = [
     prompt: 'Bague solitaire diamant, or blanc, design classique élégant',
     category: 'jewelry',
     complexity: 'medium',
-    thumbnail: '/placeholder-template.jpg',
+    thumbnail: '/placeholder-template.svg',
     uses: 321,
     description: 'Bijou précieux',
   },
 ];
+
+function normalizeApiTemplate(raw: Record<string, unknown>): GenerationTemplate {
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    description: String(raw.description ?? ''),
+    thumbnail: String(raw.thumbnail ?? raw.thumbnailUrl ?? '/placeholder-template.svg'),
+    category: String(raw.category ?? 'product'),
+    prompt: String(raw.prompt ?? ''),
+    complexity: String(raw.complexity ?? 'medium'),
+    uses: Number(raw.uses ?? raw.useCount ?? 0),
+    settings:
+      raw.settings && typeof raw.settings === 'object'
+        ? (raw.settings as GenerationTemplate['settings'])
+        : undefined,
+  };
+}
 
 export function useAIStudio3DPageState() {
   const { toast } = useToast();
@@ -73,6 +92,28 @@ export function useAIStudio3DPageState() {
   const [credits, setCredits] = useState(1250);
   const [enableBatch, setEnableBatch] = useState(false);
   const [batchCount, setBatchCount] = useState(3);
+  const [templates, setTemplates] = useState<GenerationTemplate[]>(FALLBACK_TEMPLATES);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await endpoints.aiStudio.templates();
+        const data = res as { templates?: unknown[]; data?: unknown[] };
+        const list = data?.templates ?? data?.data ?? [];
+        const normalized = (Array.isArray(list) ? list : []).map((t) =>
+          normalizeApiTemplate(t as Record<string, unknown>)
+        );
+        if (normalized.length > 0 && !cancelled) setTemplates(normalized);
+      } catch (error) {
+        logger.error('Failed to fetch AI Studio templates', { error });
+        if (!cancelled) setTemplates(FALLBACK_TEMPLATES);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const stats = useMemo<AIStudioStats>(
     () => ({
@@ -98,7 +139,6 @@ export function useAIStudio3DPageState() {
     [generatedModels]
   );
 
-  const templates = useMemo(() => MOCK_TEMPLATES, []);
   const history = useMemo(() => generatedModels.slice().reverse(), [generatedModels]);
 
   const filteredModels = useMemo(() => {

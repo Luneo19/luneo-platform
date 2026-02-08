@@ -678,7 +678,7 @@ Pour résoudre:
       {/* Main Content Tabs */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)} className="w-full">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 mb-12 h-auto p-1 bg-gray-100 rounded-lg">
               <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-white">
                 <Globe className="w-4 h-4" />

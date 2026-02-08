@@ -1,3 +1,15 @@
+# ==============================================
+# Production deployment: Backend → Railway (Docker), Frontend → Vercel
+# ==============================================
+#
+# Single production workflow. Runs on push to main or workflow_dispatch.
+# - test: backend lint, unit tests, coverage
+# - build-and-push: Docker image build & push to Docker Hub
+# - deploy-backend: deploy to Railway via CLI (pulls from Docker Hub or triggers deploy)
+# - deploy-frontend: build and deploy frontend to Vercel (--prod)
+# - smoke-tests: health + auth checks; Slack notification on success/failure
+# ==============================================
+
 name: Deploy to Production
 
 on:
@@ -9,6 +21,7 @@ env:
   NODE_VERSION: '22'
 
 jobs:
+  # Backend lint, unit tests, upload coverage
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -39,7 +52,7 @@ jobs:
       - name: Run linter
         run: |
           cd apps/backend
-          pnpm run lint || true
+          pnpm run lint
       
       - name: Run unit tests
         run: |
@@ -47,78 +60,39 @@ jobs:
           pnpm run test -- --testPathPattern=unit --coverage
       
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./apps/backend/coverage/lcov.info
           flags: backend
           name: backend-coverage
 
-  build-and-push:
-    name: Build and Push Docker Image
+  # Deploy backend to Railway (builds from source via Nixpacks/Dockerfile)
+  deploy-backend:
+    name: Deploy Backend
     needs: test
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    env:
+      BACKEND_URL: https://api.luneo.app
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
       
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: luneo/backend
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-      
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: ./apps/backend
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Deploy to Railway
+        run: railway up --service backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-  deploy-backend:
-    name: Deploy Backend
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    env:
-      BACKEND_URL: https://api.luneo.io
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Deploy to production
-        run: |
-          echo "Deploying backend to production..."
-          # Add your deployment commands here
-          # Examples:
-          # - SSH to server and pull latest image
-          # - Update ECS/Fargate task definition
-          # - Trigger Railway/Render deployment
-          # - Update Kubernetes deployment
-      
       - name: Verify deployment health
         run: |
           echo "Waiting for deployment to stabilize..."
           sleep 30
           
-          HEALTH_URL="${BACKEND_URL:-https://api.luneo.io}/health"
+          HEALTH_URL="${BACKEND_URL}/health"
           MAX_RETRIES=5
           RETRY_COUNT=0
           
@@ -149,12 +123,14 @@ jobs:
             COLOR="danger"
           fi
           
+          # Slack notification - || true so notification failures do not block deployment
           if [ -n "$SLACK_WEBHOOK_URL" ]; then
             curl -X POST "$SLACK_WEBHOOK_URL" \
               -H 'Content-type: application/json' \
               -d "{\"attachments\":[{\"color\":\"$COLOR\",\"text\":\"Luneo backend $STATUS on \`${{ github.ref_name }}\` by ${{ github.actor }}\"}]}" || true
           fi
 
+  # Build and deploy frontend to Vercel (production)
   deploy-frontend:
     name: Deploy Frontend
     needs: test
@@ -194,6 +170,7 @@ jobs:
           vercel-args: '--prod'
           working-directory: ./apps/frontend
 
+  # Post-deploy health and auth checks
   smoke-tests:
     name: Smoke Tests
     needs: [deploy-backend, deploy-frontend]

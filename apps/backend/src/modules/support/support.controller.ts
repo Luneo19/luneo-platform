@@ -18,7 +18,11 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { SupportService } from './support.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { CreateSupportTicketDto, UpdateSupportTicketDto } from './dto/support.dto';
+import { AddTicketMessageDto } from './dto/add-message.dto';
+import { GetTicketsQueryDto } from './dto/get-tickets-query.dto';
+import { GetKnowledgeBaseArticlesQueryDto } from './dto/get-knowledge-base-articles-query.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('support')
 @Controller('support')
@@ -36,16 +40,13 @@ export class SupportController {
   @ApiResponse({ status: 200, description: 'Liste des tickets' })
   async getTickets(
     @Request() req,
-    @Query('status') status?: string,
-    @Query('category') category?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() query: GetTicketsQueryDto,
   ) {
     return this.supportService.getTickets(req.user.id, {
-      status,
-      category,
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
+      status: query.status,
+      category: query.category,
+      page: query.page,
+      limit: query.limit,
     });
   }
 
@@ -60,7 +61,7 @@ export class SupportController {
   @Post('tickets')
   @ApiOperation({ summary: 'Créer un nouveau ticket de support' })
   @ApiResponse({ status: 201, description: 'Ticket créé' })
-  async createTicket(@Body() createDto: any, @Request() req) {
+  async createTicket(@Body() createDto: CreateSupportTicketDto, @Request() req) {
     return this.supportService.createTicket({
       ...createDto,
       userId: req.user.id,
@@ -71,7 +72,7 @@ export class SupportController {
   @ApiOperation({ summary: 'Mettre à jour un ticket' })
   @ApiParam({ name: 'id', description: 'ID du ticket' })
   @ApiResponse({ status: 200, description: 'Ticket mis à jour' })
-  async updateTicket(@Param('id') id: string, @Body() updateDto: any, @Request() req) {
+  async updateTicket(@Param('id') id: string, @Body() updateDto: UpdateSupportTicketDto, @Request() req) {
     return this.supportService.updateTicket(id, updateDto, req.user.id);
   }
 
@@ -81,10 +82,10 @@ export class SupportController {
   @ApiResponse({ status: 201, description: 'Message ajouté' })
   async addMessageToTicket(
     @Param('id') ticketId: string,
-    @Body() body: { content: string },
+    @Body() dto: AddTicketMessageDto,
     @Request() req,
   ) {
-    return this.supportService.addMessageToTicket(ticketId, req.user.id, body.content);
+    return this.supportService.addMessageToTicket(ticketId, req.user.id, dto.content);
   }
 
   @Get('knowledge-base/articles')
@@ -95,16 +96,13 @@ export class SupportController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Liste des articles' })
   async getKnowledgeBaseArticles(
-    @Query('category') category?: string,
-    @Query('search') search?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() query: GetKnowledgeBaseArticlesQueryDto,
   ) {
     return this.supportService.getKnowledgeBaseArticles({
-      category,
-      search,
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
+      category: query.category,
+      search: query.search,
+      page: query.page,
+      limit: query.limit,
     });
   }
 

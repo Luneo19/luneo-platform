@@ -37,7 +37,7 @@ export function AnimationsGrid({
   if (animations.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucune animation trouvée</p>
+        <p className="text-gray-600">Aucune animation trouvée</p>
       </div>
     );
   }
@@ -47,7 +47,7 @@ export function AnimationsGrid({
       {animations.map((animation) => (
         <Card
           key={animation.id}
-          className="bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-colors group"
+          className="bg-gray-50 border-gray-200 hover:border-purple-500/50 transition-colors group"
         >
           <div className="relative aspect-video overflow-hidden rounded-t-lg">
             {animation.thumbnail ? (
@@ -58,7 +58,7 @@ export function AnimationsGrid({
                 className="object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                 <Video className="w-12 h-12 text-gray-500" />
               </div>
             )}
@@ -76,7 +76,7 @@ export function AnimationsGrid({
               <Badge
                 variant="secondary"
                 className={cn(
-                  'bg-gray-900/80 text-white',
+                  'bg-gray-100/80 text-gray-900',
                   animation.status === 'completed' && 'bg-green-500/80'
                 )}
               >
@@ -88,7 +88,7 @@ export function AnimationsGrid({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'h-8 w-8 p-0 bg-gray-900/80 hover:bg-gray-800',
+                  'h-8 w-8 p-0 bg-gray-100/80 hover:bg-gray-200',
                   animation.isFavorite && 'text-pink-400'
                 )}
                 onClick={(e) => {
@@ -105,10 +105,10 @@ export function AnimationsGrid({
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium line-clamp-2 mb-1">
+                <p className="text-gray-900 text-sm font-medium line-clamp-2 mb-1">
                   {animation.prompt}
                 </p>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
+                <div className="flex items-center gap-2 text-xs text-gray-600">
                   <span>{animation.duration}s</span>
                   <span>•</span>
                   <span>{animation.fps} FPS</span>
@@ -122,17 +122,17 @@ export function AnimationsGrid({
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                <DropdownMenuContent align="end" className="bg-white border-gray-200">
                   <DropdownMenuItem
                     onClick={() => onView(animation)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Voir détails
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onPlay(animation)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Lire
@@ -147,7 +147,7 @@ export function AnimationsGrid({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-700">
+            <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-200">
               <span>{formatDate(new Date(animation.createdAt))}</span>
               <span>{formatNumber(animation.credits)} crédits</span>
             </div>

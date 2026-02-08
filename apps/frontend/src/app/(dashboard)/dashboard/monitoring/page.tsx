@@ -4,11 +4,10 @@
  */
 
 import { cookies } from 'next/headers';
+import { serverFetch } from '@/lib/api/server-fetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { MonitoringDashboardClient } from './components/MonitoringDashboardClient';
 import type { DashboardMetrics, Alert, ServiceHealth } from '@/lib/monitoring/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface MonitoringPageProps {
   searchParams?: {
@@ -35,11 +34,9 @@ async function getMonitoringData(): Promise<{
       };
     }
 
-    const userRes = await fetch(`${API_URL}/api/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: 'no-store',
-    });
-    if (!userRes.ok) {
+    try {
+      await serverFetch('/api/v1/auth/me');
+    } catch {
       return {
         metrics: null,
         alerts: [],

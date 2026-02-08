@@ -12,7 +12,7 @@ import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function StudioTabList() {
   return (
-    <TabsList className="bg-slate-900/50 border border-slate-700">
+    <TabsList className="bg-gray-50 border border-gray-200">
       <TabsTrigger value="generate" className="data-[state=active]:bg-cyan-600">
         Générer
       </TabsTrigger>

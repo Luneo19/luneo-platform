@@ -14,15 +14,13 @@ import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SettingsPageClient } from './SettingsPageClient';
 import { SettingsSkeleton } from './components/SettingsSkeleton';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { cookies } from 'next/headers';
 
 export const metadata = {
   title: 'Paramètres | Luneo',
   description: 'Gérez vos préférences et configurations',
 };
-
-const getBackendUrl = () =>
-  process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? 'https://api.luneo.app' : 'http://localhost:3001');
 
 /**
  * Server Component - Fetch les données initiales

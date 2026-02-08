@@ -6,6 +6,8 @@
 
 import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { ResourceType as PrismaResourceType } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import {
   SharedResource,
   ResourceType,
@@ -42,10 +44,10 @@ export class CollaborationService {
 
     const record = await this.prisma.sharedResource.create({
       data: {
-        resourceType: resourceType as any,
+        resourceType: resourceType as PrismaResourceType,
         resourceId,
         sharedWith,
-        permissions: permissions as any,
+        permissions: permissions as Prisma.InputJsonValue,
         isPublic,
         publicToken,
         createdBy,
@@ -104,7 +106,7 @@ export class CollaborationService {
       where: { id: resourceId },
       data: {
         sharedWith: Object.keys(permissions),
-        permissions: permissions as any,
+        permissions: permissions as Prisma.InputJsonValue,
       },
     });
 
@@ -122,7 +124,7 @@ export class CollaborationService {
   ): Promise<boolean> {
     const record = await this.prisma.sharedResource.findFirst({
       where: {
-        resourceType: resourceType as any,
+        resourceType: resourceType as PrismaResourceType,
         resourceId,
         OR: [
           { sharedWith: { has: userId } },
@@ -173,7 +175,7 @@ export class CollaborationService {
 
     const record = await this.prisma.comment.create({
       data: {
-        resourceType: resourceType as any,
+        resourceType: resourceType as PrismaResourceType,
         resourceId,
         content,
         parentId,
@@ -200,8 +202,8 @@ export class CollaborationService {
   ): Promise<Comment[]> {
     this.logger.log(`Getting comments for ${resourceType}:${resourceId}`);
 
-    const where: any = {
-      resourceType: resourceType as any,
+    const where: Prisma.CommentWhereInput = {
+      resourceType: resourceType as PrismaResourceType,
       resourceId,
       parentId: null, // Only top-level comments
     };
@@ -259,7 +261,7 @@ export class CollaborationService {
   // MAPPERS
   // ========================================
 
-  private mapToSharedResource(record: any): SharedResource {
+  private mapToSharedResource(record: { id: string; resourceType: string; resourceId: string; sharedWith: string[]; permissions: unknown; isPublic: boolean; publicToken: string | null; createdBy: string; brandId: string; createdAt: Date; updatedAt: Date }): SharedResource {
     return {
       id: record.id,
       resourceType: record.resourceType as ResourceType,
@@ -275,7 +277,7 @@ export class CollaborationService {
     };
   }
 
-  private mapToComment(record: any): Comment {
+  private mapToComment(record: { id: string; resourceType: string; resourceId: string; content: string; parentId: string | null; authorId: string; author: { id: string; firstName: string | null; lastName: string | null; email: string }; sharedResourceId: string | null; createdAt: Date; updatedAt: Date; replies?: Array<{ id: string; resourceType: string; resourceId: string; content: string; parentId: string | null; authorId: string; author: { id: string; firstName: string | null; lastName: string | null; email: string }; sharedResourceId: string | null; createdAt: Date; updatedAt: Date }> }): Comment {
     const comment: Comment = {
       id: record.id,
       resourceType: record.resourceType as ResourceType,
@@ -294,7 +296,7 @@ export class CollaborationService {
     };
 
     if (record.replies?.length > 0) {
-      comment.replies = record.replies.map((r: any) => this.mapToComment(r));
+      comment.replies = record.replies.map((r) => this.mapToComment(r));
     }
 
     return comment;

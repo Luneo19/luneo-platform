@@ -22,10 +22,13 @@ export interface Integration {
   shopDomain: string;
   status: 'active' | 'inactive' | 'error';
   lastSyncAt?: Date;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
+
+/** Raw API shape for integration list/item */
+type RawIntegrationRecord = Record<string, unknown>;
 
 export interface CreateShopifyIntegrationRequest {
   brandId: string;
@@ -75,17 +78,17 @@ export class IntegrationService {
   // CRUD
   // ========================================
 
-  private mapIntegration(raw: any): Integration {
+  private mapIntegration(raw: RawIntegrationRecord): Integration {
     return {
-      id: raw.id,
-      brandId: raw.brandId,
+      id: String(raw.id),
+      brandId: String(raw.brandId),
       platform: (raw.platform ?? 'custom') as Integration['platform'],
-      shopDomain: raw.shopDomain ?? '',
+      shopDomain: String(raw.shopDomain ?? ''),
       status: (raw.status ?? 'inactive') as Integration['status'],
-      lastSyncAt: raw.lastSyncAt ? new Date(raw.lastSyncAt) : undefined,
-      config: raw.config ?? {},
-      createdAt: new Date(raw.createdAt),
-      updatedAt: new Date(raw.updatedAt),
+      lastSyncAt: raw.lastSyncAt != null ? new Date(raw.lastSyncAt as string | number) : undefined,
+      config: (raw.config as Record<string, unknown>) ?? {},
+      createdAt: new Date(raw.createdAt as string | number),
+      updatedAt: new Date(raw.updatedAt as string | number),
     };
   }
 
@@ -107,11 +110,12 @@ export class IntegrationService {
       }
 
       const data = await endpoints.integrations.list();
-      const list = Array.isArray(data) ? data : (data as any)?.integrations ?? (data as any)?.data ?? [];
-      const integrations = (list as any[]).map((i: any) => this.mapIntegration(i));
+      const dataObj = data as { integrations?: RawIntegrationRecord[]; data?: RawIntegrationRecord[] } | RawIntegrationRecord[] | undefined;
+      const list = Array.isArray(dataObj) ? dataObj : dataObj?.integrations ?? dataObj?.data ?? [];
+      const integrations = (list as RawIntegrationRecord[]).map((i) => this.mapIntegration(i));
       cacheService.set(cacheKey, integrations, { ttl: 300 * 1000 });
       return integrations;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing integrations', { error, brandId });
       throw error;
     }
@@ -122,10 +126,10 @@ export class IntegrationService {
    */
   async getIntegrationById(integrationId: string): Promise<Integration> {
     try {
-      const raw = await api.get<any>(`/api/v1/integrations/${integrationId}`);
+      const raw = await api.get<RawIntegrationRecord>(`/api/v1/integrations/${integrationId}`);
       if (!raw) throw new Error('Integration not found');
-      return this.mapIntegration(raw);
-    } catch (error: any) {
+      return this.mapIntegration(raw as RawIntegrationRecord);
+    } catch (error: unknown) {
       logger.error('Error fetching integration', { error, integrationId });
       throw error;
     }
@@ -154,8 +158,8 @@ export class IntegrationService {
       });
       cacheService.delete(`integrations:${request.brandId}`);
       logger.info('Shopify integration created', { integrationId: raw?.id, brandId: request.brandId });
-      return this.mapIntegration(raw);
-    } catch (error: any) {
+      return this.mapIntegration(raw as RawIntegrationRecord);
+    } catch (error: unknown) {
       logger.error('Error creating Shopify integration', { error, request });
       throw error;
     }
@@ -188,7 +192,7 @@ export class IntegrationService {
       };
       logger.info('Shopify sync completed', { integrationId, ...combined });
       return combined;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error syncing Shopify', { error, integrationId });
       throw error;
     }
@@ -219,7 +223,7 @@ export class IntegrationService {
       cacheService.delete(`integrations:${request.brandId}`);
       logger.info('WooCommerce integration created', { integrationId: raw?.id, brandId: request.brandId });
       return this.mapIntegration(raw);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error creating WooCommerce integration', { error, request });
       throw error;
     }
@@ -252,7 +256,7 @@ export class IntegrationService {
       };
       logger.info('WooCommerce sync completed', { integrationId, ...combined });
       return combined;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error syncing WooCommerce', { error, integrationId });
       throw error;
     }
@@ -280,7 +284,7 @@ export class IntegrationService {
         default:
           throw new Error(`Unsupported platform: ${integration.platform}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error syncing integration', { error, integrationId });
       throw error;
     }
@@ -296,7 +300,7 @@ export class IntegrationService {
       cacheService.delete(`integrations:${brandId}`);
       cacheService.delete(`integration:${integrationId}`);
       logger.info('Integration deleted successfully', { integrationId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error deleting integration', { error, integrationId });
       throw error;
     }

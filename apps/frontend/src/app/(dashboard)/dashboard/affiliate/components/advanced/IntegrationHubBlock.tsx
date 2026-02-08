@@ -27,9 +27,9 @@ export function IntegrationHubBlock({
   }));
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700 mt-6">
+    <Card className="bg-gray-50 border-gray-200 mt-6">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-gray-900 flex items-center gap-2">
           <LinkIcon className="w-5 h-5 text-purple-400" />
           {title}
         </CardTitle>
@@ -37,22 +37,22 @@ export function IntegrationHubBlock({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {integrations.map((integration) => (
-            <Card key={integration.id} className="bg-gray-900/50 border-gray-700">
+            <Card key={integration.id} className="bg-gray-100 border-gray-200">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-white text-base">{integration.name}</CardTitle>
+                  <CardTitle className="text-gray-900 text-base">{integration.name}</CardTitle>
                   {integration.status === 'connected' ? (
                     <Badge className="bg-green-500/20 text-green-400">Connecté</Badge>
                   ) : (
                     <Badge className="bg-slate-500/20 text-slate-400">Disponible</Badge>
                   )}
                 </div>
-                <Badge variant="outline" className="mt-2 border-slate-600 text-slate-400">
+                <Badge variant="outline" className="mt-2 border-gray-200 text-slate-400">
                   {integration.category}
                 </Badge>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-400 mb-4">{integration.description}</p>
+                <p className="text-sm text-gray-600 mb-4">{integration.description}</p>
                 <Button
                   size="sm"
                   variant={integration.status === 'connected' ? 'outline' : 'default'}

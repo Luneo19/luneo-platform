@@ -32,10 +32,10 @@ export interface AuditLogData {
   resource_name?: string;
   description?: string;
   changes?: {
-    before?: any;
-    after?: any;
+    before?: unknown;
+    after?: unknown;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   status?: AuditStatus;
   sensitivity?: AuditSensitivity;
 }
@@ -66,7 +66,7 @@ export const auditLog = {
     resourceType: AuditResourceType,
     resourceId: string,
     resourceName?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     return logAudit({
       action: 'create',
@@ -83,7 +83,7 @@ export const auditLog = {
   update: async (
     resourceType: AuditResourceType,
     resourceId: string,
-    changes: { before: any; after: any },
+    changes: { before: unknown; after: unknown },
     resourceName?: string
   ) => {
     return logAudit({

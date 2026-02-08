@@ -5,8 +5,9 @@ import { logger } from '@/lib/logger';
 import { idSchema } from '@/lib/validation/zod-schemas';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { apiRateLimit } from '@/lib/rate-limit';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 /**
  * GET /api/designs/[id]/versions/[versionId]

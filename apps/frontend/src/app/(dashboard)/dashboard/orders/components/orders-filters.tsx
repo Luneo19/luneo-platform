@@ -60,7 +60,7 @@ export function OrdersFilters({
   };
 
   return (
-    <Card className="p-4 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -70,7 +70,7 @@ export function OrdersFilters({
               setLocalFilters({ ...localFilters, search: e.target.value })
             }
             placeholder="Rechercher par numéro, client, email..."
-            className="pl-10 bg-gray-900 border-gray-600 text-white"
+            className="pl-10 bg-white border-gray-200 text-gray-900"
           />
         </div>
         <Select
@@ -79,7 +79,7 @@ export function OrdersFilters({
             setLocalFilters({ ...localFilters, status: value })
           }
         >
-          <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+          <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
           <SelectContent>

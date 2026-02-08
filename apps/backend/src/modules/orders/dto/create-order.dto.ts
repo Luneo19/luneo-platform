@@ -1,7 +1,9 @@
 import { IsString, IsOptional, IsArray, ValidateNested, IsNumber, IsObject, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PartialType } from '@nestjs/swagger';
 
+/** Note: snake_case properties in OrderItemDto maintained for API backwards compatibility */
 export class OrderItemDto {
   @ApiProperty({ description: 'Product ID' })
   @IsString()
@@ -105,4 +107,21 @@ export class CreateOrderDto {
   @IsObject()
   @IsOptional()
   metadata?: Record<string, any>;
+}
+
+export class UpdateOrderDto extends PartialType(CreateOrderDto) {
+  @ApiPropertyOptional({ description: 'Order status' })
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Tracking number' })
+  @IsString()
+  @IsOptional()
+  trackingNumber?: string;
+
+  @ApiPropertyOptional({ description: 'Internal notes' })
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }

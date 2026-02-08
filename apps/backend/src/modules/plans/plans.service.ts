@@ -1,5 +1,7 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { SubscriptionPlan } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import {
   PLAN_CONFIGS,
   ADDON_BONUSES,
@@ -157,8 +159,8 @@ export class PlansService {
         return [];
       }
 
-      const limitsData = brand.limits as Record<string, any>;
-      return Array.isArray(limitsData.activeAddons) ? limitsData.activeAddons : [];
+      const limitsData = brand.limits as Record<string, unknown> | null;
+      return Array.isArray(limitsData?.activeAddons) ? (limitsData.activeAddons as ActiveAddon[]) : [];
     } catch (error) {
       this.logger.error(`Error getting active addons for brand ${brandId}:`, error);
       return [];
@@ -192,10 +194,10 @@ export class PlansService {
           const bonus = ADDON_BONUSES[addon.type];
           if (bonus) {
             for (const [key, value] of Object.entries(bonus)) {
-              if (typeof value === 'number' && typeof (baseLimits as any)[key] === 'number') {
+              if (typeof value === 'number' && typeof (baseLimits as Record<string, number>)[key] === 'number') {
                 // Ne pas ajouter de bonus si la limite est déjà illimitée (-1)
-                if ((baseLimits as any)[key] !== -1) {
-                  (baseLimits as any)[key] += value * (addon.quantity || 1);
+                if ((baseLimits as Record<string, number>)[key] !== -1) {
+                  (baseLimits as Record<string, number>)[key] += value * (addon.quantity || 1);
                 }
               }
             }
@@ -337,7 +339,7 @@ export class PlansService {
         where: { id: user.brandId },
         data: {
           plan: newPlan,
-          subscriptionPlan: subscriptionPlanMapping[newPlan] as any,
+          subscriptionPlan: subscriptionPlanMapping[newPlan] as SubscriptionPlan,
           subscriptionStatus: 'ACTIVE',
         },
       });
@@ -427,7 +429,7 @@ export class PlansService {
    */
   async syncAddonsFromSubscription(
     brandId: string,
-    subscriptionItems: Array<{ price: { id: string; product?: any }; quantity: number }>,
+    subscriptionItems: Array<{ price: { id: string; product?: { id: string } }; quantity: number }>,
     addonPriceIds: Record<string, string>,
   ): Promise<void> {
     try {
@@ -450,7 +452,7 @@ export class PlansService {
         select: { limits: true },
       });
 
-      const currentLimits = (brand?.limits as Record<string, any>) || {};
+      const currentLimits = (brand?.limits as Record<string, unknown>) || {};
 
       await this.prisma.brand.update({
         where: { id: brandId },
@@ -459,7 +461,7 @@ export class PlansService {
             ...currentLimits,
             activeAddons: activeAddons.map(a => ({ ...a })),
             addonsUpdatedAt: new Date().toISOString(),
-          } as any,
+          } as Prisma.InputJsonValue,
         },
       });
 

@@ -30,9 +30,9 @@ export function CustomizerLayersPanel({
   const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
           <Layers className="w-4 h-4" />
           Calques
         </h3>
@@ -40,7 +40,7 @@ export function CustomizerLayersPanel({
       <ScrollArea className="h-[200px]">
         <div className="space-y-1">
           {sortedLayers.length === 0 ? (
-            <p className="text-xs text-gray-500 py-4 text-center">Aucun calque</p>
+            <p className="text-xs text-gray-600 py-4 text-center">Aucun calque</p>
           ) : (
             sortedLayers.map((layer) => (
               <div
@@ -48,8 +48,8 @@ export function CustomizerLayersPanel({
                 className={cn(
                   'flex items-center gap-2 rounded px-2 py-1.5 text-sm',
                   selectedLayerId === layer.id
-                    ? 'bg-cyan-600/30 text-white'
-                    : 'text-gray-300 hover:bg-gray-700/50'
+                    ? 'bg-cyan-600/30 text-gray-900'
+                    : 'text-gray-700 hover:bg-gray-100'
                 )}
               >
                 <button

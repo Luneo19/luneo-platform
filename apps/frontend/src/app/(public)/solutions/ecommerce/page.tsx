@@ -27,6 +27,9 @@ import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 
+// Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
+const APP_URL = 'https://luneo.app';
+
 export default function EcommercePage() {
   const [selectedPlatform, setSelectedPlatform] = useState('Shopify');
   const [contact, setContact] = useState({ email: '', brand: '', message: '' });
@@ -178,6 +181,31 @@ export default function EcommercePage() {
   return (
     <ErrorBoundary level="page" componentName="EcommercePage">
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Luneo E-commerce Integration',
+            description: 'Seamless product customization integration for Shopify, WooCommerce and PrestaShop',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            url: `${APP_URL}/solutions/ecommerce`,
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'EUR',
+              description: 'Free tier available',
+            },
+            provider: {
+              '@type': 'Organization',
+              name: 'Luneo',
+              url: APP_URL,
+            },
+          }),
+        }}
+      />
       <PageHero
         title="E-commerce"
         description="Connectez Luneo à votre boutique en ligne. Shopify, WooCommerce, Magento, PrestaShop - intégration native en 15 minutes. Augmentez vos conversions de 35%."

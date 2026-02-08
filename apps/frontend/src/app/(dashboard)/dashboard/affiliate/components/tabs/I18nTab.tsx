@@ -14,33 +14,33 @@ const LANGUAGES = Array.from({ length: 32 }, (_, i) => ({
 
 export function I18nTab() {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-gray-900 flex items-center gap-2">
           <Globe className="w-5 h-5 text-purple-400" />
           Internationalisation
         </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-gray-600">
           Support multilingue et multi-devises
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {LANGUAGES.map((lang) => (
-            <Card key={lang.id} className="bg-gray-900/50 border-gray-700">
+            <Card key={lang.id} className="bg-gray-100 border-gray-200">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-white">{lang.language}</span>
+                  <span className="text-sm font-medium text-gray-900">{lang.language}</span>
                   {lang.status === 'complete' ? (
                     <Badge className="bg-green-500/20 text-green-400 text-xs">✓</Badge>
                   ) : (
                     <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">~</Badge>
                   )}
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-1.5 mb-1">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
                   <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${lang.coverage}%` }} />
                 </div>
-                <p className="text-xs text-gray-400">{lang.coverage.toFixed(0)}%</p>
+                <p className="text-xs text-gray-600">{lang.coverage.toFixed(0)}%</p>
               </CardContent>
             </Card>
           ))}

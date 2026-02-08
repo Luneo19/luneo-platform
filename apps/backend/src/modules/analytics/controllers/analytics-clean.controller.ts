@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AnalyticsCleanService } from '../services/analytics-clean.service';
 import { TrackEventDto } from '../dto/track-event.dto';
 import { AnalyticsQueryDto } from '../dto/analytics-query.dto';
@@ -23,7 +23,7 @@ import { CurrentUser } from '@/common/types/user.types';
 @ApiTags('analytics')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('analytics')
+@Controller('analytics-clean')
 export class AnalyticsCleanController {
   constructor(private readonly analyticsService: AnalyticsCleanService) {}
 

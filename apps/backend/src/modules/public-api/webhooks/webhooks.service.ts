@@ -4,6 +4,7 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
+import type { Prisma } from '@prisma/client';
 import { WebhookEvent } from '../dto';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { UpdateWebhookDto } from './dto/update-webhook.dto';
@@ -23,7 +24,7 @@ export class WebhookService {
    */
   async sendWebhook(
     event: WebhookEvent,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
     brandId: string, // API-04: brandId is now required (no global fallback)
   ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
     if (!brandId) {
@@ -79,10 +80,11 @@ export class WebhookService {
       this.logger.log(`Webhook sent successfully to ${brand.webhookUrl} for event ${event}`);
       
       // Store webhook delivery record
-      await this.storeWebhookDelivery(brand.id, event, payload, (response as any).status, null);
+      const statusCode = response?.status ?? null;
+      await this.storeWebhookDelivery(brand.id, event, payload, statusCode, null);
 
-      return { success: true, statusCode: (response as any).status };
-    } catch (error) {
+      return { success: true, statusCode: response?.status };
+    } catch (error: unknown) {
       this.logger.error(`Failed to send webhook for event ${event}:`, error);
       
       // Store failed webhook delivery
@@ -93,14 +95,14 @@ export class WebhookService {
           event,
           data,
           null,
-          error.message,
+          error instanceof Error ? error.message : String(error),
         );
       }
 
       return {
         success: false,
-        statusCode: error.response?.status,
-        error: error.message,
+        statusCode: (error as { response?: { status?: number } })?.response?.status,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -115,7 +117,7 @@ export class WebhookService {
         name: createWebhookDto.name,
         url: createWebhookDto.url,
         secret: createWebhookDto.secret || '',
-        events: createWebhookDto.events as any, // Type assertion for enum compatibility
+        events: createWebhookDto.events as Prisma.InputJsonValue,
         isActive: createWebhookDto.isActive ?? true,
       },
       include: {
@@ -193,7 +195,7 @@ export class WebhookService {
         ...(updateWebhookDto.name && { name: updateWebhookDto.name }),
         ...(updateWebhookDto.url && { url: updateWebhookDto.url }),
         ...(updateWebhookDto.secret !== undefined && { secret: updateWebhookDto.secret }),
-        ...(updateWebhookDto.events && { events: updateWebhookDto.events as any }), // Type assertion needed
+        ...(updateWebhookDto.events && { events: updateWebhookDto.events as Prisma.InputJsonValue }),
         ...(updateWebhookDto.isActive !== undefined && { isActive: updateWebhookDto.isActive }),
       },
       include: {
@@ -306,12 +308,12 @@ export class WebhookService {
         }),
       );
 
-      return { success: true, statusCode: (response as any).status };
-    } catch (error) {
+      return { success: true, statusCode: response?.status };
+    } catch (error: unknown) {
       return {
         success: false,
-        statusCode: error.response?.status,
-        error: error.message,
+        statusCode: (error as { response?: { status?: number } })?.response?.status,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -324,7 +326,7 @@ export class WebhookService {
     page: number = 1,
     limit: number = 20,
   ): Promise<{
-    data: any[];
+    data: { id: string; event: string; statusCode: number | null; error: string | null; createdAt: Date }[];
     pagination: {
       page: number;
       limit: number;
@@ -391,7 +393,7 @@ export class WebhookService {
       // Resend webhook
       const result = await this.sendWebhook(
         webhookLog.event as WebhookEvent,
-        webhookLog.payload as Record<string, any>,
+        webhookLog.payload as Record<string, unknown>,
         webhookLog.webhook.brandId,
       );
 
@@ -428,7 +430,7 @@ export class WebhookService {
   private async storeWebhookDelivery(
     brandId: string,
     event: string,
-    payload: any,
+    payload: Record<string, unknown>,
     statusCode: number | null,
     error: string | null,
   ): Promise<void> {
@@ -463,7 +465,7 @@ export class WebhookService {
         data: {
           webhookId: webhook.id,
           event,
-          payload: payload as any,
+          payload: payload as Prisma.InputJsonValue,
           statusCode,
           response: statusCode !== null && statusCode >= 200 && statusCode < 300 ? 'Success' : null,
           error,

@@ -24,7 +24,7 @@ function DashboardChartsContent({ period }: DashboardChartsProps) {
 
   if (analyticsQuery.isLoading) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <CardTitle>Performance</CardTitle>
           <CardDescription>Chargement des données...</CardDescription>
@@ -40,7 +40,7 @@ function DashboardChartsContent({ period }: DashboardChartsProps) {
 
   if (analyticsQuery.isError) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <CardTitle>Performance</CardTitle>
           <CardDescription>Erreur lors du chargement</CardDescription>
@@ -57,7 +57,7 @@ function DashboardChartsContent({ period }: DashboardChartsProps) {
   const data = analyticsQuery.data;
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
         <CardTitle>Performance</CardTitle>
         <CardDescription>
@@ -67,8 +67,8 @@ function DashboardChartsContent({ period }: DashboardChartsProps) {
       <CardContent>
         <div className="space-y-4">
           {/* Revenue Chart Placeholder */}
-          <div className="h-48 flex items-center justify-center border border-gray-700 rounded-lg bg-gray-900/50">
-            <div className="text-center text-gray-400">
+          <div className="h-48 flex items-center justify-center border border-gray-200 rounded-lg bg-gray-50">
+            <div className="text-center text-gray-600">
               <p className="text-lg font-semibold mb-2">
                 {data?.revenue ? `€${(data.revenue / 100).toFixed(2)}` : '€0.00'}
               </p>
@@ -77,8 +77,8 @@ function DashboardChartsContent({ period }: DashboardChartsProps) {
           </div>
 
           {/* Orders Chart Placeholder */}
-          <div className="h-48 flex items-center justify-center border border-gray-700 rounded-lg bg-gray-900/50">
-            <div className="text-center text-gray-400">
+          <div className="h-48 flex items-center justify-center border border-gray-200 rounded-lg bg-gray-50">
+            <div className="text-center text-gray-600">
               <p className="text-lg font-semibold mb-2">
                 {data?.orders ?? 0}
               </p>

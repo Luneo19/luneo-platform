@@ -56,7 +56,7 @@ async function main() {
   }
 
   // Create platform admin user
-  const adminPassword = await bcrypt.hash('admin123', 12);
+  const adminPassword = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || 'admin123', 12);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@luneo.com' },
     update: {},
@@ -78,10 +78,13 @@ async function main() {
 
   console.log('✅ Admin user created:', adminUser.email);
 
-  // Try to create sample data (non-critical - continue even if it fails)
-  try {
-    // Create sample brand
-    const sampleBrand = await prisma.brand.upsert({
+  const shouldSeedSampleData = process.env.SEED_SAMPLE_DATA === 'true';
+
+  if (shouldSeedSampleData) {
+    // Create sample data (brand, product, design, order) - only when SEED_SAMPLE_DATA=true
+    try {
+      // Create sample brand
+      const sampleBrand = await prisma.brand.upsert({
     where: { slug: 'sample-brand' },
     update: {},
     create: {
@@ -225,11 +228,15 @@ async function main() {
     },
   });
 
-    console.log('✅ Sample order created:', sampleOrder.orderNumber);
-  } catch (sampleDataError: any) {
-    // Non-critical - sample data creation failed, but admin was created
-    console.log('⚠️ Sample data creation failed (non-critical):', sampleDataError.message?.substring(0, 200));
-    console.log('✅ Admin user was created successfully - seed partially completed');
+      console.log('✅ Sample order created:', sampleOrder.orderNumber);
+      console.log('Sample data seeded (SEED_SAMPLE_DATA=true)');
+    } catch (sampleDataError: any) {
+      // Non-critical - sample data creation failed, but admin was created
+      console.log('⚠️ Sample data creation failed (non-critical):', sampleDataError.message?.substring(0, 200));
+      console.log('✅ Admin user was created successfully - seed partially completed');
+    }
+  } else {
+    console.log('Skipping sample data (set SEED_SAMPLE_DATA=true to seed)');
   }
 
   // Seed industries and their configurations (idempotent)

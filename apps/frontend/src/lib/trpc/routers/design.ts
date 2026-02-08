@@ -8,6 +8,23 @@ import { logger } from '@/lib/logger';
 import { TRPCError } from '@trpc/server';
 import { api, endpoints } from '@/lib/api/client';
 
+/** Design from API with ownership fields */
+interface DesignWithUserId {
+  userId?: string;
+  [key: string]: unknown;
+}
+
+/** Version item from designs versions API */
+interface DesignVersionRaw {
+  id?: string;
+  name?: string;
+  previewUrl?: string;
+  renderUrl?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  metadata?: Record<string, unknown>;
+}
+
 export const designRouter = router({
   listVersions: protectedProcedure
     .input(z.object({ designId: z.string().cuid() }))
@@ -22,7 +39,7 @@ export const designRouter = router({
         });
       }
 
-      const d = design as any;
+      const d = design as DesignWithUserId;
       if (d.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
         throw new TRPCError({
           code: 'FORBIDDEN',
@@ -31,9 +48,10 @@ export const designRouter = router({
       }
 
       try {
-        const versions = await api.get<any[]>(`/api/v1/designs/${input.designId}/versions`).catch(() => []);
+        const versions = await api.get<DesignVersionRaw[]>(`/api/v1/designs/${input.designId}/versions`).catch(() => []);
 
-        const formattedVersions = (Array.isArray(versions) ? versions : []).map((version: any, index: number) => ({
+        const rawList = Array.isArray(versions) ? versions : [];
+        const formattedVersions = rawList.map((version: DesignVersionRaw, index: number) => ({
           id: version.id,
           version: index + 1,
           name: version.name || `Version ${index + 1}`,
@@ -44,7 +62,7 @@ export const designRouter = router({
         }));
 
         return { versions: formattedVersions };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error listing design versions', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -72,7 +90,7 @@ export const designRouter = router({
         });
       }
 
-      const d = design as any;
+      const d = design as DesignWithUserId;
       if (d.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
         throw new TRPCError({
           code: 'FORBIDDEN',
@@ -80,19 +98,25 @@ export const designRouter = router({
         });
       }
 
+      interface VersionCreateResponse {
+        id?: string;
+        name?: string;
+        createdAt?: Date | string;
+      }
+
       try {
-        const version = await api.post<any>(`/api/v1/designs/${input.designId}/versions`, {
+        const version = await api.post<VersionCreateResponse>(`/api/v1/designs/${input.designId}/versions`, {
           name: input.name || `Version ${new Date().toISOString()}`,
           metadata: input.metadata,
         });
 
         logger.info('Design version created', { versionId: version.id, designId: input.designId });
         return {
-          id: version.id,
+          id: version.id ?? '',
           name: version.name,
           createdAt: version.createdAt ? (version.createdAt instanceof Date ? version.createdAt.toISOString() : String(version.createdAt)) : new Date().toISOString(),
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error creating design version', { error, input, userId: user.id });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',

@@ -33,7 +33,7 @@ export function EditorToolbar({
   ];
 
   return (
-    <div className="flex flex-col gap-2 p-4 bg-gray-800 border-r border-gray-700">
+    <div className="flex flex-col gap-2 p-4 bg-white border-r border-gray-200">
       {tools.map((tool) => {
         const Icon = tool.icon;
         return (
@@ -48,8 +48,8 @@ export function EditorToolbar({
               else if (tool.id === 'shape') onAddShape();
             }}
             className={cn(
-              'w-12 h-12 justify-center text-gray-300',
-              selectedTool === tool.id && 'bg-gray-700 text-white'
+              'w-12 h-12 justify-center text-gray-700',
+              selectedTool === tool.id && 'bg-gray-100 text-gray-900'
             )}
             title={tool.label}
           >

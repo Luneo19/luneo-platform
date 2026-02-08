@@ -161,7 +161,7 @@ function OnboardingPageContent() {
       case 2:
         return formData.step2.industrySlug !== '';
       case 3:
-        return true;
+        return formData.step3.useCases.length >= 1;
       case 4:
         return formData.step4.goals.length >= 1;
       case 5:
@@ -205,7 +205,7 @@ function OnboardingPageContent() {
   }, [skipOnboarding, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 text-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
         {/* Progress */}
         <motion
@@ -219,8 +219,8 @@ function OnboardingPageContent() {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                     currentStep >= step.id
-                      ? 'bg-blue-600'
-                      : 'bg-slate-800 border border-slate-700'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 border border-gray-300 text-gray-500'
                   }`}
                 >
                   {currentStep > step.id ? (
@@ -232,18 +232,18 @@ function OnboardingPageContent() {
                 {index < STEPS.length - 1 && (
                   <div
                     className={`h-1 w-8 sm:w-12 mx-1 rounded ${
-                      currentStep > step.id ? 'bg-blue-600' : 'bg-slate-800'
+                      currentStep > step.id ? 'bg-blue-600' : 'bg-gray-200'
                     }`}
                   />
                 )}
               </div>
             ))}
           </div>
-          <Progress value={progress} className="h-2 bg-slate-800" />
+          <Progress value={progress} className="h-2 bg-gray-200" />
         </motion>
 
         {/* Content Card */}
-        <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm p-8">
+        <Card className="bg-white border-gray-200 shadow-lg p-8">
           <AnimatePresence mode="wait">
             {/* Step 1: Profil */}
             {currentStep === 1 && (
@@ -258,7 +258,7 @@ function OnboardingPageContent() {
                   <h1 className="text-3xl font-bold mb-2">
                     Bienvenue sur Luneo ! 👋
                   </h1>
-                  <p className="text-slate-400">
+                  <p className="text-gray-500">
                     Commençons par faire connaissance
                   </p>
                 </div>
@@ -272,7 +272,7 @@ function OnboardingPageContent() {
                       onChange={(e) =>
                         setStepData('step1', { name: e.target.value })
                       }
-                      className="bg-slate-800 border-slate-700 h-12"
+                      className="bg-gray-50 border-gray-300 h-12"
                     />
                   </div>
                   <div className="space-y-2">
@@ -283,7 +283,7 @@ function OnboardingPageContent() {
                       onChange={(e) =>
                         setStepData('step1', { company: e.target.value })
                       }
-                      className="bg-slate-800 border-slate-700 h-12"
+                      className="bg-gray-50 border-gray-300 h-12"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -295,7 +295,7 @@ function OnboardingPageContent() {
                         onChange={(e) =>
                           setStepData('step1', { role: e.target.value })
                         }
-                        className="bg-slate-800 border-slate-700"
+                        className="bg-gray-50 border-gray-300"
                       />
                     </div>
                     <div className="space-y-2">
@@ -306,7 +306,7 @@ function OnboardingPageContent() {
                         onChange={(e) =>
                           setStepData('step1', { teamSize: e.target.value })
                         }
-                        className="bg-slate-800 border-slate-700"
+                        className="bg-gray-50 border-gray-300"
                       />
                     </div>
                   </div>
@@ -335,8 +335,8 @@ function OnboardingPageContent() {
                   <h1 className="text-3xl font-bold mb-2">
                     Que souhaitez-vous faire ? 🎯
                   </h1>
-                  <p className="text-slate-400">
-                    Sélectionnez votre cas d&apos;usage principal
+                  <p className="text-gray-500">
+                    Selectionnez au moins un cas d&apos;usage
                   </p>
                 </div>
 
@@ -349,19 +349,19 @@ function OnboardingPageContent() {
                       onClick={() => toggleUseCase(useCase.id)}
                       className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                         formData.step3.useCases.includes(useCase.id)
-                          ? 'bg-blue-600/20 border-blue-500'
-                          : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                          ? 'bg-blue-50 border-blue-500'
+                          : 'bg-gray-50 border-gray-200 hover:border-gray-400'
                       }`}
                     >
                       <useCase.icon
                         className={`w-8 h-8 mb-3 ${
                           formData.step3.useCases.includes(useCase.id)
-                            ? 'text-blue-400'
-                            : 'text-slate-400'
+                            ? 'text-blue-600'
+                            : 'text-gray-400'
                         }`}
                       />
                       <h3 className="font-semibold mb-1">{useCase.name}</h3>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-gray-500">
                         {useCase.description}
                       </p>
                     </motion>
@@ -383,7 +383,7 @@ function OnboardingPageContent() {
                   <h1 className="text-3xl font-bold mb-2">
                     Vos objectifs ✨
                   </h1>
-                  <p className="text-slate-400">
+                  <p className="text-gray-500">
                     Que voulez-vous accomplir avec Luneo ?
                   </p>
                 </div>
@@ -397,21 +397,21 @@ function OnboardingPageContent() {
                       onClick={() => toggleGoal(goal.id)}
                       className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                         formData.step4.goals.includes(goal.id)
-                          ? 'bg-green-600/20 border-green-500'
-                          : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                          ? 'bg-green-50 border-green-500'
+                          : 'bg-gray-50 border-gray-200 hover:border-gray-400'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <goal.icon
                           className={`w-6 h-6 ${
                             formData.step4.goals.includes(goal.id)
-                              ? 'text-green-400'
-                              : 'text-slate-400'
+                              ? 'text-green-600'
+                              : 'text-gray-400'
                           }`}
                         />
                         <span className="font-medium">{goal.name}</span>
                         {formData.step4.goals.includes(goal.id) && (
-                          <Check className="w-5 h-5 text-green-400 ml-auto" />
+                          <Check className="w-5 h-5 text-green-600 ml-auto" />
                         )}
                       </div>
                     </motion>
@@ -433,7 +433,7 @@ function OnboardingPageContent() {
                   <h1 className="text-3xl font-bold mb-2">
                     Vos intégrations 🔌
                   </h1>
-                  <p className="text-slate-400">
+                  <p className="text-gray-500">
                     Quelle(s) plateforme(s) utilisez-vous ?
                   </p>
                 </div>
@@ -447,8 +447,8 @@ function OnboardingPageContent() {
                       onClick={() => toggleIntegration(integration.id)}
                       className={`p-4 rounded-xl border text-center transition-all cursor-pointer ${
                         formData.step5.integrations.includes(integration.id)
-                          ? 'bg-purple-600/20 border-purple-500'
-                          : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                          ? 'bg-purple-50 border-purple-500'
+                          : 'bg-gray-50 border-gray-200 hover:border-gray-400'
                       }`}
                     >
                       <span className="text-3xl mb-2 block">
@@ -458,7 +458,7 @@ function OnboardingPageContent() {
                         {integration.name}
                       </span>
                       {formData.step5.integrations.includes(integration.id) && (
-                        <Check className="w-4 h-4 text-purple-400 mx-auto mt-2" />
+                        <Check className="w-4 h-4 text-purple-600 mx-auto mt-2" />
                       )}
                     </motion>
                   ))}
@@ -486,23 +486,23 @@ function OnboardingPageContent() {
                 <h1 className="text-3xl font-bold mb-4">
                   Vous êtes prêt ! 🎉
                 </h1>
-                <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                  Votre espace est configuré. Explorez Luneo et commencez à
-                  créer des expériences incroyables pour vos clients.
+                <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                  Votre espace est configure. Explorez Luneo et commencez a
+                  creer des experiences incroyables pour vos clients.
                 </p>
 
                 <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg mx-auto">
-                  <div className="p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-400">14</p>
-                    <p className="text-xs text-slate-400">jours d&apos;essai</p>
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600">Gratuit</p>
+                    <p className="text-xs text-gray-500">pour commencer</p>
                   </div>
-                  <div className="p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-400">∞</p>
-                    <p className="text-xs text-slate-400">designs</p>
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">5</p>
+                    <p className="text-xs text-gray-500">designs inclus</p>
                   </div>
-                  <div className="p-4 bg-slate-800/50 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-400">24/7</p>
-                    <p className="text-xs text-slate-400">support</p>
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <p className="text-2xl font-bold text-purple-600">24/7</p>
+                    <p className="text-xs text-gray-500">support</p>
                   </div>
                 </div>
               </motion>
@@ -510,7 +510,7 @@ function OnboardingPageContent() {
           </AnimatePresence>
 
           {/* Navigation */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-800">
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
             <div>
               {currentStep > 1 && currentStep < 6 && (
                 <Button variant="ghost" onClick={handlePrevious}>
@@ -524,7 +524,7 @@ function OnboardingPageContent() {
                 <Button
                   variant="ghost"
                   onClick={handleSkip}
-                  className="text-slate-400"
+                  className="text-gray-500"
                 >
                   Passer
                 </Button>
@@ -552,20 +552,22 @@ function OnboardingPageContent() {
           </div>
         </Card>
 
-        {/* Skip Link */}
-        <motion
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center mt-6"
-        >
-          <button
-            onClick={handleSkip}
-            className="text-sm text-slate-500 hover:text-slate-400 transition-colors"
+        {/* Skip Link - hidden on final step */}
+        {currentStep < 6 && (
+          <motion
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center mt-6"
           >
-            Vous pouvez toujours configurer cela plus tard
-          </button>
-        </motion>
+            <button
+              onClick={handleSkip}
+              className="text-sm text-gray-500 hover:text-gray-400 transition-colors"
+            >
+              Vous pouvez toujours configurer cela plus tard
+            </button>
+          </motion>
+        )}
       </div>
     </div>
   );

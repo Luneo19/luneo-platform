@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 import { ApiResponseBuilder } from '@/lib/api-response';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 /**
  * POST /api/webhooks/woocommerce

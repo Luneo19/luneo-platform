@@ -253,7 +253,7 @@ export class PrismaQueryHelper {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        return await this.prisma.$transaction(operation as any) as T;
+        return await this.prisma.$transaction(operation as unknown as Parameters<typeof this.prisma.$transaction>[0]) as T;
       } catch (error: any) {
         lastError = error;
         

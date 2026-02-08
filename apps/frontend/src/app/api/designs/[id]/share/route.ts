@@ -2,8 +2,9 @@ import { getUserFromRequest } from '@/lib/auth/get-user';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { shareDesignSchema } from '@/lib/validation/zod-schemas';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 type DesignShareRouteContext = {
   params: Promise<{ id: string }>;

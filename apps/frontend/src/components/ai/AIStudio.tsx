@@ -76,9 +76,9 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
   const loadHistory = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
-      const data = await endpoints.designs.list({ limit: 50 }) as any;
-      const designsList = data?.designs || (Array.isArray(data) ? data : []);
-      const designs = designsList.map((d: any) => ({
+      const data = await endpoints.designs.list({ limit: 50 }) as { designs?: Array<Record<string, unknown>> } | unknown[];
+      const designsList = Array.isArray(data) ? data : (data as { designs?: unknown[] })?.designs ?? [];
+      const designs = designsList.map((d: Record<string, unknown>) => ({
         id: d.id,
         url: d.preview_url || d.original_url,
         prompt: d.prompt || '',

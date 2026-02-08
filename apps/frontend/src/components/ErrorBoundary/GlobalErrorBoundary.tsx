@@ -60,8 +60,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
   private reportError(error: Error, errorInfo: ErrorInfo): void {
     // Report to Sentry or other service
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, {
+    if (typeof window !== 'undefined' && (window as Window & { Sentry?: { captureException: (error: Error, options?: object) => void } }).Sentry) {
+      (window as Window & { Sentry: { captureException: (error: Error, options?: object) => void } }).Sentry.captureException(error, {
         extra: {
           componentStack: errorInfo.componentStack,
         },

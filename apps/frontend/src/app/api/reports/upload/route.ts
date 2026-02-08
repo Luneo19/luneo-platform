@@ -10,8 +10,9 @@ import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { getUserFromRequest } from '@/lib/auth/get-user';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 export async function POST(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {

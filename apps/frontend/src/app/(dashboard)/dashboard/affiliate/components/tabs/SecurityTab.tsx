@@ -16,23 +16,23 @@ const SECURITY_FEATURES = [
 
 export function SecurityTab() {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-gray-900 flex items-center gap-2">
           <Shield className="w-5 h-5 text-purple-400" />
           Sécurité Avancée
         </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-gray-600">
           Fonctionnalités de sécurité de niveau entreprise
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {SECURITY_FEATURES.map((feature, idx) => (
-            <Card key={idx} className="bg-gray-900/50 border-gray-700">
+            <Card key={idx} className="bg-gray-100 border-gray-200">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-white text-sm">{feature.name}</CardTitle>
+                  <CardTitle className="text-gray-900 text-sm">{feature.name}</CardTitle>
                   {feature.enabled ? (
                     <Badge className="bg-green-500/20 text-green-400">Activé</Badge>
                   ) : (

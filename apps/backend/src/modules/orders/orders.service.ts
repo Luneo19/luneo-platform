@@ -4,7 +4,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrencyUtils } from '@/config/currency.config';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, PaymentStatus, UserRole } from '@prisma/client';
+import { OrderStatus, PaymentStatus, UserRole, Prisma, CommissionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { CommissionService } from '@/modules/billing/services/commission.service';
 import { DiscountService } from './services/discount.service';
@@ -358,7 +358,7 @@ export class OrdersService {
         customerEmail,
         customerName,
         customerPhone,
-        shippingAddress: shippingAddress as any,
+        shippingAddress: shippingAddress as Prisma.InputJsonValue,
         subtotalCents,
         taxCents,
         shippingCents,
@@ -369,7 +369,7 @@ export class OrdersService {
         brandId,
         designId: orderItems.length === 1 && orderItems[0].designId ? orderItems[0].designId : null, // Legacy support
         productId: orderItems.length === 1 ? orderItems[0].productId : null, // Legacy support
-        metadata: discountMetadata ? { discount: discountMetadata } as any : undefined,
+        metadata: discountMetadata ? { discount: discountMetadata } as Prisma.InputJsonValue : undefined,
         items: {
           create: orderItems.map(item => ({
             productId: item.productId,
@@ -377,7 +377,7 @@ export class OrdersService {
             quantity: item.quantity,
             priceCents: item.priceCents,
             totalCents: item.totalCents,
-            metadata: item.metadata as any,
+            metadata: item.metadata as Prisma.InputJsonValue,
           })),
         },
       },
@@ -673,7 +673,7 @@ export class OrdersService {
       }
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.OrderUpdateInput = {};
     if (data.status) updateData.status = data.status;
     if (data.trackingNumber) updateData.trackingNumber = data.trackingNumber;
     if (data.notes) updateData.notes = data.notes;
@@ -867,7 +867,7 @@ export class OrdersService {
             status: OrderStatus.CANCELLED,
             paymentStatus: PaymentStatus.REFUNDED,
             metadata: {
-              ...((order.metadata as any) || {}),
+              ...((order.metadata as Record<string, unknown>) || {}),
               refund: {
                 refundId: refund.id,
                 amountCents: refund.amount,
@@ -875,7 +875,7 @@ export class OrdersService {
                 requestedAt: new Date().toISOString(),
                 requestedBy: currentUser.id,
               },
-            } as any,
+            } as Prisma.InputJsonValue,
           },
           select: {
             id: true,
@@ -905,14 +905,14 @@ export class OrdersService {
             status: OrderStatus.CANCELLED,
             paymentStatus: PaymentStatus.REFUNDED,
             metadata: {
-              ...((order.metadata as any) || {}),
+              ...((order.metadata as Record<string, unknown>) || {}),
               refund: {
                 reason,
                 requestedAt: new Date().toISOString(),
                 requestedBy: currentUser.id,
                 type: 'manual',
               },
-            } as any,
+            } as Prisma.InputJsonValue,
           },
           select: {
             id: true,
@@ -985,7 +985,7 @@ export class OrdersService {
       if (commissions.length > 0) {
         await this.prisma.commission.updateMany({
           where: { orderId, status: 'PENDING' },
-          data: { status: 'CANCELLED' as any },
+          data: { status: CommissionStatus.CANCELLED },
         });
         this.logger.log(`Cancelled ${commissions.length} pending commissions for order ${orderNumber}`);
       }

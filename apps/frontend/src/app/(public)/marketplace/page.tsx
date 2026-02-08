@@ -17,14 +17,10 @@ import {
   Download,
   Heart,
   Eye,
-  ChevronDown,
-  X,
   Sparkles,
   TrendingUp,
   Clock,
-  DollarSign,
   Tag,
-  User,
   Crown,
   Check,
   ShoppingCart,
@@ -51,12 +47,13 @@ import {
 } from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useMarketplace } from '@/lib/marketplace/useMarketplace';
+import { endpoints } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import { TEMPLATE_CATEGORIES, type TemplateCategory, type Template } from '@/lib/marketplace/types';
-import OptimizedImage from '../../../components/optimized/OptimizedImage';
+import OptimizedImage from '@/components/optimized/OptimizedImage';
 
-// Mock data for demo
-const MOCK_TEMPLATES: Template[] = [
+// Fallback mock data when API fails (e.g. unauthenticated or backend down)
+const FALLBACK_TEMPLATES: Template[] = [
   {
     id: '1',
     name: 'T-Shirt Streetwear Pack',
@@ -233,6 +230,57 @@ const MOCK_TEMPLATES: Template[] = [
   },
 ];
 
+function normalizeApiTemplate(raw: Record<string, unknown>): Template {
+  const creatorId = String(raw.creatorId ?? raw.creator_id ?? '');
+  const previewImages = Array.isArray(raw.previewImages)
+    ? (raw.previewImages as string[])
+    : Array.isArray(raw.preview_images)
+      ? (raw.preview_images as string[])
+      : [];
+  const thumb = raw.thumbnailUrl ?? raw.thumbnail_url;
+  const previewImage = typeof thumb === 'string' ? thumb : (previewImages[0] || '');
+  const createdAt = raw.createdAt ?? raw.created_at;
+  const updatedAt = raw.updatedAt ?? raw.updated_at;
+  const publishedAt = raw.publishedAt ?? raw.published_at;
+  const toTs = (v: unknown) => (v instanceof Date ? v.getTime() : typeof v === 'string' ? new Date(v).getTime() : Date.now());
+  const creator = (raw.creator as Record<string, unknown>) || {};
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    description: String(raw.description ?? ''),
+    slug: String(raw.slug ?? ''),
+    previewImage: previewImage || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+    previewImages,
+    category: (raw.category as Template['category']) || 'other',
+    tags: Array.isArray(raw.tags) ? (raw.tags as string[]) : [],
+    price: raw.isFree || raw.is_free ? 0 : Math.round(Number(raw.priceCents ?? raw.price_cents ?? 0) / 100),
+    currency: 'EUR',
+    isPremium: Boolean(raw.priceCents ?? raw.price_cents),
+    isFeatured: Boolean(raw.featured ?? raw.isFeatured ?? raw.is_featured),
+    creatorId,
+    creator: {
+      id: String(creator.id ?? creatorId),
+      name: String(creator.name ?? creator.displayName ?? 'Créateur'),
+      username: String(creator.username ?? creatorId.slice(0, 8)),
+      avatar: creator.avatar != null ? String(creator.avatar) : undefined,
+      verified: Boolean(creator.verified),
+    },
+    downloads: Number(raw.downloads ?? 0),
+    views: Number(raw.views ?? raw.downloads ?? 0) * 2,
+    likes: Number(raw.likes ?? 0),
+    rating: Number(raw.averageRating ?? raw.average_rating ?? raw.rating ?? 0),
+    reviewCount: Number(raw.reviews ?? raw.reviewCount ?? 0),
+    format: 'json',
+    dimensions: { width: 4000, height: 4000 },
+    fileSize: Number(raw.fileSize ?? 0) || 1000000,
+    compatibility: ['luneo'],
+    createdAt: toTs(createdAt),
+    updatedAt: toTs(updatedAt),
+    publishedAt: publishedAt != null ? toTs(publishedAt) : undefined,
+    status: (raw.status as Template['status']) || 'published',
+  };
+}
+
 function MarketplacePageContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | 'all'>('all');
@@ -241,9 +289,38 @@ function MarketplacePageContent() {
   const [freeOnly, setFreeOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
 
-  // In real app, use useMarketplace hook
-  const templates = MOCK_TEMPLATES;
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setTemplatesLoading(true);
+      try {
+        const res = await endpoints.marketplace.templates({
+          status: 'published',
+          limit: 100,
+          page: 1,
+          sortBy: 'popular',
+        });
+        const data = res as { templates?: unknown[]; items?: unknown[] };
+        const list = data?.templates ?? data?.items ?? [];
+        const normalized = (Array.isArray(list) ? list : []).map((t) =>
+          normalizeApiTemplate(t as Record<string, unknown>)
+        );
+        if (!cancelled) setTemplates(normalized);
+      } catch (error) {
+        logger.error('Failed to fetch marketplace templates', { error });
+        if (!cancelled) setTemplates(FALLBACK_TEMPLATES);
+      } finally {
+        if (!cancelled) setTemplatesLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Filter templates
   const filteredTemplates = useMemo(() => {
@@ -286,6 +363,14 @@ function MarketplacePageContent() {
   const featuredTemplates = useMemo(() => {
     return templates.filter((t) => t.isFeatured).slice(0, 3);
   }, [templates]);
+
+  if (templatesLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-center">
+        <div className="text-slate-400">Chargement des templates...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">

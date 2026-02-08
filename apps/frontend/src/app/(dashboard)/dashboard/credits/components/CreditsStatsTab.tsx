@@ -21,10 +21,10 @@ const STAT_ITEMS = [
 export function CreditsStatsTab({ stats }: CreditsStatsTabProps) {
   return (
     <div className="space-y-6">
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Statistiques d&apos;utilisation</CardTitle>
-          <CardDescription className="text-gray-400">Vue détaillée de vos crédits et consommations</CardDescription>
+          <CardTitle className="text-gray-900">Statistiques d&apos;utilisation</CardTitle>
+          <CardDescription className="text-gray-600">Vue détaillée de vos crédits et consommations</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -35,10 +35,10 @@ export function CreditsStatsTab({ stats }: CreditsStatsTabProps) {
                   ? `${Math.round(stats[item.valueKey])}`
                   : formatNumber(Number(stats[item.valueKey]));
               return (
-                <Card key={item.label} className="p-4 bg-gray-900/50 border-gray-700">
+                <Card key={item.label} className="p-4 bg-gray-50 border-gray-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-400">{item.label}</p>
+                      <p className="text-sm text-gray-600">{item.label}</p>
                       <p className={`text-2xl font-bold mt-1 ${item.color}`}>{value}</p>
                     </div>
                     <div className={`p-3 rounded-lg ${item.bg}`}>
@@ -53,25 +53,25 @@ export function CreditsStatsTab({ stats }: CreditsStatsTabProps) {
       </Card>
 
       {(stats.trends?.length > 0 || Object.keys(stats.byType ?? {}).length > 0) && (
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-gray-900 flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
               Répartition et tendances
             </CardTitle>
-            <CardDescription className="text-gray-400">Taux d&apos;utilisation et tendances récentes</CardDescription>
+            <CardDescription className="text-gray-600">Taux d&apos;utilisation et tendances récentes</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 p-3 bg-gray-900/50 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-cyan-400" />
-                <span className="text-gray-300">Taux d&apos;utilisation</span>
-                <span className="font-bold text-cyan-400">{Math.round(stats.usageRate)}%</span>
+              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-cyan-600" />
+                <span className="text-gray-700">Taux d&apos;utilisation</span>
+                <span className="font-bold text-cyan-600">{Math.round(stats.usageRate)}%</span>
               </div>
               {stats.byType && Object.entries(stats.byType).map(([type, count]) => (
-                <div key={type} className="flex items-center gap-2 p-3 bg-gray-900/50 rounded-lg">
-                  <span className="text-gray-400 capitalize">{type}</span>
-                  <span className="font-bold text-white">{formatNumber(count)}</span>
+                <div key={type} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 capitalize">{type}</span>
+                  <span className="font-bold text-gray-900">{formatNumber(count)}</span>
                 </div>
               ))}
             </div>

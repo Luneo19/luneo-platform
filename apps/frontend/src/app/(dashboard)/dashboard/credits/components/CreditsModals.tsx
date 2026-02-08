@@ -124,35 +124,35 @@ export function CreditsModals({
   return (
     <>
       <Dialog open={showPurchaseModal} onOpenChange={setShowPurchaseModal}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+        <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl">
           <DialogHeader>
             <DialogTitle>Acheter {selectedPackData?.name}</DialogTitle>
             <DialogDescription>Confirmez votre achat de crédits</DialogDescription>
           </DialogHeader>
           {selectedPackData && (
             <div className="space-y-4 mt-4">
-              <div className="p-6 bg-gray-900/50 rounded-lg">
+              <div className="p-6 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-white">{selectedPackData.name}</h3>
-                    <p className="text-sm text-gray-400">{selectedPackData.description}</p>
+                    <h3 className="text-xl font-bold text-gray-900">{selectedPackData.name}</h3>
+                    <p className="text-sm text-gray-600">{selectedPackData.description}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-3xl font-bold text-cyan-400">{formatNumber(selectedPackData.credits)}</p>
-                    <p className="text-sm text-gray-400">crédits</p>
+                    <p className="text-3xl font-bold text-cyan-600">{formatNumber(selectedPackData.credits)}</p>
+                    <p className="text-sm text-gray-600">crédits</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-white">{formatPrice(selectedPackData.price)}</p>
-                    <p className="text-sm text-gray-400">TTC</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatPrice(selectedPackData.price)}</p>
+                    <p className="text-sm text-gray-600">TTC</p>
                   </div>
                 </div>
                 {selectedPackData.features && (
                   <div className="space-y-2">
                     {selectedPackData.features.map((feature, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm text-gray-300">
-                        <CheckCircle className="w-4 h-4 text-green-400" />
+                      <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
                         {feature}
                       </div>
                     ))}
@@ -162,7 +162,7 @@ export function CreditsModals({
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPurchaseModal(false)} className="border-gray-600">
+            <Button variant="outline" onClick={() => setShowPurchaseModal(false)} className="border-gray-300">
               Annuler
             </Button>
             <Button onClick={onConfirmPurchase} className="bg-cyan-600 hover:bg-cyan-700">
@@ -174,14 +174,14 @@ export function CreditsModals({
       </Dialog>
 
       <Dialog open={showAutoRefillModal} onOpenChange={setShowAutoRefillModal}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="bg-white border-gray-200 text-gray-900">
           <DialogHeader>
             <DialogTitle>Recharge automatique</DialogTitle>
             <DialogDescription>Configurez la recharge automatique de vos crédits</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label htmlFor="auto-refill-threshold" className="text-gray-300 mb-2 block">
+              <Label htmlFor="auto-refill-threshold" className="text-gray-700 mb-2 block">
                 Seuil de recharge ({autoRefillThreshold} crédits)
               </Label>
               <Slider
@@ -195,9 +195,9 @@ export function CreditsModals({
               />
             </div>
             <div>
-              <Label htmlFor="auto-refill-pack" className="text-gray-300 mb-2 block">Pack à acheter</Label>
+              <Label htmlFor="auto-refill-pack" className="text-gray-700 mb-2 block">Pack à acheter</Label>
               <Select value={autoRefillPack || ''} onValueChange={(v) => setAutoRefillPack(v || null)}>
-                <SelectTrigger className="w-full bg-gray-900 border-gray-600 text-white">
+                <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900">
                   <SelectValue placeholder="Sélectionner un pack" />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,7 +211,7 @@ export function CreditsModals({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAutoRefillModal(false)} className="border-gray-600">
+            <Button variant="outline" onClick={() => setShowAutoRefillModal(false)} className="border-gray-300">
               Annuler
             </Button>
             <Button onClick={onEnableAutoRefill} className="bg-cyan-600 hover:bg-cyan-700">
@@ -223,25 +223,25 @@ export function CreditsModals({
       </Dialog>
 
       <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="bg-white border-gray-200 text-gray-900">
           <DialogHeader>
             <DialogTitle>Exporter l'historique</DialogTitle>
             <DialogDescription>Choisissez le format d'export</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" onClick={handleExportCsv} className="border-gray-600">
+              <Button variant="outline" onClick={handleExportCsv} className="border-gray-300">
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 CSV
               </Button>
-              <Button variant="outline" onClick={handleExportJson} className="border-gray-600">
+              <Button variant="outline" onClick={handleExportJson} className="border-gray-300">
                 <FileJson className="w-4 h-4 mr-2" />
                 JSON
               </Button>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowExportModal(false)} className="border-gray-600">
+            <Button variant="outline" onClick={() => setShowExportModal(false)} className="border-gray-300">
               Fermer
             </Button>
           </DialogFooter>

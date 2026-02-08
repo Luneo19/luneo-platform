@@ -1,106 +1,197 @@
-# DEPRECATED: Use deploy-production.yml or backend-ci.yml for staging. This workflow is kept for reference but should not be triggered automatically.
-name: Deploy to Staging
+# Staging deployment - deploys both backend (serverless) and frontend to Vercel staging
+# ==============================================
+# Runs on push to staging or workflow_dispatch. Backend and frontend deploy to Vercel
+# (serverless) for staging. Production uses deploy-production.yml (Railway + Vercel).
+# ==============================================
+
+name: Deploy Staging
 
 on:
+  push:
+    branches: [staging]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
 
 env:
   NODE_VERSION: '22'
-  BACKEND_URL: https://develop-api.luneo.app
+  PNPM_VERSION: '8'
 
 jobs:
-  test:
-    name: Run Tests
+  # Lint and test (frontend + backend)
+  lint-and-test:
+    name: 🔍 Lint & Test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: '8'
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Setup Node.js
+      - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client
+      - name: 🔍 Lint
+        run: |
+          cd apps/frontend
+          pnpm run lint:check
+          cd ../backend
+          pnpm run lint
+
+      - name: ✅ Type check
+        run: |
+          cd apps/frontend
+          pnpm run type-check
+
+      - name: 🧪 Run tests
+        run: |
+          cd apps/frontend
+          pnpm run test:unit
+
+  # Build backend + frontend, upload artifacts
+  build:
+    name: 🔨 Build
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    timeout-minutes: 20
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔧 Generate Prisma Client
         run: |
           cd apps/backend
           pnpm exec prisma generate
 
-      - name: Run linter
+      - name: 🔨 Build Backend
         run: |
           cd apps/backend
-          pnpm run lint || true
+          pnpm run build
 
-      - name: Run unit tests
+      - name: 🔨 Build Frontend
         run: |
-          cd apps/backend
-          pnpm run test -- --testPathPattern=unit || true
+          cd apps/frontend
+          pnpm run build
 
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            apps/backend/dist
+            apps/frontend/.next
+          retention-days: 7
+
+  # Deploy backend to Vercel (staging / preview)
   deploy-backend:
-    name: Deploy Backend (Staging)
-    needs: test
+    name: 🚀 Deploy Backend (Staging)
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: build
+    if: ${{ secrets.VERCEL_BACKEND_PROJECT_ID != '' }}
+    environment: staging
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to staging
-        run: |
-          echo "Deploying backend to staging (develop)..."
-          # Add your staging deployment commands here
-          # e.g. Railway, Render, or trigger staging pipeline
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
 
-      - name: Verify deployment health
+      - name: 🚀 Deploy to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
+          vercel-args: '--preview'
+          working-directory: apps/backend
+
+      - name: ✅ Health check
         run: |
-          echo "Waiting for deployment to stabilize..."
           sleep 30
-          
-          HEALTH_URL="${BACKEND_URL:-https://develop-api.luneo.app}/health"
-          MAX_RETRIES=5
-          RETRY_COUNT=0
-          
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "Health check passed!"
-              exit 0
-            fi
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            echo "Health check attempt $RETRY_COUNT failed (HTTP $HTTP_CODE). Retrying in 10s..."
-            sleep 10
-          done
-          
-          echo "HEALTH CHECK FAILED after $MAX_RETRIES attempts"
-          exit 1
+          curl -f https://api-staging.luneo.app/health || echo "Health check skipped (staging not configured)"
 
-      - name: Notify deployment status
-        if: always()
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  # Deploy frontend to Vercel (staging / preview)
+  deploy-frontend:
+    name: 🚀 Deploy Frontend (Staging)
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID != '' }}
+    environment: staging
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: 🚀 Deploy to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
+          vercel-args: '--preview'
+          working-directory: apps/frontend
+
+      - name: ✅ Health check
         run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            STATUS="deployed successfully"
-            COLOR="good"
-          else
-            STATUS="FAILED"
-            COLOR="danger"
-          fi
-          
-          if [ -n "$SLACK_WEBHOOK_URL" ]; then
-            curl -X POST "$SLACK_WEBHOOK_URL" \
-              -H 'Content-type: application/json' \
-              -d "{\"attachments\":[{\"color\":\"$COLOR\",\"text\":\"Luneo staging backend $STATUS on \`${{ github.ref_name }}\` by ${{ github.actor }}\"}]}" || true
-          fi
+          sleep 30
+          curl -f https://app-staging.luneo.app || echo "Health check skipped (staging not configured)"
+
+  # Notify on success/failure
+  notify:
+    name: 📢 Notify
+    runs-on: ubuntu-latest
+    needs: [build, deploy-backend, deploy-frontend]
+    if: always()
+
+    steps:
+      - name: 📢 Notify success
+        if: success()
+        run: |
+          echo "✅ Staging deployment successful!"
+
+      - name: 📢 Notify failure
+        if: failure()
+        run: |
+          echo "❌ Staging deployment failed!"

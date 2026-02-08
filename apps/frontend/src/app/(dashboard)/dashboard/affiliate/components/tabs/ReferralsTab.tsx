@@ -19,15 +19,15 @@ export function ReferralsTab({ referrals, filterStatus, onFilterChange }: Referr
   const filtered = referrals.filter((r) => filterStatus === 'all' || r.status === filterStatus);
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-white">Référents</CardTitle>
-            <CardDescription className="text-gray-400">Liste de tous vos référents</CardDescription>
+            <CardDescription className="text-gray-600">Liste de tous vos référents</CardDescription>
           </div>
           <Select value={filterStatus} onValueChange={onFilterChange}>
-            <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-[180px] bg-gray-900 border-gray-200 text-white">
               <SelectValue placeholder="Filtrer par statut" />
             </SelectTrigger>
             <SelectContent>
@@ -44,13 +44,13 @@ export function ReferralsTab({ referrals, filterStatus, onFilterChange }: Referr
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow className="border-gray-700">
-              <TableHead className="text-gray-300">Référent</TableHead>
-              <TableHead className="text-gray-300">Statut</TableHead>
-              <TableHead className="text-gray-300">Date inscription</TableHead>
-              <TableHead className="text-gray-300">Revenus</TableHead>
-              <TableHead className="text-gray-300">Commission</TableHead>
-              <TableHead className="text-gray-300">Lien</TableHead>
+            <TableRow className="border-gray-200">
+              <TableHead className="text-gray-700">Référent</TableHead>
+              <TableHead className="text-gray-700">Statut</TableHead>
+              <TableHead className="text-gray-700">Date inscription</TableHead>
+              <TableHead className="text-gray-700">Revenus</TableHead>
+              <TableHead className="text-gray-700">Commission</TableHead>
+              <TableHead className="text-gray-700">Lien</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -59,11 +59,11 @@ export function ReferralsTab({ referrals, filterStatus, onFilterChange }: Referr
               const Icon = config?.icon;
               if (!Icon) return null;
               return (
-                <TableRow key={referral.id} className="border-gray-700 hover:bg-gray-800/50">
+                <TableRow key={referral.id} className="border-gray-200 hover:bg-gray-50">
                   <TableCell>
                     <div>
                       <p className="text-sm font-medium text-white">{referral.name || referral.email}</p>
-                      <p className="text-xs text-gray-400">{referral.email}</p>
+                      <p className="text-xs text-gray-600">{referral.email}</p>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -72,13 +72,13 @@ export function ReferralsTab({ referrals, filterStatus, onFilterChange }: Referr
                       {config.label}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-gray-300 text-sm">
+                  <TableCell className="text-gray-700 text-sm">
                     {formatRelativeDate(referral.signupDate)}
                   </TableCell>
                   <TableCell className="text-white font-medium">{formatPrice(referral.revenue)}</TableCell>
                   <TableCell className="text-green-400 font-medium">{formatPrice(referral.commission)}</TableCell>
                   <TableCell>
-                    <code className="text-xs text-gray-400">{referral.linkCode}</code>
+                    <code className="text-xs text-gray-600">{referral.linkCode}</code>
                   </TableCell>
                 </TableRow>
               );

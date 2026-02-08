@@ -20,8 +20,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
+import { SubscribePushDto, UnsubscribePushDto, SendPushNotificationDto, SendPushToUserDto, CreateNotificationDto } from './dto/notifications.dto';
 
 @ApiTags('notifications')
 @Controller('notifications')
@@ -48,7 +49,7 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Subscribe to push notifications' })
   @ApiResponse({ status: 200, description: 'Successfully subscribed' })
   async subscribeToPush(
-    @Body() body: { userId: string; subscription: { endpoint: string; keys: { p256dh: string; auth: string } } },
+    @Body() body: SubscribePushDto,
     @Request() req,
   ) {
     const userId = body.userId || req.user.id;
@@ -62,7 +63,7 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Unsubscribe from push notifications' })
   @ApiResponse({ status: 200, description: 'Successfully unsubscribed' })
   async unsubscribeFromPush(
-    @Body() body: { userId: string; endpoint: string },
+    @Body() body: UnsubscribePushDto,
     @Request() req,
   ) {
     const userId = body.userId || req.user.id;
@@ -76,10 +77,7 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Send a push notification' })
   @ApiResponse({ status: 200, description: 'Push notification sent' })
   async sendPushNotification(
-    @Body() body: {
-      subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
-      payload: { title: string; body: string; icon?: string; badge?: string; data?: Record<string, unknown> };
-    },
+    @Body() body: SendPushNotificationDto,
   ) {
     return this.notificationsService.sendPushNotification(body.subscription, body.payload);
   }
@@ -91,10 +89,7 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Send push notification to all user subscriptions' })
   @ApiResponse({ status: 200, description: 'Push notifications sent' })
   async sendPushToUser(
-    @Body() body: {
-      userId: string;
-      payload: { title: string; body: string; icon?: string; badge?: string; data?: Record<string, unknown> };
-    },
+    @Body() body: SendPushToUserDto,
   ) {
     return this.notificationsService.sendPushToUser(body.userId, body.payload);
   }
@@ -139,7 +134,7 @@ export class NotificationsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Créer une nouvelle notification' })
   @ApiResponse({ status: 201, description: 'Notification créée' })
-  async create(@Body() createNotificationDto: any, @Request() req) {
+  async create(@Body() createNotificationDto: CreateNotificationDto, @Request() req) {
     return this.notificationsService.create({
       ...createNotificationDto,
       userId: req.user.id,

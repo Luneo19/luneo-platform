@@ -6,10 +6,14 @@
 
 import { Controller, Get, Post, Body, Query, Param, UseGuards, Request, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ArStudioService } from './ar-studio.service';
 import { CurrentUser } from '@/common/types/user.types';
 import { Request as ExpressRequest } from 'express';
+import { ConvertToArDto } from './dto/convert-to-ar.dto';
+import { ExportModelDto } from './dto/export-model.dto';
+import { ConvertUsdzDto } from './dto/convert-usdz.dto';
+import { ConversionStatusQueryDto } from './dto/conversion-status-query.dto';
 
 @ApiTags('AR Studio')
 @ApiBearerAuth()
@@ -104,7 +108,7 @@ export class ArStudioController {
       throw new NotFoundException('AR model not found');
     }
 
-    const baseUrl = process.env.FRONTEND_URL || 'https://luneo.app';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const previewUrl = `${baseUrl}/ar/preview/${id}`;
 
     return {
@@ -121,7 +125,7 @@ export class ArStudioController {
   @ApiOperation({ summary: 'Convertir une image 2D en modèle 3D via Meshy.ai' })
   @ApiResponse({ status: 201, description: 'Conversion initiée' })
   async convert2DTo3D(
-    @Body() body: { design_id: string; image_url: string },
+    @Body() body: ConvertToArDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     const brandId = req.user.brandId;
@@ -143,9 +147,10 @@ export class ArStudioController {
   @ApiQuery({ name: 'task_id', description: 'ID de la tâche Meshy.ai' })
   @ApiResponse({ status: 200, description: 'Statut de conversion' })
   async getConversionStatus(
-    @Query('task_id') taskId: string,
+    @Query() query: ConversionStatusQueryDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
+    const taskId = query.task_id;
     const brandId = req.user.brandId;
     if (!brandId) {
       throw new BadRequestException('User must have a brandId');
@@ -163,13 +168,7 @@ export class ArStudioController {
   @ApiOperation({ summary: 'Exporte un modèle AR en différents formats (GLB, USDZ)' })
   @ApiResponse({ status: 200, description: 'Modèle exporté avec succès' })
   async exportModel(
-    @Body() body: {
-      ar_model_id: string;
-      format: 'glb' | 'usdz';
-      optimize?: boolean;
-      include_textures?: boolean;
-      compression_level?: 'low' | 'medium' | 'high';
-    },
+    @Body() body: ExportModelDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     const brandId = req.user.brandId;
@@ -194,13 +193,7 @@ export class ArStudioController {
   @ApiOperation({ summary: 'Convertit un modèle GLB en USDZ' })
   @ApiResponse({ status: 200, description: 'Conversion réussie' })
   async convertUSDZ(
-    @Body() body: {
-      glb_url: string;
-      ar_model_id?: string;
-      product_name?: string;
-      scale?: number;
-      optimize?: boolean;
-    },
+    @Body() body: ConvertUsdzDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     const brandId = req.user.brandId;

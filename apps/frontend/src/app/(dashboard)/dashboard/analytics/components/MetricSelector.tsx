@@ -24,9 +24,9 @@ export function MetricSelector({
   onDeselectAll,
 }: MetricSelectorProps) {
   return (
-    <Card className="p-4 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 bg-white border-gray-200">
       <div className="flex items-center justify-between mb-4">
-        <Label className="text-gray-300">Métriques à afficher</Label>
+        <Label className="text-gray-700">Métriques à afficher</Label>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onSelectAll}>
             Tout sélectionner
@@ -51,7 +51,7 @@ export function MetricSelector({
                     metric.color === 'purple' ? 'border-purple-500 bg-purple-500/10' :
                     metric.color === 'orange' ? 'border-orange-500 bg-orange-500/10' :
                     'border-pink-500 bg-pink-500/10'
-                  : 'border-gray-700 bg-gray-900/50 hover:border-gray-600'
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300'
               )}
             >
               <div className="flex items-center gap-2">
@@ -70,7 +70,7 @@ export function MetricSelector({
                 <span
                   className={cn(
                     'text-sm font-medium',
-                    selectedMetrics.has(metric.value) ? 'text-white' : 'text-gray-400'
+                    selectedMetrics.has(metric.value) ? 'text-gray-900' : 'text-gray-600'
                   )}
                 >
                   {String(metric.label)}

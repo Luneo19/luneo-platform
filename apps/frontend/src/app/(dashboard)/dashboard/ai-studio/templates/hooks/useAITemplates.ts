@@ -30,7 +30,7 @@ export function useAITemplates() {
         description: (t.description as string) || '',
         category: ((t.category as string) || 'other') as TemplateCategory,
         type: ((t.type as string) || 'free') as 'free' | 'premium',
-        thumbnail: (t.thumbnail as string) || (t.thumbnailUrl as string) || '/placeholder-template.jpg',
+        thumbnail: (t.thumbnail as string) || (t.thumbnailUrl as string) || '/placeholder-template.svg',
         preview: (t.preview as string) || (t.previewUrl as string),
         price: t.price as number | undefined,
         rating: (t.rating as number) || 0,

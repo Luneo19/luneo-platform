@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Box, Eye, Heart, MoreVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,13 +32,15 @@ export function ProductCard({ product }: ProductCardProps) {
   const favorites = (product.metadata?.favorites as number) || 0;
 
   return (
-    <Card className="bg-slate-900/50 border-slate-700 hover:border-cyan-500/50 transition-colors group">
+    <Card className="bg-white border-gray-200 hover:border-cyan-500/50 transition-colors group">
       <CardContent className="p-0">
         <div className="relative aspect-square overflow-hidden rounded-t-lg">
-          <img
+          <Image
             src={thumbnail}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <Button
@@ -54,7 +57,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
         <div className="p-4">
           <div className="flex items-start justify-between mb-2">
-            <h3 className="font-semibold text-white line-clamp-2 flex-1">{product.name}</h3>
+            <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1">{product.name}</h3>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -69,9 +72,9 @@ export function ProductCard({ product }: ProductCardProps) {
             </DropdownMenu>
           </div>
           {product.description && (
-            <p className="text-sm text-slate-400 line-clamp-2 mb-3">{product.description}</p>
+            <p className="text-sm text-gray-600 line-clamp-2 mb-3">{product.description}</p>
           )}
-          <div className="flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center justify-between text-xs text-gray-600">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <Eye className="w-3 h-3" />
@@ -85,7 +88,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <Badge
               variant={product.isActive ? 'default' : 'secondary'}
               className={cn(
-                product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'
+                product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-200 text-gray-600'
               )}
             >
               {product.isActive ? 'Actif' : 'Inactif'}

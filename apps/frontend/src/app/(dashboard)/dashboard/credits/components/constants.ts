@@ -16,5 +16,5 @@ export const TRANSACTION_TYPE_CONFIG: Record<CreditTransaction['type'], Transact
   usage: { label: 'Utilisation', icon: Zap, bg: 'bg-amber-500/20', color: 'text-amber-400' },
   refund: { label: 'Remboursement', icon: RefreshCw, bg: 'bg-blue-500/20', color: 'text-blue-400' },
   bonus: { label: 'Bonus', icon: Gift, bg: 'bg-purple-500/20', color: 'text-purple-400' },
-  expiration: { label: 'Expiration', icon: Clock, bg: 'bg-gray-500/20', color: 'text-gray-400' },
+  expiration: { label: 'Expiration', icon: Clock, bg: 'bg-gray-500/20', color: 'text-gray-600' },
 };

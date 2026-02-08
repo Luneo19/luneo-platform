@@ -4,9 +4,10 @@
  * Migration complete: trigger and queue are delegated to backend /api/v1/webhooks/trigger.
  */
 
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 /**
  * Events disponibles pour les webhooks
@@ -64,11 +65,12 @@ export async function triggerWebhook(
       status: response.status,
       payloadKeys: Object.keys(payload),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : undefined;
     logger.warn('Backend webhook endpoint not available', {
       eventType,
       error,
-      message: error?.message,
+      message,
     });
   }
 }
@@ -81,10 +83,11 @@ export async function processWebhookQueue(): Promise<void> {
   try {
     // Webhook queue processing is handled by backend worker/queue system
     logger.info('Webhook queue processing is delegated to backend');
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Process webhook queue error', {
       error,
-      message: error.message,
+      message,
     });
   }
 }

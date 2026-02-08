@@ -95,7 +95,7 @@ export function DeleteAccountModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle className="text-red-400">Supprimer mon compte</DialogTitle>
           <DialogDescription>
@@ -114,7 +114,7 @@ export function DeleteAccountModal({
             </p>
           </div>
           <div>
-            <Label className="text-gray-300">
+            <Label className="text-gray-700">
               Mot de passe
             </Label>
             <Input
@@ -122,18 +122,18 @@ export function DeleteAccountModal({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Votre mot de passe"
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
             />
           </div>
           <div>
-            <Label className="text-gray-300">
+            <Label className="text-gray-700">
               Tapez "SUPPRIMER" pour confirmer
             </Label>
             <Input
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="SUPPRIMER"
-              className="bg-gray-900 border-gray-600 text-white mt-1"
+              className="bg-white border-gray-200 text-gray-900 mt-1"
             />
           </div>
         </div>
@@ -145,7 +145,7 @@ export function DeleteAccountModal({
               setPassword('');
               onOpenChange(false);
             }}
-            className="border-gray-600"
+            className="border-gray-200"
           >
             Annuler
           </Button>

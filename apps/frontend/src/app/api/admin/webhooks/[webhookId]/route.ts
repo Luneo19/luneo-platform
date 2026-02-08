@@ -6,8 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
+import { getBackendUrl } from '@/lib/api/server-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 function forwardHeaders(request: NextRequest): HeadersInit {
   const headers: HeadersInit = {
@@ -20,7 +21,7 @@ function forwardHeaders(request: NextRequest): HeadersInit {
 }
 
 async function getWebhookId(params: Promise<{ webhookId: string }> | { webhookId: string }): Promise<string> {
-  return typeof (params as any).then === 'function' ? (await (params as Promise<{ webhookId: string }>)).webhookId : (params as { webhookId: string }).webhookId;
+  return params instanceof Promise ? (await params).webhookId : params.webhookId;
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ webhookId: string }> | { webhookId: string } }) {

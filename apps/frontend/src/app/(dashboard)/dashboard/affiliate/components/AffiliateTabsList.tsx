@@ -11,7 +11,7 @@ interface AffiliateTabsListProps {
 
 export function AffiliateTabsList({ linksCount, referralsCount, commissionsCount }: AffiliateTabsListProps) {
   return (
-    <TabsList className="bg-gray-800/50 border border-gray-700 flex-wrap h-auto gap-1">
+    <TabsList className="bg-gray-50 border border-gray-200 flex-wrap h-auto gap-1">
       <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-600">
         <BarChart3 className="w-4 h-4 mr-2" />
         Vue d&apos;ensemble

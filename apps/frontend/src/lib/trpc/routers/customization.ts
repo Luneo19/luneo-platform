@@ -101,7 +101,7 @@ export const customizationRouter = router({
         }
 
         const user = await endpoints.auth.me() as { role?: string; brandId?: string };
-        const p = product as any;
+        const p = product as { brandId?: string };
         if (
           user?.role !== 'PLATFORM_ADMIN' &&
           user?.brandId !== p.brandId
@@ -138,7 +138,7 @@ export const customizationRouter = router({
       try {
         const { id, ...data } = input;
 
-        const zone = await api.get<any>(`/api/v1/zones/${id}`).catch(() => null);
+        const zone = await api.get<{ product?: { brandId?: string } }>(`/api/v1/zones/${id}`).catch(() => null);
         if (!zone) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -147,7 +147,7 @@ export const customizationRouter = router({
         }
 
         const user = await endpoints.auth.me() as { role?: string; brandId?: string };
-        const z = zone as any;
+        const z = zone as { product?: { brandId?: string } };
         if (
           user?.role !== 'PLATFORM_ADMIN' &&
           user?.brandId !== z.product?.brandId
@@ -158,7 +158,7 @@ export const customizationRouter = router({
           });
         }
 
-        const updated = await api.put<any>(`/api/v1/zones/${id}`, data);
+        const updated = await api.put<Record<string, unknown>>(`/api/v1/zones/${id}`, data);
 
         logger.info('Zone updated', { zoneId: id });
 
@@ -182,7 +182,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const zone = await api.get<any>(`/api/v1/zones/${input.id}`).catch(() => null);
+        const zone = await api.get<{ product?: { brandId?: string } }>(`/api/v1/zones/${input.id}`).catch(() => null);
         if (!zone) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -191,7 +191,7 @@ export const customizationRouter = router({
         }
 
         const user = await endpoints.auth.me() as { role?: string; brandId?: string };
-        const z = zone as any;
+        const z = zone as { product?: { brandId?: string } };
         if (
           user?.role !== 'PLATFORM_ADMIN' &&
           user?.brandId !== z.product?.brandId
@@ -226,7 +226,7 @@ export const customizationRouter = router({
     .input(z.object({ productId: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const zones = await api.get<any[]>(`/api/v1/products/${input.productId}/zones`, {
+        const zones = await api.get<unknown[]>(`/api/v1/products/${input.productId}/zones`, {
           params: { isActive: true },
         }).catch(() => []);
         return Array.isArray(zones) ? zones : [];
@@ -264,9 +264,9 @@ export const customizationRouter = router({
           });
         }
 
-        const zones = await api.get<any[]>(`/api/v1/products/${input.productId}/zones`).catch(() => []);
-        const zonesList = Array.isArray(zones) ? zones : (product as any).zones ?? [];
-        const zone = zonesList.find((z: any) => z.id === input.zoneId);
+        const zones = await api.get<{ id: string }[]>(`/api/v1/products/${input.productId}/zones`).catch(() => []);
+        const zonesList = Array.isArray(zones) ? zones : (product as { zones?: { id: string }[] }).zones ?? [];
+        const zone = zonesList.find((z) => z.id === input.zoneId);
         if (!zone) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -298,8 +298,8 @@ export const customizationRouter = router({
           }
         }
 
-        const prod = product as any;
-        const customization = await api.post<any>('/api/v1/customizations', {
+        const prod = product as { model3dUrl?: string; baseAssetUrl?: string };
+        const customization = await api.post<{ id: string }>('/api/v1/customizations', {
           prompt: input.prompt,
           zoneId: input.zoneId,
           productId: input.productId,
@@ -391,7 +391,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const customization = await api.get<any>(`/api/v1/customizations/${input.id}`).catch(() => null);
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -401,7 +401,7 @@ export const customizationRouter = router({
         }
 
         const user = await endpoints.auth.me() as { role?: string; brandId?: string };
-        const c = customization as any;
+        const c = customization as { userId?: string; brandId?: string };
         if (
           c.userId !== ctx.user.id &&
           user?.role !== 'PLATFORM_ADMIN' &&
@@ -451,8 +451,9 @@ export const customizationRouter = router({
           },
         });
 
-        const customizations = (result as any).customizations ?? (result as any).data ?? [];
-        const total = (result as any).pagination?.total ?? (result as any).total ?? (Array.isArray(customizations) ? customizations.length : 0);
+        const res = result as { customizations?: unknown[]; data?: unknown[]; pagination?: { total?: number }; total?: number };
+        const customizations = res.customizations ?? res.data ?? [];
+        const total = res.pagination?.total ?? res.total ?? (Array.isArray(customizations) ? customizations.length : 0);
 
         return {
           customizations: Array.isArray(customizations) ? customizations : [],
@@ -486,14 +487,14 @@ export const customizationRouter = router({
           });
         }
 
-        if ((customization as any).userId !== ctx.user.id) {
+        if ((customization as { userId?: string }).userId !== ctx.user.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
             message: 'Vous n\'avez pas la permission de modifier cette personnalisation',
           });
         }
 
-        const updated = await api.patch<any>(`/api/v1/customizations/${id}`, data);
+        const updated = await api.patch<Record<string, unknown>>(`/api/v1/customizations/${id}`, data);
 
         logger.info('Customization updated', { customizationId: id });
 
@@ -517,7 +518,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const customization = await api.get<any>(`/api/v1/customizations/${input.id}`).catch(() => null);
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -526,7 +527,7 @@ export const customizationRouter = router({
           });
         }
 
-        const c = customization as any;
+        const c = customization as { userId?: string; textureUrl?: string; modelUrl?: string; previewUrl?: string; highResUrl?: string; arModelUrl?: string };
         if (c.userId !== ctx.user.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -572,7 +573,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const customization = await api.get<any>(`/api/v1/customizations/${input.id}`).catch(() => null);
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -581,7 +582,7 @@ export const customizationRouter = router({
           });
         }
 
-        const c = customization as any;
+        const c = customization as { userId?: string; id: string; status: string; previewUrl?: string; modelUrl?: string; errorMessage?: string; completedAt?: unknown };
         if (c.userId !== ctx.user.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',

@@ -56,7 +56,7 @@ export function UploadZone({ onFilesSelected, isUploading, fileInputRef }: Uploa
         'border-2 border-dashed p-12 text-center transition-colors cursor-pointer',
         isDragging
           ? 'border-cyan-500 bg-cyan-500/10'
-          : 'border-gray-600 bg-gray-900/50 hover:border-gray-500',
+          : 'border-gray-200 bg-gray-50 hover:border-gray-300',
         isUploading && 'opacity-50 cursor-not-allowed'
       )}
       onClick={() => !isUploading && fileInputRef.current?.click()}
@@ -77,10 +77,10 @@ export function UploadZone({ onFilesSelected, isUploading, fileInputRef }: Uploa
           </div>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
             {isDragging ? 'Déposez vos fichiers ici' : 'Glissez-déposez vos fichiers'}
           </h3>
-          <p className="text-gray-400 mb-4">
+          <p className="text-gray-600 mb-4">
             ou{' '}
             <span className="text-cyan-400 hover:underline">cliquez pour sélectionner</span>
           </p>

@@ -25,12 +25,10 @@ export default function DashboardLayoutGroup({
      */
     const checkAuth = async () => {
       try {
-        // Check for token presence (cookies or localStorage for backward compat)
+        // Check for auth cookie presence (httpOnly cookies set by backend)
         const hasToken = typeof window !== 'undefined' && (
           document.cookie.includes('accessToken') ||
-          document.cookie.includes('refreshToken') ||
-          localStorage.getItem('accessToken') ||
-          localStorage.getItem('token')
+          document.cookie.includes('refreshToken')
         );
 
         if (!hasToken) {

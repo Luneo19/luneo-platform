@@ -25,7 +25,8 @@ export function useAIGenerations(
 
   useEffect(() => {
     if (generationsQuery.data?.designs) {
-      const transformed: Generation[] = (generationsQuery.data.designs as any[]).map((g) => ({
+      type DesignLike = { id: string; prompt?: string; name?: string; url?: string; createdAt?: string | Date; style?: string };
+      const transformed: Generation[] = (generationsQuery.data.designs as DesignLike[]).map((g) => ({
         id: g.id,
         type: type, // Use active tab type
         prompt: g.prompt || g.name || '',
@@ -67,11 +68,11 @@ export function useAIGenerations(
       await api.delete(`/api/v1/ai-studio/generations/${generationId}`);
       toast({ title: 'Succès', description: 'Génération supprimée' });
       generationsQuery.refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error deleting generation', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la suppression',
+        description: error instanceof Error ? error.message : 'Erreur lors de la suppression',
         variant: 'destructive',
       });
     }

@@ -12,7 +12,7 @@ import { DeleteUserDataDto } from './dto/delete-user-data.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { RecordConsentDto } from './dto/record-consent.dto';
 import { ScheduleDataRetentionDto } from './dto/schedule-data-retention.dto';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AuthService } from '@/modules/auth/auth.service';
 
 /**
@@ -236,7 +236,13 @@ export class SecurityController {
       dto.consentType,
       dto.given,
     );
-    return { success: true };
+    return {
+      success: true,
+      userId: dto.userId,
+      consentType: dto.consentType,
+      given: dto.given,
+      recordedAt: new Date().toISOString(),
+    };
   }
 
   @Get('gdpr/consent/:userId')

@@ -47,11 +47,11 @@ export function HistoryTab({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Historique des générations</h3>
-          <p className="text-sm text-slate-400">Toutes vos créations 3D</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Historique des générations</h3>
+          <p className="text-sm text-gray-600">Toutes vos créations 3D</p>
         </div>
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
+          <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Filtrer par catégorie" />
           </SelectTrigger>
           <SelectContent>
@@ -141,20 +141,20 @@ export function HistoryTab({
         ].map((stat, idx) => {
           const Icon = stat.icon;
           return (
-            <Card key={idx} className="bg-slate-900/50 border-slate-700">
+            <Card key={idx} className="bg-gray-50 border-gray-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-2">
                   <Icon className={cn('w-5 h-5', stat.color === 'cyan' && 'text-cyan-400', stat.color === 'pink' && 'text-pink-400', stat.color === 'purple' && 'text-purple-400', stat.color === 'green' && 'text-green-400')} />
-                  <span className="text-xs text-slate-400">{stat.label}</span>
+                  <span className="text-xs text-gray-600">{stat.label}</span>
                 </div>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-gray-50 border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="w-5 h-5" />
@@ -164,9 +164,9 @@ export function HistoryTab({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-white">Période</Label>
+              <Label className="text-gray-900">Période</Label>
               <Select defaultValue="all">
-                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,9 +179,9 @@ export function HistoryTab({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-white">Complexité</Label>
+              <Label className="text-gray-900">Complexité</Label>
               <Select value={filterComplexity} onValueChange={setFilterComplexity}>
-                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -194,9 +194,9 @@ export function HistoryTab({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-white">Tri</Label>
+              <Label className="text-gray-900">Tri</Label>
               <Select defaultValue="newest">
-                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -213,7 +213,7 @@ export function HistoryTab({
       </Card>
 
       {history.length > 0 && (
-        <Card className="bg-slate-900/50 border-slate-700">
+        <Card className="bg-gray-50 border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Layers className="w-5 h-5" />
@@ -222,19 +222,19 @@ export function HistoryTab({
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" className="border-slate-600">
+              <Button variant="outline" size="sm" className="border-gray-200">
                 <Download className="w-4 h-4 mr-2" />
                 Exporter sélection
               </Button>
-              <Button variant="outline" size="sm" className="border-slate-600">
+              <Button variant="outline" size="sm" className="border-gray-200">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Supprimer sélection
               </Button>
-              <Button variant="outline" size="sm" className="border-slate-600">
+              <Button variant="outline" size="sm" className="border-gray-200">
                 <Share2 className="w-4 h-4 mr-2" />
                 Partager sélection
               </Button>
-              <Button variant="outline" size="sm" className="border-slate-600">
+              <Button variant="outline" size="sm" className="border-gray-200">
                 <Folder className="w-4 h-4 mr-2" />
                 Déplacer vers collection
               </Button>

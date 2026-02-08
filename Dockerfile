@@ -23,7 +23,7 @@ RUN apk add --no-cache \
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Installer @nestjs/cli globalement
-RUN npm install -g @nestjs/cli@latest
+RUN pnpm add -g @nestjs/cli@latest
 
 # Définir le répertoire de travail
 WORKDIR /app
@@ -34,11 +34,7 @@ COPY apps/backend/package.json ./apps/backend/
 COPY packages ./packages/
 
 # Installer les dépendances (inclure devDependencies pour le build)
-# Utiliser --no-frozen-lockfile pour permettre la mise à jour du lockfile si nécessaire
-# Ajouter retries pour gérer les erreurs réseau temporaires
-RUN pnpm install --no-frozen-lockfile --include-workspace-root --fetch-timeout=60000 || \
-    (echo "Retry 1..." && sleep 5 && pnpm install --no-frozen-lockfile --include-workspace-root --fetch-timeout=60000) || \
-    (echo "Retry 2..." && sleep 10 && pnpm install --no-frozen-lockfile --include-workspace-root --fetch-timeout=60000)
+RUN pnpm install --frozen-lockfile --include-workspace-root
 
 # Copier le code source backend
 COPY apps/backend ./apps/backend/
@@ -118,11 +114,7 @@ COPY --chown=nestjs:nodejs packages ./packages/
 # Installer les dépendances de production + prisma (nécessaire pour générer Prisma Client)
 # Cela garantit que la structure pnpm est correcte et que les modules sont accessibles
 # Canvas sera compilé avec les outils de build installés ci-dessus
-# Utiliser --no-frozen-lockfile pour permettre la mise à jour du lockfile si nécessaire
-# Ajouter retries pour gérer les erreurs réseau temporaires
-RUN pnpm install --no-frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000 || \
-    (echo "Retry 1..." && sleep 5 && pnpm install --no-frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000) || \
-    (echo "Retry 2..." && sleep 10 && pnpm install --no-frozen-lockfile --include-workspace-root --prod --fetch-timeout=60000)
+RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/prisma ./apps/backend/prisma

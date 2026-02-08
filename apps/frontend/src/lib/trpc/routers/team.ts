@@ -21,11 +21,15 @@ export const teamRouter = router({
       endpoints.team.invites(),
     ]);
 
-    const members = (membersRes as any)?.members ?? (membersRes as any)?.data ?? Array.isArray(membersRes) ? membersRes : [];
-    const pendingInvites = (invitesRes as any)?.invites ?? (invitesRes as any)?.data ?? Array.isArray(invitesRes) ? invitesRes : [];
+    const membersRaw = membersRes as { members?: unknown[]; data?: unknown[] } | unknown[];
+    const members = Array.isArray(membersRes) ? membersRes : (membersRaw && typeof membersRaw === 'object' ? (membersRaw.members ?? membersRaw.data ?? []) : []);
+    const invitesRaw = invitesRes as { invites?: unknown[]; data?: unknown[] } | unknown[];
+    const pendingInvites = Array.isArray(invitesRes) ? invitesRes : (invitesRaw && typeof invitesRaw === 'object' ? (invitesRaw.invites ?? invitesRaw.data ?? []) : []);
 
+    type MemberLike = { id: string; email: string; name?: string; role?: string; imageUrl?: string; avatar?: string; createdAt?: unknown; joinedAt?: unknown; lastLoginAt?: unknown; lastActive?: unknown };
+    type InviteLike = { id: string; email: string; role?: string; createdAt?: unknown; invitedAt?: unknown; expiresAt?: unknown };
     return {
-      members: (Array.isArray(members) ? members : []).map((m: any) => ({
+      members: (Array.isArray(members) ? members : []).map((m: MemberLike) => ({
         id: m.id,
         email: m.email,
         name: m.name,
@@ -34,7 +38,7 @@ export const teamRouter = router({
         joinedAt: m.createdAt ?? m.joinedAt,
         lastActive: m.lastLoginAt ?? m.lastActive,
       })),
-      pendingInvites: (Array.isArray(pendingInvites) ? pendingInvites : []).map((i: any) => ({
+      pendingInvites: (Array.isArray(pendingInvites) ? pendingInvites : []).map((i: InviteLike) => ({
         id: i.id,
         email: i.email,
         role: i.role,
@@ -53,7 +57,7 @@ export const teamRouter = router({
 
       try {
         const invitation = await endpoints.team.invite(input.email, input.role);
-        const inv = invitation as any;
+        const inv = invitation as { id: string; email?: string; role?: string; createdAt?: unknown; invitedAt?: unknown; expiresAt?: unknown };
         logger.info('Team member invited', { invitationId: inv.id, email: input.email });
         return {
           id: inv.id,
@@ -62,9 +66,10 @@ export const teamRouter = router({
           invitedAt: inv.createdAt ?? inv.invitedAt ?? new Date(),
           expiresAt: inv.expiresAt,
         };
-      } catch (error: any) {
-        const status = error?.response?.status;
-        const message = error?.response?.data?.message ?? error?.message;
+      } catch (error: unknown) {
+        const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+        const status = err?.response?.status;
+        const message = err?.response?.data?.message ?? err?.message;
         if (status === 409 || message?.includes('déjà')) {
           throw new TRPCError({ code: 'CONFLICT', message: message || 'Cet utilisateur est déjà membre ou invitation en attente' });
         }
@@ -83,14 +88,14 @@ export const teamRouter = router({
       if (!member) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Membre introuvable' });
       }
-      const m = member as any;
+      const m = member as { role?: string; id?: string };
       if (m.role === 'OWNER') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Impossible de modifier le rôle du propriétaire' });
       }
 
       const updated = await endpoints.team.update(input.memberId, { role: input.role });
       logger.info('Team member role updated', { memberId: input.memberId, newRole: input.role });
-      const u = updated as any;
+      const u = updated as { id: string; email: string; role?: string };
       return { id: u.id, email: u.email, role: u.role ?? input.role };
     }),
 
@@ -105,7 +110,7 @@ export const teamRouter = router({
       if (!member) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Membre introuvable' });
       }
-      const m = member as any;
+      const m = member as { role?: string; id?: string };
       if (m.role === 'OWNER') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Impossible de supprimer le propriétaire' });
       }

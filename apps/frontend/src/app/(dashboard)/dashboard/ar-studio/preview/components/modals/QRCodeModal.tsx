@@ -52,10 +52,10 @@ export function QRCodeModal({ open, onClose, qrCodeUrl, shareUrl, modelName }: Q
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-700">
+      <DialogContent className="bg-white border-gray-200">
         <DialogHeader>
-          <DialogTitle className="text-white">Partager en AR</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogTitle className="text-gray-900">Partager en AR</DialogTitle>
+          <DialogDescription className="text-gray-600">
             Scannez le QR code ou partagez le lien pour voir le modèle en AR
           </DialogDescription>
         </DialogHeader>
@@ -63,23 +63,24 @@ export function QRCodeModal({ open, onClose, qrCodeUrl, shareUrl, modelName }: Q
           {qrCodeUrl && (
             <div className="flex justify-center">
               <div className="bg-white p-4 rounded-lg">
+                {/* next/image not needed for data URLs */}
                 <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
               </div>
             </div>
           )}
           {shareUrl && (
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Lien de partage</label>
+              <label className="text-sm text-gray-600">Lien de partage</label>
               <div className="flex gap-2">
                 <Input
                   value={shareUrl}
                   readOnly
-                  className="bg-gray-900 border-gray-600 text-white"
+                  className="bg-gray-50 border-gray-200 text-gray-900"
                 />
                 <Button
                   variant="outline"
                   onClick={handleCopy}
-                  className="border-gray-600"
+                  className="border-gray-200"
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
@@ -87,7 +88,7 @@ export function QRCodeModal({ open, onClose, qrCodeUrl, shareUrl, modelName }: Q
                   <Button
                     variant="outline"
                     onClick={handleShare}
-                    className="border-gray-600"
+                    className="border-gray-200"
                   >
                     <Share2 className="w-4 h-4" />
                   </Button>
@@ -100,7 +101,7 @@ export function QRCodeModal({ open, onClose, qrCodeUrl, shareUrl, modelName }: Q
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-gray-600">
+          <Button variant="outline" onClick={onClose} className="border-gray-200">
             Fermer
           </Button>
         </DialogFooter>

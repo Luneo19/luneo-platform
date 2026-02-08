@@ -187,7 +187,7 @@ export class TryOnScreenshotService {
     const screenshot = await this.findOne(id);
 
     const token = randomBytes(32).toString('hex');
-    const baseUrl = process.env.APP_URL || 'https://app.luneo.com';
+    const baseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
     const sharedUrl = `${baseUrl}/share/try-on/${screenshot.id}?token=${token}`;
 
     const updated = await this.prisma.tryOnScreenshot.update({

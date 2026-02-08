@@ -24,26 +24,26 @@ export function CustomizerSidebar({
   onViewModeToggle,
 }: CustomizerSidebarProps) {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-50 border-gray-200">
       <CardContent className="p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-600" />
             <Input
               placeholder="Rechercher un produit..."
               value={filters.search ?? ''}
               onChange={(e) => onFiltersChange({ search: e.target.value })}
-              className="pl-10 bg-gray-900 border-gray-600 text-white"
+              className="pl-10 bg-white border-gray-200 text-gray-900"
             />
           </div>
           <Select
             value={filters.category ?? 'all'}
             onValueChange={(value) => onFiltersChange({ category: value })}
           >
-            <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-full sm:w-[180px] bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+            <SelectContent className="bg-white border-gray-200 text-gray-900">
               {CATEGORIES.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
                   <div className="flex items-center gap-2">
@@ -58,10 +58,10 @@ export function CustomizerSidebar({
             value={filters.status ?? 'all'}
             onValueChange={(value) => onFiltersChange({ status: value })}
           >
-            <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="w-full sm:w-[180px] bg-white border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+            <SelectContent className="bg-white border-gray-200 text-gray-900">
               {STATUS_OPTIONS.map((status) => (
                 <SelectItem key={status.value} value={status.value}>
                   {status.label}
@@ -73,7 +73,7 @@ export function CustomizerSidebar({
             <Button
               variant="outline"
               onClick={onViewModeToggle}
-              className="border-gray-600"
+              className="border-gray-200"
             >
               {viewMode === 'grid' ? (
                 <List className="w-4 h-4" />

@@ -37,16 +37,16 @@ export function CsatDialog({
 }: CsatDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
           <DialogTitle>Évaluer la résolution</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Comment évaluez-vous la résolution de ce ticket ?
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label className="text-sm text-gray-300 mb-3 block">Note</Label>
+            <Label className="text-sm text-gray-600 mb-3 block">Note</Label>
             <div className="flex items-center gap-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <button
@@ -55,13 +55,13 @@ export function CsatDialog({
                   onClick={() => setRating(i + 1)}
                   className={cn(
                     'w-12 h-12 rounded-lg transition-all',
-                    i < rating ? 'bg-yellow-500/20 border-2 border-yellow-500' : 'bg-gray-900 border-2 border-gray-700'
+                    i < rating ? 'bg-yellow-500/20 border-2 border-yellow-500' : 'bg-gray-50 border-2 border-gray-200'
                   )}
                 >
                   <Star
                     className={cn(
                       'w-6 h-6 mx-auto',
-                      i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'
+                      i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'
                     )}
                   />
                 </button>
@@ -69,18 +69,18 @@ export function CsatDialog({
             </div>
           </div>
           <div>
-            <Label className="text-sm text-gray-300 mb-2 block">Commentaire (optionnel)</Label>
+            <Label className="text-sm text-gray-600 mb-2 block">Commentaire (optionnel)</Label>
             <Textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Partagez vos commentaires..."
-              className="bg-gray-900 border-gray-600 text-white"
+              className="bg-gray-50 border-gray-200 text-gray-900"
               rows={3}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
             Annuler
           </Button>
           <Button

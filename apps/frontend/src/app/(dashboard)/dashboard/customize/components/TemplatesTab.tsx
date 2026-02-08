@@ -13,21 +13,21 @@ import { Button } from '@/components/ui/button';
 export function TemplatesTab() {
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-cyan-400" />
             Templates de personnalisation
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Gérez vos templates pré-configurés pour accélérer la création de produits personnalisables
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
-            <Layers className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Aucun template</h3>
-            <p className="text-slate-400 mb-6">
+            <Layers className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun template</h3>
+            <p className="text-gray-600 mb-6">
               Créez votre premier template pour réutiliser vos configurations
             </p>
             <Button className="bg-cyan-600 hover:bg-cyan-700">

@@ -214,8 +214,7 @@ function SettingsPageContent() {
   const handleSaveNotifications = async () => {
     setSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await endpoints.settings.notifications(notifications as unknown as Record<string, unknown>);
       toast({
         title: "Notifications enregistrées",
         description: "Vos préférences de notification ont été mises à jour.",

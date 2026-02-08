@@ -10,6 +10,7 @@
 
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TemplatesPageClient } from './TemplatesPageClient';
 import { Loader2 } from 'lucide-react';
@@ -18,8 +19,6 @@ export const metadata = {
   title: 'Templates | Luneo',
   description: 'Choisissez parmi notre collection de templates professionnels',
 };
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function TemplatesSkeleton() {
   return (
@@ -42,7 +41,7 @@ export default async function TemplatesPage() {
     .map((c) => `${c.name}=${c.value}`)
     .join('; ');
 
-  const res = await fetch(`${API_URL}/api/v1/auth/me`, {
+  const res = await fetch(`${getBackendUrl()}/api/v1/auth/me`, {
     headers: cookieHeader ? { Cookie: cookieHeader } : {},
     cache: 'no-store',
   });

@@ -29,24 +29,34 @@ export interface AutomationStep {
   type: 'email' | 'wait' | 'condition' | 'tag';
   delay?: number; // en heures
   templateId?: string;
-  condition?: any;
+  condition?: Record<string, unknown>;
   order: number;
+}
+
+/** Error thrown by fetcher with API response details */
+class FetcherError extends Error {
+  info?: unknown;
+  status?: number;
+  constructor(message: string, options?: { info?: unknown; status?: number }) {
+    super(message);
+    this.name = 'FetcherError';
+    this.info = options?.info;
+    this.status = options?.status;
+  }
 }
 
 async function fetcher(url: string) {
   const response = await fetch(url, {
     credentials: 'include',
   });
-  
+
   if (!response.ok) {
-    const error = new Error('An error occurred while fetching the data.');
-    // @ts-ignore
-    error.info = await response.json();
-    // @ts-ignore
-    error.status = response.status;
-    throw error;
+    throw new FetcherError('An error occurred while fetching the data.', {
+      info: await response.json(),
+      status: response.status,
+    });
   }
-  
+
   return response.json();
 }
 

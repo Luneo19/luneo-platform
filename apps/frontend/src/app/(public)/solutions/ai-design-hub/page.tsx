@@ -25,6 +25,9 @@ import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 
+// Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
+const APP_URL = 'https://luneo.app';
+
 function AIDesignHubPageContent() {
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('photoréaliste');
@@ -198,6 +201,31 @@ function AIDesignHubPageContent() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Luneo AI Design Hub',
+            description: 'AI-powered design generation and editing tools for product customization',
+            applicationCategory: 'DesignApplication',
+            operatingSystem: 'Web',
+            url: `${APP_URL}/solutions/ai-design-hub`,
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'EUR',
+              description: 'Free tier available',
+            },
+            provider: {
+              '@type': 'Organization',
+              name: 'Luneo',
+              url: APP_URL,
+            },
+          }),
+        }}
+      />
       <PageHero
         title="AI Design Hub"
         description="Générez des milliers de designs uniques avec DALL-E 3. Du concept à l'export en quelques secondes. Parfait pour e-commerce, marketing, et print on demand."

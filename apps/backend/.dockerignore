@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+coverage
+tests
+test
+*.test.ts
+*.spec.ts
+*.md
+.env*
+.git
+.github
+.vscode
+.cursor

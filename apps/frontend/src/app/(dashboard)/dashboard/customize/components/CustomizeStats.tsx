@@ -67,11 +67,11 @@ export function CustomizeStats({ products }: CustomizeStatsProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
           >
-            <Card className={cn('p-4 bg-slate-900/50 border-slate-700', colors.bg)}>
+            <Card className={cn('p-4 bg-white border-gray-200', colors.bg)}>
               <CardContent className="p-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400">{stat.label}</p>
+                    <p className="text-sm text-gray-600">{stat.label}</p>
                     <p className={cn('text-2xl font-bold mt-2', colors.text)}>
                       {stat.value}
                     </p>

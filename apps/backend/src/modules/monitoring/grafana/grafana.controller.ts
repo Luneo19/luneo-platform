@@ -43,7 +43,7 @@ class GrafanaApiKeyGuard implements CanActivate {
   }
 }
 
-@Controller('api/monitoring/grafana')
+@Controller('monitoring/grafana')
 @UseGuards(JwtAuthGuard)
 export class GrafanaController {
   constructor(

@@ -272,11 +272,11 @@ export class AnalyticsService {
       where.createdAt = {
         gte: startDate || undefined,
         lte: endDate || undefined,
-      } as any;
+      };
     } else {
       const defaultStart = new Date();
       defaultStart.setDate(defaultStart.getDate() - 30);
-      where.createdAt = { gte: defaultStart } as any;
+      where.createdAt = { gte: defaultStart };
     }
 
     const logs = await this.prisma.aIUsageLog.findMany({

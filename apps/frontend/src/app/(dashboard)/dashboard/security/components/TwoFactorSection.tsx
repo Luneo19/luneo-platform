@@ -22,12 +22,12 @@ export function TwoFactorSection() {
 
   if (isLoading) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Authentification à deux facteurs</CardTitle>
+          <CardTitle className="text-gray-900">Authentification à deux facteurs</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">Chargement...</p>
+          <p className="text-gray-600">Chargement...</p>
         </CardContent>
       </Card>
     );
@@ -35,15 +35,15 @@ export function TwoFactorSection() {
 
   return (
     <>
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-gray-900 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-cyan-400" />
                 Authentification à deux facteurs
               </CardTitle>
-              <CardDescription className="text-gray-400 mt-1">
+              <CardDescription className="text-gray-600 mt-1">
                 Ajoutez une couche supplémentaire de sécurité à votre compte
               </CardDescription>
             </div>
@@ -57,7 +57,7 @@ export function TwoFactorSection() {
                   <Button
                     variant="outline"
                     onClick={() => setShowBackupCodesModal(true)}
-                    className="border-gray-600"
+                    className="border-gray-200"
                   >
                     Codes de secours
                   </Button>
@@ -83,7 +83,7 @@ export function TwoFactorSection() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-gray-400">
+          <div className="space-y-2 text-sm text-gray-600">
             {status.enabled ? (
               <>
                 <p>• La 2FA est activée et protège votre compte</p>

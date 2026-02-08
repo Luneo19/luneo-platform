@@ -38,8 +38,8 @@ function mapTrpcToIntegration(row: {
     is_active: (row.status ?? 'active') === 'active',
     last_sync_at: row.lastSyncAt ? new Date(row.lastSyncAt).toISOString() : null,
     last_sync_status: null,
-    products_synced: (row.config as any)?.productsSynced ?? 0,
-    orders_synced: (row.config as any)?.ordersSynced ?? 0,
+    products_synced: Number((row.config as Record<string, unknown>)?.productsSynced ?? 0),
+    orders_synced: Number((row.config as Record<string, unknown>)?.ordersSynced ?? 0),
     created_at: new Date(row.createdAt).toISOString(),
   };
 }

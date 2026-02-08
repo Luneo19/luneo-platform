@@ -148,8 +148,8 @@ export class VisualCustomizerService {
       data: {
         ...dto,
         projectId,
-        canvasConfig: (dto.canvasConfig || {}) as any,
-        uiConfig: (dto.uiConfig || {}) as any,
+        canvasConfig: (dto.canvasConfig || {}) as Record<string, unknown>,
+        uiConfig: (dto.uiConfig || {}) as Record<string, unknown>,
         isActive: dto.isActive ?? true,
       },
       select: {
@@ -184,7 +184,7 @@ export class VisualCustomizerService {
 
     const customizer = await this.prisma.visualCustomizer.update({
       where: { id },
-      data: dto as any,
+      data: dto as Record<string, unknown>,
       select: {
         id: true,
         name: true,
@@ -216,7 +216,12 @@ export class VisualCustomizerService {
 
     this.logger.log(`Visual customizer deleted: ${id}`);
 
-    return { success: true };
+    return {
+      success: true,
+      id,
+      projectId,
+      deletedAt: new Date().toISOString(),
+    };
   }
 
   /**
@@ -233,7 +238,7 @@ export class VisualCustomizerService {
       data: {
         ...dto,
         customizerId,
-        config: (dto.config || {}) as any,
+        config: (dto.config || {}) as Record<string, unknown>,
         order: dto.order || 0,
         isLocked: dto.isLocked ?? false,
         isVisible: dto.isVisible ?? true,
@@ -277,6 +282,11 @@ export class VisualCustomizerService {
       `Layer ${layerId} removed from visual customizer ${customizerId}`,
     );
 
-    return { success: true };
+    return {
+      success: true,
+      customizerId,
+      layerId,
+      removedAt: new Date().toISOString(),
+    };
   }
 }

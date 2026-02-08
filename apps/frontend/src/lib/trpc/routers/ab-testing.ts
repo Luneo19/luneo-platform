@@ -59,12 +59,12 @@ async function getVariantStats(
 
   if (variantIds.length === 0) return result;
 
-  const statsRes = await api.get<{ variants?: Record<string, { visitors: number; conversions: number; revenue: number }> }>(
+  const statsRes = await api.get<{ variants?: Record<string, { visitors?: number; conversions?: number; revenue?: number }>; data?: Record<string, { visitors?: number; conversions?: number; revenue?: number }> }>(
     `/api/v1/analytics/experiments/${experimentId}/variant-stats`,
     { params: { variantIds: variantIds.join(',') } }
   ).catch(() => ({}));
 
-  const variantsData = (statsRes as any).variants ?? (statsRes as any).data ?? {};
+  const variantsData = statsRes?.variants ?? statsRes?.data ?? {};
 
   for (const variantId of variantIds) {
     const v = variantsData[variantId] ?? {};
@@ -174,11 +174,11 @@ export const abTestingRouter = router({
           where.status = input.status;
         }
 
-        const listRes = await api.get<any>('/api/v1/analytics/experiments', {
+        const listRes = await api.get<{ experiments?: unknown[]; data?: unknown[]; total?: number; pagination?: { total?: number } }>('/api/v1/analytics/experiments', {
           params: { brandId: user.brandId, status: input.status, offset: input.offset, limit: input.limit },
         }).catch(() => ({ experiments: [], total: 0 }));
-        const experiments = (listRes as any).experiments ?? (listRes as any).data ?? [];
-        const total = (listRes as any).total ?? (listRes as any).pagination?.total ?? experiments.length;
+        const experiments = listRes?.experiments ?? listRes?.data ?? [];
+        const total = listRes?.total ?? listRes?.pagination?.total ?? (Array.isArray(experiments) ? experiments.length : 0);
 
         // Transformer en format attendu avec stats réelles
         const experimentsWithStats = await Promise.all(
@@ -344,8 +344,9 @@ export const abTestingRouter = router({
           updateData.status = input.status;
         }
         if (input.variants) {
-          const currentVariants = (experiment as any).variants ?? [];
-          updateData.variants = currentVariants.map((v: any) => {
+          type VariantLike = { id: string };
+          const currentVariants = (experiment as { variants?: VariantLike[] }).variants ?? [];
+          updateData.variants = currentVariants.map((v) => {
             const update = input.variants?.find((u) => u.id === v.id);
             return update ? { ...v } : v;
           });

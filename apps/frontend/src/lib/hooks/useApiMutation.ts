@@ -115,17 +115,19 @@ export function useApiMutation<T, V = void>(
 
   const parseError = useCallback((error: unknown): ApiError => {
     if (error && typeof error === 'object') {
-      const err = error as any;
-      
+      const err = error as Record<string, unknown>;
+      const response = err.response as { status?: number; statusText?: string; data?: { message?: string; code?: string } } | undefined;
+      const data = response?.data;
+
       // Axios error
-      if (err.response) {
+      if (response) {
         return {
-          status: err.response.status,
-          message: err.response.data?.message || err.response.statusText || 'Une erreur est survenue',
-          code: err.response.data?.code,
+          status: response.status,
+          message: (data?.message as string) || response.statusText || 'Une erreur est survenue',
+          code: data?.code,
         };
       }
-      
+
       // Network error
       if (err.request) {
         return {
@@ -134,16 +136,16 @@ export function useApiMutation<T, V = void>(
           code: 'NETWORK_ERROR',
         };
       }
-      
+
       // Standard error
-      if (err.message) {
+      if (typeof err.message === 'string') {
         return {
           message: err.message,
-          code: err.code,
+          code: err.code as string | undefined,
         };
       }
     }
-    
+
     return { message: 'Une erreur inattendue est survenue' };
   }, []);
 

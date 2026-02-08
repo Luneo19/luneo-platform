@@ -50,6 +50,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { PublicApiModule } from './modules/public-api/public-api.module';
 import { RenderModule } from './modules/render/render.module';
 import { SecurityModule } from './modules/security/security.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { TrustSafetyModule } from './modules/trust-safety/trust-safety.module';
 import { UsageBillingModule } from './modules/usage-billing/usage-billing.module';
 import { UsersModule } from './modules/users/users.module';
@@ -84,8 +85,33 @@ import { Configurator3DModule } from './modules/configurator-3d/configurator-3d.
 import { VisualCustomizerModule } from './modules/visual-customizer/visual-customizer.module'; // ✅ Réactivé
 import { AssetHubModule } from './modules/asset-hub/asset-hub.module'; // ✅ Réactivé
 
+// Integration modules (e-commerce - also used by IntegrationsModule)
+import { PrestaShopModule } from './modules/integrations/prestashop/prestashop.module';
+import { WooCommerceModule } from './modules/integrations/woocommerce/woocommerce.module';
+import { ShopifyModule } from './modules/integrations/shopify/shopify.module';
+
+// Public API modules (also used by PublicApiModule)
+import { RateLimitModule as PublicApiRateLimitModule } from './modules/public-api/rate-limit/rate-limit.module';
+import { WebhooksModule as PublicApiWebhooksModule } from './modules/public-api/webhooks/webhooks.module';
+import { OAuthModule as PublicApiOAuthModule } from './modules/public-api/oauth/oauth.module';
+import { ApiKeysModule } from './modules/public-api/api-keys/api-keys.module';
+import { AnalyticsModule as PublicApiAnalyticsModule } from './modules/public-api/analytics/analytics.module';
+
+// Agent modules (also used by AgentsModule)
+import { AIMonitorModule } from './modules/agents/ai-monitor/ai-monitor.module';
+import { UsageGuardianModule } from './modules/agents/usage-guardian/usage-guardian.module';
+import { AriaModule } from './modules/agents/aria/aria.module';
+import { LunaModule } from './modules/agents/luna/luna.module';
+import { NovaModule } from './modules/agents/nova/nova.module';
+
+// Additional modules
+import { AnalyticsAdvancedModule } from './modules/analytics/analytics-advanced.module';
+import { RbacModule } from './modules/security/rbac.module';
+import { GrafanaModule } from './modules/monitoring/grafana/grafana.module';
+
 // Common
 import { CommonModule } from './common/common.module';
+import { TIMEOUTS } from './common/constants/app.constants';
 
 // i18n & Timezone
 import { I18nModule } from './libs/i18n/i18n.module';
@@ -96,6 +122,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { CacheableInterceptor } from './libs/cache/cacheable.interceptor';
 
 // WebSocket
+import { WebSocketModule } from './websocket/websocket.module';
 
 // Outbox & Budgets
 import { DLQModule } from './jobs/dlq/dlq.module';
@@ -125,6 +152,7 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
       load: [
         databaseConfig,
         redisConfig,
@@ -172,7 +200,7 @@ import { CryptoModule } from './libs/crypto/crypto.module';
         if (isTest) {
           // Configuration qui utilise Redis local (qui doit être disponible)
           return {
-            redis: 'redis://localhost:6379',
+            redis: process.env.REDIS_URL || 'redis://localhost:6379',
             defaultJobOptions: {
               removeOnComplete: true,
               removeOnFail: true,
@@ -197,8 +225,8 @@ import { CryptoModule } from './libs/crypto/crypto.module';
           maxRetriesPerRequest: 3,
           enableReadyCheck: false,
           lazyConnect: true,
-          connectTimeout: 10000,
-          commandTimeout: 5000,
+          connectTimeout: TIMEOUTS.REDIS_CONNECT,
+          commandTimeout: TIMEOUTS.REDIS_COMMAND,
         } : redisUrl) : undefined;
 
         return {
@@ -209,7 +237,7 @@ import { CryptoModule } from './libs/crypto/crypto.module';
             attempts: 3,
             backoff: {
               type: 'exponential',
-              delay: 2000,
+              delay: TIMEOUTS.RETRY_DELAY,
             },
           },
           // Optimisations pour serverless
@@ -249,18 +277,21 @@ import { CryptoModule } from './libs/crypto/crypto.module';
         PlansModule,
         PricingModule, // ✅ PHASE 6 - Pricing & Rentabilité IA
         ProductEngineModule,
-    /**
-     * DISABLED: RenderModule
-     * Reason: Requires 'canvas' npm package which needs native OS dependencies (Cairo, Pango).
-     * Impact: Server-side image composition disabled; client-side rendering still works.
-     * Re-enable: After installing native deps in Docker (e.g. apt-get install libcairo2-dev libpango1.0-dev).
-     */
+    // DISABLED: RenderModule
+    // Reason: Requires native canvas/sharp dependencies not available in current Docker image
+    // Impact: Server-side rendering (SSR previews, PDF generation) not available
+    // Re-enable:
+    //   1. Add to Dockerfile: RUN apk add --no-cache cairo-dev pango-dev jpeg-dev giflib-dev
+    //   2. Add to package.json: "canvas": "^2.11.2", "sharp": "^0.33.0"
+    //   3. Uncomment RenderModule below
+    //   4. Run: pnpm install && pnpm build
     // RenderModule,
     EcommerceModule,
     UsageBillingModule,
     WidgetModule,
     GenerationModule,
     SecurityModule,
+    SettingsModule,
     AnalyticsModule,
     AnalyticsCleanModule, // Clean minimal analytics
     ArStudioModule,
@@ -290,6 +321,30 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     VisualCustomizerModule, // ✅ Réactivé
     AssetHubModule, // ✅ Réactivé
 
+    // Integration modules (e-commerce)
+    PrestaShopModule,
+    WooCommerceModule,
+    ShopifyModule,
+
+    // Public API modules
+    PublicApiRateLimitModule,
+    PublicApiWebhooksModule,
+    PublicApiOAuthModule,
+    ApiKeysModule,
+    PublicApiAnalyticsModule,
+
+    // Agent modules
+    AIMonitorModule,
+    UsageGuardianModule,
+    AriaModule,
+    LunaModule,
+    NovaModule,
+
+    // Additional modules
+    AnalyticsAdvancedModule,
+    RbacModule,
+    GrafanaModule,
+
     // Cache Module (Global)
     CacheModule,
 
@@ -306,20 +361,22 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     I18nModule,
     TimezoneModule,
 
-    /**
-     * DISABLED: JobsModule
-     * Reason: Depends on RenderModule (canvas) and can cause build/runtime issues when canvas native deps are missing.
-     * Impact: Background jobs processed by this module (e.g. server-side render jobs) are not run.
-     * Re-enable: After RenderModule is re-enabled and native deps are available.
-     */
+    // DISABLED: JobsModule
+    // Reason: Depends on RenderModule (canvas/sharp); build/runtime fails when native deps are missing
+    // Impact: Background jobs (design, render, production, AI studio, outbox) are not processed
+    // Re-enable:
+    //   1. Re-enable RenderModule first (see RenderModule comment above)
+    //   2. Uncomment the line below (and keep VERCEL guard if frontend runs on Vercel)
+    //   3. Ensure Redis/BullMQ is configured for the deployment
     // ...(process.env.VERCEL ? [] : [JobsModule]),
 
-    /**
-     * DISABLED: WebSocketModule
-     * Reason: Build or runtime issues (e.g. native/optional deps, serverless incompatibility).
-     * Impact: No WebSocket support for real-time collaboration/notifications on this server.
-     * Re-enable: When build issues are resolved and deployment target supports persistent connections.
-     */
+    // DISABLED: WebSocketModule
+    // Reason: Serverless (e.g. Vercel) does not support persistent WebSocket connections
+    // Impact: No WebSocket support for real-time collaboration/notifications on this server
+    // Re-enable:
+    //   1. Deploy backend to a long-lived process (e.g. Railway) that supports persistent connections
+    //   2. Set NEXT_PUBLIC_WS_URL on frontend to backend WS URL (e.g. wss://api.luneo.app)
+    //   3. Uncomment WebSocketModule below
     // WebSocketModule,
 
     // Outbox & Budgets

@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function ForgotPasswordPageContent() {
@@ -39,7 +40,7 @@ function ForgotPasswordPageContent() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const apiUrl = getBackendUrl();
       const response = await fetch(`${apiUrl}/api/v1/auth/forgot-password`, {
         method: 'POST',
         headers: {

@@ -44,7 +44,7 @@ export function useProductExport() {
               headers.join(','),
               ...exportData.map((p) =>
                 headers.map((h) => {
-                  const value = (p as any)[h];
+                  const value = (p as Record<string, unknown>)[h];
                   return typeof value === 'string' && value.includes(',')
                     ? `"${value}"`
                     : value;

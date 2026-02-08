@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
@@ -204,14 +205,9 @@ function RegisterPageContent() {
           // Note: company field not in signup DTO, can be added later if needed
         });
 
-      if (response.accessToken && response.user) {
-        // Store token for API calls
-        // Tokens are now in httpOnly cookies (set by backend)
-        // No need to store in localStorage for security
-        // Cookies are automatically sent with each request via withCredentials: true
-        if (response.user) {
-          localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
-        }
+      // Success: user in body; tokens are in httpOnly cookies (set by backend via Set-Cookie)
+      if (response.user) {
+        localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
         
         setSuccess('🎉 Compte créé avec succès ! Redirection...');
         
@@ -252,7 +248,7 @@ function RegisterPageContent() {
       setError('');
       
       // Redirect to backend OAuth endpoint
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const apiUrl = getBackendUrl();
       const oauthUrl = `${apiUrl}/api/v1/auth/${provider}`;
       
       // Redirect to backend OAuth
@@ -289,7 +285,7 @@ function RegisterPageContent() {
         </SlideUp>
         <FadeIn delay={0.3}>
           <p className="text-gray-600">
-            Commencez gratuitement pendant 14 jours
+            Commencez gratuitement, sans engagement
           </p>
         </FadeIn>
           </div>
@@ -632,7 +628,7 @@ function RegisterPageContent() {
           <Link
             href="/login"
             data-testid="register-switch-login"
-            className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+            className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
           >
                 Se connecter
               </Link>
@@ -642,11 +638,11 @@ function RegisterPageContent() {
 
       {/* Trial info */}
         <FadeIn delay={1.4}>
-      <div className="mt-6 pt-4 border-t border-slate-800">
-        <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
           <div className="flex items-center gap-1">
             <CheckCircle className="w-3 h-3 text-green-400" />
-            <span>14 jours gratuits</span>
+            <span>Plan gratuit inclus</span>
           </div>
           <div className="flex items-center gap-1">
             <CheckCircle className="w-3 h-3 text-green-400" />

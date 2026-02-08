@@ -70,7 +70,7 @@ export default function WebhooksPage() {
     queryKey: ['webhooks'],
     queryFn: async () => {
       const response = await endpoints.webhooks.list();
-      return (response as any).data || response;
+      return (response as { data?: unknown })?.data ?? response;
     },
   });
 
@@ -79,7 +79,7 @@ export default function WebhooksPage() {
     queryKey: ['webhook-history'],
     queryFn: async () => {
       const response = await endpoints.webhooks.history({ page: 1, limit: 50 });
-      return (response as any).data || response;
+      return (response as { data?: unknown })?.data ?? response;
     },
   });
 
@@ -93,7 +93,7 @@ export default function WebhooksPage() {
       isActive?: boolean;
     }) => {
       const response = await endpoints.webhooks.create(data);
-      return (response as any).data || response;
+      return (response as { data?: unknown })?.data ?? response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
@@ -103,10 +103,11 @@ export default function WebhooksPage() {
         description: 'Le webhook a été créé avec succès.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
       toast({
         title: 'Erreur',
-        description: error.response?.data?.message || 'Impossible de créer le webhook',
+        description: err.response?.data?.message || 'Impossible de créer le webhook',
         variant: 'destructive',
       });
     },
@@ -114,9 +115,9 @@ export default function WebhooksPage() {
 
   // Update webhook mutation
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
       const response = await endpoints.webhooks.update(id, data);
-      return (response as any).data || response;
+      return (response as { data?: unknown })?.data ?? response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
@@ -127,10 +128,11 @@ export default function WebhooksPage() {
         description: 'Le webhook a été mis à jour avec succès.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
       toast({
         title: 'Erreur',
-        description: error.response?.data?.message || 'Impossible de mettre à jour le webhook',
+        description: err.response?.data?.message || 'Impossible de mettre à jour le webhook',
         variant: 'destructive',
       });
     },
@@ -148,10 +150,11 @@ export default function WebhooksPage() {
         description: 'Le webhook a été supprimé avec succès.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
       toast({
         title: 'Erreur',
-        description: error.response?.data?.message || 'Impossible de supprimer le webhook',
+        description: err.response?.data?.message || 'Impossible de supprimer le webhook',
         variant: 'destructive',
       });
     },
@@ -161,7 +164,7 @@ export default function WebhooksPage() {
   const retryMutation = useMutation({
     mutationFn: async (logId: string) => {
       const response = await endpoints.webhooks.retry(logId);
-      return (response as any).data || response;
+      return (response as { data?: unknown })?.data ?? response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhook-history'] });
@@ -170,10 +173,11 @@ export default function WebhooksPage() {
         description: 'Le webhook a été relancé avec succès.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
       toast({
         title: 'Erreur',
-        description: error.response?.data?.message || 'Impossible de relancer le webhook',
+        description: err.response?.data?.message || 'Impossible de relancer le webhook',
         variant: 'destructive',
       });
     },

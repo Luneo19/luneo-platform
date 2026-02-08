@@ -16,10 +16,10 @@ interface CreditsPacksTabProps {
 
 export function CreditsPacksTab({ creditPacks, onPurchase }: CreditsPacksTabProps) {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Packs de crédits disponibles</CardTitle>
-        <CardDescription className="text-gray-400">Choisissez un pack adapté à vos besoins</CardDescription>
+        <CardTitle className="text-gray-900">Packs de crédits disponibles</CardTitle>
+        <CardDescription className="text-gray-600">Choisissez un pack adapté à vos besoins</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -32,8 +32,8 @@ export function CreditsPacksTab({ creditPacks, onPurchase }: CreditsPacksTabProp
             >
               <Card
                 className={cn(
-                  'relative p-6 bg-gray-900/50 border-gray-700 transition-all hover:border-cyan-500/50',
-                  pack.isFeatured && 'border-cyan-500/50 bg-cyan-950/10',
+                  'relative p-6 bg-gray-50 border-gray-200 transition-all hover:border-cyan-500/50',
+                  pack.isFeatured && 'border-cyan-500/50 bg-cyan-50/50',
                 )}
               >
                 {pack.isFeatured && (
@@ -45,20 +45,20 @@ export function CreditsPacksTab({ creditPacks, onPurchase }: CreditsPacksTabProp
                   <Badge className="absolute top-2 right-2 bg-green-500">-{pack.savings}%</Badge>
                 )}
                 <div className="text-center">
-                  <h3 className="text-xl font-bold text-white mb-2">{pack.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{pack.name}</h3>
                   <div className="mb-4">
-                    <p className="text-4xl font-bold text-cyan-400">{formatNumber(pack.credits)}</p>
-                    <p className="text-sm text-gray-400">crédits</p>
+                    <p className="text-4xl font-bold text-cyan-600">{formatNumber(pack.credits)}</p>
+                    <p className="text-sm text-gray-600">crédits</p>
                   </div>
                   <div className="mb-4">
-                    <p className="text-3xl font-bold text-white">{formatPrice(pack.price)}</p>
-                    <p className="text-sm text-gray-400">{formatPrice(pack.price / pack.credits)} par crédit</p>
+                    <p className="text-3xl font-bold text-gray-900">{formatPrice(pack.price)}</p>
+                    <p className="text-sm text-gray-600">{formatPrice(pack.price / pack.credits)} par crédit</p>
                   </div>
                   {pack.features && (
                     <div className="mb-4 space-y-2">
                       {pack.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-center justify-center gap-2 text-sm text-gray-300">
-                          <CheckCircle className="w-4 h-4 text-green-400" />
+                        <div key={idx} className="flex items-center justify-center gap-2 text-sm text-gray-700">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
                           {feature}
                         </div>
                       ))}

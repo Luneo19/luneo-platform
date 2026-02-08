@@ -35,10 +35,10 @@ export function ExportModal({ open, onClose, onExport }: ExportModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-700">
+      <DialogContent className="bg-white border-gray-200">
         <DialogHeader>
-          <DialogTitle className="text-white">Exporter le design</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogTitle className="text-gray-900">Exporter le design</DialogTitle>
+          <DialogDescription className="text-gray-600">
             Choisissez le format d'export
           </DialogDescription>
         </DialogHeader>
@@ -51,8 +51,8 @@ export function ExportModal({ open, onClose, onExport }: ExportModalProps) {
               {formats.map((format) => (
                 <SelectItem key={format.value} value={format.value}>
                   <div>
-                    <div className="text-white">{format.label}</div>
-                    <div className="text-xs text-gray-400">{format.description}</div>
+                    <div className="text-gray-900">{format.label}</div>
+                    <div className="text-xs text-gray-600">{format.description}</div>
                   </div>
                 </SelectItem>
               ))}

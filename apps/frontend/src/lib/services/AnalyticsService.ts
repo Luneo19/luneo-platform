@@ -170,13 +170,13 @@ export class AnalyticsService {
         averageOrderValue: metrics.orders ? (metrics.revenue ?? 0) / metrics.orders : 0,
         byStatus: {},
         byProduct: {},
-        trends: Array.isArray(charts.revenueOverTime) ? charts.revenueOverTime.map((d: any) => ({ date: new Date(d.date ?? d.x), count: d.count ?? 0, revenue: d.revenue ?? d.y ?? 0 })) : [],
+        trends: Array.isArray(charts.revenueOverTime) ? (charts.revenueOverTime as Array<{ date?: string | number; x?: string | number; count?: number; revenue?: number; y?: number }>).map((d) => ({ date: new Date(d.date ?? d.x ?? 0), count: d.count ?? 0, revenue: d.revenue ?? d.y ?? 0 })) : [],
       };
       const revenue: RevenueStats = {
         total: metrics.revenue ?? 0,
         periodStart: start,
         periodEnd: end,
-        trends: Array.isArray(charts.revenueOverTime) ? charts.revenueOverTime.map((d: any) => ({ date: new Date(d.date ?? d.x), revenue: d.revenue ?? d.y ?? 0, orders: d.orders ?? 0 })) : [],
+        trends: Array.isArray(charts.revenueOverTime) ? (charts.revenueOverTime as Array<{ date?: string | number; x?: string | number; revenue?: number; y?: number; orders?: number }>).map((d) => ({ date: new Date(d.date ?? d.x ?? 0), revenue: d.revenue ?? d.y ?? 0, orders: d.orders ?? 0 })) : [],
         byProduct: [],
       };
       const ar: ARStats = {
@@ -200,7 +200,7 @@ export class AnalyticsService {
 
       cacheService.set(cacheKey, stats, { ttl: 300 * 1000 });
       return stats;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching dashboard stats', { error, brandId });
       throw error;
     }
@@ -222,16 +222,17 @@ export class AnalyticsService {
       const period = this.periodToParam(periodStart, periodEnd);
       const res = await api.get<any>('/api/v1/analytics/dashboard', { params: { period, brandId } });
       const products = res?.products ?? res?.metrics?.products ?? [];
-      return Array.isArray(products) ? products.map((p: any) => ({
+      const productsList = Array.isArray(products) ? (products as Array<Record<string, unknown>>) : [];
+      return productsList.map((p) => ({
         productId: p.productId ?? p.id,
         productName: p.productName ?? p.name ?? '',
         views: p.views ?? 0,
         customizations: p.customizations ?? 0,
         orders: p.orders ?? 0,
         revenue: p.revenue ?? 0,
-        conversionRate: p.conversionRate ?? 0,
-      })) : [];
-    } catch (error: any) {
+        conversionRate: Number(p.conversionRate ?? 0),
+      }));
+    } catch (error: unknown) {
       logger.error('Error fetching product stats', { error, brandId });
       throw error;
     }
@@ -260,7 +261,7 @@ export class AnalyticsService {
         byEffect: u.byEffect ?? {},
         byZone: u.byZone ?? {},
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching customization stats', { error, brandId });
       throw error;
     }
@@ -284,16 +285,17 @@ export class AnalyticsService {
         startDate: (periodStart ?? new Date()).toISOString(),
         endDate: (periodEnd ?? new Date()).toISOString(),
       });
-      const data = (res as any)?.data ?? res ?? {};
+      const data = (res as { data?: Record<string, unknown> } | null)?.data ?? (res as Record<string, unknown> | null) ?? {};
+      const trendsRaw = data.trends as Array<{ date: string | number; count?: number; revenue?: number }> | undefined;
       return {
-        total: data.total ?? 0,
-        totalRevenue: data.totalRevenue ?? data.revenue ?? 0,
-        averageOrderValue: data.averageOrderValue ?? 0,
-        byStatus: data.byStatus ?? {},
-        byProduct: data.byProduct ?? {},
-        trends: Array.isArray(data.trends) ? data.trends.map((t: any) => ({ date: new Date(t.date), count: t.count ?? 0, revenue: t.revenue ?? 0 })) : [],
+        total: Number(data.total ?? 0),
+        totalRevenue: Number(data.totalRevenue ?? data.revenue ?? 0),
+        averageOrderValue: Number(data.averageOrderValue ?? 0),
+        byStatus: (data.byStatus as Record<string, number>) ?? {},
+        byProduct: (data.byProduct as Record<string, number>) ?? {},
+        trends: Array.isArray(trendsRaw) ? trendsRaw.map((t) => ({ date: new Date(t.date), count: t.count ?? 0, revenue: t.revenue ?? 0 })) : [],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching order stats', { error, brandId });
       throw error;
     }
@@ -318,11 +320,12 @@ export class AnalyticsService {
         startDate: start.toISOString(),
         endDate: end.toISOString(),
       });
-      const data = (res as any)?.data ?? res ?? {};
-      const trends = Array.isArray(data.trends) ? data.trends.map((t: any) => ({
-        date: new Date(t.date ?? t.x),
-        revenue: t.revenue ?? t.y ?? 0,
-        orders: t.orders ?? 0,
+      const data = (res as { data?: Record<string, unknown> } | null)?.data ?? (res as Record<string, unknown> | null) ?? {};
+      const trendsRaw = data.trends as Array<{ date?: string | number; x?: string | number; revenue?: number; y?: number; orders?: number }> | undefined;
+      const trends = Array.isArray(trendsRaw) ? trendsRaw.map((t) => ({
+        date: new Date(t.date ?? t.x ?? 0),
+        revenue: Number(t.revenue ?? t.y ?? 0),
+        orders: Number(t.orders ?? 0),
       })) : [];
       return {
         total: data.total ?? 0,
@@ -331,7 +334,7 @@ export class AnalyticsService {
         trends,
         byProduct: Array.isArray(data.byProduct) ? data.byProduct : [],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching revenue stats', { error, brandId });
       throw error;
     }
@@ -362,7 +365,7 @@ export class AnalyticsService {
         byDevice: data.byDevice ?? {},
         byProduct: data.byProduct ?? {},
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching AR stats', { error, brandId });
       throw error;
     }
@@ -395,7 +398,7 @@ export class AnalyticsService {
         format: options.format,
         includeCharts: options.includeCharts,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating report', { error, brandId, options });
       throw error;
     }
@@ -413,7 +416,7 @@ export class AnalyticsService {
       // Use ReportService for status checking
       const { reportService } = await import('./ReportService');
       return await reportService.checkReportStatus(reportId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error checking report status', { error, reportId });
       throw error;
     }

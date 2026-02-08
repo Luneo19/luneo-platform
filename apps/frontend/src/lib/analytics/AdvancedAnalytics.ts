@@ -44,9 +44,9 @@ export interface Cohort {
 export interface UserSegment {
   id: string;
   name: string;
-  criteria: Record<string, any>;
+  criteria: Record<string, unknown>;
   userCount: number;
-  characteristics: Record<string, any>;
+  characteristics: Record<string, unknown>;
 }
 
 // ========================================
@@ -90,7 +90,8 @@ export class AdvancedAnalyticsService {
         },
       }).catch(() => ({}));
 
-      const stepCounts = (funnelRes as any).steps ?? steps.map((step) => ({ step, count: 0 }));
+      const funnelData = funnelRes as { steps?: Array<{ step: string; count: number }> };
+      const stepCounts = funnelData.steps ?? steps.map((step) => ({ step, count: 0 }));
 
       // Calculate percentages and dropoffs
       const funnelSteps: FunnelStep[] = stepCounts.map(({ step, count }: { step: string; count: number }, index: number) => {
@@ -123,7 +124,7 @@ export class AdvancedAnalyticsService {
       };
 
       return analysis;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error analyzing funnel', { error, brandId });
       throw error;
     }
@@ -153,7 +154,7 @@ export class AdvancedAnalyticsService {
         },
       }).catch(() => ({}));
 
-      const users = (cohortsRes as any).users ?? [];
+      const users = (cohortsRes as Record<string, unknown>).users as Array<{ id: string; createdAt: Date }> ?? [];
 
       const cohortsByWeek = new Map<string, Array<{ id: string; createdAt: Date }>>();
       users.forEach((user: { id: string; createdAt: Date | string }) => {
@@ -186,7 +187,8 @@ export class AdvancedAnalyticsService {
               weekEnd: weekEnd.toISOString(),
             },
           }).catch(() => ({}));
-          const activeUserIds = (activeRes as any).userIds ?? [];
+          const activeData = activeRes as { userIds?: string[] };
+          const activeUserIds = activeData.userIds ?? [];
           const activeCount = activeUserIds.length;
           const retentionPercent = cohortUsers.length > 0 ? (activeCount / cohortUsers.length) * 100 : 0;
           retention[week] = Math.round(retentionPercent * 100) / 100;
@@ -202,7 +204,7 @@ export class AdvancedAnalyticsService {
       }
 
       return cohorts;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error analyzing cohorts', { error, brandId });
       throw error;
     }
@@ -218,13 +220,13 @@ export class AdvancedAnalyticsService {
   async createSegment(
     brandId: string,
     name: string,
-    criteria: Record<string, any>
+    criteria: Record<string, unknown>
   ): Promise<UserSegment> {
     try {
       logger.info('Creating user segment', { brandId, name });
 
       // Query users matching criteria
-      const whereClause: any = { brandId };
+      const whereClause: Record<string, unknown> = { brandId };
 
       // Map criteria to Prisma where clause
       if (criteria.email) whereClause.email = { contains: criteria.email };
@@ -237,10 +239,11 @@ export class AdvancedAnalyticsService {
       const segmentRes = await api.get<{ users?: Array<{ id: string; email?: string; role?: string; createdAt: string }> }>('/api/v1/analytics-advanced/segments/query', {
         params: { brandId, ...criteria },
       }).catch(() => ({}));
-      const users = (segmentRes as any).users ?? [];
+      const segmentData = segmentRes as { users?: Array<{ id: string; createdAt?: Date | string; role?: string | null }> };
+      const users = segmentData.users ?? [];
 
       // Calculate characteristics
-      const characteristics: Record<string, any> = {
+      const characteristics: Record<string, unknown> = {
         totalUsers: users.length,
         roles: {},
         avgAccountAge: 0,
@@ -254,8 +257,9 @@ export class AdvancedAnalyticsService {
         }, 0);
         characteristics.avgAccountAge = Math.round(totalAge / users.length / (1000 * 60 * 60 * 24)); // days
 
-        users.forEach((user: { id: string; createdAt?: Date | string; role?: string | null }) => {
-          characteristics.roles[user.role || 'USER'] = (characteristics.roles[user.role || 'USER'] || 0) + 1;
+        users.forEach((user) => {
+          const roleKey = (user.role || 'USER') as string;
+          (characteristics.roles as Record<string, number>)[roleKey] = ((characteristics.roles as Record<string, number>)[roleKey] || 0) + 1;
         });
       }
 
@@ -268,7 +272,7 @@ export class AdvancedAnalyticsService {
       };
 
       return segment;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error creating segment', { error, brandId });
       throw error;
     }
@@ -296,13 +300,14 @@ export class AdvancedAnalyticsService {
         params: { userId, limit: limit * 2 },
       }).catch(() => ({}));
 
-      const userProductIds = (recRes as any).userProductIds ?? [];
-      const similarUserIds = (recRes as any).similarUserIds ?? [];
-      const recommendedProducts = (recRes as any).recommendedProducts ?? [];
+      const recData = recRes as { userProductIds?: string[]; similarUserIds?: string[]; recommendedProducts?: Array<{ productId: string | null; userId?: string }> };
+      const userProductIds = recData.userProductIds ?? [];
+      const similarUserIds = recData.similarUserIds ?? [];
+      const recommendedProducts = recData.recommendedProducts ?? [];
 
       // 4. Calculate scores based on popularity and similarity
       const productScores = new Map<string, number>();
-      recommendedProducts.forEach((rec: { productId: string | null; userId: string }) => {
+      recommendedProducts.forEach((rec) => {
         if (!rec.productId) return;
         const currentScore = productScores.get(rec.productId) || 0;
         productScores.set(rec.productId, currentScore + 1);
@@ -322,9 +327,10 @@ export class AdvancedAnalyticsService {
         const popularRes = await api.get<{ products?: Array<{ id: string }> }>('/api/v1/analytics-advanced/recommendations/popular', {
           params: { excludeIds: userProductIds.join(','), take: limit - sortedRecommendations.length },
         }).catch(() => ({}));
-        const popularProducts = (popularRes as any).products ?? [];
+        const popularData = popularRes as { products?: Array<{ id: string }> };
+        const popularProducts = popularData.products ?? [];
 
-        popularProducts.forEach((product: { id: string }) => {
+        popularProducts.forEach((product) => {
           sortedRecommendations.push({
             id: product.id,
             score: 50, // Default score for popular items
@@ -336,7 +342,7 @@ export class AdvancedAnalyticsService {
       const recommendations = sortedRecommendations;
 
       return recommendations;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting recommendations', { error, userId });
       throw error;
     }

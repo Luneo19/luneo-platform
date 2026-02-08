@@ -27,6 +27,7 @@ import { GetVersionsQueryDto } from './dto/get-versions-query.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
 import { UpdateDesignDto } from './dto/update-design.dto';
 import { ExportForPrintDto } from './dto/export-for-print.dto';
+import { ShareDesignDto } from './dto/share-design.dto';
 
 @ApiTags('designs')
 @Controller('designs')
@@ -233,7 +234,7 @@ export class DesignsController {
   @ApiResponse({ status: 201, description: 'Share link created' })
   async createShare(
     @Param('id') id: string,
-    @Body() body: { expires_in_days?: number; password?: string },
+    @Body() body: ShareDesignDto,
     @Request() req,
   ) {
     const result = await this.designsService.share(

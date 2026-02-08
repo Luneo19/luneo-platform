@@ -30,6 +30,7 @@ import { JsonValue } from '@/common/types/utility-types';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
+import { BulkActionProductsDto, ImportProductsDto, UploadProductModelDto } from './dto/products-extra.dto';
 
 @ApiTags('products')
 @Controller('products')
@@ -140,7 +141,7 @@ export class ProductsController {
     if (!req.user.brandId) {
       throw new BadRequestException('User must have a brandId');
     }
-    return this.productsService.create(req.user.brandId, createProductDto as any, req.user);
+    return this.productsService.create(req.user.brandId, createProductDto as Record<string, JsonValue>, req.user);
   }
 
   @Post('brands/:brandId/products')
@@ -156,7 +157,7 @@ export class ProductsController {
     @Body() createProductDto: CreateProductDto,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
-    return this.productsService.create(brandId, createProductDto as any, req.user);
+    return this.productsService.create(brandId, createProductDto as Record<string, JsonValue>, req.user);
   }
 
   @Patch(':id')
@@ -175,7 +176,7 @@ export class ProductsController {
     if (!req.user.brandId) {
       throw new BadRequestException('User must have a brandId');
     }
-    return this.productsService.update(req.user.brandId, id, updateProductDto as any, req.user);
+    return this.productsService.update(req.user.brandId, id, updateProductDto as Record<string, JsonValue>, req.user);
   }
 
   @Patch('brands/:brandId/products/:id')
@@ -193,17 +194,17 @@ export class ProductsController {
     @Body() updateProductDto: UpdateProductDto,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
-    return this.productsService.update(brandId, id, updateProductDto as any, req.user);
+    return this.productsService.update(brandId, id, updateProductDto as Record<string, JsonValue>, req.user);
   }
 
   @Delete(':id')
   @ApiBearerAuth()
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Supprimer un produit' })
   @ApiParam({ name: 'id', description: 'ID du produit' })
   @ApiResponse({
-    status: 204,
-    description: 'Produit supprimé',
+    status: 200,
+    description: 'Produit supprimé avec données du produit supprimé',
   })
   async delete(
     @Param('id') id: string,
@@ -212,8 +213,8 @@ export class ProductsController {
     if (!req.user.brandId) {
       throw new BadRequestException('User must have a brandId');
     }
-    await this.productsService.remove(id, req.user.brandId, req.user);
-    return { success: true };
+    const product = await this.productsService.remove(id, req.user.brandId, req.user);
+    return { success: true, product };
   }
 
   @Post('bulk')
@@ -224,7 +225,7 @@ export class ProductsController {
     description: 'Actions effectuées',
   })
   async bulkAction(
-    @Body() body: { productIds: string[]; action: 'delete' | 'archive' | 'activate' | 'deactivate' },
+    @Body() body: BulkActionProductsDto,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     if (!req.user.brandId) {
@@ -258,7 +259,7 @@ export class ProductsController {
     description: 'Produits importés',
   })
   async import(
-    @Body() body: { csvData: string },
+    @Body() body: ImportProductsDto,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     if (!req.user.brandId) {
@@ -297,7 +298,7 @@ export class ProductsController {
   })
   async uploadModel(
     @Param('id') id: string,
-    @Body() body: { fileUrl: string; fileName: string; fileSize: number; fileType: string },
+    @Body() body: UploadProductModelDto,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.productsService.uploadModel(id, body, req.user);

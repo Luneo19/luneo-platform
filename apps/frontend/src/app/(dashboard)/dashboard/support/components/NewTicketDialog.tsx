@@ -32,35 +32,35 @@ export function NewTicketDialog({
 }: NewTicketDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-gray-800 border-gray-700 text-white max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl bg-white border-gray-200 text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nouveau ticket</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Créez un nouveau ticket de support. Notre équipe vous répondra dans les plus brefs délais.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <Label className="text-sm font-medium text-gray-300 mb-2 block">Sujet *</Label>
+            <Label className="text-sm font-medium text-gray-600 mb-2 block">Sujet *</Label>
             <Input
               value={newTicket.subject}
               onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
               placeholder="Décrivez brièvement votre problème"
-              className="bg-gray-900 border-gray-600 text-white"
+              className="bg-white border-gray-200 text-gray-900"
               required
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium text-gray-300 mb-2 block">Catégorie *</Label>
+              <Label className="text-sm font-medium text-gray-600 mb-2 block">Catégorie *</Label>
               <Select
                 value={newTicket.category}
                 onValueChange={(value) => setNewTicket({ ...newTicket, category: value as string })}
               >
-                <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                <SelectContent className="bg-white border-gray-200 text-gray-900">
                   <SelectItem value="BILLING">Facturation</SelectItem>
                   <SelectItem value="TECHNICAL">Technique</SelectItem>
                   <SelectItem value="ACCOUNT">Compte</SelectItem>
@@ -72,15 +72,15 @@ export function NewTicketDialog({
               </Select>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-300 mb-2 block">Priorité *</Label>
+              <Label className="text-sm font-medium text-gray-600 mb-2 block">Priorité *</Label>
               <Select
                 value={newTicket.priority}
                 onValueChange={(value) => setNewTicket({ ...newTicket, priority: value as 'low' | 'medium' | 'high' })}
               >
-                <SelectTrigger className="bg-gray-900 border-gray-600 text-white">
+                <SelectTrigger className="bg-white border-gray-200 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                <SelectContent className="bg-white border-gray-200 text-gray-900">
                   <SelectItem value="LOW">Basse</SelectItem>
                   <SelectItem value="MEDIUM">Moyenne</SelectItem>
                   <SelectItem value="HIGH">Haute</SelectItem>
@@ -90,13 +90,13 @@ export function NewTicketDialog({
             </div>
           </div>
           <div>
-            <Label className="text-sm font-medium text-gray-300 mb-2 block">Description *</Label>
+            <Label className="text-sm font-medium text-gray-600 mb-2 block">Description *</Label>
             <Textarea
               value={newTicket.description ?? ''}
               onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
               placeholder="Décrivez votre problème en détail. Plus vous fournissez d'informations, plus nous pourrons vous aider rapidement."
               rows={6}
-              className="bg-gray-900 border-gray-600 text-white resize-none"
+              className="bg-white border-gray-200 text-gray-900 resize-none"
               required
             />
           </div>
@@ -105,7 +105,7 @@ export function NewTicketDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1 border-gray-600"
+              className="flex-1 border-gray-200"
             >
               Annuler
             </Button>

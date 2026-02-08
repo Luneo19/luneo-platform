@@ -7,7 +7,7 @@ import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
-export type PlanTier = 'starter' | 'professional' | 'business' | 'enterprise';
+export type PlanTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
 
 export interface PlanLimits {
   designsPerMonth: number | -1; // -1 = illimité
@@ -134,6 +134,7 @@ export function useHasMinimumPlan(
   const { data: subscription } = useSubscription();
   
   const planHierarchy: Record<PlanTier, number> = {
+    free: 0,
     starter: 1,
     professional: 2,
     business: 3,

@@ -7,6 +7,7 @@ import {
   ValidationWarning,
   DesignOptions,
   ProductRules,
+  ProductZone,
   ZoneValidationContext
 } from '../interfaces/product-rules.interface';
 
@@ -131,8 +132,8 @@ export class ValidationEngine {
    * Valide une zone image
    */
   private validateImageZone(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -194,8 +195,8 @@ export class ValidationEngine {
    * Valide une zone texte
    */
   private validateTextZone(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -299,8 +300,8 @@ export class ValidationEngine {
    * Valide une zone de sélection
    */
   private validateSelectZone(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -330,8 +331,8 @@ export class ValidationEngine {
    * Valide les contraintes d'une zone
    */
   private validateZoneConstraints(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -498,8 +499,8 @@ export class ValidationEngine {
 
       if (brand) {
         // Vérifier les limites du plan
-        if ((brand as any).limits) {
-          const limits = (brand as any).limits as any;
+        if (brand.limits) {
+          const limits = brand.limits as Record<string, unknown>;
           
           // Limite de zones
           if (limits.maxZonesPerDesign && context.rules.zones.length > limits.maxZonesPerDesign) {
@@ -689,11 +690,11 @@ export class ValidationEngine {
    */
   private hasOption(options: DesignOptions, optionPath: string): boolean {
     const keys = optionPath.split('.');
-    let current = options as any;
+    let current: unknown = options;
     
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+        current = (current as Record<string, unknown>)[key];
       } else {
         return false;
       }
@@ -705,7 +706,7 @@ export class ValidationEngine {
   /**
    * Évalue une condition de règle
    */
-  private evaluateRuleCondition(condition: Record<string, any>, options: DesignOptions): boolean {
+  private evaluateRuleCondition(condition: Record<string, unknown>, options: DesignOptions): boolean {
     for (const [key, value] of Object.entries(condition)) {
       if (!this.hasOptionValue(options, key, value)) {
         return false;
@@ -717,13 +718,13 @@ export class ValidationEngine {
   /**
    * Vérifie si une option a une valeur spécifique
    */
-  private hasOptionValue(options: DesignOptions, optionPath: string, expectedValue: any): boolean {
+  private hasOptionValue(options: DesignOptions, optionPath: string, expectedValue: unknown): boolean {
     const keys = optionPath.split('.');
-    let current = options as any;
+    let current: unknown = options;
     
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+        current = (current as Record<string, unknown>)[key];
       } else {
         return false;
       }

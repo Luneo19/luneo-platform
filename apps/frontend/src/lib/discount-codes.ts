@@ -7,9 +7,10 @@
  * Pour un SaaS professionnel et scalable
  */
 
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from './logger';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = getBackendUrl();
 
 export type DiscountType = 'percentage' | 'fixed' | 'shipping';
 

@@ -51,6 +51,11 @@ const nextConfig = {
         hostname: '**.cloudinary.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
+      },
       // Cloudflare R2 / Custom CDN
       ...(process.env.NEXT_PUBLIC_CDN_URL && process.env.NEXT_PUBLIC_CDN_URL.startsWith('http') ? [{
         protocol: 'https',
@@ -198,7 +203,8 @@ const nextConfig = {
     return config;
   },
 
-  // Headers for security, performance, and CDN optimization
+  // Headers for performance and CDN optimization.
+  // Security headers are managed in middleware.ts for dynamic control (nonces, env vars).
   async headers() {
     return [
       {
@@ -207,26 +213,6 @@ const nextConfig = {
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
           },
         ],
       },

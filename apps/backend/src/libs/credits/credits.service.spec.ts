@@ -43,7 +43,7 @@ describe('CreditsService', () => {
         findMany: jest.fn(),
       },
       $transaction: jest.fn(),
-      $queryRawUnsafe: jest.fn(),
+      $queryRaw: jest.fn(),
     };
 
     const mockCache = {
@@ -163,7 +163,7 @@ describe('CreditsService', () => {
       const mockTransaction = { id: 'tx-1', amount: -5 };
       (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
         const tx = {
-          $queryRawUnsafe: jest.fn().mockResolvedValue([
+          $queryRaw: jest.fn().mockResolvedValue([
             { ai_credits: 100, ai_credits_used: 50, email: 'test@luneo.app' },
           ]),
           user: {
@@ -187,7 +187,7 @@ describe('CreditsService', () => {
     it('should throw BadRequestException when insufficient credits', async () => {
       (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
         const tx = {
-          $queryRawUnsafe: jest.fn().mockResolvedValue([
+          $queryRaw: jest.fn().mockResolvedValue([
             { ai_credits: 2, ai_credits_used: 148, email: 'test@luneo.app' },
           ]),
           user: { update: jest.fn() },
@@ -204,7 +204,7 @@ describe('CreditsService', () => {
     it('should throw BadRequestException when user not found', async () => {
       (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
         const tx = {
-          $queryRawUnsafe: jest.fn().mockResolvedValue([]),
+          $queryRaw: jest.fn().mockResolvedValue([]),
           user: { update: jest.fn() },
           creditTransaction: { create: jest.fn() },
         };
@@ -219,7 +219,7 @@ describe('CreditsService', () => {
     it('should invalidate cache after deduction', async () => {
       (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
         const tx = {
-          $queryRawUnsafe: jest.fn().mockResolvedValue([
+          $queryRaw: jest.fn().mockResolvedValue([
             { ai_credits: 100, ai_credits_used: 50, email: 'test@luneo.app' },
           ]),
           user: { update: jest.fn().mockResolvedValue({ aiCredits: 95 }) },

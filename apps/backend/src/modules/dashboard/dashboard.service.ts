@@ -122,7 +122,7 @@ export class DashboardService {
     orgId: string,
     data: { widgetOverrides?: Record<string, unknown>; sidebarOrder?: string[]; pinnedModules?: string[]; lastVisitedModule?: string; dashboardTheme?: string },
   ) {
-    await this.prisma.userDashboardPreference.upsert({
+    const preferences = await this.prisma.userDashboardPreference.upsert({
       where: {
         userId_organizationId: { userId, organizationId: orgId },
       },
@@ -143,7 +143,7 @@ export class DashboardService {
         ...(data.dashboardTheme !== undefined && { dashboardTheme: data.dashboardTheme }),
       },
     });
-    return { success: true };
+    return { success: true, preferences };
   }
 
   async resetPreferences(userId: string, orgId: string) {
@@ -154,7 +154,12 @@ export class DashboardService {
       },
     });
     this.logger.log(`Dashboard preferences reset for user ${userId}, org ${orgId}`);
-    return { success: true };
+    return {
+      success: true,
+      userId,
+      organizationId: orgId,
+      resetAt: new Date().toISOString(),
+    };
   }
 
   async getOrganizationIdByBrand(brandId: string): Promise<string> {

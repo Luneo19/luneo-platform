@@ -251,7 +251,7 @@ export class OrderRoutingService {
         artisanId,
         priceCents: quote.priceCents,
         leadTime: quote.leadTime,
-        breakdown: quote.breakdown as any,
+        breakdown: quote.breakdown as Record<string, unknown>,
         overallScore: routingScore,
         status: 'selected',
         selectedAt: new Date(),

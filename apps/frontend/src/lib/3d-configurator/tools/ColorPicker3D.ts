@@ -100,6 +100,7 @@ export class ColorPicker3D {
       const rgb = this.hexToRgb(color.hex);
       const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
 
+      const colorWithMaterial = color as { isMetallic?: boolean; metalness?: number; roughness?: number };
       this.colorPresets.set(id, {
         id,
         name: color.name,
@@ -107,9 +108,9 @@ export class ColorPicker3D {
         rgb,
         hsl,
         category: color.category,
-        isMetallic: (color as any).isMetallic || false,
-        metalness: (color as any).metalness || 0.0,
-        roughness: (color as any).roughness || 0.5,
+        isMetallic: colorWithMaterial.isMetallic ?? false,
+        metalness: colorWithMaterial.metalness ?? 0.0,
+        roughness: colorWithMaterial.roughness ?? 0.5,
       });
     });
   }
@@ -259,7 +260,7 @@ export class ColorPicker3D {
       id,
       name,
       colors,
-      category: category as any,
+      category: category as ColorPalette['category'],
     };
 
     this.colorPalettes.set(id, palette);

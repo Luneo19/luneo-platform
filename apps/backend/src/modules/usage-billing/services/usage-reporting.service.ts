@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UsageMeteringService } from './usage-metering.service';
 import { BillingCalculationService } from './billing-calculation.service';
@@ -27,7 +28,7 @@ export class UsageReportingService {
       const endDate = new Date(year, month, 0, 23, 59, 59);
 
       // Récupérer tous les enregistrements d'usage
-      const usageRecords = await (this.prisma as any).usageMetric.findMany({
+      const usageRecords = await (this.prisma as unknown as PrismaClient).usageMetric.findMany({
         where: {
           brandId,
           timestamp: {
@@ -210,7 +211,7 @@ export class UsageReportingService {
   private generateInsights(
     usage: Record<UsageMetricType, number>,
     trends: Record<string, number>,
-    projections: any,
+    projections: { projectedOverage?: number; recommendations?: string[] },
   ): string[] {
     const insights: string[] = [];
 

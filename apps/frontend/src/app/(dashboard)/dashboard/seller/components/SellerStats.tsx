@@ -33,9 +33,9 @@ export function SellerStats({ stats }: SellerStatsProps) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="bg-gray-800/50 border-gray-700">
+          <Card key={i} className="bg-gray-50 border-gray-200">
             <CardContent className="p-4">
-              <div className="h-16 bg-gray-700 rounded animate-pulse" />
+              <div className="h-16 bg-gray-200 rounded animate-pulse" />
             </CardContent>
           </Card>
         ))}
@@ -96,7 +96,7 @@ export function SellerStats({ stats }: SellerStatsProps) {
       {statsCards.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.label} className={cn('border-gray-700', stat.bgColor)}>
+          <Card key={stat.label} className={cn('border-gray-200', stat.bgColor)}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <Icon className={cn('w-5 h-5', stat.color)} />
@@ -116,7 +116,7 @@ export function SellerStats({ stats }: SellerStatsProps) {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mb-1">{stat.label}</p>
+              <p className="text-xs text-gray-600 mb-1">{stat.label}</p>
               <p className={cn('text-xl font-bold', stat.color)}>{stat.value}</p>
               {stat.subtitle && (
                 <p className="text-xs text-gray-500 mt-1">{stat.subtitle}</p>

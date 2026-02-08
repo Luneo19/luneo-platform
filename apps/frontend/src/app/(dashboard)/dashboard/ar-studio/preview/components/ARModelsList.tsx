@@ -29,7 +29,7 @@ export function ARModelsList({
   if (models.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucun modèle trouvé</p>
+        <p className="text-gray-600">Aucun modèle trouvé</p>
       </div>
     );
   }
@@ -53,7 +53,7 @@ export function ARModelsList({
         <Card
           key={model.id}
           className={cn(
-            'bg-gray-800/50 border-gray-700 hover:border-blue-500/50 transition-colors cursor-pointer',
+            'bg-white border-gray-200 hover:border-blue-500/50 transition-colors cursor-pointer',
             selectedModel === model.id && 'border-blue-500'
           )}
           onClick={() => onSelectModel(model.id)}
@@ -72,7 +72,7 @@ export function ARModelsList({
               )}
             </div>
             <div className="absolute bottom-2 left-2">
-              <Badge variant="secondary" className="bg-gray-900/80 text-white">
+              <Badge variant="secondary" className="bg-gray-100 text-gray-900">
                 {model.category}
               </Badge>
             </div>
@@ -80,13 +80,13 @@ export function ARModelsList({
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <h3 className="text-white font-medium mb-1 line-clamp-1">{model.name}</h3>
+                <h3 className="text-gray-900 font-medium mb-1 line-clamp-1">{model.name}</h3>
                 {model.description && (
-                  <p className="text-gray-400 text-xs line-clamp-2">{model.description}</p>
+                  <p className="text-gray-600 text-xs line-clamp-2">{model.description}</p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-4 text-xs text-gray-400 mb-2">
+            <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">
               <span className="flex items-center gap-1">
                 <Eye className="w-3 h-3" />
                 {formatNumber(model.views)}
@@ -99,7 +99,7 @@ export function ARModelsList({
                   <Badge
                     key={platform}
                     variant="outline"
-                    className="text-xs border-gray-600 text-gray-400"
+                    className="text-xs border-gray-200 text-gray-600"
                   >
                     {platform}
                   </Badge>

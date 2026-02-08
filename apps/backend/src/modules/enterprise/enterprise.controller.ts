@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
 import { WhiteLabelService } from './services/white-label.service';
 import { SSOService } from './services/sso.service';
@@ -20,6 +20,8 @@ import { CreateThemeDto } from './dto/create-theme.dto';
 import { CreateCustomDomainDto } from './dto/create-custom-domain.dto';
 import { CreateSAMLConfigDto } from './dto/create-saml-config.dto';
 import { CreateOIDCConfigDto } from './dto/create-oidc-config.dto';
+import { CreateSLATicketDto } from './dto/create-sla-ticket.dto';
+import { UpdateSLATicketStatusDto } from './dto/update-sla-ticket-status.dto';
 
 @ApiTags('Enterprise')
 @Controller('enterprise')
@@ -116,7 +118,7 @@ export class EnterpriseController {
   @Post('sla/tickets')
   @ApiOperation({ summary: 'Crée un ticket avec SLA tracking' })
   @ApiResponse({ status: 201, description: 'Ticket SLA créé' })
-  async createSLATicket(@Body() body: { ticketId: string; brandId: string; priority: 'low' | 'medium' | 'high' | 'critical' }) {
+  async createSLATicket(@Body() body: CreateSLATicketDto) {
     return this.slaSupport.createSLATicket(body.ticketId, body.brandId, body.priority);
   }
 
@@ -132,7 +134,7 @@ export class EnterpriseController {
   @ApiResponse({ status: 200, description: 'Statut SLA mis à jour' })
   async updateSLATicketStatus(
     @Param('ticketId') ticketId: string,
-    @Body() body: { firstResponseAt?: string; resolvedAt?: string },
+    @Body() body: UpdateSLATicketStatusDto,
   ) {
     return this.slaSupport.updateSLATicketStatus(
       ticketId,

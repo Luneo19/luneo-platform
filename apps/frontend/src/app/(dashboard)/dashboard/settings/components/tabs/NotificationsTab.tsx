@@ -64,17 +64,17 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
   return (
     <div className="space-y-6">
       {/* Email Notifications */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Notifications Email</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Notifications Email</CardTitle>
+          <CardDescription className="text-gray-600">
             Choisissez les notifications que vous souhaitez recevoir par email
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Commandes</Label>
+              <Label className="text-gray-700">Commandes</Label>
               <p className="text-sm text-gray-500">Notifications sur vos commandes</p>
             </div>
             <Checkbox
@@ -89,7 +89,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Designs</Label>
+              <Label className="text-gray-700">Designs</Label>
               <p className="text-sm text-gray-500">Notifications sur vos designs</p>
             </div>
             <Checkbox
@@ -104,7 +104,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Marketing</Label>
+              <Label className="text-gray-700">Marketing</Label>
               <p className="text-sm text-gray-500">Newsletters et offres promotionnelles</p>
             </div>
             <Checkbox
@@ -119,7 +119,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Alertes de sécurité</Label>
+              <Label className="text-gray-700">Alertes de sécurité</Label>
               <p className="text-sm text-gray-500">Notifications importantes de sécurité</p>
             </div>
             <Checkbox
@@ -136,17 +136,17 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
       </Card>
 
       {/* In-App Notifications */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Notifications In-App</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-gray-900">Notifications In-App</CardTitle>
+          <CardDescription className="text-gray-600">
             Choisissez les notifications affichées dans l'application
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Commandes</Label>
+              <Label className="text-gray-700">Commandes</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.orders}
@@ -160,7 +160,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Designs</Label>
+              <Label className="text-gray-700">Designs</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.designs}
@@ -174,7 +174,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-300">Système</Label>
+              <Label className="text-gray-700">Système</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.system}

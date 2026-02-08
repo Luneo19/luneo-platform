@@ -12,21 +12,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export function HistoryTab() {
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-cyan-400" />
             Historique des personnalisations
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Consultez l'historique de toutes vos personnalisations et modifications
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
-            <FileText className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Aucun historique</h3>
-            <p className="text-slate-400">
+            <FileText className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun historique</h3>
+            <p className="text-gray-600">
               L'historique de vos personnalisations apparaîtra ici
             </p>
           </div>

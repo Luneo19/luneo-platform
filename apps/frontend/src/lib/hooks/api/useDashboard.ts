@@ -73,7 +73,7 @@ export function useDashboardStats(
     queryKey: ['dashboard', 'stats', period],
     queryFn: async () => {
       const data = await endpoints.analytics.overview() as Record<string, unknown>;
-      const raw = (data as any)?.data ?? data;
+      const raw = (data?.data ?? data) as Record<string, unknown>;
       const overview = (raw?.overview ?? raw) as Record<string, unknown>;
       const periodData = (raw?.period ?? {}) as Record<string, unknown>;
       const recent = (raw?.recent ?? { designs: [], orders: [] }) as { designs: DashboardRecentDesign[]; orders: DashboardRecentOrder[] };
@@ -137,9 +137,10 @@ export function useDashboardUsage(
         const usageRes = await api.get<{ views?: number; totalViews?: number; viewsChange?: string; data?: unknown }>('/api/v1/analytics/usage', {
           params: { startDate, endDate },
         }).catch(() => ({}));
-        const usage = (usageRes as any)?.data ?? usageRes;
-        views = Number((usage as any)?.views ?? (usage as any)?.totalViews ?? 0);
-        viewsChange = typeof (usage as any)?.viewsChange === 'string' ? (usage as any).viewsChange : '+0%';
+        const usageRaw = usageRes && typeof usageRes === 'object' && 'data' in usageRes ? (usageRes as { data?: unknown }).data : usageRes;
+        const usage = usageRaw as Record<string, unknown> | undefined;
+        views = Number(usage?.views ?? usage?.totalViews ?? 0);
+        viewsChange = typeof usage?.viewsChange === 'string' ? (usage.viewsChange as string) : '+0%';
       } catch {
         // keep defaults
       }
@@ -148,8 +149,9 @@ export function useDashboardUsage(
         const downloadsRes = await api.get<{ total?: number; pagination?: { total: number }; data?: { total?: number; pagination?: { total: number } } }>('/api/v1/downloads', {
           params: { limit: 1, startDate, endDate },
         }).catch(() => ({}));
-        const dlData = (downloadsRes as any)?.data ?? downloadsRes;
-        downloads = Number((dlData as any)?.pagination?.total ?? (dlData as any)?.total ?? 0);
+        const dlRaw = downloadsRes && typeof downloadsRes === 'object' && 'data' in downloadsRes ? (downloadsRes as { data?: unknown }).data : downloadsRes;
+        const dlData = dlRaw as Record<string, unknown> | undefined;
+        downloads = Number((dlData?.pagination as { total?: number } | undefined)?.total ?? dlData?.total ?? 0);
         downloadsChange = '+0%';
       } catch {
         // keep defaults
@@ -190,11 +192,11 @@ export function useDashboardChartData(
     queryFn: async () => {
       const { startDate, endDate } = getDateRange(period);
       const data = await endpoints.analytics.revenue({ startDate, endDate }) as Record<string, unknown>;
-      const raw = (data as any)?.data ?? data;
+      const raw = (data?.data ?? data) as Record<string, unknown>;
       const series = (raw?.series ?? raw?.revenueOverTime ?? raw?.designsOverTime ?? []) as Array<{ designs?: number; views?: number; revenue?: number }>;
-      const designs = Array.isArray(raw?.designs) ? raw.designs : series.map((p: any) => p?.designs ?? 0);
-      const views = Array.isArray(raw?.views) ? raw.views : series.map((p: any) => p?.views ?? 0);
-      const revenue = Array.isArray(raw?.revenue) ? raw.revenue : series.map((p: any) => p?.revenue ?? 0);
+      const designs = Array.isArray(raw?.designs) ? (raw.designs as number[]) : series.map((p) => p?.designs ?? 0);
+      const views = Array.isArray(raw?.views) ? (raw.views as number[]) : series.map((p) => p?.views ?? 0);
+      const revenue = Array.isArray(raw?.revenue) ? (raw.revenue as number[]) : series.map((p) => p?.revenue ?? 0);
       if (!Array.isArray(designs)) {
         logger.warn('Chart data: Invalid response structure', { data });
         throw new Error('Invalid chart data response structure');

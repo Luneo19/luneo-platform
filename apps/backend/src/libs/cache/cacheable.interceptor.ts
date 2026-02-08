@@ -94,8 +94,9 @@ export class CacheableInterceptor implements NestInterceptor {
             : options.tags;
 
         // Use invalidateByTags if available, otherwise fallback to invalidate
-        if (typeof (this.cache as any).invalidateByTags === 'function') {
-          await (this.cache as any).invalidateByTags(tags);
+        const cacheWithTags = this.cache as SmartCacheService & { invalidateByTags?: (tags: string[]) => Promise<void> };
+        if (typeof cacheWithTags.invalidateByTags === 'function') {
+          await cacheWithTags.invalidateByTags(tags);
         } else {
           for (const tag of tags) {
             await this.cache.invalidate(tag, cacheType);

@@ -42,14 +42,14 @@ export function KnowledgeTab({ kbSearch, setKbSearch, filteredKB }: KnowledgeTab
             value={kbSearch}
             onChange={(e) => setKbSearch(e.target.value)}
             placeholder="Rechercher dans la base de connaissances..."
-            className="pl-10 bg-gray-800 border-gray-700 text-white"
+            className="pl-10 bg-white border-gray-200 text-gray-900"
           />
         </div>
         <Select defaultValue="all">
-          <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+          <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Catégorie" />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+          <SelectContent className="bg-white border-gray-200 text-gray-900">
             <SelectItem value="all">Toutes</SelectItem>
             <SelectItem value="getting-started">Démarrage</SelectItem>
             <SelectItem value="troubleshooting">Dépannage</SelectItem>
@@ -59,10 +59,10 @@ export function KnowledgeTab({ kbSearch, setKbSearch, filteredKB }: KnowledgeTab
       </div>
 
       {filteredKB.length === 0 ? (
-        <Card className="p-12 bg-gray-800/50 border-gray-700 text-center">
-          <BookOpen className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">Aucun article</h3>
-          <p className="text-gray-400">{kbSearch ? 'Aucun résultat pour votre recherche' : 'Aucun article disponible'}</p>
+        <Card className="p-12 bg-white border-gray-200 text-center">
+          <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun article</h3>
+          <p className="text-gray-600">{kbSearch ? 'Aucun résultat pour votre recherche' : 'Aucun article disponible'}</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -73,9 +73,9 @@ export function KnowledgeTab({ kbSearch, setKbSearch, filteredKB }: KnowledgeTab
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className="p-6 bg-gray-800/50 border-gray-700 hover:border-gray-600 transition-all cursor-pointer h-full flex flex-col">
+              <Card className="p-6 bg-white border-gray-200 hover:border-gray-300 transition-all cursor-pointer h-full flex flex-col">
                 <div className="flex items-start justify-between mb-3">
-                  <Badge variant="outline" className="text-xs border-gray-600">
+                  <Badge variant="outline" className="text-xs border-gray-200">
                     {article.category}
                   </Badge>
                   {article.isFeatured && (
@@ -85,11 +85,11 @@ export function KnowledgeTab({ kbSearch, setKbSearch, filteredKB }: KnowledgeTab
                     </Badge>
                   )}
                 </div>
-                <h3 className="font-semibold text-white mb-2 line-clamp-2">{article.title}</h3>
+                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{article.title}</h3>
                 {article.excerpt && (
-                  <p className="text-sm text-gray-400 line-clamp-3 mb-4 flex-1">{article.excerpt}</p>
+                  <p className="text-sm text-gray-600 line-clamp-3 mb-4 flex-1">{article.excerpt}</p>
                 )}
-                <div className="flex items-center justify-between text-xs text-gray-500 pt-4 border-t border-gray-700">
+                <div className="flex items-center justify-between text-xs text-gray-500 pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
                       <Eye className="w-3 h-3" />

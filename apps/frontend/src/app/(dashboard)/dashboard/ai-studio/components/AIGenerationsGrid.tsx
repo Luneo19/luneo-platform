@@ -47,7 +47,7 @@ export function AIGenerationsGrid({
   if (generations.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucune génération trouvée</p>
+        <p className="text-gray-600">Aucune génération trouvée</p>
       </div>
     );
   }
@@ -74,7 +74,7 @@ export function AIGenerationsGrid({
       {generations.map((generation) => (
         <Card
           key={generation.id}
-          className="bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-colors group"
+          className="bg-gray-50 border-gray-200 hover:border-purple-500/50 transition-colors group"
         >
           <div className="relative aspect-square overflow-hidden rounded-t-lg">
             {generation.thumbnail ? (
@@ -116,7 +116,7 @@ export function AIGenerationsGrid({
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-300 line-clamp-2 mb-1">
+                <p className="text-sm text-gray-700 line-clamp-2 mb-1">
                   {generation.prompt}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -129,10 +129,10 @@ export function AIGenerationsGrid({
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                <DropdownMenuContent align="end" className="bg-white border-gray-200">
                   <DropdownMenuItem
                     onClick={() => onPreview(generation)}
-                    className="text-gray-300 cursor-pointer"
+                    className="text-gray-700 cursor-pointer"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Prévisualiser
@@ -141,14 +141,14 @@ export function AIGenerationsGrid({
                     <>
                       <DropdownMenuItem
                         onClick={() => onDownload(generation)}
-                        className="text-gray-300 cursor-pointer"
+                        className="text-gray-700 cursor-pointer"
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Télécharger
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onShare(generation)}
-                        className="text-gray-300 cursor-pointer"
+                        className="text-gray-700 cursor-pointer"
                       >
                         <Share2 className="w-4 h-4 mr-2" />
                         Partager
@@ -157,7 +157,7 @@ export function AIGenerationsGrid({
                         onClick={() => {
                           navigator.clipboard.writeText(generation.result || '');
                         }}
-                        className="text-gray-300 cursor-pointer"
+                        className="text-gray-700 cursor-pointer"
                       >
                         <Copy className="w-4 h-4 mr-2" />
                         Copier l'URL

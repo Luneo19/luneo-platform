@@ -21,11 +21,12 @@ export function usePaymentMethods() {
       const data = await endpoints.billing.paymentMethods();
       const raw = data as { paymentMethods?: PaymentMethod[] };
       setPaymentMethods(raw.paymentMethods || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de la récupération des méthodes de paiement';
       logger.error('Error fetching payment methods', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de la récupération des méthodes de paiement',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -49,11 +50,12 @@ export function usePaymentMethods() {
       }
 
       return { success: false };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur lors de l\'ajout de la méthode de paiement';
       logger.error('Error adding payment method', { error });
       toast({
         title: 'Erreur',
-        description: error.message || 'Erreur lors de l\'ajout de la méthode de paiement',
+        description: message,
         variant: 'destructive',
       });
       return { success: false };
@@ -71,11 +73,12 @@ export function usePaymentMethods() {
         router.refresh();
         await fetchPaymentMethods();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erreur lors de la suppression de la méthode de paiement';
         logger.error('Error deleting payment method', { error });
         toast({
           title: 'Erreur',
-          description: error.message || 'Erreur lors de la suppression de la méthode de paiement',
+          description: message,
           variant: 'destructive',
         });
         return { success: false };

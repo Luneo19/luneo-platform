@@ -7,6 +7,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload } from 'lucide-react';
+import { QuotaWarningBanner } from '@/components/shared/QuotaWarningBanner';
 import { ProductsHeader } from './components/ProductsHeader';
 import { ProductsStats } from './components/ProductsStats';
 import { ProductFilters } from './components/filters/ProductFilters';
@@ -171,6 +172,7 @@ export function ProductsPageClient() {
 
   return (
     <div className="space-y-6 pb-10">
+      <QuotaWarningBanner metric="designs" />
       {/* Header */}
       <ProductsHeader
         stats={stats}

@@ -33,7 +33,7 @@ export class BillingSyncService {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (stripeKey) {
       this.stripe = new Stripe(stripeKey, {
-        apiVersion: '2023-10-16' as any,
+        apiVersion: '2023-10-16',
       });
     } else {
       this.stripe = null;
@@ -346,8 +346,8 @@ export class BillingSyncService {
       // Safely access invoice_settings from customer object
       let defaultPaymentMethodId: string | null = null;
       if (typeof customer !== 'string' && 'invoice_settings' in customer && !('deleted' in customer)) {
-        const invoiceSettings = (customer as any).invoice_settings;
-        defaultPaymentMethodId = invoiceSettings?.default_payment_method as string ?? null;
+        const invoiceSettings = (customer as Stripe.Customer & { invoice_settings?: { default_payment_method?: string } }).invoice_settings;
+        defaultPaymentMethodId = invoiceSettings?.default_payment_method ?? null;
       }
 
       return paymentMethods.data.map(pm => ({

@@ -37,7 +37,7 @@ export function AnalyticsKPIs({ metrics, selectedMetrics }: AnalyticsKPIsProps) 
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="p-4 bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-all">
+            <Card className="p-4 bg-white border-gray-200 hover:border-cyan-500/50 transition-all">
               <div className="flex items-start justify-between mb-2">
                 <div className={cn(
                   'p-2 rounded-lg',
@@ -71,7 +71,7 @@ export function AnalyticsKPIs({ metrics, selectedMetrics }: AnalyticsKPIsProps) 
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-400 mb-1">{metric.name}</p>
+                <p className="text-sm text-gray-600 mb-1">{metric.name}</p>
                 <p className={cn(
                   'text-2xl font-bold',
                   metric.color === 'green' && 'text-green-400',
@@ -87,7 +87,7 @@ export function AnalyticsKPIs({ metrics, selectedMetrics }: AnalyticsKPIsProps) 
                     : formatNumber(metric.value)}
                 </p>
                 {metric.description && (
-                  <p className="text-xs text-gray-500 mt-1">{metric.description}</p>
+                  <p className="text-xs text-gray-600 mt-1">{metric.description}</p>
                 )}
               </div>
             </Card>

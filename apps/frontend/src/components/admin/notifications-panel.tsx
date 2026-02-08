@@ -59,8 +59,8 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
     setIsLoading(true);
     try {
       const response = await api.get<{ notifications?: Array<Record<string, unknown>>; data?: { notifications?: Array<Record<string, unknown>> } }>('/api/v1/notifications');
-      const data = (response as any)?.data ?? response;
-      const list = (data as any)?.notifications ?? [];
+      const data = (response as { data?: { notifications?: unknown[] } })?.data ?? response;
+      const list = (data as { notifications?: unknown[] })?.notifications ?? [];
       const items = Array.isArray(list) ? list : [];
       setNotifications(
         items.map((n: Record<string, unknown>) => ({
@@ -68,10 +68,10 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
           type: (n.type as Notification['type']) ?? 'info',
           title: String(n.title ?? ''),
           message: String(n.message ?? n.body ?? ''),
-          read: Boolean((n as any).is_read ?? n.read),
+          read: Boolean((n as Record<string, unknown>).is_read ?? n.read),
           createdAt: n.createdAt ? new Date(n.createdAt as string) : (n.created_at ? new Date(n.created_at as string) : new Date()),
-          actionUrl: n.actionUrl ? String(n.actionUrl) : (n as any).action_url ? String((n as any).action_url) : undefined,
-          actionLabel: n.actionLabel ? String(n.actionLabel) : (n as any).action_label ? String((n as any).action_label) : undefined,
+          actionUrl: n.actionUrl ? String(n.actionUrl) : (n as Record<string, unknown>).action_url ? String((n as Record<string, unknown>).action_url) : undefined,
+          actionLabel: n.actionLabel ? String(n.actionLabel) : (n as Record<string, unknown>).action_label ? String((n as Record<string, unknown>).action_label) : undefined,
         }))
       );
     } catch (error) {

@@ -76,14 +76,14 @@ export function TicketsTab({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Rechercher un ticket..."
-            className="pl-10 bg-gray-800 border-gray-700 text-white"
+            className="pl-10 bg-white border-gray-200 text-gray-900"
           />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+          <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+          <SelectContent className="bg-white border-gray-200 text-gray-900">
             <SelectItem value="all">Tous les statuts</SelectItem>
             <SelectItem value="OPEN">Ouverts</SelectItem>
             <SelectItem value="IN_PROGRESS">En cours</SelectItem>
@@ -93,10 +93,10 @@ export function TicketsTab({
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+          <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Priorité" />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+          <SelectContent className="bg-white border-gray-200 text-gray-900">
             <SelectItem value="all">Toutes les priorités</SelectItem>
             <SelectItem value="LOW">Basse</SelectItem>
             <SelectItem value="MEDIUM">Moyenne</SelectItem>
@@ -105,10 +105,10 @@ export function TicketsTab({
           </SelectContent>
         </Select>
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+          <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
             <SelectValue placeholder="Catégorie" />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+          <SelectContent className="bg-white border-gray-200 text-gray-900">
             <SelectItem value="all">Toutes les catégories</SelectItem>
             <SelectItem value="BILLING">Facturation</SelectItem>
             <SelectItem value="TECHNICAL">Technique</SelectItem>
@@ -124,7 +124,7 @@ export function TicketsTab({
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="icon"
             onClick={() => setViewMode('list')}
-            className="border-gray-700"
+            className="border-gray-200"
           >
             <List className="w-4 h-4" />
           </Button>
@@ -132,7 +132,7 @@ export function TicketsTab({
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="icon"
             onClick={() => setViewMode('grid')}
-            className="border-gray-700"
+            className="border-gray-200"
           >
             <Grid className="w-4 h-4" />
           </Button>
@@ -150,18 +150,18 @@ export function TicketsTab({
                   else setSelectedTickets(new Set());
                 }}
               />
-              <span className="text-sm text-gray-300">{selectedTickets.size} ticket(s) sélectionné(s)</span>
+              <span className="text-sm text-gray-700">{selectedTickets.size} ticket(s) sélectionné(s)</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => onBulkAction('archive')} className="border-gray-600">
+              <Button variant="outline" size="sm" onClick={() => onBulkAction('archive')} className="border-gray-200">
                 <Archive className="w-4 h-4 mr-2" />
                 Archiver
               </Button>
-              <Button variant="outline" size="sm" onClick={() => onBulkAction('close')} className="border-gray-600">
+              <Button variant="outline" size="sm" onClick={() => onBulkAction('close')} className="border-gray-200">
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Fermer
               </Button>
-              <Button variant="outline" size="sm" onClick={() => onBulkAction('assign')} className="border-gray-600">
+              <Button variant="outline" size="sm" onClick={() => onBulkAction('assign')} className="border-gray-200">
                 <User className="w-4 h-4 mr-2" />
                 Assigner
               </Button>
@@ -169,7 +169,7 @@ export function TicketsTab({
                 <Trash2 className="w-4 h-4 mr-2" />
                 Supprimer
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setSelectedTickets(new Set())} className="border-gray-600">
+              <Button variant="outline" size="icon" onClick={() => setSelectedTickets(new Set())} className="border-gray-200">
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -178,16 +178,16 @@ export function TicketsTab({
       )}
 
       {filteredTickets.length === 0 ? (
-        <Card className="p-12 bg-gray-800/50 border-gray-700 text-center">
-          <TicketIcon className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">Aucun ticket</h3>
-          <p className="text-gray-400 mb-4">
+        <Card className="p-12 bg-white border-gray-200 text-center">
+          <TicketIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun ticket</h3>
+          <p className="text-gray-600 mb-4">
             {hasFilters
               ? 'Aucun résultat pour votre recherche'
               : "Vous n'avez pas encore créé de ticket"}
           </p>
           {!hasFilters && (
-            <Button onClick={onNewTicket} variant="outline" className="border-gray-600">
+            <Button onClick={onNewTicket} variant="outline" className="border-gray-200">
               <Plus className="w-4 h-4 mr-2" />
               Créer un ticket
             </Button>

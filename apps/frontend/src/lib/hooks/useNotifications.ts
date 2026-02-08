@@ -24,7 +24,8 @@ export function useNotifications(limit: number = 10) {
       const result = await endpoints.notifications.list({ limit });
       
       // Gérer le format ApiResponseBuilder
-      const data = (result as any).success === true ? (result as any).data : result;
+      interface NotificationsListResult { success?: boolean; data?: { notifications?: unknown[] }; notifications?: unknown[] }
+      const data = (result as NotificationsListResult).success === true ? (result as NotificationsListResult).data : result;
       
       const list = data?.notifications && Array.isArray(data.notifications) ? data.notifications : [];
       setNotifications(

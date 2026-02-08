@@ -1,12 +1,26 @@
-'use client';
-
-import React, { memo, useMemo } from 'react';
+import React from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+export const metadata: Metadata = {
+  title: 'Politique des cookies - Luneo',
+  description:
+    'Politique d\'utilisation des cookies Luneo. Types de cookies, gestion et consentement.',
+  openGraph: {
+    title: 'Politique des cookies - Luneo',
+    description: 'Comment Luneo utilise les cookies.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Politique des cookies - Luneo',
+    description: 'Politique des cookies Luneo.',
+  },
+};
 
 function CookiesPolicyPageContent() {
-  const lastUpdate = useMemo(() => new Date().toLocaleDateString('fr-FR'), []);
+  const lastUpdate = new Date().toLocaleDateString('fr-FR');
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -108,12 +122,6 @@ function CookiesPolicyPageContent() {
   );
 }
 
-const CookiesPolicyPageMemo = memo(CookiesPolicyPageContent);
-
 export default function CookiesPolicyPage() {
-  return (
-    <ErrorBoundary componentName="CookiesPolicyPage">
-      <CookiesPolicyPageMemo />
-    </ErrorBoundary>
-  );
+  return <CookiesPolicyPageContent />;
 }

@@ -37,12 +37,12 @@ export function AssetPreviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-4xl">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-4xl">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle>{template.name}</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-gray-600">
                 {template.description || 'Aucune description'}
               </DialogDescription>
             </div>
@@ -63,33 +63,33 @@ export function AssetPreviewModal({
           </div>
         </DialogHeader>
         <div className="space-y-4 mt-4">
-          <div className="relative aspect-video w-full bg-gray-900 rounded-lg overflow-hidden">
+          <div className="relative aspect-video w-full bg-gray-100 rounded-lg overflow-hidden">
             <Image src={template.thumbnail} alt={template.name} fill className="object-contain" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <p className="text-gray-400">Téléchargements</p>
-              <p className="text-white font-medium">{template.downloads}</p>
+              <p className="text-gray-600">Téléchargements</p>
+              <p className="text-gray-900 font-medium">{template.downloads}</p>
             </div>
             <div>
-              <p className="text-gray-400">Vues</p>
-              <p className="text-white font-medium">{template.views}</p>
+              <p className="text-gray-600">Vues</p>
+              <p className="text-gray-900 font-medium">{template.views}</p>
             </div>
             <div>
-              <p className="text-gray-400">Créé le</p>
-              <p className="text-white font-medium">{formatDate(new Date(template.createdAt))}</p>
+              <p className="text-gray-600">Créé le</p>
+              <p className="text-gray-900 font-medium">{formatDate(new Date(template.createdAt))}</p>
             </div>
             <div>
-              <p className="text-gray-400">Catégorie</p>
-              <p className="text-white font-medium capitalize">{template.category}</p>
+              <p className="text-gray-600">Catégorie</p>
+              <p className="text-gray-900 font-medium capitalize">{template.category}</p>
             </div>
           </div>
           {template.tags && template.tags.length > 0 && (
             <div>
-              <p className="text-sm text-gray-400 mb-2">Tags</p>
+              <p className="text-sm text-gray-600 mb-2">Tags</p>
               <div className="flex flex-wrap gap-2">
                 {template.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="border-gray-600 text-gray-300">
+                  <Badge key={tag} variant="outline" className="border-gray-200 text-gray-700">
                     {tag}
                   </Badge>
                 ))}

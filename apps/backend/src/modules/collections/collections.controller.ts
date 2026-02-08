@@ -19,7 +19,11 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { CollectionsService } from './collections.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { CreateCollectionDto, UpdateCollectionDto } from './dto/collections.dto';
+import { AddCollectionItemDto } from './dto/add-collection-item.dto';
+import { FindAllCollectionsQueryDto } from './dto/find-all-collections-query.dto';
+import { RemoveItemQueryDto } from './dto/remove-item-query.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('collections')
 @Controller('collections')
@@ -36,14 +40,12 @@ export class CollectionsController {
   @ApiResponse({ status: 200, description: 'Liste des collections' })
   async findAll(
     @Request() req,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('includePublic') includePublic?: string,
+    @Query() query: FindAllCollectionsQueryDto,
   ) {
     return this.collectionsService.findAll(req.user.id, req.user.brandId || '', {
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      includePublic: includePublic === 'true',
+      page: query.page,
+      limit: query.limit,
+      includePublic: query.includePublic === 'true',
     });
   }
 
@@ -58,7 +60,7 @@ export class CollectionsController {
   @Post()
   @ApiOperation({ summary: 'Créer une nouvelle collection' })
   @ApiResponse({ status: 201, description: 'Collection créée' })
-  async create(@Body() createCollectionDto: any, @Request() req) {
+  async create(@Body() createCollectionDto: CreateCollectionDto, @Request() req) {
     return this.collectionsService.create(createCollectionDto, req.user.id, req.user.brandId || '');
   }
 
@@ -66,7 +68,7 @@ export class CollectionsController {
   @ApiOperation({ summary: 'Mettre à jour une collection' })
   @ApiParam({ name: 'id', description: 'ID de la collection' })
   @ApiResponse({ status: 200, description: 'Collection mise à jour' })
-  async update(@Param('id') id: string, @Body() updateCollectionDto: any, @Request() req) {
+  async update(@Param('id') id: string, @Body() updateCollectionDto: UpdateCollectionDto, @Request() req) {
     return this.collectionsService.update(id, updateCollectionDto, req.user.id, req.user.brandId || '');
   }
 
@@ -82,8 +84,8 @@ export class CollectionsController {
   @ApiOperation({ summary: 'Ajouter un design à une collection' })
   @ApiParam({ name: 'id', description: 'ID de la collection' })
   @ApiResponse({ status: 201, description: 'Design ajouté à la collection' })
-  async addItem(@Param('id') id: string, @Body() body: { designId: string; notes?: string }, @Request() req) {
-    return this.collectionsService.addItem(id, body.designId, body.notes, req.user.id, req.user.brandId || '');
+  async addItem(@Param('id') id: string, @Body() dto: AddCollectionItemDto, @Request() req) {
+    return this.collectionsService.addItem(id, dto.designId, dto.notes, req.user.id, req.user.brandId || '');
   }
 
   @Delete(':id/items')
@@ -91,7 +93,11 @@ export class CollectionsController {
   @ApiParam({ name: 'id', description: 'ID de la collection' })
   @ApiQuery({ name: 'designId', description: 'ID du design à retirer' })
   @ApiResponse({ status: 200, description: 'Design retiré de la collection' })
-  async removeItem(@Param('id') id: string, @Query('designId') designId: string, @Request() req) {
-    return this.collectionsService.removeItem(id, designId, req.user.id, req.user.brandId || '');
+  async removeItem(
+    @Param('id') id: string,
+    @Query() query: RemoveItemQueryDto,
+    @Request() req,
+  ) {
+    return this.collectionsService.removeItem(id, query.designId, req.user.id, req.user.brandId || '');
   }
 }

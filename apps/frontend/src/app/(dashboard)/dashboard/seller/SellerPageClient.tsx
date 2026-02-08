@@ -80,7 +80,7 @@ export function SellerPageClient() {
       />
       <SellerStats stats={stats} />
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
         <TabsList className="bg-gray-800 border-gray-700">
           <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700">
             Vue d'ensemble

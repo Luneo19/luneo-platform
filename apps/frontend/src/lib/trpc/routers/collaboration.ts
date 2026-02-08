@@ -102,17 +102,19 @@ export const collaborationRouter = router({
         });
       }
 
-        const response = await api.get<any>('/api/v1/collaboration/shared');
-        const resources = (response as any)?.resources ?? (response as any)?.data ?? Array.isArray(response) ? response : [];
+        const response = await api.get<{ resources?: unknown[]; data?: unknown[] } | unknown[]>('/api/v1/collaboration/shared');
+        const resRaw = response as { resources?: unknown[]; data?: unknown[] } | unknown[];
+        const resources = Array.isArray(resRaw) ? resRaw : (resRaw?.resources ?? resRaw?.data ?? []);
 
+        type ResourceLike = { id: string; resourceType: string; resourceId: string; sharedWith: string[]; permissions?: Record<string, string[]>; isPublic?: boolean; publicToken?: string; createdBy?: string; brandId?: string; createdAt?: unknown; updatedAt?: unknown };
         return {
           success: true,
-          resources: resources.map((resource: any) => ({
+          resources: (resources as ResourceLike[]).map((resource) => ({
             id: resource.id,
             resourceType: resource.resourceType,
             resourceId: resource.resourceId,
             sharedWith: resource.sharedWith,
-            permissions: resource.permissions as any,
+            permissions: resource.permissions ?? {},
             isPublic: resource.isPublic,
             publicToken: resource.publicToken,
             createdBy: resource.createdBy,
@@ -148,7 +150,7 @@ export const collaborationRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const author = await endpoints.auth.me() as any;
+        const author = await endpoints.auth.me() as { id?: string; name?: string; firstName?: string; lastName?: string; email?: string } | null;
         const comment = await api.post<any>('/api/v1/collaboration/comments', {
           resourceType: input.resourceType,
           resourceId: input.resourceId,
@@ -208,7 +210,8 @@ export const collaborationRouter = router({
             sharedResourceId: input.sharedResourceId,
           },
         });
-        const comments = (response as any)?.comments ?? (response as any)?.data ?? Array.isArray(response) ? response : [];
+        const responseRecord = response as Record<string, unknown> | unknown[];
+        const comments = Array.isArray(responseRecord) ? responseRecord : ((responseRecord as Record<string, unknown>)?.comments ?? (responseRecord as Record<string, unknown>)?.data ?? []);
 
         return {
           success: true,
@@ -230,7 +233,7 @@ export const collaborationRouter = router({
               sharedResourceId: comment.sharedResourceId,
               createdAt: comment.createdAt,
               updatedAt: comment.updatedAt,
-              replies: (comment.replies as any[]).map((reply: any) => ({
+              replies: (Array.isArray(comment.replies) ? comment.replies : []).map((reply: Record<string, unknown>) => ({
                 id: reply.id,
                 resourceType: reply.resourceType,
                 resourceId: reply.resourceId,

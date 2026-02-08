@@ -31,56 +31,56 @@ export function AnalyticsTab({ products }: AnalyticsTabProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-cyan-400" />
             Analytics de personnalisation
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-600">
             Statistiques et métriques de vos produits personnalisables
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-gray-50 border-gray-200">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <Eye className="w-8 h-8 text-cyan-400" />
                   <TrendingUp className="w-4 h-4 text-green-400" />
                 </div>
-                <p className="text-2xl font-bold text-white">{analytics.totalViews.toLocaleString()}</p>
-                <p className="text-sm text-slate-400">Vues totales</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics.totalViews.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Vues totales</p>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-gray-50 border-gray-200">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <Heart className="w-8 h-8 text-pink-400" />
                   <TrendingUp className="w-4 h-4 text-green-400" />
                 </div>
-                <p className="text-2xl font-bold text-white">{analytics.totalFavorites.toLocaleString()}</p>
-                <p className="text-sm text-slate-400">Favoris</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics.totalFavorites.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Favoris</p>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-gray-50 border-gray-200">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <BarChart3 className="w-8 h-8 text-blue-400" />
                   <TrendingUp className="w-4 h-4 text-green-400" />
                 </div>
-                <p className="text-2xl font-bold text-white">{analytics.totalDesigns.toLocaleString()}</p>
-                <p className="text-sm text-slate-400">Designs créés</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics.totalDesigns.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Designs créés</p>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-gray-50 border-gray-200">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <Eye className="w-8 h-8 text-purple-400" />
                   <TrendingUp className="w-4 h-4 text-green-400" />
                 </div>
-                <p className="text-2xl font-bold text-white">{analytics.avgViewsPerProduct.toLocaleString()}</p>
-                <p className="text-sm text-slate-400">Moyenne vues/produit</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics.avgViewsPerProduct.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Moyenne vues/produit</p>
               </CardContent>
             </Card>
           </div>

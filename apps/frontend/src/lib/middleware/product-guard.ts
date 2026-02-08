@@ -7,11 +7,10 @@
  */
 
 import { getUserFromRequest } from '@/lib/auth/get-user';
+import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // ========================================
 // TYPES
@@ -90,7 +89,7 @@ export class ProductGuard {
         }
 
         const cookie = request.headers.get('cookie') || '';
-        const productRes = await fetch(`${API_BASE}/api/v1/products/${productId}`, {
+        const productRes = await fetch(`${getBackendUrl()}/api/v1/products/${productId}`, {
           headers: cookie ? { Cookie: cookie } : {},
           cache: 'no-store',
         });
@@ -100,7 +99,7 @@ export class ProductGuard {
           return { allowed: false, error: 'Produit introuvable', statusCode: 404 };
         }
 
-        if ((product as any).brandId !== user.brandId) {
+        if ((product as { brandId?: string }).brandId !== user.brandId) {
           return { allowed: false, error: 'Accès non autorisé', statusCode: 403 };
         }
       }
@@ -133,7 +132,7 @@ export class ProductGuard {
       }
 
       return { allowed: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error in product guard', { error });
       return {
         allowed: false,

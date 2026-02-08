@@ -33,32 +33,32 @@ export function CreditsSettingsTab({
   onSaveAutoRefill,
 }: CreditsSettingsTabProps) {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white">Paramètres de crédits</CardTitle>
-        <CardDescription className="text-gray-400">Configurez vos préférences de crédits</CardDescription>
+        <CardTitle className="text-gray-900">Paramètres de crédits</CardTitle>
+        <CardDescription className="text-gray-600">Configurez vos préférences de crédits</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-white mb-1">Recharge automatique</h3>
-              <p className="text-sm text-gray-400">Rechargez automatiquement vos crédits quand le solde est faible</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Recharge automatique</h3>
+              <p className="text-sm text-gray-600">Rechargez automatiquement vos crédits quand le solde est faible</p>
             </div>
             <Checkbox checked={autoRefillEnabled} onCheckedChange={(checked) => setAutoRefillEnabled(checked === true)} id="auto-refill" />
           </div>
           {autoRefillEnabled && (
-            <div className="p-4 bg-gray-900/50 rounded-lg space-y-4">
+            <div className="p-4 bg-gray-50 rounded-lg space-y-4">
               <div>
-                <Label htmlFor="threshold" className="text-gray-300 mb-2 block">
+                <Label htmlFor="threshold" className="text-gray-700 mb-2 block">
                   Seuil de recharge ({autoRefillThreshold} crédits)
                 </Label>
                 <Slider id="threshold" value={[autoRefillThreshold]} onValueChange={(value) => setAutoRefillThreshold(value[0])} min={10} max={500} step={10} className="w-full" />
               </div>
               <div>
-                <Label htmlFor="pack" className="text-gray-300 mb-2 block">Pack à acheter</Label>
+                <Label htmlFor="pack" className="text-gray-700 mb-2 block">Pack à acheter</Label>
                 <Select value={autoRefillPack || ''} onValueChange={(v) => setAutoRefillPack(v || null)}>
-                  <SelectTrigger className="w-full bg-gray-900 border-gray-600 text-white">
+                  <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900">
                     <SelectValue placeholder="Sélectionner un pack" />
                   </SelectTrigger>
                   <SelectContent>
@@ -77,21 +77,21 @@ export function CreditsSettingsTab({
             </div>
           )}
         </div>
-        <Separator className="bg-gray-700" />
+        <Separator className="bg-gray-200" />
         <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Alertes</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Alertes</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-white">Alerte solde faible</p>
-                <p className="text-xs text-gray-400">Notifier quand le solde est inférieur à 50 crédits</p>
+                <p className="text-sm font-medium text-gray-900">Alerte solde faible</p>
+                <p className="text-xs text-gray-600">Notifier quand le solde est inférieur à 50 crédits</p>
               </div>
               <Checkbox defaultChecked id="low-balance-alert" />
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-white">Alerte expiration</p>
-                <p className="text-xs text-gray-400">Notifier avant expiration des crédits</p>
+                <p className="text-sm font-medium text-gray-900">Alerte expiration</p>
+                <p className="text-xs text-gray-600">Notifier avant expiration des crédits</p>
               </div>
               <Checkbox defaultChecked id="expiration-alert" />
             </div>

@@ -6,10 +6,9 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { serverFetch } from '@/lib/api/server-fetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { EditorPageClient } from './EditorPageClient';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export const metadata = {
   title: 'Éditeur de Design | Luneo',
@@ -21,15 +20,13 @@ export const metadata = {
  */
 export default async function EditorPage() {
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get('accessToken')?.value;
-  if (!accessToken) redirect('/login');
+  if (!cookieStore.get('accessToken')?.value) redirect('/login');
 
-  const userRes = await fetch(`${API_URL}/api/v1/auth/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: 'no-store',
-  });
-  const user = userRes.ok ? await userRes.json() : null;
-  if (!user) redirect('/login');
+  try {
+    await serverFetch('/api/v1/auth/me');
+  } catch {
+    redirect('/login');
+  }
 
   return (
     <ErrorBoundary level="page" componentName="EditorPage">

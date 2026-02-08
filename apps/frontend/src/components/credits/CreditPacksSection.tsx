@@ -75,14 +75,15 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
       } else {
         throw new Error('URL de paiement non reçue');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Échec de l\'achat. Veuillez réessayer.';
       logger.error('Purchase failed', error instanceof Error ? error : new Error(String(error)), {
         component: 'CreditPacksSection',
         packId: pack.id,
       });
       toast({
         title: 'Erreur',
-        description: error.message || 'Échec de l\'achat. Veuillez réessayer.',
+        description: message,
         variant: 'destructive',
       });
       setPurchasing(null);

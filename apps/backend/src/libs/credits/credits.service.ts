@@ -85,10 +85,9 @@ export class CreditsService {
       // Transaction Prisma pour garantir atomicité
       const result = await this.prisma.$transaction(async (tx) => {
         // ✅ FIX: Lock user row avec SELECT FOR UPDATE (PostgreSQL) pour éviter race conditions
-        const lockedUsers = await tx.$queryRawUnsafe<Array<{ ai_credits: number; ai_credits_used: number; email: string }>>(
-          `SELECT ai_credits, ai_credits_used, email FROM "User" WHERE id = $1 FOR UPDATE`,
-          userId,
-        );
+        const lockedUsers = await tx.$queryRaw<Array<{ ai_credits: number; ai_credits_used: number; email: string }>>`
+          SELECT ai_credits, ai_credits_used, email FROM "User" WHERE id = ${userId} FOR UPDATE
+        `;
 
         const user = lockedUsers[0];
         if (!user) {

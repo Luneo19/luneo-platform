@@ -73,7 +73,7 @@ function SupportPageContentInner() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-300">Chargement des tickets...</p>
+          <p className="text-gray-700">Chargement des tickets...</p>
         </div>
       </div>
     );
@@ -98,7 +98,7 @@ function SupportPageContentInner() {
       <SupportSlaAlerts tickets={tickets} calculateSLA={calculateSLA} onViewTicket={handleViewTicket} />
 
       <Tabs value={activeTab} onValueChange={(v) => support.setActiveTab(v as 'tickets' | 'knowledge' | 'templates' | 'analytics')} className="space-y-6">
-        <TabsList className="bg-gray-800/50 border-gray-700">
+        <TabsList className="bg-gray-50 border-gray-200">
           <TabsTrigger value="tickets" className="data-[state=active]:bg-cyan-600">Tickets ({tickets.length})</TabsTrigger>
           <TabsTrigger value="knowledge" className="data-[state=active]:bg-cyan-600">Base de connaissances ({support.knowledgeBase.length})</TabsTrigger>
           <TabsTrigger value="templates" className="data-[state=active]:bg-cyan-600">Templates ({RESPONSE_TEMPLATES.length})</TabsTrigger>

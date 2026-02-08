@@ -6,6 +6,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 
 export interface SSOConfiguration {
@@ -101,7 +102,7 @@ export class SSOEnterpriseService {
       : null;
 
     // Create SSO configuration in database using Prisma model
-    const ssoConfig = await (this.prisma as any).sSOConfiguration.create({
+    const ssoConfig = await this.prisma.sSOConfiguration.create({
       data: {
         brandId: dto.brandId,
         provider: dto.provider,
@@ -135,12 +136,12 @@ export class SSOEnterpriseService {
    */
   async getSSOConfiguration(brandId: string, provider?: 'saml' | 'oidc'): Promise<SSOConfiguration | null> {
     try {
-      const where: any = { brandId };
+      const where: Prisma.SSOConfigurationWhereInput = { brandId };
       if (provider) {
         where.provider = provider;
       }
 
-      const config = await (this.prisma as any).sSOConfiguration.findFirst({
+      const config = await this.prisma.sSOConfiguration.findFirst({
         where,
         orderBy: { createdAt: 'desc' },
       });
@@ -164,7 +165,7 @@ export class SSOEnterpriseService {
     updates: Partial<CreateSSODto>,
   ): Promise<SSOConfiguration> {
     try {
-      const updateData: any = {};
+      const updateData: Prisma.SSOConfigurationUpdateInput = {};
 
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.enabled !== undefined) updateData.enabled = updates.enabled;
@@ -190,7 +191,7 @@ export class SSOEnterpriseService {
         updateData.samlDecryptionPvk = this.encrypt(updates.samlDecryptionPvk);
       }
 
-      const updated = await (this.prisma as any).sSOConfiguration.update({
+      const updated = await this.prisma.sSOConfiguration.update({
         where: { id },
         data: updateData,
       });
@@ -207,7 +208,7 @@ export class SSOEnterpriseService {
    */
   async deleteSSOConfiguration(id: string): Promise<void> {
     try {
-      await (this.prisma as any).sSOConfiguration.delete({
+      await this.prisma.sSOConfiguration.delete({
         where: { id },
       });
 
@@ -232,7 +233,7 @@ export class SSOEnterpriseService {
    * Get default callback URL for provider
    */
   private getDefaultCallbackUrl(provider: 'saml' | 'oidc'): string {
-    const baseUrl = this.configService.get('app.backendUrl') || 'http://localhost:3001';
+    const baseUrl = this.configService.get('app.backendUrl') || process.env.BACKEND_URL || 'http://localhost:3001';
     return `${baseUrl}/api/v1/auth/${provider}/callback`;
   }
 
@@ -286,7 +287,7 @@ export class SSOEnterpriseService {
   /**
    * Map Prisma model to SSOConfiguration interface
    */
-  private mapToSSOConfiguration(prismaModel: any): SSOConfiguration {
+  private mapToSSOConfiguration(prismaModel: Prisma.SSOConfigurationGetPayload<Record<string, never>>): SSOConfiguration {
     return {
       id: prismaModel.id,
       brandId: prismaModel.brandId,

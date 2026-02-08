@@ -19,14 +19,14 @@ interface Order {
 function mapOrder(o: Record<string, unknown>): Order {
   return {
     id: (o.id as string) ?? '',
-    order_number: ((o as any).orderNumber ?? (o as any).order_number) as string,
-    customer_email: ((o as any).customerEmail ?? (o as any).customer_email) as string,
-    total_amount: Number((o as any).totalAmount ?? (o as any).total_amount ?? 0),
-    currency: ((o as any).currency as string) ?? 'EUR',
+    order_number: (String(o.orderNumber ?? o.order_number ?? '')),
+    customer_email: (String(o.customerEmail ?? o.customer_email ?? '')),
+    total_amount: Number(o.totalAmount ?? o.total_amount ?? 0),
+    currency: (o.currency as string) ?? 'EUR',
     status: (o.status as string) ?? 'pending',
-    payment_status: ((o as any).paymentStatus ?? (o as any).payment_status) as string,
-    created_at: (o.createdAt ?? (o as any).created_at) as string,
-    order_items: ((o as any).orderItems ?? (o as any).order_items) ?? [],
+    payment_status: (String(o.paymentStatus ?? o.payment_status ?? '')),
+    created_at: (String(o.createdAt ?? o.created_at ?? '')),
+    order_items: (Array.isArray(o.orderItems) ? o.orderItems : Array.isArray(o.order_items) ? o.order_items : []) as unknown[],
   };
 }
 

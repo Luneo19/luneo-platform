@@ -23,8 +23,13 @@ export function useFeatureGate(feature: keyof import('./useSubscription').PlanLi
       apiAccess: 'professional',
       advancedAnalytics: 'business',
       customExport: 'business',
-      whiteLabel: 'professional',
+      whiteLabel: 'business',
       prioritySupport: 'professional',
+      arEnabled: 'professional',
+      configurator3d: 'professional',
+      marketplace: 'business',
+      sso: 'enterprise',
+      realTimeCollab: 'business',
     };
     return featurePlanMap[feature] || null;
   };
@@ -151,9 +156,14 @@ export function PlanGate({ minimumPlan, fallback = null, children, showUpgradePr
  */
 export function useUpgradePrompt(requiredPlan: PlanTier) {
   const planMessages: Record<PlanTier, { title: string; description: string; cta: string }> = {
+    free: {
+      title: 'Plan Free',
+      description: 'Vous etes sur le plan gratuit. Passez a Starter pour debloquer plus de fonctionnalites.',
+      cta: 'Passer a Starter',
+    },
     starter: {
-      title: 'Passer à Starter',
-      description: 'Débloquez plus de fonctionnalités avec le plan Starter',
+      title: 'Passer a Starter',
+      description: 'Debloquez plus de fonctionnalites avec le plan Starter',
       cta: 'Essayer Starter',
     },
     professional: {

@@ -27,7 +27,6 @@ const config = {
     allowedOrigins: [
       'https://luneo.app',
       'https://www.luneo.app',
-      'https://luneo.app',
       process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     ].filter(Boolean),
     allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -295,7 +294,7 @@ async function handleRateLimit(
     // Use Upstash rate limiting if available
     const { checkRateLimit, getClientIdentifier, getRateLimitConfig } = await import('@/lib/rate-limit');
     
-    const identifier = getClientIdentifier(request as any);
+    const identifier = getClientIdentifier(request as Request);
     const config = getRateLimitConfig(pathname);
     const result = await checkRateLimit(identifier, config);
 

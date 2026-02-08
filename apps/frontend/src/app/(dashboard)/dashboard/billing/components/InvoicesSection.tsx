@@ -16,43 +16,43 @@ export function InvoicesSection() {
 
   if (isLoading) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Factures</CardTitle>
+          <CardTitle className="text-gray-900">Factures</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">Chargement...</p>
+          <p className="text-gray-600">Chargement...</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-gray-900 flex items-center gap-2">
           <Receipt className="w-5 h-5 text-cyan-400" />
           Factures
         </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-gray-600">
           Historique de vos factures et reçus
         </CardDescription>
       </CardHeader>
       <CardContent>
         {invoices.length === 0 ? (
-          <p className="text-gray-400">Aucune facture disponible</p>
+          <p className="text-gray-600">Aucune facture disponible</p>
         ) : (
           <div className="space-y-3">
             {invoices.map((invoice) => (
               <div
                 key={invoice.id}
-                className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700"
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
               >
                 <div className="flex items-center gap-4">
                   <Receipt className="w-5 h-5 text-cyan-400" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-white font-medium">Facture {invoice.number}</p>
+                      <p className="text-gray-900 font-medium">Facture {invoice.number}</p>
                       <Badge
                         variant="outline"
                         className={
@@ -64,7 +64,7 @@ export function InvoicesSection() {
                         {invoice.status === 'paid' ? 'Payée' : 'En attente'}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-gray-600">
                       {formatDate(new Date(invoice.date))} • {invoice.amount}€ {invoice.currency.toUpperCase()}
                     </p>
                   </div>
@@ -74,7 +74,7 @@ export function InvoicesSection() {
                     variant="outline"
                     size="sm"
                     onClick={() => downloadInvoice(invoice.id)}
-                    className="border-gray-600"
+                    className="border-gray-200"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Télécharger

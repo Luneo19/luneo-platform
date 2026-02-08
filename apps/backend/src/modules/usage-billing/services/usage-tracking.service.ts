@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { UsageMeteringService } from './usage-metering.service';
@@ -192,7 +193,7 @@ export class UsageTrackingService {
           break;
       }
 
-      const usageRecords = await (this.prisma as any).usageMetric.findMany({
+      const usageRecords = await (this.prisma as unknown as PrismaClient).usageMetric.findMany({
         where: {
           brandId,
           timestamp: {

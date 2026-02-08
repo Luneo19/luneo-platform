@@ -41,10 +41,11 @@ function RealtimeIndicatorComponent({
 
   // Subscribe to all events
   useEffect(() => {
-    const unsubscribe = subscribe('*' as any, (data, event) => {
+    const unsubscribe = subscribe('*', (data, event) => {
       // Don't show heartbeats in feed
-      if (event.type === 'system_alert' && (data as any)?.message === 'heartbeat') return;
-      if (event.type === 'system_alert' && (data as any)?.message === 'Connected') return;
+      const payload = data as Record<string, unknown> | undefined;
+      if (event.type === 'system_alert' && payload?.message === 'heartbeat') return;
+      if (event.type === 'system_alert' && payload?.message === 'Connected') return;
 
       setEvents(prev => [event, ...prev].slice(0, maxFeedItems));
       setHasNewEvents(true);
@@ -78,7 +79,7 @@ function RealtimeIndicatorComponent({
   }, []);
 
   const getEventTitle = useCallback((event: RealtimeEvent) => {
-    const data = event.data as any;
+    const data = event.data as Record<string, unknown> | undefined;
     switch (event.type) {
       case 'metrics_update':
         return `Métriques: ${data.visitors} visiteurs`;

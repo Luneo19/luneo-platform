@@ -18,9 +18,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CollaborationService } from './services/collaboration.service';
 import { ResourceType, Permission } from './interfaces/collaboration.interface';
+import { ShareResourceDto, UpdatePermissionsDto, AddCommentDto } from './dto';
 
 @ApiTags('collaboration')
 @Controller('collaboration')
@@ -35,14 +36,7 @@ export class CollaborationController {
   @ApiResponse({ status: 201, description: 'Resource shared successfully' })
   async shareResource(
     @Request() req: any,
-    @Body()
-    body: {
-      resourceType: ResourceType;
-      resourceId: string;
-      sharedWith: string[];
-      permissions: Record<string, Permission[]>;
-      isPublic?: boolean;
-    },
+    @Body() body: ShareResourceDto,
   ) {
     const userId = req.user.id;
     const brandId = req.user.brandId;
@@ -70,7 +64,7 @@ export class CollaborationController {
   async updatePermissions(
     @Request() req: any,
     @Param('id') resourceId: string,
-    @Body() body: { permissions: Record<string, Permission[]> },
+    @Body() body: UpdatePermissionsDto,
   ) {
     return this.collaborationService.updatePermissions(
       resourceId,
@@ -104,14 +98,7 @@ export class CollaborationController {
   @ApiResponse({ status: 201, description: 'Comment created' })
   async addComment(
     @Request() req: any,
-    @Body()
-    body: {
-      resourceType: ResourceType;
-      resourceId: string;
-      content: string;
-      parentId?: string;
-      sharedResourceId?: string;
-    },
+    @Body() body: AddCommentDto,
   ) {
     return this.collaborationService.addComment(
       req.user.id,

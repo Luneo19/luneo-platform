@@ -69,12 +69,12 @@ function DashboardKPIsContent({
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="bg-gray-800/50 border-gray-700">
+          <Card key={i} className="bg-white border-gray-200">
             <CardContent className="p-6">
               <div className="animate-pulse">
-                <div className="h-4 w-24 bg-gray-700 rounded mb-2" />
-                <div className="h-8 w-32 bg-gray-700 rounded mb-2" />
-                <div className="h-4 w-40 bg-gray-700 rounded" />
+                <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
+                <div className="h-8 w-32 bg-gray-200 rounded mb-2" />
+                <div className="h-4 w-40 bg-gray-200 rounded" />
               </div>
             </CardContent>
           </Card>
@@ -118,12 +118,12 @@ function DashboardKPIsContent({
         const TrendIcon = isPositive ? TrendingUp : TrendingDown;
 
         return (
-          <Card key={kpi.id} className="bg-gray-800/50 border-gray-700">
+          <Card key={kpi.id} className="bg-white border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-sm text-gray-400 mb-1">{kpi.label}</p>
-                  <p className="text-2xl font-bold text-white mb-2">
+                  <p className="text-sm text-gray-600 mb-1">{kpi.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 mb-2">
                     {kpi.value}
                   </p>
                   <div className="flex items-center gap-2">

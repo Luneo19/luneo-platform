@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { UserRole, BrandStatus } from '@prisma/client';
+import { Prisma, UserRole, BrandStatus } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { JsonValue } from '@/common/types/utility-types';
 
@@ -27,11 +27,11 @@ export class BrandsService {
 
     const brand = await this.prisma.brand.create({
       data: {
-        ...(createBrandDto as any),
+        ...createBrandDto,
         users: {
           connect: { id: userId },
         },
-      } as any,
+      } as Prisma.BrandCreateInput,
       include: {
         users: true,
       },
@@ -101,9 +101,9 @@ export class BrandsService {
 
     const webhook = await this.prisma.webhook.create({
       data: {
-        ...(webhookData as any),
+        ...webhookData,
         brandId,
-      } as any,
+      } as Prisma.WebhookCreateInput,
     });
 
     // Invalider le cache des webhooks de la brand

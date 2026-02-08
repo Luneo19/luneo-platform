@@ -42,7 +42,7 @@ export function ExperimentsList({
   if (experiments.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucun test A/B trouvé</p>
+        <p className="text-gray-600">Aucun test A/B trouvé</p>
       </div>
     );
   }
@@ -92,18 +92,18 @@ export function ExperimentsList({
         const uplift = getUplift(experiment);
 
         return (
-          <Card key={experiment.id} className="bg-gray-800/50 border-gray-700">
+          <Card key={experiment.id} className="bg-gray-50 border-gray-200">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <CardTitle className="text-white">{experiment.name}</CardTitle>
+                    <CardTitle className="text-gray-900">{experiment.name}</CardTitle>
                     {getStatusBadge(experiment.status)}
                     {experiment.confidence > 95 && (
                       <Badge className="bg-purple-500">Confiance: {experiment.confidence}%</Badge>
                     )}
                   </div>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription className="text-gray-600">
                     {experiment.description}
                   </CardDescription>
                 </div>
@@ -113,10 +113,10 @@ export function ExperimentsList({
                       <MoreVertical className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                  <DropdownMenuContent align="end" className="bg-white border-gray-200">
                     <DropdownMenuItem
                       onClick={() => onView(experiment)}
-                      className="text-gray-300 cursor-pointer"
+                      className="text-gray-700 cursor-pointer"
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       Voir détails
@@ -124,7 +124,7 @@ export function ExperimentsList({
                     {experiment.status === 'running' && (
                       <DropdownMenuItem
                         onClick={() => onToggle(experiment.id, 'paused')}
-                        className="text-gray-300 cursor-pointer"
+                        className="text-gray-700 cursor-pointer"
                       >
                         <Pause className="w-4 h-4 mr-2" />
                         Mettre en pause
@@ -133,7 +133,7 @@ export function ExperimentsList({
                     {experiment.status === 'paused' && (
                       <DropdownMenuItem
                         onClick={() => onToggle(experiment.id, 'running')}
-                        className="text-gray-300 cursor-pointer"
+                        className="text-gray-700 cursor-pointer"
                       >
                         <Play className="w-4 h-4 mr-2" />
                         Reprendre
@@ -146,48 +146,48 @@ export function ExperimentsList({
             <CardContent className="space-y-4">
               {control && treatment && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-gray-900/50 rounded-lg">
+                  <div className="p-4 bg-gray-100 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-white font-medium">Contrôle</p>
-                      <Badge variant="outline" className="border-gray-600">
+                      <p className="text-gray-900 font-medium">Contrôle</p>
+                      <Badge variant="outline" className="border-gray-200">
                         {control.traffic}% trafic
                       </Badge>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Visiteurs</span>
-                        <span className="text-white">{formatNumber(control.visitors)}</span>
+                        <span className="text-gray-600">Visiteurs</span>
+                        <span className="text-gray-900">{formatNumber(control.visitors)}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Conversions</span>
-                        <span className="text-white">{formatNumber(control.conversions)}</span>
+                        <span className="text-gray-600">Conversions</span>
+                        <span className="text-gray-900">{formatNumber(control.conversions)}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Taux conversion</span>
+                        <span className="text-gray-600">Taux conversion</span>
                         <span className="text-green-400 font-medium">
                           {getConversionRate(control).toFixed(2)}%
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="p-4 bg-gray-900/50 rounded-lg">
+                  <div className="p-4 bg-gray-100 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-white font-medium">Variante</p>
-                      <Badge variant="outline" className="border-gray-600">
+                      <p className="text-gray-900 font-medium">Variante</p>
+                      <Badge variant="outline" className="border-gray-200">
                         {treatment.traffic}% trafic
                       </Badge>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Visiteurs</span>
-                        <span className="text-white">{formatNumber(treatment.visitors)}</span>
+                        <span className="text-gray-600">Visiteurs</span>
+                        <span className="text-gray-900">{formatNumber(treatment.visitors)}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Conversions</span>
-                        <span className="text-white">{formatNumber(treatment.conversions)}</span>
+                        <span className="text-gray-600">Conversions</span>
+                        <span className="text-gray-900">{formatNumber(treatment.conversions)}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Taux conversion</span>
+                        <span className="text-gray-600">Taux conversion</span>
                         <span className="text-green-400 font-medium">
                           {getConversionRate(treatment).toFixed(2)}%
                         </span>
@@ -197,8 +197,8 @@ export function ExperimentsList({
                 </div>
               )}
               {uplift !== null && (
-                <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-                  <span className="text-gray-400">Uplift</span>
+                <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                  <span className="text-gray-600">Uplift</span>
                   <div
                     className={cn(
                       'flex items-center gap-2 font-medium',
@@ -215,7 +215,7 @@ export function ExperimentsList({
                   </div>
                 </div>
               )}
-              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-700">
+              <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-200">
                 <span>Démarré: {formatDate(experiment.startDate)}</span>
                 {experiment.endDate && <span>Terminé: {formatDate(experiment.endDate)}</span>}
               </div>

@@ -4,13 +4,12 @@
  * Proxies to backend API for real data
  */
 
+import { getBackendUrl } from '@/lib/api/server-url';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { AnalyticsExportSchema } from '@/lib/validations/api-schemas';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:3001';
 
 // Helper pour calculer les dates
 function getDateRange(startDate?: string, endDate?: string, dateRange?: string) {
@@ -59,14 +58,12 @@ async function fetchAnalyticsData(
     countries: Array<{ country: string; visitors: number }>;
   };
 }> {
-  const baseUrl = BACKEND_URL.endsWith('/api/v1')
-    ? BACKEND_URL.replace('/api/v1', '')
-    : BACKEND_URL.replace(/\/$/, '');
+  const baseUrl = getBackendUrl().replace(/\/$/, '');
 
   try {
-    // Fetch overview metrics
+    // Fetch dashboard metrics (backend: GET /analytics/dashboard)
     const overviewRes = await fetch(
-      `${baseUrl}/api/v1/analytics/overview?startDate=${startDate}&endDate=${endDate}`,
+      `${baseUrl}/api/v1/analytics/dashboard?startDate=${startDate}&endDate=${endDate}`,
       {
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +73,7 @@ async function fetchAnalyticsData(
       },
     );
 
-    // Fetch funnel data
+    // Fetch funnel data (backend may not have /funnel; fallback in transform)
     const funnelRes = await fetch(
       `${baseUrl}/api/v1/analytics/funnel?startDate=${startDate}&endDate=${endDate}`,
       {
@@ -239,14 +236,20 @@ function generateFallbackData(startDate?: string, endDate?: string, dateRange?: 
 }
 
 // CSV Generator
-function generateCSV(data: any, reportType: string): string {
+interface AnalyticsExportData {
+  dailyData?: Array<Record<string, unknown>>;
+  funnelData?: Array<Record<string, unknown>>;
+  topProducts?: Array<Record<string, unknown>>;
+  audienceData?: { devices?: Array<Record<string, unknown>>; countries?: Array<Record<string, unknown>> };
+}
+function generateCSV(data: AnalyticsExportData, reportType: string): string {
   let csv = '';
 
   if (data.dailyData) {
     csv += 'DAILY METRICS\n';
     csv +=
       'Date,Visitors,Page Views,Conversions,Revenue (€),Designs,Avg Session (s)\n';
-    data.dailyData.forEach((row: any) => {
+    data.dailyData.forEach((row: Record<string, unknown>) => {
       csv += `${row.date},${row.visitors},${row.pageViews},${row.conversions},${row.revenue},${row.designs},${row.avgSessionDuration}\n`;
     });
     csv += '\n';
@@ -255,7 +258,7 @@ function generateCSV(data: any, reportType: string): string {
   if (data.funnelData) {
     csv += 'CONVERSION FUNNEL\n';
     csv += 'Step,Value,Rate (%)\n';
-    data.funnelData.forEach((row: any) => {
+    data.funnelData.forEach((row: Record<string, unknown>) => {
       csv += `${row.step},${row.value},${row.rate}\n`;
     });
     csv += '\n';
@@ -264,7 +267,7 @@ function generateCSV(data: any, reportType: string): string {
   if (data.topProducts) {
     csv += 'TOP PRODUCTS\n';
     csv += 'Product,Designs,Revenue (€),Conversion Rate (%)\n';
-    data.topProducts.forEach((row: any) => {
+    data.topProducts.forEach((row: Record<string, unknown>) => {
       csv += `${row.product},${row.designs},${row.revenue},${row.conversionRate}\n`;
     });
     csv += '\n';
@@ -273,14 +276,14 @@ function generateCSV(data: any, reportType: string): string {
   if (data.audienceData) {
     csv += 'DEVICES\n';
     csv += 'Device,Percentage (%)\n';
-    data.audienceData.devices.forEach((row: any) => {
+    data.audienceData.devices.forEach((row: Record<string, unknown>) => {
       csv += `${row.device},${row.percentage}\n`;
     });
     csv += '\n';
 
     csv += 'COUNTRIES\n';
     csv += 'Country,Visitors\n';
-    data.audienceData.countries.forEach((row: any) => {
+    data.audienceData.countries.forEach((row: Record<string, unknown>) => {
       csv += `${row.country},${row.visitors}\n`;
     });
   }
@@ -289,7 +292,7 @@ function generateCSV(data: any, reportType: string): string {
 }
 
 // Generate PDF HTML (will be converted client-side)
-function generatePDFHTML(data: any, startDate?: string, endDate?: string, dateRange?: string): string {
+function generatePDFHTML(data: AnalyticsExportData, startDate?: string, endDate?: string, dateRange?: string): string {
   const reportDate = new Date().toLocaleDateString('fr-FR', {
     year: 'numeric',
     month: 'long',
@@ -346,19 +349,19 @@ function generatePDFHTML(data: any, startDate?: string, endDate?: string, dateRa
         <h2>📈 Métriques Clés</h2>
         <div>
           <div class="metric-card">
-            <div class="metric-value">${data.dailyData.reduce((acc: number, d: any) => acc + d.visitors, 0).toLocaleString()}</div>
+            <div class="metric-value">${data.dailyData.reduce((acc: number, d: Record<string, unknown>) => acc + Number(d.visitors ?? 0), 0).toLocaleString()}</div>
             <div class="metric-label">Visiteurs</div>
           </div>
           <div class="metric-card">
-            <div class="metric-value">${data.dailyData.reduce((acc: number, d: any) => acc + d.conversions, 0).toLocaleString()}</div>
+            <div class="metric-value">${data.dailyData.reduce((acc: number, d: Record<string, unknown>) => acc + Number(d.conversions ?? 0), 0).toLocaleString()}</div>
             <div class="metric-label">Conversions</div>
           </div>
           <div class="metric-card">
-            <div class="metric-value">€${data.dailyData.reduce((acc: number, d: any) => acc + d.revenue, 0).toLocaleString()}</div>
+            <div class="metric-value">€${data.dailyData.reduce((acc: number, d: Record<string, unknown>) => acc + Number(d.revenue ?? 0), 0).toLocaleString()}</div>
             <div class="metric-label">Revenu Total</div>
           </div>
           <div class="metric-card">
-            <div class="metric-value">${data.dailyData.reduce((acc: number, d: any) => acc + d.designs, 0).toLocaleString()}</div>
+            <div class="metric-value">${data.dailyData.reduce((acc: number, d: Record<string, unknown>) => acc + Number(d.designs ?? 0), 0).toLocaleString()}</div>
             <div class="metric-label">Designs</div>
           </div>
         </div>
@@ -374,8 +377,8 @@ function generatePDFHTML(data: any, startDate?: string, endDate?: string, dateRa
           <tr><th>Étape</th><th>Visiteurs</th><th>Taux</th></tr>
           ${data.funnelData
             .map(
-              (step: any) => `
-            <tr><td>${step.step}</td><td>${step.value.toLocaleString()}</td><td>${step.rate}%</td></tr>
+              (step: Record<string, unknown>) => `
+            <tr><td>${step.step}</td><td>${Number(step.value ?? 0).toLocaleString()}</td><td>${step.rate}%</td></tr>
           `
             )
             .join('')}
@@ -392,8 +395,8 @@ function generatePDFHTML(data: any, startDate?: string, endDate?: string, dateRa
           <tr><th>Produit</th><th>Designs</th><th>Revenu</th><th>Conv. Rate</th></tr>
           ${data.topProducts
             .map(
-              (p: any) => `
-            <tr><td>${p.product}</td><td>${p.designs}</td><td>€${p.revenue.toLocaleString()}</td><td>${p.conversionRate}%</td></tr>
+              (p: Record<string, unknown>) => `
+            <tr><td>${p.product}</td><td>${p.designs}</td><td>€${Number(p.revenue ?? 0).toLocaleString()}</td><td>${p.conversionRate}%</td></tr>
           `
             )
             .join('')}
@@ -411,7 +414,7 @@ function generatePDFHTML(data: any, startDate?: string, endDate?: string, dateRa
           <tr><th>Appareil</th><th>Pourcentage</th></tr>
           ${data.audienceData.devices
             .map(
-              (d: any) => `
+              (d: Record<string, unknown>) => `
             <tr><td>${d.device}</td><td>${d.percentage}%</td></tr>
           `
             )
@@ -422,8 +425,8 @@ function generatePDFHTML(data: any, startDate?: string, endDate?: string, dateRa
           <tr><th>Pays</th><th>Visiteurs</th></tr>
           ${data.audienceData.countries
             .map(
-              (c: any) => `
-            <tr><td>${c.country}</td><td>${c.visitors.toLocaleString()}</td></tr>
+              (c: Record<string, unknown>) => `
+            <tr><td>${c.country}</td><td>${Number(c.visitors ?? 0).toLocaleString()}</td></tr>
           `
             )
             .join('')}
