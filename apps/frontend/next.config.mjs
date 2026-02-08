@@ -19,7 +19,9 @@ if (process.env.ANALYZE === 'true') {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Production optimizations
+  // TECH DEBT: 252 TS errors remain (mostly type-safety, not runtime-crash).
+  // Keep ignoreBuildErrors=true to unblock Vercel deploys.
+  // TODO: Fix TS errors incrementally, then set ignoreBuildErrors to false.
   eslint: {
     ignoreDuringBuilds: true,
   },

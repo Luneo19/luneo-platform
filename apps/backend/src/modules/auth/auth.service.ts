@@ -123,7 +123,7 @@ export class AuthService {
           },
         );
 
-        const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+        const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
         const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
         // Queue email asynchronously - don't await to not block signup response
@@ -650,7 +650,7 @@ export class AuthService {
     );
 
     // Get app URL from config
-    const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
     const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
 
     // Queue reset email asynchronously - don't await to not block response

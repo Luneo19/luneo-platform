@@ -8,5 +8,9 @@
  * - In development: falls back to http://localhost:3001
  */
 export function getBackendUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url && process.env.NODE_ENV === 'production') {
+    console.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set in production — API calls will fail');
+  }
+  return url || 'http://localhost:3001';
 }

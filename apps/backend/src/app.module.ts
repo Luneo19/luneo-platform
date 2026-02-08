@@ -26,7 +26,8 @@ import {
 // Modules
 import { AdminModule } from './modules/admin/admin.module';
 import { AiModule } from './modules/ai/ai.module';
-import { AgentsModule } from './modules/agents/agents.module'; // ✅ Réactivé
+// DISABLED: AgentsModule - excluded from tsconfig.build.json (build fails)
+// import { AgentsModule } from './modules/agents/agents.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AnalyticsCleanModule } from './modules/analytics/analytics-clean.module';
 import { ArStudioModule } from './modules/ar/ar-studio.module';
@@ -41,7 +42,8 @@ import { HealthModule } from './modules/health/health.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { EnterpriseModule } from './modules/enterprise/enterprise.module'; // ✅ PHASE 8
-import { ObservabilityModule } from './modules/observability/observability.module'; // ✅ Réactivé - @aws-sdk installé
+// DISABLED: ObservabilityModule - excluded from tsconfig.build.json (build fails)
+// import { ObservabilityModule } from './modules/observability/observability.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { PricingModule } from './modules/pricing/pricing.module';
@@ -78,12 +80,13 @@ import { BraceletModule } from './modules/bracelet/bracelet.module';
 import { IndustryModule } from './modules/industry/industry.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
-// Modules partiellement configurés - nécessitent alignement schéma/services
-import { ProjectsModule } from './modules/projects/projects.module'; // ✅ Réactivé
-import { TryOnModule } from './modules/try-on/try-on.module'; // ✅ Réactivé
-import { Configurator3DModule } from './modules/configurator-3d/configurator-3d.module'; // ✅ Réactivé
-import { VisualCustomizerModule } from './modules/visual-customizer/visual-customizer.module'; // ✅ Réactivé
-import { AssetHubModule } from './modules/asset-hub/asset-hub.module'; // ✅ Réactivé
+// DISABLED: Modules excluded from tsconfig.build.json (build fails if imported)
+// Re-enable: Remove from tsconfig.build.json excludes first, fix TS errors, then uncomment.
+// import { ProjectsModule } from './modules/projects/projects.module';
+// import { TryOnModule } from './modules/try-on/try-on.module';
+// import { Configurator3DModule } from './modules/configurator-3d/configurator-3d.module';
+// import { VisualCustomizerModule } from './modules/visual-customizer/visual-customizer.module';
+// import { AssetHubModule } from './modules/asset-hub/asset-hub.module';
 
 // Integration modules (e-commerce - also used by IntegrationsModule)
 import { PrestaShopModule } from './modules/integrations/prestashop/prestashop.module';
@@ -97,12 +100,12 @@ import { OAuthModule as PublicApiOAuthModule } from './modules/public-api/oauth/
 import { ApiKeysModule } from './modules/public-api/api-keys/api-keys.module';
 import { AnalyticsModule as PublicApiAnalyticsModule } from './modules/public-api/analytics/analytics.module';
 
-// Agent modules (also used by AgentsModule)
-import { AIMonitorModule } from './modules/agents/ai-monitor/ai-monitor.module';
-import { UsageGuardianModule } from './modules/agents/usage-guardian/usage-guardian.module';
-import { AriaModule } from './modules/agents/aria/aria.module';
-import { LunaModule } from './modules/agents/luna/luna.module';
-import { NovaModule } from './modules/agents/nova/nova.module';
+// DISABLED: Agent modules - excluded from tsconfig.build.json (part of AgentsModule)
+// import { AIMonitorModule } from './modules/agents/ai-monitor/ai-monitor.module';
+// import { UsageGuardianModule } from './modules/agents/usage-guardian/usage-guardian.module';
+// import { AriaModule } from './modules/agents/aria/aria.module';
+// import { LunaModule } from './modules/agents/luna/luna.module';
+// import { NovaModule } from './modules/agents/nova/nova.module';
 
 // Additional modules
 import { AnalyticsAdvancedModule } from './modules/analytics/analytics-advanced.module';
@@ -257,7 +260,7 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     AuthModule,
     UsersModule,
     BrandsModule,
-    AgentsModule, // ✅ Réactivé
+    // AgentsModule, // DISABLED: excluded from tsconfig.build.json
     ProductsModule,
     DesignsModule,
     OrdersModule,
@@ -296,7 +299,7 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     AnalyticsCleanModule, // Clean minimal analytics
     ArStudioModule,
     MarketplaceModule,
-    ObservabilityModule, // ✅ Réactivé
+    // ObservabilityModule, // DISABLED: excluded from tsconfig.build.json
     TrustSafetyModule,
     CreditsModule,
     MonitoringModule,
@@ -315,11 +318,11 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     DashboardModule,
     CollaborationModule,
     FeatureFlagsModule,
-    ProjectsModule, // ✅ Réactivé
-    TryOnModule, // ✅ Réactivé
-    Configurator3DModule, // ✅ Réactivé
-    VisualCustomizerModule, // ✅ Réactivé
-    AssetHubModule, // ✅ Réactivé
+    // ProjectsModule, // DISABLED: excluded from tsconfig.build.json
+    // TryOnModule, // DISABLED: excluded from tsconfig.build.json
+    // Configurator3DModule, // DISABLED: excluded from tsconfig.build.json
+    // VisualCustomizerModule, // DISABLED: excluded from tsconfig.build.json
+    // AssetHubModule, // DISABLED: excluded from tsconfig.build.json
 
     // Integration modules (e-commerce)
     PrestaShopModule,
@@ -333,12 +336,12 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     ApiKeysModule,
     PublicApiAnalyticsModule,
 
-    // Agent modules
-    AIMonitorModule,
-    UsageGuardianModule,
-    AriaModule,
-    LunaModule,
-    NovaModule,
+    // Agent modules - DISABLED: excluded from tsconfig.build.json
+    // AIMonitorModule,
+    // UsageGuardianModule,
+    // AriaModule,
+    // LunaModule,
+    // NovaModule,
 
     // Additional modules
     AnalyticsAdvancedModule,

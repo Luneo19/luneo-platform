@@ -37,7 +37,13 @@ interface GenerateDesignResponse {
 // IMPORTANT: Do NOT include /api in NEXT_PUBLIC_API_URL - endpoints already include /api/v1
 // For production: set NEXT_PUBLIC_API_URL (e.g. https://api.luneo.app)
 // For development: falls back to http://localhost:3001
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = (() => {
+  const url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url && typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    logger.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set in production — API calls will fail');
+  }
+  return url || 'http://localhost:3001';
+})();
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

@@ -1,7 +1,15 @@
+# ============================================
+# CURSORIGNORE - Optimized for memory (16GB Mac)
+# ============================================
+
 # Build outputs - very large, causes Cursor memory crashes
 .next/
 apps/frontend/.next/
 apps/backend/dist/
+**/.next/
+**/dist/
+**/build/
+**/.output/
 
 # Dependencies
 node_modules/
@@ -10,6 +18,9 @@ node_modules/
 # Package manager caches
 .pnpm-store/
 .turbo/
+**/.turbo/
+**/.cache/
+**/.swc/
 
 # Coverage and test reports
 coverage/
@@ -27,33 +38,54 @@ test-results/
 *.mp4
 *.webm
 *.zip
+*.rar
+*.7z
+*.gz
+*.ico
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+*.bmp
+
+# Source maps (very large)
+*.map
+**/*.js.map
+**/*.css.map
 
 # OS files
 .DS_Store
+Thumbs.db
 
 # Environment files (security)
 .env
-.env.local
-.env.production
-.env.production.real
+.env.*
 apps/backend/.env
-apps/backend/.env.production.real
-apps/frontend/.env.local
+apps/backend/.env.*
+apps/frontend/.env.*
 
 # Prisma generated client
 apps/backend/node_modules/.prisma/
+**/generated/
+**/.prisma/
 
 # Git objects
-.git/objects/
 .git/
+**/.git/
 
 # Lock files (large, not useful for indexing)
 pnpm-lock.yaml
 package-lock.json
+yarn.lock
 
 # Temporary files
 *.log
 *.tmp
+*.bak
+*.swp
+*.swo
 
 # Large JSON audit/extraction files
 AUDIT_*.json
@@ -63,8 +95,31 @@ SPECIFIC_FILES_EXTRACTION.json
 bundle-analysis.json
 jsx-analysis-report.json
 
-# Old fix scripts (not needed)
+# Old fix/utility scripts (not needed)
 fix-*.js
 cleanup-*.js
 extract-*.js
 audit-*.js
+consolidate-*.sh
+
+# IDE/Editor files
+**/.idea/
+
+# Docker
+**/docker-compose*.yml
+
+# Vercel / deployment
+.vercel/
+**/.vercel/
+
+# Storybook
+storybook-static/
+
+# Monitoring & postman (not code)
+monitoring/
+postman/
+
+# SDK & integration docs (heavy, rarely edited)
+sdk/
+woocommerce-plugin/
+integrations/
