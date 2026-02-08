@@ -27,7 +27,7 @@
     "@mediapipe/face_mesh": "^0.4.1633559619",
     "@mediapipe/hands": "^0.4.1633559619",
     "@mediapipe/pose": "^0.5.1675469404",
-    "@mediapipe/selfie_segmentation": "^0.1.1675469404",
+    "@mediapipe/selfie_segmentation": "^0.1.1675465747",
     "@mediapipe/holistic": "^0.5.1675469404",
     "three": "^0.158.0",
     "@types/three": "^0.158.0",

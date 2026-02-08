@@ -1,13 +1,10 @@
 # ==============================================
-# Production deployment: Backend → Railway (Docker), Frontend → Vercel
+# Production deployment: Backend → Railway (auto), Frontend → Vercel (manual only)
 # ==============================================
 #
-# Single production workflow. Runs on push to main or workflow_dispatch.
-# - test: backend lint, unit tests, coverage
-# - build-and-push: Docker image build & push to Docker Hub
-# - deploy-backend: deploy to Railway via CLI (pulls from Docker Hub or triggers deploy)
-# - deploy-frontend: build and deploy frontend to Vercel (--prod)
-# - smoke-tests: health + auth checks; Slack notification on success/failure
+# Backend deploys automatically on push to main.
+# Frontend deploys ONLY on workflow_dispatch to preserve Vercel quota (100/day).
+# To deploy frontend: gh workflow run deploy-production.yml OR use Vercel CLI locally.
 # ==============================================
 
 name: Deploy to Production
@@ -130,11 +127,14 @@ jobs:
               -d "{\"attachments\":[{\"color\":\"$COLOR\",\"text\":\"Luneo backend $STATUS on \`${{ github.ref_name }}\` by ${{ github.actor }}\"}]}" || true
           fi
 
-  # Build and deploy frontend to Vercel (production)
+  # Build and deploy frontend to Vercel (production) -- manual trigger only
+  # This job ONLY runs on workflow_dispatch to preserve Vercel's 100 deployments/day quota.
+  # For routine frontend deploys, use: vercel --prod (from apps/frontend locally)
   deploy-frontend:
     name: Deploy Frontend
     needs: test
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     
     steps:
       - name: Checkout code
@@ -173,7 +173,8 @@ jobs:
   # Post-deploy health and auth checks
   smoke-tests:
     name: Smoke Tests
-    needs: [deploy-backend, deploy-frontend]
+    needs: [deploy-backend]
+    if: always() && needs.deploy-backend.result == 'success'
     runs-on: ubuntu-latest
     
     steps:

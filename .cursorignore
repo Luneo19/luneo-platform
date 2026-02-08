@@ -45,7 +45,26 @@ apps/backend/node_modules/.prisma/
 
 # Git objects
 .git/objects/
+.git/
+
+# Lock files (large, not useful for indexing)
+pnpm-lock.yaml
+package-lock.json
 
 # Temporary files
 *.log
 *.tmp
+
+# Large JSON audit/extraction files
+AUDIT_*.json
+CRITICAL_TODOS_REPORT.json
+COMPLETE_PROJECT_EXTRACTION.json
+SPECIFIC_FILES_EXTRACTION.json
+bundle-analysis.json
+jsx-analysis-report.json
+
+# Old fix scripts (not needed)
+fix-*.js
+cleanup-*.js
+extract-*.js
+audit-*.js
