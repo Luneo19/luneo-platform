@@ -308,6 +308,27 @@ export const endpoints = {
     delete: (id: string) => api.delete(`/api/v1/products/${id}`),
   },
 
+  // Projects / Workspaces
+  projects: {
+    list: (params?: { page?: number; limit?: number; type?: string; status?: string; search?: string }) =>
+      api.get<{ data: unknown[]; meta: { page: number; limit: number; total: number; totalPages: number; hasNext: boolean; hasPrev: boolean } }>('/api/v1/projects', { params }),
+    get: (id: string) => api.get(`/api/v1/projects/${id}`),
+    create: (data: { name: string; slug: string; type: string; description?: string; settings?: Record<string, unknown>; webhookUrl?: string }) =>
+      api.post('/api/v1/projects', data),
+    update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/projects/${id}`, data),
+    delete: (id: string) => api.delete(`/api/v1/projects/${id}`),
+    regenerateApiKey: (id: string) => api.post(`/api/v1/projects/${id}/regenerate-api-key`),
+    workspaces: {
+      list: (projectId: string) => api.get(`/api/v1/projects/${projectId}/workspaces`),
+      get: (projectId: string, workspaceId: string) => api.get(`/api/v1/projects/${projectId}/workspaces/${workspaceId}`),
+      create: (projectId: string, data: Record<string, unknown>) => api.post(`/api/v1/projects/${projectId}/workspaces`, data),
+      update: (projectId: string, workspaceId: string, data: Record<string, unknown>) =>
+        api.patch(`/api/v1/projects/${projectId}/workspaces/${workspaceId}`, data),
+      delete: (projectId: string, workspaceId: string) =>
+        api.delete(`/api/v1/projects/${projectId}/workspaces/${workspaceId}`),
+    },
+  },
+
   // Designs
   designs: {
     list: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
