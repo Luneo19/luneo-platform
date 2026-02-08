@@ -22,7 +22,7 @@ RUN apk add --no-cache \
 # Installer pnpm via corepack et set PNPM_HOME for global installs
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@latest --activate && pnpm setup
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Installer @nestjs/cli globalement
 RUN pnpm add -g @nestjs/cli@latest
