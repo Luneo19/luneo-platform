@@ -24,6 +24,7 @@ import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TwoFactorForm } from '@/components/auth/TwoFactorForm';
+import { getRoleBasedRedirect } from '@/lib/utils/role-redirect';
 import { memo } from 'react';
 
 // Google Icon Component
@@ -124,7 +125,7 @@ function LoginPageContent() {
         
         // Use window.location.href for a full page reload so cookies are properly read
         setTimeout(() => {
-          window.location.href = '/overview';
+          window.location.href = getRoleBasedRedirect(response.user?.role);
         }, 800);
       } else {
         setError('Réponse invalide du serveur');
@@ -228,8 +229,10 @@ function LoginPageContent() {
           email={formData.email}
           onSuccess={() => {
             setSuccess('Connexion réussie ! Redirection...');
+            const userJson = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+            const user = userJson ? (JSON.parse(userJson) as { role?: string }) : undefined;
             setTimeout(() => {
-              router.push('/overview');
+              router.push(getRoleBasedRedirect(user?.role));
               router.refresh();
             }, 500);
           }}

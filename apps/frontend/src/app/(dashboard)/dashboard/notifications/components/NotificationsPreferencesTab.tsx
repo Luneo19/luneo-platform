@@ -20,10 +20,10 @@ const INAPP_LABELS: Record<string, string> = { orders: 'Commandes', customizatio
 
 export function NotificationsPreferencesTab({ preferences, setPreferences, onSave }: NotificationsPreferencesTabProps) {
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-zinc-800/50 border-zinc-700">
       <CardHeader>
         <CardTitle className="text-white">Préférences de notifications</CardTitle>
-        <CardDescription className="text-gray-400">Configurez comment et quand vous recevez des notifications</CardDescription>
+        <CardDescription className="text-zinc-400">Configurez comment et quand vous recevez des notifications</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
@@ -33,8 +33,8 @@ export function NotificationsPreferencesTab({ preferences, setPreferences, onSav
           </h3>
           <div className="space-y-3">
             {Object.entries(preferences.email).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-                <Label htmlFor={`email-${key}`} className="text-gray-300 cursor-pointer">{EMAIL_LABELS[key] ?? key}</Label>
+              <div key={key} className="flex items-center justify-between p-3 bg-zinc-900/50 rounded-lg">
+                <Label htmlFor={`email-${key}`} className="text-zinc-300 cursor-pointer">{EMAIL_LABELS[key] ?? key}</Label>
                 <Checkbox
                   id={`email-${key}`}
                   checked={value}
@@ -44,7 +44,7 @@ export function NotificationsPreferencesTab({ preferences, setPreferences, onSav
             ))}
           </div>
         </div>
-        <Separator className="bg-gray-700" />
+        <Separator className="bg-zinc-700" />
         <div>
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Smartphone className="w-5 h-5 text-green-400" />
@@ -52,8 +52,8 @@ export function NotificationsPreferencesTab({ preferences, setPreferences, onSav
           </h3>
           <div className="space-y-3">
             {Object.entries(preferences.push).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-                <Label htmlFor={`push-${key}`} className="text-gray-300 cursor-pointer">{PUSH_LABELS[key] ?? key}</Label>
+              <div key={key} className="flex items-center justify-between p-3 bg-zinc-900/50 rounded-lg">
+                <Label htmlFor={`push-${key}`} className="text-zinc-300 cursor-pointer">{PUSH_LABELS[key] ?? key}</Label>
                 <Checkbox
                   id={`push-${key}`}
                   checked={value}
@@ -63,7 +63,7 @@ export function NotificationsPreferencesTab({ preferences, setPreferences, onSav
             ))}
           </div>
         </div>
-        <Separator className="bg-gray-700" />
+        <Separator className="bg-zinc-700" />
         <div>
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Bell className="w-5 h-5 text-cyan-400" />
@@ -71,8 +71,8 @@ export function NotificationsPreferencesTab({ preferences, setPreferences, onSav
           </h3>
           <div className="space-y-3">
             {Object.entries(preferences.inApp).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-                <Label htmlFor={`inapp-${key}`} className="text-gray-300 cursor-pointer">{INAPP_LABELS[key] ?? key}</Label>
+              <div key={key} className="flex items-center justify-between p-3 bg-zinc-900/50 rounded-lg">
+                <Label htmlFor={`inapp-${key}`} className="text-zinc-300 cursor-pointer">{INAPP_LABELS[key] ?? key}</Label>
                 <Checkbox
                   id={`inapp-${key}`}
                   checked={value}
@@ -82,16 +82,16 @@ export function NotificationsPreferencesTab({ preferences, setPreferences, onSav
             ))}
           </div>
         </div>
-        <Separator className="bg-gray-700" />
+        <Separator className="bg-zinc-700" />
         <div>
           <h3 className="text-lg font-semibold text-white mb-4">Autres préférences</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-              <Label htmlFor="sound" className="text-gray-300 cursor-pointer">Sons de notification</Label>
+            <div className="flex items-center justify-between p-3 bg-zinc-900/50 rounded-lg">
+              <Label htmlFor="sound" className="text-zinc-300 cursor-pointer">Sons de notification</Label>
               <Checkbox id="sound" checked={preferences.sound} onCheckedChange={(checked) => setPreferences((prev) => ({ ...prev, sound: checked as boolean }))} />
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
-              <Label htmlFor="dnd" className="text-gray-300 cursor-pointer">Ne pas déranger</Label>
+            <div className="flex items-center justify-between p-3 bg-zinc-900/50 rounded-lg">
+              <Label htmlFor="dnd" className="text-zinc-300 cursor-pointer">Ne pas déranger</Label>
               <Checkbox
                 id="dnd"
                 checked={preferences.doNotDisturb.enabled}

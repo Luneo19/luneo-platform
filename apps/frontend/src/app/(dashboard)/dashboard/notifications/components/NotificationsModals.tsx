@@ -111,7 +111,7 @@ export function NotificationsModals({
   return (
     <>
       <Dialog open={showPreferencesModal} onOpenChange={setShowPreferencesModal}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl max-h-[80vh]">
+        <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Préférences de notifications</DialogTitle>
             <DialogDescription>Configurez comment et quand vous recevez des notifications</DialogDescription>
@@ -122,7 +122,7 @@ export function NotificationsModals({
             </div>
           </ScrollArea>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPreferencesModal(false)} className="border-gray-600">
+            <Button variant="outline" onClick={() => setShowPreferencesModal(false)} className="border-zinc-600">
               Annuler
             </Button>
             <Button onClick={onUpdatePreferences} className="bg-cyan-600 hover:bg-cyan-700">
@@ -134,25 +134,25 @@ export function NotificationsModals({
       </Dialog>
 
       <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
           <DialogHeader>
             <DialogTitle>Exporter les notifications</DialogTitle>
             <DialogDescription>Choisissez le format d'export</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" onClick={handleExportCsv} className="border-gray-600">
+              <Button variant="outline" onClick={handleExportCsv} className="border-zinc-600">
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 CSV
               </Button>
-              <Button variant="outline" onClick={handleExportJson} className="border-gray-600">
+              <Button variant="outline" onClick={handleExportJson} className="border-zinc-600">
                 <FileJson className="w-4 h-4 mr-2" />
                 JSON
               </Button>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowExportModal(false)} className="border-gray-600">
+            <Button variant="outline" onClick={() => setShowExportModal(false)} className="border-zinc-600">
               Fermer
             </Button>
           </DialogFooter>

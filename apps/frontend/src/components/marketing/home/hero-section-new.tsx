@@ -47,7 +47,7 @@ export function HeroSectionNew() {
   }, []);
 
   return (
-    <section className="dark-section relative min-h-screen pt-24 sm:pt-28 pb-16 sm:pb-20 noise-overlay">
+    <section className="dark-section relative min-h-screen py-20 sm:py-24 md:py-32 noise-overlay">
       {/* Background gradient mesh */}
       <div className="absolute inset-0 gradient-mesh-hero" />
 
@@ -155,7 +155,7 @@ export function HeroSectionNew() {
                       <span className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-yellow-500/60" />
                       <span className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-green-500/60" />
                     </div>
-                    <div className="flex-1 text-center text-[10px] sm:text-xs text-slate-500 font-medium">
+                    <div className="flex-1 text-center text-[10px] sm:text-xs text-slate-400 font-medium">
                       luneo.app/{PRODUCT_TABS[activeTab].id}
                     </div>
                   </div>

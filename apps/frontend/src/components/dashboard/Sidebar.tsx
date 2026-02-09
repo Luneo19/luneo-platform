@@ -56,6 +56,8 @@ import {
 import { useFeatureFlag } from '@/contexts/FeatureFlagContext';
 import { useIndustryStore, type IndustryModuleConfig } from '@/store/industry.store';
 import { useDashboardStore } from '@/store/dashboard.store';
+import { useSubscription } from '@/lib/hooks/api/useSubscription';
+import type { PlanTier } from '@/lib/hooks/api/useSubscription';
 
 // Map industry icon names to Lucide components
 const INDUSTRY_ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -76,6 +78,19 @@ const MODULE_NAV_MAP: Record<string, { section: string; itemName: string }> = {
   'marketplace': { section: 'Gestion', itemName: 'Seller' },
 };
 
+const PLAN_HIERARCHY: Record<PlanTier, number> = {
+  free: 0,
+  starter: 1,
+  professional: 2,
+  business: 3,
+  enterprise: 4,
+};
+
+/** Plan badge label for sidebar (PRO, BUSINESS, etc.) */
+function planBadgeLabel(plan: PlanTier): string {
+  return plan === 'professional' ? 'PRO' : plan === 'business' ? 'BUSINESS' : plan === 'enterprise' ? 'ENTERPRISE' : plan.toUpperCase();
+}
+
 interface NavItem {
   name: string;
   href: string;
@@ -84,6 +99,7 @@ interface NavItem {
   badge?: string;
   children?: NavItem[];
   moduleSlug?: string;
+  minimumPlan?: PlanTier;
   priority?: 'PRIMARY' | 'SECONDARY' | 'AVAILABLE' | 'HIDDEN';
   sortOrder?: number;
 }
@@ -105,6 +121,7 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         description: 'Création avec IA',
         badge: 'Pro',
         moduleSlug: 'ai-studio',
+        minimumPlan: 'professional',
         children: [
           { name: 'Générateur 2D', href: '/dashboard/ai-studio/2d', icon: Palette, description: 'Designs 2D' },
           { name: 'Modèles 3D', href: '/dashboard/ai-studio/3d', icon: Box, description: 'Objets 3D' },
@@ -117,8 +134,9 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         href: '/dashboard/ar-studio',
         icon: Globe,
         description: 'Réalité augmentée',
-        badge: 'Enterprise',
+        badge: 'Pro',
         moduleSlug: 'ar-studio',
+        minimumPlan: 'professional',
         children: [
           { name: 'Prévisualisation AR', href: '/dashboard/ar-studio/preview', icon: Eye, description: 'Voir en AR' },
           { name: 'Collaboration AR', href: '/dashboard/ar-studio/collaboration', icon: Users, description: 'Travail d\'équipe' },
@@ -141,6 +159,7 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         description: 'Personnalisation 3D',
         badge: 'Pro',
         moduleSlug: 'configurator-3d',
+        minimumPlan: 'professional',
       },
       {
         name: 'Bibliothèque',
@@ -178,6 +197,7 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         icon: BarChart3,
         description: 'Métriques et statistiques',
         moduleSlug: 'analytics',
+        minimumPlan: 'business',
         children: [
           { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, description: 'Métriques principales' },
           { name: 'Analytics Avancées', href: '/dashboard/analytics-advanced', icon: TrendingUp, description: 'Analyses approfondies' },
@@ -236,7 +256,8 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         name: 'Intégrations',
         href: '/dashboard/integrations-dashboard',
         icon: Plug,
-        description: 'API et connecteurs'
+        description: 'API et connecteurs',
+        minimumPlan: 'business',
       },
       {
         name: 'Sécurité',
@@ -382,6 +403,14 @@ function Sidebar() {
   const pathname = usePathname();
   const monitoringEnabled = useFeatureFlag('realtime_monitoring', true);
   const adaptiveSections = useAdaptiveSections();
+  const { data: subscription } = useSubscription();
+
+  const hasMinimumPlan = (minimumPlan: PlanTier): boolean => {
+    if (!subscription) return true;
+    const userLevel = PLAN_HIERARCHY[subscription.plan] ?? 0;
+    const requiredLevel = PLAN_HIERARCHY[minimumPlan] ?? 0;
+    return userLevel >= requiredLevel;
+  };
 
   const toggleExpanded = useCallback((itemName: string) => {
     setExpandedItems(prev =>
@@ -477,9 +506,13 @@ function Sidebar() {
                 const isActive = isItemActive(item);
                 const isExpanded = expandedItems.includes(item.name);
                 const Icon = item.icon;
+                const requiredPlan = item.minimumPlan;
+                const hasAccess = requiredPlan ? hasMinimumPlan(requiredPlan) : true;
+                const showPlanBadge = requiredPlan && !sidebarCollapsed;
+                const planBadge = showPlanBadge ? planBadgeLabel(requiredPlan) : null;
 
                 return (
-                  <div key={item.name}>
+                  <div key={item.name} className={requiredPlan && !hasAccess ? 'opacity-60' : undefined}>
                     {/* Main Item */}
                     <div
                       className={`mx-2 rounded-lg transition-all duration-200 border ${
@@ -500,10 +533,20 @@ function Sidebar() {
                           </div>
                           {!sidebarCollapsed && (
                             <>
-                              <div className="flex-1">
-                                <div className="flex items-center">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <span>{item.name}</span>
-                                  {item.badge && (
+                                  {planBadge ? (
+                                    <span className={`ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
+                                      requiredPlan === 'professional'
+                                        ? 'bg-purple-500/20 text-purple-400'
+                                        : requiredPlan === 'business'
+                                          ? 'bg-amber-500/20 text-amber-400'
+                                          : 'bg-white/10 text-white/70'
+                                    }`}>
+                                      {planBadge}
+                                    </span>
+                                  ) : item.badge ? (
                                     <span className={`ml-2 px-2 py-0.5 text-xs rounded-full dash-badge ${
                                       item.badge === 'Pro' ? 'dash-badge-pro' :
                                       item.badge === 'Enterprise' ? 'dash-badge-enterprise' :
@@ -512,7 +555,7 @@ function Sidebar() {
                                     }`}>
                                       {item.badge}
                                     </span>
-                                  )}
+                                  ) : null}
                                 </div>
                                 <p className="text-xs text-white/50 mt-0.5">{item.description}</p>
                               </div>

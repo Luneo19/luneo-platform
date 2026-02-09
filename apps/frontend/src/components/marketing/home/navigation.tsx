@@ -259,7 +259,7 @@ export function Navigation() {
                   <div className="flex-1 flex gap-8">
                     {MENU_DATA[activeMenu].columns.map((col, ci) => (
                       <div key={ci} className="flex-1">
-                        <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-4">
+                        <h4 className="text-xs font-semibold text-white uppercase tracking-wider mb-4">
                           {col.title}
                         </h4>
                         <div className="space-y-1">
@@ -279,7 +279,7 @@ export function Navigation() {
                                   <div className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
                                     {item.label}
                                   </div>
-                                  <div className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                                  <div className="text-xs text-slate-200 mt-0.5 leading-relaxed">
                                     {item.description}
                                   </div>
                                 </div>
@@ -297,7 +297,7 @@ export function Navigation() {
                       <h4 className="text-sm font-semibold text-white mb-1.5">
                         {MENU_DATA[activeMenu].cta.label}
                       </h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">
+                      <p className="text-xs text-slate-200 leading-relaxed">
                         {MENU_DATA[activeMenu].cta.description}
                       </p>
                     </div>
@@ -350,7 +350,7 @@ export function Navigation() {
               onClick={() => setMobileOpen(false)}
               className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
             >
-              <X className="w-5 h-5 text-slate-400" />
+              <X className="w-5 h-5 text-white" />
             </button>
           </div>
 
@@ -366,7 +366,7 @@ export function Navigation() {
                     {MENU_DATA[key].label}
                   </span>
                   <ChevronRight
-                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                    className={`w-4 h-4 text-slate-300 transition-transform duration-200 ${
                       mobileAccordion === key ? 'rotate-90' : ''
                     }`}
                   />
@@ -390,8 +390,8 @@ export function Navigation() {
                           >
                             <Icon className="w-4 h-4 text-purple-400 shrink-0" />
                             <div>
-                              <div className="text-sm font-medium text-slate-300">{item.label}</div>
-                              <div className="text-xs text-slate-600">{item.description}</div>
+                              <div className="text-sm font-medium text-white">{item.label}</div>
+                              <div className="text-xs text-slate-300">{item.description}</div>
                             </div>
                           </Link>
                         );

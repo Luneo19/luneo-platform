@@ -49,7 +49,7 @@ export function NotificationCard({
     >
       <Card
         className={cn(
-          'p-4 bg-gray-800/50 border-gray-700 transition-all',
+          'p-4 bg-zinc-800/50 border-zinc-700 transition-all',
           !notification.read && 'border-l-4 border-l-cyan-500',
           isSelected && 'border-2 border-cyan-500 bg-cyan-500/10',
         )}
@@ -69,7 +69,7 @@ export function NotificationCard({
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className={cn('font-medium', notification.read ? 'text-gray-300' : 'text-white')}>
+                  <h3 className={cn('font-medium', notification.read ? 'text-zinc-300' : 'text-white')}>
                     {notification.title}
                   </h3>
                   <Badge variant="outline" className={cn('text-xs', config.bg, config.color)}>
@@ -79,8 +79,8 @@ export function NotificationCard({
                     {priority.label}
                   </Badge>
                 </div>
-                <p className="text-sm text-gray-400 mt-1">{notification.message}</p>
-                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                <p className="text-sm text-zinc-400 mt-1">{notification.message}</p>
+                <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500">
                   <span>{formatRelativeDate(new Date(notification.created_at))}</span>
                   {notification.read_at && <span>Lu {formatRelativeDate(new Date(notification.read_at))}</span>}
                 </div>
@@ -101,20 +101,20 @@ export function NotificationCard({
                   </Button>
                 )}
                 {!notification.read && (
-                  <Button size="sm" variant="ghost" onClick={() => onMarkAsRead(notification.id)} className="text-gray-400 hover:text-white" title="Marquer comme lu">
+                  <Button size="sm" variant="ghost" onClick={() => onMarkAsRead(notification.id)} className="text-zinc-400 hover:text-white" title="Marquer comme lu">
                     <CheckCheck className="w-4 h-4" />
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => onDelete(notification.id)} className="text-gray-400 hover:text-red-400" title="Supprimer">
+                <Button size="sm" variant="ghost" onClick={() => onDelete(notification.id)} className="text-zinc-400 hover:text-red-400" title="Supprimer">
                   <Trash2 className="w-4 h-4" />
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white">
+                    <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white">
                       <MoreVertical className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                  <DropdownMenuContent align="end" className="bg-zinc-800 border-zinc-700">
                     <DropdownMenuItem onClick={() => onMarkAsRead(notification.id)} className="text-white">
                       <CheckCheck className="w-4 h-4 mr-2" />
                       Marquer comme lu
@@ -123,7 +123,7 @@ export function NotificationCard({
                       <Archive className="w-4 h-4 mr-2" />
                       Archiver
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-gray-700" />
+                    <DropdownMenuSeparator className="bg-zinc-700" />
                     <DropdownMenuItem onClick={() => onDelete(notification.id)} className="text-red-400">
                       <Trash2 className="w-4 h-4 mr-2" />
                       Supprimer

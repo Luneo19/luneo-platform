@@ -56,10 +56,10 @@ export function NotificationsListSection({
 
   if (filteredNotifications.length === 0) {
     return (
-      <Card className="p-12 bg-gray-800/50 border-gray-700 text-center">
-        <Bell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+      <Card className="p-12 bg-zinc-800/50 border-zinc-700 text-center">
+        <Bell className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-white mb-2">Aucune notification</h3>
-        <p className="text-gray-400">
+        <p className="text-zinc-400">
           {hasFilters ? 'Aucune notification ne correspond à vos filtres' : 'Vous êtes à jour !'}
         </p>
       </Card>
@@ -68,7 +68,7 @@ export function NotificationsListSection({
 
   return (
     <div className="space-y-6">
-      <Card className="p-4 bg-gray-800/50 border-gray-700">
+      <Card className="p-4 bg-zinc-800/50 border-zinc-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Checkbox
@@ -76,13 +76,13 @@ export function NotificationsListSection({
               onCheckedChange={onSelectAll}
               id="select-all"
             />
-            <Label htmlFor="select-all" className="text-gray-300 cursor-pointer">
+            <Label htmlFor="select-all" className="text-zinc-300 cursor-pointer">
               {selectedNotifications.size > 0 ? `${selectedNotifications.size} sélectionnée(s)` : 'Sélectionner tout'}
             </Label>
           </div>
           {selectedNotifications.size > 0 && (
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={onBulkMarkRead} className="border-gray-600">
+              <Button size="sm" variant="outline" onClick={onBulkMarkRead} className="border-zinc-600">
                 <CheckCheck className="w-4 h-4 mr-2" />
                 Marquer lu
               </Button>
@@ -100,9 +100,9 @@ export function NotificationsListSection({
           <div key={groupKey} className="space-y-3">
             {groupByDate && (
               <div className="flex items-center gap-2 mb-4">
-                <Separator className="flex-1 bg-gray-700" />
-                <span className="text-sm font-medium text-gray-400 px-3">{groupKey}</span>
-                <Separator className="flex-1 bg-gray-700" />
+                <Separator className="flex-1 bg-zinc-700" />
+                <span className="text-sm font-medium text-zinc-400 px-3">{groupKey}</span>
+                <Separator className="flex-1 bg-zinc-700" />
               </div>
             )}
             {groupNotifications.map((notification, index) => (

@@ -70,7 +70,7 @@ export function HowItWorksNew() {
                   {/* Content */}
                   <div className="flex-1">
                     <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1.5 sm:mb-2">{step.title}</h3>
-                    <p className="text-xs sm:text-sm md:text-base text-slate-500 leading-relaxed">{step.description}</p>
+                    <p className="text-xs sm:text-sm md:text-base text-slate-400 leading-relaxed">{step.description}</p>
                   </div>
 
                   {/* Icon */}

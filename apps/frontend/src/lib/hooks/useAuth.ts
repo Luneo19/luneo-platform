@@ -3,6 +3,7 @@ import { endpoints, type AuthSessionResponse } from '../api/client';
 import { useRouter } from 'next/navigation';
 import type { LoginCredentials, RegisterData, User } from '@/lib/types';
 import { logger } from '@/lib/logger';
+import { getRoleBasedRedirect } from '@/lib/utils/role-redirect';
 
 /**
  * Hook to get current user
@@ -48,8 +49,8 @@ export function useLogin() {
         queryClient.setQueryData(['auth', 'me'], data.user);
       }
 
-      // Redirect to overview
-      router.push('/overview');
+      // Redirect based on role (e.g. PLATFORM_ADMIN -> /admin)
+      router.push(getRoleBasedRedirect(data.user?.role));
     },
     onError: (error) => {
       logger.error('Login failed', {

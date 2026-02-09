@@ -91,6 +91,13 @@ const nextConfig = {
     optimizePackageImports: [
       'lodash',
       'date-fns',
+      'lucide-react',
+      '@radix-ui/react-icons',
+      'recharts',
+      'framer-motion',
+      'react-hook-form',
+      '@hookform/resolvers',
+      'zod',
     ],
     serverActions: {
       bodySizeLimit: '2mb',

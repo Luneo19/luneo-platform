@@ -14,6 +14,7 @@ import { AIGenerationsGrid } from './components/AIGenerationsGrid';
 import { GenerateModal } from './components/modals/GenerateModal';
 import { useAIGenerations } from './hooks/useAIGenerations';
 import { useAIGenerate } from './hooks/useAIGenerate';
+import { SoftPlanGate } from '@/components/shared/SoftPlanGate';
 import type { GenerationType, AISettings } from './types';
 
 export function AIStudioPageClient() {
@@ -110,26 +111,28 @@ export function AIStudioPageClient() {
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      <AIStudioHeader onGenerate={() => setShowGenerateModal(true)} credits={credits} />
-      <AIStats {...stats} />
-      <AIGenerationsGrid
-        generations={generations}
-        onPreview={handlePreview}
-        onDownload={handleDownload}
-        onDelete={handleDelete}
-        onShare={handleShare}
-      />
+    <SoftPlanGate minimumPlan="professional" featureName="AI Studio">
+      <div className="space-y-6 pb-10">
+        <AIStudioHeader onGenerate={() => setShowGenerateModal(true)} credits={credits} />
+        <AIStats {...stats} />
+        <AIGenerationsGrid
+          generations={generations}
+          onPreview={handlePreview}
+          onDownload={handleDownload}
+          onDelete={handleDelete}
+          onShare={handleShare}
+        />
 
-      <GenerateModal
-        open={showGenerateModal}
-        onOpenChange={setShowGenerateModal}
-        onGenerate={handleGenerate}
-        isGenerating={isGenerating}
-        progress={progress}
-        defaultType={activeTab}
-      />
-    </div>
+        <GenerateModal
+          open={showGenerateModal}
+          onOpenChange={setShowGenerateModal}
+          onGenerate={handleGenerate}
+          isGenerating={isGenerating}
+          progress={progress}
+          defaultType={activeTab}
+        />
+      </div>
+    </SoftPlanGate>
   );
 }
 

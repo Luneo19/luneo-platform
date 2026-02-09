@@ -136,7 +136,7 @@ function LogoWatermarkSectionInner() {
           </ScrollReveal>
 
           <ScrollReveal animation="fade-up" delay={500}>
-            <p className="text-sm sm:text-base text-slate-500 text-center max-w-lg mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base text-slate-400 text-center max-w-lg mx-auto leading-relaxed">
               La technologie qui repousse les limites de la personnalisation produit.
             </p>
           </ScrollReveal>

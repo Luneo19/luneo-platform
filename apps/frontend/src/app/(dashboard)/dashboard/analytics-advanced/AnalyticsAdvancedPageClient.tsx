@@ -35,6 +35,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatPrice } from '@/lib/utils/formatters';
+import { SoftPlanGate } from '@/components/shared/SoftPlanGate';
 import type { TimeRange, AnalyticsView } from './types';
 
 export function AnalyticsAdvancedPageClient() {
@@ -78,8 +79,9 @@ export function AnalyticsAdvancedPageClient() {
   }
 
   return (
-    <div className="min-h-screen dash-bg space-y-6 pb-10">
-      <AnalyticsAdvancedHeader onExport={handleExport} />
+    <SoftPlanGate minimumPlan="business" featureName="Analytics Avancées">
+      <div className="min-h-screen dash-bg space-y-6 pb-10">
+        <AnalyticsAdvancedHeader onExport={handleExport} />
 
       <div className="flex items-center gap-4">
         <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
@@ -264,7 +266,8 @@ export function AnalyticsAdvancedPageClient() {
           <GeographicAnalysis geographicData={geographicData} />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </SoftPlanGate>
   );
 }
 

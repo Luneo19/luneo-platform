@@ -37,19 +37,19 @@ export function NotificationsFiltersBar({
   onGroupByDateToggle,
 }: NotificationsFiltersBarProps) {
   return (
-    <Card className="p-4 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 bg-zinc-800/50 border-zinc-700">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
           <Input
             placeholder="Rechercher une notification..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 bg-gray-900 border-gray-600 text-white"
+            className="pl-10 bg-zinc-900 border-zinc-600 text-white"
           />
         </div>
         <Select value={filterType} onValueChange={onFilterTypeChange}>
-          <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+          <SelectTrigger className="w-[180px] bg-zinc-900 border-zinc-600 text-white">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
@@ -60,7 +60,7 @@ export function NotificationsFiltersBar({
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={onFilterPriorityChange}>
-          <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+          <SelectTrigger className="w-[180px] bg-zinc-900 border-zinc-600 text-white">
             <SelectValue placeholder="Priorité" />
           </SelectTrigger>
           <SelectContent>
@@ -71,7 +71,7 @@ export function NotificationsFiltersBar({
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-          <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
+          <SelectTrigger className="w-[180px] bg-zinc-900 border-zinc-600 text-white">
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
           <SelectContent>
@@ -81,10 +81,10 @@ export function NotificationsFiltersBar({
           </SelectContent>
         </Select>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={onViewModeToggle} className="border-gray-600">
+          <Button variant="outline" size="icon" onClick={onViewModeToggle} className="border-zinc-600">
             {viewMode === 'list' ? <Grid className="w-4 h-4" /> : <List className="w-4 h-4" />}
           </Button>
-          <Button variant="outline" size="icon" onClick={onGroupByDateToggle} className="border-gray-600">
+          <Button variant="outline" size="icon" onClick={onGroupByDateToggle} className="border-zinc-600">
             <Calendar className="w-4 h-4" />
           </Button>
         </div>

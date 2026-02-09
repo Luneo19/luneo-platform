@@ -41,18 +41,18 @@ export function NotificationsHeader({
             </Badge>
           )}
         </h1>
-        <p className="text-gray-400 mt-1">Gérez vos notifications et alertes</p>
+        <p className="text-zinc-400 mt-1">Gérez vos notifications et alertes</p>
       </div>
       <div className="flex gap-2">
         {selectedCount > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="border-gray-600">
+              <Button variant="outline" className="border-zinc-600">
                 <MoreVertical className="w-4 h-4 mr-2" />
                 Actions ({selectedCount})
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+            <DropdownMenuContent align="end" className="bg-zinc-800 border-zinc-700">
               <DropdownMenuItem onClick={onBulkMarkRead} className="text-white">
                 <CheckCheck className="w-4 h-4 mr-2" />
                 Marquer comme lu
@@ -65,16 +65,16 @@ export function NotificationsHeader({
           </DropdownMenu>
         )}
         {unreadCount > 0 && (
-          <Button onClick={onMarkAllAsRead} variant="outline" className="border-gray-600">
+          <Button onClick={onMarkAllAsRead} variant="outline" className="border-zinc-600">
             <CheckCheck className="w-4 h-4 mr-2" />
             Tout marquer comme lu
           </Button>
         )}
-        <Button onClick={onOpenPreferences} variant="outline" className="border-gray-600">
+        <Button onClick={onOpenPreferences} variant="outline" className="border-zinc-600">
           <Settings className="w-4 h-4 mr-2" />
           Préférences
         </Button>
-        <Button onClick={onOpenExport} variant="outline" className="border-gray-600">
+        <Button onClick={onOpenExport} variant="outline" className="border-zinc-600">
           <Download className="w-4 h-4 mr-2" />
           Exporter
         </Button>

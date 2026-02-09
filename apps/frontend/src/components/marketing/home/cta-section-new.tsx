@@ -58,7 +58,7 @@ export function CTASectionNew() {
 
           {/* Trust badges */}
           <ScrollReveal animation="fade" delay={400}>
-            <div className="flex items-center justify-center gap-4 sm:gap-6 text-slate-600 text-[10px] sm:text-xs">
+            <div className="flex items-center justify-center gap-4 sm:gap-6 text-slate-400 text-[10px] sm:text-xs">
               <span className="flex items-center gap-1.5">
                 <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> SOC 2
               </span>

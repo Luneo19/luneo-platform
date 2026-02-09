@@ -184,10 +184,10 @@ export default function AdvancedAnalyticsPage() {
       {' '}
       <div>
         {' '}
-        <h1 className="text-gladia-white text-3xl font-bold">
+        <h1 className="text-white text-3xl font-bold">
           Advanced Analytics
         </h1>{' '}
-        <p className="text-gladia-gray-300 mt-2">
+        <p className="text-zinc-300 mt-2">
           {' '}
           Advanced visualizations and correlation analysis{' '}
         </p>{' '}

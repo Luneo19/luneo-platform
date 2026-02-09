@@ -84,7 +84,7 @@ export function PricingSectionNew() {
         {/* Toggle */}
         <ScrollReveal animation="fade-up" delay={100}>
           <div className="flex items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-12">
-            <span className={`text-xs sm:text-sm font-medium transition-colors ${!isYearly ? 'text-white' : 'text-slate-500'}`}>
+            <span className={`text-xs sm:text-sm font-medium transition-colors ${!isYearly ? 'text-white' : 'text-slate-400'}`}>
               Mensuel
             </span>
             <label className="relative w-12 sm:w-14 h-6 sm:h-7 cursor-pointer">
@@ -105,7 +105,7 @@ export function PricingSectionNew() {
                 }`}
               />
             </label>
-            <span className={`text-xs sm:text-sm font-medium transition-colors ${isYearly ? 'text-white' : 'text-slate-500'}`}>
+            <span className={`text-xs sm:text-sm font-medium transition-colors ${isYearly ? 'text-white' : 'text-slate-400'}`}>
               Annuel{' '}
               <span className="bg-green-500/20 text-green-400 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border border-green-500/30">
                 -20%
@@ -139,7 +139,7 @@ export function PricingSectionNew() {
 
                 <div className="mb-5 sm:mb-6">
                   <h3 className="text-lg sm:text-xl font-bold text-white mb-1">{plan.name}</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-500">{plan.description}</p>
+                  <p className="text-[10px] sm:text-xs text-slate-400">{plan.description}</p>
                 </div>
 
                 <div className="mb-6 sm:mb-8 flex items-baseline">
@@ -147,7 +147,7 @@ export function PricingSectionNew() {
                   <span className="text-4xl sm:text-5xl font-extrabold text-white ml-1.5 sm:ml-2 font-display">
                     {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
                   </span>
-                  <span className="text-xs sm:text-sm text-slate-500 ml-1">/mois</span>
+                  <span className="text-xs sm:text-sm text-slate-400 ml-1">/mois</span>
                 </div>
 
                 <ul className="mb-6 sm:mb-8 space-y-2.5 sm:space-y-3 flex-1">
@@ -156,9 +156,9 @@ export function PricingSectionNew() {
                       {feature.included ? (
                         <Check className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-400 flex-shrink-0" />
                       ) : (
-                        <X className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-slate-700 flex-shrink-0" />
+                        <X className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-slate-400 flex-shrink-0" />
                       )}
-                      <span className={feature.included ? 'text-slate-300' : 'text-slate-600'}>
+                      <span className={feature.included ? 'text-slate-300' : 'text-slate-400'}>
                         {feature.text}
                       </span>
                     </li>

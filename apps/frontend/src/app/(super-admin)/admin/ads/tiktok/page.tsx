@@ -136,12 +136,12 @@ function StatCard({
   };
 
   return (
-    <Card className="bg-charcoal border-border-color">
+    <Card className="bg-zinc-900 border-zinc-700">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-gladia-gray-400 text-sm">{title}</p>
-            <p className="text-gladia-white mt-1 text-2xl font-bold">
+            <p className="text-zinc-400 text-sm">{title}</p>
+            <p className="text-white mt-1 text-2xl font-bold">
               {formatValue(value)}
             </p>
             {change !== undefined && (
@@ -164,7 +164,7 @@ function CampaignStatusBadge({ status }: { status: Campaign['status'] }) {
   const variants: Record<Campaign['status'], { color: string; label: string }> = {
     active: { color: 'bg-green-500/20 text-green-400', label: 'Actif' },
     paused: { color: 'bg-yellow-500/20 text-yellow-400', label: 'En pause' },
-    completed: { color: 'bg-gray-500/20 text-gray-400', label: 'Terminé' },
+    completed: { color: 'bg-zinc-500/20 text-zinc-400', label: 'Terminé' },
     draft: { color: 'bg-blue-500/20 text-blue-400', label: 'Brouillon' },
   };
   
@@ -182,46 +182,46 @@ function CampaignsTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow className="border-border-color">
-          <TableHead className="text-gladia-gray-400">Campagne</TableHead>
-          <TableHead className="text-gladia-gray-400">Statut</TableHead>
-          <TableHead className="text-gladia-gray-400">Budget</TableHead>
-          <TableHead className="text-gladia-gray-400">Dépensé</TableHead>
-          <TableHead className="text-gladia-gray-400">Impressions</TableHead>
-          <TableHead className="text-gladia-gray-400">Clics</TableHead>
-          <TableHead className="text-gladia-gray-400">CTR</TableHead>
-          <TableHead className="text-gladia-gray-400">ROAS</TableHead>
-          <TableHead className="text-gladia-gray-400">Actions</TableHead>
+        <TableRow className="border-zinc-700">
+          <TableHead className="text-zinc-400">Campagne</TableHead>
+          <TableHead className="text-zinc-400">Statut</TableHead>
+          <TableHead className="text-zinc-400">Budget</TableHead>
+          <TableHead className="text-zinc-400">Dépensé</TableHead>
+          <TableHead className="text-zinc-400">Impressions</TableHead>
+          <TableHead className="text-zinc-400">Clics</TableHead>
+          <TableHead className="text-zinc-400">CTR</TableHead>
+          <TableHead className="text-zinc-400">ROAS</TableHead>
+          <TableHead className="text-zinc-400">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {campaigns.map((campaign) => (
-          <TableRow key={campaign.id} className="border-border-color">
+          <TableRow key={campaign.id} className="border-zinc-700">
             <TableCell>
               <div>
-                <p className="text-gladia-white font-medium">{campaign.name}</p>
-                <p className="text-gladia-gray-400 text-xs">{campaign.objective}</p>
+                <p className="text-white font-medium">{campaign.name}</p>
+                <p className="text-zinc-400 text-xs">{campaign.objective}</p>
               </div>
             </TableCell>
             <TableCell>
               <CampaignStatusBadge status={campaign.status} />
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               €{campaign.budget.toLocaleString()}
-              <span className="text-gladia-gray-400 text-xs ml-1">
+              <span className="text-zinc-400 text-xs ml-1">
                 /{campaign.budgetType === 'daily' ? 'jour' : 'total'}
               </span>
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               €{campaign.spent.toLocaleString()}
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               {campaign.impressions.toLocaleString()}
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               {campaign.clicks.toLocaleString()}
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               {campaign.ctr.toFixed(2)}%
             </TableCell>
             <TableCell>
@@ -259,20 +259,20 @@ function AdGroupsTable({ adGroups }: { adGroups: AdGroup[] }) {
   return (
     <Table>
       <TableHeader>
-        <TableRow className="border-border-color">
-          <TableHead className="text-gladia-gray-400">Groupe d'annonces</TableHead>
-          <TableHead className="text-gladia-gray-400">Statut</TableHead>
-          <TableHead className="text-gladia-gray-400">Ciblage</TableHead>
-          <TableHead className="text-gladia-gray-400">Budget</TableHead>
-          <TableHead className="text-gladia-gray-400">Dépensé</TableHead>
-          <TableHead className="text-gladia-gray-400">Impressions</TableHead>
-          <TableHead className="text-gladia-gray-400">CTR</TableHead>
+        <TableRow className="border-zinc-700">
+          <TableHead className="text-zinc-400">Groupe d'annonces</TableHead>
+          <TableHead className="text-zinc-400">Statut</TableHead>
+          <TableHead className="text-zinc-400">Ciblage</TableHead>
+          <TableHead className="text-zinc-400">Budget</TableHead>
+          <TableHead className="text-zinc-400">Dépensé</TableHead>
+          <TableHead className="text-zinc-400">Impressions</TableHead>
+          <TableHead className="text-zinc-400">CTR</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {adGroups.map((adGroup) => (
-          <TableRow key={adGroup.id} className="border-border-color">
-            <TableCell className="text-gladia-white font-medium">
+          <TableRow key={adGroup.id} className="border-zinc-700">
+            <TableCell className="text-white font-medium">
               {adGroup.name}
             </TableCell>
             <TableCell>
@@ -280,19 +280,19 @@ function AdGroupsTable({ adGroups }: { adGroups: AdGroup[] }) {
                 {adGroup.status === 'active' ? 'Actif' : 'En pause'}
               </Badge>
             </TableCell>
-            <TableCell className="text-gladia-gray-300 text-sm">
+            <TableCell className="text-zinc-300 text-sm">
               {adGroup.targeting}
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               €{adGroup.budget.toLocaleString()}
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               €{adGroup.spent.toLocaleString()}
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               {adGroup.impressions.toLocaleString()}
             </TableCell>
-            <TableCell className="text-gladia-white">
+            <TableCell className="text-white">
               {adGroup.ctr.toFixed(2)}%
             </TableCell>
           </TableRow>
@@ -498,21 +498,21 @@ export default function TikTokAdsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-gladia-white text-3xl font-bold">TikTok Ads</h1>
-          <p className="text-gladia-gray-300 mt-2">
+          <h1 className="text-white text-3xl font-bold">TikTok Ads</h1>
+          <p className="text-zinc-300 mt-2">
             Connect your TikTok Ads account to track campaigns and performance
           </p>
         </div>
-        <Card className="bg-charcoal border-border-color">
+        <Card className="bg-zinc-900 border-zinc-700">
           <CardContent className="p-12 text-center">
             <div className="mx-auto max-w-md">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-black">
                 <span className="text-2xl">🎵</span>
               </div>
-              <h2 className="text-gladia-white mb-2 text-2xl font-bold">
+              <h2 className="text-white mb-2 text-2xl font-bold">
                 Connect TikTok Ads
               </h2>
-              <p className="text-gladia-gray-300 mb-6">
+              <p className="text-zinc-300 mb-6">
                 Connect your TikTok Ads account to start tracking your campaigns,
                 performance metrics, and ROI.
               </p>
@@ -539,14 +539,14 @@ export default function TikTokAdsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-gladia-white text-3xl font-bold">TikTok Ads</h1>
-          <p className="text-gladia-gray-300 mt-2">
+          <h1 className="text-white text-3xl font-bold">TikTok Ads</h1>
+          <p className="text-zinc-300 mt-2">
             Track and manage your TikTok ad campaigns
           </p>
         </div>
         <div className="flex items-center gap-4">
           <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-[180px] bg-charcoal border-border-color text-gladia-white">
+            <SelectTrigger className="w-[180px] bg-zinc-900 border-zinc-700 text-white">
               <Calendar className="mr-2 h-4 w-4" />
               <SelectValue />
             </SelectTrigger>
@@ -606,28 +606,28 @@ export default function TikTokAdsPage() {
       {/* Secondary Stats */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-charcoal border-border-color">
+          <Card className="bg-zinc-900 border-zinc-700">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-gladia-gray-400 text-sm">CTR moyen</p>
-                <p className="text-gladia-white text-xl font-bold">{stats.avgCtr.toFixed(2)}%</p>
+                <p className="text-zinc-400 text-sm">CTR moyen</p>
+                <p className="text-white text-xl font-bold">{stats.avgCtr.toFixed(2)}%</p>
               </div>
               <BarChart3 className="h-5 w-5 text-cyan-400" />
             </CardContent>
           </Card>
-          <Card className="bg-charcoal border-border-color">
+          <Card className="bg-zinc-900 border-zinc-700">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-gladia-gray-400 text-sm">CPC moyen</p>
-                <p className="text-gladia-white text-xl font-bold">€{stats.avgCpc.toFixed(2)}</p>
+                <p className="text-zinc-400 text-sm">CPC moyen</p>
+                <p className="text-white text-xl font-bold">€{stats.avgCpc.toFixed(2)}</p>
               </div>
               <MousePointer className="h-5 w-5 text-cyan-400" />
             </CardContent>
           </Card>
-          <Card className="bg-charcoal border-border-color">
+          <Card className="bg-zinc-900 border-zinc-700">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-gladia-gray-400 text-sm">ROAS moyen</p>
+                <p className="text-zinc-400 text-sm">ROAS moyen</p>
                 <p className={`text-xl font-bold ${stats.avgRoas >= 1 ? 'text-green-400' : 'text-red-400'}`}>
                   {stats.avgRoas.toFixed(2)}x
                 </p>
@@ -635,11 +635,11 @@ export default function TikTokAdsPage() {
               <TrendingUp className="h-5 w-5 text-cyan-400" />
             </CardContent>
           </Card>
-          <Card className="bg-charcoal border-border-color">
+          <Card className="bg-zinc-900 border-zinc-700">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-gladia-gray-400 text-sm">Campagnes actives</p>
-                <p className="text-gladia-white text-xl font-bold">{stats.activeCampaigns}</p>
+                <p className="text-zinc-400 text-sm">Campagnes actives</p>
+                <p className="text-white text-xl font-bold">{stats.activeCampaigns}</p>
               </div>
               <Video className="h-5 w-5 text-cyan-400" />
             </CardContent>
@@ -649,7 +649,7 @@ export default function TikTokAdsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-charcoal border-border-color">
+        <TabsList className="bg-zinc-900 border-zinc-700">
           <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-500/20">
             <BarChart3 className="mr-2 h-4 w-4" />
             Vue d'ensemble
@@ -665,29 +665,29 @@ export default function TikTokAdsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <Card className="bg-charcoal border-border-color">
+          <Card className="bg-zinc-900 border-zinc-700">
             <CardHeader>
-              <CardTitle className="text-gladia-white">Performance récente</CardTitle>
+              <CardTitle className="text-white">Performance récente</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-gladia-gray-300">
+              <div className="text-zinc-300">
                 <p className="mb-4">Résumé des performances de vos campagnes TikTok Ads.</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
-                  <div className="text-center p-4 bg-obsidian-black/50 rounded-lg">
+                  <div className="text-center p-4 bg-zinc-950/50 rounded-lg">
                     <p className="text-3xl font-bold text-cyan-400">{campaigns.filter(c => c.status === 'active').length}</p>
-                    <p className="text-sm text-gladia-gray-400 mt-1">Campagnes actives</p>
+                    <p className="text-sm text-zinc-400 mt-1">Campagnes actives</p>
                   </div>
-                  <div className="text-center p-4 bg-obsidian-black/50 rounded-lg">
+                  <div className="text-center p-4 bg-zinc-950/50 rounded-lg">
                     <p className="text-3xl font-bold text-green-400">{campaigns.filter(c => c.roas >= 3).length}</p>
-                    <p className="text-sm text-gladia-gray-400 mt-1">ROAS &gt; 3x</p>
+                    <p className="text-sm text-zinc-400 mt-1">ROAS &gt; 3x</p>
                   </div>
-                  <div className="text-center p-4 bg-obsidian-black/50 rounded-lg">
+                  <div className="text-center p-4 bg-zinc-950/50 rounded-lg">
                     <p className="text-3xl font-bold text-yellow-400">{campaigns.filter(c => c.status === 'paused').length}</p>
-                    <p className="text-sm text-gladia-gray-400 mt-1">En pause</p>
+                    <p className="text-sm text-zinc-400 mt-1">En pause</p>
                   </div>
-                  <div className="text-center p-4 bg-obsidian-black/50 rounded-lg">
-                    <p className="text-3xl font-bold text-gladia-white">{adGroups.length}</p>
-                    <p className="text-sm text-gladia-gray-400 mt-1">Groupes d'annonces</p>
+                  <div className="text-center p-4 bg-zinc-950/50 rounded-lg">
+                    <p className="text-3xl font-bold text-white">{adGroups.length}</p>
+                    <p className="text-sm text-zinc-400 mt-1">Groupes d'annonces</p>
                   </div>
                 </div>
               </div>
@@ -696,9 +696,9 @@ export default function TikTokAdsPage() {
         </TabsContent>
 
         <TabsContent value="campaigns" className="mt-6">
-          <Card className="bg-charcoal border-border-color">
+          <Card className="bg-zinc-900 border-zinc-700">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-gladia-white">Campagnes</CardTitle>
+              <CardTitle className="text-white">Campagnes</CardTitle>
               <Button size="sm">
                 <Video className="mr-2 h-4 w-4" />
                 Nouvelle campagne
@@ -720,9 +720,9 @@ export default function TikTokAdsPage() {
         </TabsContent>
 
         <TabsContent value="adgroups" className="mt-6">
-          <Card className="bg-charcoal border-border-color">
+          <Card className="bg-zinc-900 border-zinc-700">
             <CardHeader>
-              <CardTitle className="text-gladia-white">Groupes d'annonces</CardTitle>
+              <CardTitle className="text-white">Groupes d'annonces</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (

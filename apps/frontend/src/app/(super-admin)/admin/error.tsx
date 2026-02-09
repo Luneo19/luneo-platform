@@ -28,7 +28,7 @@ export default function Error({
 
   return (
     <div className="container mx-auto py-6">
-      <Card className="bg-gray-800/50 border-red-500/50">
+      <Card className="bg-zinc-800/50 border-red-500/50">
         <CardContent className="p-12">
           <div className="flex flex-col items-center justify-center gap-4">
             <div className="flex items-center gap-2">

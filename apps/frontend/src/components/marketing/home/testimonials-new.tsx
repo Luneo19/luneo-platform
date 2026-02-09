@@ -39,7 +39,7 @@ export function TestimonialsNew() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <ScrollReveal animation="fade-up">
-          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
             <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-[10px] sm:text-xs font-semibold rounded-full mb-4 sm:mb-5 uppercase tracking-wider">
               Temoignages
             </span>
@@ -65,7 +65,7 @@ export function TestimonialsNew() {
               <span className="text-white font-bold text-base sm:text-lg">4.9</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-white/10" />
-            <span className="text-slate-500 text-xs sm:text-sm">380+ avis verifies</span>
+            <span className="text-slate-400 text-xs sm:text-sm">380+ avis verifies</span>
           </div>
         </ScrollReveal>
 
@@ -115,7 +115,7 @@ export function TestimonialsNew() {
                     </div>
                     <div>
                       <div className="text-xs sm:text-sm font-semibold text-white">{t.author}</div>
-                      <div className="text-[10px] sm:text-xs text-slate-500">{t.role}, {t.company}</div>
+                      <div className="text-[10px] sm:text-xs text-slate-400">{t.role}, {t.company}</div>
                     </div>
                   </div>
                 </div>

@@ -96,7 +96,7 @@ export function FooterNew() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre@email.com"
-                  className="flex-1 lg:w-64 h-10 sm:h-11 px-3 sm:px-4 rounded-lg bg-white/[0.06] border border-white/[0.1] text-white placeholder:text-slate-600 text-xs sm:text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 transition-all"
+                  className="flex-1 lg:w-64 h-10 sm:h-11 px-3 sm:px-4 rounded-lg bg-white/[0.06] border border-white/[0.1] text-white placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 transition-all"
                 />
                 <Button className="h-10 sm:h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold shrink-0 text-xs sm:text-sm px-3 sm:px-4">
                   <Mail className="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-1.5 sm:mr-2" />
@@ -114,7 +114,7 @@ export function FooterNew() {
             {/* Brand column */}
             <div>
               <Logo variant="dark" size="default" href="/" className="mb-4 sm:mb-5" />
-              <p className="text-slate-500 leading-relaxed mb-5 sm:mb-6 max-w-xs text-xs sm:text-sm">
+              <p className="text-slate-400 leading-relaxed mb-5 sm:mb-6 max-w-xs text-xs sm:text-sm">
                 Construire l&apos;avenir de la personnalisation de produits, une fonctionnalite a la fois.
               </p>
               <div className="flex gap-2.5 sm:gap-3">
@@ -126,7 +126,7 @@ export function FooterNew() {
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-9 sm:w-10 h-9 sm:h-10 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center justify-center text-slate-500 hover:bg-purple-500/20 hover:border-purple-500/30 hover:text-purple-400 transition-all"
+                      className="w-9 sm:w-10 h-9 sm:h-10 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center justify-center text-slate-400 hover:bg-purple-500/20 hover:border-purple-500/30 hover:text-purple-400 transition-all"
                       aria-label={social.label}
                     >
                       <Icon className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
@@ -140,7 +140,7 @@ export function FooterNew() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
               {Object.values(footerLinks).map((section) => (
                 <div key={section.title}>
-                  <h4 className="text-[10px] sm:text-xs font-semibold text-slate-500 mb-3 sm:mb-5 uppercase tracking-wider">
+                  <h4 className="text-[10px] sm:text-xs font-semibold text-slate-400 mb-3 sm:mb-5 uppercase tracking-wider">
                     {section.title}
                   </h4>
                   <ul className="space-y-2 sm:space-y-3">
@@ -148,7 +148,7 @@ export function FooterNew() {
                       <li key={link.label}>
                         <Link
                           href={link.href}
-                          className="text-xs sm:text-sm text-slate-500 hover:text-white transition-colors"
+                          className="text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
                         >
                           {link.label}
                         </Link>
@@ -163,19 +163,19 @@ export function FooterNew() {
 
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-6 sm:pt-8 border-t border-white/[0.04] gap-4 sm:gap-0">
-          <p className="text-[10px] sm:text-xs text-slate-600">
+          <p className="text-[10px] sm:text-xs text-slate-400">
             &copy; {new Date().getFullYear()} Luneo. Tous droits reserves.
           </p>
           <div className="flex gap-4 sm:gap-6 flex-wrap justify-center">
-            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-600">
+            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               SOC 2 Certifie
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-600">
+            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               Conforme RGPD
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-600">
+            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               SSL 256-bit
             </span>

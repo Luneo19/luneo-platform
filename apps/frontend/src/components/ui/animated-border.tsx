@@ -108,35 +108,53 @@ interface AnimatedBorderCTAProps {
   children: React.ReactNode;
   className?: string;
   speed?: 'slow' | 'normal' | 'fast';
+  /** 'gradient' = purple-pink animated border; 'white' = static white border, white/cyan glow on hover */
+  variant?: 'gradient' | 'white';
 }
 
 function AnimatedBorderCTAInner({
   children,
   className = '',
   speed = 'fast',
+  variant = 'gradient',
 }: AnimatedBorderCTAProps) {
   const duration = SPEEDS[speed];
+  const isWhite = variant === 'white';
+
+  const gradientStyle = isWhite
+    ? `conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,1) 8%, rgba(34,211,238,0.9) 18%, transparent 28%, transparent 72%, rgba(255,255,255,1) 82%, rgba(34,211,238,0.9) 92%, transparent 100%)`
+    : `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,1) 8%, rgba(236,72,153,1) 18%, transparent 28%, transparent 72%, rgba(168,85,247,1) 82%, rgba(236,72,153,1) 92%, transparent 100%)`;
+
+  const glowStyle = isWhite
+    ? `conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.7) 8%, rgba(34,211,238,0.6) 18%, transparent 28%, transparent 72%, rgba(255,255,255,0.7) 82%, rgba(34,211,238,0.6) 92%, transparent 100%)`
+    : `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,0.8) 8%, rgba(236,72,153,0.8) 18%, transparent 28%, transparent 72%, rgba(168,85,247,0.8) 82%, rgba(236,72,153,0.8) 92%, transparent 100%)`;
 
   return (
-    <div className={`animated-border-cta relative inline-flex ${className}`} style={{ padding: '2px' }}>
-      {/* Rotating gradient */}
-      <div className="absolute inset-0 rounded-lg overflow-hidden">
+    <div className={`animated-border-cta group/cta relative inline-flex ${className}`} style={{ padding: '2px' }}>
+      {/* Static white border (white variant only, always visible) */}
+      {isWhite && (
+        <div className="absolute inset-0 rounded-lg border-2 border-white pointer-events-none" aria-hidden />
+      )}
+      {/* Rotating gradient: always on for gradient variant; hover-only for white */}
+      <div
+        className={`absolute inset-0 rounded-lg overflow-hidden ${
+          isWhite ? 'opacity-0 group-hover/cta:opacity-100 transition-opacity duration-300' : ''
+        }`}
+      >
         <div
           className="absolute inset-[-200%] gpu-accelerated"
-          style={{
-            background: `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,1) 8%, rgba(236,72,153,1) 18%, transparent 28%, transparent 72%, rgba(168,85,247,1) 82%, rgba(236,72,153,1) 92%, transparent 100%)`,
-            animation: `spin ${duration} linear infinite`,
-          }}
+          style={{ background: gradientStyle, animation: `spin ${duration} linear infinite` }}
         />
       </div>
       {/* Glow layer */}
-      <div className="absolute inset-0 rounded-lg overflow-hidden blur-sm opacity-60 -z-[1]">
+      <div
+        className={`absolute inset-0 rounded-lg overflow-hidden blur-sm -z-[1] ${
+          isWhite ? 'opacity-0 group-hover/cta:opacity-60 transition-opacity duration-300' : 'opacity-60'
+        }`}
+      >
         <div
           className="absolute inset-[-200%] gpu-accelerated"
-          style={{
-            background: `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,0.8) 8%, rgba(236,72,153,0.8) 18%, transparent 28%, transparent 72%, rgba(168,85,247,0.8) 82%, rgba(236,72,153,0.8) 92%, transparent 100%)`,
-            animation: `spin ${duration} linear infinite`,
-          }}
+          style={{ background: glowStyle, animation: `spin ${duration} linear infinite` }}
         />
       </div>
       <div className="relative z-10 w-full">
