@@ -238,8 +238,8 @@ function LoginPageContent() {
             const redirectTo = params.get('redirect');
             const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
             setTimeout(() => {
-              router.push(safeRedirect || getRoleBasedRedirect(user?.role));
-              router.refresh();
+              // Use window.location.href for full page reload so cookies are properly read server-side
+              window.location.href = safeRedirect || getRoleBasedRedirect(user?.role);
             }, 500);
           }}
           onError={(error) => setError(error)}

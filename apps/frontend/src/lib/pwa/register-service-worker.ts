@@ -13,7 +13,7 @@ export function registerServiceWorker() {
   if (process.env.NODE_ENV === 'production') {
     window.addEventListener('load', () => {
       navigator.serviceWorker
-        .register('/service-worker.js')
+        .register('/sw.js')
         .then((registration) => {
           if (process.env.NODE_ENV === 'development') {
             logger.info('Service Worker registered', { scope: registration.scope });
@@ -35,7 +35,7 @@ export function registerServiceWorker() {
           logger.error(
             'Service Worker registration failed',
             error instanceof Error ? error : new Error(String(error)),
-            { scope: '/service-worker.js' }
+            { scope: '/sw.js' }
           );
         });
     });

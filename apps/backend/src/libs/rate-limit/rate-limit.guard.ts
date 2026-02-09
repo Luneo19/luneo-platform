@@ -68,7 +68,7 @@ export class RateLimitGuard implements CanActivate {
           keyPrefix: `rl:${this.getKeyPrefix(request)}`,
         }),
         new Promise<any>((resolve) => setTimeout(() => {
-          this.logger.warn(`Rate limit check timeout for ${identifier}, allowing request`);
+          this.logger.debug(`Rate limit check timeout for ${identifier}, allowing request`);
           resolve({
             allowed: true,
             remaining: config.limit,
@@ -78,7 +78,7 @@ export class RateLimitGuard implements CanActivate {
         }, 3000)),
       ]);
     } catch (error) {
-      this.logger.warn(`Rate limit check error, allowing request`, error?.message || error);
+      this.logger.debug(`Rate limit check error, allowing request`, error?.message || error);
       result = {
         allowed: true,
         remaining: config.limit,

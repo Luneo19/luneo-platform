@@ -40,6 +40,7 @@ const config = {
   },
   // Protected routes requiring authentication
   protectedRoutes: [
+    '/admin',
     '/dashboard',
     '/overview',
     '/settings',

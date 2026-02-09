@@ -213,7 +213,7 @@ export class BruteForceService {
       const canAttempt = await Promise.race([
         this.canAttempt(email, ip),
         new Promise<boolean>((resolve) => setTimeout(() => {
-          this.logger.warn('Brute force check timeout, allowing request');
+          this.logger.debug('Brute force check timeout, allowing request');
           resolve(true); // Fail open - allow request
         }, 3000)),
       ]);
