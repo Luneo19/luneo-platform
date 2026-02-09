@@ -27,29 +27,29 @@ export function AIStats({
       label: 'Total',
       value: total,
       icon: TrendingUp,
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10',
+      color: 'text-[#3b82f6]',
+      bgColor: 'bg-[#3b82f6]/10',
     },
     {
       label: 'Réussies',
       value: completed,
       icon: CheckCircle2,
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/10',
+      color: 'text-[#4ade80]',
+      bgColor: 'bg-[#4ade80]/10',
     },
     {
       label: 'En cours',
       value: processing,
       icon: Loader2,
-      color: 'text-yellow-400',
-      bgColor: 'bg-yellow-500/10',
+      color: 'text-[#fbbf24]',
+      bgColor: 'bg-[#fbbf24]/10',
     },
     {
       label: 'Échouées',
       value: failed,
       icon: XCircle,
-      color: 'text-red-400',
-      bgColor: 'bg-red-500/10',
+      color: 'text-[#f87171]',
+      bgColor: 'bg-[#f87171]/10',
     },
     {
       label: 'Crédits utilisés',
@@ -72,12 +72,12 @@ export function AIStats({
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.label} className={`${stat.bgColor} border-gray-700`}>
+          <Card key={stat.label} className={`dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm ${stat.bgColor}`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <Icon className={`w-5 h-5 ${stat.color}`} />
               </div>
-              <p className="text-xs text-gray-400 mb-1">{stat.label}</p>
+              <p className="text-xs text-white/40 mb-1">{stat.label}</p>
               <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
             </CardContent>
           </Card>
@@ -86,6 +86,3 @@ export function AIStats({
     </div>
   );
 }
-
-
-

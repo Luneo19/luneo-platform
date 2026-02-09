@@ -43,12 +43,12 @@ export function RevenueChart({ data, isLoading = false, className }: RevenueChar
 
   if (isLoading) {
     return (
-      <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+      <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-white">Revenue Chart</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 bg-zinc-700/50 rounded animate-pulse" />
+          <div className="h-64 bg-white/[0.06] rounded animate-pulse" />
         </CardContent>
       </Card>
     );
@@ -62,8 +62,8 @@ export function RevenueChart({ data, isLoading = false, className }: RevenueChar
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-lg">
-          <p className="text-sm text-zinc-400 mb-2">{payload[0].payload.date}</p>
+        <div className="rounded-lg p-3 border border-white/[0.06]" style={{ backgroundColor: '#1a1a2e' }}>
+          <p className="text-sm text-white/60 mb-2">{payload[0].payload.date}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {formatCurrency(entry.value)}
@@ -76,7 +76,7 @@ export function RevenueChart({ data, isLoading = false, className }: RevenueChar
   };
 
   return (
-    <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+    <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
@@ -116,17 +116,17 @@ export function RevenueChart({ data, isLoading = false, className }: RevenueChar
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis
               dataKey="date"
-              stroke="#9ca3af"
+              stroke="#4a4a5e"
               fontSize={12}
-              tickLine={{ stroke: '#9ca3af' }}
+              tickLine={{ stroke: '#4a4a5e' }}
             />
             <YAxis
-              stroke="#9ca3af"
+              stroke="#4a4a5e"
               fontSize={12}
-              tickLine={{ stroke: '#9ca3af' }}
+              tickLine={{ stroke: '#4a4a5e' }}
               tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`}
             />
             <Tooltip content={<CustomTooltip />} />

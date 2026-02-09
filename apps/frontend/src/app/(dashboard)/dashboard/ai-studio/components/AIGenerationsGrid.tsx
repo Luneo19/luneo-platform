@@ -47,22 +47,22 @@ export function AIGenerationsGrid({
   if (generations.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Aucune génération trouvée</p>
+        <p className="text-white/60">Aucune génération trouvée</p>
       </div>
     );
   }
 
   const getStatusBadge = (status: Generation['status']) => {
     const statusConfig = {
-      completed: { label: 'Terminée', icon: CheckCircle2, className: 'bg-green-500' },
-      processing: { label: 'En cours', icon: Loader2, className: 'bg-yellow-500 animate-pulse' },
-      pending: { label: 'En attente', icon: Loader2, className: 'bg-blue-500' },
-      failed: { label: 'Échouée', icon: XCircle, className: 'bg-red-500' },
+      completed: { label: 'Terminée', icon: CheckCircle2, className: 'dash-badge dash-badge-new' },
+      processing: { label: 'En cours', icon: Loader2, className: 'bg-[#fbbf24]/15 text-[#fbbf24] border-[#fbbf24]/25' },
+      pending: { label: 'En attente', icon: Loader2, className: 'bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/25' },
+      failed: { label: 'Échouée', icon: XCircle, className: 'dash-badge-live' },
     };
     const config = statusConfig[status] || statusConfig.pending;
     const Icon = config.icon;
     return (
-      <Badge className={cn(config.className, 'flex items-center gap-1')}>
+      <Badge className={cn(config.className, 'flex items-center gap-1 text-xs')}>
         <Icon className="w-3 h-3" />
         {config.label}
       </Badge>
@@ -74,7 +74,7 @@ export function AIGenerationsGrid({
       {generations.map((generation) => (
         <Card
           key={generation.id}
-          className="bg-gray-50 border-gray-200 hover:border-purple-500/50 transition-colors group"
+          className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-purple-500/30 transition-colors group"
         >
           <div className="relative aspect-square overflow-hidden rounded-t-lg">
             {generation.thumbnail ? (
@@ -98,7 +98,7 @@ export function AIGenerationsGrid({
                   size="sm"
                   variant="secondary"
                   onClick={() => onPreview(generation)}
-                  className="bg-white/90 hover:bg-white"
+                  className="bg-white/90 hover:bg-white text-[#0a0a0f] border-0"
                 >
                   <Eye className="w-4 h-4" />
                 </Button>
@@ -106,7 +106,7 @@ export function AIGenerationsGrid({
                   size="sm"
                   variant="secondary"
                   onClick={() => onDownload(generation)}
-                  className="bg-white/90 hover:bg-white"
+                  className="bg-white/90 hover:bg-white text-[#0a0a0f] border-0"
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -116,23 +116,23 @@ export function AIGenerationsGrid({
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-700 line-clamp-2 mb-1">
+                <p className="text-sm text-white/80 line-clamp-2 mb-1">
                   {generation.prompt}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-white/40">
                   {formatDate(generation.createdAt)}
                 </p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/80 hover:bg-white/[0.04]">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-white border-gray-200">
+                <DropdownMenuContent align="end" className="dash-card border-white/[0.06] bg-[#12121a]">
                   <DropdownMenuItem
                     onClick={() => onPreview(generation)}
-                    className="text-gray-700 cursor-pointer"
+                    className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Prévisualiser
@@ -141,14 +141,14 @@ export function AIGenerationsGrid({
                     <>
                       <DropdownMenuItem
                         onClick={() => onDownload(generation)}
-                        className="text-gray-700 cursor-pointer"
+                        className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Télécharger
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onShare(generation)}
-                        className="text-gray-700 cursor-pointer"
+                        className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                       >
                         <Share2 className="w-4 h-4 mr-2" />
                         Partager
@@ -157,7 +157,7 @@ export function AIGenerationsGrid({
                         onClick={() => {
                           navigator.clipboard.writeText(generation.result || '');
                         }}
-                        className="text-gray-700 cursor-pointer"
+                        className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                       >
                         <Copy className="w-4 h-4 mr-2" />
                         Copier l'URL
@@ -166,7 +166,7 @@ export function AIGenerationsGrid({
                   )}
                   <DropdownMenuItem
                     onClick={() => onDelete(generation.id)}
-                    className="text-red-400 cursor-pointer"
+                    className="text-[#f87171] cursor-pointer hover:bg-[#f87171]/10 focus:bg-[#f87171]/10"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Supprimer
@@ -174,7 +174,7 @@ export function AIGenerationsGrid({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center justify-between text-xs text-white/40">
               <span>{generation.model}</span>
               <span>{generation.credits} crédits</span>
             </div>
@@ -184,6 +184,3 @@ export function AIGenerationsGrid({
     </div>
   );
 }
-
-
-

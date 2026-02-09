@@ -53,10 +53,10 @@ export function SupportStatsCards({
         const Icon = stat.icon;
         return (
           <motion key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Card className="p-4 bg-gray-50 border-gray-200">
+            <Card className="dash-card p-4 border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">{stat.label}</p>
+                  <p className="text-sm text-white/60">{stat.label}</p>
                   <p
                     className={cn(
                       'text-2xl font-bold',

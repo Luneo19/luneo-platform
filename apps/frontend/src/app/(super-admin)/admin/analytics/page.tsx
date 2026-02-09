@@ -1,6 +1,7 @@
 /**
  * ★★★ ADMIN ANALYTICS PAGE ★★★
  * Page Analytics complète avec tabs pour toutes les métriques
+ * Design: dark glassmorphism (dash-card, dash-badge)
  */
 
 'use client';
@@ -32,19 +33,19 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Analytics</h1>
-          <p className="text-zinc-400 mt-2">
+          <p className="text-white/60 mt-2">
             Comprehensive business analytics and insights
           </p>
         </div>
         <Select value={String(period)} onValueChange={(value) => setPeriod(Number(value))}>
-          <SelectTrigger className="w-[180px] bg-zinc-900 border-zinc-700 text-white">
+          <SelectTrigger className="w-[180px] bg-white/[0.03] border-white/[0.06] text-white hover:bg-white/[0.04] focus:ring-purple-500/40">
             <SelectValue placeholder="Period" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="365">Last year</SelectItem>
+          <SelectContent className="bg-[#1a1a2e] border-white/[0.08] text-white">
+            <SelectItem value="7" className="text-white focus:bg-white/[0.06] focus:text-white">Last 7 days</SelectItem>
+            <SelectItem value="30" className="text-white focus:bg-white/[0.06] focus:text-white">Last 30 days</SelectItem>
+            <SelectItem value="90" className="text-white focus:bg-white/[0.06] focus:text-white">Last 90 days</SelectItem>
+            <SelectItem value="365" className="text-white focus:bg-white/[0.06] focus:text-white">Last year</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -91,23 +92,41 @@ export default function AnalyticsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-zinc-800 border-zinc-700">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-zinc-700">
+        <TabsList className="dash-card border-white/[0.06] bg-white/[0.04] p-1 text-white/60">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04] focus-visible:ring-purple-500/40"
+          >
             Overview
           </TabsTrigger>
-          <TabsTrigger value="revenue" className="data-[state=active]:bg-zinc-700">
+          <TabsTrigger
+            value="revenue"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04] focus-visible:ring-purple-500/40"
+          >
             Revenue
           </TabsTrigger>
-          <TabsTrigger value="acquisition" className="data-[state=active]:bg-zinc-700">
+          <TabsTrigger
+            value="acquisition"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04] focus-visible:ring-purple-500/40"
+          >
             Acquisition
           </TabsTrigger>
-          <TabsTrigger value="retention" className="data-[state=active]:bg-zinc-700">
+          <TabsTrigger
+            value="retention"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04] focus-visible:ring-purple-500/40"
+          >
             Retention
           </TabsTrigger>
-          <TabsTrigger value="funnel" className="data-[state=active]:bg-zinc-700">
+          <TabsTrigger
+            value="funnel"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04] focus-visible:ring-purple-500/40"
+          >
             Funnel
           </TabsTrigger>
-          <TabsTrigger value="ltv" className="data-[state=active]:bg-zinc-700">
+          <TabsTrigger
+            value="ltv"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04] focus-visible:ring-purple-500/40"
+          >
             LTV Analysis
           </TabsTrigger>
         </TabsList>

@@ -62,12 +62,12 @@ export function PieChartWidget({
 
   if (isLoading) {
     return (
-      <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+      <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-white">{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 bg-zinc-700/50 rounded animate-pulse" />
+          <div className="h-64 bg-white/[0.06] rounded animate-pulse" />
         </CardContent>
       </Card>
     );
@@ -78,9 +78,9 @@ export function PieChartWidget({
       const data = payload[0];
       const percent = ((data.value / total) * 100).toFixed(1);
       return (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-lg">
+        <div className="rounded-lg p-3 border border-white/[0.06]" style={{ backgroundColor: '#1a1a2e' }}>
           <p className="text-sm font-medium text-white mb-1">{data.name}</p>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-white/60">
             {formatCurrency(data.value)} ({percent}%)
           </p>
         </div>
@@ -113,7 +113,7 @@ export function PieChartWidget({
   };
 
   return (
-    <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+    <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
       <CardHeader>
         <CardTitle className="text-lg font-semibold text-white">{title}</CardTitle>
       </CardHeader>
@@ -156,7 +156,7 @@ export function PieChartWidget({
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-zinc-400">{item.name}</span>
+                  <span className="text-white/60">{item.name}</span>
                 </div>
                 <span className="text-white font-medium">
                   {formatCurrency(item.value)} ({(item.value / total * 100).toFixed(1)}%)

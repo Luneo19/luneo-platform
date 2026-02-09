@@ -99,7 +99,7 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
   }
 
   return (
-    <section className={`py-16 sm:py-20 bg-gradient-to-br from-gray-900 via-purple-950/20 to-blue-950/20 ${className}`}>
+    <section className={`py-16 sm:py-20 bg-gradient-to-br from-transparent via-purple-950/20 to-blue-950/20 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion
@@ -118,7 +118,7 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
               crédits IA
             </span>
           </h2>
-          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+          <p className="text-lg text-white/60 max-w-2xl mx-auto">
             Besoin de plus de crédits ? Achetez des packs supplémentaires à tout moment.
             <br />
             <span className="text-purple-400 font-semibold">Parfait pour compléter votre abonnement.</span>

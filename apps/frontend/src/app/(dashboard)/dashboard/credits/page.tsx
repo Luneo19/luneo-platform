@@ -23,10 +23,10 @@ function CreditsPageContent() {
 
   if (state.loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-[60vh] dash-bg">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto" />
-          <p className="mt-4 text-gray-700">Chargement des crédits...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-purple-500 mx-auto" />
+          <p className="mt-4 text-white/60">Chargement des crédits...</p>
         </div>
       </div>
     );
@@ -43,12 +43,12 @@ function CreditsPageContent() {
       />
       <CreditsStatsGrid stats={state.stats} />
       <Tabs value={state.activeTab} onValueChange={(v) => state.setActiveTab(v as typeof state.activeTab)} className="space-y-6">
-        <TabsList className="bg-gray-50 border border-gray-200">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-600">Vue d'ensemble</TabsTrigger>
-          <TabsTrigger value="packs" className="data-[state=active]:bg-cyan-600">Packs ({state.creditPacks.length})</TabsTrigger>
-          <TabsTrigger value="history" className="data-[state=active]:bg-cyan-600">Historique ({state.filteredTransactions.length})</TabsTrigger>
-          <TabsTrigger value="stats" className="data-[state=active]:bg-cyan-600">Statistiques</TabsTrigger>
-          <TabsTrigger value="settings" className="data-[state=active]:bg-cyan-600">Paramètres</TabsTrigger>
+        <TabsList className="bg-white/[0.04] border border-white/[0.06] p-1 rounded-xl">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg">Vue d'ensemble</TabsTrigger>
+          <TabsTrigger value="packs" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg">Packs ({state.creditPacks.length})</TabsTrigger>
+          <TabsTrigger value="history" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg">Historique ({state.filteredTransactions.length})</TabsTrigger>
+          <TabsTrigger value="stats" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg">Statistiques</TabsTrigger>
+          <TabsTrigger value="settings" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg">Paramètres</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-6">
           <CreditsOverviewTab filteredTransactions={state.filteredTransactions} creditPacks={state.creditPacks} onPurchase={state.handlePurchase} />

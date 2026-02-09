@@ -48,7 +48,7 @@ function ZonesPageContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
       </div>
     );
   }
@@ -56,11 +56,11 @@ function ZonesPageContent() {
   if (!product) {
     return (
       <div className="container mx-auto p-8">
-        <Card>
+        <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
           <CardContent className="flex items-center justify-center h-[400px]">
             <div className="text-center">
-              <p className="text-lg font-semibold mb-2">Produit introuvable</p>
-              <Button asChild variant="outline">
+              <p className="text-lg font-semibold text-white mb-2">Produit introuvable</p>
+              <Button asChild variant="outline" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]">
                 <Link href="/products">Retour aux produits</Link>
               </Button>
             </div>
@@ -75,15 +75,15 @@ function ZonesPageContent() {
   if (!modelUrl) {
     return (
       <div className="container mx-auto p-8">
-        <Card>
+        <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Modèle 3D requis</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-white">Modèle 3D requis</CardTitle>
+            <CardDescription className="text-white/60">
               Ce produit n'a pas de modèle 3D. Veuillez d'abord uploader un modèle.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild>
+            <Button asChild className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white">
               <Link href={`/products/${productId}/edit`}>Configurer le produit</Link>
             </Button>
           </CardContent>
@@ -97,15 +97,15 @@ function ZonesPageContent() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="ghost" size="sm" asChild className="text-white/80 hover:bg-white/[0.04] hover:text-white">
             <Link href={`/products/${productId}`}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour
             </Link>
           </Button>
         </div>
-        <h1 className="text-3xl font-bold">Configuration des Zones</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-3xl font-bold text-white">Configuration des Zones</h1>
+        <p className="text-white/60 mt-2">
           Définissez les zones personnalisables sur le modèle 3D de "{product.name}"
         </p>
       </div>
@@ -114,7 +114,7 @@ function ZonesPageContent() {
       <Suspense
         fallback={
           <div className="flex items-center justify-center h-[600px]">
-            <Loader2 className="w-8 h-8 animate-spin" />
+            <Loader2 className="w-8 h-8 animate-spin text-white/60" />
           </div>
         }
       >

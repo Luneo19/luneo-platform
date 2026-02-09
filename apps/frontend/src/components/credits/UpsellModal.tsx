@@ -186,23 +186,23 @@ export function UpsellModal({
               ))}
             </div>
             
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium mb-2">✨ Que pouvez-vous faire avec vos crédits ?</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
+            <div className="mt-6 p-4 bg-white/[0.04] border border-white/[0.06] rounded-lg">
+              <p className="text-sm font-medium text-white mb-2">✨ Que pouvez-vous faire avec vos crédits ?</p>
+              <ul className="text-sm text-white/60 space-y-1">
                 <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
                   Génération IA (DALL-E 3) : 5 crédits
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
                   Rendu 3D haute résolution : 8 crédits
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
                   Personnalisation IA : 4 crédits
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
                   Export AR : 5 crédits
                 </li>
               </ul>

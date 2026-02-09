@@ -22,12 +22,12 @@ export function TwoFactorSection() {
 
   if (isLoading) {
     return (
-      <Card className="bg-white border-gray-200">
+      <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-gray-900">Authentification à deux facteurs</CardTitle>
+          <CardTitle className="text-white">Authentification à deux facteurs</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-white/60">Chargement...</p>
         </CardContent>
       </Card>
     );
@@ -35,15 +35,15 @@ export function TwoFactorSection() {
 
   return (
     <>
-      <Card className="bg-white border-gray-200">
+      <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-gray-900 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-cyan-400" />
+              <CardTitle className="text-white flex items-center gap-2">
+                <Shield className="w-5 h-5 text-purple-400" />
                 Authentification à deux facteurs
               </CardTitle>
-              <CardDescription className="text-gray-600 mt-1">
+              <CardDescription className="text-white/60 mt-1">
                 Ajoutez une couche supplémentaire de sécurité à votre compte
               </CardDescription>
             </div>
@@ -57,7 +57,7 @@ export function TwoFactorSection() {
                   <Button
                     variant="outline"
                     onClick={() => setShowBackupCodesModal(true)}
-                    className="border-gray-200"
+                    className="border-white/[0.06] hover:bg-white/[0.04]"
                   >
                     Codes de secours
                   </Button>
@@ -73,7 +73,7 @@ export function TwoFactorSection() {
               ) : (
                 <Button
                   onClick={() => setShowEnableModal(true)}
-                  className="bg-cyan-600 hover:bg-cyan-700"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
                 >
                   <Shield className="w-4 h-4 mr-2" />
                   Activer 2FA
@@ -83,7 +83,7 @@ export function TwoFactorSection() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-gray-600">
+          <div className="space-y-2 text-sm text-white/60">
             {status.enabled ? (
               <>
                 <p>• La 2FA est activée et protège votre compte</p>

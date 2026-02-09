@@ -98,14 +98,14 @@ export function ProjectsPageClient() {
   if (isLoading && projects.length === 0) {
     return (
       <div className="space-y-6 pb-10">
-        <div className="h-16 bg-gray-800 rounded animate-pulse" />
+        <div className="dash-card h-16 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" />
         <div className="grid grid-cols-2 gap-4">
-          <div className="h-24 bg-gray-800 rounded animate-pulse" />
-          <div className="h-24 bg-gray-800 rounded animate-pulse" />
+          <div className="dash-card h-24 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" />
+          <div className="dash-card h-24 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" />
         </div>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-gray-800 rounded animate-pulse" />
+            <div key={i} className="dash-card h-20 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" />
           ))}
         </div>
       </div>

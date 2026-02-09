@@ -284,7 +284,7 @@ function AIStudioPageContent() {
     <PlanGate 
       minimumPlan="professional"
       fallback={
-        <div className="min-h-screen bg-slate-950 text-white p-6 flex items-center justify-center">
+        <div className="min-h-screen bg-[#0a0a0f] text-white p-6 flex items-center justify-center">
           <UpgradePrompt 
             requiredPlan="professional" 
             feature="AI Studio"
@@ -294,7 +294,7 @@ function AIStudioPageContent() {
         </div>
       }
     >
-    <div className="min-h-screen bg-slate-950 text-white p-6">
+    <div className="min-h-screen bg-[#0a0a0f] text-white p-6">
       {/* Header */}
       <motion
         initial={{ opacity: 0, y: -20 }}
@@ -303,22 +303,22 @@ function AIStudioPageContent() {
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
+            <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
               <Brain className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">AI Studio</h1>
-              <p className="text-slate-400">
+              <h1 className="text-3xl font-bold text-white">AI Studio</h1>
+              <p className="text-white/60">
                 Outils IA pour transformer vos images et générer des designs
               </p>
             </div>
           </div>
           {credits !== null && (
-            <Card className="bg-slate-900 border-slate-800">
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
               <CardContent className="p-4 flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-purple-400" />
                 <div>
-                  <p className="text-xs text-slate-400">Crédits disponibles</p>
+                  <p className="text-xs text-white/40">Crédits disponibles</p>
                   <p className="text-lg font-bold text-white">{credits}</p>
                 </div>
               </CardContent>
@@ -330,10 +330,10 @@ function AIStudioPageContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tool Selection */}
         <div className="lg:col-span-1 space-y-4">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Outils IA</CardTitle>
-              <CardDescription>Sélectionnez un outil</CardDescription>
+              <CardTitle className="text-lg text-white">Outils IA</CardTitle>
+              <CardDescription className="text-white/40">Sélectionnez un outil</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               {AI_TOOLS.map((tool) => (
@@ -346,29 +346,29 @@ function AIStudioPageContent() {
                     setResult(null);
                     setExtractedColors([]);
                   }}
-                  className={`w-full p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                  className={`w-full p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                     selectedTool === tool.id
-                      ? 'bg-gradient-to-r ' + tool.color + ' border-transparent'
-                      : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                      ? 'dash-card-glow border-purple-500/40 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
+                      : 'dash-card border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/[0.10]'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <tool.icon className="w-5 h-5" />
+                    <tool.icon className={`w-5 h-5 ${selectedTool === tool.id ? 'text-white' : 'text-white/80'}`} />
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{tool.name}</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-white">{tool.name}</span>
                         {tool.badge && (
-                          <Badge className="text-xs bg-white/20 border-0">{tool.badge}</Badge>
+                          <span className="dash-badge dash-badge-pro text-xs">{tool.badge}</span>
                         )}
                         {tool.credits > 0 && (
-                          <Badge variant="outline" className="text-xs">
+                          <span className="text-xs text-white/60">
                             {tool.credits} crédit{tool.credits > 1 ? 's' : ''}
-                          </Badge>
+                          </span>
                         )}
                       </div>
-                      <p className="text-sm opacity-75">{tool.description}</p>
+                      <p className="text-sm text-white/60">{tool.description}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 opacity-50" />
+                    <ChevronRight className="w-4 h-4 text-white/40" />
                   </div>
                 </motion>
               ))}
@@ -381,16 +381,16 @@ function AIStudioPageContent() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Card className="bg-slate-900 border-slate-800">
+              <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg">Paramètres</CardTitle>
+                  <CardTitle className="text-lg text-white">Paramètres</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {selectedTool === 'background_removal' && (
                     <div className="space-y-2">
-                      <Label>Mode de détection</Label>
+                      <Label className="text-white/80">Mode de détection</Label>
                       <Select value={bgRemovalMode} onValueChange={(v: 'auto' | 'person' | 'product' | 'animal') => setBgRemovalMode(v)}>
-                        <SelectTrigger className="bg-slate-800 border-slate-700">
+                        <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -405,19 +405,19 @@ function AIStudioPageContent() {
 
                   {selectedTool === 'upscale' && (
                     <div className="space-y-2">
-                      <Label>Facteur d'agrandissement</Label>
+                      <Label className="text-white/80">Facteur d'agrandissement</Label>
                       <div className="flex gap-2">
                         <Button
                           variant={upscaleScale === '2' ? 'default' : 'outline'}
                           onClick={() => setUpscaleScale('2')}
-                          className={upscaleScale === '2' ? 'bg-blue-600' : ''}
+                          className={upscaleScale === '2' ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700' : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'}
                         >
                           2x (2 crédits)
                         </Button>
                         <Button
                           variant={upscaleScale === '4' ? 'default' : 'outline'}
                           onClick={() => setUpscaleScale('4')}
-                          className={upscaleScale === '4' ? 'bg-blue-600' : ''}
+                          className={upscaleScale === '4' ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700' : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'}
                         >
                           4x (4 crédits)
                         </Button>
@@ -427,7 +427,7 @@ function AIStudioPageContent() {
 
                   {selectedTool === 'color_extraction' && (
                     <div className="space-y-2">
-                      <Label>Nombre de couleurs: {maxColors}</Label>
+                      <Label className="text-white/80">Nombre de couleurs: {maxColors}</Label>
                       <Slider
                         value={[maxColors]}
                         onValueChange={([v]) => setMaxColors(v)}
@@ -441,9 +441,9 @@ function AIStudioPageContent() {
 
                   {selectedTool === 'smart_crop' && (
                     <div className="space-y-2">
-                      <Label>Ratio cible</Label>
+                      <Label className="text-white/80">Ratio cible</Label>
                       <Select value={cropRatio} onValueChange={setCropRatio}>
-                        <SelectTrigger className="bg-slate-800 border-slate-700">
+                        <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -463,13 +463,13 @@ function AIStudioPageContent() {
 
         {/* Work Area */}
         <div className="lg:col-span-2">
-          <Card className="bg-slate-900 border-slate-800 min-h-[600px]">
+          <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm min-h-[600px]">
             <CardContent className="p-6">
               {!selectedTool ? (
                 <div className="h-full flex flex-col items-center justify-center text-center py-20">
-                  <Sparkles className="w-16 h-16 text-slate-600 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Sélectionnez un outil</h3>
-                  <p className="text-slate-400 max-w-md">
+                  <Sparkles className="w-16 h-16 text-white/30 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2 text-white">Sélectionnez un outil</h3>
+                  <p className="text-white/60 max-w-md">
                     Choisissez un outil IA dans le panneau de gauche pour commencer
                   </p>
                 </div>
@@ -477,18 +477,18 @@ function AIStudioPageContent() {
                 /* Text-to-Design Interface */
                 <div className="space-y-6">
                   <div className="space-y-4">
-                    <Label>Décrivez votre design</Label>
+                    <Label className="text-white/80">Décrivez votre design</Label>
                     <textarea
                       placeholder="Ex: Un logo moderne pour une startup tech avec des formes géométriques et des couleurs vives..."
                       value={designPrompt}
                       onChange={(e) => setDesignPrompt(e.target.value)}
-                      className="w-full h-32 p-4 bg-slate-800 border border-slate-700 rounded-xl resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white"
+                      className="dash-input w-full h-32 p-4 rounded-xl resize-none text-white placeholder:text-white/40"
                     />
                     <div className="flex gap-4">
                       <div className="flex-1">
-                        <Label className="mb-2 block">Style</Label>
+                        <Label className="mb-2 block text-white/80">Style</Label>
                         <Select value={designStyle} onValueChange={(v: 'modern' | 'vintage' | 'minimal' | 'bold' | 'playful') => setDesignStyle(v)}>
-                          <SelectTrigger className="bg-slate-800 border-slate-700">
+                          <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -504,7 +504,7 @@ function AIStudioPageContent() {
                     <Button
                       onClick={handleProcess}
                       disabled={isProcessing || !designPrompt.trim()}
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-12"
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 h-12 text-white"
                     >
                       {isProcessing ? (
                         <>
@@ -526,8 +526,8 @@ function AIStudioPageContent() {
                       animate={{ opacity: 1, y: 0 }}
                       className="mt-6"
                     >
-                      <Label className="mb-4 block">Résultat</Label>
-                      <div className="relative rounded-xl overflow-hidden bg-slate-800">
+                      <Label className="mb-4 block text-white/80">Résultat</Label>
+                      <div className="relative rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06]">
                         <OptimizedImage
                           src={result.output.imageUrl}
                           alt="Generated design"
@@ -535,7 +535,7 @@ function AIStudioPageContent() {
                         />
                         <Button
                           size="sm"
-                          className="absolute top-4 right-4 bg-slate-900/80"
+                          className="absolute top-4 right-4 bg-[#12121a]/90 border border-white/[0.08] text-white hover:bg-white/[0.06]"
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = result.output.imageUrl;
@@ -558,7 +558,7 @@ function AIStudioPageContent() {
                     onClick={() => fileInputRef.current?.click()}
                     className={`
                       relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all
-                      ${uploadedImage ? 'border-green-500/50 bg-green-500/5' : 'border-slate-700 hover:border-slate-600 bg-slate-800/50'}
+                      ${uploadedImage ? 'border-[#4ade80]/50 bg-[#4ade80]/5' : 'border-white/[0.08] hover:border-white/[0.12] bg-white/[0.04]'}
                     `}
                   >
                     <input
@@ -591,11 +591,11 @@ function AIStudioPageContent() {
                       </div>
                     ) : (
                       <>
-                        <Upload className="w-12 h-12 mx-auto text-slate-500 mb-4" />
-                        <p className="text-slate-400">
+                        <Upload className="w-12 h-12 mx-auto text-white/30 mb-4" />
+                        <p className="text-white/60">
                           Cliquez ou glissez une image ici
                         </p>
-                        <p className="text-sm text-slate-500 mt-2">
+                        <p className="text-sm text-white/40 mt-2">
                           PNG, JPG jusqu'à 10MB
                         </p>
                       </>
@@ -607,7 +607,7 @@ function AIStudioPageContent() {
                     <Button
                       onClick={handleProcess}
                       disabled={isProcessing}
-                      className={`w-full h-12 bg-gradient-to-r ${selectedToolConfig?.color}`}
+                      className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                     >
                       {isProcessing ? (
                         <>
@@ -630,7 +630,7 @@ function AIStudioPageContent() {
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-4"
                     >
-                      <Label>Palette extraite</Label>
+                      <Label className="text-white/80">Palette extraite</Label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {extractedColors.map((color, index) => (
                           <motion
@@ -639,7 +639,7 @@ function AIStudioPageContent() {
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: index * 0.05 }}
                             onClick={() => copyColor(color.hex)}
-                            className="p-3 bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors"
+                            className="dash-card p-3 rounded-xl cursor-pointer hover:bg-white/[0.06] border-white/[0.06] transition-colors"
                           >
                             <div
                               className="w-full h-16 rounded-lg mb-2"
@@ -647,12 +647,10 @@ function AIStudioPageContent() {
                             />
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="font-medium">{color.hex}</p>
-                                <p className="text-xs text-slate-400">{color.name}</p>
+                                <p className="font-medium text-white">{color.hex}</p>
+                                <p className="text-xs text-white/40">{color.name}</p>
                               </div>
-                              <Badge variant="outline" className="text-xs">
-                                {color.percentage}%
-                              </Badge>
+                              <span className="text-xs text-white/60">{color.percentage}%</span>
                             </div>
                           </motion>
                         ))}
@@ -668,10 +666,11 @@ function AIStudioPageContent() {
                       className="space-y-4"
                     >
                       <div className="flex items-center justify-between">
-                        <Label>Résultat</Label>
+                        <Label className="text-white/80">Résultat</Label>
                         <Button
                           size="sm"
                           variant="outline"
+                          className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = result.output.imageUrl;
@@ -683,7 +682,7 @@ function AIStudioPageContent() {
                           Télécharger
                         </Button>
                       </div>
-                      <div className="relative rounded-xl overflow-hidden bg-slate-800">
+                      <div className="relative rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06]">
                         <Image
                           src={result.output.imageUrl}
                           alt="Résultat de la génération IA"
@@ -693,10 +692,10 @@ function AIStudioPageContent() {
                           loading="lazy"
                         />
                         <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                          <Badge className="bg-green-500/20 text-green-300 border-0">
-                            <CheckCircle className="w-3 h-3 mr-1" />
+                          <span className="dash-badge dash-badge-new flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
                             Terminé
-                          </Badge>
+                          </span>
                         </div>
                       </div>
                     </motion>

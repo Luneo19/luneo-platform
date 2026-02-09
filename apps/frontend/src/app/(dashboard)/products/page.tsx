@@ -58,10 +58,10 @@ function ProductsPageContent() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Products</h1>
-          <p className="text-gray-400">{products.length} produits</p>
+          <p className="text-white/60">{products.length} produits</p>
         </div>
         <Link href="/dashboard/products">
-          <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white">
             <Plus className="w-4 h-4 mr-2" />
             Nouveau produit
           </Button>
@@ -72,16 +72,16 @@ function ProductsPageContent() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Rechercher un produit..."
-              className="pl-10 bg-gray-800 border-gray-700 text-white"
+              className="dash-input pl-10 border-white/[0.08] text-white placeholder:text-white/40"
             />
           </div>
         </div>
-        <Button variant="outline" className="border-gray-700 text-gray-300">
+        <Button variant="outline" className="border-white/[0.08] text-white/60 hover:bg-white/[0.04]">
           <Filter className="w-4 h-4 mr-2" />
           Filtres
         </Button>
@@ -89,13 +89,13 @@ function ProductsPageContent() {
 
       {/* Error State */}
       {error && !loading && (
-        <Card className="p-6 bg-red-900/20 border-red-500/30">
+        <Card className="dash-card p-6 bg-[#1a1a2e]/80 border-white/[0.06] border-[#f87171]/30">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-red-400 mb-2">Erreur de chargement</h3>
-              <p className="text-sm text-red-300">{error}</p>
+              <h3 className="text-lg font-semibold text-[#f87171] mb-2">Erreur de chargement</h3>
+              <p className="text-sm text-white/60">{error}</p>
             </div>
-            <Button onClick={handleRetry} variant="outline" className="border-red-500/50 text-red-400">
+            <Button onClick={handleRetry} variant="outline" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]">
               Réessayer
             </Button>
           </div>
@@ -107,9 +107,9 @@ function ProductsPageContent() {
         <ProductsSkeleton />
       ) : filteredProducts.length === 0 ? (
         <EmptyState
-          icon={<Package className="w-16 h-16" />}
+          icon={<Package className="w-16 h-16 text-white/40" />}
           title={searchTerm ? "Aucun produit trouvé" : "Aucun produit"}
-          description={searchTerm 
+          description={searchTerm
             ? `Aucun produit ne correspond à "${searchTerm}". Essayez avec d'autres mots-clés.`
             : "Créez votre premier produit pour commencer à personnaliser et vendre."}
           action={{
@@ -126,8 +126,11 @@ function ProductsPageContent() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product: any) => (
-            <Card key={product.id} className="overflow-hidden bg-gray-800/50 border-gray-700 hover:border-blue-500/50 transition-all group">
-              <div className="aspect-square bg-gray-900 relative">
+            <Card
+              key={product.id}
+              className="rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.10] transition-all group"
+            >
+              <div className="aspect-square bg-[#12121a] relative">
                 {product.image_url ? (
                   <Image
                     src={product.image_url}
@@ -139,19 +142,19 @@ function ProductsPageContent() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-16 h-16 text-gray-700" />
+                    <Package className="w-16 h-16 text-white/30" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <div className="flex gap-2">
                     <Link href={`/customize/${product.id}`}>
-                      <Button size="sm" className="bg-white text-gray-900">
+                      <Button size="sm" className="bg-white text-[#0a0a0f] hover:bg-white/90">
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
                     </Link>
                     <Link href={`/products/${product.id}`}>
-                      <Button size="sm" variant="outline" className="border-white text-white">
+                      <Button size="sm" variant="outline" className="border-white/60 text-white hover:bg-white/[0.08]">
                         <Eye className="w-4 h-4" />
                       </Button>
                     </Link>
@@ -160,9 +163,9 @@ function ProductsPageContent() {
               </div>
               <div className="p-4">
                 <h3 className="font-semibold text-white mb-1 truncate">{product.name}</h3>
-                <p className="text-sm text-gray-400">{product.category || 'Uncategorized'}</p>
+                <p className="text-sm text-white/60">{product.category || 'Uncategorized'}</p>
                 {product.price && (
-                  <p className="text-lg font-bold text-blue-400 mt-2">{product.price}€</p>
+                  <p className="text-lg font-bold text-purple-400 mt-2">{product.price}€</p>
                 )}
               </div>
             </Card>

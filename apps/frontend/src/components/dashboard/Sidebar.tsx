@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useDensity } from '@/providers/DensityProvider';
+import { sidebarConfig } from '@/styles/dashboard-tokens';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -375,23 +377,23 @@ function SidebarIndustryBadge({ isCollapsed }: { isCollapsed: boolean }) {
 }
 
 function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { sidebarCollapsed, setSidebarCollapsed } = useDensity();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
   const monitoringEnabled = useFeatureFlag('realtime_monitoring', true);
   const adaptiveSections = useAdaptiveSections();
 
   const toggleExpanded = useCallback((itemName: string) => {
-    setExpandedItems(prev => 
-      prev.includes(itemName) 
+    setExpandedItems(prev =>
+      prev.includes(itemName)
         ? prev.filter(name => name !== itemName)
         : [...prev, itemName]
     );
   }, []);
 
   const handleToggleCollapse = useCallback(() => {
-    setIsCollapsed(prev => !prev);
-  }, []);
+    setSidebarCollapsed(!sidebarCollapsed);
+  }, [sidebarCollapsed, setSidebarCollapsed]);
 
   const isItemActive = (item: NavItem) => {
     if (item.href === pathname) return true;
@@ -404,69 +406,68 @@ function Sidebar() {
   return (
     <motion
       initial={false}
-      animate={{ width: isCollapsed ? 80 : 280 }}
-      className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ${
-        isCollapsed ? 'w-20' : 'w-70'
-      }`}
+      animate={{ width: sidebarCollapsed ? sidebarConfig.collapsedWidth : sidebarConfig.expandedWidth }}
+      transition={{ duration: sidebarConfig.transitionDuration / 1000 }}
+      className="dash-sidebar dash-scroll flex flex-col h-screen sticky top-0"
     >
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-white/[0.06]">
         <div className="flex items-center justify-between">
-          {!isCollapsed && (
+          {!sidebarCollapsed && (
             <Link href="/dashboard" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">L</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Luneo</h1>
-                <p className="text-xs text-gray-500">Creative Studio</p>
+                <h1 className="text-xl font-bold text-white">Luneo</h1>
+                <p className="text-xs text-white/40">Creative Studio</p>
               </div>
             </Link>
           )}
-          {isCollapsed && (
+          {sidebarCollapsed && (
             <Link href="/dashboard" className="flex items-center justify-center">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">L</span>
               </div>
             </Link>
           )}
-          
+
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            onClick={handleToggleCollapse}
+            className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors text-white/50"
           >
-            {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <X className="w-5 h-5" />}
+            {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <X className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
       {/* Search */}
-      {!isCollapsed && (
-        <div className="p-4 border-b border-gray-200">
+      {!sidebarCollapsed && (
+        <div className="p-4 border-b border-white/[0.06]">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" />
             <input
               type="text"
               placeholder="Rechercher..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="dash-input w-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-transparent"
             />
           </div>
         </div>
       )}
 
       {/* Industry Badge */}
-      <SidebarIndustryBadge isCollapsed={isCollapsed} />
+      <SidebarIndustryBadge isCollapsed={sidebarCollapsed} />
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-4">
         {adaptiveSections.map((section) => (
           <div key={section.title} className="mb-6">
-            {!isCollapsed && (
-              <h3 className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            {!sidebarCollapsed && (
+              <h3 className="px-4 text-xs font-semibold text-white/30 uppercase tracking-wider mb-2">
                 {section.title}
               </h3>
             )}
-            
+
             <div className="space-y-1">
               {section.items.map((item) => {
                 if (item.href === '/monitoring' && !monitoringEnabled) {
@@ -481,52 +482,53 @@ function Sidebar() {
                   <div key={item.name}>
                     {/* Main Item */}
                     <div
-                      className={`mx-2 rounded-lg transition-all duration-200 ${
-                        isActive ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                      className={`mx-2 rounded-lg transition-all duration-200 border ${
+                        isActive ? 'dash-sidebar-item-active' : 'border-transparent hover:bg-white/[0.04]'
                       }`}
                     >
                       <div className="flex items-center">
                         <Link
                           href={item.href}
-                          className={`flex-1 flex items-center px-3 py-3 text-sm font-medium transition-colors ${
-                            isActive ? 'text-blue-700' : 'text-gray-700 hover:text-gray-900'
-                          }`}
+                          className="flex-1 flex items-center px-3 py-3 text-sm font-medium transition-colors text-white"
                         >
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
-                            isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                            isActive
+                              ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400'
+                              : 'bg-white/[0.06] text-white/60'
                           }`}>
                             <Icon className="w-4 h-4" />
                           </div>
-                          {!isCollapsed && (
+                          {!sidebarCollapsed && (
                             <>
                               <div className="flex-1">
                                 <div className="flex items-center">
                                   <span>{item.name}</span>
                                   {item.badge && (
-                                    <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                                      item.badge === 'Pro' ? 'bg-purple-100 text-purple-700' :
-                                      item.badge === 'Enterprise' ? 'bg-orange-100 text-orange-700' :
-                                      'bg-blue-100 text-blue-700'
+                                    <span className={`ml-2 px-2 py-0.5 text-xs rounded-full dash-badge ${
+                                      item.badge === 'Pro' ? 'dash-badge-pro' :
+                                      item.badge === 'Enterprise' ? 'dash-badge-enterprise' :
+                                      item.badge === 'Live' ? 'dash-badge-live' :
+                                      'dash-badge-new'
                                     }`}>
                                       {item.badge}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+                                <p className="text-xs text-white/50 mt-0.5">{item.description}</p>
                               </div>
                             </>
                           )}
                         </Link>
-                        
-                        {!isCollapsed && item.children && (
+
+                        {!sidebarCollapsed && item.children && (
                           <button
                             onClick={() => toggleExpanded(item.name)}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors text-white/50"
                           >
                             {isExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-gray-500" />
+                              <ChevronDown className="w-4 h-4" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-gray-500" />
+                              <ChevronRight className="w-4 h-4" />
                             )}
                           </button>
                         )}
@@ -534,7 +536,7 @@ function Sidebar() {
                     </div>
 
                     {/* Sub Items */}
-                    {!isCollapsed && item.children && (
+                    {!sidebarCollapsed && item.children && (
                       <AnimatePresence>
                         {isExpanded && (
                           <motion
@@ -546,21 +548,21 @@ function Sidebar() {
                             {item.children.map((child) => {
                               const isChildActive = child.href === pathname;
                               const ChildIcon = child.icon;
-                              
+
                               return (
                                 <Link
                                   key={child.name}
                                   href={child.href}
                                   className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                                    isChildActive 
-                                      ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                    isChildActive
+                                      ? 'bg-white/[0.06] text-white border border-purple-500/20'
+                                      : 'text-white/50 hover:text-white hover:bg-white/[0.04]'
                                   }`}
                                 >
                                   <ChildIcon className="w-4 h-4 mr-3" />
                                   <div>
                                     <div>{child.name}</div>
-                                    <p className="text-xs text-gray-500">{child.description}</p>
+                                    <p className="text-xs text-white/30">{child.description}</p>
                                   </div>
                                 </Link>
                               );
@@ -578,21 +580,21 @@ function Sidebar() {
       </div>
 
       {/* User Section */}
-      <div className="border-t border-gray-200 p-4">
-        {!isCollapsed ? (
+      <div className="border-t border-white/[0.06] p-4">
+        {!sidebarCollapsed ? (
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
               <span className="text-white font-medium text-sm">EA</span>
             </div>
             <div className="flex-1">
               <div className="flex items-center">
-                <span className="text-sm font-medium text-gray-900">Emmanuel A.</span>
+                <span className="text-sm font-medium text-white">Emmanuel A.</span>
                 <Crown className="w-4 h-4 ml-1 text-yellow-500" />
               </div>
-              <p className="text-xs text-gray-500">Enterprise Plan</p>
+              <p className="text-xs text-white/40">Enterprise Plan</p>
             </div>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Bell className="w-4 h-4 text-gray-500" />
+            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors">
+              <Bell className="w-4 h-4 text-white/40" />
             </button>
           </div>
         ) : (
@@ -600,8 +602,8 @@ function Sidebar() {
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
               <span className="text-white font-medium text-sm">EA</span>
             </div>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Bell className="w-4 h-4 text-gray-500" />
+            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors">
+              <Bell className="w-4 h-4 text-white/40" />
             </button>
           </div>
         )}

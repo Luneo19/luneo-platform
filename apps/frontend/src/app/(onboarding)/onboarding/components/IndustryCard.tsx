@@ -50,25 +50,21 @@ export function IndustryCard({
   return (
     <div
       onClick={onClick}
-      className={`p-5 rounded-xl border-2 text-center transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
+      className={`p-5 rounded-2xl border text-center transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
         isSelected
-          ? 'border-opacity-100 bg-opacity-20 shadow-lg'
-          : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+          ? 'bg-white/[0.06] border-[#8b5cf6]'
+          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'
       }`}
-      style={{
-        borderColor: isSelected ? accentColor : undefined,
-        backgroundColor: isSelected ? `${accentColor}15` : undefined,
-      }}
     >
       <div
         className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3"
-        style={{ backgroundColor: `${accentColor}25` }}
+        style={{ backgroundColor: isSelected ? `${accentColor}25` : 'rgba(255,255,255,0.06)' }}
       >
-        <IconComponent className="w-7 h-7" style={{ color: accentColor }} />
+        <IconComponent className="w-7 h-7" style={{ color: isSelected ? accentColor : 'rgba(255,255,255,0.6)' }} />
       </div>
-      <h3 className="font-semibold text-sm mb-1">{labelFr}</h3>
+      <h3 className="font-semibold text-sm mb-1 text-white">{labelFr}</h3>
       {description && (
-        <p className="text-xs text-slate-400 line-clamp-2">{description}</p>
+        <p className="text-xs text-white/60 line-clamp-2">{description}</p>
       )}
     </div>
   );

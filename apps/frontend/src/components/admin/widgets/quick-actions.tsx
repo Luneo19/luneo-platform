@@ -88,7 +88,7 @@ export interface QuickActionsProps {
 
 export function QuickActions({ actions = defaultActions, className }: QuickActionsProps) {
   return (
-    <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+    <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
       <CardContent className="p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

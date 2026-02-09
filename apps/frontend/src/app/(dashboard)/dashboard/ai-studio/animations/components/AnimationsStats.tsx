@@ -76,12 +76,12 @@ export function AnimationsStats({
       {statItems.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.label} className={cn('border-gray-700', stat.bgColor)}>
+          <Card key={stat.label} className={cn('dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm', stat.bgColor)}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <Icon className={cn('w-5 h-5', stat.color)} />
               </div>
-              <p className="text-xs text-gray-400 mb-1">{stat.label}</p>
+              <p className="text-xs text-white/40 mb-1">{stat.label}</p>
               <p className={cn('text-xl font-bold', stat.color)}>{stat.value}</p>
             </CardContent>
           </Card>

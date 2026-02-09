@@ -13,7 +13,7 @@ export function SecurityHeader() {
         <Shield className="w-8 h-8 text-cyan-400" />
         Sécurité
       </h1>
-      <p className="text-gray-400 mt-1">
+      <p className="text-white/60 mt-1">
         Gérez la sécurité de votre compte et vos paramètres d'authentification
       </p>
     </div>

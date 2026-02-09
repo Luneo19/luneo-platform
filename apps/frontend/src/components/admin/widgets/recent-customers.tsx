@@ -58,7 +58,7 @@ export function RecentCustomers({
 
   if (isLoading) {
     return (
-      <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+      <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-white">Recent Customers</CardTitle>
         </CardHeader>
@@ -66,10 +66,10 @@ export function RecentCustomers({
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-center gap-4">
-                <div className="h-10 w-10 bg-zinc-700 rounded-full animate-pulse" />
+                <div className="h-10 w-10 bg-white/[0.06] rounded-full animate-pulse" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 bg-zinc-700 rounded animate-pulse" />
-                  <div className="h-3 w-48 bg-zinc-700 rounded animate-pulse" />
+                  <div className="h-4 w-32 bg-white/[0.06] rounded animate-pulse" />
+                  <div className="h-3 w-48 bg-white/[0.06] rounded animate-pulse" />
                 </div>
               </div>
             ))}
@@ -80,13 +80,13 @@ export function RecentCustomers({
   }
 
   return (
-    <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+    <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg font-semibold text-white">Recent Customers</CardTitle>
         {customers.length > limit && (
           <Link
             href="/admin/customers"
-            className="text-sm text-zinc-400 hover:text-white flex items-center gap-1"
+            className="text-sm text-white/60 hover:text-white flex items-center gap-1"
           >
             View All
             <ArrowRight className="w-4 h-4" />
@@ -95,7 +95,7 @@ export function RecentCustomers({
       </CardHeader>
       <CardContent>
         {displayCustomers.length === 0 ? (
-          <div className="text-center py-8 text-zinc-500">
+          <div className="text-center py-8 text-white/40">
             <p>No customers yet</p>
           </div>
         ) : (
@@ -148,7 +148,7 @@ function RecentCustomerRow({ customer }: { customer: RecentCustomer }) {
             {statusLabels[customer.status]}
           </Badge>
         </div>
-        <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500">
+        <div className="flex items-center gap-4 mt-2 text-xs text-white/40">
           {customer.plan && (
             <span className="capitalize">{customer.plan}</span>
           )}

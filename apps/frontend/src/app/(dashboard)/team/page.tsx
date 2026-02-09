@@ -5,13 +5,12 @@ import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Users, UserPlus, Shield, Trash2, Edit, X, 
+import {
+  Users, UserPlus, Shield, Trash2, Edit, X,
   Crown, Star, Search, Download, CheckCircle, Clock, Send
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TeamSkeleton } from '@/components/ui/skeletons';
-import { logger } from '@/lib/logger';
 import { formatRelativeTime } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { trpc } from '@/lib/trpc/client';
@@ -44,7 +43,6 @@ function TeamPageContent() {
   const [inviteRole, setInviteRole] = useState<'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'>('MEMBER');
   const [editingMember, setEditingMember] = useState<string | null>(null);
 
-  // Queries
   const teamQuery = trpc.team.listMembers.useQuery();
   const inviteMutation = trpc.team.inviteMember.useMutation({
     onSuccess: () => {
@@ -86,7 +84,6 @@ function TeamPageContent() {
     },
   });
 
-  // Transform data
   type MemberRole = 'owner' | 'admin' | 'member' | 'viewer';
   const members: TeamMember[] = (teamQuery.data?.members || []).map((m: Record<string, unknown>) => ({
     id: m.id as string,
@@ -108,10 +105,10 @@ function TeamPageContent() {
   }));
 
   const roles = [
-    { value: 'owner', label: 'Propriétaire', icon: <Crown className="w-4 h-4" />, color: 'text-yellow-400' },
-    { value: 'admin', label: 'Administrateur', icon: <Shield className="w-4 h-4" />, color: 'text-blue-400' },
-    { value: 'member', label: 'Membre', icon: <Users className="w-4 h-4" />, color: 'text-green-400' },
-    { value: 'viewer', label: 'Observateur', icon: <Star className="w-4 h-4" />, color: 'text-gray-400' }
+    { value: 'owner', label: 'Propriétaire', icon: <Crown className="w-4 h-4" />, color: 'text-[#fbbf24]', badge: 'dash-badge-enterprise' },
+    { value: 'admin', label: 'Administrateur', icon: <Shield className="w-4 h-4" />, color: 'text-purple-400', badge: 'dash-badge-pro' },
+    { value: 'member', label: 'Membre', icon: <Users className="w-4 h-4" />, color: 'text-[#4ade80]', badge: 'dash-badge-new' },
+    { value: 'viewer', label: 'Observateur', icon: <Star className="w-4 h-4" />, color: 'text-white/60', badge: '' }
   ];
 
   const permissions = {
@@ -133,9 +130,9 @@ function TeamPageContent() {
       return;
     }
 
-    inviteMutation.mutate({ 
-      email: inviteEmail, 
-      role: inviteRole === 'ADMIN' ? 'ADMIN' : inviteRole === 'VIEWER' ? 'VIEWER' : inviteRole === 'OWNER' ? 'OWNER' : 'MEMBER' 
+    inviteMutation.mutate({
+      email: inviteEmail,
+      role: inviteRole === 'ADMIN' ? 'ADMIN' : inviteRole === 'VIEWER' ? 'VIEWER' : inviteRole === 'OWNER' ? 'OWNER' : 'MEMBER'
     });
   }, [inviteEmail, inviteRole, inviteMutation, toast]);
 
@@ -167,9 +164,9 @@ function TeamPageContent() {
       member: 'MEMBER',
       viewer: 'VIEWER',
     };
-    inviteMutation.mutate({ 
-      email: invite.email, 
-      role: roleMap[invite.role] || 'MEMBER' 
+    inviteMutation.mutate({
+      email: invite.email,
+      role: roleMap[invite.role] || 'MEMBER'
     });
   }, [inviteMutation]);
 
@@ -190,36 +187,35 @@ function TeamPageContent() {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Équipe</h1>
-          <p className="text-gray-400">{members.length} membres • {pendingInvites.length} invitation(s) en attente</p>
+          <p className="text-white/60">{members.length} membres • {pendingInvites.length} invitation(s) en attente</p>
         </div>
-        <Button 
+        <Button
           onClick={() => setShowInviteModal(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
         >
           <UserPlus className="w-4 h-4 mr-2" />
           Inviter un membre
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* Stats - glass cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total membres', value: members.length, icon: <Users className="w-5 h-5" />, color: 'blue' },
-          { label: 'Actifs', value: members.filter(m => m.status === 'active').length, icon: <CheckCircle className="w-5 h-5" />, color: 'green' },
-          { label: 'En attente', value: pendingInvites.length, icon: <Clock className="w-5 h-5" />, color: 'yellow' },
-          { label: 'Administrateurs', value: members.filter(m => m.role === 'admin' || m.role === 'owner').length, icon: <Shield className="w-5 h-5" />, color: 'purple' }
+          { label: 'Total membres', value: members.length, icon: <Users className="w-5 h-5" />, bg: 'bg-purple-500/10 text-purple-400' },
+          { label: 'Actifs', value: members.filter(m => m.status === 'active').length, icon: <CheckCircle className="w-5 h-5" />, bg: 'bg-[#4ade80]/10 text-[#4ade80]' },
+          { label: 'En attente', value: pendingInvites.length, icon: <Clock className="w-5 h-5" />, bg: 'bg-[#fbbf24]/10 text-[#fbbf24]' },
+          { label: 'Administrateurs', value: members.filter(m => m.role === 'admin' || m.role === 'owner').length, icon: <Shield className="w-5 h-5" />, bg: 'bg-pink-500/10 text-pink-400' }
         ].map((stat, i) => (
-          <Card key={i} className="p-4 bg-gray-800/50 border-gray-700">
+          <Card key={i} className="dash-card p-4 border-white/[0.06]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400">{stat.label}</p>
+                <p className="text-sm text-white/60">{stat.label}</p>
                 <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
               </div>
-              <div className={`p-3 rounded-lg bg-${stat.color}-500/10 text-${stat.color}-400`}>
+              <div className={`p-3 rounded-xl ${stat.bg}`}>
                 {stat.icon}
               </div>
             </div>
@@ -227,36 +223,34 @@ function TeamPageContent() {
         ))}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <Input
             placeholder="Rechercher par nom ou email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700 text-white"
+            className="dash-input pl-10"
           />
         </div>
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+          className="dash-input px-4 py-2"
         >
           <option value="all">Tous les rôles</option>
           {roles.map(role => (
             <option key={role.value} value={role.value}>{role.label}</option>
           ))}
         </select>
-        <Button variant="outline" className="border-gray-700">
+        <Button variant="outline" className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]">
           <Download className="w-4 h-4 mr-2" />
           Exporter
         </Button>
       </div>
 
-      {/* Pending Invites */}
       {pendingInvites.length > 0 && (
-        <Card className="p-6 bg-gray-800/50 border-gray-700">
+        <Card className="dash-card p-6 border-white/[0.06]">
           <h3 className="text-lg font-bold text-white mb-4">Invitations en attente</h3>
           <div className="space-y-3">
             {pendingInvites.map((invite) => (
@@ -264,15 +258,15 @@ function TeamPageContent() {
                 key={invite.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg"
+                className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.06]"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-yellow-400" />
+                  <div className="w-10 h-10 rounded-full bg-[#fbbf24]/10 flex items-center justify-center border border-[#fbbf24]/20">
+                    <Clock className="w-5 h-5 text-[#fbbf24]" />
                   </div>
                   <div>
                     <p className="text-white font-medium">{invite.email}</p>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-white/60">
                       Rôle: {getRoleInfo(invite.role).label} • Expire le {new Date(invite.expiresAt).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
@@ -282,7 +276,7 @@ function TeamPageContent() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleResendInvite(invite)}
-                    className="border-gray-600"
+                    className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]"
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Renvoyer
@@ -291,6 +285,7 @@ function TeamPageContent() {
                     size="sm"
                     variant="destructive"
                     onClick={() => handleCancelInvite(invite.id)}
+                    className="bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -301,8 +296,7 @@ function TeamPageContent() {
         </Card>
       )}
 
-      {/* Members List */}
-      <Card className="p-6 bg-gray-800/50 border-gray-700">
+      <Card className="dash-card p-6 border-white/[0.06]">
         <div className="space-y-4">
           {filteredMembers.map((member) => {
             const roleInfo = getRoleInfo(member.role);
@@ -312,29 +306,27 @@ function TeamPageContent() {
                 layout
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gray-900/50 rounded-lg gap-4"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.06] gap-4"
               >
                 <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
                     {member.name.charAt(0)}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h4 className="text-white font-medium">{member.name}</h4>
                       {member.role === 'owner' && (
-                        <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 text-xs rounded-full flex items-center gap-1">
+                        <span className="dash-badge dash-badge-enterprise flex items-center gap-1 w-fit">
                           <Crown className="w-3 h-3" />
                           Propriétaire
                         </span>
                       )}
                       {member.status === 'pending' && (
-                        <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 text-xs rounded-full">
-                          En attente
-                        </span>
+                        <span className="dash-badge dash-badge-new">En attente</span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-400">{member.email}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-sm text-white/60">{member.email}</p>
+                    <p className="text-xs text-white/40 mt-1">
                       Dernier accès: {member.lastActive} • Membre depuis {new Date(member.joinedAt).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
@@ -345,20 +337,20 @@ function TeamPageContent() {
                     <div className="flex items-center gap-2">
                       <select
                         defaultValue={member.role}
-                        onChange={(e) => handleChangeRole(member.id, e.target.value as 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER')}
-                        className="px-3 py-1.5 bg-gray-800 border border-gray-600 rounded text-white text-sm"
+                        onChange={(e) => handleChangeRole(member.id, e.target.value as 'admin' | 'member' | 'viewer')}
+                        className="dash-input px-3 py-1.5 text-sm"
                       >
                         {roles.filter(r => r.value !== 'owner').map(role => (
                           <option key={role.value} value={role.value}>{role.label}</option>
                         ))}
                       </select>
-                      <Button size="sm" variant="outline" onClick={() => setEditingMember(null)}>
+                      <Button size="sm" variant="outline" onClick={() => setEditingMember(null)} className="border-white/[0.12] text-white/80">
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                   ) : (
                     <>
-                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 ${roleInfo.color}`}>
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.06] ${roleInfo.color}`}>
                         {roleInfo.icon}
                         <span className="text-sm font-medium">{roleInfo.label}</span>
                       </div>
@@ -368,7 +360,7 @@ function TeamPageContent() {
                             size="sm"
                             variant="outline"
                             onClick={() => setEditingMember(member.id)}
-                            className="border-gray-600"
+                            className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -376,6 +368,7 @@ function TeamPageContent() {
                             size="sm"
                             variant="destructive"
                             onClick={() => handleRemoveMember(member.id, member.name)}
+                            className="bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -390,20 +383,19 @@ function TeamPageContent() {
         </div>
       </Card>
 
-      {/* Permissions Card */}
-      <Card className="p-6 bg-gray-800/50 border-gray-700">
+      <Card className="dash-card p-6 border-white/[0.06]">
         <h3 className="text-lg font-bold text-white mb-4">Permissions par rôle</h3>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {roles.map((role) => (
-            <div key={role.value} className="p-4 bg-gray-900/50 rounded-lg">
+            <div key={role.value} className="p-4 bg-white/[0.04] rounded-xl border border-white/[0.06]">
               <div className={`flex items-center gap-2 mb-3 ${role.color}`}>
                 {role.icon}
                 <h4 className="font-medium">{role.label}</h4>
               </div>
               <ul className="space-y-2">
                 {permissions[role.value as keyof typeof permissions].map((perm, i) => (
-                  <li key={i} className="text-sm text-gray-400 flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 mt-0.5 text-green-400 flex-shrink-0" />
+                  <li key={i} className="text-sm text-white/60 flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-[#4ade80] flex-shrink-0" />
                     {perm}
                   </li>
                 ))}
@@ -413,14 +405,13 @@ function TeamPageContent() {
         </div>
       </Card>
 
-      {/* Invite Modal */}
       <AnimatePresence>
         {showInviteModal && (
           <motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowInviteModal(false)}
           >
             <motion
@@ -428,12 +419,12 @@ function TeamPageContent() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-gray-800 rounded-lg p-6 max-w-md w-full border border-gray-700"
+              className="dash-card p-6 max-w-md w-full border border-white/[0.06]"
             >
               <h3 className="text-xl font-bold text-white mb-4">Inviter un membre</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-white/60 mb-2">
                     Adresse email
                   </label>
                   <Input
@@ -441,17 +432,17 @@ function TeamPageContent() {
                     placeholder="email@example.com"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="bg-gray-900 border-gray-600 text-white"
+                    className="dash-input"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-white/60 mb-2">
                     Rôle
                   </label>
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole((e.target.value?.toUpperCase() ?? 'MEMBER') as 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white"
+                    className="dash-input w-full px-3 py-2"
                   >
                     {roles.filter(r => r.value !== 'owner').map(role => (
                       <option key={role.value} value={role.value}>
@@ -463,7 +454,7 @@ function TeamPageContent() {
                 <div className="flex gap-3 mt-6">
                   <Button
                     onClick={handleInvite}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Envoyer l'invitation
@@ -471,7 +462,7 @@ function TeamPageContent() {
                   <Button
                     variant="outline"
                     onClick={() => setShowInviteModal(false)}
-                    className="border-gray-600"
+                    className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]"
                   >
                     Annuler
                   </Button>

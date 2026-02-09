@@ -30,24 +30,24 @@ export function SessionsSection() {
 
   if (isLoading) {
     return (
-      <Card className="bg-white border-gray-200">
+      <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-gray-900">Sessions actives</CardTitle>
+          <CardTitle className="text-white">Sessions actives</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-white/60">Chargement...</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-white border-gray-200">
+    <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-gray-900">Sessions actives</CardTitle>
-            <CardDescription className="text-gray-600 mt-1">
+            <CardTitle className="text-white">Sessions actives</CardTitle>
+            <CardDescription className="text-white/60 mt-1">
               Gérez les appareils connectés à votre compte
             </CardDescription>
           </div>
@@ -65,7 +65,7 @@ export function SessionsSection() {
       </CardHeader>
       <CardContent>
         {sessions.length === 0 ? (
-          <p className="text-gray-600">Aucune session active</p>
+          <p className="text-white/60">Aucune session active</p>
         ) : (
           <div className="space-y-3">
             {sessions.map((session: SecuritySession) => {
@@ -73,15 +73,15 @@ export function SessionsSection() {
               return (
                 <div
                   key={session.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                  className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg border border-white/[0.06]"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="p-2 bg-cyan-500/10 rounded-lg">
-                      <DeviceIcon className="w-5 h-5 text-cyan-400" />
+                    <div className="p-2 bg-purple-500/10 rounded-lg">
+                      <DeviceIcon className="w-5 h-5 text-purple-400" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-gray-900 font-medium">
+                        <p className="text-white font-medium">
                           {session.device || 'Appareil inconnu'}
                         </p>
                         {session.isCurrent && (
@@ -90,10 +90,10 @@ export function SessionsSection() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-white/60">
                         {session.browser || 'Unknown'} • {session.os || 'Unknown'}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-white/40 mt-1">
                         {session.ipAddress && `${session.ipAddress} • `}
                         {session.lastActive && `Dernière activité ${formatRelativeDate(session.lastActive.toISOString())}`}
                       </p>

@@ -82,7 +82,7 @@ const getStatusIcon = (status: Integration['status']) => {
     case 'pending':
       return <Clock className="w-5 h-5 text-yellow-500" />;
     default:
-      return <XCircle className="w-5 h-5 text-gray-400" />;
+      return <XCircle className="w-5 h-5 text-white/30" />;
   }
 };
 
@@ -118,12 +118,12 @@ function IntegrationsDashboardPageContent() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Intégrations</h1>
-          <p className="text-gray-400">
+          <p className="text-white/60">
             Connectez vos outils préférés pour automatiser vos workflows
           </p>
         </div>
         <Link href="/help/documentation/integrations">
-          <Button variant="outline" className="border-gray-700 hover:bg-gray-800">
+          <Button variant="outline" className="border-white/[0.06] hover:bg-white/[0.04]">
             <ExternalLink className="w-4 h-4 mr-2" />
             Documentation
           </Button>
@@ -138,8 +138,8 @@ function IntegrationsDashboardPageContent() {
             onClick={() => setFilter(cat.id as 'all' | Integration['category'])}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === cat.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                : 'bg-white/[0.04] text-white/60 hover:bg-white/[0.06]'
             }`}
           >
             {cat.label} ({cat.count})
@@ -152,31 +152,31 @@ function IntegrationsDashboardPageContent() {
         {filteredIntegrations.map((integration) => (
           <Card
             key={integration.id}
-            className="p-6 bg-gray-900/50 border-gray-700 hover:border-gray-600 transition-all"
+            className="dash-card p-6 border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-white/[0.10] transition-all"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400">
+                <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center text-purple-400">
                   {integration.icon}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">{integration.name}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     {getStatusIcon(integration.status)}
-                    <span className="text-sm text-gray-400">{getStatusLabel(integration.status)}</span>
+                    <span className="text-sm text-white/60">{getStatusLabel(integration.status)}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <p className="text-sm text-gray-400 mb-4">{integration.description}</p>
+            <p className="text-sm text-white/60 mb-4">{integration.description}</p>
 
             <div className="flex gap-2">
               {integration.status === 'connected' ? (
                 <>
                   {integration.settingsUrl && (
                     <Link href={integration.settingsUrl} className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full border-gray-700 hover:bg-gray-800">
+                      <Button variant="outline" size="sm" className="w-full border-white/[0.06] hover:bg-white/[0.04]">
                         <Settings className="w-4 h-4 mr-2" />
                         Paramètres
                       </Button>
@@ -187,12 +187,12 @@ function IntegrationsDashboardPageContent() {
                 <>
                   {integration.connectUrl ? (
                     <Link href={integration.connectUrl} className="flex-1">
-                      <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                      <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90">
                         Connecter
                       </Button>
                     </Link>
                   ) : (
-                    <Button size="sm" className="flex-1 bg-gray-700 hover:bg-gray-600" disabled>
+                    <Button size="sm" className="flex-1 bg-white/[0.06] hover:bg-white/[0.04] text-white/60" disabled>
                       Bientôt disponible
                     </Button>
                   )}
@@ -204,24 +204,24 @@ function IntegrationsDashboardPageContent() {
       </div>
 
       {/* Help Section */}
-      <Card className="p-6 bg-blue-950/20 border-blue-500/30">
+      <Card className="dash-card-glow p-6 border-purple-500/30 bg-purple-500/5">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400 flex-shrink-0">
+          <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center text-purple-400 flex-shrink-0">
             <Zap className="w-6 h-6" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white mb-2">Besoin d'aide ?</h3>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-white/60 mb-4">
               Consultez notre documentation pour configurer vos intégrations ou contactez notre support.
             </p>
             <div className="flex gap-3">
               <Link href="/help/documentation/integrations">
-                <Button variant="outline" size="sm" className="border-blue-500/50 hover:bg-blue-500/10">
+                <Button variant="outline" size="sm" className="border-purple-500/50 hover:bg-purple-500/10">
                   Documentation
                 </Button>
               </Link>
               <Link href="/contact">
-                <Button variant="outline" size="sm" className="border-gray-700 hover:bg-gray-800">
+                <Button variant="outline" size="sm" className="border-white/[0.06] hover:bg-white/[0.04]">
                   Support
                 </Button>
               </Link>

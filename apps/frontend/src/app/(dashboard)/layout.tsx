@@ -5,27 +5,73 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/dashboard/Sidebar';
 import { Header } from '@/components/dashboard/Header';
 import { TerminologyProvider } from '@/providers/TerminologyProvider';
+import { DensityProvider, useDensity } from '@/providers/DensityProvider';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
+import { sidebarConfig } from '@/styles/dashboard-tokens';
+
+function DashboardContent({ children }: { children: React.ReactNode }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { sidebarCollapsed } = useDensity();
+
+  return (
+    <div className="min-h-screen dash-bg flex">
+      {/* Subtle gradient mesh background */}
+      <div className="fixed inset-0 dash-gradient-mesh pointer-events-none" />
+
+      {/* Sidebar - Desktop */}
+      <div className="hidden lg:block relative z-30">
+        <Sidebar />
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <div className="fixed inset-y-0 left-0 w-[280px] z-50">
+            <Sidebar />
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        {/* Header */}
+        <Header
+          title="Dashboard"
+          subtitle="Tableau de bord principal"
+          onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          isMobileMenuOpen={isMobileMenuOpen}
+        />
+
+        {/* Page Content */}
+        <main id="main-content" className="flex-1 overflow-y-auto dash-scroll">
+          <div
+            className="transition-all duration-200"
+            style={{ padding: 'var(--dash-padding)' }}
+          >
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardLayoutGroup({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    /**
-     * Auth check via NestJS backend (JWT httpOnly cookies).
-     * httpOnly cookies cannot be read by JavaScript — we validate by calling /auth/me.
-     * Cookies are sent automatically via withCredentials: true on the API client.
-     */
     const checkAuth = async () => {
       try {
-        // Validate the session with the backend (httpOnly cookies sent automatically)
         await endpoints.auth.me();
         setIsAuthenticated(true);
       } catch (error) {
@@ -39,66 +85,34 @@ export default function DashboardLayoutGroup({
         router.push('/login?redirect=' + encodeURIComponent(currentPath));
       }
     };
-
     checkAuth();
   }, [router]);
 
-  // Show loading while checking auth
+  // Dark loading state
   if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center dash-bg">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Vérification de l'authentification...</p>
+          <div className="relative w-14 h-14 mx-auto mb-5">
+            <div className="absolute inset-0 rounded-full border-2 border-white/[0.06]" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-purple-500 animate-spin" />
+            <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-pink-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
+          </div>
+          <p className="text-white/40 text-sm font-medium">Chargement...</p>
         </div>
       </div>
     );
   }
 
-  // Don't render dashboard if not authenticated
   if (!isAuthenticated) {
     return null;
   }
 
   return (
-    <TerminologyProvider>
-      <div className="min-h-screen bg-gray-50 flex">
-        {/* Sidebar */}
-        <div className="hidden lg:block">
-          <Sidebar />
-        </div>
-
-        {/* Mobile Sidebar Overlay */}
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50" 
-              onClick={() => setIsMobileMenuOpen(false)}
-            ></div>
-            <div className="fixed inset-y-0 left-0 w-80">
-              <Sidebar />
-            </div>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <Header
-            title="Dashboard"
-            subtitle="Tableau de bord principal"
-            onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            isMobileMenuOpen={isMobileMenuOpen}
-          />
-          
-          {/* Page Content */}
-          <main id="main-content" className="flex-1 overflow-y-auto">
-            <div className="p-6">
-              {children}
-            </div>
-          </main>
-        </div>
-      </div>
-    </TerminologyProvider>
+    <DensityProvider>
+      <TerminologyProvider>
+        <DashboardContent>{children}</DashboardContent>
+      </TerminologyProvider>
+    </DensityProvider>
   );
 }

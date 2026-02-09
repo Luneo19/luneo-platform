@@ -70,10 +70,10 @@ export function Enable2FAModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md">
+      <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white max-w-md">
         <DialogHeader>
           <DialogTitle>Activer l'authentification à deux facteurs</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-white/60">
             {step === 'qr'
               ? 'Scannez le QR code avec votre application d\'authentification'
               : '2FA activée avec succès !'}
@@ -82,7 +82,7 @@ export function Enable2FAModal({
 
         {step === 'qr' && qrCode ? (
           <div className="space-y-4 mt-4">
-            <div className="flex justify-center p-4 bg-white rounded-lg">
+            <div className="flex justify-center p-4 bg-white/[0.04] rounded-lg">
               <Image
                 src={qrCode}
                 alt="QR Code 2FA"
@@ -92,27 +92,27 @@ export function Enable2FAModal({
               />
             </div>
             <div>
-              <Label className="text-gray-700">Code de vérification</Label>
+              <Label className="text-white/80">Code de vérification</Label>
               <Input
                 type="text"
                 value={token}
                 onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="000000"
                 maxLength={6}
-                className="bg-white border-gray-200 text-gray-900 mt-1 text-center text-2xl tracking-widest"
+                className="bg-white/[0.04] border-white/[0.06] text-white mt-1 text-center text-2xl tracking-widest"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-white/40 mt-1">
                 Entrez le code à 6 chiffres de votre application
               </p>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose} className="border-gray-200">
+              <Button variant="outline" onClick={handleClose} className="border-white/[0.06] hover:bg-white/[0.04]">
                 Annuler
               </Button>
               <Button
                 onClick={handleVerify}
                 disabled={isEnabling || token.length !== 6}
-                className="bg-cyan-600 hover:bg-cyan-700"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
               >
                 {isEnabling ? (
                   <>
@@ -131,7 +131,7 @@ export function Enable2FAModal({
         ) : step === 'verify' ? (
           <div className="space-y-4 mt-4 text-center">
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto" />
-            <p className="text-gray-700">
+            <p className="text-white/80">
               L'authentification à deux facteurs a été activée avec succès !
             </p>
             {backupCodes && (
@@ -139,20 +139,20 @@ export function Enable2FAModal({
                 <p className="text-sm text-yellow-400 mb-2">
                   ⚠️ Enregistrez vos codes de secours maintenant
                 </p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-white/60">
                   Ces codes ne seront affichés qu'une seule fois
                 </p>
               </div>
             )}
             <DialogFooter>
-              <Button onClick={handleClose} className="bg-cyan-600 hover:bg-cyan-700 w-full">
+              <Button onClick={handleClose} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 w-full">
                 Fermer
               </Button>
             </DialogFooter>
           </div>
         ) : (
           <div className="flex items-center justify-center p-8">
-            <RefreshCw className="w-8 h-8 animate-spin text-cyan-400" />
+            <RefreshCw className="w-8 h-8 animate-spin text-purple-400" />
           </div>
         )}
       </DialogContent>

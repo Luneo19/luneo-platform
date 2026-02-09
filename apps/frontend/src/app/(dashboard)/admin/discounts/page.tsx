@@ -226,68 +226,71 @@ function AdminDiscountsPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Discount Codes</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold text-white">Discount Codes</h1>
+          <p className="text-white/60 mt-1">
             Create and manage coupon / discount codes
           </p>
         </div>
-        <Button onClick={openCreate}>
+        <Button
+          onClick={openCreate}
+          className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Create Discount
         </Button>
       </div>
 
-      <Card>
+      <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter by status</CardDescription>
+          <CardTitle className="text-white">Filters</CardTitle>
+          <CardDescription className="text-white/60">Filter by status</CardDescription>
         </CardHeader>
         <CardContent>
           <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] dash-input border-white/[0.08] bg-white/[0.04] text-white">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
+            <SelectContent className="bg-[#1a1a2e] border-white/[0.06]">
+              <SelectItem value="all" className="text-white focus:bg-white/[0.06]">All statuses</SelectItem>
+              <SelectItem value="active" className="text-white focus:bg-white/[0.06]">Active</SelectItem>
+              <SelectItem value="inactive" className="text-white focus:bg-white/[0.06]">Inactive</SelectItem>
+              <SelectItem value="expired" className="text-white focus:bg-white/[0.06]">Expired</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Discount Codes</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">Discount Codes</CardTitle>
+          <CardDescription className="text-white/60">
             {meta ? `${meta.total} discount(s)` : 'Loading...'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Loader2 className="h-8 w-8 animate-spin text-white/40" />
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Usage</TableHead>
-                    <TableHead>Valid From</TableHead>
-                    <TableHead>Valid To</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="border-white/[0.06] hover:bg-white/[0.02]">
+                    <TableHead className="text-white/60 border-white/[0.06]">Code</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">Type</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">Value</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">Status</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">Usage</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">Valid From</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">Valid To</TableHead>
+                    <TableHead className="text-right text-white/60 border-white/[0.06]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {discounts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableRow className="border-white/[0.06]">
+                      <TableCell colSpan={8} className="text-center text-white/40 py-8 border-white/[0.06]">
                         No discount codes found.
                       </TableCell>
                     </TableRow>
@@ -295,35 +298,36 @@ function AdminDiscountsPage() {
                     discounts.map((d) => {
                       const status = getStatus(d);
                       return (
-                        <TableRow key={d.id}>
-                          <TableCell className="font-mono font-medium">{d.code}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{d.type}</Badge>
+                        <TableRow key={d.id} className="border-white/[0.06] hover:bg-white/[0.04]">
+                          <TableCell className="font-mono font-medium text-white border-white/[0.06]">{d.code}</TableCell>
+                          <TableCell className="border-white/[0.06]">
+                            <span className="dash-badge dash-badge-pro">{d.type}</span>
                           </TableCell>
-                          <TableCell>{formatValue(d)}</TableCell>
-                          <TableCell>
+                          <TableCell className="text-white border-white/[0.06]">{formatValue(d)}</TableCell>
+                          <TableCell className="border-white/[0.06]">
                             {status === 'active' && (
-                              <Badge variant="default">Active</Badge>
+                              <span className="dash-badge dash-badge-new">Active</span>
                             )}
                             {status === 'inactive' && (
-                              <Badge variant="secondary">Inactive</Badge>
+                              <span className="dash-badge text-white/60 border-white/20">Inactive</span>
                             )}
                             {status === 'expired' && (
-                              <Badge variant="destructive">Expired</Badge>
+                              <span className="dash-badge dash-badge-live">Expired</span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-white/80 border-white/[0.06]">
                             {d.usageLimit != null
                               ? `${d.usageCount} / ${d.usageLimit}`
                               : String(d.usageCount)}
                           </TableCell>
-                          <TableCell>{formatDate(d.validFrom)}</TableCell>
-                          <TableCell>{formatDate(d.validUntil)}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-white/80 border-white/[0.06]">{formatDate(d.validFrom)}</TableCell>
+                          <TableCell className="text-white/80 border-white/[0.06]">{formatDate(d.validUntil)}</TableCell>
+                          <TableCell className="text-right border-white/[0.06]">
                             <div className="flex justify-end gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                                 onClick={() => openEdit(d)}
                               >
                                 <Pencil className="h-4 w-4" />
@@ -331,7 +335,7 @@ function AdminDiscountsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-destructive hover:text-destructive"
+                                className="border-white/[0.08] text-[#f87171] hover:bg-[#f87171]/10"
                                 onClick={() => setDeleteConfirmId(d.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -346,13 +350,14 @@ function AdminDiscountsPage() {
               </Table>
               {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-white/60">
                     Page {meta.page} of {meta.totalPages}
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="border-white/[0.08] text-white hover:bg-white/[0.04] disabled:opacity-50"
                       disabled={meta.page <= 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
@@ -361,6 +366,7 @@ function AdminDiscountsPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="border-white/[0.08] text-white hover:bg-white/[0.04] disabled:opacity-50"
                       disabled={meta.page >= meta.totalPages}
                       onClick={() => setPage((p) => p + 1)}
                     >
@@ -376,16 +382,16 @@ function AdminDiscountsPage() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto dash-card border-white/[0.06] bg-[#12121a] text-white">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Discount' : 'Create Discount'}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">{editingId ? 'Edit Discount' : 'Create Discount'}</DialogTitle>
+            <DialogDescription className="text-white/60">
               {editingId ? 'Update the discount code.' : 'Add a new discount code.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="code">Code</Label>
+              <Label htmlFor="code" className="text-white/80">Code</Label>
               <Input
                 id="code"
                 value={form.code}
@@ -393,25 +399,26 @@ function AdminDiscountsPage() {
                 placeholder="e.g. WELCOME10"
                 required
                 disabled={!!editingId}
+                className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
               />
             </div>
             <div className="space-y-2">
-              <Label>Type</Label>
+              <Label className="text-white/80">Type</Label>
               <Select
                 value={form.type}
                 onValueChange={(v: DiscountType) => setForm((f) => ({ ...f, type: v }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PERCENTAGE">Percentage</SelectItem>
-                  <SelectItem value="FIXED">Fixed amount (cents)</SelectItem>
+                <SelectContent className="bg-[#1a1a2e] border-white/[0.06]">
+                  <SelectItem value="PERCENTAGE" className="text-white focus:bg-white/[0.06]">Percentage</SelectItem>
+                  <SelectItem value="FIXED" className="text-white focus:bg-white/[0.06]">Fixed amount (cents)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="value">
+              <Label htmlFor="value" className="text-white/80">
                 Value {form.type === 'PERCENTAGE' ? '(0-100)' : '(cents)'}
               </Label>
               <Input
@@ -422,67 +429,74 @@ function AdminDiscountsPage() {
                 value={form.value}
                 onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
                 required
+                className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="minPurchase">Min purchase (cents)</Label>
+                <Label htmlFor="minPurchase" className="text-white/80">Min purchase (cents)</Label>
                 <Input
                   id="minPurchase"
                   type="number"
                   min={0}
                   value={form.minPurchaseCents}
                   onChange={(e) => setForm((f) => ({ ...f, minPurchaseCents: e.target.value }))}
+                  className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxDiscount">Max discount (cents)</Label>
+                <Label htmlFor="maxDiscount" className="text-white/80">Max discount (cents)</Label>
                 <Input
                   id="maxDiscount"
                   type="number"
                   min={0}
                   value={form.maxDiscountCents}
                   onChange={(e) => setForm((f) => ({ ...f, maxDiscountCents: e.target.value }))}
+                  className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="validFrom">Valid from</Label>
+                <Label htmlFor="validFrom" className="text-white/80">Valid from</Label>
                 <Input
                   id="validFrom"
                   type="datetime-local"
                   value={form.validFrom}
                   onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))}
+                  className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="validTo">Valid to</Label>
+                <Label htmlFor="validTo" className="text-white/80">Valid to</Label>
                 <Input
                   id="validTo"
                   type="datetime-local"
                   value={form.validTo}
                   onChange={(e) => setForm((f) => ({ ...f, validTo: e.target.value }))}
+                  className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="usageLimit">Max usages</Label>
+              <Label htmlFor="usageLimit" className="text-white/80">Max usages</Label>
               <Input
                 id="usageLimit"
                 type="number"
                 min={0}
                 value={form.usageLimit}
                 onChange={(e) => setForm((f) => ({ ...f, usageLimit: e.target.value }))}
+                className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-white/80">Description</Label>
               <Input
                 id="description"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Optional"
+                className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -491,13 +505,13 @@ function AdminDiscountsPage() {
                 checked={form.isActive}
                 onCheckedChange={(checked) => setForm((f) => ({ ...f, isActive: checked }))}
               />
-              <Label htmlFor="isActive">Active</Label>
+              <Label htmlFor="isActive" className="text-white/80">Active</Label>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button type="button" variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving} className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90">
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {editingId ? 'Update' : 'Create'}
               </Button>
@@ -508,19 +522,19 @@ function AdminDiscountsPage() {
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <DialogContent>
+        <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white">
           <DialogHeader>
-            <DialogTitle>Delete discount</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">Delete discount</DialogTitle>
+            <DialogDescription className="text-white/60">
               This will permanently delete this discount code. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+            <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setDeleteConfirmId(null)}>
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              className="bg-[#f87171]/20 text-[#f87171] border border-[#f87171]/30 hover:bg-[#f87171]/30"
               disabled={deleting}
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
             >

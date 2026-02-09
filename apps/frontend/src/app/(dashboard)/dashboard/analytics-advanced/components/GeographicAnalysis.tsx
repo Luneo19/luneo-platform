@@ -16,41 +16,41 @@ interface GeographicAnalysisProps {
 export function GeographicAnalysis({ geographicData }: GeographicAnalysisProps) {
   if (geographicData.length === 0) {
     return (
-      <Card className="bg-white border-gray-200">
+      <Card className="dash-card border-white/[0.06] bg-transparent shadow-none">
         <CardHeader>
-          <CardTitle className="text-gray-900">Analyse Géographique</CardTitle>
-          <CardDescription className="text-gray-600">Aucune donnée disponible</CardDescription>
+          <CardTitle className="text-white">Analyse Géographique</CardTitle>
+          <CardDescription className="text-white/60">Aucune donnée disponible</CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-white border-gray-200">
+    <Card className="dash-card border-white/[0.06] bg-transparent shadow-none">
       <CardHeader>
-        <CardTitle className="text-gray-900 flex items-center gap-2">
-          <Globe className="w-5 h-5 text-blue-400" />
+        <CardTitle className="flex items-center gap-2 text-white">
+          <Globe className="h-5 w-5 text-[#3b82f6]" />
           Analyse Géographique
         </CardTitle>
-        <CardDescription className="text-gray-600">Répartition par pays</CardDescription>
+        <CardDescription className="text-white/60">Répartition par pays</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {geographicData.slice(0, 10).map((country) => (
             <div
               key={country.country}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              className="flex items-center justify-between rounded-lg bg-white/[0.04] p-3"
             >
               <div className="flex-1">
-                <p className="text-gray-900 font-medium">{country.country}</p>
-                <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                <p className="font-medium text-white">{country.country}</p>
+                <div className="mt-1 flex items-center gap-4 text-sm text-white/60">
                   <span>{formatNumber(country.users)} utilisateurs</span>
                   <span>•</span>
                   <span>{formatPrice(country.revenue, 'EUR')}</span>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-blue-400 font-medium">{country.percentage.toFixed(1)}%</p>
+                <p className="font-medium text-[#3b82f6]">{country.percentage.toFixed(1)}%</p>
               </div>
             </div>
           ))}

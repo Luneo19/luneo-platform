@@ -72,10 +72,10 @@ export function TestWebhookModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-lg">
+      <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white max-w-lg">
         <DialogHeader>
           <DialogTitle>Tester le webhook</DialogTitle>
-          <DialogDescription className="text-gray-600">
+          <DialogDescription className="text-white/60">
             Envoyez une requête de test à votre webhook
           </DialogDescription>
         </DialogHeader>
@@ -89,7 +89,7 @@ export function TestWebhookModal({
               value={testUrl}
               onChange={(e) => setTestUrl(e.target.value)}
               placeholder="https://example.com/webhook"
-              className="bg-white border-gray-200"
+              className="bg-white/[0.04] border-white/[0.06] text-white"
             />
           </div>
 
@@ -101,12 +101,12 @@ export function TestWebhookModal({
               value={testSecret}
               onChange={(e) => setTestSecret(e.target.value)}
               placeholder="Secret pour la signature"
-              className="bg-white border-gray-200"
+              className="bg-white/[0.04] border-white/[0.06] text-white"
             />
           </div>
 
           {testMutation.data && (
-            <div className="p-4 bg-white/50 rounded-lg border border-gray-200">
+            <div className="p-4 bg-white/[0.04] rounded-lg border border-white/[0.06]">
               <div className="flex items-center gap-3 mb-2">
                 {testMutation.data.success ? (
                   <>
@@ -121,7 +121,7 @@ export function TestWebhookModal({
                 )}
               </div>
               {testMutation.data.statusCode && (
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-white/80">
                   Statut HTTP: {testMutation.data.statusCode}
                 </p>
               )}
@@ -131,14 +131,14 @@ export function TestWebhookModal({
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.06]">
             <Button variant="ghost" onClick={onClose}>
               Fermer
             </Button>
             <Button
               onClick={handleTest}
               disabled={testMutation.isPending || !testUrl}
-              className="bg-cyan-600 hover:bg-cyan-700"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
             >
               {testMutation.isPending ? (
                 <>

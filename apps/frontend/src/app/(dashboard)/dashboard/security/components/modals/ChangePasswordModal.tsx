@@ -60,7 +60,7 @@ export function ChangePasswordModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-gray-200 text-gray-900">
+      <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white">
         <DialogHeader>
           <DialogTitle>Changer le mot de passe</DialogTitle>
           <DialogDescription>
@@ -69,60 +69,60 @@ export function ChangePasswordModal({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
-            <Label className="text-gray-700">Mot de passe actuel</Label>
+            <Label className="text-white/80">Mot de passe actuel</Label>
             <div className="relative mt-1">
               <Input
                 type={showCurrent ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="bg-white border-gray-200 text-gray-900 pr-10"
+                className="bg-white/[0.04] border-white/[0.06] text-white pr-10"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowCurrent(!showCurrent)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/80"
               >
                 {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
           <div>
-            <Label className="text-gray-700">Nouveau mot de passe</Label>
+            <Label className="text-white/80">Nouveau mot de passe</Label>
             <div className="relative mt-1">
               <Input
                 type={showNew ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-white border-gray-200 text-gray-900 pr-10"
+                className="bg-white/[0.04] border-white/[0.06] text-white pr-10"
                 required
                 minLength={8}
               />
               <button
                 type="button"
                 onClick={() => setShowNew(!showNew)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/80"
               >
                 {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Au moins 8 caractères</p>
+            <p className="text-xs text-white/40 mt-1">Au moins 8 caractères</p>
           </div>
           <div>
-            <Label className="text-gray-700">Confirmer le nouveau mot de passe</Label>
+            <Label className="text-white/80">Confirmer le nouveau mot de passe</Label>
             <div className="relative mt-1">
               <Input
                 type={showConfirm ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="bg-white border-gray-200 text-gray-900 pr-10"
+                className="bg-white/[0.04] border-white/[0.06] text-white pr-10"
                 required
                 minLength={8}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/80"
               >
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -141,7 +141,7 @@ export function ChangePasswordModal({
                 setConfirmPassword('');
                 onOpenChange(false);
               }}
-              className="border-gray-200"
+              className="border-white/[0.06] hover:bg-white/[0.04]"
             >
               Annuler
             </Button>

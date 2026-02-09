@@ -30,7 +30,7 @@ export default async function EditorPage() {
 
   return (
     <ErrorBoundary level="page" componentName="EditorPage">
-      <Suspense fallback={<div className="h-screen bg-gray-900"><div className="h-16 bg-gray-800 rounded animate-pulse" /></div>}>
+      <Suspense fallback={<div className="h-screen"><div className="dash-card h-16 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" /></div>}>
         <EditorPageClient />
       </Suspense>
     </ErrorBoundary>

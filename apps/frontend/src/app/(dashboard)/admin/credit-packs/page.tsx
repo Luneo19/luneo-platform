@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -196,63 +195,69 @@ function AdminCreditPacksContent() {
   const formFields = (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name" className="text-white/80">Name</Label>
         <Input
           id="name"
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           placeholder="e.g. Starter Pack"
+          className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="credits">Credits</Label>
+        <Label htmlFor="credits" className="text-white/80">Credits</Label>
         <Input
           id="credits"
           type="number"
           min={1}
           value={form.credits}
           onChange={(e) => setForm((f) => ({ ...f, credits: parseInt(e.target.value, 10) || 0 }))}
+          className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="priceCents">Price (cents)</Label>
+        <Label htmlFor="priceCents" className="text-white/80">Price (cents)</Label>
         <Input
           id="priceCents"
           type="number"
           min={0}
           value={form.priceCents}
           onChange={(e) => setForm((f) => ({ ...f, priceCents: parseInt(e.target.value, 10) || 0 }))}
+          className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-white/40">
           Display: {formatPrice(form.priceCents)} EUR
         </p>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="stripePriceId">Stripe Price ID</Label>
+        <Label htmlFor="stripePriceId" className="text-white/80">Stripe Price ID</Label>
         <Input
           id="stripePriceId"
           value={form.stripePriceId}
           onChange={(e) => setForm((f) => ({ ...f, stripePriceId: e.target.value }))}
           placeholder="price_xxx"
+          className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="badge">Badge / Description</Label>
+        <Label htmlFor="badge" className="text-white/80">Badge / Description</Label>
         <Input
           id="badge"
           value={form.badge || form.description}
           onChange={(e) => setForm((f) => ({ ...f, badge: e.target.value, description: e.target.value }))}
           placeholder="e.g. Best Value"
+          className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="savings">Savings %</Label>
+        <Label htmlFor="savings" className="text-white/80">Savings %</Label>
         <Input
           id="savings"
           type="number"
           min={0}
           value={form.savings}
           onChange={(e) => setForm((f) => ({ ...f, savings: parseInt(e.target.value, 10) || 0 }))}
+          className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
         />
       </div>
       <div className="flex items-center gap-2">
@@ -261,7 +266,7 @@ function AdminCreditPacksContent() {
           checked={form.isActive}
           onCheckedChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
         />
-        <Label htmlFor="isActive">Active</Label>
+        <Label htmlFor="isActive" className="text-white/80">Active</Label>
       </div>
       <div className="flex items-center gap-2">
         <Switch
@@ -269,183 +274,187 @@ function AdminCreditPacksContent() {
           checked={form.isFeatured}
           onCheckedChange={(v) => setForm((f) => ({ ...f, isFeatured: v }))}
         />
-        <Label htmlFor="isFeatured">Featured</Label>
+        <Label htmlFor="isFeatured" className="text-white/80">Featured</Label>
       </div>
     </>
   );
 
   return (
-    <ErrorBoundary>
-      <div className="space-y-6 p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-              <Coins className="h-6 w-6" />
-              Credit Packs
-            </h1>
-            <p className="text-muted-foreground">
-              Manage credit packs available for purchase. Prices in EUR (stored as cents).
-            </p>
-          </div>
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Pack
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create credit pack</DialogTitle>
-                <DialogDescription>
-                  Add a new pack. Link a Stripe Price ID for checkout.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">{formFields}</div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreate} disabled={saving || !form.name}>
-                  {saving ? 'Creating…' : 'Create'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2 text-white">
+            <Coins className="h-6 w-6" />
+            Credit Packs
+          </h1>
+          <p className="text-white/60">
+            Manage credit packs available for purchase. Prices in EUR (stored as cents).
+          </p>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Packs</CardTitle>
-            <CardDescription>All credit packs. Toggle active to hide from store.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12 text-muted-foreground">
-                Loading…
-              </div>
-            ) : packs.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                No packs yet. Create one to get started.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Credits</TableHead>
-                    <TableHead>Price (EUR)</TableHead>
-                    <TableHead>Stripe Price ID</TableHead>
-                    <TableHead>Badge / Savings</TableHead>
-                    <TableHead>Active</TableHead>
-                    <TableHead className="w-[120px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {packs.map((pack) => (
-                    <TableRow key={pack.id}>
-                      <TableCell className="font-medium">
-                        {pack.name}
-                        {pack.isFeatured && (
-                          <Badge variant="secondary" className="ml-2">Featured</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>{pack.credits}</TableCell>
-                      <TableCell>{formatPrice(pack.priceCents)}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {pack.stripePriceId || '—'}
-                      </TableCell>
-                      <TableCell>
-                        {pack.badge && <Badge variant="outline">{pack.badge}</Badge>}
-                        {pack.savings != null && pack.savings > 0 && (
-                          <span className="text-muted-foreground text-sm ml-1">
-                            {pack.savings}% off
-                          </span>
-                        )}
-                        {!pack.badge && (pack.savings == null || pack.savings === 0) && '—'}
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={pack.isActive}
-                          onCheckedChange={() => toggleActive(pack)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEdit(pack)}
-                            aria-label="Edit"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteId(pack.id)}
-                            aria-label="Delete"
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        <Dialog open={!!editId} onOpenChange={(open) => !open && setEditId(null)}>
-          <DialogContent className="max-w-md">
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openCreate} className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Pack
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md dash-card border-white/[0.06] bg-[#12121a] text-white">
             <DialogHeader>
-              <DialogTitle>Edit credit pack</DialogTitle>
-              <DialogDescription>
-                Update name, price, Stripe Price ID, and visibility.
+              <DialogTitle className="text-white">Create credit pack</DialogTitle>
+              <DialogDescription className="text-white/60">
+                Add a new pack. Link a Stripe Price ID for checkout.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">{formFields}</div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditId(null)}>
+              <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleUpdate} disabled={saving || !form.name}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete pack?</DialogTitle>
-              <DialogDescription>
-                This will permanently remove this credit pack. Existing transactions will keep
-                the pack reference but the pack will no longer be listed.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteId(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={saving}
-              >
-                {saving ? 'Deleting…' : 'Delete'}
+              <Button onClick={handleCreate} disabled={saving || !form.name} className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90">
+                {saving ? 'Creating…' : 'Create'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-    </ErrorBoundary>
+
+      <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-white">Packs</CardTitle>
+          <CardDescription className="text-white/60">All credit packs. Toggle active to hide from store.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-12 text-white/40">
+              Loading…
+            </div>
+          ) : packs.length === 0 ? (
+            <div className="text-center py-12 text-white/40">
+              No packs yet. Create one to get started.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/[0.06] hover:bg-white/[0.02]">
+                  <TableHead className="text-white/60 border-white/[0.06]">Name</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">Credits</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">Price (EUR)</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">Stripe Price ID</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">Badge / Savings</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">Active</TableHead>
+                  <TableHead className="w-[120px] text-white/60 border-white/[0.06]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {packs.map((pack) => (
+                  <TableRow key={pack.id} className="border-white/[0.06] hover:bg-white/[0.04]">
+                    <TableCell className="font-medium text-white border-white/[0.06]">
+                      {pack.name}
+                      {pack.isFeatured && (
+                        <span className="dash-badge dash-badge-enterprise ml-2">Featured</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-white border-white/[0.06]">{pack.credits}</TableCell>
+                    <TableCell className="text-white border-white/[0.06]">{formatPrice(pack.priceCents)}</TableCell>
+                    <TableCell className="font-mono text-xs text-white/60 border-white/[0.06]">
+                      {pack.stripePriceId || '—'}
+                    </TableCell>
+                    <TableCell className="border-white/[0.06]">
+                      {pack.badge && <span className="dash-badge dash-badge-pro">{pack.badge}</span>}
+                      {pack.savings != null && pack.savings > 0 && (
+                        <span className="text-white/60 text-sm ml-1">
+                          {pack.savings}% off
+                        </span>
+                      )}
+                      {!pack.badge && (pack.savings == null || pack.savings === 0) && <span className="text-white/40">—</span>}
+                    </TableCell>
+                    <TableCell className="border-white/[0.06]">
+                      <Switch
+                        checked={pack.isActive}
+                        onCheckedChange={() => toggleActive(pack)}
+                      />
+                    </TableCell>
+                    <TableCell className="border-white/[0.06]">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-white/80 hover:bg-white/[0.04] hover:text-white"
+                          onClick={() => openEdit(pack)}
+                          aria-label="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-[#f87171] hover:bg-[#f87171]/10"
+                          onClick={() => setDeleteId(pack.id)}
+                          aria-label="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!editId} onOpenChange={(open) => !open && setEditId(null)}>
+        <DialogContent className="max-w-md dash-card border-white/[0.06] bg-[#12121a] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">Edit credit pack</DialogTitle>
+            <DialogDescription className="text-white/60">
+              Update name, price, Stripe Price ID, and visibility.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">{formFields}</div>
+          <DialogFooter>
+            <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setEditId(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdate} disabled={saving || !form.name} className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90">
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">Delete pack?</DialogTitle>
+            <DialogDescription className="text-white/60">
+              This will permanently remove this credit pack. Existing transactions will keep
+              the pack reference but the pack will no longer be listed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#f87171]/20 text-[#f87171] border border-[#f87171]/30 hover:bg-[#f87171]/30"
+              onClick={handleDelete}
+              disabled={saving}
+            >
+              {saving ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
 export default function AdminCreditPacksPage() {
-  return <AdminCreditPacksContent />;
+  return (
+    <ErrorBoundary level="page" componentName="AdminCreditPacksPage">
+      <AdminCreditPacksContent />
+    </ErrorBoundary>
+  );
 }

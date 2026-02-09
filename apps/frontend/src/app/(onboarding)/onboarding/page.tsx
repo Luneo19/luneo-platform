@@ -205,7 +205,7 @@ function OnboardingPageContent() {
   }, [skipOnboarding, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 text-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
         {/* Progress */}
         <motion
@@ -218,9 +218,11 @@ function OnboardingPageContent() {
               <div key={step.id} className="flex items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                    currentStep >= step.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 border border-gray-300 text-gray-500'
+                    currentStep > step.id
+                      ? 'bg-[#8b5cf6] text-white'
+                      : currentStep === step.id
+                        ? 'bg-[#ec4899] text-white'
+                        : 'bg-white/[0.2] border border-white/[0.06] text-white/40'
                   }`}
                 >
                   {currentStep > step.id ? (
@@ -232,18 +234,24 @@ function OnboardingPageContent() {
                 {index < STEPS.length - 1 && (
                   <div
                     className={`h-1 w-8 sm:w-12 mx-1 rounded ${
-                      currentStep > step.id ? 'bg-blue-600' : 'bg-gray-200'
+                      currentStep > step.id
+                        ? 'bg-gradient-to-r from-[#8b5cf6] to-[#ec4899]'
+                        : 'bg-white/[0.2]'
                     }`}
                   />
                 )}
               </div>
             ))}
           </div>
-          <Progress value={progress} className="h-2 bg-gray-200" />
+          <Progress
+            value={progress}
+            className="h-2 bg-white/[0.06] rounded-full"
+            indicatorClassName="bg-gradient-to-r from-purple-600 to-pink-600 rounded-full"
+          />
         </motion>
 
-        {/* Content Card */}
-        <Card className="bg-white border-gray-200 shadow-lg p-8">
+        {/* Content Card - dash-card */}
+        <Card className="dash-card bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-8">
           <AnimatePresence mode="wait">
             {/* Step 1: Profil */}
             {currentStep === 1 && (
@@ -255,58 +263,58 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">
+                  <h1 className="text-3xl font-bold mb-2 text-white">
                     Bienvenue sur Luneo ! 👋
                   </h1>
-                  <p className="text-gray-500">
+                  <p className="text-white/60">
                     Commençons par faire connaissance
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Votre nom complet</Label>
+                    <Label className="text-white">Votre nom complet</Label>
                     <Input
                       placeholder="Jean Dupont"
                       value={formData.step1.name}
                       onChange={(e) =>
                         setStepData('step1', { name: e.target.value })
                       }
-                      className="bg-gray-50 border-gray-300 h-12"
+                      className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 h-12 rounded-xl"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Nom de votre entreprise</Label>
+                    <Label className="text-white">Nom de votre entreprise</Label>
                     <Input
                       placeholder="Ma Super Entreprise"
                       value={formData.step1.company}
                       onChange={(e) =>
                         setStepData('step1', { company: e.target.value })
                       }
-                      className="bg-gray-50 border-gray-300 h-12"
+                      className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 h-12 rounded-xl"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Votre rôle</Label>
+                      <Label className="text-white">Votre rôle</Label>
                       <Input
                         placeholder="CEO, Marketing..."
                         value={formData.step1.role}
                         onChange={(e) =>
                           setStepData('step1', { role: e.target.value })
                         }
-                        className="bg-gray-50 border-gray-300"
+                        className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 rounded-xl"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Taille d&apos;équipe</Label>
+                      <Label className="text-white">Taille d&apos;équipe</Label>
                       <Input
                         placeholder="1-10, 10-50..."
                         value={formData.step1.teamSize}
                         onChange={(e) =>
                           setStepData('step1', { teamSize: e.target.value })
                         }
-                        className="bg-gray-50 border-gray-300"
+                        className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 rounded-xl"
                       />
                     </div>
                   </div>
@@ -332,10 +340,10 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">
+                  <h1 className="text-3xl font-bold mb-2 text-white">
                     Que souhaitez-vous faire ? 🎯
                   </h1>
-                  <p className="text-gray-500">
+                  <p className="text-white/60">
                     Selectionnez au moins un cas d&apos;usage
                   </p>
                 </div>
@@ -347,21 +355,21 @@ function OnboardingPageContent() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => toggleUseCase(useCase.id)}
-                      className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                         formData.step3.useCases.includes(useCase.id)
-                          ? 'bg-blue-50 border-blue-500'
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-400'
+                          ? 'bg-white/[0.06] border-[#8b5cf6]'
+                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'
                       }`}
                     >
                       <useCase.icon
                         className={`w-8 h-8 mb-3 ${
                           formData.step3.useCases.includes(useCase.id)
-                            ? 'text-blue-600'
-                            : 'text-gray-400'
+                            ? 'text-[#8b5cf6]'
+                            : 'text-white/40'
                         }`}
                       />
-                      <h3 className="font-semibold mb-1">{useCase.name}</h3>
-                      <p className="text-sm text-gray-500">
+                      <h3 className="font-semibold mb-1 text-white">{useCase.name}</h3>
+                      <p className="text-sm text-white/60">
                         {useCase.description}
                       </p>
                     </motion>
@@ -380,10 +388,10 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">
+                  <h1 className="text-3xl font-bold mb-2 text-white">
                     Vos objectifs ✨
                   </h1>
-                  <p className="text-gray-500">
+                  <p className="text-white/60">
                     Que voulez-vous accomplir avec Luneo ?
                   </p>
                 </div>
@@ -395,23 +403,23 @@ function OnboardingPageContent() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => toggleGoal(goal.id)}
-                      className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                         formData.step4.goals.includes(goal.id)
-                          ? 'bg-green-50 border-green-500'
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-400'
+                          ? 'bg-white/[0.06] border-[#8b5cf6]'
+                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <goal.icon
                           className={`w-6 h-6 ${
                             formData.step4.goals.includes(goal.id)
-                              ? 'text-green-600'
-                              : 'text-gray-400'
+                              ? 'text-[#8b5cf6]'
+                              : 'text-white/40'
                           }`}
                         />
-                        <span className="font-medium">{goal.name}</span>
+                        <span className="font-medium text-white">{goal.name}</span>
                         {formData.step4.goals.includes(goal.id) && (
-                          <Check className="w-5 h-5 text-green-600 ml-auto" />
+                          <Check className="w-5 h-5 text-[#8b5cf6] ml-auto" />
                         )}
                       </div>
                     </motion>
@@ -430,10 +438,10 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">
+                  <h1 className="text-3xl font-bold mb-2 text-white">
                     Vos intégrations 🔌
                   </h1>
-                  <p className="text-gray-500">
+                  <p className="text-white/60">
                     Quelle(s) plateforme(s) utilisez-vous ?
                   </p>
                 </div>
@@ -445,20 +453,20 @@ function OnboardingPageContent() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => toggleIntegration(integration.id)}
-                      className={`p-4 rounded-xl border text-center transition-all cursor-pointer ${
+                      className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
                         formData.step5.integrations.includes(integration.id)
-                          ? 'bg-purple-50 border-purple-500'
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-400'
+                          ? 'bg-white/[0.06] border-[#8b5cf6]'
+                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'
                       }`}
                     >
                       <span className="text-3xl mb-2 block">
                         {integration.logo}
                       </span>
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-medium text-white">
                         {integration.name}
                       </span>
                       {formData.step5.integrations.includes(integration.id) && (
-                        <Check className="w-4 h-4 text-purple-600 mx-auto mt-2" />
+                        <Check className="w-4 h-4 text-[#8b5cf6] mx-auto mt-2" />
                       )}
                     </motion>
                   ))}
@@ -479,30 +487,30 @@ function OnboardingPageContent() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', delay: 0.2 }}
-                  className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"
+                  className="w-24 h-24 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6"
                 >
                   <Rocket className="w-12 h-12 text-white" />
                 </motion>
-                <h1 className="text-3xl font-bold mb-4">
+                <h1 className="text-3xl font-bold mb-4 text-white">
                   Vous êtes prêt ! 🎉
                 </h1>
-                <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                <p className="text-white/60 mb-8 max-w-md mx-auto">
                   Votre espace est configure. Explorez Luneo et commencez a
                   creer des experiences incroyables pour vos clients.
                 </p>
 
                 <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg mx-auto">
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">Gratuit</p>
-                    <p className="text-xs text-gray-500">pour commencer</p>
+                  <div className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
+                    <p className="text-2xl font-bold text-[#8b5cf6]">Gratuit</p>
+                    <p className="text-xs text-white/60">pour commencer</p>
                   </div>
-                  <div className="p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">5</p>
-                    <p className="text-xs text-gray-500">designs inclus</p>
+                  <div className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
+                    <p className="text-2xl font-bold text-[#ec4899]">5</p>
+                    <p className="text-xs text-white/60">designs inclus</p>
                   </div>
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-600">24/7</p>
-                    <p className="text-xs text-gray-500">support</p>
+                  <div className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
+                    <p className="text-2xl font-bold text-[#8b5cf6]">24/7</p>
+                    <p className="text-xs text-white/60">support</p>
                   </div>
                 </div>
               </motion>
@@ -510,10 +518,14 @@ function OnboardingPageContent() {
           </AnimatePresence>
 
           {/* Navigation */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/[0.06]">
             <div>
               {currentStep > 1 && currentStep < 6 && (
-                <Button variant="ghost" onClick={handlePrevious}>
+                <Button
+                  variant="ghost"
+                  onClick={handlePrevious}
+                  className="text-white/60 hover:text-white hover:bg-white/[0.04]"
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Retour
                 </Button>
@@ -524,7 +536,7 @@ function OnboardingPageContent() {
                 <Button
                   variant="ghost"
                   onClick={handleSkip}
-                  className="text-gray-500"
+                  className="text-white/40 hover:text-white/60 hover:bg-white/[0.04]"
                 >
                   Passer
                 </Button>
@@ -532,7 +544,7 @@ function OnboardingPageContent() {
               <Button
                 onClick={handleNext}
                 disabled={!canProceed() || isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700 min-w-[140px]"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white min-w-[140px] border-0"
               >
                 {isSubmitting ? (
                   'Chargement...'
@@ -562,7 +574,7 @@ function OnboardingPageContent() {
           >
             <button
               onClick={handleSkip}
-              className="text-sm text-gray-500 hover:text-gray-400 transition-colors"
+              className="text-sm text-white/40 hover:text-white/60 transition-colors"
             >
               Vous pouvez toujours configurer cela plus tard
             </button>

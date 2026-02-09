@@ -157,16 +157,16 @@ function NotificationCenterContent() {
           <ScrollArea className="max-h-[60vh]">
             {notifications.length === 0 ? (
               <div className="text-center py-12">
-                <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-600">Aucune notification</p>
+                <Bell className="mx-auto h-12 w-12 text-white/40 mb-4" />
+                <p className="text-white/60">Aucune notification</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {notifications.map((notification) => (
                   <Card
                     key={notification.id}
-                    className={`cursor-pointer transition-colors ${
-                      !notification.read ? 'bg-blue-50 border-blue-200' : ''
+                    className={`cursor-pointer transition-colors border-white/[0.06] ${
+                      !notification.read ? 'bg-white/[0.04]' : 'bg-white/[0.03]'
                     }`}
                     onClick={() => {
                       if (!notification.read) {
@@ -181,20 +181,20 @@ function NotificationCenterContent() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-sm">
+                            <h4 className="font-semibold text-sm text-white">
                               {notification.title}
                             </h4>
                             {!notification.read && (
                               <Badge variant="default" className="h-2 w-2 p-0 rounded-full" />
                             )}
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">
+                          <p className="text-sm text-white/60 mb-2">
                             {notification.message}
                           </p>
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <div className="flex items-center gap-4 text-xs text-white/40">
                             <span>{formatRelativeDate(notification.createdAt)}</span>
                             {notification.actionUrl && (
-                              <span className="flex items-center gap-1 text-blue-600">
+                              <span className="flex items-center gap-1 text-blue-400">
                                 <ExternalLink className="h-3 w-3" />
                                 {notification.actionLabel || 'Voir'}
                               </span>

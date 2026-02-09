@@ -83,10 +83,10 @@ export function AIStudioAnimationsPageClient() {
   if (isLoading) {
     return (
       <div className="space-y-6 pb-10">
-        <div className="h-16 bg-gray-800 rounded animate-pulse" />
+        <div className="dash-card h-16 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" />
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-24 bg-gray-800 rounded animate-pulse" />
+            <div key={i} className="dash-card h-24 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" />
           ))}
         </div>
       </div>
@@ -98,21 +98,21 @@ export function AIStudioAnimationsPageClient() {
       <AnimationsHeader onGenerate={() => setShowGenerateModal(true)} />
       <AnimationsStats {...stats} />
 
-      <Card className="p-4 bg-gray-800/50 border-gray-700">
+      <Card className="dash-card p-4 border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
               <Input
                 placeholder="Rechercher une animation..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-gray-900 border-gray-600 text-white pl-10"
+                className="dash-input pl-10 border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/40"
               />
             </div>
           </div>
           <Select value={filterStyle} onValueChange={setFilterStyle}>
-            <SelectTrigger className="w-48 bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="dash-input w-48 border-white/[0.08] bg-white/[0.04] text-white">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Style" />
             </SelectTrigger>
@@ -126,7 +126,7 @@ export function AIStudioAnimationsPageClient() {
             </SelectContent>
           </Select>
           <Select value={filterDuration} onValueChange={setFilterDuration}>
-            <SelectTrigger className="w-48 bg-gray-900 border-gray-600 text-white">
+            <SelectTrigger className="dash-input w-48 border-white/[0.08] bg-white/[0.04] text-white">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Durée" />
             </SelectTrigger>
@@ -138,7 +138,7 @@ export function AIStudioAnimationsPageClient() {
             </SelectContent>
           </Select>
         </div>
-        <div className="mt-3 text-sm text-gray-400">
+        <div className="mt-3 text-sm text-white/40">
           {animations.length} animation{animations.length > 1 ? 's' : ''} trouvée{animations.length > 1 ? 's' : ''}
         </div>
       </Card>

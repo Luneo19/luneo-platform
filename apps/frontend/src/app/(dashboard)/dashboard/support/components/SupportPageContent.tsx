@@ -72,8 +72,8 @@ function SupportPageContentInner() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-700">Chargement des tickets...</p>
+          <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
+          <p className="text-white/60">Chargement des tickets...</p>
         </div>
       </div>
     );

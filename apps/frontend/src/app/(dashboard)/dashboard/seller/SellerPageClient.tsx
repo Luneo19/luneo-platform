@@ -61,10 +61,10 @@ export function SellerPageClient() {
   if (isLoading) {
     return (
       <div className="space-y-6 pb-10">
-        <div className="h-16 bg-gray-800 rounded animate-pulse" />
+        <div className="dash-card h-16 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" />
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-24 bg-gray-800 rounded animate-pulse" />
+            <div key={i} className="dash-card h-24 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" />
           ))}
         </div>
       </div>
@@ -81,31 +81,31 @@ export function SellerPageClient() {
       <SellerStats stats={stats} />
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <TabsList className="bg-gray-800 border-gray-700">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700">
+        <TabsList className="dash-card border-white/[0.06] bg-white/[0.04] p-1">
+          <TabsTrigger value="overview" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">
             Vue d'ensemble
           </TabsTrigger>
-          <TabsTrigger value="products" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger value="products" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">
             <Package className="w-4 h-4 mr-2" />
             Produits
           </TabsTrigger>
-          <TabsTrigger value="orders" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger value="orders" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">
             <ShoppingCart className="w-4 h-4 mr-2" />
             Commandes
           </TabsTrigger>
-          <TabsTrigger value="reviews" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger value="reviews" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">
             <Star className="w-4 h-4 mr-2" />
             Avis
           </TabsTrigger>
-          <TabsTrigger value="payouts" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger value="payouts" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">
             <Wallet className="w-4 h-4 mr-2" />
             Paiements
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger value="analytics" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics
           </TabsTrigger>
-          <TabsTrigger value="settings" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger value="settings" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">
             <Settings className="w-4 h-4 mr-2" />
             Paramètres
           </TabsTrigger>
@@ -113,10 +113,10 @@ export function SellerPageClient() {
 
         <TabsContent value="overview" className="space-y-4 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="bg-gray-800/50 border-gray-700">
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white">Produits récents</CardTitle>
-                <CardDescription>Vos produits les plus vendus</CardDescription>
+                <CardDescription className="text-white/60">Vos produits les plus vendus</CardDescription>
               </CardHeader>
               <CardContent>
                 {products.length > 0 ? (
@@ -124,13 +124,13 @@ export function SellerPageClient() {
                     {products.slice(0, 5).map((product) => (
                       <div
                         key={product.id}
-                        className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-white/[0.04] rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gray-700 rounded" />
+                          <div className="w-12 h-12 bg-white/[0.06] rounded" />
                           <div>
                             <p className="text-white text-sm font-medium">{product.name}</p>
-                            <p className="text-gray-400 text-xs">
+                            <p className="text-white/60 text-xs">
                               {product.sales} ventes • {formatPriceFromCents(product.revenue)}
                             </p>
                           </div>
@@ -139,15 +139,15 @@ export function SellerPageClient() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-center py-4">Aucun produit</p>
+                  <p className="text-white/60 text-center py-4">Aucun produit</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white">Commandes récentes</CardTitle>
-                <CardDescription>Dernières commandes</CardDescription>
+                <CardDescription className="text-white/60">Dernières commandes</CardDescription>
               </CardHeader>
               <CardContent>
                 {orders.length > 0 ? (
@@ -155,20 +155,20 @@ export function SellerPageClient() {
                     {orders.slice(0, 5).map((order) => (
                       <div
                         key={order.id}
-                        className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-white/[0.04] rounded-lg"
                       >
                         <div>
                           <p className="text-white text-sm font-medium">#{order.orderNumber}</p>
-                          <p className="text-gray-400 text-xs">
+                          <p className="text-white/60 text-xs">
                             {order.customerName} • {formatPriceFromCents(order.total)}
                           </p>
                         </div>
-                        <span className="text-xs text-gray-400">{formatDate(order.createdAt)}</span>
+                        <span className="text-xs text-white/60">{formatDate(order.createdAt)}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-center py-4">Aucune commande</p>
+                  <p className="text-white/60 text-center py-4">Aucune commande</p>
                 )}
               </CardContent>
             </Card>
@@ -176,14 +176,14 @@ export function SellerPageClient() {
         </TabsContent>
 
         <TabsContent value="products" className="space-y-4 mt-6">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-white">Mes produits</CardTitle>
-                  <CardDescription>{products.length} produits au total</CardDescription>
+                  <CardDescription className="text-white/60">{products.length} produits au total</CardDescription>
                 </div>
-                <Button className="bg-green-600 hover:bg-green-700">
+                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90">
                   <Package className="w-4 h-4 mr-2" />
                   Ajouter un produit
                 </Button>
@@ -195,13 +195,13 @@ export function SellerPageClient() {
                   {products.map((product) => (
                     <div
                       key={product.id}
-                      className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg hover:bg-gray-900 transition-colors"
+                      className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg hover:bg-white/[0.06] transition-colors"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-gray-700 rounded" />
+                        <div className="w-16 h-16 bg-white/[0.06] rounded" />
                         <div>
                           <p className="text-white font-medium">{product.name}</p>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+                          <div className="flex items-center gap-4 mt-1 text-sm text-white/60">
                             <span>{formatPriceFromCents(product.price)}</span>
                             <span>•</span>
                             <span>{product.sales} ventes</span>
@@ -210,7 +210,7 @@ export function SellerPageClient() {
                           </div>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="border-gray-600">
+                      <Button variant="outline" size="sm" className="border-white/[0.06] hover:bg-white/[0.04]">
                         Modifier
                       </Button>
                     </div>
@@ -218,9 +218,9 @@ export function SellerPageClient() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400 mb-4">Aucun produit pour le moment</p>
-                  <Button className="bg-green-600 hover:bg-green-700">
+                  <Package className="w-16 h-16 text-white/40 mx-auto mb-4" />
+                  <p className="text-white/60 mb-4">Aucun produit pour le moment</p>
+                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90">
                     <Package className="w-4 h-4 mr-2" />
                     Ajouter votre premier produit
                   </Button>
@@ -231,10 +231,10 @@ export function SellerPageClient() {
         </TabsContent>
 
         <TabsContent value="orders" className="space-y-4 mt-6">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white">Commandes</CardTitle>
-              <CardDescription>{orders.length} commandes au total</CardDescription>
+              <CardDescription className="text-white/60">{orders.length} commandes au total</CardDescription>
             </CardHeader>
             <CardContent>
               {orders.length > 0 ? (
@@ -242,17 +242,17 @@ export function SellerPageClient() {
                   {orders.map((order) => (
                     <div
                       key={order.id}
-                      className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg"
+                      className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg"
                     >
                       <div>
                         <p className="text-white font-medium">#{order.orderNumber}</p>
-                        <p className="text-gray-400 text-sm mt-1">
+                        <p className="text-white/60 text-sm mt-1">
                           {order.customerName} • {order.productName}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-white font-medium">{formatPriceFromCents(order.total)}</p>
-                        <p className="text-gray-400 text-xs mt-1">
+                        <p className="text-white/60 text-xs mt-1">
                           Commission: {formatPriceFromCents(order.commission)}
                         </p>
                       </div>
@@ -260,17 +260,17 @@ export function SellerPageClient() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-400 text-center py-12">Aucune commande</p>
+                <p className="text-white/60 text-center py-12">Aucune commande</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="reviews" className="space-y-4 mt-6">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white">Avis clients</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/60">
                 {stats?.averageRating.toFixed(1)}/5 • {stats?.totalReviews} avis
               </CardDescription>
             </CardHeader>
@@ -278,7 +278,7 @@ export function SellerPageClient() {
               {reviews.length > 0 ? (
                 <div className="space-y-4">
                   {reviews.map((review) => (
-                    <div key={review.id} className="p-4 bg-gray-900/50 rounded-lg">
+                    <div key={review.id} className="p-4 bg-white/[0.04] rounded-lg">
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <p className="text-white font-medium">{review.customerName}</p>
@@ -287,24 +287,24 @@ export function SellerPageClient() {
                             {'☆'.repeat(5 - review.rating)}
                           </div>
                         </div>
-                        <span className="text-xs text-gray-400">{formatDate(review.createdAt)}</span>
+                        <span className="text-xs text-white/60">{formatDate(review.createdAt)}</span>
                       </div>
-                      <p className="text-gray-300 text-sm">{review.comment}</p>
+                      <p className="text-white/60 text-sm">{review.comment}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-400 text-center py-12">Aucun avis pour le moment</p>
+                <p className="text-white/60 text-center py-12">Aucun avis pour le moment</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="payouts" className="space-y-4 mt-6">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white">Paiements</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/60">
                 Balance disponible: {formatPriceFromCents(stats?.availableBalance || 0)}
               </CardDescription>
             </CardHeader>
@@ -314,11 +314,11 @@ export function SellerPageClient() {
                   {payouts.map((payout) => (
                     <div
                       key={payout.id}
-                      className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg"
+                      className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg"
                     >
                       <div>
                         <p className="text-white font-medium">{formatPriceFromCents(payout.amount)}</p>
-                        <p className="text-gray-400 text-sm mt-1">{payout.description}</p>
+                        <p className="text-white/60 text-sm mt-1">{payout.description}</p>
                       </div>
                       <div className="text-right">
                         <span
@@ -327,12 +327,12 @@ export function SellerPageClient() {
                               ? 'bg-green-500/20 text-green-400'
                               : payout.status === 'processing'
                                 ? 'bg-yellow-500/20 text-yellow-400'
-                                : 'bg-gray-500/20 text-gray-400'
+                                : 'bg-white/10 text-white/40'
                           }`}
                         >
                           {payout.status}
                         </span>
-                        <p className="text-gray-400 text-xs mt-1">
+                        <p className="text-white/60 text-xs mt-1">
                           {formatDate(payout.scheduledDate)}
                         </p>
                       </div>
@@ -340,20 +340,20 @@ export function SellerPageClient() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-400 text-center py-12">Aucun paiement pour le moment</p>
+                <p className="text-white/60 text-center py-12">Aucun paiement pour le moment</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4 mt-6">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white">Analytics</CardTitle>
-              <CardDescription>Statistiques détaillées</CardDescription>
+              <CardDescription className="text-white/60">Statistiques détaillées</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-400 text-center py-12">
+              <p className="text-white/60 text-center py-12">
                 Analytics détaillées à venir
               </p>
             </CardContent>
@@ -361,13 +361,13 @@ export function SellerPageClient() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4 mt-6">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white">Paramètres vendeur</CardTitle>
-              <CardDescription>Gérez vos paramètres</CardDescription>
+              <CardDescription className="text-white/60">Gérez vos paramètres</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-400 text-center py-12">
+              <p className="text-white/60 text-center py-12">
                 Paramètres à venir
               </p>
             </CardContent>

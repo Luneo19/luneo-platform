@@ -64,10 +64,10 @@ function BillingSuccessPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center dash-bg">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Vérification de votre paiement...</p>
+          <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
+          <p className="text-white/60">Vérification de votre paiement...</p>
         </div>
       </div>
     );
@@ -75,21 +75,21 @@ function BillingSuccessPageContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-        <Card className="max-w-md w-full p-8 bg-gray-800/50 border-gray-700 text-center">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen flex items-center justify-center dash-bg px-4">
+        <Card className="dash-card max-w-md w-full p-8 border-white/[0.06] text-center">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/30">
             <Shield className="w-8 h-8 text-red-400" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-4">Erreur de vérification</h1>
-          <p className="text-gray-400 mb-6">{error}</p>
+          <p className="text-white/60 mb-6">{error}</p>
           <div className="space-y-3">
             <Link href="/dashboard/billing" className="block">
-              <Button className="w-full bg-cyan-600 hover:bg-cyan-700">
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0">
                 Voir ma facturation
               </Button>
             </Link>
             <Link href="/contact" className="block">
-              <Button variant="outline" className="w-full border-gray-600">
+              <Button variant="outline" className="w-full border-white/[0.12] text-white/80 hover:bg-white/[0.04]">
                 Contacter le support
               </Button>
             </Link>
@@ -100,20 +100,20 @@ function BillingSuccessPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-cyan-900/20 to-gray-900 py-12 px-4">
+    <div className="min-h-screen dash-bg dash-gradient-mesh py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <motion
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="p-8 md:p-12 bg-gray-800/50 border-gray-700 text-center">
+          <Card className="dash-card-glow p-8 md:p-12 border-white/[0.06] text-center">
             {/* Success Icon */}
             <motion
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              className="w-24 h-24 bg-gradient-to-br from-green-400 to-cyan-400 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-cyan-500/25"
+              className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-8"
             >
               <CheckCircle className="w-12 h-12 text-white" />
             </motion>
@@ -127,8 +127,8 @@ function BillingSuccessPageContent() {
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Bienvenue chez Luneo ! 🎉
               </h1>
-              <p className="text-xl text-gray-300 mb-8">
-                Votre abonnement <span className="text-cyan-400 font-semibold">{sessionData?.planName || 'Premium'}</span> est maintenant actif
+              <p className="text-xl text-white/60 mb-8">
+                Votre abonnement <span className="text-purple-400 font-semibold">{sessionData?.planName || 'Premium'}</span> est maintenant actif
               </p>
             </motion>
 
@@ -138,24 +138,24 @@ function BillingSuccessPageContent() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-gray-900/50 rounded-xl p-6 mb-8"
+                className="bg-white/[0.04] rounded-xl p-6 mb-8 border border-white/[0.06]"
               >
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="text-left">
-                    <p className="text-gray-500">Plan</p>
+                    <p className="text-white/40">Plan</p>
                     <p className="text-white font-semibold">{sessionData.planName}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-gray-500">Montant</p>
+                    <p className="text-white/40">Montant</p>
                     <p className="text-white font-semibold">
                       {(sessionData.amount / 100).toFixed(2)}€/{sessionData.currency === 'eur' ? 'mois' : sessionData.currency}
                     </p>
                   </div>
                   {sessionData.trialEnd && (
                     <>
-                      <div className="text-left col-span-2 pt-4 border-t border-gray-700">
-                        <p className="text-gray-500">Période d'essai gratuite</p>
-                        <p className="text-green-400 font-semibold flex items-center gap-2">
+                      <div className="text-left col-span-2 pt-4 border-t border-white/[0.06]">
+                        <p className="text-white/40">Période d'essai gratuite</p>
+                        <p className="text-[#4ade80] font-semibold flex items-center gap-2">
                           <Gift className="w-4 h-4" />
                           14 jours jusqu'au {new Date(sessionData.trialEnd).toLocaleDateString('fr-FR')}
                         </p>
@@ -174,21 +174,21 @@ function BillingSuccessPageContent() {
               className="mb-8"
             >
               <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2">
-                <Sparkles className="w-5 h-5 text-yellow-400" />
+                <Sparkles className="w-5 h-5 text-[#fbbf24]" />
                 Ce qui vous attend
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-gray-900/30 rounded-lg">
+                <div className="p-4 dash-card rounded-xl border-white/[0.06]">
                   <Crown className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-300">Accès à toutes les fonctionnalités premium</p>
+                  <p className="text-sm text-white/60">Accès à toutes les fonctionnalités premium</p>
                 </div>
-                <div className="p-4 bg-gray-900/30 rounded-lg">
-                  <Shield className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-300">Support prioritaire inclus</p>
+                <div className="p-4 dash-card rounded-xl border-white/[0.06]">
+                  <Shield className="w-6 h-6 text-[#4ade80] mx-auto mb-2" />
+                  <p className="text-sm text-white/60">Support prioritaire inclus</p>
                 </div>
-                <div className="p-4 bg-gray-900/30 rounded-lg">
-                  <Sparkles className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-300">Mises à jour automatiques</p>
+                <div className="p-4 dash-card rounded-xl border-white/[0.06]">
+                  <Sparkles className="w-6 h-6 text-pink-400 mx-auto mb-2" />
+                  <p className="text-sm text-white/60">Mises à jour automatiques</p>
                 </div>
               </div>
             </motion>
@@ -203,14 +203,14 @@ function BillingSuccessPageContent() {
               <Link href="/overview" className="block">
                 <Button
                   size="lg"
-                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white"
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
                 >
                   Accéder à mon dashboard
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <Link href="/help/documentation/quickstart" className="block">
-                <Button variant="outline" size="lg" className="w-full border-gray-600 text-gray-300">
+                <Button variant="outline" size="lg" className="w-full border-white/[0.12] text-white/60 hover:bg-white/[0.04]">
                   Guide de démarrage rapide
                 </Button>
               </Link>
@@ -221,10 +221,10 @@ function BillingSuccessPageContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className="text-sm text-gray-500 mt-8"
+              className="text-sm text-white/40 mt-8"
               as="p"
             >
-              Un email de confirmation a été envoyé à <span className="text-gray-300">{sessionData?.customerEmail}</span>
+              Un email de confirmation a été envoyé à <span className="text-white/60">{sessionData?.customerEmail}</span>
             </motion>
           </Card>
         </motion>
@@ -233,3 +233,10 @@ function BillingSuccessPageContent() {
   );
 }
 
+export default function BillingSuccessPage() {
+  return (
+    <ErrorBoundary>
+      <BillingSuccessPageContent />
+    </ErrorBoundary>
+  );
+}

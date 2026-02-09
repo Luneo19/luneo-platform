@@ -41,7 +41,7 @@ export default function DashboardPage() {
 
   return (
     <ErrorBoundary level="page" componentName="DashboardOverview">
-      <div className="space-y-6">
+      <div className="space-y-[var(--dash-gap)]">
         <DemoModeBanner />
         <OverviewHeader
           selectedPeriod={selectedPeriod}
@@ -51,15 +51,15 @@ export default function DashboardPage() {
         />
         {error && <OverviewErrorBanner error={error} onRetry={refresh} />}
         <OverviewStatsGrid stats={displayStats} chartData={chartData} />
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-[var(--dash-gap)]">
+          <div className="xl:col-span-2 space-y-[var(--dash-gap)]">
             <OverviewQuickActions actions={quickActions} />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--dash-gap)]">
               <OverviewRecentActivity activities={recentActivity} />
               <OverviewTopDesigns designs={topDesigns} />
             </div>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-[var(--dash-gap)]">
             <OverviewGoals goals={goals} selectedPeriod={selectedPeriod} />
             <OverviewNotifications
               notifications={notifications}

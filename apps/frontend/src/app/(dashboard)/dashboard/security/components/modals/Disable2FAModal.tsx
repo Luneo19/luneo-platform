@@ -37,7 +37,7 @@ export function Disable2FAModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-gray-200 text-gray-900">
+      <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white">
         <DialogHeader>
           <DialogTitle className="text-red-400">Désactiver la 2FA</DialogTitle>
           <DialogDescription>
@@ -56,7 +56,7 @@ export function Disable2FAModal({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/[0.06] hover:bg-white/[0.04]">
             Annuler
           </Button>
           <Button

@@ -158,7 +158,7 @@ function LibraryPageContent() {
         await api.post('/api/v1/library/favorites', { templateId });
       }
 
-      setTemplates(templates.map(t => 
+      setTemplates(templates.map(t =>
         t.id === templateId ? { ...t, isFavorite: !t.isFavorite } : t
       ));
 
@@ -233,7 +233,7 @@ function LibraryPageContent() {
 
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      setTemplates(templates.map(t => 
+      setTemplates(templates.map(t =>
         t.id === template.id ? { ...t, downloads: t.downloads + 1 } : t
       ));
 
@@ -280,10 +280,10 @@ function LibraryPageContent() {
 
   const statColorMap = useMemo(
     () => ({
-      blue: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
+      blue: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
       pink: { bg: 'bg-pink-500/10', text: 'text-pink-400' },
-      yellow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
-      green: { bg: 'bg-green-500/10', text: 'text-green-400' },
+      yellow: { bg: 'bg-[#fbbf24]/10', text: 'text-[#fbbf24]' },
+      green: { bg: 'bg-[#4ade80]/10', text: 'text-[#4ade80]' },
       purple: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
     }),
     [],
@@ -299,25 +299,25 @@ function LibraryPageContent() {
   }
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6 pb-10 dash-scroll">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Bibliothèque</h1>
-          <p className="text-gray-400">Vos templates et designs sauvegardés</p>
+          <p className="text-white/60">Vos templates et designs sauvegardés</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" className="border-gray-700" onClick={() => router.push('/dashboard/library/import')}>
+          <Button variant="outline" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]" onClick={() => router.push('/dashboard/library/import')}>
             <FolderOpen className="w-4 h-4 mr-2" />
             Importer
           </Button>
-          <Button className="bg-gradient-to-r from-blue-600 to-purple-600" onClick={() => router.push('/dashboard/customize')}>
+          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white" onClick={() => router.push('/dashboard/customize')}>
             <Plus className="w-4 h-4 mr-2" />
             Nouveau template
           </Button>
           <Button
             variant="outline"
-            className="border-green-500/50 hover:bg-green-500/10 w-full sm:w-auto"
+            className="border-[#4ade80]/50 text-[#4ade80] hover:bg-[#4ade80]/10 w-full sm:w-auto"
             onClick={() => router.push('/demo/asset-hub')}
           >
             <Play className="w-4 h-4 mr-2" />
@@ -335,16 +335,16 @@ function LibraryPageContent() {
           { label: 'Téléchargements', value: stats.totalDownloads, icon: <Download className="w-5 h-5" />, color: 'green' },
           { label: 'Vues totales', value: stats.totalViews, icon: <Eye className="w-5 h-5" />, color: 'purple' }
         ].map((stat, i) => (
-          <Card key={i} className="p-4 bg-gray-800/50 border-gray-700">
+          <Card key={i} className="dash-card p-4 bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">{stat.label}</p>
+                <p className="text-sm text-white/60 mb-1">{stat.label}</p>
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
               </div>
               <div
                 className={`p-3 rounded-lg ${
-                  statColorMap[stat.color as keyof typeof statColorMap]?.bg ?? 'bg-gray-500/10'
-                } ${statColorMap[stat.color as keyof typeof statColorMap]?.text ?? 'text-gray-400'}`}
+                  statColorMap[stat.color as keyof typeof statColorMap]?.bg ?? 'bg-white/[0.04]'
+                } ${statColorMap[stat.color as keyof typeof statColorMap]?.text ?? 'text-white/60'}`}
               >
                 {stat.icon}
               </div>
@@ -354,22 +354,22 @@ function LibraryPageContent() {
       </div>
 
       {/* Categories */}
-      <Card className="p-4 bg-gray-800/50 border-gray-700">
+      <Card className="dash-card p-4 bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => (
             <button
               key={cat.value}
               onClick={() => setCategoryFilter(cat.value)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
                 categoryFilter === cat.value
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'bg-gray-900/50 text-gray-300 hover:text-white hover:bg-gray-900'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                  : 'bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.06]'
               }`}
             >
               {cat.icon}
               <span>{cat.label}</span>
               <span className={`px-2 py-0.5 rounded-full text-xs ${
-                categoryFilter === cat.value ? 'bg-white/20' : 'bg-gray-800'
+                categoryFilter === cat.value ? 'bg-white/20' : 'bg-white/[0.06] text-white/60'
               }`}>
                 {cat.count}
               </span>
@@ -381,18 +381,18 @@ function LibraryPageContent() {
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <Input
             placeholder="Rechercher par nom ou tag..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700 text-white"
+            className="dash-input pl-10 border-white/[0.08] text-white placeholder:text-white/40"
           />
         </div>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as 'recent' | 'popular' | 'name')}
-          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+          className="dash-input px-4 py-2 bg-[#1a1a2e] border border-white/[0.08] rounded-xl text-white"
         >
           <option value="recent">Plus récents</option>
           <option value="popular">Plus populaires</option>
@@ -403,7 +403,7 @@ function LibraryPageContent() {
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="icon"
             onClick={() => setViewMode('grid')}
-            className="border-gray-700"
+            className={viewMode === 'grid' ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'}
           >
             <Grid className="w-4 h-4" />
           </Button>
@@ -411,7 +411,7 @@ function LibraryPageContent() {
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="icon"
             onClick={() => setViewMode('list')}
-            className="border-gray-700"
+            className={viewMode === 'list' ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'}
           >
             <List className="w-4 h-4" />
           </Button>
@@ -427,9 +427,9 @@ function LibraryPageContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="p-6 bg-gray-800/50 border-gray-700 hover:border-blue-500/50 transition-all group">
+            <Card className="rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.10] transition-all group p-6">
               {/* Thumbnail */}
-              <div className="relative mb-4 aspect-square bg-gray-900 rounded-lg overflow-hidden">
+              <div className="relative mb-4 aspect-square bg-[#12121a] rounded-xl overflow-hidden">
                 <Image
                   src={template.thumbnail}
                   alt={`Template ${template.name}`}
@@ -445,22 +445,22 @@ function LibraryPageContent() {
                 </div>
                 <div className="absolute top-2 right-2 flex gap-2">
                   {template.isPremium && (
-                    <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
+                    <span className="dash-badge-enterprise flex items-center gap-1">
                       <Star className="w-3 h-3" /> Premium
                     </span>
                   )}
                 </div>
                 <button
                   onClick={() => handleToggleFavorite(template.id)}
-                  className="absolute top-2 left-2 p-2 bg-gray-900/80 rounded-full hover:bg-gray-900 transition-colors"
+                  className="absolute top-2 left-2 p-2 bg-black/40 rounded-full hover:bg-white/[0.08] transition-colors border border-white/[0.06]"
                 >
-                  <Heart className={`w-4 h-4 ${template.isFavorite ? 'fill-red-400 text-red-400' : 'text-gray-400'}`} />
+                  <Heart className={`w-4 h-4 ${template.isFavorite ? 'fill-[#ec4899] text-[#ec4899]' : 'text-white/60'}`} />
                 </button>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <Button size="sm" variant="outline" className="border-white/20 bg-black/40 backdrop-blur">
+                  <Button size="sm" variant="outline" className="border-white/20 bg-black/40 backdrop-blur text-white hover:bg-white/[0.08]">
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" className="border-white/20 bg-black/40 backdrop-blur">
+                  <Button size="sm" variant="outline" className="border-white/20 bg-black/40 backdrop-blur text-white hover:bg-white/[0.08]">
                     <Edit className="w-4 h-4" />
                   </Button>
                 </div>
@@ -471,12 +471,12 @@ function LibraryPageContent() {
                 <h3 className="text-lg font-bold text-white mb-2">{template.name}</h3>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {template.tags.slice(0, 3).map((tag, i) => (
-                    <span key={i} className="px-2 py-1 bg-gray-900/50 text-gray-400 text-xs rounded">
+                    <span key={i} className="px-2 py-1 bg-white/[0.04] text-white/60 text-xs rounded-lg border border-white/[0.06]">
                       #{tag}
                     </span>
                   ))}
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-400">
+                <div className="flex items-center gap-4 text-sm text-white/60">
                   <div className="flex items-center gap-1">
                     <Download className="w-4 h-4" />
                     <span>{template.downloads}</span>
@@ -486,7 +486,7 @@ function LibraryPageContent() {
                     <span>{template.views}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <Star className="w-4 h-4 fill-[#fbbf24] text-[#fbbf24]" />
                     <span>{template.rating}</span>
                   </div>
                 </div>
@@ -498,7 +498,7 @@ function LibraryPageContent() {
                   size="sm"
                   variant="outline"
                   onClick={() => handleDownload(template)}
-                  className="flex-1 border-gray-700"
+                  className="flex-1 border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Télécharger
@@ -507,14 +507,14 @@ function LibraryPageContent() {
                   size="sm"
                   variant="outline"
                   onClick={() => handleDuplicate(template)}
-                  className="border-gray-700"
+                  className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-gray-700"
+                  className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                 >
                   <Share2 className="w-4 h-4" />
                 </Button>
@@ -533,25 +533,25 @@ function LibraryPageContent() {
 
       {/* Infinite Scroll Sentinel */}
       {hasMore && !loading && filteredTemplates.length > 0 && <Sentinel />}
-      
+
       {/* Loading More Indicator */}
       {loadingMore && (
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-            <p className="text-sm text-gray-400">Chargement de plus de templates...</p>
+            <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+            <p className="text-sm text-white/60">Chargement de plus de templates...</p>
           </div>
         </div>
       )}
 
       {error && (
-        <Card className="p-6 bg-red-900/20 border-red-500/30">
+        <Card className="dash-card p-6 bg-[#1a1a2e]/80 border-[#f87171]/30">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-red-400 mb-2">Erreur de chargement</h3>
-              <p className="text-sm text-red-300">{error}</p>
+              <h3 className="text-lg font-semibold text-[#f87171] mb-2">Erreur de chargement</h3>
+              <p className="text-sm text-white/60">{error}</p>
             </div>
-            <Button onClick={() => templatesQuery.refetch()} variant="outline" className="border-red-500/50 text-red-400">
+            <Button onClick={() => templatesQuery.refetch()} variant="outline" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]">
               Réessayer
             </Button>
           </div>
@@ -560,7 +560,7 @@ function LibraryPageContent() {
 
       {filteredTemplates.length === 0 && !error && (
         <EmptyState
-          icon={<Book className="w-16 h-16" />}
+          icon={<Book className="w-16 h-16 text-white/40" />}
           title={searchTerm || categoryFilter !== 'all' ? "Aucun template trouvé" : "Aucun template"}
           description={searchTerm || categoryFilter !== 'all'
             ? `Aucun template ne correspond à vos filtres. Essayez de modifier votre recherche ou vos filtres.`
@@ -580,13 +580,13 @@ function LibraryPageContent() {
       )}
 
       {/* Quick Actions */}
-      <Card className="p-6 bg-gradient-to-r from-blue-600/10 to-purple-600/10 border-blue-500/20">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <Card className="dash-card-glow p-6 border-white/[0.06]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
           <div>
             <h3 className="text-lg font-bold text-white mb-2">Besoin d'inspiration ?</h3>
-            <p className="text-gray-300">Découvrez notre collection de templates premium</p>
+            <p className="text-white/60">Découvrez notre collection de templates premium</p>
           </div>
-          <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
+          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white">
             <Zap className="w-4 h-4 mr-2" />
             Explorer les templates
           </Button>

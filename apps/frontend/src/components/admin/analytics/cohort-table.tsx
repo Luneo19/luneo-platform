@@ -33,18 +33,18 @@ export function CohortTable({ cohorts, isLoading }: CohortTableProps) {
     if (value >= 40) return 'bg-yellow-500';
     if (value >= 20) return 'bg-orange-500';
     if (value > 0) return 'bg-red-500';
-    return 'bg-zinc-800';
+    return 'bg-white/[0.06]';
   };
 
   if (isLoading) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card className="bg-white/[0.03] border-white/[0.06]">
         <CardHeader>
           <CardTitle className="text-white">Cohort Retention</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-96 flex items-center justify-center">
-            <div className="text-zinc-400">Loading cohort data...</div>
+            <div className="text-white/60">Loading cohort data...</div>
           </div>
         </CardContent>
       </Card>
@@ -53,13 +53,13 @@ export function CohortTable({ cohorts, isLoading }: CohortTableProps) {
 
   if (cohorts.length === 0) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card className="bg-white/[0.03] border-white/[0.06]">
         <CardHeader>
           <CardTitle className="text-white">Cohort Retention</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-96 flex items-center justify-center">
-            <div className="text-zinc-400">No cohort data available</div>
+            <div className="text-white/60">No cohort data available</div>
           </div>
         </CardContent>
       </Card>
@@ -67,10 +67,10 @@ export function CohortTable({ cohorts, isLoading }: CohortTableProps) {
   }
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card className="bg-white/[0.03] border-white/[0.06]">
       <CardHeader>
         <CardTitle className="text-white">Cohort Retention Analysis</CardTitle>
-        <p className="text-sm text-zinc-400 mt-2">
+        <p className="text-sm text-white/60 mt-2">
           Retention rate by cohort and month
         </p>
       </CardHeader>
@@ -78,13 +78,13 @@ export function CohortTable({ cohorts, isLoading }: CohortTableProps) {
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-zinc-700">
-                <th className="text-left p-3 text-sm font-medium text-zinc-400">Cohort</th>
-                <th className="text-center p-3 text-sm font-medium text-zinc-400">Customers</th>
+              <tr className="border-b border-white/[0.06]">
+                <th className="text-left p-3 text-sm font-medium text-white/60">Cohort</th>
+                <th className="text-center p-3 text-sm font-medium text-white/60">Customers</th>
                 {Array.from({ length: Math.min(maxMonths + 1, 13) }, (_, i) => (
                   <th
                     key={i}
-                    className="text-center p-3 text-xs font-medium text-zinc-400 min-w-[60px]"
+                    className="text-center p-3 text-xs font-medium text-white/60 min-w-[60px]"
                   >
                     M{i}
                   </th>
@@ -93,7 +93,7 @@ export function CohortTable({ cohorts, isLoading }: CohortTableProps) {
             </thead>
             <tbody>
               {cohorts.map((cohort) => (
-                <tr key={cohort.cohort} className="border-b border-zinc-700/50">
+                <tr key={cohort.cohort} className="border-b border-white/[0.06]">
                   <td className="p-3 text-sm text-white font-medium">{cohort.cohort}</td>
                   <td className="p-3 text-center text-sm text-white">{cohort.customers}</td>
                   {Array.from({ length: Math.min(maxMonths + 1, 13) }, (_, month) => {
@@ -105,7 +105,7 @@ export function CohortTable({ cohorts, isLoading }: CohortTableProps) {
                           className={cn(
                             'w-full h-8 rounded flex items-center justify-center text-xs font-medium',
                             getRetentionColor(value),
-                            value > 0 ? 'text-white' : 'text-zinc-500'
+                            value > 0 ? 'text-white' : 'text-white/40'
                           )}
                           title={`${value.toFixed(1)}% retention`}
                         >
@@ -121,7 +121,7 @@ export function CohortTable({ cohorts, isLoading }: CohortTableProps) {
         </div>
 
         {/* Legend */}
-        <div className="mt-6 flex items-center gap-4 text-xs text-zinc-400">
+        <div className="mt-6 flex items-center gap-4 text-xs text-white/60">
           <span>Retention Rate:</span>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-600 rounded"></div>
@@ -144,7 +144,7 @@ export function CohortTable({ cohorts, isLoading }: CohortTableProps) {
             <span>1-19%</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-zinc-800 rounded"></div>
+            <div className="w-4 h-4 bg-white/[0.06] rounded"></div>
             <span>0%</span>
           </div>
         </div>

@@ -56,7 +56,7 @@ export function KPICard({
       case 'down':
         return 'text-red-400';
       default:
-        return 'text-zinc-400';
+        return 'text-white/60';
     }
   };
 
@@ -73,25 +73,25 @@ export function KPICard({
 
   if (isLoading) {
     return (
-      <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+      <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
         <CardHeader className="pb-3">
-          <div className="h-4 w-24 bg-zinc-700 rounded animate-pulse" />
+          <div className="h-4 w-24 bg-white/[0.06] rounded animate-pulse" />
         </CardHeader>
         <CardContent>
-          <div className="h-8 w-32 bg-zinc-700 rounded animate-pulse mb-2" />
-          <div className="h-3 w-16 bg-zinc-700 rounded animate-pulse" />
+          <div className="h-8 w-32 bg-white/[0.06] rounded animate-pulse mb-2" />
+          <div className="h-3 w-16 bg-white/[0.06] rounded animate-pulse" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className={cn('bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors', className)}>
+    <Card className={cn('bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] transition-colors', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-sm font-medium text-zinc-400">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-white/60">{title}</CardTitle>
         {Icon && (
-          <div className="h-8 w-8 rounded-lg bg-zinc-700/50 flex items-center justify-center">
-            <Icon className="h-4 w-4 text-zinc-400" />
+          <div className="h-8 w-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
+            <Icon className="h-4 w-4 text-white/60" />
           </div>
         )}
       </CardHeader>
@@ -110,11 +110,11 @@ export function KPICard({
                 {change !== undefined && changePercent === undefined && (
                   <span>{change > 0 ? '+' : ''}{formatValue(change)}</span>
                 )}
-                <span className="text-zinc-500 text-xs ml-1">vs last period</span>
+                <span className="text-white/40 text-xs ml-1">vs last period</span>
               </div>
             )}
             {description && (
-              <p className="text-xs text-zinc-500 mt-1">{description}</p>
+              <p className="text-xs text-white/40 mt-1">{description}</p>
             )}
           </div>
           {sparkline && sparkline.length > 0 && (

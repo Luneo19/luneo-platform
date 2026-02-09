@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
   Palette,
@@ -86,10 +85,10 @@ export default function AIStudio2DPage() {
               </Link>
             </div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <Palette className="w-8 h-8 text-cyan-400" />
+              <Palette className="w-8 h-8 text-purple-400" />
               Générateur 2D
             </h1>
-            <p className="text-slate-400 mt-2">
+            <p className="text-white/60 mt-2">
               Créez des designs 2D uniques avec l'intelligence artificielle
             </p>
           </div>
@@ -98,20 +97,20 @@ export default function AIStudio2DPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Panel - Controls */}
           <div className="lg:col-span-1 space-y-6">
-            <Card className="bg-slate-900/50 border-slate-700">
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Wand2 className="w-5 h-5 text-cyan-400" />
+                  <Wand2 className="w-5 h-5 text-purple-400" />
                   Paramètres de génération
                 </CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardDescription className="text-white/60">
                   Configurez votre design 2D
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Prompt */}
                 <div className="space-y-2">
-                  <Label htmlFor="prompt" className="text-white">
+                  <Label htmlFor="prompt" className="text-white/80">
                     Description du design
                   </Label>
                   <Input
@@ -119,15 +118,15 @@ export default function AIStudio2DPage() {
                     placeholder="Ex: Logo moderne avec dégradé bleu et violet..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    className="bg-slate-800 border-slate-700 text-white"
+                    className="dash-input border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/40"
                   />
                 </div>
 
                 {/* Style */}
                 <div className="space-y-2">
-                  <Label className="text-white">Style</Label>
+                  <Label className="text-white/80">Style</Label>
                   <Select value={style} onValueChange={setStyle}>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -143,9 +142,9 @@ export default function AIStudio2DPage() {
 
                 {/* Aspect Ratio */}
                 <div className="space-y-2">
-                  <Label className="text-white">Format</Label>
+                  <Label className="text-white/80">Format</Label>
                   <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -159,7 +158,7 @@ export default function AIStudio2DPage() {
 
                 {/* Quality */}
                 <div className="space-y-2">
-                  <Label className="text-white">
+                  <Label className="text-white/80">
                     Qualité: {quality[0]}%
                   </Label>
                   <Slider
@@ -176,7 +175,7 @@ export default function AIStudio2DPage() {
                 <Button
                   onClick={handleGenerate}
                   disabled={isGenerating || !prompt.trim()}
-                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                   size="lg"
                 >
                   {isGenerating ? (
@@ -195,15 +194,15 @@ export default function AIStudio2DPage() {
             </Card>
 
             {/* Tips */}
-            <Card className="bg-cyan-950/20 border-cyan-500/20">
+            <Card className="dash-card border-purple-500/20 bg-purple-500/5">
               <CardHeader>
-                <CardTitle className="text-cyan-300 text-sm flex items-center gap-2">
+                <CardTitle className="text-purple-400 text-sm flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   Conseils
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="text-xs text-slate-400 space-y-2">
+                <ul className="text-xs text-white/60 space-y-2">
                   <li>• Soyez précis dans votre description</li>
                   <li>• Mentionnez les couleurs souhaitées</li>
                   <li>• Indiquez le style artistique</li>
@@ -216,15 +215,15 @@ export default function AIStudio2DPage() {
           {/* Right Panel - Results */}
           <div className="lg:col-span-2 space-y-6">
             {generatedImages.length === 0 && !isGenerating ? (
-              <Card className="bg-slate-900/50 border-slate-700">
+              <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
                 <CardContent className="flex flex-col items-center justify-center py-16">
-                  <div className="w-24 h-24 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full flex items-center justify-center mb-4">
-                    <ImageIcon className="w-12 h-12 text-cyan-400" />
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mb-4">
+                    <ImageIcon className="w-12 h-12 text-purple-400" />
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-2">
                     Aucun design généré
                   </h3>
-                  <p className="text-slate-400 text-center max-w-md">
+                  <p className="text-white/60 text-center max-w-md">
                     Configurez vos paramètres et cliquez sur "Générer le design" pour créer votre premier design 2D
                   </p>
                 </CardContent>
@@ -232,10 +231,10 @@ export default function AIStudio2DPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {isGenerating && (
-                  <Card className="bg-slate-900/50 border-slate-700">
+                  <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
                     <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mb-4" />
-                      <p className="text-slate-400">Génération en cours...</p>
+                      <Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-4" />
+                      <p className="text-white/60">Génération en cours...</p>
                     </CardContent>
                   </Card>
                 )}
@@ -246,7 +245,7 @@ export default function AIStudio2DPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card className="bg-slate-900/50 border-slate-700 overflow-hidden">
+                    <Card className="dash-card border-white/[0.06] bg-white/[0.03] overflow-hidden">
                       <div className="relative aspect-square">
                         <Image
                           src={image}
@@ -258,10 +257,10 @@ export default function AIStudio2DPage() {
                       </div>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="border-cyan-500/50 text-cyan-300">
-                            <CheckCircle className="w-3 h-3 mr-1" />
+                          <span className="dash-badge dash-badge-new flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
                             Généré
-                          </Badge>
+                          </span>
                           <div className="flex gap-2">
                             <Button variant="ghost" size="sm">
                               <Download className="w-4 h-4" />

@@ -227,13 +227,13 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute right-0 top-full z-50 mt-2 w-96 rounded-lg border border-border bg-popover shadow-lg"
+              className="absolute right-0 top-full z-50 mt-2 w-96 rounded-lg border border-white/[0.06] bg-white/[0.04] backdrop-blur-xl"
               role="dialog"
               aria-label="Notifications"
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-border p-4">
-                <h3 className="font-semibold text-foreground">Notifications</h3>
+              <div className="flex items-center justify-between border-b border-white/[0.06] p-4">
+                <h3 className="font-semibold text-white">Notifications</h3>
                 <div className="flex items-center gap-2">
                   {unreadCount > 0 && (
                     <Button
@@ -266,15 +266,15 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
               <ScrollArea className="h-[400px]">
                 {isLoading ? (
                   <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-6 w-6 animate-spin text-white/60" />
                   </div>
                 ) : notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-8 text-center">
-                    <Bell className="h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-sm text-muted-foreground">Aucune notification</p>
+                    <Bell className="h-12 w-12 text-white/40 mb-4" />
+                    <p className="text-sm text-white/60">Aucune notification</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-white/[0.06]">
                     {notifications.map((notification) => {
                       const Icon = typeIcons[notification.type];
                       const iconColor = typeColors[notification.type];
@@ -285,8 +285,8 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           className={cn(
-                            'relative p-4 transition-colors hover:bg-muted/50',
-                            !notification.is_read && 'bg-muted/30'
+                            'relative p-4 transition-colors hover:bg-white/[0.04]',
+                            !notification.is_read && 'bg-white/[0.03]'
                           )}
                         >
                           <div className="flex items-start gap-3">

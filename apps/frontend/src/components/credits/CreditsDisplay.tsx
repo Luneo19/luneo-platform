@@ -60,7 +60,7 @@ export function CreditsDisplay({
 
   if (loading || credits === null) {
     return (
-      <div className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)}>
+      <div className={cn('flex items-center gap-2 text-sm text-white/60', className)}>
         <Loader2 className="w-4 h-4 animate-spin" />
         <span>...</span>
       </div>
@@ -107,12 +107,12 @@ export function CreditsDisplay({
   return (
     <div 
       className={cn(
-        'rounded-lg border p-4 transition-colors',
+        'rounded-lg border p-4 transition-colors border-white/[0.06]',
         isCritical 
-          ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800' 
+          ? 'bg-red-950/30' 
           : isLow 
-          ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800' 
-          : 'bg-card',
+          ? 'bg-orange-950/20' 
+          : 'bg-white/[0.03]',
         className
       )}
     >
@@ -122,26 +122,26 @@ export function CreditsDisplay({
             className={cn(
               'p-2 rounded-full',
               isCritical 
-                ? 'bg-red-100 dark:bg-red-900/30' 
+                ? 'bg-red-500/20' 
                 : isLow 
-                ? 'bg-orange-100 dark:bg-orange-900/30' 
-                : 'bg-yellow-100 dark:bg-yellow-900/30'
+                ? 'bg-orange-500/20' 
+                : 'bg-yellow-500/20'
             )}
           >
             <Zap 
               className={cn(
                 'w-5 h-5',
                 isCritical 
-                  ? 'text-red-600 dark:text-red-400' 
+                  ? 'text-red-400' 
                   : isLow 
-                  ? 'text-orange-600 dark:text-orange-400' 
-                  : 'text-yellow-600 dark:text-yellow-400'
+                  ? 'text-orange-400' 
+                  : 'text-yellow-400'
               )} 
             />
           </div>
           <div>
-            <p className="text-2xl font-bold">{balance}</p>
-            <p className="text-sm text-muted-foreground">Crédits IA restants</p>
+            <p className="text-2xl font-bold text-white">{balance}</p>
+            <p className="text-sm text-white/60">Crédits IA restants</p>
           </div>
         </div>
         
@@ -157,7 +157,7 @@ export function CreditsDisplay({
       </div>
       
       {isCritical && (
-        <div className="mt-3 flex items-start gap-2 text-sm text-red-700 dark:text-red-400">
+        <div className="mt-3 flex items-start gap-2 text-sm text-red-400">
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <p>
             Crédits presque épuisés! Rechargez maintenant pour continuer à utiliser l'IA.
@@ -166,7 +166,7 @@ export function CreditsDisplay({
       )}
       
       {isLow && !isCritical && (
-        <div className="mt-3 text-sm text-orange-700 dark:text-orange-400">
+        <div className="mt-3 text-sm text-orange-400">
           <p>Pensez à recharger vos crédits pour éviter toute interruption.</p>
         </div>
       )}

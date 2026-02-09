@@ -19,13 +19,13 @@ export interface FunnelChartProps {
 export function FunnelChart({ funnel, isLoading }: FunnelChartProps) {
   if (isLoading) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card className="bg-white/[0.03] border-white/[0.06]">
         <CardHeader>
           <CardTitle className="text-white">Conversion Funnel</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-96 flex items-center justify-center">
-            <div className="text-zinc-400">Loading funnel data...</div>
+            <div className="text-white/60">Loading funnel data...</div>
           </div>
         </CardContent>
       </Card>
@@ -34,13 +34,13 @@ export function FunnelChart({ funnel, isLoading }: FunnelChartProps) {
 
   if (funnel.length === 0) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card className="bg-white/[0.03] border-white/[0.06]">
         <CardHeader>
           <CardTitle className="text-white">Conversion Funnel</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-96 flex items-center justify-center">
-            <div className="text-zinc-400">No funnel data available</div>
+            <div className="text-white/60">No funnel data available</div>
           </div>
         </CardContent>
       </Card>
@@ -51,10 +51,10 @@ export function FunnelChart({ funnel, isLoading }: FunnelChartProps) {
   const maxCount = Math.max(...funnel.map((f) => f.count));
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card className="bg-white/[0.03] border-white/[0.06]">
       <CardHeader>
         <CardTitle className="text-white">Conversion Funnel</CardTitle>
-        <p className="text-sm text-zinc-400 mt-2">
+        <p className="text-sm text-white/60 mt-2">
           User journey from visitors to paying customers
         </p>
       </CardHeader>
@@ -75,11 +75,11 @@ export function FunnelChart({ funnel, isLoading }: FunnelChartProps) {
                     <span className="text-sm font-medium text-white w-32">
                       {stage.stage}
                     </span>
-                    <span className="text-sm text-zinc-400">
+                    <span className="text-sm text-white/60">
                       {formatNumber(stage.count)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-zinc-400">
+                  <div className="flex items-center gap-4 text-xs text-white/60">
                     <span>{stage.conversion.toFixed(1)}% conversion</span>
                     {dropoffPercent > 0 && (
                       <span className="text-red-400">
@@ -130,7 +130,7 @@ export function FunnelChart({ funnel, isLoading }: FunnelChartProps) {
                 {/* Arrow vers la prochaine étape */}
                 {!isLast && (
                   <div className="flex justify-center py-2">
-                    <div className="w-0.5 h-6 bg-zinc-700" />
+                    <div className="w-0.5 h-6 bg-white/[0.06]" />
                   </div>
                 )}
               </div>
@@ -139,9 +139,9 @@ export function FunnelChart({ funnel, isLoading }: FunnelChartProps) {
         </div>
 
         {/* Summary */}
-        <div className="mt-8 pt-6 border-t border-zinc-700 grid grid-cols-3 gap-4">
+        <div className="mt-8 pt-6 border-t border-white/[0.06] grid grid-cols-3 gap-4">
           <div>
-            <span className="text-xs text-zinc-400">Overall Conversion</span>
+            <span className="text-xs text-white/60">Overall Conversion</span>
             <p className="text-xl font-bold text-white mt-1">
               {funnel.length > 0 && funnel[0].count > 0
                 ? ((funnel[funnel.length - 1].count / funnel[0].count) * 100).toFixed(2)
@@ -150,7 +150,7 @@ export function FunnelChart({ funnel, isLoading }: FunnelChartProps) {
             </p>
           </div>
           <div>
-            <span className="text-xs text-zinc-400">Total Dropoff</span>
+            <span className="text-xs text-white/60">Total Dropoff</span>
             <p className="text-xl font-bold text-red-400 mt-1">
               {funnel.length > 0 && funnel[0].count > 0
                 ? (((funnel[0].count - funnel[funnel.length - 1].count) / funnel[0].count) *
@@ -161,7 +161,7 @@ export function FunnelChart({ funnel, isLoading }: FunnelChartProps) {
             </p>
           </div>
           <div>
-            <span className="text-xs text-zinc-400">Final Customers</span>
+            <span className="text-xs text-white/60">Final Customers</span>
             <p className="text-xl font-bold text-green-400 mt-1">
               {formatNumber(funnel[funnel.length - 1]?.count || 0)}
             </p>

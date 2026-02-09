@@ -17,18 +17,18 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
   return (
-    <Card className={cn('p-12 bg-gray-800/30 border-gray-700 border-dashed text-center', className)}>
+    <Card className={cn('dash-card p-12 bg-white/[0.03] border-white/[0.06] border-dashed text-center backdrop-blur-sm', className)}>
       <div className="flex flex-col items-center justify-center">
-        <div className="w-16 h-16 text-gray-600 mb-4 flex items-center justify-center">
+        <div className="w-16 h-16 text-white/40 mb-4 flex items-center justify-center [&>svg]:text-white/40">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold text-gray-400 mb-2">{title}</h3>
-        <p className="text-sm text-gray-500 mb-6 max-w-md">{description}</p>
+        <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+        <p className="text-sm text-white/60 mb-6 max-w-md">{description}</p>
         {action && (
           <Button
             onClick={action.onClick}
             variant={action.variant || 'default'}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white"
           >
             {action.label}
           </Button>

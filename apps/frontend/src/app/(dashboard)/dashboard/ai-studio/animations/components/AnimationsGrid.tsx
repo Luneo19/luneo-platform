@@ -37,7 +37,7 @@ export function AnimationsGrid({
   if (animations.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Aucune animation trouvée</p>
+        <p className="text-white/60">Aucune animation trouvée</p>
       </div>
     );
   }
@@ -47,7 +47,7 @@ export function AnimationsGrid({
       {animations.map((animation) => (
         <Card
           key={animation.id}
-          className="bg-gray-50 border-gray-200 hover:border-purple-500/50 transition-colors group"
+          className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-purple-500/30 transition-colors group"
         >
           <div className="relative aspect-video overflow-hidden rounded-t-lg">
             {animation.thumbnail ? (
@@ -58,8 +58,8 @@ export function AnimationsGrid({
                 className="object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <Video className="w-12 h-12 text-gray-500" />
+              <div className="w-full h-full bg-white/[0.04] flex items-center justify-center">
+                <Video className="w-12 h-12 text-white/30" />
               </div>
             )}
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -73,22 +73,21 @@ export function AnimationsGrid({
               </Button>
             </div>
             <div className="absolute top-2 right-2 flex gap-2">
-              <Badge
-                variant="secondary"
+              <span
                 className={cn(
-                  'bg-gray-100/80 text-gray-900',
-                  animation.status === 'completed' && 'bg-green-500/80'
+                  'dash-badge text-xs',
+                  animation.status === 'completed' ? 'dash-badge-new' : 'bg-white/10 text-white/80 border-white/20'
                 )}
               >
                 {animation.status}
-              </Badge>
+              </span>
             </div>
             <div className="absolute top-2 left-2">
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'h-8 w-8 p-0 bg-gray-100/80 hover:bg-gray-200',
+                  'h-8 w-8 p-0 bg-white/[0.08] hover:bg-white/[0.12] text-white/80',
                   animation.isFavorite && 'text-pink-400'
                 )}
                 onClick={(e) => {
@@ -105,10 +104,10 @@ export function AnimationsGrid({
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <p className="text-gray-900 text-sm font-medium line-clamp-2 mb-1">
+                <p className="text-white text-sm font-medium line-clamp-2 mb-1">
                   {animation.prompt}
                 </p>
-                <div className="flex items-center gap-2 text-xs text-gray-600">
+                <div className="flex items-center gap-2 text-xs text-white/60">
                   <span>{animation.duration}s</span>
                   <span>•</span>
                   <span>{animation.fps} FPS</span>
@@ -118,28 +117,28 @@ export function AnimationsGrid({
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/80 hover:bg-white/[0.04]">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-white border-gray-200">
+                <DropdownMenuContent align="end" className="dash-card border-white/[0.06] bg-[#12121a]">
                   <DropdownMenuItem
                     onClick={() => onView(animation)}
-                    className="text-gray-700 cursor-pointer"
+                    className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Voir détails
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onPlay(animation)}
-                    className="text-gray-700 cursor-pointer"
+                    className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Lire
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onDelete(animation.id)}
-                    className="text-red-400 cursor-pointer"
+                    className="text-[#f87171] cursor-pointer hover:bg-[#f87171]/10 focus:bg-[#f87171]/10"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Supprimer
@@ -147,7 +146,7 @@ export function AnimationsGrid({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-200">
+            <div className="flex items-center justify-between text-xs text-white/40 pt-2 border-t border-white/[0.06]">
               <span>{formatDate(new Date(animation.createdAt))}</span>
               <span>{formatNumber(animation.credits)} crédits</span>
             </div>

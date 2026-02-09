@@ -19,11 +19,11 @@ export function AnimationsHeader({ onGenerate }: AnimationsHeaderProps) {
           <Video className="w-8 h-8 text-purple-400" />
           Animations IA
         </h1>
-        <p className="text-gray-400 mt-1">
+        <p className="text-white/60 mt-1">
           Générez des animations avec l'intelligence artificielle
         </p>
       </div>
-      <Button onClick={onGenerate} className="bg-purple-600 hover:bg-purple-700">
+      <Button onClick={onGenerate} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
         <Sparkles className="w-4 h-4 mr-2" />
         Générer
       </Button>

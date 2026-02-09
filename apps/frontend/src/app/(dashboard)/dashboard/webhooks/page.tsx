@@ -218,13 +218,13 @@ export default function WebhooksPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Webhooks</h1>
-            <p className="text-gray-400">
+            <p className="text-white/60">
               Gérez vos webhooks pour recevoir des notifications en temps réel
             </p>
           </div>
           <Button
             onClick={() => setShowCreateModal(true)}
-            className="bg-cyan-600 hover:bg-cyan-700"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Créer un webhook
@@ -233,36 +233,36 @@ export default function WebhooksPage() {
       </div>
 
       <Tabs defaultValue="webhooks" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
-          <TabsTrigger value="history">Historique</TabsTrigger>
+        <TabsList className="dash-card border-white/[0.06] bg-white/[0.04] p-1">
+          <TabsTrigger value="webhooks" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">Webhooks</TabsTrigger>
+          <TabsTrigger value="history" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">Historique</TabsTrigger>
         </TabsList>
 
         {/* Webhooks Tab */}
         <TabsContent value="webhooks" className="space-y-6">
           {isLoading ? (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-              <p className="text-gray-400 mt-4">Chargement...</p>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              <p className="text-white/60 mt-4">Chargement...</p>
             </div>
           ) : webhooks && webhooks.length > 0 ? (
             <div className="grid gap-4">
               {webhooks.map((webhook) => (
-                <Card key={webhook.id} className="bg-gray-800 border-gray-700">
+                <Card key={webhook.id} className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <Webhook className="w-5 h-5 text-cyan-400" />
+                          <Webhook className="w-5 h-5 text-purple-400" />
                           <CardTitle className="text-white">{webhook.name}</CardTitle>
                           <Badge
                             variant={webhook.isActive ? 'default' : 'secondary'}
-                            className={webhook.isActive ? 'bg-green-600' : 'bg-gray-600'}
+                            className={webhook.isActive ? 'bg-green-600' : 'bg-white/10 text-white/60'}
                           >
                             {webhook.isActive ? 'Actif' : 'Inactif'}
                           </Badge>
                         </div>
-                        <CardDescription className="text-gray-400 flex items-center gap-2 mt-2">
+                        <CardDescription className="text-white/60 flex items-center gap-2 mt-2">
                           <span className="font-mono text-sm">{webhook.url}</span>
                           <Button
                             variant="ghost"
@@ -314,7 +314,7 @@ export default function WebhooksPage() {
                   <CardContent>
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-gray-400 mb-1">Événements</p>
+                        <p className="text-sm text-white/60 mb-1">Événements</p>
                         <div className="flex flex-wrap gap-2">
                           {webhook.events.map((event) => (
                             <Badge key={event} variant="outline" className="text-xs">
@@ -325,7 +325,7 @@ export default function WebhooksPage() {
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                          <p className="text-gray-400">Dernier appel</p>
+                          <p className="text-white/60">Dernier appel</p>
                           <p className="text-white">
                             {webhook.lastCalledAt
                               ? new Date(webhook.lastCalledAt).toLocaleString('fr-FR')
@@ -333,7 +333,7 @@ export default function WebhooksPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Dernier statut</p>
+                          <p className="text-white/60">Dernier statut</p>
                           <div className="flex items-center gap-2">
                             {webhook.lastStatusCode ? (
                               webhook.lastStatusCode >= 200 && webhook.lastStatusCode < 300 ? (
@@ -342,7 +342,7 @@ export default function WebhooksPage() {
                                 <XCircle className="w-4 h-4 text-red-500" />
                               )
                             ) : (
-                              <Clock className="w-4 h-4 text-gray-500" />
+                              <Clock className="w-4 h-4 text-white/40" />
                             )}
                             <span className="text-white">
                               {webhook.lastStatusCode || 'N/A'}
@@ -350,13 +350,13 @@ export default function WebhooksPage() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-gray-400">Échecs</p>
+                          <p className="text-white/60">Échecs</p>
                           <p className="text-white">{webhook.failureCount}</p>
                         </div>
                       </div>
                       {webhook._count && (
                         <div>
-                          <p className="text-sm text-gray-400">
+                          <p className="text-sm text-white/60">
                             {webhook._count.webhookLogs} log(s) au total
                           </p>
                         </div>
@@ -367,13 +367,13 @@ export default function WebhooksPage() {
               ))}
             </div>
           ) : (
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
               <CardContent className="py-12 text-center">
-                <Webhook className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 mb-4">Aucun webhook configuré</p>
+                <Webhook className="w-12 h-12 text-white/40 mx-auto mb-4" />
+                <p className="text-white/60 mb-4">Aucun webhook configuré</p>
                 <Button
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-cyan-600 hover:bg-cyan-700"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Créer votre premier webhook
@@ -387,13 +387,13 @@ export default function WebhooksPage() {
         <TabsContent value="history" className="space-y-6">
           {isLoadingHistory ? (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-              <p className="text-gray-400 mt-4">Chargement...</p>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              <p className="text-white/60 mt-4">Chargement...</p>
             </div>
           ) : history && history.data && history.data.length > 0 ? (
             <div className="space-y-4">
               {history.data.map((log: WebhookLog) => (
-                <Card key={log.id} className="bg-gray-800 border-gray-700">
+                <Card key={log.id} className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -423,7 +423,7 @@ export default function WebhooksPage() {
                         {log.error && (
                           <p className="text-red-400 text-sm mt-2">{log.error}</p>
                         )}
-                        <p className="text-gray-400 text-sm mt-2">
+                        <p className="text-white/60 text-sm mt-2">
                           {new Date(log.createdAt).toLocaleString('fr-FR')}
                           {log.duration && ` • ${log.duration}ms`}
                         </p>
@@ -445,10 +445,10 @@ export default function WebhooksPage() {
               ))}
             </div>
           ) : (
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
               <CardContent className="py-12 text-center">
-                <Clock className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">Aucun historique disponible</p>
+                <Clock className="w-12 h-12 text-white/40 mx-auto mb-4" />
+                <p className="text-white/60">Aucun historique disponible</p>
               </CardContent>
             </Card>
           )}

@@ -19,7 +19,7 @@ export function Step2Industry({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/[0.06] border-t-[#8b5cf6]" />
       </div>
     );
   }
@@ -33,8 +33,8 @@ export function Step2Industry({
       className="space-y-6"
     >
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Quel est votre secteur ? 🏢</h1>
-        <p className="text-slate-400">
+        <h1 className="text-3xl font-bold mb-2 text-white">Quel est votre secteur ? 🏢</h1>
+        <p className="text-white/60">
           Nous adapterons votre expérience selon votre industrie
         </p>
       </div>

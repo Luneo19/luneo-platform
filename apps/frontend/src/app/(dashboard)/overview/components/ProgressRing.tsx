@@ -4,7 +4,7 @@ export function ProgressRing({
   progress,
   size = 60,
   strokeWidth = 6,
-  color = 'stroke-cyan-500',
+  color = 'stroke-purple-500',
 }: {
   progress: number;
   size?: number;
@@ -18,7 +18,7 @@ export function ProgressRing({
   return (
     <svg width={size} height={size} className="transform -rotate-90">
       <circle
-        className="stroke-slate-700"
+        className="stroke-white/[0.08]"
         fill="transparent"
         strokeWidth={strokeWidth}
         r={radius}

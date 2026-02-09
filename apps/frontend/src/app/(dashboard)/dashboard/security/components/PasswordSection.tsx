@@ -17,28 +17,28 @@ export function PasswordSection() {
 
   return (
     <>
-      <Card className="bg-white border-gray-200">
+      <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-gray-900 flex items-center gap-2">
-                <Lock className="w-5 h-5 text-cyan-400" />
+              <CardTitle className="text-white flex items-center gap-2">
+                <Lock className="w-5 h-5 text-purple-400" />
                 Mot de passe
               </CardTitle>
-              <CardDescription className="text-gray-600 mt-1">
+              <CardDescription className="text-white/60 mt-1">
                 Changez votre mot de passe régulièrement pour maintenir la sécurité de votre compte
               </CardDescription>
             </div>
             <Button
               onClick={() => setShowModal(true)}
-              className="bg-cyan-600 hover:bg-cyan-700"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
             >
               Changer le mot de passe
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-gray-600">
+          <div className="space-y-2 text-sm text-white/60">
             <p>• Votre mot de passe doit contenir au moins 8 caractères</p>
             <p>• Utilisez une combinaison de lettres, chiffres et symboles</p>
             <p>• Ne partagez jamais votre mot de passe</p>

@@ -30,7 +30,7 @@ export default async function SellerDashboardPage() {
 
   return (
     <ErrorBoundary level="page" componentName="SellerDashboardPage">
-      <Suspense fallback={<div className="space-y-6 pb-10"><div className="h-16 bg-gray-800 rounded animate-pulse" /></div>}>
+      <Suspense fallback={<div className="space-y-6 pb-10"><div className="dash-card h-16 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" /></div>}>
         <SellerPageClient />
       </Suspense>
     </ErrorBoundary>

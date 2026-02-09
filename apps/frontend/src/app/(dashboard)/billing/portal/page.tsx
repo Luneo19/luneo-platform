@@ -19,7 +19,6 @@ function BillingPortalPageContent() {
         setIsLoading(true);
         setError(null);
 
-        // Get portal URL from NestJS backend (auth via httpOnly cookies)
         const data = (await endpoints.billing.customerPortal()) as { success?: boolean; url?: string; error?: string };
         if (!data?.success || !data?.url) {
           setError(data?.error || 'Aucun abonnement actif trouvé. Souscrivez d\'abord à un plan.');
@@ -43,20 +42,20 @@ function BillingPortalPageContent() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-6">
+    <div className="min-h-screen flex items-center justify-center dash-bg p-6">
       <div className="text-center max-w-md w-full">
         {error ? (
-          <div className="space-y-4">
-            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
+          <div className="dash-card p-8 border-white/[0.06] space-y-4">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto border border-red-500/30">
               <AlertCircle className="w-8 h-8 text-red-400" />
             </div>
             <h1 className="text-xl font-bold text-white mb-2">Erreur</h1>
-            <p className="text-gray-400 mb-6">{error}</p>
+            <p className="text-white/60 mb-6">{error}</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 variant="outline"
                 onClick={() => router.push('/dashboard/billing')}
-                className="border-gray-600"
+                className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Retour à la facturation
@@ -64,7 +63,7 @@ function BillingPortalPageContent() {
               {error.includes('abonnement') && (
                 <Button
                   onClick={() => router.push('/dashboard/billing')}
-                  className="bg-cyan-600 hover:bg-cyan-700"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
                 >
                   Voir les plans
                 </Button>
@@ -72,16 +71,16 @@ function BillingPortalPageContent() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto" />
+          <div className="dash-card p-8 border-white/[0.06] space-y-4">
+            <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto" />
             <div>
               <h1 className="text-xl font-bold text-white mb-2">Ouverture du portail</h1>
-              <p className="text-gray-400">Redirection vers le portail de gestion Stripe...</p>
+              <p className="text-white/60">Redirection vers le portail de gestion Stripe...</p>
             </div>
             <Button
               variant="outline"
               onClick={() => router.push('/dashboard/billing')}
-              className="border-gray-600 mt-4"
+              className="border-white/[0.12] text-white/80 hover:bg-white/[0.04] mt-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Annuler
@@ -102,4 +101,3 @@ export default function BillingPortalPage() {
     </ErrorBoundary>
   );
 }
-

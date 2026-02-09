@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   BarChart3,
   Users,
@@ -68,10 +67,10 @@ export function AnalyticsAdvancedPageClient() {
   if (isLoading) {
     return (
       <div className="space-y-6 pb-10">
-        <div className="h-16 bg-gray-800 rounded animate-pulse" />
+        <div className="dash-card h-16 rounded-2xl animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-64 bg-gray-800 rounded animate-pulse" />
+            <div key={i} className="dash-card h-64 rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -79,100 +78,112 @@ export function AnalyticsAdvancedPageClient() {
   }
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="min-h-screen dash-bg space-y-6 pb-10">
       <AnalyticsAdvancedHeader onExport={handleExport} />
 
       <div className="flex items-center gap-4">
         <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-          <SelectTrigger className="w-48 bg-gray-800 border-gray-600 text-white">
-            <Filter className="w-4 h-4 mr-2" />
+          <SelectTrigger className="dash-input w-48 border-white/[0.06] bg-[#1a1a2e] text-white">
+            <Filter className="w-4 h-4 mr-2 text-white/40" />
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7d">7 derniers jours</SelectItem>
-            <SelectItem value="30d">30 derniers jours</SelectItem>
-            <SelectItem value="90d">90 derniers jours</SelectItem>
-            <SelectItem value="1y">1 an</SelectItem>
+          <SelectContent className="border-white/[0.06] bg-[#1a1a2e] text-white">
+            <SelectItem value="7d" className="focus:bg-white/[0.06] focus:text-white">7 derniers jours</SelectItem>
+            <SelectItem value="30d" className="focus:bg-white/[0.06] focus:text-white">30 derniers jours</SelectItem>
+            <SelectItem value="90d" className="focus:bg-white/[0.06] focus:text-white">90 derniers jours</SelectItem>
+            <SelectItem value="1y" className="focus:bg-white/[0.06] focus:text-white">1 an</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="dash-card border-white/[0.06] bg-transparent shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <GitBranch className="w-5 h-5 text-blue-400" />
+              <GitBranch className="w-5 h-5 text-[#3b82f6]" />
             </div>
-            <p className="text-xs text-gray-400 mb-1">Étapes Funnel</p>
-            <p className="text-xl font-bold text-blue-400">{stats.totalFunnelSteps}</p>
+            <p className="text-xs text-white/60 mb-1">Étapes Funnel</p>
+            <p className="text-xl font-bold text-[#3b82f6]">{stats.totalFunnelSteps}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="dash-card border-white/[0.06] bg-transparent shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Layers className="w-5 h-5 text-green-400" />
+              <Layers className="w-5 h-5 text-[#10b981]" />
             </div>
-            <p className="text-xs text-gray-400 mb-1">Cohortes</p>
-            <p className="text-xl font-bold text-green-400">{stats.totalCohorts}</p>
+            <p className="text-xs text-white/60 mb-1">Cohortes</p>
+            <p className="text-xl font-bold text-[#10b981]">{stats.totalCohorts}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="dash-card border-white/[0.06] bg-transparent shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Users className="w-5 h-5 text-purple-400" />
+              <Users className="w-5 h-5 text-[#8b5cf6]" />
             </div>
-            <p className="text-xs text-gray-400 mb-1">Segments</p>
-            <p className="text-xl font-bold text-purple-400">{stats.totalSegments}</p>
+            <p className="text-xs text-white/60 mb-1">Segments</p>
+            <p className="text-xl font-bold text-[#8b5cf6]">{stats.totalSegments}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="dash-card border-white/[0.06] bg-transparent shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Globe className="w-5 h-5 text-yellow-400" />
+              <Globe className="w-5 h-5 text-[#f59e0b]" />
             </div>
-            <p className="text-xs text-gray-400 mb-1">Pays</p>
-            <p className="text-xl font-bold text-yellow-400">{stats.totalCountries}</p>
+            <p className="text-xs text-white/60 mb-1">Pays</p>
+            <p className="text-xl font-bold text-[#f59e0b]">{stats.totalCountries}</p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as AnalyticsView)}>
-        <TabsList className="bg-gray-800 border-gray-700">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700">
+        <TabsList className="dash-card border-white/[0.06] bg-transparent p-1">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80"
+          >
             Vue d'ensemble
           </TabsTrigger>
-          <TabsTrigger value="funnel" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger
+            value="funnel"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80"
+          >
             <GitBranch className="w-4 h-4 mr-2" />
             Funnel
           </TabsTrigger>
-          <TabsTrigger value="cohort" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger
+            value="cohort"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80"
+          >
             <Layers className="w-4 h-4 mr-2" />
             Cohortes
           </TabsTrigger>
-          <TabsTrigger value="geographic" className="data-[state=active]:bg-gray-700">
+          <TabsTrigger
+            value="geographic"
+            className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80"
+          >
             <Globe className="w-4 h-4 mr-2" />
             Géographique
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-6">
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="dash-card border-white/[0.06] bg-transparent shadow-none">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                <CardTitle className="text-lg flex items-center gap-2 text-white">
+                  <TrendingUp className="w-5 h-5 text-[#06b6d4]" />
                   Prédictions de revenus
-                  <span className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-500/20 dark:text-amber-400">
+                  <span className="dash-badge dash-badge-new ml-1 px-2 py-0.5">
                     Beta
                   </span>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="inline-flex cursor-help text-gray-400 hover:text-gray-300">
+                        <span className="inline-flex cursor-help text-white/40 hover:text-white/60">
                           <HelpCircle className="w-4 h-4" />
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs">
+                      <TooltipContent side="right" className="max-w-xs border-white/[0.08] bg-[#1a1a2e] text-white">
                         <p>
                           Prédictions basées sur des heuristiques statistiques. La précision
                           s&apos;améliorera avec plus de données.
@@ -182,13 +193,13 @@ export function AnalyticsAdvancedPageClient() {
                   </TooltipProvider>
                 </CardTitle>
               </div>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-white/60">
                 Prévisions sur les 30 prochains jours selon différents scénarios
               </CardDescription>
             </CardHeader>
             <CardContent>
               {predictionsLoading ? (
-                <div className="h-24 flex items-center justify-center text-gray-400 text-sm">
+                <div className="h-24 flex items-center justify-center text-white/40 text-sm">
                   Chargement des prédictions...
                 </div>
               ) : revenuePredictions?.predictions?.length ? (
@@ -205,20 +216,20 @@ export function AnalyticsAdvancedPageClient() {
                     ) => (
                       <li
                         key={i}
-                        className="flex items-center justify-between py-2 border-b border-gray-700/50 last:border-0"
+                        className="flex items-center justify-between py-2 border-b border-white/[0.06] last:border-0"
                       >
-                        <span className="text-sm text-gray-300 capitalize">
+                        <span className="text-sm text-white/80 capitalize">
                           {p.scenario === 'conservative'
                             ? 'Conservateur'
                             : p.scenario === 'optimistic'
                               ? 'Optimiste'
                               : 'Très optimiste'}
                         </span>
-                        <span className="font-medium text-cyan-400">
+                        <span className="font-medium text-[#06b6d4]">
                           {formatPrice(p.revenue, 'EUR')}
                         </span>
                         {p.confidence != null && (
-                          <span className="text-xs text-gray-500 ml-2">
+                          <span className="text-xs text-white/40 ml-2">
                             conf. {p.confidence.toFixed(0)}%
                           </span>
                         )}
@@ -227,7 +238,7 @@ export function AnalyticsAdvancedPageClient() {
                   )}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-white/40">
                   Aucune prédiction disponible. Les prédictions apparaîtront après accumulation de
                   données.
                 </p>

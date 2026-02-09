@@ -37,7 +37,7 @@ export function TemplatesGrid({
   if (templates.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Aucun template trouvé</p>
+        <p className="text-white/60">Aucun template trouvé</p>
       </div>
     );
   }
@@ -47,7 +47,7 @@ export function TemplatesGrid({
       {templates.map((template) => (
         <Card
           key={template.id}
-          className="bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-colors group"
+          className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-purple-500/30 transition-colors group"
         >
           <div className="relative aspect-square overflow-hidden rounded-t-lg">
             <Image
@@ -58,12 +58,12 @@ export function TemplatesGrid({
             />
             <div className="absolute top-2 right-2 flex gap-2">
               {template.type === 'premium' && (
-                <Badge className="bg-yellow-500">Premium</Badge>
+                <span className="dash-badge dash-badge-enterprise">Premium</span>
               )}
               {template.isFavorite && (
-                <Badge className="bg-pink-500">
+                <span className="dash-badge bg-pink-500/15 text-pink-400 border-pink-500/25">
                   <Heart className="w-3 h-3" />
-                </Badge>
+                </span>
               )}
             </div>
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
@@ -71,7 +71,7 @@ export function TemplatesGrid({
                 size="sm"
                 variant="secondary"
                 onClick={() => onPreview(template)}
-                className="bg-white/90 hover:bg-white"
+                className="bg-white/90 hover:bg-white text-[#0a0a0f] border-0"
               >
                 <Eye className="w-4 h-4" />
               </Button>
@@ -79,7 +79,7 @@ export function TemplatesGrid({
                 size="sm"
                 variant="secondary"
                 onClick={() => onDownload(template)}
-                className="bg-white/90 hover:bg-white"
+                className="bg-white/90 hover:bg-white text-[#0a0a0f] border-0"
               >
                 <Download className="w-4 h-4" />
               </Button>
@@ -88,42 +88,42 @@ export function TemplatesGrid({
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-gray-900 truncate">{template.name}</h3>
-                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                <h3 className="font-medium text-white truncate">{template.name}</h3>
+                <p className="text-xs text-white/60 mt-1 line-clamp-2">
                   {template.description}
                 </p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/80 hover:bg-white/[0.04]">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-white border-gray-200">
+                <DropdownMenuContent align="end" className="dash-card border-white/[0.06] bg-[#12121a]">
                   <DropdownMenuItem
                     onClick={() => onPreview(template)}
-                    className="text-gray-700 cursor-pointer"
+                    className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Prévisualiser
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onDownload(template)}
-                    className="text-gray-700 cursor-pointer"
+                    className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Télécharger
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onToggleFavorite(template.id)}
-                    className="text-gray-700 cursor-pointer"
+                    className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                   >
                     <Heart className="w-4 h-4 mr-2" />
                     {template.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onShare(template)}
-                    className="text-gray-700 cursor-pointer"
+                    className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                   >
                     <Share2 className="w-4 h-4 mr-2" />
                     Partager
@@ -131,20 +131,20 @@ export function TemplatesGrid({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <div className="flex items-center justify-between text-xs text-white/40 mb-2">
               <div className="flex items-center gap-1">
-                <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                <Star className="w-3 h-3 text-[#fbbf24] fill-[#fbbf24]" />
                 <span>{template.rating.toFixed(1)}</span>
-                <span className="text-gray-500">({template.reviewsCount})</span>
+                <span className="text-white/30">({template.reviewsCount})</span>
               </div>
               <span>{template.downloads} téléchargements</span>
             </div>
             {template.type === 'premium' && template.price && (
-              <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                <span className="text-sm font-medium text-gray-900">
+              <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                <span className="text-sm font-medium text-white">
                   {formatPrice(template.price, 'EUR')}
                 </span>
-                <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
                   Acheter
                 </Button>
               </div>
@@ -153,7 +153,7 @@ export function TemplatesGrid({
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full mt-2 border-gray-200"
+                className="w-full mt-2 border-white/[0.08] text-white hover:bg-white/[0.04]"
                 onClick={() => onDownload(template)}
               >
                 <Download className="w-4 h-4 mr-2" />

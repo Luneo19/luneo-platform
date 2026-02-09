@@ -81,10 +81,10 @@ export function CreateWebhookModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Créer un webhook</DialogTitle>
-          <DialogDescription className="text-gray-600">
+          <DialogDescription className="text-white/60">
             Configurez un nouveau webhook pour recevoir des notifications en temps réel
           </DialogDescription>
         </DialogHeader>
@@ -98,7 +98,7 @@ export function CreateWebhookModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Mon webhook"
               required
-              className="bg-white border-gray-200"
+              className="bg-white/[0.04] border-white/[0.06] text-white"
             />
           </div>
 
@@ -111,9 +111,9 @@ export function CreateWebhookModal({
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com/webhook"
               required
-              className="bg-white border-gray-200"
+              className="bg-white/[0.04] border-white/[0.06] text-white"
             />
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-white/60">
               L'URL qui recevra les notifications webhook
             </p>
           </div>
@@ -126,23 +126,23 @@ export function CreateWebhookModal({
               value={secret}
               onChange={(e) => setSecret(e.target.value)}
               placeholder="Votre secret pour la signature"
-              className="bg-white border-gray-200"
+              className="bg-white/[0.04] border-white/[0.06] text-white"
             />
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-white/60">
               Secret utilisé pour signer les webhooks (HMAC SHA256)
             </p>
           </div>
 
           <div className="space-y-2">
             <Label>Événements à écouter</Label>
-            <div className="grid grid-cols-2 gap-3 p-4 bg-white/50 rounded-lg border border-gray-200">
+            <div className="grid grid-cols-2 gap-3 p-4 bg-white/[0.04] rounded-lg border border-white/[0.06]">
               {WEBHOOK_EVENTS.map((event) => (
                 <div key={event.value} className="flex items-center space-x-2">
                   <Checkbox
                     id={event.value}
                     checked={selectedEvents.includes(event.value)}
                     onCheckedChange={() => toggleEvent(event.value)}
-                    className="border-gray-300"
+                    className="border-white/20"
                   />
                   <Label
                     htmlFor={event.value}
@@ -165,9 +165,9 @@ export function CreateWebhookModal({
               id="isActive"
               checked={isActive}
               onCheckedChange={(checked) => setIsActive(checked === true)}
-              className="border-gray-300"
+              className="border-white/20"
             />
-            <Label htmlFor="isActive" className="cursor-pointer">
+            <Label htmlFor="isActive" className="cursor-pointer text-white/80">
               Activer le webhook immédiatement
             </Label>
           </div>
@@ -184,7 +184,7 @@ export function CreateWebhookModal({
             <Button
               type="submit"
               disabled={isLoading || !name || !url || selectedEvents.length === 0}
-              className="bg-cyan-600 hover:bg-cyan-700"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
             >
               {isLoading ? 'Création...' : 'Créer le webhook'}
             </Button>

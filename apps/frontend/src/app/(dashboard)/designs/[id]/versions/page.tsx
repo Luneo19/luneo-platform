@@ -137,10 +137,10 @@ function DesignVersionsPageContent() {
 
       setIsRestoreModalOpen(false);
       setSelectedVersion(null);
-      
+
       // Recharger les versions
       await versionsQuery.refetch();
-      
+
       // Rediriger vers le design
       router.push(`/dashboard/designs/${designId}`);
     } catch (err: unknown) {
@@ -242,10 +242,10 @@ function DesignVersionsPageContent() {
 
   if (versionsQuery.isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0f]">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-300">Chargement des versions...</p>
+          <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
+          <p className="text-white/60">Chargement des versions...</p>
         </div>
       </div>
     );
@@ -253,9 +253,9 @@ function DesignVersionsPageContent() {
 
   if (versionsQuery.error && versions.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className="min-h-screen bg-[#0a0a0f] p-6">
         <EmptyState
-          icon={<AlertCircle className="w-16 h-16" />}
+          icon={<AlertCircle className="w-16 h-16 text-white/40" />}
           title="Erreur de chargement"
           description={versionsQuery.error.message || 'Une erreur est survenue'}
           action={{
@@ -268,29 +268,29 @@ function DesignVersionsPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#0a0a0f] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href={`/dashboard/designs/${designId}`}>
-              <Button variant="ghost" size="icon" className="border-gray-700">
+              <Button variant="ghost" size="icon" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04] hover:text-white">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-                <History className="w-6 h-6 sm:w-8 sm:h-8" />
+                <History className="w-6 h-6 sm:w-8 sm:h-8 text-white/60" />
                 Historique des Versions
               </h1>
               {design && (
-                <p className="text-gray-400 mt-1">{design.name || 'Design'}</p>
+                <p className="text-white/60 mt-1">{design.name || 'Design'}</p>
               )}
             </div>
           </div>
           <Button
             onClick={handleCreateVersion}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white"
           >
             <Save className="w-4 h-4 mr-2" />
             Créer une version
@@ -299,30 +299,30 @@ function DesignVersionsPageContent() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="p-4 bg-gray-800/50 border-gray-700">
+          <Card className="dash-card p-4 bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Total versions</p>
+                <p className="text-sm text-white/60 mb-1">Total versions</p>
                 <p className="text-2xl font-bold text-white">{versions.length}</p>
               </div>
-              <GitBranch className="w-8 h-8 text-blue-400" />
+              <GitBranch className="w-8 h-8 text-purple-400" />
             </div>
           </Card>
-          <Card className="p-4 bg-gray-800/50 border-gray-700">
+          <Card className="dash-card p-4 bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Versions automatiques</p>
+                <p className="text-sm text-white/60 mb-1">Versions automatiques</p>
                 <p className="text-2xl font-bold text-white">
                   {versions.filter((v) => getVersionType(v) === 'auto').length}
                 </p>
               </div>
-              <Clock className="w-8 h-8 text-green-400" />
+              <Clock className="w-8 h-8 text-[#4ade80]" />
             </div>
           </Card>
-          <Card className="p-4 bg-gray-800/50 border-gray-700">
+          <Card className="dash-card p-4 bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Dernière version</p>
+                <p className="text-sm text-white/60 mb-1">Dernière version</p>
                 <p className="text-sm font-semibold text-white">
                   {versions.length > 0
                     ? formatDate(versions[0].created_at).date
@@ -337,7 +337,7 @@ function DesignVersionsPageContent() {
         {/* Timeline */}
         {versions.length === 0 ? (
           <EmptyState
-            icon={<History className="w-16 h-16" />}
+            icon={<History className="w-16 h-16 text-white/40" />}
             title="Aucune version"
             description="Aucune version n'a été créée pour ce design. Les versions sont créées automatiquement lors des modifications."
             action={{
@@ -361,12 +361,12 @@ function DesignVersionsPageContent() {
                   transition={{ delay: index * 0.1 }}
                 >
                   <Card
-                    className={`p-6 bg-gray-800/50 border-2 transition-all ${
+                    className={`dash-card p-6 bg-white/[0.03] border-2 backdrop-blur-sm transition-all ${
                       isSelected
-                        ? 'border-blue-500 ring-2 ring-blue-500/20'
+                        ? 'border-purple-500/50 ring-2 ring-purple-500/20'
                         : isCompare
-                        ? 'border-purple-500 ring-2 ring-purple-500/20'
-                        : 'border-gray-700 hover:border-gray-600'
+                        ? 'border-pink-500/50 ring-2 ring-pink-500/20'
+                        : 'border-white/[0.06] hover:border-white/[0.10]'
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row gap-6">
@@ -376,8 +376,8 @@ function DesignVersionsPageContent() {
                           <div
                             className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
                               isLatest
-                                ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                                : 'bg-gray-700 border-gray-600 text-gray-300'
+                                ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                                : 'bg-white/[0.04] border-white/[0.08] text-white/60'
                             }`}
                           >
                             {isLatest ? (
@@ -387,7 +387,7 @@ function DesignVersionsPageContent() {
                             )}
                           </div>
                           {index < versions.length - 1 && (
-                            <div className="w-0.5 h-full min-h-[60px] bg-gray-700 mt-2" />
+                            <div className="w-0.5 h-full min-h-[60px] bg-white/[0.08] mt-2" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -396,21 +396,21 @@ function DesignVersionsPageContent() {
                               v{version.version_number}
                             </span>
                             {isLatest && (
-                              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">
+                              <span className="dash-badge-new">
                                 Actuelle
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-400 mb-2">
+                          <p className="text-sm text-white/60 mb-2">
                             {dateInfo.date} à {dateInfo.time}
                           </p>
                           <span
                             className={`inline-block px-2 py-1 rounded text-xs ${
                               getVersionType(version) === 'auto'
-                                ? 'bg-green-500/20 text-green-400'
+                                ? 'bg-[#4ade80]/15 text-[#4ade80] border border-[#4ade80]/25'
                                 : getVersionType(version) === 'manual'
-                                ? 'bg-blue-500/20 text-blue-400'
-                                : 'bg-purple-500/20 text-purple-400'
+                                ? 'bg-purple-500/15 text-purple-400 border border-purple-500/25'
+                                : 'bg-pink-500/15 text-pink-400 border border-pink-500/25'
                             }`}
                           >
                             {getVersionTypeLabel(version)}
@@ -425,7 +425,7 @@ function DesignVersionsPageContent() {
                             {version.name}
                           </h3>
                           {version.description && (
-                            <p className="text-sm text-gray-400 mb-3">
+                            <p className="text-sm text-white/60 mb-3">
                               {version.description}
                             </p>
                           )}
@@ -433,7 +433,7 @@ function DesignVersionsPageContent() {
 
                         {/* Preview */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden border border-gray-700">
+                          <div className="relative aspect-video bg-[#12121a] rounded-lg overflow-hidden border border-white/[0.06]">
                             {version.design_data?.thumbnail_url ||
                             version.design_data?.preview_url ? (
                               <Image
@@ -449,14 +449,14 @@ function DesignVersionsPageContent() {
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
-                                <ImageIcon className="w-16 h-16 text-gray-700" />
+                                <ImageIcon className="w-16 h-16 text-white/30" />
                               </div>
                             )}
                           </div>
 
                           {/* Metadata */}
                           <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-white/60">
                               <FileText className="w-4 h-4" />
                               <span>
                                 {version.design_data
@@ -466,7 +466,7 @@ function DesignVersionsPageContent() {
                               </span>
                             </div>
                             {version.metadata?.created_by && (
-                              <div className="flex items-center gap-2 text-gray-400">
+                              <div className="flex items-center gap-2 text-white/60">
                                 <User className="w-4 h-4" />
                                 <span>Créé par vous</span>
                               </div>
@@ -475,12 +475,12 @@ function DesignVersionsPageContent() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-700">
+                        <div className="flex flex-wrap gap-2 pt-2 border-t border-white/[0.06]">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setSelectedVersion(version)}
-                            className="border-gray-700"
+                            className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             Voir détails
@@ -494,7 +494,7 @@ function DesignVersionsPageContent() {
                                   setSelectedVersion(version);
                                   setIsRestoreModalOpen(true);
                                 }}
-                                className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+                                className="border-[#4ade80]/50 text-[#4ade80] hover:bg-[#4ade80]/10"
                               >
                                 <RotateCcw className="w-4 h-4 mr-2" />
                                 Restaurer
@@ -511,8 +511,8 @@ function DesignVersionsPageContent() {
                                 }}
                                 className={`${
                                   isCompare
-                                    ? 'border-purple-500 bg-purple-500/20 text-purple-400'
-                                    : 'border-gray-700'
+                                    ? 'border-purple-500/50 bg-purple-500/20 text-purple-400'
+                                    : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'
                                 }`}
                               >
                                 <Diff className="w-4 h-4 mr-2" />
@@ -527,7 +527,7 @@ function DesignVersionsPageContent() {
                               setVersionToDelete(version.id);
                               setIsDeleteModalOpen(true);
                             }}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            className="text-[#f87171] hover:text-[#f87171]/90 hover:bg-[#f87171]/10"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -543,10 +543,10 @@ function DesignVersionsPageContent() {
 
         {/* Restore Modal */}
         <Dialog open={isRestoreModalOpen} onOpenChange={setIsRestoreModalOpen}>
-          <DialogContent className="bg-gray-800 border-gray-700">
+          <DialogContent className="bg-[#1a1a2e] border-white/[0.08] text-white">
             <DialogHeader>
               <DialogTitle className="text-white">Restaurer la version</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-white/60">
                 Êtes-vous sûr de vouloir restaurer la version{' '}
                 <strong>v{selectedVersion?.version_number}</strong> ? Une sauvegarde de
                 la version actuelle sera créée automatiquement.
@@ -556,7 +556,7 @@ function DesignVersionsPageContent() {
               <Button
                 variant="outline"
                 onClick={() => setIsRestoreModalOpen(false)}
-                className="border-gray-700"
+                className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                 disabled={restoring}
               >
                 Annuler
@@ -564,7 +564,7 @@ function DesignVersionsPageContent() {
               <Button
                 onClick={handleRestore}
                 disabled={restoring}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                className="bg-gradient-to-r from-[#4ade80] to-emerald-600 hover:from-[#4ade80]/90 hover:to-emerald-500 text-white"
               >
                 {restoring ? (
                   <>
@@ -584,10 +584,10 @@ function DesignVersionsPageContent() {
 
         {/* Delete Modal */}
         <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-          <DialogContent className="bg-gray-800 border-gray-700">
+          <DialogContent className="bg-[#1a1a2e] border-white/[0.08] text-white">
             <DialogHeader>
               <DialogTitle className="text-white">Supprimer la version</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-white/60">
                 Êtes-vous sûr de vouloir supprimer cette version ? Cette action est
                 irréversible.
               </DialogDescription>
@@ -596,7 +596,7 @@ function DesignVersionsPageContent() {
               <Button
                 variant="outline"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="border-gray-700"
+                className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                 disabled={deleting}
               >
                 Annuler
@@ -635,4 +635,3 @@ export default function DesignVersionsPage() {
     </ErrorBoundary>
   );
 }
-

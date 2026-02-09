@@ -246,7 +246,7 @@ function ARStudioPageContent() {
   return (
     <div className="space-y-6 pb-10">
       {loading && (
-        <Card className="p-6 bg-gray-900/70 border border-blue-500/30 text-center text-gray-300 animate-pulse">
+        <Card className="dash-card p-6 border-white/[0.06] bg-white/[0.03] backdrop-blur-sm text-center text-white/60 animate-pulse border-purple-500/20">
           Synchronisation de vos modèles AR...
         </Card>
       )}
@@ -254,12 +254,12 @@ function ARStudioPageContent() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">AR Studio</h1>
-          <p className="text-gray-400">Gérez vos modèles 3D et expériences AR</p>
+          <p className="text-white/60">Gérez vos modèles 3D et expériences AR</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
             onClick={() => setShowUploadModal(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
           >
             <Upload className="w-4 h-4 mr-2" />
             Uploader un modèle
@@ -267,7 +267,7 @@ function ARStudioPageContent() {
           <Link href="/demo/virtual-try-on">
             <Button
               variant="outline"
-              className="border-cyan-500/50 hover:bg-cyan-500/10 w-full sm:w-auto"
+              className="border-purple-500/40 hover:bg-purple-500/10 text-white w-full sm:w-auto"
             >
               <Play className="w-4 h-4 mr-2" />
               Essayer Virtual Try-On
@@ -279,19 +279,19 @@ function ARStudioPageContent() {
       {/* Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Total modèles', value: stats.total, icon: <Box className="w-5 h-5" />, color: 'blue' },
-          { label: 'Actifs', value: stats.active, icon: <CheckCircle className="w-5 h-5" />, color: 'green' },
-          { label: 'En traitement', value: stats.processing, icon: <RotateCw className="w-5 h-5" />, color: 'yellow' },
-          { label: 'Vues totales', value: stats.totalViews, icon: <Eye className="w-5 h-5" />, color: 'purple' },
-          { label: 'Essais AR', value: stats.totalTryOns, icon: <Play className="w-5 h-5" />, color: 'pink' }
+          { label: 'Total modèles', value: stats.total, icon: <Box className="w-5 h-5" />, color: 'text-[#3b82f6]', bg: 'bg-[#3b82f6]/10' },
+          { label: 'Actifs', value: stats.active, icon: <CheckCircle className="w-5 h-5" />, color: 'text-[#4ade80]', bg: 'bg-[#4ade80]/10' },
+          { label: 'En traitement', value: stats.processing, icon: <RotateCw className="w-5 h-5" />, color: 'text-[#fbbf24]', bg: 'bg-[#fbbf24]/10' },
+          { label: 'Vues totales', value: stats.totalViews, icon: <Eye className="w-5 h-5" />, color: 'text-[#8b5cf6]', bg: 'bg-[#8b5cf6]/10' },
+          { label: 'Essais AR', value: stats.totalTryOns, icon: <Play className="w-5 h-5" />, color: 'text-[#ec4899]', bg: 'bg-[#ec4899]/10' }
         ].map((stat, i) => (
-          <Card key={i} className="p-4 bg-gray-800/50 border-gray-700">
+          <Card key={i} className={`dash-card p-4 border-white/[0.06] bg-white/[0.03] backdrop-blur-sm ${stat.bg}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">{stat.label}</p>
+                <p className="text-sm text-white/40 mb-1">{stat.label}</p>
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
               </div>
-              <div className={`p-3 rounded-lg bg-${stat.color}-500/10 text-${stat.color}-400`}>
+              <div className={`p-3 rounded-lg ${stat.bg} ${stat.color}`}>
                 {stat.icon}
               </div>
             </div>
@@ -302,18 +302,18 @@ function ARStudioPageContent() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <Input
             placeholder="Rechercher un modèle..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700 text-white"
+            className="dash-input pl-10 border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/40"
           />
         </div>
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+          className="dash-input px-4 py-2 border-white/[0.08] bg-white/[0.04] rounded-xl text-white"
         >
           {modelTypes.map(type => (
             <option key={type.value} value={type.value}>{type.label}</option>
@@ -324,7 +324,7 @@ function ARStudioPageContent() {
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="icon"
             onClick={() => setViewMode('grid')}
-            className="border-gray-700"
+            className={viewMode === 'grid' ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'}
           >
             <Grid className="w-4 h-4" />
           </Button>
@@ -332,7 +332,7 @@ function ARStudioPageContent() {
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="icon"
             onClick={() => setViewMode('list')}
-            className="border-gray-700"
+            className={viewMode === 'list' ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'}
           >
             <List className="w-4 h-4" />
           </Button>
@@ -348,11 +348,11 @@ function ARStudioPageContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="p-6 bg-gray-800/50 border-gray-700 hover:border-blue-500/50 transition-all">
+            <Card className="dash-card p-6 border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-purple-500/30 transition-all">
               {/* Thumbnail */}
-              <div className="relative mb-4 aspect-video bg-gray-900 rounded-lg overflow-hidden">
+              <div className="relative mb-4 aspect-video bg-white/[0.04] border border-white/[0.06] rounded-xl overflow-hidden">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Box className="w-16 h-16 text-gray-700" />
+                  <Box className="w-16 h-16 text-white/20" />
                 </div>
                 <div className="absolute top-2 right-2 flex gap-2">
                   {getStatusBadge(model.status)}
@@ -363,11 +363,11 @@ function ARStudioPageContent() {
               <div className="mb-4">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-lg font-bold text-white">{model.name}</h3>
-                  <div className="text-blue-400">
+                  <div className="text-purple-400">
                     {getTypeIcon(model.type)}
                   </div>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-400">
+                <div className="flex items-center gap-4 text-sm text-white/60">
                   <span>{model.fileSize}</span>
                   <span>•</span>
                   <span>{model.format}</span>
@@ -375,13 +375,13 @@ function ARStudioPageContent() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-gray-900/50 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Vues</p>
+                  <p className="text-xs text-white/40 mb-1">Vues</p>
                   <p className="text-white font-bold">{model.views}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Essais</p>
+                  <p className="text-xs text-white/40 mb-1">Essais</p>
                   <p className="text-white font-bold">{model.tryOns}</p>
                 </div>
               </div>
@@ -395,7 +395,7 @@ function ARStudioPageContent() {
                     setSelectedModel(model);
                     setShowPreview(true);
                   }}
-                  className="flex-1 border-gray-700"
+                  className="flex-1 border-white/[0.08] text-white hover:bg-white/[0.04]"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Prévisualiser
@@ -404,7 +404,7 @@ function ARStudioPageContent() {
                   size="sm"
                   variant="outline"
                   onClick={() => handleExport(model)}
-                  className="border-gray-700"
+                  className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -412,7 +412,7 @@ function ARStudioPageContent() {
                   size="sm"
                   variant="outline"
                   onClick={() => handleCopyEmbed(model.id)}
-                  className="border-gray-700"
+                  className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
@@ -430,17 +430,17 @@ function ARStudioPageContent() {
       </div>
 
       {filteredModels.length === 0 && (
-        <Card className="p-12 bg-gray-800/50 border-gray-700 text-center">
-          <Box className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+        <Card className="dash-card p-12 border-white/[0.06] bg-white/[0.03] backdrop-blur-sm text-center">
+          <Box className="w-16 h-16 text-white/30 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">Aucun modèle trouvé</h3>
-          <p className="text-gray-400 mb-4">
+          <p className="text-white/60 mb-4">
             {searchTerm || filterType !== 'all' 
               ? 'Essayez de modifier vos filtres'
               : 'Commencez par uploader votre premier modèle 3D'
             }
           </p>
           {!searchTerm && filterType === 'all' && (
-            <Button onClick={() => setShowUploadModal(true)}>
+            <Button onClick={() => setShowUploadModal(true)} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
               <Upload className="w-4 h-4 mr-2" />
               Uploader un modèle
             </Button>
@@ -463,26 +463,26 @@ function ARStudioPageContent() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-gray-800 rounded-lg p-6 max-w-lg w-full border border-gray-700"
+              className="dash-card rounded-2xl p-6 max-w-lg w-full border border-white/[0.06] bg-[#12121a]"
             >
               <h3 className="text-xl font-bold text-white mb-4">Uploader un modèle 3D</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     Nom du modèle
                   </label>
                   <Input
                     placeholder="Ex: Lunettes Aviator"
-                    className="bg-gray-900 border-gray-600 text-white"
+                    className="dash-input border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/40"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     Type de produit
                   </label>
-                  <select className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white">
+                  <select className="dash-input w-full px-3 py-2 border-white/[0.08] bg-white/[0.04] rounded-xl text-white">
                     {modelTypes.filter(t => t.value !== 'all').map(type => (
                       <option key={type.value} value={type.value}>{type.label}</option>
                     ))}
@@ -490,27 +490,27 @@ function ARStudioPageContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     Fichier 3D
                   </label>
-                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <div className="border-2 border-dashed border-white/[0.08] rounded-xl p-8 text-center hover:border-purple-500/40 transition-colors cursor-pointer bg-white/[0.02]">
+                    <Upload className="w-12 h-12 text-white/40 mx-auto mb-3" />
                     <p className="text-white mb-1">Cliquez ou glissez un fichier</p>
-                    <p className="text-sm text-gray-400">GLB, USDZ, FBX, OBJ (max 50MB)</p>
+                    <p className="text-sm text-white/40">GLB, USDZ, FBX, OBJ (max 50MB)</p>
                   </div>
                 </div>
 
                 {uploadProgress > 0 && uploadProgress < 100 && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Upload en cours...</span>
+                      <span className="text-white/60">Upload en cours...</span>
                       <span className="text-white">{uploadProgress}%</span>
                     </div>
-                    <div className="h-2 bg-gray-900 rounded-full overflow-hidden">
+                    <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
                       <motion
                         initial={{ width: 0 }}
                         animate={{ width: `${uploadProgress}%` }}
-                        className="h-full bg-gradient-to-r from-blue-600 to-purple-600"
+                        className="h-full bg-gradient-to-r from-purple-600 to-pink-600"
                       />
                     </div>
                   </div>
@@ -519,7 +519,7 @@ function ARStudioPageContent() {
                 <div className="flex gap-3 mt-6">
                   <Button
                     onClick={() => handleUpload(new File([], 'test.glb'))}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                     disabled={uploadProgress > 0 && uploadProgress < 100}
                   >
                     <Upload className="w-4 h-4 mr-2" />
@@ -531,7 +531,7 @@ function ARStudioPageContent() {
                       setShowUploadModal(false);
                       setUploadProgress(0);
                     }}
-                    className="border-gray-600"
+                    className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                   >
                     Annuler
                   </Button>
@@ -557,7 +557,7 @@ function ARStudioPageContent() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full border border-gray-700"
+              className="dash-card rounded-2xl p-6 max-w-4xl w-full border border-white/[0.06] bg-[#12121a]"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-white">{selectedModel.name}</h3>
@@ -565,22 +565,22 @@ function ARStudioPageContent() {
                   variant="outline"
                   size="icon"
                   onClick={() => setShowPreview(false)}
-                  className="border-gray-600"
+                  className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                 >
                   <Minimize className="w-4 h-4" />
                 </Button>
               </div>
               
-              <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center mb-4">
-                <Box className="w-32 h-32 text-gray-700" />
+              <div className="aspect-video bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center justify-center mb-4">
+                <Box className="w-32 h-32 text-white/20" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="border-gray-600">
+                <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]">
                   <Smartphone className="w-4 h-4 mr-2" />
                   Essayer sur mobile
                 </Button>
-                <Button variant="outline" className="border-gray-600">
+                <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]">
                   <Share2 className="w-4 h-4 mr-2" />
                   Partager
                 </Button>

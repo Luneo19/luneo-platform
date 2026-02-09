@@ -50,12 +50,12 @@ export function BarChartWidget({
 }: BarChartWidgetProps) {
   if (isLoading) {
     return (
-      <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+      <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-white">{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 bg-zinc-700/50 rounded animate-pulse" />
+          <div className="h-64 bg-white/[0.06] rounded animate-pulse" />
         </CardContent>
       </Card>
     );
@@ -64,8 +64,8 @@ export function BarChartWidget({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-lg">
-          <p className="text-sm text-zinc-400 mb-2">{payload[0].payload.name}</p>
+        <div className="rounded-lg p-3 border border-white/[0.06]" style={{ backgroundColor: '#1a1a2e' }}>
+          <p className="text-sm text-white/60 mb-2">{payload[0].payload.name}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {typeof entry.value === 'number' ? formatCurrency(entry.value) : entry.value}
@@ -78,7 +78,7 @@ export function BarChartWidget({
   };
 
   return (
-    <Card className={cn('bg-zinc-800 border-zinc-700', className)}>
+    <Card className={cn('bg-white/[0.03] border-white/[0.06]', className)}>
       <CardHeader>
         <CardTitle className="text-lg font-semibold text-white">{title}</CardTitle>
       </CardHeader>
@@ -90,12 +90,12 @@ export function BarChartWidget({
               layout="vertical"
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
-              {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#374151" />}
-              <XAxis type="number" stroke="#9ca3af" fontSize={12} />
+              {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />}
+              <XAxis type="number" stroke="#4a4a5e" fontSize={12} />
               <YAxis
                 dataKey="name"
                 type="category"
-                stroke="#9ca3af"
+                stroke="#4a4a5e"
                 fontSize={12}
                 width={100}
               />
@@ -107,17 +107,17 @@ export function BarChartWidget({
               data={data}
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
-              {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#374151" />}
+              {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />}
               <XAxis
                 dataKey="name"
-                stroke="#9ca3af"
+                stroke="#4a4a5e"
                 fontSize={12}
-                tickLine={{ stroke: '#9ca3af' }}
+                tickLine={{ stroke: '#4a4a5e' }}
               />
               <YAxis
-                stroke="#9ca3af"
+                stroke="#4a4a5e"
                 fontSize={12}
-                tickLine={{ stroke: '#9ca3af' }}
+                tickLine={{ stroke: '#4a4a5e' }}
                 tickFormatter={(value) => {
                   if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
                   return value.toString();
