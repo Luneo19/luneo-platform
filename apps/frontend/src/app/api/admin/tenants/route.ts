@@ -22,8 +22,10 @@ export async function GET(_request: NextRequest) {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: 'no-store',
     });
-    const user = userRes.ok ? await userRes.json() : null;
-    if (!user) {
+    const userJson = userRes.ok ? await userRes.json() : null;
+    // Handle wrapped response: { success: true, data: { ... } } or direct { id, ... }
+    const user = userJson?.data || userJson;
+    if (!user || !user.id) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
     if (user.role !== 'PLATFORM_ADMIN') {

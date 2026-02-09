@@ -18,7 +18,12 @@ async function fetchAuthMe(cookie: string | null): Promise<{ id: string; email: 
       cache: 'no-store',
     });
     if (!res.ok) return null;
-    return res.json();
+    const json = await res.json();
+    // Backend may return { success: true, data: { id, email, ... } }
+    // or directly { id, email, ... }
+    const user = json?.data || json;
+    if (!user || !user.id) return null;
+    return user;
   } catch {
     return null;
   }

@@ -47,12 +47,15 @@ export async function getServerUser(): Promise<AuthUser | null> {
 
     if (response.ok) {
       const data = await response.json();
-      if (data && data.id) {
+      // Backend may return { id, email, ... } directly
+      // OR wrapped: { success: true, data: { id, email, ... } }
+      const user = data?.data || data;
+      if (user && user.id) {
         return {
-          id: data.id,
-          email: data.email,
-          role: data.role || undefined,
-          brandId: data.brandId || undefined,
+          id: user.id,
+          email: user.email,
+          role: user.role || undefined,
+          brandId: user.brandId || undefined,
         };
       }
     }
@@ -90,13 +93,15 @@ export async function getServerUser(): Promise<AuthUser | null> {
 
           if (retryResp.ok) {
             const data = await retryResp.json();
-            if (data && data.id) {
+            // Handle wrapped response format
+            const user = data?.data || data;
+            if (user && user.id) {
               serverLogger.debug('[getServerUser] Server-side refresh successful');
               return {
-                id: data.id,
-                email: data.email,
-                role: data.role || undefined,
-                brandId: data.brandId || undefined,
+                id: user.id,
+                email: user.email,
+                role: user.role || undefined,
+                brandId: user.brandId || undefined,
               };
             }
           }
@@ -158,16 +163,19 @@ export async function getUserFromRequest(
     }
 
     const data = await response.json();
+    // Handle wrapped response: { success: true, data: { id, email, ... } }
+    // or direct response: { id, email, ... }
+    const user = data?.data || data;
     
-    if (!data || !data.id) {
+    if (!user || !user.id) {
       return null;
     }
 
     return {
-      id: data.id,
-      email: data.email,
-      role: data.role || undefined,
-      brandId: data.brandId || undefined,
+      id: user.id,
+      email: user.email,
+      role: user.role || undefined,
+      brandId: user.brandId || undefined,
     };
   } catch (error) {
     serverLogger.error('[getUserFromRequest] Error getting user from request', error);

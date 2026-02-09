@@ -9,6 +9,9 @@ import { redirect } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/layout/admin-sidebar';
 import { AdminHeader } from '@/components/admin/layout/admin-header';
 
+// Force dynamic rendering — this page reads cookies and must NOT be CDN-cached
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Super Admin Dashboard | Luneo Platform',
   description: 'Dashboard administrateur pour la gestion complète de la plateforme Luneo',

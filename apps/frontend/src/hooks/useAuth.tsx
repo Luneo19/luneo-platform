@@ -173,8 +173,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await response.json();
-        // Backend returns user directly or in data.user
-        const userData = data.user || data.data?.user || data;
+        // Backend may return:
+        //   { user: { id, email, ... } }         (login format)
+        //   { success: true, data: { id, ... } } (auth/me wrapped format)
+        //   { id, email, ... }                    (direct format)
+        const userData = data.user || data.data?.user || data.data || data;
         if (userData && userData.id) {
           const mappedUser = mapBackendUser(userData);
           setUser(mappedUser);
