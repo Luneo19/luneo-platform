@@ -765,13 +765,8 @@ export class AnalyticsService {
   /**
    * Enregistre un Web Vital avec typage strict et validation
    */
-  async recordWebVital(userId: string, brandId: string | null, data: WebVitalData) {
+  async recordWebVital(userId: string | null, brandId: string | null, data: WebVitalData) {
     // ✅ Validation des entrées
-    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
-      this.logger.warn('Invalid userId provided to recordWebVital');
-      throw new BadRequestException('User ID is required');
-    }
-
     if (!data || typeof data !== 'object') {
       this.logger.warn('Invalid data provided to recordWebVital');
       throw new BadRequestException('Web vital data is required');
@@ -787,7 +782,7 @@ export class AnalyticsService {
       throw new BadRequestException('Metric value must be a valid number');
     }
     try {
-      this.logger.log(`Recording web vital: ${data.name} = ${data.value} for user: ${userId}`);
+      this.logger.log(`Recording web vital: ${data.name} = ${data.value} for user: ${userId || 'anonymous'}`);
 
       // ✅ Implémenté : Sauvegarder dans la table WebVital
       await this.prisma.webVital.create({
@@ -798,7 +793,7 @@ export class AnalyticsService {
           metric: data.name.toUpperCase(), // LCP, FID, CLS, etc.
           value: data.value,
           rating: data.rating || this.calculateRating(data.name, data.value),
-          timestamp: new Date(data.timestamp),
+          timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
         },
       });
 

@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { AnalyticsService } from '../services/analytics.service';
 import { RecordWebVitalDto } from '../dto/record-web-vital.dto';
 
@@ -73,10 +74,13 @@ export class AnalyticsController {
   }
 
   @Post('web-vitals')
+  @Public() // Web vitals are sent from all pages including unauthenticated ones
   @ApiOperation({ summary: 'Record a web vital metric' })
   @ApiResponse({ status: 201, description: 'Web vital recorded successfully' })
-  async recordWebVital(@Body() dto: RecordWebVitalDto, @Request() req) {
-    return this.analyticsService.recordWebVital(req.user.id, req.user.brandId || null, dto);
+  async recordWebVital(@Body() dto: RecordWebVitalDto, @Request() req: any) {
+    const userId = req?.user?.id || null;
+    const brandId = req?.user?.brandId || null;
+    return this.analyticsService.recordWebVital(userId, brandId, dto);
   }
 
   @Get('web-vitals')

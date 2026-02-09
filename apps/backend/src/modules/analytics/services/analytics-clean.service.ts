@@ -28,9 +28,18 @@ export class AnalyticsCleanService {
     dto: TrackEventDto,
   ): Promise<void> {
     try {
+      // Skip anonymous events that have no valid brandId (FK constraint would fail)
+      if (!brandId || brandId === 'anonymous') {
+        this.logger.debug('Skipping anonymous analytics event', {
+          eventType: dto.eventType,
+          sessionId: dto.sessionId,
+        });
+        return;
+      }
+
       await this.prisma.analyticsEvent.create({
         data: {
-          eventType: dto.eventType,
+          eventType: dto.eventType as string,
           userId: userId || null,
           sessionId: dto.sessionId || null,
           properties: dto.properties || {},
@@ -41,7 +50,7 @@ export class AnalyticsCleanService {
       // Cache invalidation handled by decorator
     } catch (error) {
       this.logger.error('Failed to track event', { error, brandId, dto });
-      throw error;
+      // Don't throw on tracking failures - they should be non-blocking
     }
   }
 
