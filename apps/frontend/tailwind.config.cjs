@@ -182,7 +182,11 @@ module.exports = {
         },
         'marquee': {
           '0%': { transform: 'translateX(0)' },
-          '100%': { transform: 'translateX(-50%)' },
+          '100%': { transform: 'translateX(-33.333%)' },
+        },
+        'marquee-reverse': {
+          '0%': { transform: 'translateX(-33.333%)' },
+          '100%': { transform: 'translateX(0)' },
         },
         'spin-slow': {
           '0%': { transform: 'rotate(0deg)' },
@@ -206,7 +210,8 @@ module.exports = {
         'float': 'float 20s ease-in-out infinite',
         'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
         'gradient-shift': 'gradient-shift 8s ease infinite',
-        'marquee': 'marquee 30s linear infinite',
+        'marquee': 'marquee 25s linear infinite',
+        'marquee-reverse': 'marquee-reverse 28s linear infinite',
         'spin-slow': 'spin-slow 40s linear infinite',
         'scale-in': 'scale-in 0.3s ease-out',
       },

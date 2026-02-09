@@ -69,7 +69,22 @@ function AnimatedBorderInner({
         <div
           className="animated-border-spin absolute inset-[-200%] gpu-accelerated"
           style={{
-            background: `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,0.8) 10%, rgba(236,72,153,0.8) 20%, transparent 30%, transparent 70%, rgba(168,85,247,0.8) 80%, rgba(236,72,153,0.8) 90%, transparent 100%)`,
+            background: `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,1) 8%, rgba(236,72,153,1) 18%, transparent 28%, transparent 72%, rgba(168,85,247,1) 82%, rgba(236,72,153,1) 92%, transparent 100%)`,
+            animation: `spin ${duration} linear infinite`,
+          }}
+        />
+      </div>
+
+      {/* Glow layer for extra visibility */}
+      <div
+        className={`absolute inset-0 ${rounded} overflow-hidden ${
+          hoverOnly ? 'opacity-0 group-hover/border:opacity-60' : active ? 'opacity-40' : 'opacity-0'
+        } transition-opacity duration-500 blur-md -z-[1]`}
+      >
+        <div
+          className="absolute inset-[-200%] gpu-accelerated"
+          style={{
+            background: `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,0.6) 8%, rgba(236,72,153,0.6) 18%, transparent 28%, transparent 72%, rgba(168,85,247,0.6) 82%, rgba(236,72,153,0.6) 92%, transparent 100%)`,
             animation: `spin ${duration} linear infinite`,
           }}
         />
@@ -103,15 +118,23 @@ function AnimatedBorderCTAInner({
   const duration = SPEEDS[speed];
 
   return (
-    <div className={`animated-border-cta relative inline-flex ${className}`} style={{ padding: '1px' }}>
+    <div className={`animated-border-cta relative inline-flex ${className}`} style={{ padding: '2px' }}>
       {/* Rotating gradient */}
-      <div
-        className="absolute inset-0 rounded-lg overflow-hidden"
-      >
+      <div className="absolute inset-0 rounded-lg overflow-hidden">
         <div
           className="absolute inset-[-200%] gpu-accelerated"
           style={{
-            background: `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,0.9) 10%, rgba(236,72,153,0.9) 20%, transparent 30%, transparent 70%, rgba(168,85,247,0.9) 80%, rgba(236,72,153,0.9) 90%, transparent 100%)`,
+            background: `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,1) 8%, rgba(236,72,153,1) 18%, transparent 28%, transparent 72%, rgba(168,85,247,1) 82%, rgba(236,72,153,1) 92%, transparent 100%)`,
+            animation: `spin ${duration} linear infinite`,
+          }}
+        />
+      </div>
+      {/* Glow layer */}
+      <div className="absolute inset-0 rounded-lg overflow-hidden blur-sm opacity-60 -z-[1]">
+        <div
+          className="absolute inset-[-200%] gpu-accelerated"
+          style={{
+            background: `conic-gradient(from 0deg, transparent 0%, rgba(168,85,247,0.8) 8%, rgba(236,72,153,0.8) 18%, transparent 28%, transparent 72%, rgba(168,85,247,0.8) 82%, rgba(236,72,153,0.8) 92%, transparent 100%)`,
             animation: `spin ${duration} linear infinite`,
           }}
         />

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
+import { AnimatedBorderCTA } from '@/components/ui/animated-border';
 
 // =============================================================================
 // MEGA-MENU DATA
@@ -160,7 +161,7 @@ export function Navigation() {
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
                       activeMenu === key
                         ? 'text-white bg-white/[0.08]'
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                        : 'text-white/90 hover:text-white hover:bg-white/[0.04]'
                     }`}
                   >
                     {MENU_DATA[key].label}
@@ -175,7 +176,7 @@ export function Navigation() {
 
               <Link
                 href="/pricing"
-                className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.04] rounded-lg transition-all duration-200"
+                className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white hover:bg-white/[0.04] rounded-lg transition-all duration-200"
                 onClick={closeAll}
               >
                 Tarifs
@@ -185,22 +186,26 @@ export function Navigation() {
             {/* Desktop CTA */}
             <div className="hidden lg:flex items-center gap-3">
               <Link href="/login" onClick={closeAll}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:text-white hover:bg-white/[0.08] font-medium"
-                >
-                  Connexion
-                </Button>
+                <AnimatedBorderCTA speed="slow">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="!text-white !bg-white/[0.06] hover:!bg-white/[0.12] font-medium border-0"
+                  >
+                    Connexion
+                  </Button>
+                </AnimatedBorderCTA>
               </Link>
               <Link href="/register" onClick={closeAll}>
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                >
-                  Essai gratuit
-                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                </Button>
+                <AnimatedBorderCTA speed="normal">
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                  >
+                    Essai gratuit
+                    <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  </Button>
+                </AnimatedBorderCTA>
               </Link>
             </div>
 
@@ -254,7 +259,7 @@ export function Navigation() {
                   <div className="flex-1 flex gap-8">
                     {MENU_DATA[activeMenu].columns.map((col, ci) => (
                       <div key={ci} className="flex-1">
-                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+                        <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-4">
                           {col.title}
                         </h4>
                         <div className="space-y-1">
@@ -274,7 +279,7 @@ export function Navigation() {
                                   <div className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
                                     {item.label}
                                   </div>
-                                  <div className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                  <div className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                                     {item.description}
                                   </div>
                                 </div>
@@ -409,7 +414,7 @@ export function Navigation() {
           {/* Mobile CTA */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-dark-bg/95 backdrop-blur-sm border-t border-white/[0.06] space-y-2">
             <Link href="/login" onClick={() => setMobileOpen(false)} className="block">
-              <Button variant="outline" className="w-full font-medium text-slate-300 border-white/[0.1] hover:bg-white/[0.04] hover:text-white">
+              <Button variant="outline" className="w-full font-medium text-white border-white/[0.15] bg-white/[0.06] hover:bg-white/[0.1] hover:text-white">
                 Connexion
               </Button>
             </Link>

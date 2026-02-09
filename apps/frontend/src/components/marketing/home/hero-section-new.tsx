@@ -133,8 +133,8 @@ export function HeroSectionNew() {
                     onClick={() => setActiveTab(idx)}
                     className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap flex-shrink-0 ${
                       activeTab === idx
-                        ? 'bg-white/[0.1] text-white border border-white/[0.12] shadow-glow-sm'
-                        : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                        ? 'bg-white/[0.12] text-white border border-white/[0.15] shadow-glow-sm'
+                        : 'text-white/80 hover:text-white hover:bg-white/[0.06] border border-white/[0.06]'
                     }`}
                   >
                     <Icon className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
