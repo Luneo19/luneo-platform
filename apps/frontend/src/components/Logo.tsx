@@ -4,35 +4,25 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+const LOGO_URL = 'https://res.cloudinary.com/deh4aokbx/image/upload/v1768673851/Favicon_FT_qmi9px.webp';
+
 interface LogoProps {
-  /**
-   * Taille du logo
-   * @default 'default' - 32x32px pour l'icône, texte normal
-   */
+  /** Size variant */
   size?: 'small' | 'default' | 'large';
-  /**
-   * Afficher le texte "Luneo" à côté du logo
-   * @default true
-   */
+  /** Show "Luneo" text next to the icon */
   showText?: boolean;
-  /**
-   * Lien vers lequel le logo redirige
-   * @default '/'
-   */
+  /** Link destination */
   href?: string;
-  /**
-   * Classe CSS supplémentaire
-   */
+  /** Additional CSS classes */
   className?: string;
-  /**
-   * Variante du logo (pour fond clair ou sombre)
-   * @default 'light'
-   */
+  /** Logo variant for light or dark backgrounds */
   variant?: 'light' | 'dark';
+  /** Called when logo is clicked */
+  onClick?: () => void;
 }
 
 const sizeMap = {
-  small: { icon: 20, text: 'text-base' },
+  small: { icon: 24, text: 'text-base' },
   default: { icon: 32, text: 'text-xl' },
   large: { icon: 48, text: 'text-2xl' },
 };
@@ -43,24 +33,26 @@ export function Logo({
   href = '/',
   className = '',
   variant = 'light',
+  onClick,
 }: LogoProps) {
   const { icon, text } = sizeMap[size];
   const textColor = variant === 'light' ? 'text-gray-900' : 'text-white';
 
   const logoContent = (
-    <div className={`flex items-center space-x-2 ${className}`}>
+    <div className={`flex items-center gap-2.5 ${className}`}>
       <div className="relative flex-shrink-0">
         <Image
-          src={showText ? "/logo.png" : "/logo.png"}
+          src={LOGO_URL}
           alt="Luneo Logo"
           width={icon}
           height={icon}
-          className="object-contain"
+          className="object-contain rounded-lg"
           priority
+          unoptimized
         />
       </div>
       {showText && (
-        <span className={`font-bold ${text} ${textColor}`}>
+        <span className={`font-bold ${text} ${textColor} tracking-tight`}>
           Luneo
         </span>
       )}
@@ -69,7 +61,11 @@ export function Logo({
 
   if (href) {
     return (
-      <Link href={href} className="inline-flex items-center hover:opacity-80 transition-opacity">
+      <Link
+        href={href}
+        className="inline-flex items-center hover:opacity-80 transition-opacity"
+        onClick={onClick}
+      >
         {logoContent}
       </Link>
     );
@@ -77,4 +73,3 @@ export function Logo({
 
   return logoContent;
 }
-

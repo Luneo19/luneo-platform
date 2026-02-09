@@ -118,16 +118,16 @@ function ContactPageContent() {
         gradient="from-blue-600 via-purple-600 to-pink-600"
       />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 md:py-24">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Form */}
-          <Card className="p-8 bg-white" data-animate="fade-right">
-            <h2 className="text-2xl font-bold mb-6">Envoyez-nous un message</h2>
+          <Card className="p-5 sm:p-8 bg-dark-card/60 border-white/[0.04]">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white font-display">Envoyez-nous un message</h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Nom</label>
                   <Input
                     name="name"
                     value={formData.name}
@@ -137,7 +137,7 @@ function ContactPageContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
                   <Input
                     type="email"
                     name="email"
@@ -150,7 +150,7 @@ function ContactPageContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Entreprise (optionnel)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Entreprise (optionnel)</label>
                 <Input
                   name="company"
                   value={formData.company}
@@ -160,7 +160,7 @@ function ContactPageContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sujet</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Sujet</label>
                 <Input
                   name="subject"
                   value={formData.subject}
@@ -171,7 +171,7 @@ function ContactPageContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Message</label>
                 <textarea
                   name="message"
                   value={formData.message}
@@ -179,23 +179,23 @@ function ContactPageContent() {
                   placeholder="Décrivez votre projet ou votre question..."
                   rows={6}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-indigo-600 focus:outline-none resize-none"
+                  className="w-full px-3 py-2 border border-dark-border bg-dark-surface text-white placeholder:text-slate-600 rounded-lg focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/20 resize-none"
                 />
               </div>
 
               {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{error}</p>
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-400">{error}</p>
                 </div>
               )}
 
               {isSubmitted && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-green-800">Message envoyé avec succès !</p>
-                    <p className="text-xs text-green-600 mt-1">Nous vous répondrons sous 24h.</p>
+                    <p className="text-sm font-medium text-green-300">Message envoye avec succes !</p>
+                    <p className="text-xs text-green-400 mt-1">Nous vous repondrons sous 24h.</p>
                   </div>
                 </div>
               )}
@@ -203,7 +203,7 @@ function ContactPageContent() {
               <Button
                 type="submit"
                 disabled={isSubmitting || isSubmitted}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold h-12 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 shadow-lg shadow-purple-500/25 disabled:opacity-50 transition-all duration-200"
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center">
@@ -226,7 +226,7 @@ function ContactPageContent() {
           </Card>
 
           {/* Contact Info */}
-          <div className="space-y-6" data-animate="fade-left">
+          <div className="space-y-4 sm:space-y-6">
             {contactInfo.map((info, i) => (
               <FeatureCard
                 key={info.title}
@@ -234,23 +234,23 @@ function ContactPageContent() {
                 title={info.title}
                 description={`${info.details} - ${info.description}`}
                 color={info.color}
-                delay={i * 100}
+                staggerIndex={i}
               />
             ))}
 
             {/* FAQ Card */}
-            <Card className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
-              <h3 className="font-bold mb-4 flex items-center text-indigo-900">
+            <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-white/[0.04]">
+              <h3 className="font-bold mb-4 flex items-center text-white">
                 <MessageSquare className="w-5 h-5 mr-2" />
                 Questions fréquentes
               </h3>
               <div className="space-y-3">
                 {faqs.map((faq, i) => (
                   <details key={i} className="group">
-                    <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+                    <summary className="cursor-pointer text-sm font-medium text-slate-300 hover:text-purple-400 transition-colors">
                       {faq.question}
                     </summary>
-                    <p className="mt-2 text-xs text-gray-600 pl-4">{faq.answer}</p>
+                    <p className="mt-2 text-xs text-slate-500 pl-4">{faq.answer}</p>
                   </details>
                 ))}
               </div>

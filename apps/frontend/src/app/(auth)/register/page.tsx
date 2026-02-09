@@ -274,17 +274,17 @@ function RegisterPageContent() {
       {/* Header */}
       <div className="text-center mb-6">
         <FadeIn delay={0.1}>
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl mb-6 shadow-lg shadow-indigo-500/25 lg:hidden">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl mb-6 shadow-lg shadow-purple-500/25 lg:hidden">
             <span className="text-white font-bold text-2xl">L</span>
           </div>
         </FadeIn>
         <SlideUp delay={0.2}>
-          <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            Créer un compte 🚀
+          <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display">
+            Creer un compte
           </h1>
         </SlideUp>
         <FadeIn delay={0.3}>
-          <p className="text-gray-600">
+          <p className="text-slate-500">
             Commencez gratuitement, sans engagement
           </p>
         </FadeIn>
@@ -318,17 +318,17 @@ function RegisterPageContent() {
         {/* Full Name */}
         <SlideUp delay={0.4}>
         <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 block mb-1.5">
+          <Label htmlFor="fullName" className="text-sm font-medium text-slate-300 block mb-1.5">
             Nom complet <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
                 <Input
                   id="fullName"
                   data-testid="register-name"
                   type="text"
                   placeholder="Jean Dupont"
-              className="pl-10 bg-white border-2 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base"
+              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
@@ -344,17 +344,17 @@ function RegisterPageContent() {
         {/* Email */}
         <SlideUp delay={0.5}>
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-gray-700 block mb-1.5">
+          <Label htmlFor="email" className="text-sm font-medium text-slate-300 block mb-1.5">
             Email professionnel <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
                 <Input
                   id="email"
                   data-testid="register-email"
                   type="email"
               placeholder="votre@entreprise.com"
-              className="pl-10 bg-white border-2 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base"
+              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -370,16 +370,16 @@ function RegisterPageContent() {
         {/* Company */}
         <SlideUp delay={0.6}>
         <div className="space-y-2">
-          <Label htmlFor="company" className="text-sm font-medium text-gray-700 block mb-1.5">
+          <Label htmlFor="company" className="text-sm font-medium text-slate-300 block mb-1.5">
             Entreprise <span className="text-gray-500">(optionnel)</span>
               </Label>
           <div className="relative">
-            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
                 <Input
                   id="company"
                   type="text"
                   placeholder="Votre entreprise"
-              className="pl-10 bg-white border-2 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base"
+              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               disabled={isLoading}
@@ -391,11 +391,11 @@ function RegisterPageContent() {
         {/* Password */}
         <SlideUp delay={0.7}>
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-gray-700 block mb-1.5">
+          <Label htmlFor="password" className="text-sm font-medium text-slate-300 block mb-1.5">
             Mot de passe <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
                 <Input
                   id="password"
                   data-testid="register-password"
@@ -410,7 +410,7 @@ function RegisterPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors z-10"
               tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -426,12 +426,12 @@ function RegisterPageContent() {
             >
               {/* Strength bar */}
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden flex gap-0.5">
+                <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden flex gap-0.5">
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
                       className={`h-full flex-1 rounded-full transition-colors ${
-                        i < passwordStrength.score ? passwordStrength.color : 'bg-gray-200'
+                        i < passwordStrength.score ? passwordStrength.color : 'bg-white/[0.06]'
                       }`}
                     />
                   ))}
@@ -478,20 +478,20 @@ function RegisterPageContent() {
         {/* Confirm Password */}
         <SlideUp delay={0.8}>
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 block mb-1.5">
+          <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300 block mb-1.5">
             Confirmer le mot de passe <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
                 <Input
                   id="confirmPassword"
                   data-testid="register-confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirmez votre mot de passe"
-              className={`pl-10 pr-12 bg-white border-2 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base ${
+              className={`pl-10 pr-12 bg-dark-surface border text-white placeholder:text-slate-600 focus:ring-1 focus:ring-purple-500/20 h-12 text-base ${
                 formData.confirmPassword && !passwordsMatch 
-                  ? 'border-red-500 focus:border-red-500' 
-                  : 'border-gray-200 focus:border-indigo-500'
+                  ? 'border-red-500/50 focus:border-red-500/50' 
+                  : 'border-dark-border focus:border-purple-500/50'
               }`}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
@@ -501,7 +501,7 @@ function RegisterPageContent() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors z-10"
               tabIndex={-1}
             >
               {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -526,16 +526,16 @@ function RegisterPageContent() {
                 type="checkbox"
             checked={acceptedTerms}
             onChange={(e) => setAcceptedTerms(e.target.checked)}
-            className="w-5 h-5 mt-0.5 rounded border-2 border-gray-300 bg-white text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-0 cursor-pointer"
+            className="w-5 h-5 mt-0.5 rounded border border-dark-border bg-dark-surface text-purple-500 focus:ring-1 focus:ring-purple-500/20 focus:ring-offset-0 cursor-pointer"
                 required
               />
-          <Label htmlFor="terms" className="text-sm text-gray-700 cursor-pointer leading-relaxed flex-1">
+          <Label htmlFor="terms" className="text-sm text-slate-400 cursor-pointer leading-relaxed flex-1">
             J&apos;accepte les{' '}
-            <Link href="/legal/terms" className="text-indigo-600 hover:text-indigo-700 underline font-medium">
+            <Link href="/legal/terms" className="text-purple-400 hover:text-purple-300 underline font-medium">
               conditions d&apos;utilisation
                 </Link>{' '}
                 et la{' '}
-            <Link href="/legal/privacy" className="text-indigo-600 hover:text-indigo-700 underline font-medium">
+            <Link href="/legal/privacy" className="text-purple-400 hover:text-purple-300 underline font-medium">
                   politique de confidentialité
                 </Link>
               </Label>
@@ -548,7 +548,7 @@ function RegisterPageContent() {
               type="submit"
               data-testid="register-submit"
           disabled={isLoading || !isFormValid}
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white h-12 text-base font-medium shadow-lg shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-12 text-base font-bold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 mt-6"
             >
               {isLoading ? (
                 <>
@@ -569,10 +569,10 @@ function RegisterPageContent() {
         <FadeIn delay={1.1}>
       <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200" />
+          <div className="w-full border-t border-white/[0.06]" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-gray-50 text-gray-500">ou s&apos;inscrire avec</span>
+          <span className="px-4 bg-dark-bg text-slate-600">ou s&apos;inscrire avec</span>
             </div>
           </div>
         </FadeIn>
@@ -585,7 +585,7 @@ function RegisterPageContent() {
               variant="outline"
               data-testid="register-oauth-google"
               aria-label="S'inscrire avec Google"
-          className="bg-white border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-900 h-12 text-sm sm:text-base"
+          className="bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('google')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -604,7 +604,7 @@ function RegisterPageContent() {
               variant="outline"
               data-testid="register-oauth-github"
               aria-label="S'inscrire avec GitHub"
-          className="bg-white border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-900 h-12 text-sm sm:text-base"
+          className="bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('github')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -623,12 +623,12 @@ function RegisterPageContent() {
           {/* Sign in link */}
         <FadeIn delay={1.3}>
       <div className="mt-6 text-center">
-        <p className="text-sm text-gray-500">
-              Vous avez déjà un compte ?{' '}
+        <p className="text-sm text-slate-500">
+              Vous avez deja un compte ?{' '}
           <Link
             href="/login"
             data-testid="register-switch-login"
-            className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+            className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
           >
                 Se connecter
               </Link>
@@ -638,8 +638,8 @@ function RegisterPageContent() {
 
       {/* Trial info */}
         <FadeIn delay={1.4}>
-      <div className="mt-6 pt-4 border-t border-gray-200">
-        <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+      <div className="mt-6 pt-4 border-t border-white/[0.06]">
+        <div className="flex items-center justify-center gap-4 text-xs text-slate-600">
           <div className="flex items-center gap-1">
             <CheckCircle className="w-3 h-3 text-green-400" />
             <span>Plan gratuit inclus</span>

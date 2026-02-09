@@ -13,13 +13,13 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <div className="bg-dark-bg">
       <CursorGlow />
       <Navigation />
       <main id="main-content" className="min-h-screen flex flex-col overflow-x-hidden">
         {children}
       </main>
       <FooterNew />
-    </>
+    </div>
   );
 }

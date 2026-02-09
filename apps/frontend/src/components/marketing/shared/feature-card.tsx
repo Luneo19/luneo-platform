@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 interface FeatureCardProps {
   icon: ReactNode;
@@ -12,103 +13,58 @@ interface FeatureCardProps {
   color?: 'indigo' | 'purple' | 'green' | 'orange' | 'pink' | 'cyan' | 'blue';
   badge?: string;
   delay?: number;
+  staggerIndex?: number;
 }
 
-const colorClasses = {
-  indigo: {
-    bg: 'bg-indigo-100',
-    hover: 'bg-gradient-to-br from-indigo-600 to-purple-600',
-    text: 'text-indigo-600',
-    border: 'border-indigo-500/20 hover:border-indigo-500/50',
-  },
-  purple: {
-    bg: 'bg-purple-100',
-    hover: 'bg-gradient-to-br from-purple-600 to-pink-600',
-    text: 'text-purple-600',
-    border: 'border-purple-500/20 hover:border-purple-500/50',
-  },
-  green: {
-    bg: 'bg-green-100',
-    hover: 'bg-gradient-to-br from-green-600 to-emerald-600',
-    text: 'text-green-600',
-    border: 'border-green-500/20 hover:border-green-500/50',
-  },
-  orange: {
-    bg: 'bg-orange-100',
-    hover: 'bg-gradient-to-br from-orange-600 to-yellow-600',
-    text: 'text-orange-600',
-    border: 'border-orange-500/20 hover:border-orange-500/50',
-  },
-  pink: {
-    bg: 'bg-pink-100',
-    hover: 'bg-gradient-to-br from-pink-600 to-rose-600',
-    text: 'text-pink-600',
-    border: 'border-pink-500/20 hover:border-pink-500/50',
-  },
-  cyan: {
-    bg: 'bg-cyan-100',
-    hover: 'bg-gradient-to-br from-cyan-600 to-blue-600',
-    text: 'text-cyan-600',
-    border: 'border-cyan-500/20 hover:border-cyan-500/50',
-  },
-  blue: {
-    bg: 'bg-blue-100',
-    hover: 'bg-gradient-to-br from-blue-600 to-cyan-600',
-    text: 'text-blue-600',
-    border: 'border-blue-500/20 hover:border-blue-500/50',
-  },
-};
-
-/**
- * Feature Card Component - Reusable feature card
- * Consistent design for feature grids across pages
- */
-export function FeatureCard({ 
-  icon, 
-  title, 
-  description, 
+export function FeatureCard({
+  icon,
+  title,
+  description,
   href,
-  color = 'indigo',
+  color = 'purple',
   badge,
-  delay = 0
+  delay = 0,
+  staggerIndex,
 }: FeatureCardProps) {
-  const colors = colorClasses[color];
-  const cardClasses = `bg-white p-8 rounded-2xl border border-gray-100 transition-all hover:-translate-y-2 hover:shadow-xl hover:border-transparent group ${href ? 'cursor-pointer' : ''}`;
+  const cardClasses = `group relative bg-dark-card/60 backdrop-blur-sm p-5 sm:p-7 rounded-2xl border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300 hover:-translate-y-1 h-full ${href ? 'cursor-pointer' : ''}`;
 
   const content = (
     <>
       {badge && (
-        <div className="absolute -top-3 right-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+        <div className="absolute -top-3 right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold">
           {badge}
         </div>
       )}
-      <div className={`w-14 h-14 ${colors.bg} ${colors.text} rounded-xl flex items-center justify-center mb-5 transition-all group-hover:${colors.hover} group-hover:text-white relative`}>
+      <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500/15 to-pink-500/15 flex items-center justify-center mb-4 sm:mb-5 text-purple-400 group-hover:from-purple-500/25 group-hover:to-pink-500/25 transition-colors">
         {icon}
       </div>
-      <h3 className="text-xl font-bold mb-3">{title}</h3>
-      <p className="text-gray-600 leading-relaxed mb-4">{description}</p>
+      <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">{title}</h3>
+      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-3 sm:mb-4">{description}</p>
       {href && (
-        <div className="flex items-center text-indigo-600 font-medium group-hover:text-indigo-700 transition-colors">
+        <div className="flex items-center text-purple-400 font-medium text-xs sm:text-sm group-hover:text-purple-300 transition-colors">
           En savoir plus
-          <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          <ArrowRight className="ml-1.5 sm:ml-2 w-3.5 sm:w-4 h-3.5 sm:h-4 group-hover:translate-x-1 transition-transform" />
         </div>
       )}
     </>
   );
 
   return (
-    <div
-      className={cardClasses}
-      data-animate="fade-up"
-      data-delay={delay}
+    <ScrollReveal
+      animation="fade-up"
+      delay={delay}
+      staggerIndex={staggerIndex}
+      staggerDelay={80}
     >
-      {href ? (
-        <Link href={href} className="block">
-          {content}
-        </Link>
-      ) : (
-        content
-      )}
-    </div>
+      <div className={cardClasses}>
+        {href ? (
+          <Link href={href} className="block">
+            {content}
+          </Link>
+        ) : (
+          content
+        )}
+      </div>
+    </ScrollReveal>
   );
 }

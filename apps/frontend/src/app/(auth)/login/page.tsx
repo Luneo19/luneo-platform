@@ -189,24 +189,24 @@ function LoginPageContent() {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl mb-6 shadow-lg shadow-cyan-500/25 lg:hidden"
+          className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl mb-6 shadow-lg shadow-purple-500/25 lg:hidden"
         >
           <span className="text-white font-bold text-2xl">L</span>
         </motion>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2" data-testid="login-title">
-          Bon retour ! 👋
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display" data-testid="login-title">
+          Bon retour !
             </h1>
-        <p className="text-gray-600" data-testid="login-subtitle">
-          Connectez-vous à votre espace Luneo
+        <p className="text-slate-500" data-testid="login-subtitle">
+          Connectez-vous a votre espace Luneo
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
         <FadeIn>
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3" data-testid="login-error">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3" data-testid="login-error">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-400">{error}</p>
           </div>
         </FadeIn>
       )}
@@ -214,9 +214,9 @@ function LoginPageContent() {
       {/* Success Message */}
       {success && (
         <FadeIn>
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
-            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-green-600">{success}</p>
+          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-green-400">{success}</p>
           </div>
         </FadeIn>
           )}
@@ -241,16 +241,16 @@ function LoginPageContent() {
         {/* Email */}
         <SlideUp delay={0.4}>
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+          <Label htmlFor="email" className="text-sm font-medium text-slate-300">
             Adresse email
               </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="votre@email.com"
-              className="pl-10 bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500/20 h-12"
+              className="pl-10 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -268,24 +268,24 @@ function LoginPageContent() {
         <SlideUp delay={0.5}>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="password" className="text-sm font-medium text-slate-300">
                 Mot de passe
               </Label>
             <Link 
               href="/forgot-password" 
-              className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+              className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
               tabIndex={-1}
             >
               Mot de passe oublié ?
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-              className="pl-10 pr-12 bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500/20 h-12"
+              className="pl-10 pr-12 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -295,7 +295,7 @@ function LoginPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors"
               tabIndex={-1}
                   data-testid="login-toggle-password"
                 >
@@ -314,14 +314,14 @@ function LoginPageContent() {
                   type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 bg-white text-indigo-600 focus:ring-indigo-500/20 focus:ring-offset-0"
+              className="w-4 h-4 rounded border-dark-border bg-dark-surface text-purple-500 focus:ring-purple-500/20 focus:ring-offset-0"
                   data-testid="login-remember"
                 />
-            <Label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
-              Rester connecté
+            <Label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer">
+              Rester connecte
                 </Label>
               </div>
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+          <div className="flex items-center gap-1 text-xs text-slate-600">
             <Shield className="w-3 h-3" />
             <span>Connexion sécurisée</span>
           </div>
@@ -333,7 +333,7 @@ function LoginPageContent() {
             <Button
               type="submit"
           disabled={isLoading || !formData.email || !formData.password}
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white h-12 text-base font-medium shadow-lg shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-12 text-base font-bold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               data-testid="login-submit"
             >
               {isLoading ? (
@@ -355,10 +355,10 @@ function LoginPageContent() {
         <FadeIn delay={0.8}>
       <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200" />
+          <div className="w-full border-t border-white/[0.06]" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white text-gray-500">ou continuer avec</span>
+          <span className="px-4 bg-dark-bg text-slate-600">ou continuer avec</span>
             </div>
           </div>
         </FadeIn>
@@ -369,7 +369,7 @@ function LoginPageContent() {
             <Button
               type="button"
               variant="outline"
-          className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-900 h-12"
+          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12"
               onClick={() => handleOAuthLogin('google')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -386,7 +386,7 @@ function LoginPageContent() {
             <Button
               type="button"
               variant="outline"
-          className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-900 h-12"
+          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12"
               onClick={() => handleOAuthLogin('github')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -405,11 +405,11 @@ function LoginPageContent() {
           {/* Sign up link */}
         <FadeIn delay={1.0}>
       <div className="mt-8 text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-slate-500">
               Pas encore de compte ?{' '}
               <Link
                 href="/register"
-            className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+            className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                 data-testid="login-switch-register"
               >
             Créer un compte gratuitement
@@ -420,8 +420,8 @@ function LoginPageContent() {
 
       {/* Security indicators */}
         <FadeIn delay={1.1}>
-      <div className="mt-8 pt-6 border-t border-gray-200">
-        <div className="flex items-center justify-center gap-6 text-xs text-gray-500">
+      <div className="mt-8 pt-6 border-t border-white/[0.06]">
+        <div className="flex items-center justify-center gap-6 text-xs text-slate-600">
           <div className="flex items-center gap-1">
             <Shield className="w-3 h-3" />
             <span>SSL/TLS</span>

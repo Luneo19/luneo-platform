@@ -74,24 +74,24 @@ function ForgotPasswordPageContent() {
         transition={{ duration: 0.4 }}
         className="w-full text-center"
       >
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-2xl mb-5">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-2xl mb-5">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           >
-            <Send className="w-7 h-7 text-green-600" />
+            <Send className="w-7 h-7 text-green-400" />
           </motion.div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Email envoye !</h2>
-        <p className="text-gray-500 mb-8 leading-relaxed">
-          Verifiez votre boite mail <span className="font-medium text-gray-700">{email}</span> pour
+        <h2 className="text-2xl font-bold text-white mb-2 font-display">Email envoye !</h2>
+        <p className="text-slate-500 mb-8 leading-relaxed">
+          Verifiez votre boite mail <span className="font-medium text-white">{email}</span> pour
           reinitialiser votre mot de passe.
         </p>
         <Link href="/login">
           <Button
             variant="outline"
-            className="border-gray-200 text-gray-700 hover:bg-gray-50 h-11 px-6"
+            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.04] h-11 px-6"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour a la connexion
@@ -111,17 +111,17 @@ function ForgotPasswordPageContent() {
       {/* Header */}
       <div className="text-center mb-8">
         <FadeIn delay={0.1}>
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-50 rounded-2xl mb-5 lg:hidden">
-            <KeyRound className="w-6 h-6 text-indigo-600" />
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-purple-500/10 border border-purple-500/20 rounded-2xl mb-5 lg:hidden">
+            <KeyRound className="w-6 h-6 text-purple-400" />
           </div>
         </FadeIn>
         <SlideUp delay={0.2}>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display">
             Mot de passe oublie ?
           </h1>
         </SlideUp>
         <FadeIn delay={0.3}>
-          <p className="text-gray-500">
+          <p className="text-slate-500">
             Entrez votre email et nous vous enverrons un lien de reinitialisation.
           </p>
         </FadeIn>
@@ -130,9 +130,9 @@ function ForgotPasswordPageContent() {
       {/* Error */}
       {error && (
         <FadeIn>
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-400">{error}</p>
           </div>
         </FadeIn>
       )}
@@ -140,18 +140,18 @@ function ForgotPasswordPageContent() {
       <form onSubmit={handleSubmit} className="space-y-5">
         <SlideUp delay={0.4}>
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="email" className="text-sm font-medium text-slate-300">
               Adresse email
             </Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="votre@email.com"
-                className="pl-10 bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500/20 h-12"
+                className="pl-10 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                 required
                 disabled={loading}
               />
@@ -165,7 +165,7 @@ function ForgotPasswordPageContent() {
         <SlideUp delay={0.5}>
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white h-12 font-medium shadow-lg shadow-indigo-500/25"
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-12 font-bold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-200"
             disabled={loading}
           >
             {loading ? (
@@ -188,7 +188,7 @@ function ForgotPasswordPageContent() {
         <div className="mt-8 text-center">
           <Link
             href="/login"
-            className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            className="inline-flex items-center text-sm text-slate-500 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour a la connexion

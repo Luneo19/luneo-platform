@@ -1,92 +1,123 @@
 'use client';
 
+import { Star } from 'lucide-react';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+
 const testimonials = [
   {
-    quote: 'Luneo a transformé la façon dont notre équipe travaille. Nous avons augmenté notre productivité de 300% depuis le changement.',
-    author: 'Sarah Chen',
-    role: 'CEO chez TechFlow',
-    avatar: 'https://i.pravatar.cc/60?img=11',
+    quote: "Luneo a transforme notre experience client. +45% de conversions en 3 mois grace a la personnalisation en temps reel.",
+    author: 'Sophie Laurent',
+    role: 'E-commerce Director',
+    company: 'Optic 2000',
+    initials: 'SL',
     featured: false,
   },
   {
-    quote: 'Le meilleur investissement que nous ayons fait pour notre startup. Les analytics à eux seuls nous ont fait économiser d\'innombrables heures et nous ont aidés à prendre de meilleures décisions.',
-    author: 'Michael Roberts',
-    role: 'Fondateur chez LaunchPad',
-    avatar: 'https://i.pravatar.cc/60?img=12',
+    quote: "Le meilleur investissement pour notre startup. Le configurateur 3D et le try-on AR ont revolutionne notre facon de vendre en ligne.",
+    author: 'Marc Dubois',
+    role: 'CEO',
+    company: 'PrintShop Pro',
+    initials: 'MD',
     featured: true,
   },
   {
-    quote: 'Plateforme incroyable avec un support exceptionnel. Leur équipe va au-delà pour aider.',
-    author: 'Emily Watson',
-    role: 'Product Lead chez Innovate',
-    avatar: 'https://i.pravatar.cc/60?img=13',
+    quote: "Integration en 2 jours, ROI positif des le premier mois. Le support est exceptionnel et les fonctionnalites sont impressionnantes.",
+    author: 'Claire Moreau',
+    role: 'Head of Digital',
+    company: 'Bijoux Paris',
+    initials: 'CM',
     featured: false,
   },
 ];
 
-/**
- * Testimonials Section - Customer testimonials
- * Based on Pandawa template, adapted for Luneo
- */
 export function TestimonialsNew() {
   return (
-    <section id="testimonials" className="py-24 sm:py-32 relative">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16" data-animate="fade-up">
-          <span className="inline-block px-3.5 py-1.5 bg-indigo-100 text-indigo-600 text-xs font-semibold rounded-full mb-4 uppercase tracking-wider">
-            Témoignages
-          </span>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-            Apprécié par des{' '}
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              milliers
-            </span>
-          </h2>
-          <p className="text-lg text-gray-600">
-            Découvrez ce que nos clients ont à dire sur leur expérience avec Luneo.
-          </p>
-        </div>
+    <section id="testimonials" className="dark-section relative py-20 sm:py-24 md:py-32 noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple opacity-50" />
 
-        {/* Testimonials Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map((testimonial, index) => (
-            <div
-              key={testimonial.author}
-              className={`p-8 rounded-2xl border transition-all hover:-translate-y-2 hover:shadow-xl ${
-                testimonial.featured
-                  ? 'bg-gradient-to-br from-indigo-600 to-purple-600 border-transparent text-white'
-                  : 'bg-white border-gray-100'
-              }`}
-              data-animate="fade-up"
-              data-delay={index * 100}
-            >
-              <div className="flex gap-1 mb-4">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <ScrollReveal animation="fade-up">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-[10px] sm:text-xs font-semibold rounded-full mb-4 sm:mb-5 uppercase tracking-wider">
+              Temoignages
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-5">
+              <span className="text-white">Apprecie par des </span>
+              <span className="italic text-gradient-purple">milliers de marques</span>
+            </h2>
+            <p className="text-base sm:text-lg text-slate-400 px-2">
+              Decouvrez ce que nos clients ont a dire sur leur experience avec Luneo.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        {/* Rating bar */}
+        <ScrollReveal animation="fade-up" delay={100}>
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 mb-10 sm:mb-12">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-0.5">
                 {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-yellow-400 text-base">★</span>
+                  <Star key={i} className="w-4 sm:w-5 h-4 sm:h-5 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <p className={`mb-6 leading-relaxed ${testimonial.featured ? 'text-white' : 'text-gray-700'}`}>
-                "{testimonial.quote}"
-              </p>
-              <div className="flex items-center gap-3">
-                <img
-                  src={testimonial.avatar}
-                  alt={testimonial.author}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                <div>
-                  <div className={`font-semibold ${testimonial.featured ? 'text-white' : 'text-gray-900'}`}>
-                    {testimonial.author}
+              <span className="text-white font-bold text-base sm:text-lg">4.9</span>
+            </div>
+            <div className="hidden sm:block w-px h-6 bg-white/10" />
+            <span className="text-slate-500 text-xs sm:text-sm">380+ avis verifies</span>
+          </div>
+        </ScrollReveal>
+
+        {/* Testimonials Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          {testimonials.map((t, index) => (
+            <ScrollReveal
+              key={t.author}
+              animation="fade-up"
+              staggerIndex={index}
+              staggerDelay={120}
+              delay={150}
+            >
+              <div
+                className={`relative p-5 sm:p-7 rounded-2xl border transition-all duration-300 hover:-translate-y-1 h-full ${
+                  t.featured
+                    ? 'bg-gradient-to-br from-purple-600/20 to-pink-600/20 border-purple-500/20 shadow-glow-sm'
+                    : 'bg-dark-card/60 border-white/[0.04] hover:border-white/[0.08]'
+                }`}
+              >
+                {/* Stars */}
+                <div className="flex gap-0.5 mb-3 sm:mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-3.5 sm:w-4 h-3.5 sm:h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+
+                {/* Quote */}
+                <p className="text-slate-300 mb-5 sm:mb-6 leading-relaxed text-xs sm:text-sm">
+                  &laquo; {t.quote} &raquo;
+                </p>
+
+                {/* Author */}
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 sm:w-10 h-9 sm:h-10 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white ${
+                    t.featured
+                      ? 'bg-gradient-to-br from-purple-500 to-pink-500'
+                      : 'bg-gradient-to-br from-slate-700 to-slate-600'
+                  }`}>
+                    {t.initials}
                   </div>
-                  <div className={`text-sm ${testimonial.featured ? 'text-white/80' : 'text-gray-500'}`}>
-                    {testimonial.role}
+                  <div>
+                    <div className="text-xs sm:text-sm font-semibold text-white">{t.author}</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500">{t.role}, {t.company}</div>
                   </div>
                 </div>
               </div>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
+
+        {/* Glowing separator */}
+        <div className="mt-16 sm:mt-24 glow-separator" />
       </div>
     </section>
   );

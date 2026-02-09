@@ -1,5 +1,7 @@
 'use client';
 
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+
 interface SectionHeaderProps {
   tag?: string;
   title: string;
@@ -8,46 +10,34 @@ interface SectionHeaderProps {
   gradient?: string;
 }
 
-/**
- * Section Header Component - Reusable section header
- * Consistent design for all sections across pages
- */
-export function SectionHeader({ 
-  tag, 
-  title, 
-  description, 
+export function SectionHeader({
+  tag,
+  title,
+  description,
   centered = true,
-  gradient = 'from-indigo-600 to-purple-600'
+  gradient = 'from-purple-500 to-pink-500',
 }: SectionHeaderProps) {
-  const containerClass = centered 
-    ? 'text-center max-w-2xl mx-auto mb-16' 
-    : 'mb-16';
+  const containerClass = centered
+    ? 'text-center max-w-2xl mx-auto mb-10 sm:mb-16'
+    : 'mb-10 sm:mb-16';
 
   return (
-    <div className={containerClass} data-animate="fade-up">
-      {tag && (
-        <span className="inline-block px-3.5 py-1.5 bg-indigo-100 text-indigo-600 text-xs font-semibold rounded-full mb-4 uppercase tracking-wider">
-          {tag}
-        </span>
-      )}
-      <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-        {title.split(' ').map((word, i, arr) => {
-          // Highlight last word or specific words
-          if (i === arr.length - 1 || title.includes('Luneo')) {
-            return (
-              <span key={i} className={`bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
-                {word}{i < arr.length - 1 ? ' ' : ''}
-              </span>
-            );
-          }
-          return <span key={i}>{word} </span>;
-        })}
-      </h2>
-      {description && (
-        <p className="text-lg text-gray-600 leading-relaxed">
-          {description}
-        </p>
-      )}
-    </div>
+    <ScrollReveal animation="fade-up">
+      <div className={containerClass}>
+        {tag && (
+          <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] sm:text-xs font-semibold rounded-full mb-4 sm:mb-5 uppercase tracking-wider">
+            {tag}
+          </span>
+        )}
+        <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 text-white">
+          {title}
+        </h2>
+        {description && (
+          <p className="text-base sm:text-lg text-slate-400 leading-relaxed px-2">
+            {description}
+          </p>
+        )}
+      </div>
+    </ScrollReveal>
   );
 }

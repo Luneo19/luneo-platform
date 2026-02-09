@@ -3,6 +3,7 @@
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { ScrollReveal, useParallax } from '@/components/marketing/shared/scroll-reveal';
 
 interface PageHeroProps {
   title: string;
@@ -15,85 +16,69 @@ interface PageHeroProps {
   gradient?: string;
 }
 
-/**
- * Page Hero Component - Reusable hero section for all pages
- * Consistent design across all public pages
- */
-export function PageHero({ 
-  title, 
-  description, 
-  badge, 
+export function PageHero({
+  title,
+  description,
+  badge,
   cta,
-  gradient = 'from-indigo-600 via-purple-600 to-pink-600'
+  gradient = 'from-purple-500 via-fuchsia-500 to-pink-500',
 }: PageHeroProps) {
+  const parallaxRef = useParallax(0.1);
+
   return (
-    <section className="relative pt-32 pb-20 overflow-hidden bg-white">
-      {/* Background Effects */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className={`gradient-orb absolute w-[600px] h-[600px] bg-gradient-to-br ${gradient} top-[-200px] right-[-100px] animate-float opacity-30`} />
+    <section className="relative pt-24 sm:pt-32 pb-14 sm:pb-20 overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 gradient-mesh-purple opacity-60" />
+      <div ref={parallaxRef} className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className={`absolute w-[300px] sm:w-[450px] lg:w-[600px] h-[300px] sm:h-[450px] lg:h-[600px] rounded-full bg-gradient-to-br ${gradient} opacity-[0.06] blur-[80px] sm:blur-[120px] top-[-100px] sm:top-[-200px] right-[-50px] sm:right-[-100px] animate-float gpu-accelerated`} />
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 opacity-[0.03]"
           style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(99, 102, 241, 0.03) 1px, transparent 1px)
-            `,
-            backgroundSize: '60px 60px',
+            backgroundImage: `linear-gradient(to right, rgba(168,85,247,0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(168,85,247,0.3) 1px, transparent 1px)`,
+            backgroundSize: '40px 40px',
           }}
         />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           {badge && (
-            <div
-              className="inline-flex items-center gap-2.5 px-4 py-2 pl-3 pr-4 bg-indigo-100 border border-indigo-200 rounded-full text-sm font-medium text-indigo-700 mb-6 shadow-sm"
-              data-animate="fade-up"
-            >
-              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
-              {badge}
-            </div>
+            <ScrollReveal animation="fade-down" duration={400}>
+              <div className="inline-flex items-center gap-2 sm:gap-2.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs sm:text-sm font-medium text-purple-400 mb-5 sm:mb-6">
+                <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                {badge}
+              </div>
+            </ScrollReveal>
           )}
 
-          <h1
-            className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6 tracking-tight"
-            data-animate="fade-up"
-            data-delay="100"
-          >
-            {title.split(' ').map((word, i) => {
-              if (i === title.split(' ').length - 1) {
-                return (
-                  <span key={i} className={`bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
-                    {word}
-                  </span>
-                );
-              }
-              return <span key={i}>{word} </span>;
-            })}
-          </h1>
+          <ScrollReveal animation="fade-up" delay={100} duration={700}>
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-4 sm:mb-6 tracking-tight text-white px-2">
+              {title}
+            </h1>
+          </ScrollReveal>
 
           {description && (
-            <p
-              className="text-lg sm:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed"
-              data-animate="fade-up"
-              data-delay="200"
-            >
-              {description}
-            </p>
+            <ScrollReveal animation="fade-up" delay={200}>
+              <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
+                {description}
+              </p>
+            </ScrollReveal>
           )}
 
           {cta && (
-            <div data-animate="fade-up" data-delay="300">
-              <Link href={cta.href}>
-                <Button
-                  size="lg"
-                  className={`bg-gradient-to-r ${gradient} hover:opacity-90 text-white px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all`}
-                >
-                  {cta.label}
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
-            </div>
+            <ScrollReveal animation="fade-up" delay={300}>
+              <div>
+                <Link href={cta.href} className="inline-block">
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                  >
+                    {cta.label}
+                    <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
+                  </Button>
+                </Link>
+              </div>
+            </ScrollReveal>
           )}
         </div>
       </div>

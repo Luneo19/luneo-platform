@@ -3,10 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
-  Menu,
-  X,
   ChevronDown,
   ChevronRight,
+  X,
   Palette,
   Box,
   Glasses,
@@ -23,6 +22,7 @@ import {
   Mail,
   ArrowRight,
 } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 
 // =============================================================================
@@ -97,47 +97,33 @@ export function Navigation() {
   const [mobileAccordion, setMobileAccordion] = useState<MenuKey | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Track scroll
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
-  // Hover handlers with delay to prevent flicker
   const openMenu = useCallback((key: MenuKey) => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
     setActiveMenu(key);
   }, []);
 
   const startClose = useCallback(() => {
-    closeTimerRef.current = setTimeout(() => {
-      setActiveMenu(null);
-    }, 200);
+    closeTimerRef.current = setTimeout(() => setActiveMenu(null), 200);
   }, []);
 
   const cancelClose = useCallback(() => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
   }, []);
 
   const closeAll = useCallback(() => {
     setActiveMenu(null);
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
   }, []);
 
   return (
@@ -146,26 +132,24 @@ export function Navigation() {
       {/* NAVBAR */}
       {/* ================================================================= */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-[1000] transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-[1000] transition-all duration-500 ${
           scrolled
-            ? 'bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-100/80'
+            ? 'bg-dark-bg/80 backdrop-blur-2xl border-b border-white/[0.06] shadow-lg shadow-black/20'
             : 'bg-transparent'
         }`}
       >
+        {/* Subtle glow line under navbar on scroll */}
+        {scrolled && (
+          <div className="absolute bottom-0 left-0 right-0 h-px glow-separator" />
+        )}
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-[72px]">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 shrink-0" onClick={closeAll}>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Luneo
-              </span>
-            </Link>
+            <Logo variant="dark" size="default" href="/" onClick={closeAll} />
 
             {/* Desktop Nav Items */}
-            <div className="hidden lg:flex items-center gap-0.5">
+            <div className="hidden lg:flex items-center gap-1">
               {(Object.keys(MENU_DATA) as MenuKey[]).map((key) => (
                 <div
                   key={key}
@@ -173,10 +157,10 @@ export function Navigation() {
                   onMouseLeave={startClose}
                 >
                   <button
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150 flex items-center gap-1 ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
                       activeMenu === key
-                        ? 'text-indigo-700 bg-indigo-50/80'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50/80'
+                        ? 'text-white bg-white/[0.08]'
+                        : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
                     }`}
                   >
                     {MENU_DATA[key].label}
@@ -191,7 +175,7 @@ export function Navigation() {
 
               <Link
                 href="/pricing"
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50/80 rounded-lg transition-all duration-150"
+                className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.04] rounded-lg transition-all duration-200"
                 onClick={closeAll}
               >
                 Tarifs
@@ -201,16 +185,20 @@ export function Navigation() {
             {/* Desktop CTA */}
             <div className="hidden lg:flex items-center gap-3">
               <Link href="/login" onClick={closeAll}>
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 font-medium">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-400 hover:text-white hover:bg-white/[0.06] font-medium"
+                >
                   Connexion
                 </Button>
               </Link>
               <Link href="/register" onClick={closeAll}>
                 <Button
                   size="sm"
-                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md shadow-indigo-500/25 font-medium"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
                 >
-                  Commencer
+                  Essai gratuit
                   <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                 </Button>
               </Link>
@@ -218,23 +206,23 @@ export function Navigation() {
 
             {/* Mobile Hamburger */}
             <button
-              className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-white/[0.06] transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
               <div className="w-5 h-5 relative">
                 <span
-                  className={`absolute left-0 w-5 h-0.5 bg-gray-700 rounded-full transition-all duration-300 ${
+                  className={`absolute left-0 w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${
                     mobileOpen ? 'top-[9px] rotate-45' : 'top-1'
                   }`}
                 />
                 <span
-                  className={`absolute left-0 top-[9px] w-5 h-0.5 bg-gray-700 rounded-full transition-all duration-300 ${
+                  className={`absolute left-0 top-[9px] w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${
                     mobileOpen ? 'opacity-0 scale-0' : 'opacity-100'
                   }`}
                 />
                 <span
-                  className={`absolute left-0 w-5 h-0.5 bg-gray-700 rounded-full transition-all duration-300 ${
+                  className={`absolute left-0 w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${
                     mobileOpen ? 'top-[9px] -rotate-45' : 'top-[17px]'
                   }`}
                 />
@@ -248,7 +236,7 @@ export function Navigation() {
       {/* MEGA-MENU PANEL (Desktop) */}
       {/* ================================================================= */}
       <div
-        className={`fixed top-16 left-0 right-0 z-[999] transition-all duration-200 ease-out ${
+        className={`fixed top-[72px] left-0 right-0 z-[999] transition-all duration-250 ease-out ${
           activeMenu
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 -translate-y-2 pointer-events-none'
@@ -256,11 +244,9 @@ export function Navigation() {
         onMouseEnter={cancelClose}
         onMouseLeave={startClose}
       >
-        {/* Invisible bridge between navbar and panel */}
         <div className="h-1" />
-        
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-2xl shadow-gray-200/60 border border-gray-100/80 overflow-hidden">
+          <div className="bg-dark-card/95 backdrop-blur-xl rounded-2xl border border-white/[0.06] shadow-2xl shadow-black/40 overflow-hidden">
             {activeMenu && (
               <div className="p-8">
                 <div className="flex gap-8">
@@ -268,7 +254,7 @@ export function Navigation() {
                   <div className="flex-1 flex gap-8">
                     {MENU_DATA[activeMenu].columns.map((col, ci) => (
                       <div key={ci} className="flex-1">
-                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
                           {col.title}
                         </h4>
                         <div className="space-y-1">
@@ -279,16 +265,16 @@ export function Navigation() {
                                 key={item.href}
                                 href={item.href}
                                 onClick={closeAll}
-                                className="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-all duration-150"
+                                className="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all duration-150"
                               >
-                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center shrink-0 group-hover:from-indigo-100 group-hover:to-violet-100 transition-colors">
-                                  <Icon className="w-4.5 h-4.5 text-indigo-600" />
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shrink-0 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-colors">
+                                  <Icon className="w-4 h-4 text-purple-400" />
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
+                                  <div className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
                                     {item.label}
                                   </div>
-                                  <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                  <div className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                                     {item.description}
                                   </div>
                                 </div>
@@ -301,19 +287,19 @@ export function Navigation() {
                   </div>
 
                   {/* CTA sidebar */}
-                  <div className="w-56 shrink-0 bg-gradient-to-br from-indigo-50 via-violet-50 to-purple-50 rounded-xl p-5 flex flex-col justify-between">
+                  <div className="w-56 shrink-0 bg-gradient-to-br from-purple-500/10 via-fuchsia-500/10 to-pink-500/10 border border-white/[0.04] rounded-xl p-5 flex flex-col justify-between">
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-1.5">
+                      <h4 className="text-sm font-semibold text-white mb-1.5">
                         {MENU_DATA[activeMenu].cta.label}
                       </h4>
-                      <p className="text-xs text-gray-600 leading-relaxed">
+                      <p className="text-xs text-slate-400 leading-relaxed">
                         {MENU_DATA[activeMenu].cta.description}
                       </p>
                     </div>
                     <Link href={MENU_DATA[activeMenu].cta.href} onClick={closeAll}>
                       <Button
                         size="sm"
-                        className="w-full mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md shadow-indigo-500/20 text-xs"
+                        className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-md shadow-purple-500/20 text-xs font-semibold"
                       >
                         Decouvrir
                         <ArrowRight className="w-3 h-3 ml-1" />
@@ -328,12 +314,7 @@ export function Navigation() {
       </div>
 
       {/* Overlay to close mega-menu on click outside */}
-      {activeMenu && (
-        <div
-          className="fixed inset-0 z-[998]"
-          onClick={closeAll}
-        />
-      )}
+      {activeMenu && <div className="fixed inset-0 z-[998]" onClick={closeAll} />}
 
       {/* ================================================================= */}
       {/* MOBILE MENU */}
@@ -345,7 +326,7 @@ export function Navigation() {
       >
         {/* Overlay */}
         <div
-          className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
             mobileOpen ? 'opacity-100' : 'opacity-0'
           }`}
           onClick={() => setMobileOpen(false)}
@@ -353,23 +334,18 @@ export function Navigation() {
 
         {/* Panel */}
         <div
-          className={`absolute top-0 right-0 w-full max-w-sm h-full bg-white shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
+          className={`absolute top-0 right-0 w-full max-w-sm h-full bg-dark-bg border-l border-white/[0.06] shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
             mobileOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
           {/* Mobile header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-100">
-            <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
-                <span className="text-white font-bold text-xs">L</span>
-              </div>
-              <span className="text-lg font-bold text-gray-900">Luneo</span>
-            </Link>
+          <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
+            <Logo variant="dark" size="small" href="/" onClick={() => setMobileOpen(false)} />
             <button
               onClick={() => setMobileOpen(false)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5 text-slate-400" />
             </button>
           </div>
 
@@ -379,13 +355,13 @@ export function Navigation() {
               <div key={key}>
                 <button
                   onClick={() => setMobileAccordion(mobileAccordion === key ? null : key)}
-                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg hover:bg-white/[0.04] transition-colors"
                 >
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm font-semibold text-white">
                     {MENU_DATA[key].label}
                   </span>
                   <ChevronRight
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
                       mobileAccordion === key ? 'rotate-90' : ''
                     }`}
                   />
@@ -405,12 +381,12 @@ export function Navigation() {
                             key={item.href}
                             href={item.href}
                             onClick={() => setMobileOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.04] transition-colors"
                           >
-                            <Icon className="w-4 h-4 text-indigo-500 shrink-0" />
+                            <Icon className="w-4 h-4 text-purple-400 shrink-0" />
                             <div>
-                              <div className="text-sm font-medium text-gray-700">{item.label}</div>
-                              <div className="text-xs text-gray-400">{item.description}</div>
+                              <div className="text-sm font-medium text-slate-300">{item.label}</div>
+                              <div className="text-xs text-slate-600">{item.description}</div>
                             </div>
                           </Link>
                         );
@@ -421,26 +397,25 @@ export function Navigation() {
               </div>
             ))}
 
-            {/* Pricing direct link */}
             <Link
               href="/pricing"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center px-3 py-3 rounded-lg hover:bg-white/[0.04] transition-colors"
             >
-              <span className="text-sm font-semibold text-gray-900">Tarifs</span>
+              <span className="text-sm font-semibold text-white">Tarifs</span>
             </Link>
           </div>
 
           {/* Mobile CTA */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 space-y-2">
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-dark-bg/95 backdrop-blur-sm border-t border-white/[0.06] space-y-2">
             <Link href="/login" onClick={() => setMobileOpen(false)} className="block">
-              <Button variant="outline" className="w-full font-medium">
+              <Button variant="outline" className="w-full font-medium text-slate-300 border-white/[0.1] hover:bg-white/[0.04] hover:text-white">
                 Connexion
               </Button>
             </Link>
             <Link href="/register" onClick={() => setMobileOpen(false)} className="block">
-              <Button className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-medium">
-                Commencer gratuitement
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold">
+                Essai gratuit
                 <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
               </Button>
             </Link>

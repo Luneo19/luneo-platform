@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Logo } from '@/components/Logo';
 import {
   Shield,
   Globe,
@@ -78,8 +79,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-dark-bg flex items-center justify-center">
+        <div className="w-7 h-7 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -87,19 +88,19 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const t = TESTIMONIALS[testimonialIdx];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-dark-bg">
       {/* ==================================================================
           LEFT PANEL - Premium dark marketing (hidden on mobile)
           ================================================================== */}
-      <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative overflow-hidden bg-slate-950">
+      <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative overflow-hidden">
         {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/80 via-slate-950 to-violet-950/60" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(99,102,241,0.15),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_70%,rgba(139,92,246,0.1),transparent_50%)]" />
+        <div className="absolute inset-0 bg-dark-bg" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(168,85,247,0.12),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_70%,rgba(236,72,153,0.08),transparent_50%)]" />
 
         {/* Dot pattern */}
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)',
             backgroundSize: '24px 24px',
@@ -108,31 +109,26 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Animated orbits */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px]">
-          <div className="absolute inset-0 rounded-full border border-white/[0.04] animate-[spin_40s_linear_infinite]" />
-          <div className="absolute inset-8 rounded-full border border-white/[0.06] animate-[spin_30s_linear_infinite_reverse]" />
-          <div className="absolute inset-16 rounded-full border border-white/[0.03] animate-[spin_50s_linear_infinite]" />
+          <div className="absolute inset-0 rounded-full border border-white/[0.03] animate-spin-slow" />
+          <div className="absolute inset-8 rounded-full border border-white/[0.04] animate-spin-slow" style={{ animationDirection: 'reverse', animationDuration: '30s' }} />
+          <div className="absolute inset-16 rounded-full border border-white/[0.02] animate-spin-slow" style={{ animationDuration: '50s' }} />
         </div>
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-10 xl:p-14 w-full">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <span className="text-white font-bold text-sm">L</span>
-            </div>
-            <span className="text-xl font-bold text-white">Luneo</span>
-          </Link>
+          <Logo variant="dark" size="default" href="/" />
 
           {/* Main content */}
           <div className="flex-1 flex flex-col justify-center py-10 max-w-lg">
-            <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
+            <h1 className="font-display text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
               La plateforme de{' '}
-              <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="italic text-gradient-purple">
                 personnalisation
               </span>{' '}
               n&deg;1
             </h1>
-            <p className="text-base text-slate-400 leading-relaxed mb-10">
+            <p className="text-base text-slate-500 leading-relaxed mb-10">
               Creez des experiences d&apos;achat uniques avec notre suite d&apos;outils
               de personnalisation, configuration 3D et essayage virtuel.
             </p>
@@ -144,14 +140,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 return (
                   <div
                     key={i}
-                    className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.07] transition-colors"
+                    className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.05] transition-colors"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4 text-indigo-400" />
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 text-purple-400" />
                     </div>
                     <div>
                       <div className="text-sm font-medium text-white">{f.title}</div>
-                      <div className="text-xs text-slate-500">{f.desc}</div>
+                      <div className="text-xs text-slate-600">{f.desc}</div>
                     </div>
                   </div>
                 );
@@ -162,29 +158,29 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-6 mb-10">
               {STATS.map((s, i) => (
                 <div key={i} className="text-center">
-                  <div className="text-xl font-bold text-white">{s.value}</div>
-                  <div className="text-[11px] text-slate-500 uppercase tracking-wider">{s.label}</div>
+                  <div className="text-xl font-bold text-white font-display">{s.value}</div>
+                  <div className="text-[11px] text-slate-600 uppercase tracking-wider">{s.label}</div>
                 </div>
               ))}
             </div>
 
             {/* Testimonial */}
-            <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-5">
+            <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-5">
               <div className="flex gap-0.5 mb-3">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <p className="text-sm text-slate-300 leading-relaxed mb-4">
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">
                 &laquo; {t.quote} &raquo;
               </p>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-semibold">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold">
                   {t.initials}
                 </div>
                 <div>
                   <div className="text-sm font-medium text-white">{t.author}</div>
-                  <div className="text-xs text-slate-500">{t.role}, {t.company}</div>
+                  <div className="text-xs text-slate-600">{t.role}, {t.company}</div>
                 </div>
               </div>
               {/* Dots */}
@@ -194,7 +190,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                     key={i}
                     onClick={() => setTestimonialIdx(i)}
                     className={`h-1 rounded-full transition-all duration-300 ${
-                      i === testimonialIdx ? 'w-5 bg-indigo-500' : 'w-1.5 bg-white/20'
+                      i === testimonialIdx ? 'w-5 bg-purple-500' : 'w-1.5 bg-white/[0.15]'
                     }`}
                   />
                 ))}
@@ -207,7 +203,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             {BADGES.map((b, i) => {
               const Icon = b.icon;
               return (
-                <div key={i} className="flex items-center gap-1.5 text-slate-500 text-xs">
+                <div key={i} className="flex items-center gap-1.5 text-slate-600 text-xs">
                   <Icon className="w-3.5 h-3.5" />
                   <span>{b.label}</span>
                 </div>
@@ -218,17 +214,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* ==================================================================
-          RIGHT PANEL - Auth form (clean white)
+          RIGHT PANEL - Auth form (dark card)
           ================================================================== */}
-      <div className="flex-1 bg-gray-50/50 relative flex flex-col">
+      <div className="flex-1 relative flex flex-col">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between px-5 py-4 bg-white border-b border-gray-100">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">L</span>
-            </div>
-            <span className="text-lg font-bold text-gray-900">Luneo</span>
-          </Link>
+        <div className="lg:hidden flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+          <Logo variant="dark" size="small" href="/" />
         </div>
 
         {/* Form container */}
@@ -239,11 +230,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* Bottom trust line (desktop) */}
-        <div className="hidden lg:flex items-center justify-center gap-6 py-4 text-xs text-gray-400">
+        <div className="hidden lg:flex items-center justify-center gap-6 py-4 text-xs text-slate-600">
           <span>Essai gratuit 14 jours</span>
-          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span className="w-1 h-1 rounded-full bg-white/[0.1]" />
           <span>Pas de carte bancaire requise</span>
-          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span className="w-1 h-1 rounded-full bg-white/[0.1]" />
           <span>Annulation a tout moment</span>
         </div>
       </div>

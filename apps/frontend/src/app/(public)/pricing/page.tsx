@@ -9,33 +9,40 @@ import { PricingFeatureTable } from './components/PricingFeatureTable';
 import { PricingFAQ } from './components/PricingFAQ';
 import { PricingCTA } from './components/PricingCTA';
 import { usePricingPage } from './hooks/usePricingPage';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 function PricingPageContent() {
   const { mergedPlans, isYearly, setIsYearly, handleCheckout } = usePricingPage();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <PricingHero isYearly={isYearly} onYearlyChange={setIsYearly} />
-      <section className="py-16 sm:py-24">
+      <section className="py-12 sm:py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
-            {mergedPlans.map((plan) => (
-              <PricingPlanCard key={plan.id} plan={plan} isYearly={isYearly} onCheckout={handleCheckout} />
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-5">
+            {mergedPlans.map((plan, index) => (
+              <ScrollReveal key={plan.id} animation="fade-up" staggerIndex={index} staggerDelay={80} delay={50}>
+                <PricingPlanCard plan={plan} isYearly={isYearly} onCheckout={handleCheckout} />
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
-      <section className="border-t border-gray-200 bg-gray-50 py-16 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
-            <PricingFeatureTable features={FEATURES} />
+      <section className="border-t border-white/[0.04] py-12 sm:py-16 md:py-24">
+        <ScrollReveal animation="fade-up">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="overflow-hidden rounded-xl sm:rounded-2xl bg-dark-card border border-white/[0.04]">
+              <PricingFeatureTable features={FEATURES} />
+            </div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
-      <section className="border-t border-gray-200 py-16 sm:py-24">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <PricingFAQ items={FAQS} />
-        </div>
+      <section className="border-t border-white/[0.04] py-12 sm:py-16 md:py-24">
+        <ScrollReveal animation="fade-up">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+            <PricingFAQ items={FAQS} />
+          </div>
+        </ScrollReveal>
       </section>
       <PricingCTA />
     </div>

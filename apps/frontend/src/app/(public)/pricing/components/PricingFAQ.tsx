@@ -22,7 +22,7 @@ export function PricingFAQ({
     <div className="space-y-4">
       {title && (
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold text-gray-900">{title}</h2>
+          <h2 className="text-3xl font-bold text-white font-display">{title}</h2>
         </div>
       )}
       {items.map((faq, index) => (
@@ -46,14 +46,14 @@ function FAQAccordionItem({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b border-gray-200 py-4">
+    <div className="border-b border-white/[0.06] py-4">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="text-lg font-semibold text-gray-900">{question}</span>
+        <span className="text-lg font-semibold text-white">{question}</span>
         <ChevronDown
-          className={`h-5 w-5 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`h-5 w-5 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
       <AnimatePresence>
@@ -64,7 +64,7 @@ function FAQAccordionItem({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <p className="mt-4 text-gray-600">{answer}</p>
+            <p className="mt-4 text-slate-400">{answer}</p>
           </motion>
         )}
       </AnimatePresence>

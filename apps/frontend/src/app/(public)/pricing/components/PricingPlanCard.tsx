@@ -79,32 +79,32 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
     <motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative rounded-2xl border-2 p-8 ${
+      className={`relative rounded-2xl border p-8 transition-all duration-300 hover:-translate-y-1 ${
         plan.popular
-          ? 'border-blue-500 bg-gradient-to-b from-blue-50 to-white shadow-xl'
-          : 'border-gray-200 bg-white'
+          ? 'border-purple-500/30 bg-dark-card/80 shadow-glow-sm scale-[1.02]'
+          : 'border-white/[0.04] bg-dark-card/60 hover:border-white/[0.08]'
       }`}
     >
       {plan.popular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <span className="rounded-full bg-blue-600 px-4 py-1 text-sm font-semibold text-white">
+          <span className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-1 text-sm font-bold text-white">
             {plan.badge}
           </span>
         </div>
       )}
 
       <div className="mb-6">
-        <h3 className="text-2xl font-bold text-gray-900">{plan.name}</h3>
-        <p className="mt-2 text-sm text-gray-600">{plan.description}</p>
+        <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
+        <p className="mt-2 text-sm text-slate-500">{plan.description}</p>
       </div>
 
       <div className="mb-6">
         <div className="flex items-baseline">
-          <span className="text-4xl font-bold text-gray-900">{displayPrice}</span>
-          {period && <span className="ml-2 text-lg text-gray-600">{period}</span>}
+          <span className="text-4xl font-bold text-white font-display">{displayPrice}</span>
+          {period && <span className="ml-2 text-lg text-slate-500">{period}</span>}
         </div>
         {yearlyNote && (
-          <p className="mt-1 text-sm text-gray-500">{yearlyNote}</p>
+          <p className="mt-1 text-sm text-slate-600">{yearlyNote}</p>
         )}
         {isYearly &&
           price !== null &&
@@ -119,10 +119,10 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
       <Button
         onClick={handleClick}
         disabled={isLoading}
-        className={`w-full ${
+        className={`w-full font-semibold ${
           plan.popular
-            ? 'bg-blue-600 text-white hover:bg-blue-700'
-            : 'bg-gray-900 text-white hover:bg-gray-800'
+            ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
+            : 'bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:bg-white/[0.08] hover:text-white'
         }`}
         size="lg"
       >
@@ -140,7 +140,7 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
         {plan.features.map((feature, index) => (
           <li key={index} className="flex items-start">
             <Check className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
-            <span className="text-sm text-gray-700">{feature}</span>
+            <span className="text-sm text-slate-400">{feature}</span>
           </li>
         ))}
       </ul>

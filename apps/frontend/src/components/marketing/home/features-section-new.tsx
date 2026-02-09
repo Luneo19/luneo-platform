@@ -1,132 +1,116 @@
 'use client';
 
-import { Zap, Shield, RefreshCw, Puzzle, TrendingUp, Headphones } from 'lucide-react';
+import { Palette, Box, Glasses, Sparkles, BarChart3, Puzzle } from 'lucide-react';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
-const features = [
+const FEATURES = [
   {
-    icon: <Zap className="w-6 h-6" />,
-    title: 'Génération IA Ultra-Rapide',
-    description: 'Performance optimisée qui garantit que vos designs sont générés en quelques secondes.',
-    color: 'indigo',
+    label: 'Design Studio',
+    title: 'Editeur 2D puissant et intuitif',
+    description: 'Creez des designs professionnels avec notre editeur visuel drag-and-drop. Outils avances, calques, effets et export haute resolution.',
+    icon: Palette,
+    gradient: 'from-purple-500 to-fuchsia-500',
   },
   {
-    icon: <Shield className="w-6 h-6" />,
-    title: 'Sécurité Enterprise',
-    description: 'Sécurité de niveau entreprise avec chiffrement de bout en bout et conformité intégrée.',
-    color: 'purple',
+    label: 'Configurateur 3D',
+    title: 'Visualisation interactive en temps reel',
+    description: 'Offrez a vos clients une experience 3D immersive avec rotation, zoom et personnalisation en direct sur vos produits.',
+    icon: Box,
+    gradient: 'from-blue-500 to-cyan-500',
   },
   {
-    icon: <RefreshCw className="w-6 h-6" />,
-    title: 'Synchronisation Temps Réel',
-    description: 'Synchronisation instantanée sur tous les appareils et membres de l\'équipe.',
-    color: 'green',
+    label: 'Virtual Try-On',
+    title: 'Essayage augmente avec camera',
+    description: "Technologie AR avancee avec 468 points de suivi facial. Vos clients essaient les produits en direct depuis leur appareil.",
+    icon: Glasses,
+    gradient: 'from-pink-500 to-rose-500',
   },
   {
-    icon: <Puzzle className="w-6 h-6" />,
-    title: 'Intégrations',
-    description: 'Connectez-vous à 100+ outils que vous utilisez déjà et adorez.',
-    color: 'orange',
+    label: 'AI Generation',
+    title: 'Intelligence artificielle creative',
+    description: "Generez des designs uniques, des variantes et des suggestions automatiques grace a notre moteur d'IA integre.",
+    icon: Sparkles,
+    gradient: 'from-amber-500 to-orange-500',
   },
   {
-    icon: <TrendingUp className="w-6 h-6" />,
-    title: 'Analytics Avancés',
-    description: 'Insights et analytics approfondis pour prendre des décisions basées sur les données.',
-    color: 'pink',
+    label: 'Analytics',
+    title: 'Insights de performance avances',
+    description: 'Suivez les conversions, le comportement utilisateur et le ROI de vos produits personnalises en temps reel.',
+    icon: BarChart3,
+    gradient: 'from-emerald-500 to-teal-500',
   },
   {
-    icon: <Headphones className="w-6 h-6" />,
-    title: 'Support 24/7',
-    description: 'Support disponible 24h/24 et 7j/7 de notre équipe d\'experts quand vous en avez besoin.',
-    color: 'cyan',
+    label: 'Integrations',
+    title: 'Connectez vos outils favoris',
+    description: "Shopify, WooCommerce, Stripe, Printful, Zapier et 100+ integrations pour automatiser votre workflow.",
+    icon: Puzzle,
+    gradient: 'from-violet-500 to-purple-500',
   },
 ];
 
-const colorClasses = {
-  indigo: {
-    bg: 'bg-indigo-100',
-    hover: 'bg-gradient-to-br from-indigo-600 to-purple-600',
-    text: 'text-indigo-600',
-    border: 'border-indigo-500/20 hover:border-indigo-500/50',
-  },
-  purple: {
-    bg: 'bg-purple-100',
-    hover: 'bg-gradient-to-br from-purple-600 to-pink-600',
-    text: 'text-purple-600',
-    border: 'border-purple-500/20 hover:border-purple-500/50',
-  },
-  green: {
-    bg: 'bg-green-100',
-    hover: 'bg-gradient-to-br from-green-600 to-emerald-600',
-    text: 'text-green-600',
-    border: 'border-green-500/20 hover:border-green-500/50',
-  },
-  orange: {
-    bg: 'bg-orange-100',
-    hover: 'bg-gradient-to-br from-orange-600 to-yellow-600',
-    text: 'text-orange-600',
-    border: 'border-orange-500/20 hover:border-orange-500/50',
-  },
-  pink: {
-    bg: 'bg-pink-100',
-    hover: 'bg-gradient-to-br from-pink-600 to-rose-600',
-    text: 'text-pink-600',
-    border: 'border-pink-500/20 hover:border-pink-500/50',
-  },
-  cyan: {
-    bg: 'bg-cyan-100',
-    hover: 'bg-gradient-to-br from-cyan-600 to-blue-600',
-    text: 'text-cyan-600',
-    border: 'border-cyan-500/20 hover:border-cyan-500/50',
-  },
-};
-
-/**
- * Features Section - Showcase key features
- * Based on Pandawa template, adapted for Luneo
- */
 export function FeaturesSectionNew() {
   return (
-    <section id="features" className="py-24 sm:py-32 bg-gray-50 relative">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="features" className="dark-section relative py-20 sm:py-24 md:py-32 noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16" data-animate="fade-up">
-          <span className="inline-block px-3.5 py-1.5 bg-indigo-100 text-indigo-600 text-xs font-semibold rounded-full mb-4 uppercase tracking-wider">
-            Fonctionnalités
-          </span>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-            Tout ce dont vous avez besoin pour{' '}
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              réussir
+        <ScrollReveal animation="fade-up">
+          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] sm:text-xs font-semibold rounded-full mb-4 sm:mb-5 uppercase tracking-wider">
+              Fonctionnalites
             </span>
-          </h2>
-          <p className="text-lg text-gray-600">
-            Des fonctionnalités puissantes conçues pour vous aider à créer, lancer et faire croître
-            vos produits personnalisés plus rapidement que jamais.
-          </p>
-        </div>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-5">
+              <span className="text-white">Tout pour creer des </span>
+              <span className="italic text-gradient-purple">produits exceptionnels</span>
+            </h2>
+            <p className="text-base sm:text-lg text-slate-400 leading-relaxed px-2">
+              6 modules puissants qui couvrent l&apos;integralite du cycle de vie de vos produits personnalises.
+            </p>
+          </div>
+        </ScrollReveal>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => {
-            const colors = colorClasses[feature.color as keyof typeof colorClasses];
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {FEATURES.map((feature, index) => {
+            const Icon = feature.icon;
             return (
-              <div
-                key={feature.title}
-                className="bg-white p-8 rounded-2xl border border-gray-100 transition-all hover:-translate-y-2 hover:shadow-xl hover:border-transparent group"
-                data-animate="fade-up"
-                data-delay={index * 100}
+              <ScrollReveal
+                key={feature.label}
+                animation="fade-up"
+                staggerIndex={index}
+                staggerDelay={80}
+                delay={100}
               >
-                <div
-                  className={`w-14 h-14 ${colors.bg} ${colors.text} rounded-xl flex items-center justify-center mb-5 transition-all group-hover:${colors.hover} group-hover:text-white`}
-                >
-                  {feature.icon}
+                <div className="group relative bg-dark-card/60 backdrop-blur-sm p-5 sm:p-7 rounded-2xl border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300 hover:-translate-y-1 h-full">
+                  {/* Hover glow */}
+                  <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
+
+                  <div className="relative z-10">
+                    {/* Label */}
+                    <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.15em] bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent mb-3 sm:mb-4`}>
+                      {feature.label}
+                    </span>
+
+                    {/* Icon */}
+                    <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl flex items-center justify-center mb-4 sm:mb-5" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(236,72,153,0.1))' }}>
+                      <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-white/70" />
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">{feature.title}</h3>
+
+                    {/* Description */}
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">{feature.description}</p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-              </div>
+              </ScrollReveal>
             );
           })}
         </div>
+
+        {/* Glowing separator */}
+        <div className="mt-16 sm:mt-24 glow-separator" />
       </div>
     </section>
   );

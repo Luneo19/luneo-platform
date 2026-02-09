@@ -2,48 +2,71 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Shield, Globe, Lock } from 'lucide-react';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
-/**
- * CTA Section - Final call to action
- * Based on Pandawa template, adapted for Luneo
- */
 export function CTASectionNew() {
   return (
-    <section className="relative py-24 sm:py-32 bg-gradient-to-r from-indigo-600 to-purple-600 overflow-hidden">
-      {/* Background Gradient */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-[600px] h-[600px] bg-white/10 rounded-full -top-[200px] -right-[200px]" />
+    <section className="dark-section relative py-20 sm:py-24 md:py-32 noise-overlay overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-dark-bg to-pink-900/20 animate-gradient-shift gpu-accelerated" style={{ backgroundSize: '400% 400%' }} />
+        <div className="absolute w-[400px] sm:w-[600px] lg:w-[800px] h-[400px] sm:h-[600px] lg:h-[800px] rounded-full bg-purple-500/[0.08] blur-[100px] sm:blur-[150px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="max-w-2xl mx-auto text-center" data-animate="fade-up">
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            Prêt à commencer ?
-          </h2>
-          <p className="text-lg text-white/90 mb-8">
-            Rejoignez des milliers d'équipes qui utilisent déjà Luneo pour créer des produits exceptionnels.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/register">
-              <Button
-                size="lg"
-                className="bg-white text-gray-900 hover:bg-gray-50 px-8 py-6 text-base font-semibold shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all"
-              >
-                Essai gratuit
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button
-                size="lg"
-                variant="outline"
-                className="bg-transparent border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 px-8 py-6 text-base font-semibold"
-              >
-                Parler aux ventes
-              </Button>
-            </Link>
-          </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <ScrollReveal animation="fade-up" duration={700}>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-5 sm:mb-6">
+              <span className="text-white">Pret a </span>
+              <span className="italic text-gradient-purple">transformer</span>
+              <span className="text-white"> votre business ?</span>
+            </h2>
+          </ScrollReveal>
+
+          <ScrollReveal animation="fade-up" delay={100}>
+            <p className="text-base sm:text-lg text-slate-400 mb-8 sm:mb-10 max-w-xl mx-auto leading-relaxed px-2">
+              Rejoignez des milliers de marques qui utilisent deja Luneo pour creer des experiences produit exceptionnelles.
+            </p>
+          </ScrollReveal>
+
+          <ScrollReveal animation="fade-up" delay={200}>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-10">
+              <Link href="/register" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-10 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
+                >
+                  Essai gratuit 14 jours
+                  <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
+                </Button>
+              </Link>
+              <Link href="/contact" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-semibold border-white/[0.1] text-slate-300 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.2]"
+                >
+                  Parler aux ventes
+                </Button>
+              </Link>
+            </div>
+          </ScrollReveal>
+
+          {/* Trust badges */}
+          <ScrollReveal animation="fade" delay={400}>
+            <div className="flex items-center justify-center gap-4 sm:gap-6 text-slate-600 text-[10px] sm:text-xs">
+              <span className="flex items-center gap-1.5">
+                <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> SOC 2
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Globe className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> RGPD
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Lock className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> SSL 256-bit
+              </span>
+            </div>
+          </ScrollReveal>
         </div>
       </div>
     </section>

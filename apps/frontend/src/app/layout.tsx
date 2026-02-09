@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 
 // Optimisation des fonts: preload et display swap
 const inter = Inter({ 
   subsets: ["latin"],
-  display: 'swap', // Améliore le CLS (Cumulative Layout Shift)
+  display: 'swap',
   preload: true,
   variable: '--font-inter',
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: 'swap',
+  preload: true,
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700', '800'],
 });
 import "./globals.css";
 import { Providers } from "./providers";
@@ -212,7 +220,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} ${inter.variable} overflow-x-hidden`}>
+      <body className={`${inter.className} ${inter.variable} ${jakarta.variable} overflow-x-hidden`}>
         <a 
           href="#main-content" 
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-full focus:font-semibold focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"

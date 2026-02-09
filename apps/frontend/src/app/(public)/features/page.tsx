@@ -55,14 +55,15 @@ function FeaturesPageContent() {
         gradient="from-blue-600 via-purple-600 to-pink-600"
       />
 
-      <section className="py-24 sm:py-32 bg-gray-50 relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="dark-section relative py-20 sm:py-24 md:py-32 noise-overlay">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             title="Tout ce dont vous avez besoin pour réussir"
             description="Des fonctionnalités puissantes conçues pour vous aider à créer, lancer et faire croître vos produits personnalisés"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
             {features.map((feature, index) => (
               <FeatureCard
                 key={feature.title}
@@ -70,7 +71,7 @@ function FeaturesPageContent() {
                 title={feature.title}
                 description={feature.description}
                 color={feature.color}
-                delay={index * 100}
+                staggerIndex={index}
               />
             ))}
           </div>
