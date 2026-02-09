@@ -186,11 +186,11 @@ export function Navigation() {
             {/* Desktop CTA */}
             <div className="hidden lg:flex items-center gap-3">
               <Link href="/login" onClick={closeAll}>
-                <AnimatedBorderCTA speed="slow">
+                <AnimatedBorderCTA speed="normal" variant="white">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="!text-white !bg-white/[0.06] hover:!bg-white/[0.12] font-medium border-0"
+                    className="text-white bg-transparent hover:bg-transparent font-medium border-0"
                   >
                     Connexion
                   </Button>
