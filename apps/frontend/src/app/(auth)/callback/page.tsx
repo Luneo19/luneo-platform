@@ -34,9 +34,13 @@ export default function AuthCallbackPage() {
         }
 
         // Tokens are in httpOnly cookies (set by backend before redirect).
-        // Verify authentication by calling /auth/me
-        const { endpoints } = await import('@/lib/api/client');
-        const user = await endpoints.auth.me();
+        // Verify authentication by calling /auth/me via Vercel proxy (same-origin)
+        const meResp = await fetch('/api/v1/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        const meData = meResp.ok ? await meResp.json() : null;
+        const user = meData?.data || meData;
 
         if (user && user.id) {
           // Redirect to the intended page (user data fetched via React Query on next page)

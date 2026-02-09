@@ -109,12 +109,27 @@ function LoginPageContent() {
     }
 
     try {
-      const { endpoints } = await import('@/lib/api/client');
-      
-      const response = await endpoints.auth.login({
-        email: formData.email,
-        password: formData.password,
+      // Use relative URL so the request goes through the Vercel proxy (same-origin).
+      // This ensures httpOnly cookies from Set-Cookie are properly stored by the browser.
+      // Vercel rewrites /api/* → https://api.luneo.app/api/*
+      const loginResp = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       });
+
+      if (!loginResp.ok) {
+        const errData = await loginResp.json().catch(() => ({}));
+        throw Object.assign(new Error(errData.message || 'Login failed'), {
+          response: { data: errData, status: loginResp.status },
+        });
+      }
+
+      const response = await loginResp.json();
 
       // Si 2FA requis
       if (response.requires2FA && response.tempToken) {
@@ -152,12 +167,10 @@ function LoginPageContent() {
         message: err instanceof Error ? err.message : 'Unknown error',
       });
       
-      // Extract the actual backend error message from AxiosError response
-      // AxiosError.message = "Request failed with status code 401"
-      // AxiosError.response.data.message = "Invalid credentials" (actual backend message)
-      const axiosData = (err as { response?: { data?: { message?: string }; status?: number } })?.response?.data;
-      const backendMessage = axiosData?.message || '';
-      const statusCode = (err as { response?: { status?: number } })?.response?.status;
+      // Extract the backend error message from the error object
+      const errObj = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
+      const backendMessage = errObj?.response?.data?.message || '';
+      const statusCode = errObj?.response?.status;
       const errorMessage = err instanceof Error ? err.message : '';
       
       // Handle specific error messages from backend

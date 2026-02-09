@@ -196,14 +196,27 @@ function RegisterPageContent() {
           }
         }
 
-        const response = await endpoints.auth.signup({
-          email: formData.email,
-          password: formData.password,
-          firstName,
-          lastName,
-          captchaToken, // Send CAPTCHA token to backend
-          // Note: company field not in signup DTO, can be added later if needed
+        // Use relative URL so the request goes through the Vercel proxy (same-origin).
+        // This ensures httpOnly cookies from Set-Cookie are properly stored by the browser.
+        const signupResp = await fetch('/api/v1/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            firstName,
+            lastName,
+            captchaToken,
+          }),
         });
+
+        if (!signupResp.ok) {
+          const errData = await signupResp.json().catch(() => ({}));
+          throw new Error(errData.message || 'Registration failed');
+        }
+
+        const response = await signupResp.json();
 
       // Success: user in body; tokens are in httpOnly cookies (set by backend via Set-Cookie)
       if (response.user) {

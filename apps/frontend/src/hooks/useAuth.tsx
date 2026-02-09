@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
-import { endpoints } from '@/lib/api/client';
-import { getBackendUrl } from '@/lib/api/server-url';
 
 import type { AuthContextType, AuthUser } from './types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// API Base URL - centralized via getBackendUrl()
-const API_BASE_URL = getBackendUrl();
+// Auth calls use RELATIVE URLs so they go through the Vercel proxy (same-origin).
+// This ensures httpOnly cookies set by the backend response are properly stored
+// by the browser (no cross-origin cookie issues).
+// The Vercel rewrite in vercel.json proxies /api/* → https://api.luneo.app/api/*
+const AUTH_BASE = '';
 
 /**
  * Map backend user response to AuthUser
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+      const response = await fetch(`${AUTH_BASE}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/signup`, {
+      const response = await fetch(`${AUTH_BASE}/api/v1/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+      await fetch(`${AUTH_BASE}/api/v1/auth/logout`, {
         method: 'POST',
         credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
       });
@@ -131,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // httpOnly cookies cannot be read via document.cookie
         // Call /auth/me directly — cookies are sent automatically via credentials: 'include'
-        let response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+        let response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
           method: 'GET',
           credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
         });
@@ -141,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If 401, attempt token refresh before giving up
         if (response.status === 401) {
           try {
-            const refreshResp = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+            const refreshResp = await fetch(`${AUTH_BASE}/api/v1/auth/refresh`, {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
@@ -152,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (refreshResp.ok) {
               // Retry /auth/me with new cookies (set automatically by browser)
-              response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+              response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
                 method: 'GET',
                 credentials: 'include',
               });

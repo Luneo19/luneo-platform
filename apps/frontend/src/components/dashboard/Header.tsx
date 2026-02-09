@@ -3,7 +3,6 @@
 import { CreditsDisplay } from '@/components/credits/CreditsDisplay';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { useDensity } from '@/providers/DensityProvider';
-import { getBackendUrl } from '@/lib/api/server-url';
 import { useIsAuthenticated } from '@/lib/hooks/useAuth';
 import { logger } from '../../lib/logger';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -54,9 +53,9 @@ const Header = memo(function Header({
 
   const handleLogout = useCallback(async () => {
     setShowUserMenu(false);
-    const API_URL = getBackendUrl();
     try {
-      await fetch(`${API_URL}/api/v1/auth/logout`, {
+      // Use relative URL so cookies are properly sent/cleared via Vercel proxy (same-origin)
+      await fetch('/api/v1/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });

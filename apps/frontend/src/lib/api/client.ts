@@ -106,18 +106,18 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // ✅ Refresh token is in httpOnly cookie (sent automatically with withCredentials: true)
-        // Backend reads refreshToken from cookie OR body - we send empty body, cookie is sent automatically
-        await axios.post(
-          `${API_BASE_URL}/api/v1/auth/refresh`,
-          {}, // Empty body - refreshToken is in httpOnly cookie
-          { 
-            withCredentials: true, // ✅ Required to send httpOnly cookies
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+        // ✅ Use relative URL for refresh so it goes through Vercel proxy (same-origin)
+        // This ensures cookies are properly sent and received without cross-origin issues
+        const refreshResp = await fetch('/api/v1/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+
+        if (!refreshResp.ok) {
+          throw new Error('Token refresh failed');
+        }
 
         // ✅ New tokens are in httpOnly cookies (set by backend automatically)
         // Cookies are automatically sent with retry request via withCredentials: true
