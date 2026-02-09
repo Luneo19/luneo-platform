@@ -59,7 +59,7 @@ jobs:
           pnpm run test -- --testPathPattern=unit --coverage || echo "Tests skipped or failed (non-blocking)"
       
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./apps/backend/coverage/lcov.info
           flags: backend

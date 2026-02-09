@@ -52,7 +52,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./apps/backend/coverage/lcov.info
           flags: backend-unittests
