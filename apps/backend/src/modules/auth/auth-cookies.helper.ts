@@ -28,13 +28,15 @@ export class AuthCookiesHelper {
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
 
-    // Refresh Token cookie (7 days) - path restricted so it's only sent to /api/v1/auth (e.g. refresh)
+    // Refresh Token cookie (7 days)
+    // Path set to '/' so Next.js server-side rendering can read it for token refresh
+    // The cookie is httpOnly so client-side JS cannot access it
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction, // HTTPS only en production
       sameSite: 'lax', // Protection CSRF
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
-      path: '/api/v1/auth',
+      path: '/',
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
   }
@@ -57,6 +59,15 @@ export class AuthCookiesHelper {
       ...(domain && !domain.includes('localhost') ? { domain } : {}),
     });
 
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: configService.get('app.nodeEnv') === 'production',
+      sameSite: 'lax',
+      path: '/',
+      ...(domain && !domain.includes('localhost') ? { domain } : {}),
+    });
+    
+    // Also clear with old path for migration (existing cookies with path=/api/v1/auth)
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: configService.get('app.nodeEnv') === 'production',

@@ -131,12 +131,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // httpOnly cookies cannot be read via document.cookie
         // Call /auth/me directly — cookies are sent automatically via credentials: 'include'
-        const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+        let response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
           method: 'GET',
           credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
         });
 
         if (!isMounted) return;
+
+        // If 401, attempt token refresh before giving up
+        if (response.status === 401) {
+          try {
+            const refreshResp = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({}),
+            });
+
+            if (!isMounted) return;
+
+            if (refreshResp.ok) {
+              // Retry /auth/me with new cookies (set automatically by browser)
+              response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+                method: 'GET',
+                credentials: 'include',
+              });
+              if (!isMounted) return;
+            }
+          } catch {
+            // Refresh failed silently, will handle below
+          }
+        }
 
         if (!response.ok) {
           if (response.status === 401) {
