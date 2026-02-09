@@ -32,7 +32,6 @@ function sendToAnalytics(metric: Metric) {
       delta: metric.delta,
       id: metric.id,
       url: window.location.pathname,
-      timestamp: Date.now(),
     }).catch((error) => {
       // Ne pas bloquer si l'API échoue
       if (process.env.NODE_ENV === 'development') {

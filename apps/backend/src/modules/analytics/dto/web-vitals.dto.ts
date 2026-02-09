@@ -84,6 +84,14 @@ export class CreateWebVitalDto {
   @IsOptional()
   @IsString()
   sessionId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Timestamp in milliseconds (client-side)',
+    example: 1704892800000,
+  })
+  @IsOptional()
+  @IsNumber()
+  timestamp?: number;
 }
 
 export class GetWebVitalsDto {

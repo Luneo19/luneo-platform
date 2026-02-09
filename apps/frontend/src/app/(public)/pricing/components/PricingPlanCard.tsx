@@ -22,7 +22,7 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
       ? 'Sur demande'
       : price === 0
         ? 'Gratuit'
-        : `${price}€`;
+        : `${Math.round(price)}€`;
   const period =
     price === null || price === undefined || price === 0 ? '' : '/mois';
   const yearlyNote =

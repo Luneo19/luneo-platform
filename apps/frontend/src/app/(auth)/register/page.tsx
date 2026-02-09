@@ -209,13 +209,13 @@ function RegisterPageContent() {
       if (response.user) {
         localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
         
-        setSuccess('🎉 Compte créé avec succès ! Redirection...');
+        setSuccess('Compte créé avec succès ! Préparation de votre espace...');
         
-        // Redirect to overview
+        // Use window.location.href for a full page reload so cookies are properly read
+        // by the middleware on the next request (router.push may miss new cookies)
         setTimeout(() => {
-          router.push('/overview');
-          router.refresh();
-        }, 500);
+          window.location.href = '/overview';
+        }, 1200);
       } else {
         setError('Réponse invalide du serveur');
       }

@@ -1,268 +1,200 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
-import { Logo } from '@/components/Logo';
-import { Navigation } from '@/components/marketing/home/navigation';
-import { FooterNew } from '@/components/marketing/home/footer-new';
-import { CursorGlow } from '@/components/marketing/home/cursor-glow';
 import {
-  Sparkles,
   Shield,
-  Zap,
   Globe,
-  Users,
   CheckCircle,
   Star,
-  ArrowRight,
-  Layers,
   Palette,
   Box,
+  Layers,
+  Zap,
 } from 'lucide-react';
 
-// Feature highlights for the marketing panel
-const features = [
+// ---------------------------------------------------------------------------
+// DATA
+// ---------------------------------------------------------------------------
+
+const FEATURES = [
+  { icon: Palette, title: 'Customizer 2D', desc: 'Editeur visuel drag-and-drop' },
+  { icon: Box,     title: 'Configurateur 3D', desc: 'Visualisation Three.js temps reel' },
+  { icon: Layers,  title: 'Virtual Try-On', desc: 'Essayage AR 468 points' },
+  { icon: Zap,     title: 'Integrations', desc: 'Shopify, WooCommerce, API' },
+];
+
+const TESTIMONIALS = [
   {
-    icon: <Palette className="w-5 h-5" />,
-    title: 'Personnalisation Produit',
-    description: "Éditeur visuel drag & drop pour vos clients",
+    quote: "Luneo a transforme notre experience client. +45% de conversions en 3 mois.",
+    author: 'Sophie Laurent',
+    role: 'E-commerce Director',
+    company: 'Optic 2000',
+    initials: 'SL',
   },
   {
-    icon: <Box className="w-5 h-5" />,
-    title: 'Configurateur 3D',
-    description: "Visualisation temps réel avec WebGL",
+    quote: "L'integration a pris 2 jours. Le ROI a ete positif des le premier mois.",
+    author: 'Marc Dubois',
+    role: 'CEO',
+    company: 'PrintShop Pro',
+    initials: 'MD',
   },
   {
-    icon: <Layers className="w-5 h-5" />,
-    title: 'Virtual Try-On',
-    description: "Essayage AR avec tracking 468 points",
-  },
-  {
-    icon: <Zap className="w-5 h-5" />,
-    title: 'Intégrations',
-    description: "Shopify, WooCommerce, API RESTful",
+    quote: "La meilleure solution de personnalisation que nous avons testee.",
+    author: 'Claire Moreau',
+    role: 'Head of Digital',
+    company: 'Bijoux Paris',
+    initials: 'CM',
   },
 ];
 
-// Testimonials for social proof
-const testimonials = [
-  {
-    quote: "Luneo a transformé notre expérience client. +45% de conversions en 3 mois.",
-    author: "Sophie Laurent",
-    role: "E-commerce Director",
-    company: "Optic 2000",
-    avatar: "SL",
-  },
-  {
-    quote: "L'intégration a pris 2 jours. Le ROI a été positif dès le premier mois.",
-    author: "Marc Dubois",
-    role: "CEO",
-    company: "PrintShop Pro",
-    avatar: "MD",
-  },
-  {
-    quote: "La meilleure solution de personnalisation que nous avons testée. Support exceptionnel.",
-    author: "Claire Moreau",
-    role: "Head of Digital",
-    company: "Bijoux Paris",
-    avatar: "CM",
-  },
-];
-
-// Stats to display
-const stats = [
+const STATS = [
   { value: '500+', label: 'Marques' },
-  { value: '10M+', label: 'Produits créés' },
+  { value: '10M+', label: 'Produits' },
   { value: '99.9%', label: 'Uptime' },
-  { value: '4.9/5', label: 'Satisfaction' },
+  { value: '4.9/5', label: 'Note' },
 ];
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+const BADGES = [
+  { icon: Shield, label: 'RGPD' },
+  { icon: Globe, label: 'CDN Europe' },
+  { icon: CheckCircle, label: 'SOC 2' },
+];
+
+// ---------------------------------------------------------------------------
+// LAYOUT
+// ---------------------------------------------------------------------------
+
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
-  // Memoize particles for performance
-  const particles = useMemo(() => 
-    [...Array(30)].map((_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}%`,
-      top: `${Math.random() * 100}%`,
-      duration: 3 + Math.random() * 4,
-      delay: Math.random() * 3,
-    })),
-    []
-  );
+  useEffect(() => {
+    const t = setInterval(() => setTestimonialIdx((p) => (p + 1) % TESTIMONIALS.length), 5000);
+    return () => clearInterval(t);
+  }, []);
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-7 h-7 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden bg-white">
-      <CursorGlow />
-      <Navigation />
-      <div className="min-h-screen flex flex-col lg:flex-row pt-16 lg:pt-0">
-        {/* Left Panel - Marketing/Branding (hidden on mobile) */}
-        <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 relative overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(6,182,212,0.15),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,rgba(59,130,246,0.1),transparent_50%)]" />
-          
-          {/* Floating particles */}
-          {particles.map((particle) => (
-            <motion
-              key={particle.id}
-              className="absolute w-1 h-1 bg-white/20 rounded-full"
-              style={{ left: particle.left, top: particle.top }}
-              animate={{
-                y: [0, -20, 0],
-                opacity: [0.2, 0.6, 0.2],
-              }}
-              transition={{
-                duration: particle.duration,
-                repeat: Infinity,
-                delay: particle.delay,
-              }}
-            />
-          ))}
+  const t = TESTIMONIALS[testimonialIdx];
 
-          {/* Grid pattern */}
-          <div 
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-              backgroundSize: '50px 50px',
-            }}
-          />
+  return (
+    <div className="min-h-screen flex">
+      {/* ==================================================================
+          LEFT PANEL - Premium dark marketing (hidden on mobile)
+          ================================================================== */}
+      <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative overflow-hidden bg-slate-950">
+        {/* Gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/80 via-slate-950 to-violet-950/60" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_30%,rgba(99,102,241,0.15),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_70%,rgba(139,92,246,0.1),transparent_50%)]" />
+
+        {/* Dot pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+
+        {/* Animated orbits */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px]">
+          <div className="absolute inset-0 rounded-full border border-white/[0.04] animate-[spin_40s_linear_infinite]" />
+          <div className="absolute inset-8 rounded-full border border-white/[0.06] animate-[spin_30s_linear_infinite_reverse]" />
+          <div className="absolute inset-16 rounded-full border border-white/[0.03] animate-[spin_50s_linear_infinite]" />
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between p-8 xl:p-12 w-full">
+        <div className="relative z-10 flex flex-col justify-between p-10 xl:p-14 w-full">
           {/* Logo */}
-          <div>
-            <Logo href="/" size="large" showText={true} variant="light" />
-          </div>
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <span className="text-white font-bold text-sm">L</span>
+            </div>
+            <span className="text-xl font-bold text-white">Luneo</span>
+          </Link>
 
-          {/* Main Content */}
-          <div className="flex-1 flex flex-col justify-center py-12">
-            <motion
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <h1 className="text-3xl xl:text-4xl 2xl:text-5xl font-bold text-white leading-tight mb-6">
-                La plateforme de<br />
-                <span className="bg-gradient-to-r from-yellow-300 to-pink-300 bg-clip-text text-transparent">
-                  personnalisation produit
-                </span>
-                <br />n°1 en Europe
-              </h1>
-              <p className="text-lg text-white/90 mb-10 max-w-lg leading-relaxed">
-                Créez des expériences d&apos;achat uniques avec notre suite d&apos;outils de personnalisation, 
-                configuration 3D et essayage virtuel.
-              </p>
-            </motion>
+          {/* Main content */}
+          <div className="flex-1 flex flex-col justify-center py-10 max-w-lg">
+            <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
+              La plateforme de{' '}
+              <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent">
+                personnalisation
+              </span>{' '}
+              n&deg;1
+            </h1>
+            <p className="text-base text-slate-400 leading-relaxed mb-10">
+              Creez des experiences d&apos;achat uniques avec notre suite d&apos;outils
+              de personnalisation, configuration 3D et essayage virtuel.
+            </p>
 
-            {/* Features Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-10">
-              {features.map((feature, index) => (
-                <motion
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
-                  className="flex items-start gap-3 p-4 bg-white/10 rounded-xl border border-white/20 hover:border-white/40 transition-colors backdrop-blur-sm"
-                >
-                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-white flex-shrink-0">
-                    {feature.icon}
+            {/* Features */}
+            <div className="grid grid-cols-2 gap-3 mb-10">
+              {FEATURES.map((f, i) => {
+                const Icon = f.icon;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.07] transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 text-indigo-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-white">{f.title}</div>
+                      <div className="text-xs text-slate-500">{f.desc}</div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium text-white text-sm">{feature.title}</h3>
-                    <p className="text-xs text-white/80">{feature.description}</p>
-                  </div>
-                </motion>
-              ))}
+                );
+              })}
             </div>
 
             {/* Stats */}
-            <div className="flex items-center gap-8 mb-10">
-              {stats.map((stat, index) => (
-                <motion
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                  className="text-center"
-                >
-                  <div className="text-2xl font-bold text-white">{stat.value}</div>
-                  <div className="text-xs text-slate-500">{stat.label}</div>
-                </motion>
+            <div className="flex items-center gap-6 mb-10">
+              {STATS.map((s, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-xl font-bold text-white">{s.value}</div>
+                  <div className="text-[11px] text-slate-500 uppercase tracking-wider">{s.label}</div>
+                </div>
               ))}
             </div>
 
-            {/* Testimonial Carousel */}
-            <div className="relative">
-              <AnimatePresence mode="wait">
-                <motion
-                  key={currentTestimonial}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.3 }}
-                  className="bg-white/10 rounded-xl p-6 border border-white/20 backdrop-blur-sm"
-                >
-                  <div className="flex items-center gap-1 mb-3">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-yellow-300 text-yellow-300" />
-                    ))}
-                  </div>
-                  <p className="text-white text-sm leading-relaxed mb-4">
-                    &quot;{testimonials[currentTestimonial].quote}&quot;
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-sm font-medium backdrop-blur-sm">
-                      {testimonials[currentTestimonial].avatar}
-                    </div>
-                    <div>
-                      <div className="text-white text-sm font-medium">
-                        {testimonials[currentTestimonial].author}
-                      </div>
-                      <div className="text-xs text-white/70">
-                        {testimonials[currentTestimonial].role}, {testimonials[currentTestimonial].company}
-                      </div>
-                    </div>
-                  </div>
-                </motion>
-              </AnimatePresence>
-
-              {/* Testimonial indicators */}
-              <div className="flex items-center gap-2 mt-4">
-                {testimonials.map((_, index) => (
+            {/* Testimonial */}
+            <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-5">
+              <div className="flex gap-0.5 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed mb-4">
+                &laquo; {t.quote} &raquo;
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-semibold">
+                  {t.initials}
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">{t.author}</div>
+                  <div className="text-xs text-slate-500">{t.role}, {t.company}</div>
+                </div>
+              </div>
+              {/* Dots */}
+              <div className="flex gap-1.5 mt-4">
+                {TESTIMONIALS.map((_, i) => (
                   <button
-                    key={index}
-                    onClick={() => setCurrentTestimonial(index)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      index === currentTestimonial 
-                        ? 'bg-white w-6' 
-                        : 'bg-white/40 hover:bg-white/60'
+                    key={i}
+                    onClick={() => setTestimonialIdx(i)}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      i === testimonialIdx ? 'w-5 bg-indigo-500' : 'w-1.5 bg-white/20'
                     }`}
                   />
                 ))}
@@ -270,38 +202,51 @@ export default function AuthLayout({
             </div>
           </div>
 
-          {/* Bottom Section - Security badges */}
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-white/80 text-xs">
-              <Shield className="w-4 h-4" />
-              <span>RGPD Compliant</span>
-            </div>
-            <div className="flex items-center gap-2 text-white/80 text-xs">
-              <Globe className="w-4 h-4" />
-              <span>CDN Europe</span>
-            </div>
-            <div className="flex items-center gap-2 text-white/80 text-xs">
-              <CheckCircle className="w-4 h-4" />
-              <span>SOC 2 Type II</span>
-            </div>
+          {/* Security badges */}
+          <div className="flex items-center gap-5">
+            {BADGES.map((b, i) => {
+              const Icon = b.icon;
+              return (
+                <div key={i} className="flex items-center gap-1.5 text-slate-500 text-xs">
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{b.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Auth Forms */}
-      <div className="flex-1 lg:w-1/2 xl:w-[45%] bg-white lg:bg-gray-50 relative min-h-screen">
+      {/* ==================================================================
+          RIGHT PANEL - Auth form (clean white)
+          ================================================================== */}
+      <div className="flex-1 bg-gray-50/50 relative flex flex-col">
+        {/* Mobile header */}
+        <div className="lg:hidden flex items-center justify-between px-5 py-4 bg-white border-b border-gray-100">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
+              <span className="text-white font-bold text-xs">L</span>
+            </div>
+            <span className="text-lg font-bold text-gray-900">Luneo</span>
+          </Link>
+        </div>
 
         {/* Form container */}
-        <div className="min-h-screen flex items-center justify-center px-4 py-16 lg:py-8">
-          <div className="w-full max-w-md">
+        <div className="flex-1 flex items-center justify-center px-5 py-10 lg:py-8">
+          <div className="w-full max-w-[420px]">
             {children}
           </div>
         </div>
 
-        {/* Background gradient for right panel - removed on mobile to avoid overlay blocking */}
+        {/* Bottom trust line (desktop) */}
+        <div className="hidden lg:flex items-center justify-center gap-6 py-4 text-xs text-gray-400">
+          <span>Essai gratuit 14 jours</span>
+          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span>Pas de carte bancaire requise</span>
+          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span>Annulation a tout moment</span>
+        </div>
       </div>
-      </div>
-      <FooterNew />
     </div>
   );
 }

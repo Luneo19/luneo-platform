@@ -15,9 +15,22 @@ import { Response } from 'express';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { AnalyticsCleanService } from '../services/analytics-clean.service';
-import { TrackEventDto } from '../dto/track-event.dto';
+import { TrackEventDto, TrackEventsBatchDto, EventType } from '../dto/track-event.dto';
 import { AnalyticsQueryDto } from '../dto/analytics-query.dto';
 import { CurrentUser } from '@/common/types/user.types';
+
+/**
+ * Map frontend category string to backend EventType enum.
+ */
+function normalizeEventType(dto: TrackEventDto): EventType {
+  if (dto.eventType) return dto.eventType;
+  const cat = (dto.category || '').toLowerCase();
+  if (cat === 'page_view' || cat === 'pageview') return EventType.PAGE_VIEW;
+  if (cat === 'conversion') return EventType.CONVERSION;
+  if (cat === 'session_start') return EventType.SESSION_START;
+  if (cat === 'session_end') return EventType.SESSION_END;
+  return EventType.USER_ACTION;
+}
 
 /**
  * Clean Analytics Controller - Minimaliste et performant
@@ -31,16 +44,40 @@ export class AnalyticsCleanController {
   @Post('events')
   @Public() // Public: Accept anonymous tracking events (login page, etc.)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Track an analytics event' })
-  @ApiResponse({ status: 201, description: 'Event tracked successfully' })
+  @ApiOperation({ summary: 'Track analytics events (single or batch)' })
+  @ApiResponse({ status: 201, description: 'Event(s) tracked successfully' })
   async trackEvent(
     @Request() req: Express.Request & { user?: CurrentUser },
-    @Body() dto: TrackEventDto,
+    @Body() body: any,
   ) {
     const brandId = (req as any).user?.brandId || 'anonymous';
     const userId = (req as any).user?.id || 'anonymous';
-    await this.analyticsService.trackEvent(brandId, userId, dto);
-    return { success: true, message: 'Event tracked' };
+
+    // Support both formats:
+    // 1. { events: [...] } - batch from frontend AnalyticsService.flush()
+    // 2. { eventType, ... } - single event
+    const events: TrackEventDto[] = Array.isArray(body?.events)
+      ? body.events
+      : [body];
+
+    for (const event of events) {
+      const normalized: TrackEventDto = {
+        eventType: normalizeEventType(event),
+        sessionId: event.sessionId,
+        properties: {
+          ...(event.properties || {}),
+          ...(event.metadata || {}),
+          ...(event.action ? { action: event.action } : {}),
+          ...(event.label ? { label: event.label } : {}),
+          ...(event.page ? { page: event.page } : {}),
+          ...(event.referrer ? { referrer: event.referrer } : {}),
+          ...(event.value !== undefined ? { value: event.value } : {}),
+        },
+      };
+      await this.analyticsService.trackEvent(brandId, userId, normalized);
+    }
+
+    return { success: true, message: `${events.length} event(s) tracked` };
   }
 
   @Get('metrics')

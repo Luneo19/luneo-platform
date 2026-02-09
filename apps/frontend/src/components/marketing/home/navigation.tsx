@@ -1,383 +1,450 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import {
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+  Palette,
+  Box,
+  Glasses,
+  Printer,
+  Sparkles,
+  Package,
+  ShoppingCart,
+  Megaphone,
+  Fingerprint,
+  Share2,
+  BookOpen,
+  HelpCircle,
+  Users,
+  Mail,
+  ArrowRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// ============================================================================
-// TYPES STRICTS POUR NAVIGATION
-// ============================================================================
+// =============================================================================
+// MEGA-MENU DATA
+// =============================================================================
 
-/**
- * Lien de navigation avec typage strict
- */
-interface NavLink {
-  href: string;
-  label: string;
-  description?: string;
-}
+const MENU_DATA = {
+  product: {
+    label: 'Produit',
+    columns: [
+      {
+        title: 'Personnalisation',
+        items: [
+          { href: '/features', label: 'Customizer 2D', description: 'Editeur visuel drag-and-drop', icon: Palette },
+          { href: '/features#3d', label: 'Configurateur 3D', description: 'Visualisation temps reel Three.js', icon: Box },
+          { href: '/features#ar', label: 'Virtual Try-On AR', description: 'Essayage augmente en direct', icon: Glasses },
+        ],
+      },
+      {
+        title: 'Production',
+        items: [
+          { href: '/features#export', label: 'Export Print-Ready', description: 'CMYK, PDF/X-4, haute resolution', icon: Printer },
+          { href: '/features#ai', label: 'AI Studio', description: 'Generation par intelligence artificielle', icon: Sparkles },
+          { href: '/features#products', label: 'Gestion Produits', description: 'Catalogue et variantes', icon: Package },
+        ],
+      },
+    ],
+    cta: { href: '/demo', label: 'Voir la demo', description: 'Testez toutes les fonctionnalites' },
+  },
+  solutions: {
+    label: 'Solutions',
+    columns: [
+      {
+        title: 'Par secteur',
+        items: [
+          { href: '/solutions/ecommerce', label: 'E-commerce', description: 'Personnalisation a grande echelle', icon: ShoppingCart },
+          { href: '/solutions/marketing', label: 'Marketing', description: 'Campagnes visuelles uniques', icon: Megaphone },
+          { href: '/solutions/branding', label: 'Branding', description: 'Identite de marque coherente', icon: Fingerprint },
+          { href: '/solutions/social', label: 'Social Media', description: 'Contenu optimise reseaux', icon: Share2 },
+        ],
+      },
+    ],
+    cta: { href: '/integrations-overview', label: 'Integrations', description: 'Shopify, WooCommerce, API...' },
+  },
+  resources: {
+    label: 'Ressources',
+    columns: [
+      {
+        title: 'Apprendre',
+        items: [
+          { href: '/help/documentation', label: 'Documentation', description: 'Guides et references API', icon: BookOpen },
+          { href: '/help', label: "Centre d'aide", description: 'FAQ et support technique', icon: HelpCircle },
+          { href: '/community', label: 'Communaute', description: 'Echangez avec les utilisateurs', icon: Users },
+          { href: '/contact', label: 'Contact', description: 'Equipe commerciale et support', icon: Mail },
+        ],
+      },
+    ],
+    cta: { href: '/register', label: 'Commencer gratuitement', description: 'Essai gratuit 14 jours' },
+  },
+} as const;
 
-/**
- * Section de mega-menu avec typage strict
- */
-interface MegaMenuSection {
-  title: string;
-  links: NavLink[];
-}
+type MenuKey = keyof typeof MENU_DATA;
 
-/**
- * Mega-menu avec typage strict
- */
-interface MegaMenu {
-  product: MegaMenuSection;
-  solutions: MegaMenuSection;
-  resources: MegaMenuSection;
-  pricing: NavLink;
-}
+// =============================================================================
+// NAVIGATION COMPONENT
+// =============================================================================
 
-/**
- * Navigation Component - Modern navbar with mega-menu
- * Conforme au plan PROJET 4 - Navigation & Footer
- * Based on Pandawa template design avec mega-menu consolidé
- */
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
+  const [mobileAccordion, setMobileAccordion] = useState<MenuKey | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Track scroll
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // ✅ Mega-menu consolidé selon PROJET 4
-  const megaMenu: MegaMenu = useMemo(
-    () => ({
-      product: {
-        title: 'Produit',
-        links: [
-          { href: '/features', label: 'Fonctionnalités', description: 'Découvrir nos outils' },
-          { href: '/demo', label: 'Démos', description: 'Tester en direct' },
-          { href: '/integrations-overview', label: 'Intégrations', description: 'Connecter vos outils' },
-          { href: '/pricing', label: 'Tarifs', description: 'Plans et prix' },
-        ],
-      },
-      solutions: {
-        title: 'Solutions',
-        links: [
-          { href: '/solutions/ecommerce', label: 'E-commerce', description: 'Personnalisation produits' },
-          { href: '/solutions/marketing', label: 'Marketing', description: 'Campagnes visuelles' },
-          { href: '/solutions/branding', label: 'Branding', description: 'Identité de marque' },
-          { href: '/solutions/social', label: 'Social Media', description: 'Contenu réseaux sociaux' },
-        ],
-      },
-      resources: {
-        title: 'Ressources',
-        links: [
-          { href: '/help/documentation', label: 'Documentation', description: 'Guides et tutoriels' },
-          { href: '/help', label: 'Centre d\'aide', description: 'Support et FAQ' },
-          { href: '/community', label: 'Communauté', description: 'Rejoindre la communauté' },
-          { href: '/contact', label: 'Contact', description: 'Nous contacter' },
-        ],
-      },
-      pricing: {
-        href: '/pricing',
-        label: 'Tarifs',
-      },
-    }),
-    [],
-  );
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
-  const handleDropdownToggle = useCallback((dropdown: string) => {
-    setActiveDropdown((prev) => (prev === dropdown ? null : dropdown));
+  // Hover handlers with delay to prevent flicker
+  const openMenu = useCallback((key: MenuKey) => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setActiveMenu(key);
   }, []);
 
-  const handleDropdownClose = useCallback(() => {
-    setActiveDropdown(null);
+  const startClose = useCallback(() => {
+    closeTimerRef.current = setTimeout(() => {
+      setActiveMenu(null);
+    }, 200);
+  }, []);
+
+  const cancelClose = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const closeAll = useCallback(() => {
+    setActiveMenu(null);
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
   }, []);
 
   return (
     <>
+      {/* ================================================================= */}
+      {/* NAVBAR */}
+      {/* ================================================================= */}
       <nav
         className={`fixed top-0 left-0 right-0 z-[1000] transition-all duration-300 ${
           scrolled
-            ? 'bg-white/90 backdrop-blur-md border-b border-gray-100 py-3'
-            : 'py-4'
+            ? 'bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-100/80'
+            : 'bg-transparent'
         }`}
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                  <rect width="32" height="32" rx="8" fill="url(#logo-gradient)" />
-                  <path
-                    d="M10 16L14 20L22 12"
-                    stroke="white"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <defs>
-                    <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
-                      <stop stopColor="#6366f1" />
-                      <stop offset="1" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+            <Link href="/" className="flex items-center gap-2.5 shrink-0" onClick={closeAll}>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <span className="text-white font-bold text-sm">L</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">Luneo</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                Luneo
+              </span>
             </Link>
 
-            {/* ✅ Desktop Navigation avec Mega-Menu consolidé */}
-            <div className="hidden lg:flex items-center gap-1">
-              {/* Produit Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => setActiveDropdown('product')}
-                onMouseLeave={handleDropdownClose}
-              >
-                <button
-                  onClick={() => handleDropdownToggle('product')}
-                  className="px-4 py-2.5 text-gray-600 font-medium text-sm rounded-xl hover:text-gray-900 hover:bg-gray-50 transition-all flex items-center gap-1"
+            {/* Desktop Nav Items */}
+            <div className="hidden lg:flex items-center gap-0.5">
+              {(Object.keys(MENU_DATA) as MenuKey[]).map((key) => (
+                <div
+                  key={key}
+                  onMouseEnter={() => openMenu(key)}
+                  onMouseLeave={startClose}
                 >
-                  Produit
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-                {activeDropdown === 'product' && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-[1001]">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">{megaMenu.product.title}</h3>
-                    <ul className="space-y-3">
-                      {megaMenu.product.links.map((link) => (
-                        <li key={link.href}>
-                          <Link
-                            href={link.href}
-                            className="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
-                          >
-                            <span className="block text-sm font-medium text-gray-900 group-hover:text-indigo-600">
-                              {link.label}
-                            </span>
-                            {link.description && (
-                              <span className="block text-xs text-gray-500 mt-0.5">{link.description}</span>
-                            )}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+                  <button
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150 flex items-center gap-1 ${
+                      activeMenu === key
+                        ? 'text-indigo-700 bg-indigo-50/80'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50/80'
+                    }`}
+                  >
+                    {MENU_DATA[key].label}
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        activeMenu === key ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))}
 
-              {/* Solutions Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => setActiveDropdown('solutions')}
-                onMouseLeave={handleDropdownClose}
-              >
-                <button
-                  onClick={() => handleDropdownToggle('solutions')}
-                  className="px-4 py-2.5 text-gray-600 font-medium text-sm rounded-xl hover:text-gray-900 hover:bg-gray-50 transition-all flex items-center gap-1"
-                >
-                  Solutions
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-                {activeDropdown === 'solutions' && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-[1001]">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">{megaMenu.solutions.title}</h3>
-                    <ul className="space-y-3">
-                      {megaMenu.solutions.links.map((link) => (
-                        <li key={link.href}>
-                          <Link
-                            href={link.href}
-                            className="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
-                          >
-                            <span className="block text-sm font-medium text-gray-900 group-hover:text-indigo-600">
-                              {link.label}
-                            </span>
-                            {link.description && (
-                              <span className="block text-xs text-gray-500 mt-0.5">{link.description}</span>
-                            )}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              {/* Ressources Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => setActiveDropdown('resources')}
-                onMouseLeave={handleDropdownClose}
-              >
-                <button
-                  onClick={() => handleDropdownToggle('resources')}
-                  className="px-4 py-2.5 text-gray-600 font-medium text-sm rounded-xl hover:text-gray-900 hover:bg-gray-50 transition-all flex items-center gap-1"
-                >
-                  Ressources
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-                {activeDropdown === 'resources' && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-[1001]">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">{megaMenu.resources.title}</h3>
-                    <ul className="space-y-3">
-                      {megaMenu.resources.links.map((link) => (
-                        <li key={link.href}>
-                          <Link
-                            href={link.href}
-                            className="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
-                          >
-                            <span className="block text-sm font-medium text-gray-900 group-hover:text-indigo-600">
-                              {link.label}
-                            </span>
-                            {link.description && (
-                              <span className="block text-xs text-gray-500 mt-0.5">{link.description}</span>
-                            )}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              {/* Pricing Link */}
               <Link
-                href={megaMenu.pricing.href}
-                className="px-4 py-2.5 text-gray-600 font-medium text-sm rounded-xl hover:text-gray-900 hover:bg-gray-50 transition-all"
+                href="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50/80 rounded-lg transition-all duration-150"
+                onClick={closeAll}
               >
-                {megaMenu.pricing.label}
+                Tarifs
               </Link>
             </div>
 
-            {/* Desktop Buttons */}
-            <div className="hidden md:flex items-center gap-3">
-              <Link href="/login">
-                <Button variant="ghost" className="font-medium">
+            {/* Desktop CTA */}
+            <div className="hidden lg:flex items-center gap-3">
+              <Link href="/login" onClick={closeAll}>
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 font-medium">
                   Connexion
                 </Button>
               </Link>
-              <Link href="/register">
-                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/50">
+              <Link href="/register" onClick={closeAll}>
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md shadow-indigo-500/25 font-medium"
+                >
                   Commencer
-                  <span className="ml-2">→</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                 </Button>
               </Link>
             </div>
 
-            {/* Mobile Toggle */}
+            {/* Mobile Hamburger */}
             <button
-              className="md:hidden p-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-gray-100 transition-colors"
+              onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6 text-gray-700" />
-              ) : (
-                <Menu className="w-6 h-6 text-gray-700" />
-              )}
+              <div className="w-5 h-5 relative">
+                <span
+                  className={`absolute left-0 w-5 h-0.5 bg-gray-700 rounded-full transition-all duration-300 ${
+                    mobileOpen ? 'top-[9px] rotate-45' : 'top-1'
+                  }`}
+                />
+                <span
+                  className={`absolute left-0 top-[9px] w-5 h-0.5 bg-gray-700 rounded-full transition-all duration-300 ${
+                    mobileOpen ? 'opacity-0 scale-0' : 'opacity-100'
+                  }`}
+                />
+                <span
+                  className={`absolute left-0 w-5 h-0.5 bg-gray-700 rounded-full transition-all duration-300 ${
+                    mobileOpen ? 'top-[9px] -rotate-45' : 'top-[17px]'
+                  }`}
+                />
+              </div>
             </button>
           </div>
         </div>
       </nav>
 
-      {/* ✅ Mobile Menu avec sections consolidées */}
+      {/* ================================================================= */}
+      {/* MEGA-MENU PANEL (Desktop) */}
+      {/* ================================================================= */}
       <div
-        className={`fixed inset-0 bg-white z-[999] transition-all duration-300 overflow-y-auto ${
-          mobileMenuOpen
-            ? 'opacity-100 visible'
-            : 'opacity-0 invisible pointer-events-none'
+        className={`fixed top-16 left-0 right-0 z-[999] transition-all duration-200 ease-out ${
+          activeMenu
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
-        style={{ paddingTop: '100px', paddingBottom: '40px', paddingLeft: '24px', paddingRight: '24px' }}
+        onMouseEnter={cancelClose}
+        onMouseLeave={startClose}
       >
-        {/* Produit */}
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
-            {megaMenu.product.title}
-          </h3>
-          <ul className="space-y-2">
-            {megaMenu.product.links.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-base font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Invisible bridge between navbar and panel */}
+        <div className="h-1" />
+        
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl shadow-2xl shadow-gray-200/60 border border-gray-100/80 overflow-hidden">
+            {activeMenu && (
+              <div className="p-8">
+                <div className="flex gap-8">
+                  {/* Columns */}
+                  <div className="flex-1 flex gap-8">
+                    {MENU_DATA[activeMenu].columns.map((col, ci) => (
+                      <div key={ci} className="flex-1">
+                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                          {col.title}
+                        </h4>
+                        <div className="space-y-1">
+                          {col.items.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                              <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={closeAll}
+                                className="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-all duration-150"
+                              >
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center shrink-0 group-hover:from-indigo-100 group-hover:to-violet-100 transition-colors">
+                                  <Icon className="w-4.5 h-4.5 text-indigo-600" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
+                                    {item.label}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                    {item.description}
+                                  </div>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-        {/* Solutions */}
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
-            {megaMenu.solutions.title}
-          </h3>
-          <ul className="space-y-2">
-            {megaMenu.solutions.links.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-base font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  {/* CTA sidebar */}
+                  <div className="w-56 shrink-0 bg-gradient-to-br from-indigo-50 via-violet-50 to-purple-50 rounded-xl p-5 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-1.5">
+                        {MENU_DATA[activeMenu].cta.label}
+                      </h4>
+                      <p className="text-xs text-gray-600 leading-relaxed">
+                        {MENU_DATA[activeMenu].cta.description}
+                      </p>
+                    </div>
+                    <Link href={MENU_DATA[activeMenu].cta.href} onClick={closeAll}>
+                      <Button
+                        size="sm"
+                        className="w-full mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md shadow-indigo-500/20 text-xs"
+                      >
+                        Decouvrir
+                        <ArrowRight className="w-3 h-3 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
 
-        {/* Ressources */}
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
-            {megaMenu.resources.title}
-          </h3>
-          <ul className="space-y-2">
-            {megaMenu.resources.links.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-base font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* Overlay to close mega-menu on click outside */}
+      {activeMenu && (
+        <div
+          className="fixed inset-0 z-[998]"
+          onClick={closeAll}
+        />
+      )}
 
-        {/* Pricing */}
-        <div className="mb-6">
-          <Link
-            href={megaMenu.pricing.href}
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-4 py-3 text-base font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-indigo-600 transition-colors"
-          >
-            {megaMenu.pricing.label}
-          </Link>
-        </div>
-        <div className="flex flex-col gap-3">
-          <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-            <Button variant="outline" className="w-full">
-              Connexion
-            </Button>
-          </Link>
-          <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-            <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600">
-              Commencer
-            </Button>
-          </Link>
+      {/* ================================================================= */}
+      {/* MOBILE MENU */}
+      {/* ================================================================= */}
+      <div
+        className={`fixed inset-0 z-[999] lg:hidden transition-all duration-300 ${
+          mobileOpen ? 'visible' : 'invisible pointer-events-none'
+        }`}
+      >
+        {/* Overlay */}
+        <div
+          className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
+            mobileOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={() => setMobileOpen(false)}
+        />
+
+        {/* Panel */}
+        <div
+          className={`absolute top-0 right-0 w-full max-w-sm h-full bg-white shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
+            mobileOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          {/* Mobile header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+            <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
+                <span className="text-white font-bold text-xs">L</span>
+              </div>
+              <span className="text-lg font-bold text-gray-900">Luneo</span>
+            </Link>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+
+          {/* Accordion sections */}
+          <div className="p-4 space-y-1">
+            {(Object.keys(MENU_DATA) as MenuKey[]).map((key) => (
+              <div key={key}>
+                <button
+                  onClick={() => setMobileAccordion(mobileAccordion === key ? null : key)}
+                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-sm font-semibold text-gray-900">
+                    {MENU_DATA[key].label}
+                  </span>
+                  <ChevronRight
+                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                      mobileAccordion === key ? 'rotate-90' : ''
+                    }`}
+                  />
+                </button>
+
+                <div
+                  className={`overflow-hidden transition-all duration-200 ${
+                    mobileAccordion === key ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="pl-3 pb-2 space-y-0.5">
+                    {MENU_DATA[key].columns.flatMap((col) =>
+                      col.items.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setMobileOpen(false)}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <Icon className="w-4 h-4 text-indigo-500 shrink-0" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-700">{item.label}</div>
+                              <div className="text-xs text-gray-400">{item.description}</div>
+                            </div>
+                          </Link>
+                        );
+                      }),
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Pricing direct link */}
+            <Link
+              href="/pricing"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-sm font-semibold text-gray-900">Tarifs</span>
+            </Link>
+          </div>
+
+          {/* Mobile CTA */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 space-y-2">
+            <Link href="/login" onClick={() => setMobileOpen(false)} className="block">
+              <Button variant="outline" className="w-full font-medium">
+                Connexion
+              </Button>
+            </Link>
+            <Link href="/register" onClick={() => setMobileOpen(false)} className="block">
+              <Button className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-medium">
+                Commencer gratuitement
+                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </>

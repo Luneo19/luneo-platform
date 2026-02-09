@@ -120,13 +120,12 @@ function LoginPageContent() {
           localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
         }
         
-        setSuccess('Connexion réussie ! Redirection...');
+        setSuccess('Connexion reussie ! Redirection...');
         
-        // Redirect to overview
+        // Use window.location.href for a full page reload so cookies are properly read
         setTimeout(() => {
-          router.push('/overview');
-          router.refresh();
-        }, 500);
+          window.location.href = '/overview';
+        }, 800);
       } else {
         setError('Réponse invalide du serveur');
       }
