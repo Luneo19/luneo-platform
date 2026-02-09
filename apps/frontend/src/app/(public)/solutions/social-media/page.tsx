@@ -269,74 +269,73 @@ function SocialMediaPageContent() {
                       variant="outline"
                       className="w-full border-white/[0.04] text-white hover:bg-white/5"
                     >
-                  {isGenerating ? (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2 animate-spin" />
-                      Génération...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Générer avec IA
-                    </>
-                  )}
-                </Button>
-              </div>
+                      {isGenerating ? (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                          Génération...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Générer avec IA
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
-                    <h3 className="text-xl font-bold text-white mb-4">Programmation</h3>
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div>
-                        <label className="text-sm text-slate-300 mb-1 block">Date</label>
-                        <Input
-                          type="date"
-                          value={scheduledDate}
-                          onChange={(e) => setScheduledDate(e.target.value)}
-                          className="bg-dark-card/40 border-white/[0.04] text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm text-slate-300 mb-1 block">Heure</label>
-                        <Input
-                          type="time"
-                          value={scheduledTime}
-                          onChange={(e) => setScheduledTime(e.target.value)}
-                          className="bg-dark-card/40 border-white/[0.04] text-white"
-                        />
-                      </div>
+                  <h3 className="text-xl font-bold text-white mb-4">Programmation</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="text-sm text-slate-300 mb-1 block">Date</label>
+                      <Input
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        className="bg-dark-card/40 border-white/[0.04] text-white"
+                      />
                     </div>
+                    <div>
+                      <label className="text-sm text-slate-300 mb-1 block">Heure</label>
+                      <Input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="bg-dark-card/40 border-white/[0.04] text-white"
+                      />
+                    </div>
+                  </div>
 
-                    <Button
-                      onClick={handleSchedule}
-                      disabled={isScheduling || !content.trim() || !scheduledDate || !scheduledTime}
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
-                    >
-                {isScheduling ? (
-                  <>
-                    <Clock className="w-5 h-5 mr-2 animate-spin" />
-                    Programmation...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5 mr-2" />
-                    Programmer la publication
-                  </>
-                )}
-              </Button>
-              {scheduleStatus === 'success' && (
-                <div className="mt-4 text-green-400 text-sm flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Publication programmée avec succès !
-                </div>
-              )}
-                    {scheduleStatus === 'error' && (
-                      <div className="mt-4 text-red-400 text-sm">
-                        Erreur. Vérifiez que tous les champs sont remplis.
-                      </div>
+                  <Button
+                    onClick={handleSchedule}
+                    disabled={isScheduling || !content.trim() || !scheduledDate || !scheduledTime}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
+                  >
+                    {isScheduling ? (
+                      <>
+                        <Clock className="w-5 h-5 mr-2 animate-spin" />
+                        Programmation...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5 mr-2" />
+                        Programmer la publication
+                      </>
                     )}
-                  </Card>
-                </AnimatedBorder>
-              </ScrollReveal>
-            </div>
+                  </Button>
+                  {scheduleStatus === 'success' && (
+                    <div className="mt-4 text-green-400 text-sm flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Publication programmée avec succès !
+                    </div>
+                  )}
+                  {scheduleStatus === 'error' && (
+                    <div className="mt-4 text-red-400 text-sm">
+                      Erreur. Vérifiez que tous les champs sont remplis.
+                    </div>
+                  )}
+                </Card>
+              </AnimatedBorder>
+            </ScrollReveal>
           </div>
         </div>
       </section>
