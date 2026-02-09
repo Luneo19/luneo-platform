@@ -4,13 +4,14 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
-import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, forwardRef } from '@nestjs/common';
 import { DesignStatus, Prisma, UserRole } from '@prisma/client';
 import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import * as sharp from 'sharp';
 import * as PDFDocument from 'pdfkit';
 import { firstValueFrom } from 'rxjs';
+import { PlansService } from '@/modules/plans/plans.service';
 
 @Injectable()
 export class DesignsService {
@@ -21,6 +22,7 @@ export class DesignsService {
     @InjectQueue('ai-generation') private aiQueue: Queue,
     private readonly storageService: StorageService,
     private readonly httpService: HttpService,
+    @Inject(forwardRef(() => PlansService)) private plansService: PlansService,
   ) {}
 
   @CacheInvalidate({ 
@@ -57,6 +59,9 @@ export class DesignsService {
         currentUser.brandId !== product.brandId) {
       throw new ForbiddenException('Access denied to this product');
     }
+
+    // Enforce design limit based on plan
+    await this.plansService.enforceDesignLimit(currentUser.id);
 
     // Optimisé: select au lieu de include
     // Create design record (cache invalidé automatiquement)

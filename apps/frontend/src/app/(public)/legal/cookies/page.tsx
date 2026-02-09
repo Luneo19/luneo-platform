@@ -22,8 +22,10 @@ export const metadata: Metadata = {
 function CookiesPolicyPageContent() {
   const lastUpdate = new Date().toLocaleDateString('fr-FR');
   return (
-    <div className="min-h-screen bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-purple-900">
+      <div className="dark-section relative noise-overlay py-12">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative z-10 max-w-4xl mx-auto px-4">
         {/* Back Button */}
         <Link
           href="/"
@@ -116,6 +118,7 @@ function CookiesPolicyPageContent() {
               </a>
             </p>
           </section>
+        </div>
         </div>
       </div>
     </div>

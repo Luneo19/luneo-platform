@@ -6,6 +6,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 import type { Plan } from '../data';
 
 export interface PricingPlanCardProps {
@@ -75,19 +76,11 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
     }
   };
 
-  return (
-    <motion
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`relative rounded-2xl border p-8 transition-all duration-300 hover:-translate-y-1 ${
-        plan.popular
-          ? 'border-purple-500/30 bg-dark-card/80 shadow-glow-sm scale-[1.02]'
-          : 'border-white/[0.04] bg-dark-card/60 hover:border-white/[0.08]'
-      }`}
-    >
+  const cardContent = (
+    <>
       {plan.popular && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <span className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-1 text-sm font-bold text-white">
+        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
+          <span className="whitespace-nowrap rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-3 sm:px-4 py-1 text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider shadow-lg shadow-purple-500/30">
             {plan.badge}
           </span>
         </div>
@@ -95,22 +88,22 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
 
       <div className="mb-6">
         <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-        <p className="mt-2 text-sm text-slate-500">{plan.description}</p>
+        <p className="mt-2 text-sm text-slate-400">{plan.description}</p>
       </div>
 
       <div className="mb-6">
         <div className="flex items-baseline">
           <span className="text-4xl font-bold text-white font-display">{displayPrice}</span>
-          {period && <span className="ml-2 text-lg text-slate-500">{period}</span>}
+          {period && <span className="ml-2 text-lg text-slate-400">{period}</span>}
         </div>
         {yearlyNote && (
-          <p className="mt-1 text-sm text-slate-600">{yearlyNote}</p>
+          <p className="mt-1 text-sm text-slate-500">{yearlyNote}</p>
         )}
         {isYearly &&
           price !== null &&
           price !== undefined &&
           price > 0 && (
-            <p className="mt-1 text-sm font-medium text-green-600">
+            <p className="mt-1 text-sm font-medium text-green-400">
               Économisez 20% avec l&apos;abonnement annuel
             </p>
           )}
@@ -139,11 +132,31 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
       <ul className="mt-8 space-y-4">
         {plan.features.map((feature, index) => (
           <li key={index} className="flex items-start">
-            <Check className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
-            <span className="text-sm text-slate-400">{feature}</span>
+            <Check className="mr-3 h-5 w-5 flex-shrink-0 text-green-400" />
+            <span className="text-sm text-slate-300">{feature}</span>
           </li>
         ))}
       </ul>
+    </>
+  );
+
+  return (
+    <motion
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`relative ${plan.popular ? 'scale-[1.02]' : ''}`}
+    >
+      {plan.popular ? (
+        <AnimatedBorder speed="normal" className="h-full">
+          <div className="relative p-8 rounded-2xl h-full">
+            {cardContent}
+          </div>
+        </AnimatedBorder>
+      ) : (
+        <div className="relative rounded-2xl border border-white/[0.04] bg-dark-card/60 hover:border-white/[0.08] p-8 transition-all duration-300 hover:-translate-y-1 h-full">
+          {cardContent}
+        </div>
+      )}
     </motion>
   );
 }

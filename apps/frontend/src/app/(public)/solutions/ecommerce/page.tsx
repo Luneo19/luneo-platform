@@ -26,6 +26,8 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 // Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
 const APP_URL = 'https://luneo.app';
@@ -217,75 +219,89 @@ export default function EcommercePage() {
         }}
       />
 
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen dark-section relative noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple" />
 
       {/* Platforms */}
-      <section className="py-20 px-4 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Toutes les Plateformes
-            </h2>
-            <p className="text-xl text-gray-400">Integration native certifiee</p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
+                Toutes les Plateformes
+              </h2>
+              <p className="text-xl text-slate-400">Integration native certifiee</p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {platforms.map((platform) => (
-              <Card
-                key={platform.name}
-                onClick={() => setSelectedPlatform(platform.name)}
-                className={`p-6 bg-gray-800/50 border-2 transition-all cursor-pointer ${
-                  selectedPlatform === platform.name
-                    ? 'border-emerald-400 shadow-lg shadow-emerald-500/20'
-                    : 'border-gray-700 hover:border-emerald-500/50'
-                }`}
-              >
-                <div className="text-6xl mb-4 text-center">{platform.icon}</div>
-                <h3 className="text-lg font-bold text-white mb-2 text-center">{platform.name}</h3>
-                <p className="text-sm text-gray-400 mb-4 text-center">{platform.description}</p>
-                <div className="space-y-2">
-                  {platform.features.map((feature) => (
-                    <div key={feature} className="flex items-center gap-2 text-sm text-gray-300">
-                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      <span>{feature}</span>
+            {platforms.map((platform, index) => (
+              <ScrollReveal key={platform.name} animation="fade-up" delay={index * 100}>
+                <AnimatedBorder hoverOnly speed="slow">
+                  <Card
+                    onClick={() => setSelectedPlatform(platform.name)}
+                    className={`p-6 bg-dark-card/60 backdrop-blur-sm border-2 transition-all cursor-pointer ${
+                      selectedPlatform === platform.name
+                        ? 'border-emerald-400 shadow-lg shadow-emerald-500/20'
+                        : 'border-white/[0.04] hover:border-emerald-500/50'
+                    }`}
+                  >
+                    <div className="text-6xl mb-4 text-center">{platform.icon}</div>
+                    <h3 className="text-lg font-bold text-white mb-2 text-center">{platform.name}</h3>
+                    <p className="text-sm text-slate-400 mb-4 text-center">{platform.description}</p>
+                    <div className="space-y-2">
+                      {platform.features.map((feature) => (
+                        <div key={feature} className="flex items-center gap-2 text-sm text-slate-300">
+                          <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </Card>
+                  </Card>
+                </AnimatedBorder>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
+      <div className="glow-separator" />
+
       {/* Demo form */}
-      <section id="ecommerce-demo-form" className="py-20 px-4 bg-gray-900 border-y border-gray-800">
-        <div className="max-w-6xl mx-auto grid gap-8 md:grid-cols-2">
-          <Card className="p-8 bg-gray-900 border-emerald-500/30">
-            <h2 className="text-2xl font-bold text-white mb-4">Demande de demo {selectedPlatform}</h2>
-            <p className="text-gray-400 mb-6">
+      <section id="ecommerce-demo-form" className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-6xl mx-auto grid gap-8 md:grid-cols-2 relative z-10">
+          <ScrollReveal animation="fade-up">
+            <AnimatedBorder hoverOnly speed="slow">
+              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                <h2 className="text-2xl font-display font-bold text-white mb-4">Demande de demo {selectedPlatform}</h2>
+                <p className="text-slate-400 mb-6">
               {/* eslint-disable-next-line no-irregular-whitespace */}
               On installe la demo complete (webhooks, produits, analytics) sur votre boutique en moins de 2 heures.
             </p>
             <form className="space-y-4" onSubmit={handleDemoRequest}>
-              <div>
-                <label className="text-sm text-gray-300 mb-1 block">Email</label>
-                <Input
-                  type="email"
-                  placeholder="vous@marque.com"
-                  value={contact.email}
-                  onChange={(e) => setContact((prev) => ({ ...prev, email: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-300 mb-1 block">Marque</label>
-                <Input
-                  placeholder="Nom de votre boutique"
-                  value={contact.brand}
-                  onChange={(e) => setContact((prev) => ({ ...prev, brand: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-300 mb-1 block">Message</label>
+                <div>
+                  <label className="text-sm text-slate-300 mb-1 block">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="vous@marque.com"
+                    value={contact.email}
+                    onChange={(e) => setContact((prev) => ({ ...prev, email: e.target.value }))}
+                    className="bg-dark-card/60 border-white/[0.04] text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-300 mb-1 block">Marque</label>
+                  <Input
+                    placeholder="Nom de votre boutique"
+                    value={contact.brand}
+                    onChange={(e) => setContact((prev) => ({ ...prev, brand: e.target.value }))}
+                    className="bg-dark-card/60 border-white/[0.04] text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-300 mb-1 block">Message</label>
                 <Textarea
                   rows={4}
                   placeholder="Ex. : connecter configurateur 3D, activer Printful, multi-langue..."
@@ -307,15 +323,19 @@ export default function EcommercePage() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 h-12 text-lg"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25 h-12 text-lg"
               >
                 {isSubmitting ? 'Envoi en cours...' : 'Recevoir la demo configuree'}
               </Button>
             </form>
           </Card>
-          <Card className="p-8 bg-gray-900 border-blue-500/30">
-            <h3 className="text-xl font-bold text-white mb-4">Ce que comprend la demo</h3>
-            <ul className="space-y-4 text-gray-300">
+          </AnimatedBorder>
+          </ScrollReveal>
+          <ScrollReveal animation="fade-up" delay={100}>
+            <AnimatedBorder hoverOnly speed="slow">
+              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                <h3 className="text-xl font-display font-bold text-white mb-4">Ce que comprend la demo</h3>
+                <ul className="space-y-4 text-slate-300">
               <li className="flex gap-3">
                 <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                 Plugin {selectedPlatform} configure + pipeline webhook complet.
@@ -333,77 +353,110 @@ export default function EcommercePage() {
                 {/* eslint-disable-next-line no-irregular-whitespace */}
                 Support Slack + onboarding 1:1, SLA &lt; 2 h pendant la phase de test.
               </li>
-            </ul>
-            <p className="mt-6 text-sm text-gray-400">
-              Cette demo est gratuite pendant 14 jours. Aucun paiement requis, vous pouvez la
-              lancer sur un duplicata de votre boutique ou un environnement sandbox.
-            </p>
-          </Card>
+                </ul>
+                <p className="mt-6 text-sm text-slate-400">
+                  Cette demo est gratuite pendant 14 jours. Aucun paiement requis, vous pouvez la
+                  lancer sur un duplicata de votre boutique ou un environnement sandbox.
+                </p>
+              </Card>
+            </AnimatedBorder>
+          </ScrollReveal>
         </div>
       </section>
+
+      <div className="glow-separator" />
 
       {/* Features */}
-      <section className="py-20 px-4 bg-gray-800/50">
-        <div className="max-w-7xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Fonctionnalités</h2>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, i) => (
-              <Card key={i} className="p-6 bg-gray-800/50 border-gray-700">
-                <div className="w-12h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center text-white mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.description}</p>
-              </Card>
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <AnimatedBorder hoverOnly speed="slow">
+                  <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white/70 mb-4" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(236,72,153,0.1))' }}>
+                      {feature.icon}
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+                    <p className="text-slate-400">{feature.description}</p>
+                  </Card>
+                </AnimatedBorder>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
+
+      <div className="glow-separator" />
 
       {/* Benefits */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Résultats</h2>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <div key={i} className="text-center">
-                <div
-                  className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}
-                >
-                  <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <div className="text-center">
+                  <div
+                    className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}
+                  >
+                    <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
+                  <p className="text-slate-400">{benefit.description}</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
-                <p className="text-gray-400">{benefit.description}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
+      <div className="glow-separator" />
+
       {/* Workflow */}
-      <section className="py-20 px-4 bg-gray-800/30">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Installation Simple</h2>
-            <p className="text-xl text-gray-400">4 etapes, 15 minutes</p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-5xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Installation Simple</h2>
+              <p className="text-xl text-slate-400">4 etapes, 15 minutes</p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {workflow.map((item, i) => (
-              <div key={i} className="relative">
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full mb-4 text-white text-2xl font-bold">
-                    {item.step}
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <div className="relative">
+                  <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full mb-4 text-white text-2xl font-bold">
+                      {item.step}
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
+                    <p className="text-sm text-slate-400">{item.description}</p>
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-400">{item.description}</p>
+                  {i < workflow.length - 1 && (
+                    <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-purple-500 to-pink-500" />
+                  )}
                 </div>
-                {i < workflow.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-emerald-500 to-green-600" />
-                )}
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
+
+      <div className="glow-separator" />
 
       {/* CTA */}
       <CTASectionNew />

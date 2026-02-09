@@ -962,11 +962,13 @@ function CustomizerPageContent() {
         }}
       />
 
-    <div className="min-h-screen bg-white text-gray-900">
-      <section id="demo" className="relative overflow-hidden py-16 sm:py-20 lg:py-28 bg-gray-50">
+    <div className="min-h-screen dark-section relative noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple" />
+      <section id="demo" className="dark-section relative noise-overlay overflow-hidden py-16 sm:py-20 lg:py-28">
+        <div className="absolute inset-0 gradient-mesh-purple" />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
               Éditeur canvas professionnel avec texte, images, formes, cliparts.{' '}
               <span className="text-purple-400 font-semibold">Export print 300 DPI</span> et{' '}
               <span className="text-pink-400 font-semibold">collaboration temps réel</span>.
@@ -975,7 +977,7 @@ function CustomizerPageContent() {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link href="/register">
-                <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg font-semibold shadow-lg shadow-purple-500/25">
+                <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-8 py-6 text-lg font-semibold shadow-lg shadow-purple-500/25">
                   Essai gratuit 14 jours
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>

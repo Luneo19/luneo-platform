@@ -24,6 +24,8 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 export default function MarketingPage() {
   const [channel, setChannel] = useState<'Email' | 'Social Ads' | 'Display' | 'Print'>('Email');
@@ -246,17 +248,20 @@ export default function MarketingPage() {
         }}
       />
 
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen dark-section relative noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple" />
 
       <section
         id="marketing-orchestrator"
-        className="py-20 px-4 bg-gray-950 border-y border-rose-900/30 relative overflow-hidden"
+        className="dark-section relative noise-overlay py-20 px-4"
       >
-        <div className="absolute inset-0 opacity-30 blur-3xl bg-gradient-to-r from-rose-900/40 via-purple-900/20 to-transparent" />
-        <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="p-8 bg-gray-900/80 border-rose-500/30 shadow-2xl shadow-rose-900/20">
-            <h2 className="text-2xl font-bold text-white mb-2">Orchestrateur Temps Réel</h2>
-            <p className="text-gray-400 mb-6">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 z-10">
+          <ScrollReveal animation="fade-up">
+            <AnimatedBorder hoverOnly speed="slow">
+              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] shadow-2xl shadow-purple-500/10">
+                <h2 className="text-2xl font-display font-bold text-white mb-2">Orchestrateur Temps Réel</h2>
+                <p className="text-slate-400 mb-6">
               Configurez objectifs, budget et persona pour générer automatiquement un plan exploitable.
             </p>
             <div className="space-y-4">
@@ -265,7 +270,7 @@ export default function MarketingPage() {
                 <select
                   value={channel}
                   onChange={(event) => setChannel(event.target.value as typeof channel)}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-dark-card/60 border border-white/[0.04] rounded-lg px-3 py-2 text-white"
                 >
                   <option>Email</option>
                   <option>Social Ads</option>
@@ -309,132 +314,169 @@ export default function MarketingPage() {
               </div>
             </div>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={handleGeneratePlan}
-                disabled={isGenerating}
-                className="flex-1 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700"
-              >
-                {isGenerating ? 'Simulation...' : 'Générer le plan'}
-              </Button>
-              <Button variant="outline" onClick={handleCopyPlan} className="flex-1 border-rose-400 text-white">
-                {copied ? 'Copié ✅' : 'Copier le brief'}
-              </Button>
-            </div>
-          </Card>
+                <Button
+                  onClick={handleGeneratePlan}
+                  disabled={isGenerating}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
+                >
+                  {isGenerating ? 'Simulation...' : 'Générer le plan'}
+                </Button>
+                <Button variant="outline" onClick={handleCopyPlan} className="flex-1 border-white/[0.04] text-white hover:bg-white/10">
+                  {copied ? 'Copié ✅' : 'Copier le brief'}
+                </Button>
+              </div>
+            </Card>
+          </AnimatedBorder>
+          </ScrollReveal>
           <div className="space-y-6">
-            <Card className="p-6 bg-gray-900/90 border border-white/5">
+            <ScrollReveal animation="fade-up" delay={100}>
+              <AnimatedBorder hoverOnly speed="slow">
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-sm text-gray-400">Plan généré</p>
                   <h3 className="text-lg font-semibold text-white">Brief multi-canal</h3>
                 </div>
-                <div className="text-xs px-3 py-1 rounded-full bg-rose-500/10 text-rose-200 border border-rose-500/20">
-                  {channel}
+                  <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                    {channel}
+                  </div>
                 </div>
-              </div>
-              <ul className="space-y-3">
-                {planPreview.map((line) => (
-                  <li
-                    key={line}
-                    className="text-sm text-gray-200 border border-gray-800 rounded-lg px-3 py-2 bg-black/30"
-                  >
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-            <Card className="p-6 bg-gray-900/70 border border-white/5">
-              <h3 className="text-white font-semibold mb-4">Timeline</h3>
-              {timeline.length === 0 ? (
-                <p className="text-sm text-gray-400">Cliquez sur "Générer le plan" pour construire la timeline.</p>
-              ) : (
                 <ul className="space-y-3">
-                  {timeline.map((item, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-200 flex items-center justify-center font-semibold">
-                        {index + 1}
-                      </div>
-                      <p className="text-gray-200 text-sm">{item}</p>
+                  {planPreview.map((line) => (
+                    <li
+                      key={line}
+                      className="text-sm text-slate-200 border border-white/[0.04] rounded-lg px-3 py-2 bg-dark-card/40"
+                    >
+                      {line}
                     </li>
                   ))}
                 </ul>
-              )}
-            </Card>
+              </Card>
+            </AnimatedBorder>
+            </ScrollReveal>
+            <ScrollReveal animation="fade-up" delay={200}>
+              <AnimatedBorder hoverOnly speed="slow">
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+              <h3 className="text-white font-semibold mb-4">Timeline</h3>
+                  {timeline.length === 0 ? (
+                    <p className="text-sm text-slate-400">Cliquez sur "Générer le plan" pour construire la timeline.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {timeline.map((item, index) => (
+                        <li key={index} className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-200 flex items-center justify-center font-semibold">
+                            {index + 1}
+                          </div>
+                          <p className="text-slate-200 text-sm">{item}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              </AnimatedBorder>
+            </ScrollReveal>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="p-4 bg-gray-900/80 border border-rose-500/20">
-                <p className="text-xs text-gray-400">CTR projeté</p>
-                <p className="text-2xl font-bold text-white">{projectedResults.ctr}%</p>
-              </Card>
-              <Card className="p-4 bg-gray-900/80 border border-rose-500/20">
-                <p className="text-xs text-gray-400">CPA estimé</p>
-                <p className="text-2xl font-bold text-white">{projectedResults.cpa} €</p>
-              </Card>
-              <Card className="p-4 bg-gray-900/80 border border-rose-500/20">
-                <p className="text-xs text-gray-400">Leads</p>
-                <p className="text-2xl font-bold text-white">{projectedResults.leads}</p>
-              </Card>
-              <Card className="p-4 bg-gray-900/80 border border-rose-500/20">
-                <p className="text-xs text-gray-400">CA potentiel</p>
-                <p className="text-2xl font-bold text-white">
-                  {projectedResults.revenue.toLocaleString('fr-FR')} €
-                </p>
-              </Card>
+              {[
+                { label: 'CTR projeté', value: `${projectedResults.ctr}%` },
+                { label: 'CPA estimé', value: `${projectedResults.cpa} €` },
+                { label: 'Leads', value: projectedResults.leads },
+                { label: 'CA potentiel', value: `${projectedResults.revenue.toLocaleString('fr-FR')} €` },
+              ].map((stat, i) => (
+                <ScrollReveal key={i} animation="fade-up" delay={i * 50}>
+                  <AnimatedBorder hoverOnly speed="slow">
+                    <Card className="p-4 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                      <p className="text-xs text-slate-400">{stat.label}</p>
+                      <p className="text-2xl font-bold text-white">{stat.value}</p>
+                    </Card>
+                  </AnimatedBorder>
+                </ScrollReveal>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Fonctionnalités Marketing</h2>
-          </div>
+      <div className="glow-separator" />
+
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Fonctionnalités Marketing</h2>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((f, i) => (
-              <Card key={i} className="p-6 bg-gray-800/50 border-gray-700">
-                <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg flex items-center justify-center text-white mb-4">
-                  {f.icon}
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{f.title}</h3>
-                <p className="text-gray-400">{f.description}</p>
-              </Card>
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <AnimatedBorder hoverOnly speed="slow">
+                  <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white/70 mb-4" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(236,72,153,0.1))' }}>
+                      {f.icon}
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">{f.title}</h3>
+                    <p className="text-slate-400">{f.description}</p>
+                  </Card>
+                </AnimatedBorder>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-4 bg-gray-800/50">
-        <div className="max-w-7xl mx-auto">
+      <div className="glow-separator" />
+
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Résultats</h2>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((b, i) => (
-              <div key={i} className="text-center">
-                <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${b.color} rounded-full mb-4`}>
-                  <span className="text-3xl font-bold text-white">{b.stat}</span>
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <div className="text-center">
+                  <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${b.color} rounded-full mb-4`}>
+                    <span className="text-3xl font-bold text-white">{b.stat}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{b.title}</h3>
+                  <p className="text-slate-400">{b.description}</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{b.title}</h3>
-                <p className="text-gray-400">{b.description}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Cas d'Usage</h2>
-          </div>
+      <div className="glow-separator" />
+
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Cas d'Usage</h2>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {useCases.map((u, i) => (
-              <Card key={i} className="p-6 bg-gray-800/50 border-gray-700 text-center">
-                <div className="text-6xl mb-4">{u.icon}</div>
-                <h3 className="text-lg font-bold text-white mb-2">{u.title}</h3>
-                <p className="text-sm text-gray-400">{u.description}</p>
-              </Card>
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <AnimatedBorder hoverOnly speed="slow">
+                  <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center">
+                    <div className="text-6xl mb-4">{u.icon}</div>
+                    <h3 className="text-lg font-bold text-white mb-2">{u.title}</h3>
+                    <p className="text-sm text-slate-400">{u.description}</p>
+                  </Card>
+                </AnimatedBorder>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
+
+      <div className="glow-separator" />
 
       <CTASectionNew />
     </div>

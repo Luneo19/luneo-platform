@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
+import { PlansService } from '@/modules/plans/plans.service';
 import { Prisma, UserRole } from '@prisma/client';
 import { normalizePagination, createPaginationResult, PaginationParams, PaginationResult } from '@/libs/prisma/pagination.helper';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
@@ -15,6 +16,7 @@ export class ProductsService {
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
+    @Inject(forwardRef(() => PlansService)) private plansService: PlansService,
   ) {}
 
   // Optimisé: select au lieu de include, pagination ajoutée, cache automatique
@@ -121,6 +123,9 @@ export class ProductsService {
         currentUser.brandId !== brandId) {
       throw AppErrorFactory.insufficientPermissions('access brand resource', { brandId });
     }
+
+    // Enforce product limit based on plan
+    await this.plansService.enforceProductLimit(currentUser.id);
 
     // Optimisé: select au lieu de include
     return this.prisma.product.create({

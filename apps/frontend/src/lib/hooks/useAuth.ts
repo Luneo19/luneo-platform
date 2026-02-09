@@ -12,16 +12,7 @@ export function useCurrentUser() {
   return useQuery<User>({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
-      // Auth tokens are in httpOnly cookies — sent automatically via withCredentials
-      // We check for the presence of any auth cookie before hitting /auth/me
-      if (typeof window !== 'undefined') {
-        const hasCookie =
-          document.cookie.includes('accessToken') ||
-          document.cookie.includes('refreshToken');
-        if (!hasCookie) {
-          throw new Error('No auth cookie found');
-        }
-      }
+      // httpOnly cookies are sent automatically via withCredentials — no document.cookie check needed
       try {
         return await endpoints.auth.me();
       } catch (error) {
@@ -32,9 +23,8 @@ export function useCurrentUser() {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
-    enabled: typeof window !== 'undefined' &&
-      typeof document !== 'undefined' &&
-      (document.cookie.includes('accessToken') || document.cookie.includes('refreshToken')),
+    // Always enabled on client — cookies are sent automatically, 401 = not logged in
+    enabled: typeof window !== 'undefined',
   });
 }
 

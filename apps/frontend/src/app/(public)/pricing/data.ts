@@ -179,8 +179,8 @@ export const PLANS: Plan[] = [
     priceYearly: 2990,
     priceYearlyMonthly: Math.round(2990 / 12),
     currency: 'EUR',
-    cta: 'Demarrer l\'essai gratuit',
-    ctaHref: '/register?plan=enterprise',
+    cta: 'Contacter les ventes',
+    ctaHref: '/contact?type=enterprise',
     features: [
       'Designs illimites',
       'Rendus illimites',

@@ -188,7 +188,7 @@ export function Navigation() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-slate-400 hover:text-white hover:bg-white/[0.06] font-medium"
+                  className="text-white hover:text-white hover:bg-white/[0.08] font-medium"
                 >
                   Connexion
                 </Button>

@@ -35,16 +35,16 @@ export function usePricingPage() {
 
   const handleCheckout = useCallback(
     async (planId: string) => {
-      type Res = { success?: boolean; data?: { url?: string }; message?: string };
+      type Res = { success?: boolean; url?: string; sessionId?: string; error?: string; message?: string };
       const result = await api.post<Res>('/api/v1/billing/create-checkout-session', {
         planId,
         email: user?.email,
-        billing: isYearly ? 'yearly' : 'monthly',
+        billingInterval: isYearly ? 'yearly' : 'monthly',
       });
-      if (!result?.success || !(result as Res).data?.url) {
-        throw new Error((result as Res)?.message || 'Réponse invalide du serveur');
+      if (!result?.success || !result.url) {
+        throw new Error(result?.error || result?.message || 'Réponse invalide du serveur');
       }
-      window.location.href = (result as { data: { url: string } }).data.url;
+      window.location.href = result.url;
     },
     [user, isYearly]
   );

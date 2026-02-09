@@ -32,6 +32,8 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 function SocialMediaPageContent() {
   const [selectedPlatform, setSelectedPlatform] = useState<{
@@ -183,79 +185,90 @@ function SocialMediaPageContent() {
         }}
       />
 
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen dark-section relative noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple" />
 
       {/* Orchestrator Section */}
       <section
         id="social-orchestrator"
-        className="py-20 px-4 bg-gray-50 border-y border-pink-200 relative overflow-hidden"
+        className="dark-section relative noise-overlay py-20 px-4"
       >
-        <div className="absolute inset-0 opacity-30 blur-3xl bg-gradient-to-r from-pink-900/40 via-purple-900/20 to-transparent" />
-        <div className="relative max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Orchestrateur Social</h2>
-            <p className="text-xl text-gray-400">Créez et programmez vos publications</p>
-          </div>
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4 italic">
+                <span className="text-gradient-purple">Orchestrateur Social</span>
+              </h2>
+              <p className="text-xl text-slate-400">Créez et programmez vos publications</p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Platform Selection */}
-            <Card className="p-8 bg-gray-900/80 border-pink-500/30">
-              <h3 className="text-xl font-bold text-white mb-4">Plateforme</h3>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {platforms.map((platform) => (
-                  <Card
-                    key={platform.name}
-                    onClick={() => setSelectedPlatform(platform)}
-                    className={`p-4 text-center cursor-pointer transition-all border-2 ${
-                      selectedPlatform.name === platform.name
-                        ? 'bg-gradient-to-br from-pink-900/70 to-purple-900/50 border-pink-400 shadow-lg shadow-pink-900/30'
-                        : 'bg-gray-800/50 border-gray-700 hover:border-pink-400/60'
-                    }`}
-                  >
-                    <div className={`w-12 h-12 bg-gradient-to-br ${platform.color} rounded-lg flex items-center justify-center text-white mx-auto mb-2`}>
-                      {platform.icon}
-                    </div>
-                    <p className="text-sm font-medium text-white">{platform.name}</p>
-                  </Card>
-                ))}
-              </div>
+            <ScrollReveal animation="fade-up" staggerIndex={0} staggerDelay={80}>
+              <AnimatedBorder hoverOnly speed="slow">
+                <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                  <h3 className="text-xl font-bold text-white mb-4">Plateforme</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    {platforms.map((platform) => (
+                      <Card
+                        key={platform.name}
+                        onClick={() => setSelectedPlatform(platform)}
+                        className={`p-4 text-center cursor-pointer transition-all border-2 ${
+                          selectedPlatform.name === platform.name
+                            ? 'bg-gradient-to-br from-pink-900/70 to-purple-900/50 border-pink-400 shadow-glow-sm'
+                            : 'bg-dark-card/40 backdrop-blur-sm border-white/[0.04] hover:border-pink-400/60 hover:-translate-y-1'
+                        }`}
+                      >
+                        <div className={`w-12 h-12 bg-gradient-to-br ${platform.color} rounded-lg flex items-center justify-center text-white mx-auto mb-2`}>
+                          {platform.icon}
+                        </div>
+                        <p className="text-sm font-medium text-white">{platform.name}</p>
+                      </Card>
+                    ))}
+                  </div>
 
-              <h3 className="text-xl font-bold text-white mb-4">Type de publication</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {postTypes.map((type) => (
-                  <Card
-                    key={type.id}
-                    onClick={() => setPostType(type.id as string)}
-                    className={`p-3 text-center cursor-pointer transition-all ${
-                      postType === type.id
-                        ? 'bg-pink-500/20 border-pink-500'
-                        : 'bg-gray-800/50 border-gray-700 hover:border-pink-500/50'
-                    }`}
-                  >
-                    <div className="text-pink-400 mb-1 flex justify-center">{type.icon}</div>
-                    <p className="text-xs font-medium text-white">{type.name}</p>
-                  </Card>
-                ))}
-              </div>
-            </Card>
+                  <h3 className="text-xl font-bold text-white mb-4">Type de publication</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {postTypes.map((type) => (
+                      <Card
+                        key={type.id}
+                        onClick={() => setPostType(type.id as string)}
+                        className={`p-3 text-center cursor-pointer transition-all ${
+                          postType === type.id
+                            ? 'bg-pink-500/20 border-pink-500'
+                            : 'bg-dark-card/40 backdrop-blur-sm border-white/[0.04] hover:border-pink-500/50'
+                        }`}
+                      >
+                        <div className="text-pink-400 mb-1 flex justify-center">{type.icon}</div>
+                        <p className="text-xs font-medium text-white">{type.name}</p>
+                      </Card>
+                    ))}
+                  </div>
+                </Card>
+              </AnimatedBorder>
+            </ScrollReveal>
 
             {/* Content & Schedule */}
-            <Card className="p-8 bg-gray-900/80 border-pink-500/30">
-              <h3 className="text-xl font-bold text-white mb-4">Contenu</h3>
-              <div className="space-y-4 mb-6">
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  rows={6}
-                  placeholder="Écrivez votre publication ou générez du contenu avec IA..."
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
-                <Button
-                  onClick={handleGenerateContent}
-                  disabled={isGenerating}
-                  variant="outline"
-                  className="w-full border-pink-400 text-white hover:bg-pink-500/10"
-                >
+            <ScrollReveal animation="fade-up" staggerIndex={1} staggerDelay={80}>
+              <AnimatedBorder hoverOnly speed="slow">
+                <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                  <h3 className="text-xl font-bold text-white mb-4">Contenu</h3>
+                  <div className="space-y-4 mb-6">
+                    <Textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      rows={6}
+                      placeholder="Écrivez votre publication ou générez du contenu avec IA..."
+                      className="bg-dark-card/40 border-white/[0.04] text-white"
+                    />
+                    <Button
+                      onClick={handleGenerateContent}
+                      disabled={isGenerating}
+                      variant="outline"
+                      className="w-full border-white/[0.04] text-white hover:bg-white/5"
+                    >
                   {isGenerating ? (
                     <>
                       <Sparkles className="w-4 h-4 mr-2 animate-spin" />
@@ -270,33 +283,33 @@ function SocialMediaPageContent() {
                 </Button>
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-4">Programmation</h3>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">Date</label>
-                  <Input
-                    type="date"
-                    value={scheduledDate}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">Heure</label>
-                  <Input
-                    type="time"
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-              </div>
+                    <h3 className="text-xl font-bold text-white mb-4">Programmation</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div>
+                        <label className="text-sm text-slate-300 mb-1 block">Date</label>
+                        <Input
+                          type="date"
+                          value={scheduledDate}
+                          onChange={(e) => setScheduledDate(e.target.value)}
+                          className="bg-dark-card/40 border-white/[0.04] text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-slate-300 mb-1 block">Heure</label>
+                        <Input
+                          type="time"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="bg-dark-card/40 border-white/[0.04] text-white"
+                        />
+                      </div>
+                    </div>
 
-              <Button
-                onClick={handleSchedule}
-                disabled={isScheduling || !content.trim() || !scheduledDate || !scheduledTime}
-                className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
-              >
+                    <Button
+                      onClick={handleSchedule}
+                      disabled={isScheduling || !content.trim() || !scheduledDate || !scheduledTime}
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
+                    >
                 {isScheduling ? (
                   <>
                     <Clock className="w-5 h-5 mr-2 animate-spin" />
@@ -315,48 +328,61 @@ function SocialMediaPageContent() {
                   Publication programmée avec succès !
                 </div>
               )}
-              {scheduleStatus === 'error' && (
-                <div className="mt-4 text-red-400 text-sm">
-                  Erreur. Vérifiez que tous les champs sont remplis.
-                </div>
-              )}
-            </Card>
+                    {scheduleStatus === 'error' && (
+                      <div className="mt-4 text-red-400 text-sm">
+                        Erreur. Vérifiez que tous les champs sont remplis.
+                      </div>
+                    )}
+                  </Card>
+                </AnimatedBorder>
+              </ScrollReveal>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Fonctionnalités Social Media</h2>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4 italic">
+                <span className="text-gradient-purple">Fonctionnalités Social Media</span>
+              </h2>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, i) => (
-              <Card key={i} className="p-6 bg-gray-800/50 border-gray-700">
-                <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.description}</p>
-              </Card>
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] hover:-translate-y-1">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center text-white mb-4">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+                  <p className="text-slate-400">{feature.description}</p>
+                </Card>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Benefits */}
-      <section className="py-20 px-4 bg-gray-800/50">
-        <div className="max-w-7xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <div key={i} className="text-center">
-                <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}>
-                  <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <div className="text-center">
+                  <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}>
+                    <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
+                  <p className="text-slate-400">{benefit.description}</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
-                <p className="text-gray-400">{benefit.description}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>

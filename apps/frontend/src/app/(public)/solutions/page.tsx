@@ -4,6 +4,8 @@ import React, { useMemo } from 'react';
 import { Palette, Box, Camera, Sparkles, Store, Megaphone, Share2, Briefcase } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 function SolutionsHubPageContent() {
   const solutions = useMemo(() => [
@@ -81,24 +83,30 @@ function SolutionsHubPageContent() {
         gradient="from-indigo-600 via-purple-600 to-pink-600"
       />
 
-      <section className="py-24 sm:py-32 bg-gray-50 relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            title="Choisissez la solution adaptée à vos besoins"
-            description="Chaque solution est conçue pour répondre à des besoins spécifiques et s'intègre parfaitement dans votre workflow"
-          />
+      <section className="dark-section relative noise-overlay py-24 sm:py-32">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <ScrollReveal animation="fade-up">
+            <SectionHeader
+              title="Choisissez la solution adaptée à vos besoins"
+              description="Chaque solution est conçue pour répondre à des besoins spécifiques et s'intègre parfaitement dans votre workflow"
+            />
+          </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
             {solutions.map((solution, index) => (
-              <FeatureCard
-                key={solution.title}
-                icon={solution.icon}
-                title={solution.title}
-                description={solution.description}
-                href={solution.href}
-                color={solution.color}
-                delay={index * 100}
-              />
+              <ScrollReveal key={solution.title} animation="fade-up" delay={index * 100}>
+                <AnimatedBorder hoverOnly speed="slow">
+                  <FeatureCard
+                    icon={solution.icon}
+                    title={solution.title}
+                    description={solution.description}
+                    href={solution.href}
+                    color={solution.color}
+                    delay={index * 100}
+                  />
+                </AnimatedBorder>
+              </ScrollReveal>
             ))}
           </div>
         </div>

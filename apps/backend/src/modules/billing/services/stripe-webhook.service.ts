@@ -9,10 +9,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Prisma, SubscriptionStatus } from '@prisma/client';
+import { Prisma, SubscriptionStatus, SubscriptionPlan } from '@prisma/client';
 import { CreditsService } from '@/libs/credits/credits.service';
 import { CurrencyUtils } from '@/config/currency.config';
 import { EmailService } from '@/modules/email/email.service';
+import { normalizePlanTier, PlanTier } from '@/libs/plans/plan-config';
 import { StripeClientService } from './stripe-client.service';
 import type Stripe from 'stripe';
 
@@ -281,7 +282,19 @@ export class StripeWebhookService {
     }
 
     const planItem = subscription.items.data.find(item => !addonPriceIdSet.has(item.price.id));
-    const planName = planItem?.price?.nickname || subscription.metadata?.planId || brand.plan || 'starter';
+    const rawPlanName = planItem?.price?.nickname || subscription.metadata?.planId || brand.plan || 'starter';
+    const normalizedTier = normalizePlanTier(rawPlanName);
+    const planName = normalizedTier; // Use normalized tier name for storage
+
+    // Map PlanTier to SubscriptionPlan (Prisma enum) - BUSINESS maps to PROFESSIONAL since Prisma enum lacks BUSINESS
+    const planToSubscriptionPlan: Record<string, SubscriptionPlan> = {
+      [PlanTier.FREE]: SubscriptionPlan.FREE,
+      [PlanTier.STARTER]: SubscriptionPlan.STARTER,
+      [PlanTier.PROFESSIONAL]: SubscriptionPlan.PROFESSIONAL,
+      [PlanTier.BUSINESS]: SubscriptionPlan.PROFESSIONAL, // BUSINESS not in Prisma enum, map to PROFESSIONAL
+      [PlanTier.ENTERPRISE]: SubscriptionPlan.ENTERPRISE,
+    };
+    const subscriptionPlanValue = planToSubscriptionPlan[normalizedTier] || SubscriptionPlan.FREE;
 
     // Sync active add-ons
     const activeAddons: Array<{ type: string; quantity: number; stripePriceId: string }> = [];
@@ -298,7 +311,7 @@ export class StripeWebhookService {
     await this.prisma.$transaction([
       this.prisma.brand.update({
         where: { id: brand.id },
-        data: { stripeSubscriptionId: subscription.id, subscriptionStatus: appStatus, plan: planName, planExpiresAt: currentPeriodEnd, trialEndsAt: trialEnd },
+        data: { stripeSubscriptionId: subscription.id, subscriptionStatus: appStatus, plan: planName, subscriptionPlan: subscriptionPlanValue, planExpiresAt: currentPeriodEnd, trialEndsAt: trialEnd },
       }),
       this.prisma.brand.update({
         where: { id: brand.id },

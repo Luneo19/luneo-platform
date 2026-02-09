@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 function FashionIndustryPageContent() {
   const solutions = [
@@ -27,22 +28,25 @@ function FashionIndustryPageContent() {
         }}
       />
 
-      <div className="min-h-screen bg-white text-gray-900">
-        <section className="max-w-7xl mx-auto px-4 py-20 bg-gray-50">
-          <SectionHeader
-            title="Solutions pour la Mode"
-            description="Tout ce dont vous avez besoin pour transformer votre business mode"
-          />
-          <div className="grid md:grid-cols-3 gap-8 mt-12">
-            {solutions.map((solution, i) => (
-              <FeatureCard
-                key={i}
-                title={solution.title}
-                description={solution.description}
-                icon={solution.icon}
-                color="purple"
-              />
-            ))}
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <section className="dark-section relative noise-overlay max-w-7xl mx-auto px-4 py-20">
+          <div className="absolute inset-0 gradient-mesh-purple" />
+          <div className="relative z-10">
+            <SectionHeader
+              title="Solutions pour la Mode"
+              description="Tout ce dont vous avez besoin pour transformer votre business mode"
+            />
+            <div className="grid md:grid-cols-3 gap-8 mt-12">
+              {solutions.map((solution, i) => (
+                <FeatureCard
+                  key={i}
+                  title={solution.title}
+                  description={solution.description}
+                  icon={solution.icon}
+                  color="purple"
+                />
+              ))}
+            </div>
           </div>
         </section>
 

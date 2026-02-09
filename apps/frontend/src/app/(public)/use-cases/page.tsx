@@ -4,6 +4,7 @@ import React, { memo, useMemo } from 'react';
 import { Lightbulb, ShoppingCart, Megaphone, Briefcase, Package, Truck, Users } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 function UseCasesPageContent() {
   const useCases = useMemo(() => [
@@ -64,8 +65,9 @@ function UseCasesPageContent() {
         }}
       />
 
-      <section className="py-24 sm:py-32 bg-gray-50 relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="dark-section relative noise-overlay py-24 sm:py-32">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title="Des solutions adaptées à chaque secteur"
             description="Que vous soyez e-commerce, agence, ou entreprise, Luneo s'adapte à vos besoins spécifiques"

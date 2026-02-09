@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Camera, Box, Sparkles, BarChart3, Wand2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 const demoModules = [
   {
@@ -93,47 +94,49 @@ function DemoModulesSectionContent() {
                 staggerDelay={80}
                 delay={100}
               >
-                <div className="group relative bg-dark-card/60 backdrop-blur-sm rounded-2xl border border-white/[0.04] hover:border-white/[0.08] p-5 sm:p-7 transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
-                  <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${mod.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
+                <AnimatedBorder hoverOnly speed="slow" className="h-full">
+                  <div className="group relative backdrop-blur-sm rounded-2xl p-5 sm:p-7 transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
+                    <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${mod.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
 
-                  <div className="relative z-10 flex flex-col flex-1">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4 sm:mb-5">
-                      <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.15))' }}>
-                        <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-white/70" />
+                    <div className="relative z-10 flex flex-col flex-1">
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-4 sm:mb-5">
+                        <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.15))' }}>
+                          <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-white/70" />
+                        </div>
+                        <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gradient-to-r ${mod.gradient} text-white text-[9px] sm:text-[10px] font-bold rounded-full`}>
+                          {mod.badge}
+                        </span>
                       </div>
-                      <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gradient-to-r ${mod.gradient} text-white text-[9px] sm:text-[10px] font-bold rounded-full`}>
-                        {mod.badge}
-                      </span>
+
+                      {/* Content */}
+                      <h3 className="text-base sm:text-lg font-bold text-white mb-1.5 sm:mb-2">{mod.title}</h3>
+                      <p className="text-xs sm:text-sm text-slate-400 leading-relaxed mb-3 sm:mb-4">{mod.description}</p>
+
+                      {/* Features */}
+                      <ul className="space-y-1.5 sm:space-y-2 mb-5 sm:mb-6 flex-1">
+                        {mod.features.map((f, i) => (
+                          <li key={i} className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400">
+                            <span className="w-1 h-1 rounded-full bg-purple-500 flex-shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* CTA */}
+                      <Link href={mod.href}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.15] font-medium text-xs sm:text-sm"
+                        >
+                          Tester la demo
+                          <ArrowRight className="w-3 h-3 ml-1.5" />
+                        </Button>
+                      </Link>
                     </div>
-
-                    {/* Content */}
-                    <h3 className="text-base sm:text-lg font-bold text-white mb-1.5 sm:mb-2">{mod.title}</h3>
-                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-3 sm:mb-4">{mod.description}</p>
-
-                    {/* Features */}
-                    <ul className="space-y-1.5 sm:space-y-2 mb-5 sm:mb-6 flex-1">
-                      {mod.features.map((f, i) => (
-                        <li key={i} className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-500">
-                          <span className="w-1 h-1 rounded-full bg-purple-500 flex-shrink-0" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-
-                    {/* CTA */}
-                    <Link href={mod.href}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.15] font-medium text-xs sm:text-sm"
-                      >
-                        Tester la demo
-                        <ArrowRight className="w-3 h-3 ml-1.5" />
-                      </Button>
-                    </Link>
                   </div>
-                </div>
+                </AnimatedBorder>
               </ScrollReveal>
             );
           })}

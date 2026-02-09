@@ -2,6 +2,7 @@
 
 import { Star } from 'lucide-react';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 const testimonials = [
   {
@@ -78,40 +79,47 @@ export function TestimonialsNew() {
               staggerDelay={120}
               delay={150}
             >
-              <div
-                className={`relative p-5 sm:p-7 rounded-2xl border transition-all duration-300 hover:-translate-y-1 h-full ${
-                  t.featured
-                    ? 'bg-gradient-to-br from-purple-600/20 to-pink-600/20 border-purple-500/20 shadow-glow-sm'
-                    : 'bg-dark-card/60 border-white/[0.04] hover:border-white/[0.08]'
-                }`}
+              <AnimatedBorder
+                hoverOnly={!t.featured}
+                active={t.featured}
+                speed={t.featured ? 'normal' : 'slow'}
+                className="h-full"
               >
-                {/* Stars */}
-                <div className="flex gap-0.5 mb-3 sm:mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 sm:w-4 h-3.5 sm:h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-
-                {/* Quote */}
-                <p className="text-slate-300 mb-5 sm:mb-6 leading-relaxed text-xs sm:text-sm">
-                  &laquo; {t.quote} &raquo;
-                </p>
-
-                {/* Author */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 sm:w-10 h-9 sm:h-10 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white ${
+                <div
+                  className={`relative p-5 sm:p-7 rounded-2xl transition-all duration-300 hover:-translate-y-1 h-full ${
                     t.featured
-                      ? 'bg-gradient-to-br from-purple-500 to-pink-500'
-                      : 'bg-gradient-to-br from-slate-700 to-slate-600'
-                  }`}>
-                    {t.initials}
+                      ? 'bg-gradient-to-br from-purple-600/10 to-pink-600/10'
+                      : ''
+                  }`}
+                >
+                  {/* Stars */}
+                  <div className="flex gap-0.5 mb-3 sm:mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-3.5 sm:w-4 h-3.5 sm:h-4 fill-amber-400 text-amber-400" />
+                    ))}
                   </div>
-                  <div>
-                    <div className="text-xs sm:text-sm font-semibold text-white">{t.author}</div>
-                    <div className="text-[10px] sm:text-xs text-slate-500">{t.role}, {t.company}</div>
+
+                  {/* Quote */}
+                  <p className="text-slate-300 mb-5 sm:mb-6 leading-relaxed text-xs sm:text-sm">
+                    &laquo; {t.quote} &raquo;
+                  </p>
+
+                  {/* Author */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 sm:w-10 h-9 sm:h-10 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white ${
+                      t.featured
+                        ? 'bg-gradient-to-br from-purple-500 to-pink-500'
+                        : 'bg-gradient-to-br from-slate-700 to-slate-600'
+                    }`}>
+                      {t.initials}
+                    </div>
+                    <div>
+                      <div className="text-xs sm:text-sm font-semibold text-white">{t.author}</div>
+                      <div className="text-[10px] sm:text-xs text-slate-500">{t.role}, {t.company}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </AnimatedBorder>
             </ScrollReveal>
           ))}
         </div>

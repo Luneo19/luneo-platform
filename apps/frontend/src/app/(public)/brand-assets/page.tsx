@@ -22,7 +22,7 @@ function BrandAssetsPageContent() {
           </h2>
           
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <div className="border border-white/[0.04] rounded-lg p-6">
               <div className="bg-purple-600 rounded-lg h-32 flex items-center justify-center mb-4">
                 <span className="text-white text-4xl font-bold">L</span>
               </div>

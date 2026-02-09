@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 const values = [
   {
@@ -68,31 +69,37 @@ function AboutPageContent() {
       />
 
       {/* Mission & Vision */}
-      <section className="py-24 sm:py-32 bg-white relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="dark-section relative noise-overlay py-24 sm:py-32">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="p-8 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200" data-animate="fade-right">
-              <Target className="w-16 h-16 mb-6 text-indigo-600" />
-              <h2 className="text-3xl font-bold mb-4">Notre Mission</h2>
-              <p className="text-gray-700 leading-relaxed">
-                  Transformer le workflow créatif des marques en combinant l'intelligence artificielle, la visualisation 3D et la réalité augmentée. Nous permettons à chaque entrepreneur de créer des expériences produits dignes des plus grandes marques.
-                </p>
-              </Card>
+            <ScrollReveal>
+              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]" data-animate="fade-right">
+                <Target className="w-16 h-16 mb-6 text-purple-400" />
+                <h2 className="text-3xl font-bold mb-4 text-white">Notre Mission</h2>
+                <p className="text-slate-300 leading-relaxed">
+                    Transformer le workflow créatif des marques en combinant l'intelligence artificielle, la visualisation 3D et la réalité augmentée. Nous permettons à chaque entrepreneur de créer des expériences produits dignes des plus grandes marques.
+                  </p>
+                </Card>
+            </ScrollReveal>
 
-            <Card className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200" data-animate="fade-left">
-              <Eye className="w-16 h-16 mb-6 text-purple-600" />
-              <h2 className="text-3xl font-bold mb-4">Notre Vision</h2>
-              <p className="text-gray-700 leading-relaxed">
-                  Un monde où chaque produit peut être personnalisé instantanément, visualisé en 3D photoréaliste, essayé en réalité augmentée, et commandé avec des fichiers print-ready automatiques. Zero friction. 100% automation.
-                </p>
-              </Card>
+            <ScrollReveal>
+              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]" data-animate="fade-left">
+                <Eye className="w-16 h-16 mb-6 text-purple-400" />
+                <h2 className="text-3xl font-bold mb-4 text-white">Notre Vision</h2>
+                <p className="text-slate-300 leading-relaxed">
+                    Un monde où chaque produit peut être personnalisé instantanément, visualisé en 3D photoréaliste, essayé en réalité augmentée, et commandé avec des fichiers print-ready automatiques. Zero friction. 100% automation.
+                  </p>
+                </Card>
+            </ScrollReveal>
           </div>
         </div>
       </section>
 
       {/* Values */}
-      <section className="py-24 sm:py-32 bg-gray-50 relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="dark-section relative noise-overlay py-24 sm:py-32">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title="Nos Valeurs"
             description="Ce qui guide notre travail au quotidien"
@@ -114,8 +121,9 @@ function AboutPageContent() {
       </section>
 
       {/* Timeline */}
-      <section className="py-24 sm:py-32 bg-white relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="dark-section relative noise-overlay py-24 sm:py-32">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title="Notre Histoire"
             description="De l'idée à 10 000+ utilisateurs"
@@ -124,17 +132,19 @@ function AboutPageContent() {
           <div className="max-w-4xl mx-auto">
           <div className="space-y-8">
               {milestones.map((milestone, i) => (
-                <div key={i} className="flex gap-6" data-animate="fade-right" data-delay={i * 100}>
-                <div className="flex-shrink-0">
-                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {milestone.year}
+                <ScrollReveal key={i} delay={i * 100}>
+                  <div className="flex gap-6" data-animate="fade-right" data-delay={i * 100}>
+                  <div className="flex-shrink-0">
+                      <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold">
+                      {milestone.year}
+                      </div>
+                    </div>
+                    <div className="flex-1 pb-8 border-l-2 border-white/[0.04] pl-6">
+                      <h3 className="text-2xl font-bold mb-2 text-white">{milestone.title}</h3>
+                      <p className="text-slate-400">{milestone.description}</p>
                     </div>
                   </div>
-                  <div className="flex-1 pb-8 border-l-2 border-indigo-200 pl-6">
-                    <h3 className="text-2xl font-bold mb-2">{milestone.title}</h3>
-                    <p className="text-gray-600">{milestone.description}</p>
-                  </div>
-                </div>
+                </ScrollReveal>
               ))}
                 </div>
           </div>
@@ -142,8 +152,9 @@ function AboutPageContent() {
       </section>
 
       {/* Team */}
-      <section className="py-24 sm:py-32 bg-gray-50 relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="dark-section relative noise-overlay py-24 sm:py-32">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title="L'Équipe"
             description="Experts en IA, 3D et E-commerce"
@@ -151,17 +162,19 @@ function AboutPageContent() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {team.map((member, i) => (
-              <Card key={i} className="p-6 bg-white text-center hover:shadow-lg transition-all" data-animate="fade-up" data-delay={i * 100}>
-                <div className={`w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br ${
-                  member.color === 'blue' ? 'from-blue-500 to-cyan-500' :
-                  member.color === 'purple' ? 'from-purple-500 to-pink-500' :
-                  'from-green-500 to-emerald-500'
-                } flex items-center justify-center text-white font-bold text-2xl`}>
-                    {member.avatar}
-                  </div>
-                <h3 className="text-xl font-bold mb-2">{member.name}</h3>
-                <p className="text-gray-600">{member.role}</p>
-                </Card>
+              <ScrollReveal key={i} delay={i * 100}>
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center hover:-translate-y-1 transition-all" data-animate="fade-up" data-delay={i * 100}>
+                  <div className={`w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br ${
+                    member.color === 'blue' ? 'from-blue-500 to-cyan-500' :
+                    member.color === 'purple' ? 'from-purple-500 to-pink-500' :
+                    'from-green-500 to-emerald-500'
+                  } flex items-center justify-center text-white font-bold text-2xl`}>
+                      {member.avatar}
+                    </div>
+                  <h3 className="text-xl font-bold mb-2 text-white">{member.name}</h3>
+                  <p className="text-slate-400">{member.role}</p>
+                  </Card>
+              </ScrollReveal>
             ))}
           </div>
         </div>

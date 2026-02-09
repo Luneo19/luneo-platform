@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { Zap } from 'lucide-react';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 function SportsIndustryPageContent() {
   const solutions = [
@@ -22,22 +23,25 @@ function SportsIndustryPageContent() {
         gradient="from-green-600 via-emerald-600 to-teal-600"
       />
 
-      <div className="min-h-screen bg-white text-gray-900">
-        <section className="max-w-7xl mx-auto px-4 py-20 bg-gray-50">
-          <SectionHeader
-            title="Solutions Sports"
-            description="Tout ce dont vous avez besoin pour votre business sportif"
-          />
-          <div className="grid md:grid-cols-3 gap-8 mt-12">
-            {solutions.map((solution, i) => (
-              <FeatureCard
-                key={i}
-                title={solution.title}
-                description={solution.description}
-                icon={solution.icon}
-                color="green"
-              />
-            ))}
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <section className="dark-section relative noise-overlay max-w-7xl mx-auto px-4 py-20">
+          <div className="absolute inset-0 gradient-mesh-purple" />
+          <div className="relative z-10">
+            <SectionHeader
+              title="Solutions Sports"
+              description="Tout ce dont vous avez besoin pour votre business sportif"
+            />
+            <div className="grid md:grid-cols-3 gap-8 mt-12">
+              {solutions.map((solution, i) => (
+                <FeatureCard
+                  key={i}
+                  title={solution.title}
+                  description={solution.description}
+                  icon={solution.icon}
+                  color="green"
+                />
+              ))}
+            </div>
           </div>
         </section>
 

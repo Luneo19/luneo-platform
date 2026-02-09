@@ -50,20 +50,8 @@ export function getTRPCClient() {
         url: '/api/trpc',
         // Headers pour auth
         headers: async () => {
-          // Auth: use backend JWT from cookie (accessToken)
-          if (typeof window !== 'undefined') {
-            const token = document.cookie
-              .split('; ')
-              .find((row) => row.startsWith('accessToken='))
-              ?.split('=')[1];
-
-            if (token) {
-              return {
-                Authorization: `Bearer ${token}`,
-              };
-            }
-          }
-
+          // Auth: httpOnly cookies are sent automatically with same-origin requests
+          // No need to read document.cookie — httpOnly cookies are inaccessible to JS
           return {};
         },
       }),

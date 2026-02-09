@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Globe, Lock } from 'lucide-react';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorderCTA } from '@/components/ui/animated-border';
 
 export function CTASectionNew() {
   return (
@@ -33,13 +34,15 @@ export function CTASectionNew() {
           <ScrollReveal animation="fade-up" delay={200}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-10">
               <Link href="/register" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-10 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
-                >
-                  Essai gratuit 14 jours
-                  <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
-                </Button>
+                <AnimatedBorderCTA speed="normal">
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-10 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
+                  >
+                    Essai gratuit 14 jours
+                    <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
+                  </Button>
+                </AnimatedBorderCTA>
               </Link>
               <Link href="/contact" className="w-full sm:w-auto">
                 <Button

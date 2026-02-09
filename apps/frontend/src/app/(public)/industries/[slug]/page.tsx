@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 const industriesData: Record<string, any> = {
   'printing': {
@@ -227,10 +228,11 @@ function IndustryPageContent() {
         }}
       />
 
-      <div className="min-h-screen bg-white text-gray-900">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
           {/* Stats */}
-        <section className="py-16 sm:py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+        <section className="dark-section relative noise-overlay py-16 sm:py-20">
+          <div className="absolute inset-0 gradient-mesh-purple" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {industry.stats.map((stat: any, i: number) => (
               <motion
@@ -239,11 +241,11 @@ function IndustryPageContent() {
                 animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 + i * 0.1 }}
               >
-                  <Card className="p-6 bg-white border border-gray-200 text-center shadow-sm">
-                    <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                  <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center">
+                    <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                     {stat.value}
                   </div>
-                    <div className="text-sm text-gray-600">{stat.label}</div>
+                    <div className="text-sm text-slate-400">{stat.label}</div>
                 </Card>
               </motion>
             ))}
@@ -252,8 +254,9 @@ function IndustryPageContent() {
       </section>
 
       {/* Use Cases */}
-      <section className="py-16 sm:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+      <section className="dark-section relative noise-overlay py-16 sm:py-20">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 relative z-10">
           <SectionHeader
             title="Cas d'usage"
             description="Solutions adaptées à vos besoins"
@@ -268,10 +271,10 @@ function IndustryPageContent() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="p-6 bg-white border border-gray-200 hover:border-blue-300 transition-all shadow-sm">
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] hover:border-purple-500/50 transition-all hover:-translate-y-1">
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-sm sm:text-base text-gray-700">{useCase}</span>
+                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                    <span className="text-sm sm:text-base text-slate-300">{useCase}</span>
                   </div>
                 </Card>
               </motion>
@@ -281,33 +284,34 @@ function IndustryPageContent() {
       </section>
 
       {/* Testimonial */}
-      <section className="py-16 sm:py-20 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
+      <section className="dark-section relative noise-overlay py-16 sm:py-20">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 relative z-10">
           <motion
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Card className="p-6 sm:p-8 md:p-10 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+            <Card className="p-6 sm:p-8 md:p-10 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-lg">
                   {industry.testimonial.author.split(' ').map((n: string) => n[0]).join('')}
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                     {industry.testimonial.metric}
                   </div>
-                  <div className="text-sm text-gray-600">{industry.testimonial.company}</div>
+                  <div className="text-sm text-slate-400">{industry.testimonial.company}</div>
                 </div>
               </div>
 
-              <blockquote className="text-base sm:text-lg md:text-xl text-gray-700 mb-6 italic leading-relaxed">
+              <blockquote className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 italic leading-relaxed">
                 "{industry.testimonial.quote}"
               </blockquote>
 
               <div>
-                <div className="font-semibold text-gray-900">{industry.testimonial.author}</div>
-                <div className="text-sm text-gray-600">{industry.testimonial.role}</div>
+                <div className="font-semibold text-white">{industry.testimonial.author}</div>
+                <div className="text-sm text-slate-400">{industry.testimonial.role}</div>
               </div>
             </Card>
           </motion>

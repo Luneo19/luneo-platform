@@ -67,9 +67,9 @@ function PlaygroundPageContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-purple-900">
       {' '}
       {/* Hero */}{' '}
-      <section className="border-b border-gray-800 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16">
-        {' '}
-        <div className="mx-auto max-w-7xl px-4 text-center min-[480px]:px-4 sm:px-6 md:px-8 lg:px-4">
+      <section className="dark-section relative noise-overlay border-b border-white/[0.04] py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 text-center min-[480px]:px-4 sm:px-6 md:px-8 lg:px-4">
           {' '}
           <motion
             initial={{ opacity: 0, y: 20 }}
@@ -89,24 +89,26 @@ function PlaygroundPageContent() {
               <br />{' '}
               <span className="text-white">Exemples Interactifs</span>{' '}
             </h1>{' '}
-            <p className="mx-auto mb-8 max-w-3xl text-xl text-gray-300">
+              <p className="mx-auto mb-8 max-w-3xl text-xl text-slate-300">
               {' '}
               Copiez-collez et testez les{' '}
               <strong className="text-white">6000+ lignes de code</strong>{' '}
               développées{' '}
             </p>{' '}
           </motion>{' '}
-        </div>{' '}
+        </div>
       </section>{' '}
       {/* Playground */}{' '}
-      <section className="mx-auto max-w-7xl px-4 py-6 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 lg:px-4 lg:py-12">
+      <section className="dark-section relative noise-overlay py-6 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 lg:px-4 lg:py-12">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative z-10 mx-auto max-w-7xl px-4">
         {' '}
         <div className="grid gap-2 min-[480px]:grid-cols-2 min-[480px]:gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-3">
           {' '}
           {/* Sidebar - Sélection */}{' '}
           <div>
             {' '}
-            <Card className="border-gray-700 bg-gray-800/50 p-6">
+            <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-6">
               {' '}
               <h3 className="mb-4 font-semibold text-white">Exemples</h3>{' '}
               <div className="space-y-2">
@@ -130,7 +132,7 @@ function PlaygroundPageContent() {
                   <button
                     key={example.id}
                     onClick={() => setSelectedExample(example.id as keyof typeof CODE_EXAMPLES)}
-                    className={`w-full rounded-lg p-3 text-left transition-all ${selectedExample === example.id ? 'bg-purple-600 text-white' : 'bg-gray-900/50 text-gray-300 hover:bg-gray-900'}`}
+                    className={`w-full rounded-lg p-3 text-left transition-all ${selectedExample === example.id ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-dark-card/60 text-slate-300 hover:bg-dark-card/80'}`}
                   >
                     {' '}
                     <div className="font-medium">{example.label}</div>{' '}
@@ -182,7 +184,7 @@ function PlaygroundPageContent() {
           {/* Main - Code */}{' '}
           <div className="lg:col-span-2">
             {' '}
-            <Card className="border-gray-700 bg-gray-800/50 p-6">
+            <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-6">
               {' '}
               <div className="mb-4 flex flex-col items-center justify-start gap-3 sm:flex-row sm:justify-between sm:gap-0">
                 {' '}
@@ -207,16 +209,16 @@ function PlaygroundPageContent() {
                   </Button>{' '}
                   <Button
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
                   >
                     {' '}
                     <Play className="mr-2 h-4 w-4" /> Tester{' '}
                   </Button>{' '}
                 </div>{' '}
               </div>{' '}
-              <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-900 p-6">
+              <div className="overflow-x-auto rounded-lg border border-white/[0.04] bg-dark-card/60 p-6">
                 {' '}
-                <pre className="overflow-x-auto text-sm text-gray-300">
+                <pre className="overflow-x-auto text-sm text-slate-300">
                   {' '}
                   <code>{CODE_EXAMPLES[selectedExample]}</code>{' '}
                 </pre>{' '}
@@ -246,7 +248,7 @@ function PlaygroundPageContent() {
               <h3 className="mb-4 text-xl font-bold text-white">
                 Installation
               </h3>{' '}
-              <div className="rounded-lg border border-gray-700 bg-gray-900 p-4">
+              <div className="rounded-lg border border-white/[0.04] bg-dark-card/60 p-4">
                 {' '}
                 <pre className="overflow-x-auto text-sm text-green-400">
                   {' '}
@@ -257,19 +259,20 @@ function PlaygroundPageContent() {
 npm install @luneo/bulk-generator`}</code>{' '}
                 </pre>{' '}
               </div>{' '}
-              <p className="mt-4 text-sm text-gray-400">
+              <p className="mt-4 text-sm text-slate-400">
                 {' '}
                 Packages disponibles dans le monorepo{' '}
                 <code className="text-purple-400">packages/*</code>{' '}
               </p>{' '}
             </Card>{' '}
           </div>{' '}
-        </div>{' '}
+        </div>
+        </div>
       </section>{' '}
       {/* CTA */}{' '}
-      <section className="bg-gradient-to-r from-purple-900 to-pink-900 py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16">
-        {' '}
-        <div className="mx-auto max-w-4xl px-4 text-center">
+      <section className="dark-section relative noise-overlay py-8 min-[480px]:px-4 min-[480px]:py-6 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
           {' '}
           <h2 className="mb-6 text-2xl font-bold text-white min-[480px]:text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-xl">
             {' '}
@@ -285,7 +288,7 @@ npm install @luneo/bulk-generator`}</code>{' '}
               {' '}
               <Button
                 size="lg"
-                className="bg-white font-bold text-purple-900 hover:bg-gray-100"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25 font-bold"
               >
                 {' '}
                 Créer un compte <ArrowRight className="ml-2 h-5 w-5" />{' '}
@@ -295,7 +298,7 @@ npm install @luneo/bulk-generator`}</code>{' '}
               {' '}
               <Button
                 size="lg"
-                className="border-2 border-white/30 bg-white/10 font-semibold text-white hover:bg-white/20"
+                className="border-2 border-white/[0.04] bg-dark-card/60 backdrop-blur-sm font-semibold text-white hover:bg-dark-card/80"
               >
                 {' '}
                 <Code className="mr-2 h-5 w-5" /> Documentation{' '}

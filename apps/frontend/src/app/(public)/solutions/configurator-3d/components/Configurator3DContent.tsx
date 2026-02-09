@@ -51,7 +51,8 @@ export function Configurator3DContent() {
         gradient="from-blue-600 via-purple-600 to-pink-600"
         cta={{ label: 'Tester la démo', href: '#demo-3d' }}
       />
-      <div className="min-h-screen bg-white text-gray-900">
+      <div className="min-h-screen dark-section relative noise-overlay">
+        <div className="absolute inset-0 gradient-mesh-purple" />
         <DemoSection />
         <FeaturesSection />
         <UseCasesSection />

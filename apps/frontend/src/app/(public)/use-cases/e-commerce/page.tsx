@@ -6,6 +6,7 @@ import { ShoppingCart, Check } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 function EcommerceUseCasePageContent() {
   const features = useMemo(() => [
@@ -31,19 +32,24 @@ function EcommerceUseCasePageContent() {
         }}
       />
 
-      <div className="min-h-screen bg-white text-gray-900">
-        <section className="max-w-7xl mx-auto px-4 py-20 bg-gray-50">
-          <SectionHeader
-            title="Fonctionnalités E-commerce"
-            description="Tout ce dont vous avez besoin pour transformer votre boutique"
-          />
-          <div className="grid md:grid-cols-2 gap-8 mt-12">
-            {features.map((feature) => (
-              <div key={feature} className="flex items-start gap-3 bg-white p-4 rounded-lg border border-gray-200">
-                <Check className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-gray-700">{feature}</span>
-              </div>
-            ))}
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <section className="dark-section relative noise-overlay max-w-7xl mx-auto px-4 py-20">
+          <div className="absolute inset-0 gradient-mesh-purple" />
+          <div className="relative z-10">
+            <SectionHeader
+              title="Fonctionnalités E-commerce"
+              description="Tout ce dont vous avez besoin pour transformer votre boutique"
+            />
+            <div className="grid md:grid-cols-2 gap-8 mt-12">
+              {features.map((feature) => (
+                <ScrollReveal key={feature}>
+                  <div className="flex items-start gap-3 bg-dark-card/60 backdrop-blur-sm p-4 rounded-lg border border-white/[0.04]">
+                    <Check className="w-6 h-6 text-green-400 flex-shrink-0" />
+                    <span className="text-slate-300">{feature}</span>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
           </div>
         </section>
 

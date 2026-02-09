@@ -25,6 +25,8 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 const initialPalette = [
   { name: 'Primaire', hex: '#4C52FF' },
@@ -220,17 +222,20 @@ export default function BrandingPage() {
         }}
       />
 
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen dark-section relative noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple" />
 
       <section
         id="brand-kit-designer"
-        className="py-20 px-4 bg-gray-950 border-y border-indigo-900/30 relative overflow-hidden"
+        className="dark-section relative noise-overlay py-20 px-4"
       >
-        <div className="absolute inset-0 opacity-20 blur-3xl bg-gradient-to-r from-indigo-900/40 via-purple-900/20 to-transparent" />
-        <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="p-8 bg-gray-900/80 border-indigo-500/30 shadow-2xl shadow-indigo-900/20">
-            <h2 className="text-2xl font-bold text-white mb-2">Brand Kit Builder</h2>
-            <p className="text-gray-400 mb-6">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 z-10">
+          <ScrollReveal animation="fade-up">
+            <AnimatedBorder hoverOnly speed="slow">
+              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] shadow-2xl shadow-purple-500/10">
+                <h2 className="text-2xl font-display font-bold text-white mb-2">Brand Kit Builder</h2>
+                <p className="text-slate-400 mb-6">
               Renseignez votre scope, vos valeurs et vos mots-clés. L’IA propose un brand kit complet
               (palette, tagline, guidelines).
             </p>
@@ -240,7 +245,7 @@ export default function BrandingPage() {
                 <select
                   value={scope}
                   onChange={(event) => setScope(event.target.value as BrandScope)}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-dark-card/60 border border-white/[0.04] rounded-lg px-3 py-2 text-white"
                 >
                   <option>D2C</option>
                   <option>B2B SaaS</option>
@@ -272,42 +277,46 @@ export default function BrandingPage() {
               <Textarea rows={3} value={keywords} onChange={(event) => setKeywords(event.target.value)} />
             </div>
             <div className="mt-6 flex flex-col md:flex-row gap-3">
-              <Button
-                onClick={handleGenerateKit}
-                disabled={isGenerating}
-                className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-              >
-                {isGenerating ? 'Génération...' : 'Générer le brand kit'}
-              </Button>
-              <Button
-                onClick={handleSaveKit}
-                variant="outline"
-                disabled={kitStatus === 'saving'}
-                className="flex-1 border-indigo-400 text-white"
-              >
-                {kitStatus === 'saving' ? 'Sauvegarde...' : kitStatus === 'saved' ? 'Sauvegardé ✅' : 'Sauver dans Luneo'}
-              </Button>
-            </div>
-            {kitError && (
-              <p className="text-sm text-red-400 mt-3 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
-                {kitError}
-              </p>
-            )}
-            <p className="text-xs text-gray-400 mt-4">
-              ⚡️ Export direct vers Figma + générateur de brand book PDF (bientôt).
-            </p>
-          </Card>
-          <div className="space-y-6">
-            <Card className="p-6 bg-gray-900/90 border border-white/5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm text-gray-400">Palette</p>
-                  <h3 className="text-lg font-semibold text-white">{logoName}</h3>
-                </div>
-                <div className="text-xs px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-200 border border-indigo-500/20">
-                  {scope}
-                </div>
+                <Button
+                  onClick={handleGenerateKit}
+                  disabled={isGenerating}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
+                >
+                  {isGenerating ? 'Génération...' : 'Générer le brand kit'}
+                </Button>
+                <Button
+                  onClick={handleSaveKit}
+                  variant="outline"
+                  disabled={kitStatus === 'saving'}
+                  className="flex-1 border-white/[0.04] text-white hover:bg-white/10"
+                >
+                  {kitStatus === 'saving' ? 'Sauvegarde...' : kitStatus === 'saved' ? 'Sauvegardé ✅' : 'Sauver dans Luneo'}
+                </Button>
               </div>
+              {kitError && (
+                <p className="text-sm text-red-400 mt-3 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                  {kitError}
+                </p>
+              )}
+              <p className="text-xs text-slate-400 mt-4">
+                ⚡️ Export direct vers Figma + générateur de brand book PDF (bientôt).
+              </p>
+            </Card>
+          </AnimatedBorder>
+          </ScrollReveal>
+          <div className="space-y-6">
+            <ScrollReveal animation="fade-up" delay={100}>
+              <AnimatedBorder hoverOnly speed="slow">
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-sm text-slate-400">Palette</p>
+                      <h3 className="text-lg font-semibold text-white">{logoName}</h3>
+                    </div>
+                    <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                      {scope}
+                    </div>
+                  </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {palette.map((color) => (
                   <div
@@ -322,163 +331,190 @@ export default function BrandingPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-6">
-                <p className="text-sm text-gray-400 mb-2">Guidelines auto-générées</p>
-                <ul className="space-y-2">
-                  {guidelines.map((guideline) => (
-                    <li
-                      key={guideline}
-                      className="text-sm text-gray-200 border border-gray-800 rounded-lg px-3 py-2 bg-black/30"
-                    >
-                      {guideline}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Card>
-            <Card className="p-6 bg-gray-900/80 border border-white/5">
-              <h3 className="text-white font-semibold mb-4">Font pairings & assets</h3>
-              <ul className="space-y-3">
-                {fontPairs.map((pair) => (
-                  <li
-                    key={pair.title}
-                    className="flex items-center justify-between text-sm text-gray-200 border border-gray-800 rounded-lg px-3 py-2 bg-black/30"
-                  >
-                    <div>
-                      <p>{pair.title}</p>
-                      <p className="text-xs uppercase tracking-wide text-gray-400">{pair.tags}</p>
-                    </div>
-                    <Button size="sm" variant="outline" className="text-xs h-8 border-gray-700 text-white">
-                      Prévisualiser
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-              <p className="text-xs text-gray-400 mt-4">
-                Automatisation : export templates socials + cartes de visite en 1 clic (format Figma/Canva).
-              </p>
-            </Card>
+                  <div className="mt-6">
+                    <p className="text-sm text-slate-400 mb-2">Guidelines auto-générées</p>
+                    <ul className="space-y-2">
+                      {guidelines.map((guideline) => (
+                        <li
+                          key={guideline}
+                          className="text-sm text-slate-200 border border-white/[0.04] rounded-lg px-3 py-2 bg-dark-card/40"
+                        >
+                          {guideline}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Card>
+              </AnimatedBorder>
+            </ScrollReveal>
+            <ScrollReveal animation="fade-up" delay={200}>
+              <AnimatedBorder hoverOnly speed="slow">
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                  <h3 className="text-white font-semibold mb-4">Font pairings & assets</h3>
+                  <ul className="space-y-3">
+                    {fontPairs.map((pair) => (
+                      <li
+                        key={pair.title}
+                        className="flex items-center justify-between text-sm text-slate-200 border border-white/[0.04] rounded-lg px-3 py-2 bg-dark-card/40"
+                      >
+                        <div>
+                          <p>{pair.title}</p>
+                          <p className="text-xs uppercase tracking-wide text-slate-400">{pair.tags}</p>
+                        </div>
+                        <Button size="sm" variant="outline" className="text-xs h-8 border-white/[0.04] text-white hover:bg-white/10">
+                          Prévisualiser
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-slate-400 mt-4">
+                    Automatisation : export templates socials + cartes de visite en 1 clic (format Figma/Canva).
+                  </p>
+                </Card>
+              </AnimatedBorder>
+            </ScrollReveal>
           </div>
         </div>
       </section>
 
+      <div className="glow-separator" />
+
       {/* Features */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Tout pour Votre Marque
-            </h2>
-            <p className="text-xl text-gray-400">Brand kit professionnel clé en main</p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
+                Tout pour Votre Marque
+              </h2>
+              <p className="text-xl text-slate-400">Brand kit professionnel clé en main</p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, i) => (
-              <motion
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="p-6 bg-gray-800/50 border-gray-700 hover:border-indigo-500/50 transition-all h-full">
-                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white mb-4">
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                  <p className="text-gray-400">{feature.description}</p>
-                </Card>
-              </motion>
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <AnimatedBorder hoverOnly speed="slow">
+                  <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] hover:border-purple-500/50 transition-all h-full">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white/70 mb-4" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(236,72,153,0.1))' }}>
+                      {feature.icon}
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+                    <p className="text-slate-400">{feature.description}</p>
+                  </Card>
+                </AnimatedBorder>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
+
+      <div className="glow-separator" />
 
       {/* Benefits */}
-      <section className="py-20 px-4 bg-gray-800/50">
-        <div className="max-w-7xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Résultats</h2>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <motion
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="text-center"
-              >
-                <div
-                  className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}
-                >
-                  <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <div className="text-center">
+                  <div
+                    className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}
+                  >
+                    <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
+                  <p className="text-slate-400">{benefit.description}</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
-                <p className="text-gray-400">{benefit.description}</p>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
+      <div className="glow-separator" />
+
       {/* Use Cases */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Cas d'Usage</h2>
-            <p className="text-xl text-gray-400">Pour tous types d'entreprises</p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Cas d'Usage</h2>
+              <p className="text-xl text-slate-400">Pour tous types d'entreprises</p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {useCases.map((useCase, i) => (
-              <Card
-                key={i}
-                className="p-6 bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-all text-center"
-              >
-                <div className="text-6xl mb-4">{useCase.icon}</div>
-                <h3 className="text-lg font-bold text-white mb-2">{useCase.title}</h3>
-                <p className="text-sm text-gray-400">{useCase.description}</p>
-              </Card>
+              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
+                <AnimatedBorder hoverOnly speed="slow">
+                  <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] hover:border-purple-500/50 transition-all text-center">
+                    <div className="text-6xl mb-4">{useCase.icon}</div>
+                    <h3 className="text-lg font-bold text-white mb-2">{useCase.title}</h3>
+                    <p className="text-sm text-slate-400">{useCase.description}</p>
+                  </Card>
+                </AnimatedBorder>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
+      <div className="glow-separator" />
+
       {/* What's Included */}
-      <section className="py-20 px-4 bg-gray-800/30">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Inclus dans Votre Brand Kit</h2>
-            <p className="text-xl text-gray-400">Tout ce dont vous avez besoin</p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="max-w-4xl mx-auto relative z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">Inclus dans Votre Brand Kit</h2>
+              <p className="text-xl text-slate-400">Tout ce dont vous avez besoin</p>
+            </div>
+          </ScrollReveal>
 
-          <Card className="p-8 bg-gray-800/50 border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {includes.map((item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="text-indigo-400">{item.icon}</div>
-                  <span className="text-white">{item.item}</span>
+          <ScrollReveal animation="fade-up" delay={100}>
+            <AnimatedBorder hoverOnly speed="slow">
+              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {includes.map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="text-purple-400">{item.icon}</div>
+                      <span className="text-white">{item.item}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/pricing">
-                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 h-12">
-                  Voir les tarifs
-                </Button>
-              </Link>
-              <Link href="/help/documentation">
-                <Button
-                  variant="outline"
-                  className="border-gray-600 text-white hover:bg-gray-700 h-12 px-8"
-                >
-                  Documentation
-                </Button>
-              </Link>
-            </div>
-          </Card>
+                <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link href="/pricing">
+                    <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25 px-8 h-12">
+                      Voir les tarifs
+                    </Button>
+                  </Link>
+                  <Link href="/help/documentation">
+                    <Button
+                      variant="outline"
+                      className="border-white/[0.04] text-white hover:bg-white/10 h-12 px-8"
+                    >
+                      Documentation
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            </AnimatedBorder>
+          </ScrollReveal>
         </div>
       </section>
+
+      <div className="glow-separator" />
 
       <CTASectionNew />
     </div>

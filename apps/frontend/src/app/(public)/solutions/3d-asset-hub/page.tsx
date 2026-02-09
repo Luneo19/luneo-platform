@@ -49,7 +49,8 @@ export default function AssetHubPage() {
           }}
         />
         <AssetHubHero />
-        <div className="min-h-screen bg-white text-gray-900">
+        <div className="min-h-screen dark-section relative noise-overlay">
+          <div className="absolute inset-0 gradient-mesh-purple" />
           <AssetHubStats />
           <AssetHubHowItWorks />
           <AssetHubFeatures />

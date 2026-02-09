@@ -9,6 +9,7 @@ import {
   CTASectionNew,
   FooterNew,
   CursorGlow,
+  LogoWatermarkSection,
 } from '@/components/marketing/home';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { generateMetadata as generateSEOMetadata, getOrganizationSchema, getWebsiteSchema } from '@/lib/seo/metadata';
@@ -76,6 +77,7 @@ export default function HomePage() {
         <HowItWorksNew />
         <TestimonialsNew />
         <PricingSectionNew />
+        <LogoWatermarkSection />
         <CTASectionNew />
       </main>
     </>

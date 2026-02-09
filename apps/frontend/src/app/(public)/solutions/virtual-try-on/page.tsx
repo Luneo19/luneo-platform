@@ -36,6 +36,8 @@ import { useSolutionData } from '@/lib/hooks/useSolutionData';
 import { FAQStructuredData, ProductStructuredData } from '@/components/seo/StructuredData';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 // Types
 interface Product {
@@ -401,44 +403,50 @@ function VirtualTryOnPageContent() {
         }}
       />
 
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen dark-section relative noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple" />
       {/* Demo Section */}
-      <section id="demo" className="relative py-20 md:py-32 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
+      <section id="demo" className="dark-section relative noise-overlay py-20 md:py-32 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left: Text Content */}
-            <div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 leading-tight">
-                Essayez en direct
-              </h2>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+            <ScrollReveal animation="fade-up">
+              <div>
+                <h2 className="text-4xl md:text-5xl font-display font-bold mb-6 text-white leading-tight italic">
+                  <span className="text-gradient-purple">Essayez en direct</span>
+                </h2>
+                <p className="text-lg text-slate-300 mb-8 leading-relaxed">
                 Activez votre caméra pour tester le Virtual Try-On en temps réel
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  onClick={handleStartCamera}
-                  disabled={cameraActive}
-                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-8 py-6 text-lg"
-                >
-                  {cameraActive ? 'Caméra Active' : 'Essayer Maintenant'}
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                <Link href="/register">
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="border-gray-300 hover:bg-gray-50 px-8 py-6 text-lg"
+                    onClick={handleStartCamera}
+                    disabled={cameraActive}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25 px-8 py-6 text-lg"
                   >
-                    Essai Gratuit 14 Jours
+                    {cameraActive ? 'Caméra Active' : 'Essayer Maintenant'}
+                    <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
-                </Link>
+                  <Link href="/register">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-white/[0.04] hover:bg-white/5 px-8 py-6 text-lg"
+                    >
+                      Essai Gratuit 14 Jours
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </div>
+            </ScrollReveal>
 
             {/* Right: Demo Preview */}
-            <div className="relative">
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-2 border-gray-200 bg-white shadow-xl">
+            <ScrollReveal animation="fade-up" staggerIndex={1} staggerDelay={80}>
+              <div className="relative">
+                <AnimatedBorder hoverOnly speed="slow">
+                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-2 border-white/[0.04] bg-dark-card/60 backdrop-blur-sm shadow-glow-sm">
                 {cameraActive ? (
                   <>
                     <video
@@ -454,17 +462,17 @@ function VirtualTryOnPageContent() {
                     
                     <div className="absolute top-4 left-4 flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${trackingActive ? 'bg-green-500' : faceDetected ? 'bg-yellow-500' : 'bg-blue-500'}`} />
-                      <span className="text-sm font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-gray-900">
-                        {trackingActive ? 'Tracking actif' : faceDetected ? 'Visage détecté' : 'Recherche...'}
-                      </span>
-                    </div>
-
-                    {selectedProduct && (
-                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg flex items-center gap-2">
-                        <Glasses className="w-4 h-4 text-gray-700" />
-                        <span className="text-sm text-gray-900">{selectedProduct.name}</span>
+                        <span className="text-sm font-medium bg-dark-card/80 backdrop-blur-sm px-3 py-1 rounded-full text-white">
+                          {trackingActive ? 'Tracking actif' : faceDetected ? 'Visage détecté' : 'Recherche...'}
+                        </span>
                       </div>
-                    )}
+
+                      {selectedProduct && (
+                        <div className="absolute top-4 right-4 bg-dark-card/80 backdrop-blur-sm px-3 py-2 rounded-lg flex items-center gap-2">
+                          <Glasses className="w-4 h-4 text-slate-300" />
+                          <span className="text-sm text-white">{selectedProduct.name}</span>
+                        </div>
+                      )}
 
                     <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
                       <div className="flex gap-2">
@@ -497,52 +505,57 @@ function VirtualTryOnPageContent() {
                       </Button>
                     </div>
                   </>
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-gray-100">
-                    <Camera className="w-16 h-16 text-gray-400 mb-4" />
-                    <h3 className="text-xl font-semibold mb-2 text-gray-900">Démo Interactive</h3>
-                    <p className="text-gray-600 text-center mb-6 text-sm">
-                      Cliquez sur &quot;Essayer Maintenant&quot; pour activer votre caméra
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Shield className="w-4 h-4" />
-                      <span>Aucune donnée stockée • Traitement local</span>
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-dark-card/40">
+                      <Camera className="w-16 h-16 text-slate-400 mb-4" />
+                      <h3 className="text-xl font-semibold mb-2 text-white">Démo Interactive</h3>
+                      <p className="text-slate-300 text-center mb-6 text-sm">
+                        Cliquez sur &quot;Essayer Maintenant&quot; pour activer votre caméra
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Shield className="w-4 h-4" />
+                        <span>Aucune donnée stockée • Traitement local</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {streamError && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-red-50 backdrop-blur-sm">
-                    <div className="text-center p-6">
-                      <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                      <p className="text-red-700">{streamError}</p>
-                      <Button
-                        className="mt-4"
-                        variant="outline"
-                        onClick={() => setStreamError(null)}
-                      >
-                        Réessayer
-                      </Button>
+                  {streamError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-red-500/10 backdrop-blur-sm">
+                      <div className="text-center p-6">
+                        <X className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                        <p className="text-red-300">{streamError}</p>
+                        <Button
+                          className="mt-4"
+                          variant="outline"
+                          onClick={() => setStreamError(null)}
+                        >
+                          Réessayer
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </AnimatedBorder>
             </div>
+          </ScrollReveal>
           </div>
         </div>
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Pourquoi Choisir Luneo Virtual Try-On ?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Des résultats mesurables qui transforment votre e-commerce
-            </p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white italic">
+                <span className="text-gradient-purple">Pourquoi Choisir Luneo Virtual Try-On ?</span>
+              </h2>
+              <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                Des résultats mesurables qui transforment votre e-commerce
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
@@ -571,38 +584,35 @@ function VirtualTryOnPageContent() {
                 icon: <CheckCircle className="w-8 h-8" />,
               },
             ].map((benefit, index) => (
-              <motion
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card className="bg-white border border-gray-200 p-6 h-full hover:shadow-lg transition-shadow">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 text-purple-600">
+              <ScrollReveal key={index} animation="fade-up" staggerIndex={index} staggerDelay={80}>
+                <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-6 h-full hover:-translate-y-1">
+                  <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center mb-4 text-purple-400">
                     {benefit.icon}
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-gray-900">{benefit.title}</h3>
-                  <p className="text-gray-600 text-sm mb-4">{benefit.description}</p>
-                  <div className="text-3xl font-bold text-purple-600">{benefit.stat}</div>
+                  <h3 className="text-xl font-bold mb-2 text-white">{benefit.title}</h3>
+                  <p className="text-slate-300 text-sm mb-4">{benefit.description}</p>
+                  <div className="text-3xl font-bold text-gradient-purple">{benefit.stat}</div>
                 </Card>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Fonctionnalités
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Une technologie de pointe pour une expérience utilisateur exceptionnelle
-            </p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white italic">
+                <span className="text-gradient-purple">Fonctionnalités</span>
+              </h2>
+              <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                Une technologie de pointe pour une expérience utilisateur exceptionnelle
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
@@ -647,37 +657,34 @@ function VirtualTryOnPageContent() {
                 icon: <Share2 className="w-6 h-6" />,
               },
             ].map((feature, index) => (
-              <motion
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.05 }}
-              >
-                <Card className="bg-white border border-gray-200 p-6 h-full hover:border-purple-300 transition-colors">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 text-purple-600">
+              <ScrollReveal key={index} animation="fade-up" staggerIndex={index} staggerDelay={80}>
+                <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-6 h-full hover:-translate-y-1">
+                  <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center mb-4 text-purple-400">
                     {feature.icon}
                   </div>
-                  <h3 className="text-lg font-semibold mb-2 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600 text-sm">{feature.description}</p>
+                  <h3 className="text-lg font-semibold mb-2 text-white">{feature.title}</h3>
+                  <p className="text-slate-300 text-sm">{feature.description}</p>
                 </Card>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Comment Ça Fonctionne ?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Une intégration simple en 3 étapes
-            </p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white italic">
+                <span className="text-gradient-purple">Comment Ça Fonctionne ?</span>
+              </h2>
+              <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                Une intégration simple en 3 étapes
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -697,174 +704,172 @@ function VirtualTryOnPageContent() {
                 description: 'Vos clients peuvent maintenant essayer vos produits en temps réel directement depuis leur navigateur.',
               },
             ].map((step, index) => (
-              <motion
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.2 }}
-              >
-                <Card className="bg-white border border-gray-200 p-8 h-full">
-                  <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl mb-6">
+              <ScrollReveal key={index} animation="fade-up" staggerIndex={index} staggerDelay={80}>
+                <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-8 h-full hover:-translate-y-1">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-2xl mb-6">
                     {step.step}
                   </div>
-                  <h3 className="text-2xl font-bold mb-3 text-gray-900">{step.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{step.description}</p>
+                  <h3 className="text-2xl font-bold mb-3 text-white">{step.title}</h3>
+                  <p className="text-slate-300 leading-relaxed">{step.description}</p>
                 </Card>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* ROI Calculator Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Calculez Votre Retour sur Investissement
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Estimez les économies et revenus supplémentaires
-            </p>
-          </div>
-
-          <Card className="bg-white border border-gray-200 p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              <div className="space-y-8">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-purple-600" />
-                  Vos Métriques Actuelles
-                </h3>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Commandes mensuelles : <span className="font-bold">{monthlyOrders.toLocaleString()}</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="100"
-                    max="10000"
-                    step="100"
-                    value={monthlyOrders}
-                    onChange={(e) => setMonthlyOrders(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>100</span>
-                    <span>10,000</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Panier moyen : <span className="font-bold">{averageOrderValue}€</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="20"
-                    max="500"
-                    step="10"
-                    value={averageOrderValue}
-                    onChange={(e) => setAverageOrderValue(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>20€</span>
-                    <span>500€</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Taux de retour actuel : <span className="font-bold">{currentReturnRate}%</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="5"
-                    max="50"
-                    step="1"
-                    value={currentReturnRate}
-                    onChange={(e) => setCurrentReturnRate(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>5%</span>
-                    <span>50%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-green-600" />
-                  Impact Estimé
-                </h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Retours évités/mois</p>
-                    <p className="text-2xl font-bold text-green-600">{roiCalculations.savedReturns}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Économie retours/mois</p>
-                    <p className="text-2xl font-bold text-green-600">{roiCalculations.returnCostSaved.toLocaleString()}€</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Conversions supplémentaires</p>
-                    <p className="text-2xl font-bold text-purple-600">+{roiCalculations.conversionIncrease}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Revenu additionnel/mois</p>
-                    <p className="text-2xl font-bold text-purple-600">{roiCalculations.additionalRevenue.toLocaleString()}€</p>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-50 to-purple-50 rounded-xl p-6 border border-green-200">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Bénéfice annuel estimé</p>
-                      <p className="text-3xl font-bold text-gray-900">{roiCalculations.annualBenefit.toLocaleString()}€</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">ROI annuel</p>
-                      <p className="text-3xl font-bold text-green-600">{roiCalculations.roi.toLocaleString()}%</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-4 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    Basé sur -60% retours et +40% conversions
-                  </p>
-                </div>
-              </div>
+      <section className="dark-section relative noise-overlay py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-5xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white italic">
+                <span className="text-gradient-purple">Calculez Votre Retour sur Investissement</span>
+              </h2>
+              <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+                Estimez les économies et revenus supplémentaires
+              </p>
             </div>
-          </Card>
+          </ScrollReveal>
+
+          <ScrollReveal animation="fade-up" staggerIndex={0} staggerDelay={80}>
+            <AnimatedBorder hoverOnly speed="slow">
+              <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                  <div className="space-y-8">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-purple-400" />
+                      Vos Métriques Actuelles
+                    </h3>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Commandes mensuelles : <span className="font-bold">{monthlyOrders.toLocaleString()}</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="100"
+                        max="10000"
+                        step="100"
+                        value={monthlyOrders}
+                        onChange={(e) => setMonthlyOrders(Number(e.target.value))}
+                        className="w-full h-2 bg-dark-card/40 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                      />
+                      <div className="flex justify-between text-xs text-slate-500 mt-1">
+                        <span>100</span>
+                        <span>10,000</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Panier moyen : <span className="font-bold">{averageOrderValue}€</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="20"
+                        max="500"
+                        step="10"
+                        value={averageOrderValue}
+                        onChange={(e) => setAverageOrderValue(Number(e.target.value))}
+                        className="w-full h-2 bg-dark-card/40 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                      />
+                      <div className="flex justify-between text-xs text-slate-500 mt-1">
+                        <span>20€</span>
+                        <span>500€</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Taux de retour actuel : <span className="font-bold">{currentReturnRate}%</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="5"
+                        max="50"
+                        step="1"
+                        value={currentReturnRate}
+                        onChange={(e) => setCurrentReturnRate(Number(e.target.value))}
+                        className="w-full h-2 bg-dark-card/40 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                      />
+                      <div className="flex justify-between text-xs text-slate-500 mt-1">
+                        <span>5%</span>
+                        <span>50%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-green-400" />
+                      Impact Estimé
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-dark-card/40 rounded-xl p-4 border border-white/[0.04]">
+                        <p className="text-sm text-slate-300 mb-1">Retours évités/mois</p>
+                        <p className="text-2xl font-bold text-green-400">{roiCalculations.savedReturns}</p>
+                      </div>
+                      <div className="bg-dark-card/40 rounded-xl p-4 border border-white/[0.04]">
+                        <p className="text-sm text-slate-300 mb-1">Économie retours/mois</p>
+                        <p className="text-2xl font-bold text-green-400">{roiCalculations.returnCostSaved.toLocaleString()}€</p>
+                      </div>
+                      <div className="bg-dark-card/40 rounded-xl p-4 border border-white/[0.04]">
+                        <p className="text-sm text-slate-300 mb-1">Conversions supplémentaires</p>
+                        <p className="text-2xl font-bold text-purple-400">+{roiCalculations.conversionIncrease}</p>
+                      </div>
+                      <div className="bg-dark-card/40 rounded-xl p-4 border border-white/[0.04]">
+                        <p className="text-sm text-slate-300 mb-1">Revenu additionnel/mois</p>
+                        <p className="text-2xl font-bold text-purple-400">{roiCalculations.additionalRevenue.toLocaleString()}€</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-green-500/10 to-purple-500/10 rounded-xl p-6 border border-green-500/20">
+                      <div className="grid grid-cols-2 gap-6">
+                        <div>
+                          <p className="text-sm text-slate-300 mb-1">Bénéfice annuel estimé</p>
+                          <p className="text-3xl font-bold text-white">{roiCalculations.annualBenefit.toLocaleString()}€</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-300 mb-1">ROI annuel</p>
+                          <p className="text-3xl font-bold text-green-400">{roiCalculations.roi.toLocaleString()}%</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-4 flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        Basé sur -60% retours et +40% conversions
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </AnimatedBorder>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Ce Que Disent Nos Clients
-            </h2>
-            <p className="text-xl text-gray-600">
-              Retours d&apos;expérience de leaders de l&apos;e-commerce
-            </p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white italic">
+                <span className="text-gradient-purple">Ce Que Disent Nos Clients</span>
+              </h2>
+              <p className="text-xl text-slate-300">
+                Retours d&apos;expérience de leaders de l&apos;e-commerce
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {dynamicTestimonials.map((testimonial, index) => (
-              <motion
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card className="bg-white border border-gray-200 p-6 h-full">
-                  <Quote className="w-8 h-8 text-purple-200 mb-4" />
+              <ScrollReveal key={index} animation="fade-up" staggerIndex={index} staggerDelay={80}>
+                <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-6 h-full hover:-translate-y-1">
+                  <Quote className="w-8 h-8 text-purple-400/50 mb-4" />
                   
                   <div className="flex items-center gap-1 mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
@@ -872,41 +877,44 @@ function VirtualTryOnPageContent() {
                     ))}
                   </div>
 
-                  <p className="text-gray-700 mb-6 leading-relaxed">&quot;{testimonial.content}&quot;</p>
+                  <p className="text-slate-300 mb-6 leading-relaxed">&quot;{testimonial.content}&quot;</p>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between pt-4 border-t border-white/[0.04]">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                      <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold">
                         {testimonial.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{testimonial.name}</p>
-                        <p className="text-xs text-gray-500">{testimonial.role}, {testimonial.company}</p>
+                        <p className="font-medium text-white">{testimonial.name}</p>
+                        <p className="text-xs text-slate-500">{testimonial.role}, {testimonial.company}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full">{testimonial.category}</span>
-                      <p className="text-sm font-bold text-green-600 mt-1">{testimonial.metric}</p>
+                      <span className="text-xs px-2 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-full">{testimonial.category}</span>
+                      <p className="text-sm font-bold text-green-400 mt-1">{testimonial.metric}</p>
                     </div>
                   </div>
                 </Card>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Security Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Sécurité & Conformité
-            </h2>
-            <p className="text-xl text-gray-600">
-              Protection des données et respect de la vie privée
-            </p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white italic">
+                <span className="text-gradient-purple">Sécurité & Conformité</span>
+              </h2>
+              <p className="text-xl text-slate-300">
+                Protection des données et respect de la vie privée
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
@@ -915,65 +923,56 @@ function VirtualTryOnPageContent() {
               { icon: <CheckCircle className="w-6 h-6" />, title: 'CDN Européen', desc: 'Hébergement et données en Europe' },
               { icon: <Lock className="w-6 h-6" />, title: 'SOC 2 Type II', desc: 'Audit de sécurité indépendant' },
             ].map((item, i) => (
-              <motion
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-              >
-                <Card className="bg-white border border-gray-200 p-6 text-center h-full">
-                  <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4 text-purple-600">
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-6 text-center h-full hover:-translate-y-1">
+                  <div className="w-14 h-14 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-purple-400">
                     {item.icon}
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
+                  <h3 className="font-semibold text-white mb-2">{item.title}</h3>
+                  <p className="text-sm text-slate-300">{item.desc}</p>
                 </Card>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-              Questions Fréquentes
-            </h2>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-4xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white italic">
+                <span className="text-gradient-purple">Questions Fréquentes</span>
+              </h2>
+            </div>
+          </ScrollReveal>
 
           <div className="space-y-4">
             {faqItems.map((item, index) => (
-              <motion
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-              >
+              <ScrollReveal key={index} animation="fade-up" staggerIndex={index} staggerDelay={80}>
                 <Card
-                  className={`bg-white border border-gray-200 overflow-hidden transition-colors cursor-pointer ${
-                    openFaqIndex === index ? 'border-purple-300' : 'hover:border-gray-300'
+                  className={`bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] overflow-hidden transition-colors cursor-pointer hover:-translate-y-1 ${
+                    openFaqIndex === index ? 'border-purple-400' : ''
                   }`}
                   onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
                 >
                   <div className="p-6">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900 pr-8">{item.question}</h3>
+                      <h3 className="text-lg font-semibold text-white pr-8">{item.question}</h3>
                       <ChevronDown
-                        className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${
+                        className={`w-5 h-5 text-purple-400 transition-transform flex-shrink-0 ${
                           openFaqIndex === index ? 'rotate-180' : ''
                         }`}
                       />
                     </div>
                     {openFaqIndex === index && (
-                      <p className="text-gray-600 mt-4 leading-relaxed">{item.answer}</p>
+                      <p className="text-slate-300 mt-4 leading-relaxed">{item.answer}</p>
                     )}
                   </div>
                 </Card>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>

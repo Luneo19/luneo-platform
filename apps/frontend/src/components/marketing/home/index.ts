@@ -25,3 +25,4 @@ export { CTASectionNew } from './cta-section-new';
 export { DemoModulesSection } from './demo-modules-section';
 export { FooterNew } from './footer-new';
 export { CursorGlow } from './cursor-glow';
+export { LogoWatermarkSection } from './logo-watermark-section';

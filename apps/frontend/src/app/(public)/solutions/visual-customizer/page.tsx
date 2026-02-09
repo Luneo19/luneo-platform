@@ -28,6 +28,8 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorder } from '@/components/ui/animated-border';
 
 // Dynamic import du customizer (lourd)
 const DemoCustomizer = dynamic(
@@ -181,77 +183,91 @@ export default function VisualCustomizerPage() {
         }}
       />
 
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen dark-section relative noise-overlay">
+      <div className="absolute inset-0 gradient-mesh-purple" />
 
       {/* Interactive Demo Section */}
       <section
         id="visual-editor-demo"
-        className="py-20 px-4 bg-gray-50 border-y border-orange-200 relative overflow-hidden"
+        className="dark-section relative noise-overlay py-20 px-4"
       >
-        <div className="absolute inset-0 opacity-30 blur-3xl bg-gradient-to-r from-orange-900/40 via-red-900/20 to-transparent" />
-        <div className="relative max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Éditeur Interactif</h2>
-            <p className="text-xl text-gray-400">Créez votre design en temps réel</p>
-          </div>
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4 italic">
+                <span className="text-gradient-purple">Éditeur Interactif</span>
+              </h2>
+              <p className="text-xl text-slate-400">Créez votre design en temps réel</p>
+            </div>
+          </ScrollReveal>
 
           {showDemo ? (
-            <Card className="p-8 bg-gray-900/80 border-orange-500/30 shadow-2xl shadow-orange-900/20">
-              <DemoCustomizer
-                productId="demo-visual"
-                productImage="/api/placeholder/800/600"
-                productName="Design Demo"
-                width={800}
-                height={600}
-                mode="demo"
-                onSave={(data) => logger.info('Design saved from demo', { hasData: !!data })}
-                onClose={() => setShowDemo(false)}
-              />
-            </Card>
+            <ScrollReveal animation="fade-up" staggerIndex={0} staggerDelay={80}>
+              <AnimatedBorder hoverOnly speed="slow">
+                <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] shadow-glow-sm">
+                  <DemoCustomizer
+                    productId="demo-visual"
+                    productImage="/api/placeholder/800/600"
+                    productName="Design Demo"
+                    width={800}
+                    height={600}
+                    mode="demo"
+                    onSave={(data) => logger.info('Design saved from demo', { hasData: !!data })}
+                    onClose={() => setShowDemo(false)}
+                  />
+                </Card>
+              </AnimatedBorder>
+            </ScrollReveal>
           ) : (
-            <Card className="p-12 bg-gray-900/80 border-orange-500/30 text-center">
-              <Layers className="w-16 h-16 text-orange-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-4">Prêt à créer ?</h3>
-              <p className="text-gray-400 mb-6">Cliquez sur "Ouvrir l'éditeur" pour commencer</p>
-              <Button
-                onClick={() => setShowDemo(true)}
-                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Lancer l'éditeur
-              </Button>
-            </Card>
+            <ScrollReveal animation="fade-up" staggerIndex={0} staggerDelay={80}>
+              <AnimatedBorder hoverOnly speed="slow">
+                <Card className="p-12 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center">
+                  <Layers className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-white mb-4">Prêt à créer ?</h3>
+                  <p className="text-slate-400 mb-6">Cliquez sur "Ouvrir l'éditeur" pour commencer</p>
+                  <Button
+                    onClick={() => setShowDemo(true)}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
+                  >
+                    <Eye className="w-5 h-5 mr-2" />
+                    Lancer l'éditeur
+                  </Button>
+                </Card>
+              </AnimatedBorder>
+            </ScrollReveal>
           )}
 
           {/* Save Design Form */}
           {showDemo && (
-            <Card className="mt-8 p-8 bg-gray-900/80 border-orange-500/30">
-              <h3 className="text-xl font-bold text-white mb-4">Sauvegarder le design</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">Nom du design</label>
-                  <Input
-                    value={designName}
-                    onChange={(e) => setDesignName(e.target.value)}
-                    placeholder="Mon design personnalisé"
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300 mb-1 block">Notes (optionnel)</label>
-                  <Textarea
-                    value={designNotes}
-                    onChange={(e) => setDesignNotes(e.target.value)}
-                    rows={3}
-                    placeholder="Notes sur ce design..."
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-                <Button
-                  onClick={handleSaveDesign}
-                  disabled={isSaving || !designName.trim()}
-                  className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
-                >
+            <ScrollReveal animation="fade-up" staggerIndex={1} staggerDelay={80}>
+              <Card className="mt-8 p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
+                <h3 className="text-xl font-bold text-white mb-4">Sauvegarder le design</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-slate-300 mb-1 block">Nom du design</label>
+                    <Input
+                      value={designName}
+                      onChange={(e) => setDesignName(e.target.value)}
+                      placeholder="Mon design personnalisé"
+                      className="bg-dark-card/40 border-white/[0.04] text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-300 mb-1 block">Notes (optionnel)</label>
+                    <Textarea
+                      value={designNotes}
+                      onChange={(e) => setDesignNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Notes sur ce design..."
+                      className="bg-dark-card/40 border-white/[0.04] text-white"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSaveDesign}
+                    disabled={isSaving || !designName.trim()}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
+                  >
                   {isSaving ? (
                     <>
                       <Zap className="w-5 h-5 mr-2 animate-spin" />
@@ -275,65 +291,83 @@ export default function VisualCustomizerPage() {
                     Erreur lors de la sauvegarde. Vérifiez le nom du design.
                   </div>
                 )}
-              </div>
-            </Card>
+                </div>
+              </Card>
+            </ScrollReveal>
           )}
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Fonctionnalités Complètes</h2>
-            <p className="text-xl text-gray-400">Tout ce dont vous avez besoin pour créer</p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4 italic">
+                <span className="text-gradient-purple">Fonctionnalités Complètes</span>
+              </h2>
+              <p className="text-xl text-slate-400">Tout ce dont vous avez besoin pour créer</p>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, i) => (
-              <Card key={i} className="p-6 bg-gray-800/50 border-gray-700">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.description}</p>
-              </Card>
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] hover:-translate-y-1">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center text-white mb-4">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+                  <p className="text-slate-400">{feature.description}</p>
+                </Card>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Benefits */}
-      <section className="py-20 px-4 bg-gray-800/50">
-        <div className="max-w-7xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <div key={i} className="text-center">
-                <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}>
-                  <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <div className="text-center">
+                  <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}>
+                    <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
+                  <p className="text-slate-400">{benefit.description}</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
-                <p className="text-gray-400">{benefit.description}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Use Cases */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Cas d'Usage</h2>
-            <p className="text-xl text-gray-400">Pour tous types de produits personnalisables</p>
-          </div>
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4 italic">
+                <span className="text-gradient-purple">Cas d'Usage</span>
+              </h2>
+              <p className="text-xl text-slate-400">Pour tous types de produits personnalisables</p>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {useCases.map((useCase, i) => (
-              <Card key={i} className="p-6 bg-gray-800/50 border-gray-700 text-center">
-                <div className="text-6xl mb-4">{useCase.icon}</div>
-                <h3 className="text-lg font-bold text-white mb-2">{useCase.title}</h3>
-                <p className="text-sm text-gray-400 mb-2">{useCase.description}</p>
-                <p className="text-xs text-orange-400">{useCase.examples}</p>
-              </Card>
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center hover:-translate-y-1">
+                  <div className="text-6xl mb-4">{useCase.icon}</div>
+                  <h3 className="text-lg font-bold text-white mb-2">{useCase.title}</h3>
+                  <p className="text-sm text-slate-400 mb-2">{useCase.description}</p>
+                  <p className="text-xs text-purple-400">{useCase.examples}</p>
+                </Card>
+              </ScrollReveal>
             ))}
           </div>
         </div>

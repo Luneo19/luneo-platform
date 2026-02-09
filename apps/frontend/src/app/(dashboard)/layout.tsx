@@ -20,25 +20,12 @@ export default function DashboardLayoutGroup({
   useEffect(() => {
     /**
      * Auth check via NestJS backend (JWT httpOnly cookies).
-     * The middleware handles server-side redirect for missing cookies.
-     * This client-side check validates the session is still active.
+     * httpOnly cookies cannot be read by JavaScript — we validate by calling /auth/me.
+     * Cookies are sent automatically via withCredentials: true on the API client.
      */
     const checkAuth = async () => {
       try {
-        // Check for auth cookie presence (httpOnly cookies set by backend)
-        const hasToken = typeof window !== 'undefined' && (
-          document.cookie.includes('accessToken') ||
-          document.cookie.includes('refreshToken')
-        );
-
-        if (!hasToken) {
-          setIsAuthenticated(false);
-          const currentPath = window.location.pathname;
-          router.push('/login?redirect=' + encodeURIComponent(currentPath));
-          return;
-        }
-
-        // Validate the session with the backend (cookies sent via withCredentials)
+        // Validate the session with the backend (httpOnly cookies sent automatically)
         await endpoints.auth.me();
         setIsAuthenticated(true);
       } catch (error) {

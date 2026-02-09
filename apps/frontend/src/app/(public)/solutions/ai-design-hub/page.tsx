@@ -24,6 +24,7 @@ import Image from 'next/image';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
+import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 // Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
 const APP_URL = 'https://luneo.app';
@@ -237,13 +238,15 @@ function AIDesignHubPageContent() {
         }}
       />
 
-      <div className="min-h-screen bg-white text-gray-900">
+      <div className="min-h-screen dark-section relative noise-overlay">
+        <div className="absolute inset-0 gradient-mesh-purple" />
         {/* Demo interactive */}
-        <section id="demo" className="py-20 px-4 bg-gray-900/90 border-y border-pink-500/10">
-        <div className="max-w-6xl mx-auto grid gap-8 lg:grid-cols-2">
-          <Card className="bg-gray-900 border-pink-500/30 p-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Générateur IA (démo live)</h2>
-            <p className="text-gray-400 mb-6">
+        <section id="demo" className="dark-section relative noise-overlay py-20 px-4">
+          <div className="absolute inset-0 gradient-mesh-purple" />
+          <div className="relative max-w-6xl mx-auto grid gap-8 lg:grid-cols-2 z-10">
+            <Card className="bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] p-8">
+              <h2 className="text-2xl font-bold text-white mb-4">Générateur IA (démo live)</h2>
+              <p className="text-slate-400 mb-6">
               Saisissez un prompt, choisissez un style et générez jusqu'à 8 variations.
               Les images sont générées via l'API DALL-E de Luneo Lab (latence ~5s en moyenne).
             </p>
@@ -338,108 +341,108 @@ function AIDesignHubPageContent() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Intelligence Artificielle de Pointe
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4 italic">
+              <span className="text-gradient-purple">Intelligence Artificielle de Pointe</span>
             </h2>
-            <p className="text-xl text-gray-400">DALL-E 3 + optimisations Luneo</p>
+            <p className="text-xl text-slate-400">DALL-E 3 + optimisations Luneo</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, i) => (
-              <motion
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="p-6 bg-gray-800/50 border-gray-700 hover:border-pink-500/50 transition-all h-full">
-                  <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white mb-4">
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] hover:-translate-y-1 h-full">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center text-white mb-4">
                     {feature.icon}
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                  <p className="text-gray-400">{feature.description}</p>
+                  <p className="text-slate-400">{feature.description}</p>
                 </Card>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Benefits Stats */}
-      <section className="py-20 px-4 bg-gray-800/50">
-        <div className="max-w-7xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <motion
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="text-center"
-              >
-                <div
-                  className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}
-                >
-                  <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <div className="text-center">
+                  <div
+                    className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${benefit.color} rounded-full mb-4`}
+                  >
+                    <span className="text-3xl font-bold text-white">{benefit.stat}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
+                  <p className="text-slate-400">{benefit.description}</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
-                <p className="text-gray-400">{benefit.description}</p>
-              </motion>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Workflow */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-5xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-5xl mx-auto z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Comment ça marche</h2>
-            <p className="text-xl text-gray-400">4 étapes simples vers l'infini</p>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4 italic">
+              <span className="text-gradient-purple">Comment ça marche</span>
+            </h2>
+            <p className="text-xl text-slate-400">4 étapes simples vers l'infini</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {workflow.map((item, i) => (
-              <div key={i} className="relative">
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full mb-4 text-white text-2xl font-bold">
-                    {item.step}
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <div className="relative">
+                  <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full mb-4 text-white text-2xl font-bold">
+                      {item.step}
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
+                    <p className="text-sm text-slate-400">{item.description}</p>
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-400">{item.description}</p>
+                  {i < workflow.length - 1 && (
+                    <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-purple-500 to-pink-600" />
+                  )}
                 </div>
-                {i < workflow.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-pink-500 to-purple-600" />
-                )}
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* Use Cases */}
-      <section className="py-20 px-4 bg-gray-800/30">
-        <div className="max-w-7xl mx-auto">
+      <section className="dark-section relative noise-overlay py-20 px-4">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="relative max-w-7xl mx-auto z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Cas d'Usage</h2>
-            <p className="text-xl text-gray-400">Boostez votre créativité</p>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4 italic">
+              <span className="text-gradient-purple">Cas d'Usage</span>
+            </h2>
+            <p className="text-xl text-slate-400">Boostez votre créativité</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {useCases.map((useCase, i) => (
-              <Card
-                key={i}
-                className="p-6 bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-all text-center"
-              >
-                <div className="text-6xl mb-4">{useCase.icon}</div>
-                <h3 className="text-lg font-bold text-white mb-2">{useCase.title}</h3>
-                <p className="text-sm text-gray-400">{useCase.description}</p>
-              </Card>
+              <ScrollReveal key={i} animation="fade-up" staggerIndex={i} staggerDelay={80}>
+                <Card
+                  className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] hover:-translate-y-1 text-center"
+                >
+                  <div className="text-6xl mb-4">{useCase.icon}</div>
+                  <h3 className="text-lg font-bold text-white mb-2">{useCase.title}</h3>
+                  <p className="text-sm text-slate-400">{useCase.description}</p>
+                </Card>
+              </ScrollReveal>
             ))}
           </div>
         </div>

@@ -129,20 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadUser = async () => {
       setIsLoading(true);
       try {
-        // Check for auth cookie presence before calling /auth/me
-        // Avoids unnecessary 401 requests when no one is logged in
-        const hasToken = typeof window !== 'undefined' && (
-          document.cookie.includes('accessToken') ||
-          document.cookie.includes('refreshToken')
-        );
-        
-        if (!hasToken) {
-          // Pas de token = pas connecté, pas besoin d'appeler le backend
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-
+        // httpOnly cookies cannot be read via document.cookie
+        // Call /auth/me directly — cookies are sent automatically via credentials: 'include'
         const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
           method: 'GET',
           credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
@@ -181,16 +169,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     loadUser();
 
-    // Poll for user changes every 5 minutes ONLY if user is logged in
+    // Poll for user changes every 5 minutes ONLY if user was loaded
     const intervalId = setInterval(() => {
       if (!isMounted) return;
-      const hasToken = typeof window !== 'undefined' && (
-        document.cookie.includes('accessToken') ||
-        document.cookie.includes('refreshToken')
-      );
-      if (hasToken) {
-        loadUser();
-      }
+      // Only refresh if we have a user (i.e., they were previously authenticated)
+      loadUser();
     }, 5 * 60 * 1000); // 5 minutes
 
     return () => {
