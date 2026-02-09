@@ -53,10 +53,11 @@ export class RecordWebVitalDto {
   @IsString()
   url?: string;
 
-  @ApiProperty({
-    description: 'Timestamp in milliseconds',
+  @ApiPropertyOptional({
+    description: 'Timestamp in milliseconds (optional, server uses current time if omitted)',
     example: 1704892800000,
   })
+  @IsOptional()
   @IsNumber()
-  timestamp: number;
+  timestamp?: number;
 }
