@@ -1,7 +1,7 @@
 {
-  "name": "@luneo/backend-vercel",
+  "name": "@luneo/backend",
   "version": "1.0.0",
-  "description": "Luneo Backend API - Vercel Optimized",
+  "description": "Luneo Backend API",
   "author": "Emmanuel Abougadous",
   "private": true,
   "license": "UNLICENSED",

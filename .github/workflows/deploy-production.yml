@@ -188,7 +188,7 @@ jobs:
       
       - name: Test authentication
         run: |
-          response=$(curl -s -w "%{http_code}" -o /dev/null https://api.luneo.app/auth/login \
+          response=$(curl -s -w "%{http_code}" -o /dev/null https://api.luneo.app/api/v1/auth/login \
             -H "Content-Type: application/json" \
             -d '{"email":"test@example.com","password":"wrong"}')
           if [ "$response" -eq 401 ]; then

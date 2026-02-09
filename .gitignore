@@ -84,8 +84,12 @@ dist
 
 # Gatsby files
 .cache/
+# Ignore generic public build output (Gatsby, etc.)
+# but allow Next.js frontend public assets directory
 public
-# But not api/public routes
+!apps/frontend/public/
+!apps/frontend/public/**
+# Keep api/public routes
 !apps/frontend/src/app/api/public/
 
 # Storybook build outputs
@@ -152,3 +156,6 @@ output/
 !*.tfvars.example
 .turbo/
 *-vars.txt
+
+# Local development scripts
+scripts/

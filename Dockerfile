@@ -69,9 +69,8 @@ RUN echo "Checking for Prisma Client..." && \
     fi
 
 # Build the application using tsconfig.docker.json (relaxed strict checks, rootDir: ".")
-# tsc emits JS even with type errors (noEmitOnError: false), so || true is safe
 WORKDIR /app/apps/backend
-RUN nest build --tsc -p tsconfig.docker.json || true
+RUN nest build --tsc -p tsconfig.docker.json
 # Verify build output exists
 RUN test -f dist/src/main.js || (echo "ERROR: dist/src/main.js not found after build" && ls -R dist/ 2>/dev/null && exit 1)
 

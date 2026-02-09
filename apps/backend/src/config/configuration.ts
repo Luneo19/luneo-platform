@@ -76,6 +76,25 @@ const baseEnvSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   REPLICATE_API_TOKEN: z.string().optional(),
   
+  // AI Agents Module (reactivated) - Optionnel
+  ANTHROPIC_API_KEY: z.string().optional(),
+  MISTRAL_API_KEY: z.string().optional(),
+  
+  // AI Monitoring & Alerts - Optionnel
+  AI_ALERTS_ENABLED: z.string().transform(val => val === 'true').optional(),
+  AI_ALERTS_EMAIL: z.string().email().optional().or(z.literal('')),
+  AI_ALERTS_SLACK_WEBHOOK: z.string().url().optional().or(z.literal('')),
+  AI_LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional(),
+  USE_VECTOR_STORE: z.string().transform(val => val === 'true').optional(),
+  
+  // Observability Module - Optionnel
+  PROMETHEUS_ENABLED: z.string().transform(val => val === 'true').optional(),
+  METRICS_PORT: z.string().transform(Number).optional(),
+  METRICS_PATH: z.string().optional(),
+  
+  // Slack Notifications - Optionnel
+  SLACK_WEBHOOK_URL: z.string().url().optional().or(z.literal('')),
+  
   // Email - Optionnel (alertes désactivées si absent)
   SENDGRID_API_KEY: z.string().optional(),
   MAILGUN_API_KEY: z.string().optional(),
@@ -351,6 +370,10 @@ function logFeatureStatus(): void {
     { name: 'OAuth GitHub', enabled: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) },
     { name: 'Cloudinary (images)', enabled: !!process.env.CLOUDINARY_API_KEY },
     { name: 'OpenAI', enabled: !!process.env.OPENAI_API_KEY },
+    { name: 'Anthropic (Agents)', enabled: !!process.env.ANTHROPIC_API_KEY },
+    { name: 'Mistral (Agents)', enabled: !!process.env.MISTRAL_API_KEY },
+    { name: 'Prometheus (Observability)', enabled: process.env.PROMETHEUS_ENABLED === 'true' },
+    { name: 'AI Alerts', enabled: process.env.AI_ALERTS_ENABLED === 'true' },
     { name: 'Emails (SendGrid)', enabled: !!process.env.SENDGRID_API_KEY },
     { name: 'Monitoring Sentry', enabled: !!process.env.SENTRY_DSN },
   ];

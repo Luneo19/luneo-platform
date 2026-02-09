@@ -39,7 +39,7 @@ export default function Error({
               />
             </svg>
           </div>
-          <h1 className="mb-2 text-lg sm:text-xl md:text-2xl lg:text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground">
+          <h1 className="mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground">
             Oups ! Une erreur est survenue
           </h1>
           <p className="text-muted-foreground">

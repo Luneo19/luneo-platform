@@ -1,8 +1,0 @@
-name = "luneo-frontend"
-pages_build_output_dir = "out"
-
-[env.production]
-name = "luneo-frontend"
-
-
-
