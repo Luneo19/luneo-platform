@@ -42,6 +42,7 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { EnterpriseModule } from './modules/enterprise/enterprise.module'; // ✅ PHASE 8
 import { ObservabilityModule } from './modules/observability/observability.module';
+import { OrionModule } from './modules/orion/orion.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { PricingModule } from './modules/pricing/pricing.module';
@@ -292,6 +293,7 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     ArStudioModule,
     MarketplaceModule,
     ObservabilityModule,
+    OrionModule,
     TrustSafetyModule,
     CreditsModule,
     MonitoringModule,

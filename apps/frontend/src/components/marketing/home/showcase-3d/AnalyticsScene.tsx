@@ -110,7 +110,6 @@ function StatsOverlay() {
           color="#10b981"
           anchorX="center"
           anchorY="middle"
-          font="/fonts/inter-bold.woff"
         >
           +45.2%
         </Text>

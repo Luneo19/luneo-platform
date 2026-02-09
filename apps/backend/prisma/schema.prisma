@@ -392,6 +392,9 @@ model User {
   // Super Admin - Customer relation
   customer Customer?
 
+  // ORION - Customer health (Super Admin)
+  healthScore CustomerHealthScore?
+
   // Discount & Referral
   discountUsages      DiscountUsage[]
   referralsAsReferrer Referral[]      @relation("Referrer")
@@ -5371,4 +5374,45 @@ model FeatureFlag {
   @@index([key])
   @@index([brandId])
   @@index([isEnabled])
+}
+
+// ============================================================================
+// ORION - Super Admin AI Command Center
+// ============================================================================
+
+model OrionAgent {
+  id          String   @id @default(uuid())
+  name        String   @unique // APOLLO, ATHENA, HERMES, ARTEMIS, HADES, ZEUS
+  displayName String
+  description String?
+  status      String   @default("PAUSED") // ACTIVE, PAUSED, MAINTENANCE
+  config      Json     @default("{}")
+  lastRunAt   DateTime?
+  tasksLast24h Int     @default(0)
+  successRate  Float   @default(0)
+  errorCount   Int     @default(0)
+  avgExecTime  Float   @default(0) // ms
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("orion_agents")
+}
+
+model CustomerHealthScore {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  healthScore      Int      @default(50) // 0-100
+  churnRisk        String   @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+  activationScore  Int      @default(0)
+  engagementScore  Int      @default(0)
+  adoptionScore    Int      @default(0)
+  growthPotential  String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  lastActivityAt   DateTime?
+  signals          Json     @default("[]")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_health_scores")
 }

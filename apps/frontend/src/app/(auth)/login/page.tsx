@@ -124,8 +124,11 @@ function LoginPageContent() {
         setSuccess('Connexion reussie ! Redirection...');
         
         // Use window.location.href for a full page reload so cookies are properly read
+        const params = new URLSearchParams(window.location.search);
+        const redirectTo = params.get('redirect');
+        const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
         setTimeout(() => {
-          window.location.href = getRoleBasedRedirect(response.user?.role);
+          window.location.href = safeRedirect || getRoleBasedRedirect(response.user?.role);
         }, 800);
       } else {
         setError('Réponse invalide du serveur');
@@ -231,8 +234,11 @@ function LoginPageContent() {
             setSuccess('Connexion réussie ! Redirection...');
             const userJson = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
             const user = userJson ? (JSON.parse(userJson) as { role?: string }) : undefined;
+            const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+            const redirectTo = params.get('redirect');
+            const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
             setTimeout(() => {
-              router.push(getRoleBasedRedirect(user?.role));
+              router.push(safeRedirect || getRoleBasedRedirect(user?.role));
               router.refresh();
             }, 500);
           }}

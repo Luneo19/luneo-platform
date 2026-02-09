@@ -545,6 +545,88 @@ export const endpoints = {
     },
   },
 
+  // ORION Super Admin - Retention (ARTEMIS) + Admin Tools
+  orion: {
+    auditLog: (params?: { page?: number; pageSize?: number; action?: string; userId?: string; dateFrom?: string; dateTo?: string }) =>
+      api.get<{ items: Array<{ id: string; adminId: string; action: string; resource: string; resourceId: string | null; changes: unknown; ipAddress: string | null; createdAt: string; user: { email: string; name: string } }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/orion/audit-log', { params }),
+    notifications: (params?: { page?: number; pageSize?: number; type?: string; read?: boolean }) =>
+      api.get<{ items: Array<{ id: string; type: string; title: string; message: string; read: boolean; readAt: string | null; createdAt: string }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/orion/notifications', { params }),
+    notificationCount: () => api.get<{ count: number }>('/api/v1/orion/notifications/count'),
+    markNotificationRead: (id: string) => api.put<{ id: string; read: boolean }>(`/api/v1/orion/notifications/${id}/read`),
+    markAllNotificationsRead: () => api.put<{ success: boolean }>('/api/v1/orion/notifications/read-all'),
+    export: (type: string, params?: { format?: 'csv' | 'json'; dateFrom?: string; dateTo?: string; limit?: number }) =>
+      api.get<string | { data: unknown[] }>(`/api/v1/orion/export/${type}`, { params }),
+    retention: {
+      dashboard: () => api.get<{
+        totalUsers: number;
+        avgHealthScore: number;
+        atRiskCount: number;
+        atRiskPercent: number;
+        distribution: Array<{ level: string; count: number }>;
+        trend: Array<{ date: string; count: number; avgScore: number }>;
+      }>('/api/v1/orion/retention/dashboard'),
+      atRisk: (params?: { limit?: number }) =>
+        api.get<Array<{
+          id: string;
+          userId: string;
+          healthScore: number;
+          churnRisk: string;
+          lastActivityAt: string | null;
+          user: { id: string; email: string; firstName: string | null; lastName: string | null; lastLoginAt: string | null };
+        }>>('/api/v1/orion/retention/at-risk', { params }),
+      healthScore: (userId: string) =>
+        api.get<{
+          id: string;
+          userId: string;
+          healthScore: number;
+          churnRisk: string;
+          lastActivityAt: string | null;
+          user: { id: string; email: string; firstName: string | null; lastName: string | null; lastLoginAt: string | null };
+        }>(`/api/v1/orion/retention/health/${userId}`),
+      calculate: (userId: string) =>
+        api.post<{ id: string; healthScore: number; churnRisk: string }>(`/api/v1/orion/retention/calculate/${userId}`),
+      winBackCampaigns: () =>
+        api.get<Array<{
+          id: string;
+          name: string;
+          description: string | null;
+          trigger: string;
+          status: string;
+          stepsCount: number;
+          runsCount: number;
+        }>>('/api/v1/orion/retention/win-back'),
+      triggerWinBack: (userIds: string[]) =>
+        api.post<{ triggered: number; runIds?: string[]; message?: string }>('/api/v1/orion/retention/win-back/trigger', { userIds }),
+    },
+    quickWins: {
+      status: () =>
+        api.get<{
+          welcomeEmail: { configured: boolean; templateId: string | null; lastSentCount: number };
+          lowCreditsAlert: { usersAtRisk: number };
+          churnAlert: { inactiveUsers: number };
+          trialReminder: { trialEnding: number };
+        }>('/api/v1/orion/quick-wins/status'),
+      welcomeSetup: () =>
+        api.post<{ template: { id: string }; status: string }>('/api/v1/orion/quick-wins/welcome-setup'),
+      lowCredits: () =>
+        api.get<{ usersAtRisk: number; users: Array<{ id: string; email: string; firstName: string | null; aiCredits: number }> }>(
+          '/api/v1/orion/quick-wins/low-credits'
+        ),
+      inactive: (params?: { days?: number }) =>
+        api.get<{
+          inactiveUsers: number;
+          users: Array<{ id: string; email: string; firstName: string | null; lastLoginAt: string | null }>;
+          thresholdDays: number;
+        }>('/api/v1/orion/quick-wins/inactive', { params }),
+      trialEnding: () =>
+        api.get<{
+          trialEnding: number;
+          users: Array<{ id: string; email: string; firstName: string | null; trialEndsAt: Date | null; brandName: string }>;
+          brands: number;
+        }>('/api/v1/orion/quick-wins/trial-ending'),
+    },
+  },
+
   // Agents
   agents: {
     luna: {

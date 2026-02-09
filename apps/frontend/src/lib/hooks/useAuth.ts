@@ -49,8 +49,11 @@ export function useLogin() {
         queryClient.setQueryData(['auth', 'me'], data.user);
       }
 
-      // Redirect based on role (e.g. PLATFORM_ADMIN -> /admin)
-      router.push(getRoleBasedRedirect(data.user?.role));
+      // Redirect: prefer ?redirect query param (e.g. /admin/customers), else role-based
+      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+      const redirectTo = params.get('redirect');
+      const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
+      router.push(safeRedirect || getRoleBasedRedirect(data.user?.role));
     },
     onError: (error) => {
       logger.error('Login failed', {

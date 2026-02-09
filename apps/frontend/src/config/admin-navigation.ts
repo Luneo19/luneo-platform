@@ -20,6 +20,9 @@ import {
   Sparkles,
   Shield,
   Bell,
+  MessageSquare,
+  Beaker,
+  Download,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -36,6 +39,87 @@ export interface NavigationGroup {
 }
 
 export const adminNavigation: NavigationGroup[] = [
+  {
+    items: [
+      {
+        title: 'ORION Command Center',
+        href: '/admin/orion',
+        icon: Sparkles,
+        children: [
+          {
+            title: 'ATHENA - Segments',
+            href: '/admin/orion/segments',
+            icon: Target,
+          },
+          {
+            title: 'ATHENA - Onboarding',
+            href: '/admin/orion/agents/athena',
+            icon: Sparkles,
+          },
+          {
+            title: 'ZEUS - Analytics',
+            href: '/admin/orion/agents/zeus',
+            icon: BarChart3,
+          },
+          {
+            title: 'ARTEMIS - Retention',
+            href: '/admin/orion/agents/artemis',
+            icon: Shield,
+          },
+          {
+            title: 'Health Dashboard',
+            href: '/admin/orion/retention',
+            icon: Activity,
+          },
+          {
+            title: 'Communications (HERMES)',
+            href: '/admin/orion/communications',
+            icon: MessageSquare,
+          },
+          {
+            title: 'HADES - Revenue',
+            href: '/admin/orion/agents/hades',
+            icon: TrendingUp,
+          },
+          {
+            title: 'APOLLO - Acquisition',
+            href: '/admin/orion/agents/apollo',
+            icon: Zap,
+          },
+          {
+            title: 'Experiments',
+            href: '/admin/orion/experiments',
+            icon: Beaker,
+          },
+          {
+            title: 'Templates',
+            href: '/admin/orion/templates',
+            icon: FileText,
+          },
+          {
+            title: 'Quick Wins',
+            href: '/admin/orion/quick-wins',
+            icon: Zap,
+          },
+          {
+            title: 'Journal d\'Audit',
+            href: '/admin/orion/audit-log',
+            icon: FileText,
+          },
+          {
+            title: 'Notifications',
+            href: '/admin/orion/notifications',
+            icon: Bell,
+          },
+          {
+            title: 'Exports',
+            href: '/admin/orion/export',
+            icon: Download,
+          },
+        ],
+      },
+    ],
+  },
   {
     items: [
       {
