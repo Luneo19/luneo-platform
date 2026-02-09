@@ -32,6 +32,12 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
+    // Skip rate limit for CORS preflight (avoids Redis round-trip and timeouts)
+    if (request.method === 'OPTIONS') {
+      return true;
+    }
+
     // Check if rate limiting is skipped
     const skipRateLimit = this.reflector.getAllAndOverride<boolean>(
       RATE_LIMIT_SKIP_METADATA,
@@ -48,7 +54,6 @@ export class RateLimitGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     ) || this.defaultConfig;
 
-    const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
 
     // Generate identifier (IP, user ID, API key, etc.)

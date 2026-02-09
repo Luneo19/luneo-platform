@@ -91,7 +91,7 @@ function MarqueeRow({ partners, reverse = false }: { partners: typeof ROW_1; rev
   const logos = [...partners, ...partners, ...partners];
 
   return (
-    <div className="relative overflow-hidden py-3">
+    <div className="relative overflow-hidden py-3 w-full min-w-0">
       {/* Fade edges */}
       <div className="absolute left-0 top-0 bottom-0 w-20 sm:w-32 bg-gradient-to-r from-dark-bg to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-20 sm:w-32 bg-gradient-to-l from-dark-bg to-transparent z-10 pointer-events-none" />

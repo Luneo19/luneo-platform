@@ -70,7 +70,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
       />
-      <main className="min-h-screen">
+      <main className="min-h-screen w-full min-w-0">
         <HeroSectionNew />
         <FeaturesSectionNew />
         <DemoModulesSection />

@@ -20,6 +20,12 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
+    // Skip rate limit for CORS preflight (OPTIONS never reach Nest if CORS handles them, but safe to skip)
+    if (request.method === 'OPTIONS') {
+      return true;
+    }
+
     // Check if rate limiting is skipped
     const reflector = (this as unknown as { reflector: Reflector }).reflector;
     const skipRateLimit = reflector.getAllAndOverride<boolean>(
@@ -32,7 +38,6 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
     }
 
     // Also skip for login endpoint
-    const request = context.switchToHttp().getRequest<Request>();
     if (request.path.includes('/auth/login')) {
       return true;
     }

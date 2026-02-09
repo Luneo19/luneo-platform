@@ -234,6 +234,11 @@ async function bootstrap() {
       'https://api.luneo.app',
     ];
     
+    // Patterns wildcard (ex: https://frontend-*.vercel.app)
+    const originWildcardPatterns = [
+      /^https:\/\/frontend-[a-z0-9-]+\.vercel\.app$/,
+    ];
+    
     const developmentOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
@@ -254,22 +259,28 @@ async function bootstrap() {
       allowedOrigins = [...new Set([...allowedOrigins, ...envOrigins])];
     }
     
-    logger.log(`CORS: Environnement ${nodeEnv}, ${allowedOrigins.length} origines autorisées`);
+    const isOriginAllowed = (origin: string | undefined): boolean => {
+      if (!origin) return false;
+      if (allowedOrigins.includes(origin)) return true;
+      return originWildcardPatterns.some((pattern) => pattern.test(origin));
+    };
+    
+    logger.log(`CORS: Environnement ${nodeEnv}, ${allowedOrigins.length} origines autorisées (+ wildcards Vercel)`);
     logger.debug(`CORS Origins: ${allowedOrigins.join(', ')}`);
     
   // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
   server.use((req, res, next): void => {
-    const origin = req.headers.origin;
+    const origin = req.headers.origin as string | undefined;
     
-    // Vérifier si l'origine est autorisée
-    const isAllowed = origin && allowedOrigins.includes(origin);
+    // Vérifier si l'origine est autorisée (liste exacte + patterns wildcard)
+    const isAllowed = isOriginAllowed(origin);
     
     if (isAllowed) {
       res.removeHeader('Access-Control-Allow-Origin');
-      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Origin', origin!);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Request-Time, x-request-time, X-Request-Id');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key, X-Request-Time, x-request-time, X-Request-Id');
       res.setHeader('Access-Control-Max-Age', '86400');
     } else if (origin && nodeEnv === 'production') {
       // Logger les tentatives d'accès non autorisées en production
@@ -279,6 +290,9 @@ async function bootstrap() {
     // Gérer les requêtes OPTIONS (preflight) - répondre AVANT NestJS
     if (req.method === 'OPTIONS') {
       if (isAllowed) {
+        res.status(204).end();
+      } else if (!origin) {
+        // Pas d'Origin (proxy, outil) : répondre 204 pour ne pas bloquer à tort
         res.status(204).end();
       } else {
         res.status(403).json({ error: 'CORS origin not allowed' });
@@ -330,7 +344,8 @@ async function bootstrap() {
       standardHeaders: true,
       legacyHeaders: false,
       skip: (req) => {
-        // Skip rate limiting for health checks
+        // Skip rate limiting for health checks and CORS preflight
+        if (req.method === 'OPTIONS') return true;
         return req.path === '/health' || req.path === '/api/v1/health';
       },
     });
@@ -340,7 +355,8 @@ async function bootstrap() {
       delayAfter: 100, // Allow 100 requests per 15 minutes, then...
       delayMs: () => 500, // Begin adding 500ms of delay per request above 100
       skip: (req) => {
-        // Skip speed limiting for health checks
+        // Skip speed limiting for health checks and CORS preflight
+        if (req.method === 'OPTIONS') return true;
         return req.path === '/health' || req.path === '/api/v1/health';
       },
     });

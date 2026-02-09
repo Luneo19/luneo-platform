@@ -3,9 +3,12 @@
    ============================================ */
 
 /* 1. CORRECTION OVERFLOW HORIZONTAL */
+/* Use width: 100% (not 100vw) to avoid scrollbar-induced horizontal shift;
+   100vw includes scrollbar in some browsers, making content appear cut off on the right. */
 html, body {
   overflow-x: hidden !important;
-  max-width: 100vw !important;
+  width: 100%;
+  max-width: 100%;
 }
 
 * {
