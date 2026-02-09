@@ -92,13 +92,23 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
     // Handle 401 Unauthorized - Try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // IMPORTANT: Do NOT intercept auth endpoints — login/signup/refresh 401 means
+    // "wrong credentials" or "invalid token", NOT "expired session"
+    const requestUrl = originalRequest.url || '';
+    const isAuthEndpoint = requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/signup') ||
+      requestUrl.includes('/auth/refresh') ||
+      requestUrl.includes('/auth/forgot-password') ||
+      requestUrl.includes('/auth/reset-password') ||
+      requestUrl.includes('/auth/login/2fa');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
 
       try {
         // ✅ Refresh token is in httpOnly cookie (sent automatically with withCredentials: true)
         // Backend reads refreshToken from cookie OR body - we send empty body, cookie is sent automatically
-        const refreshResponse = await axios.post(
+        await axios.post(
           `${API_BASE_URL}/api/v1/auth/refresh`,
           {}, // Empty body - refreshToken is in httpOnly cookie
           { 
@@ -110,7 +120,6 @@ apiClient.interceptors.response.use(
         );
 
         // ✅ New tokens are in httpOnly cookies (set by backend automatically)
-        // No need to store in localStorage - cookies are automatically sent with next requests
         // Cookies are automatically sent with retry request via withCredentials: true
         
         // Cleanup any old localStorage tokens (migration from old system)
@@ -130,8 +139,10 @@ apiClient.interceptors.response.use(
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
           
-          // Redirect to login - backend will handle cookie cleanup
-          window.location.href = '/login?session=expired';
+          // Only redirect if not already on the login page
+          if (!window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login?session=expired';
+          }
         }
         return Promise.reject(refreshError);
       }

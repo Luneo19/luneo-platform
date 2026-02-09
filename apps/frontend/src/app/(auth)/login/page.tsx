@@ -71,6 +71,18 @@ function LoginPageContent() {
   });
   const router = useRouter();
 
+  // Handle session=expired and redirect query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('session') === 'expired') {
+      setError('Votre session a expiré. Veuillez vous reconnecter.');
+      // Clean up the URL without navigating
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('session');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, []);
+
   // Email validation
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -140,15 +152,28 @@ function LoginPageContent() {
         message: err instanceof Error ? err.message : 'Unknown error',
       });
       
-      // Handle specific error messages
-      if (err instanceof Error) {
-        if (err.message.includes('Invalid credentials') || err.message.includes('401')) {
-          setError('Email ou mot de passe incorrect');
-        } else if (err.message.includes('Email not confirmed')) {
-          setError("Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte de réception.");
-        } else {
-          setError(err.message);
-        }
+      // Extract the actual backend error message from AxiosError response
+      // AxiosError.message = "Request failed with status code 401"
+      // AxiosError.response.data.message = "Invalid credentials" (actual backend message)
+      const axiosData = (err as { response?: { data?: { message?: string }; status?: number } })?.response?.data;
+      const backendMessage = axiosData?.message || '';
+      const statusCode = (err as { response?: { status?: number } })?.response?.status;
+      const errorMessage = err instanceof Error ? err.message : '';
+      
+      // Handle specific error messages from backend
+      if (backendMessage.includes('Invalid credentials') || 
+          backendMessage.includes('401') ||
+          (statusCode === 401 && !backendMessage.includes('not verified') && !backendMessage.includes('locked'))) {
+        setError('Email ou mot de passe incorrect');
+      } else if (backendMessage.includes('not verified') || backendMessage.includes('Email not confirmed') || 
+                 errorMessage.includes('not verified')) {
+        setError("Veuillez vérifier votre email avant de vous connecter. Vérifiez votre boîte de réception.");
+      } else if (backendMessage.includes('locked') || backendMessage.includes('too many failed')) {
+        setError('Compte temporairement verrouillé suite à trop de tentatives échouées. Veuillez réessayer plus tard.');
+      } else if (backendMessage) {
+        setError(backendMessage);
+      } else if (errorMessage) {
+        setError(errorMessage);
       } else {
         setError('Une erreur est survenue. Veuillez réessayer.');
       }

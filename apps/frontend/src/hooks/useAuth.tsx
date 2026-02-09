@@ -240,7 +240,10 @@ export function useRequireAuth() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/login');
+      // Preserve current path as redirect target so user returns after login
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const redirectParam = currentPath && currentPath !== '/login' ? `?redirect=${encodeURIComponent(currentPath)}` : '';
+      router.push(`/login${redirectParam}`);
     }
   }, [user, isLoading, router]);
 
