@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { endpoints } from '@/lib/api/client';
+import { useToast } from '@/hooks/use-toast';
 
 const EXPORT_CARDS = [
   {
@@ -60,20 +61,21 @@ const EXPORT_CARDS = [
   },
 ];
 
-const MOCK_RECENT_EXPORTS = [
-  { id: 'e1', type: 'customers', format: 'CSV', date: '2025-02-09 10:30', rows: 2400 },
-  { id: 'e2', type: 'health-scores', format: 'JSON', date: '2025-02-08 16:00', rows: 1800 },
-  { id: 'e3', type: 'audit-logs', format: 'CSV', date: '2025-02-07 14:00', rows: 5200 },
-  { id: 'e4', type: 'segments', format: 'CSV', date: '2025-02-06 09:00', rows: 120 },
-  { id: 'e5', type: 'revenue', format: 'JSON', date: '2025-02-05 11:00', rows: 80 },
-];
+type RecentExport = {
+  id: string;
+  type: string;
+  format: string;
+  date: string;
+  rows: number;
+};
 
 export default function ExportPage() {
+  const { toast } = useToast();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [formatByCard, setFormatByCard] = useState<Record<string, 'csv' | 'json'>>({});
   const [loadingCard, setLoadingCard] = useState<string | null>(null);
-  const [recentExports, setRecentExports] = useState(MOCK_RECENT_EXPORTS);
+  const [recentExports, setRecentExports] = useState<RecentExport[]>([]);
 
   const getFormat = (id: string) => formatByCard[id] ?? 'csv';
   const setFormat = (id: string, format: 'csv' | 'json') => {
@@ -107,16 +109,17 @@ export default function ExportPage() {
         a.click();
         URL.revokeObjectURL(url);
       }
+      const rowCount = Array.isArray((data as { data?: unknown[] })?.data) ? (data as { data: unknown[] }).data.length : 0;
       setRecentExports((prev) => [
-        { id: `e-${Date.now()}`, type, format: format.toUpperCase(), date: new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }), rows: Array.isArray((data as { data?: unknown[] })?.data) ? (data as { data: unknown[] }).data.length : 0 },
+        { id: `e-${Date.now()}`, type, format: format.toUpperCase(), date: new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }), rows: rowCount },
         ...prev.slice(0, 4),
       ]);
     } catch {
-      // Fallback: mock download
-      setRecentExports((prev) => [
-        { id: `e-${Date.now()}`, type, format: format.toUpperCase(), date: new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }), rows: 0 },
-        ...prev.slice(0, 4),
-      ]);
+      toast({
+        title: 'Erreur d\'export',
+        description: 'Impossible de télécharger l\'export. Vérifiez votre connexion et réessayez.',
+        variant: 'destructive',
+      });
     } finally {
       setLoadingCard(null);
     }
@@ -198,10 +201,13 @@ export default function ExportPage() {
         <CardHeader>
           <CardTitle className="text-zinc-100">Exports récents</CardTitle>
           <CardDescription className="text-zinc-400">
-            Derniers 5 exports (liens de téléchargement simulés)
+            Derniers exports téléchargés avec succès (session en cours)
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {recentExports.length === 0 ? (
+            <p className="text-zinc-500 text-sm py-4">Aucun export récent. Lancez un téléchargement ci‑dessus.</p>
+          ) : (
           <ul className="space-y-2">
             {recentExports.map((exp) => (
               <li
@@ -228,6 +234,7 @@ export default function ExportPage() {
               </li>
             ))}
           </ul>
+          )}
         </CardContent>
       </Card>
     </div>

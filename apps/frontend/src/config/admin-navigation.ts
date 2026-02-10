@@ -1,6 +1,12 @@
 /**
- * ★★★ ADMIN NAVIGATION CONFIG ★★★
+ * ADMIN NAVIGATION CONFIG
  * Configuration de la navigation pour le Super Admin Dashboard
+ *
+ * Architecture:
+ * - ORION: Hub strategique (KPIs, AI insights, health scores, segments, experiments)
+ * - Gestion: Operations quotidiennes (brands, customers, analytics, billing, audit)
+ * - Marketing: Automations, templates, communications
+ * - Systeme: Webhooks, events, settings, AI management
  */
 
 import {
@@ -8,7 +14,6 @@ import {
   Users,
   BarChart3,
   Mail,
-  Megaphone,
   Webhook,
   Activity,
   Settings,
@@ -20,9 +25,12 @@ import {
   Sparkles,
   Shield,
   Bell,
-  MessageSquare,
-  Beaker,
   Download,
+  Building2,
+  CreditCard,
+  ClipboardList,
+  Beaker,
+  Bot,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -39,6 +47,7 @@ export interface NavigationGroup {
 }
 
 export const adminNavigation: NavigationGroup[] = [
+  // ─── ORION - Hub Strategique ───
   {
     items: [
       {
@@ -47,44 +56,14 @@ export const adminNavigation: NavigationGroup[] = [
         icon: Sparkles,
         children: [
           {
-            title: 'ATHENA - Segments',
-            href: '/admin/orion/segments',
-            icon: Target,
-          },
-          {
-            title: 'ATHENA - Onboarding',
-            href: '/admin/orion/agents/athena',
-            icon: Sparkles,
-          },
-          {
-            title: 'ZEUS - Analytics',
-            href: '/admin/orion/agents/zeus',
-            icon: BarChart3,
-          },
-          {
-            title: 'ARTEMIS - Retention',
-            href: '/admin/orion/agents/artemis',
-            icon: Shield,
-          },
-          {
             title: 'Health Dashboard',
             href: '/admin/orion/retention',
             icon: Activity,
           },
           {
-            title: 'Communications (HERMES)',
-            href: '/admin/orion/communications',
-            icon: MessageSquare,
-          },
-          {
-            title: 'HADES - Revenue',
-            href: '/admin/orion/agents/hades',
-            icon: TrendingUp,
-          },
-          {
-            title: 'APOLLO - Acquisition',
-            href: '/admin/orion/agents/apollo',
-            icon: Zap,
+            title: 'Segments',
+            href: '/admin/orion/segments',
+            icon: Target,
           },
           {
             title: 'Experiments',
@@ -92,19 +71,9 @@ export const adminNavigation: NavigationGroup[] = [
             icon: Beaker,
           },
           {
-            title: 'Templates',
-            href: '/admin/orion/templates',
-            icon: FileText,
-          },
-          {
             title: 'Quick Wins',
             href: '/admin/orion/quick-wins',
             icon: Zap,
-          },
-          {
-            title: 'Journal d\'Audit',
-            href: '/admin/orion/audit-log',
-            icon: FileText,
           },
           {
             title: 'Notifications',
@@ -120,6 +89,7 @@ export const adminNavigation: NavigationGroup[] = [
       },
     ],
   },
+  // ─── Overview ───
   {
     items: [
       {
@@ -129,31 +99,21 @@ export const adminNavigation: NavigationGroup[] = [
       },
     ],
   },
+  // ─── Gestion Operationnelle ───
   {
     title: 'Gestion',
     items: [
+      {
+        title: 'Brands',
+        href: '/admin/brands',
+        icon: Building2,
+        badge: 'new',
+      },
       {
         title: 'Customers',
         href: '/admin/customers',
         icon: Users,
         badge: 'live',
-        children: [
-          {
-            title: 'All Customers',
-            href: '/admin/customers',
-            icon: Users,
-          },
-          {
-            title: 'Segments',
-            href: '/admin/customers/segments',
-            icon: Target,
-          },
-          {
-            title: 'Export',
-            href: '/admin/customers/export',
-            icon: FileText,
-          },
-        ],
       },
       {
         title: 'Analytics',
@@ -166,39 +126,26 @@ export const adminNavigation: NavigationGroup[] = [
             icon: BarChart3,
           },
           {
-            title: 'Revenue',
-            href: '/admin/analytics/revenue',
-            icon: DollarSign,
-          },
-          {
-            title: 'Acquisition',
-            href: '/admin/analytics/acquisition',
-            icon: TrendingUp,
-          },
-          {
-            title: 'Retention',
-            href: '/admin/analytics/retention',
-            icon: Target,
-          },
-          {
-            title: 'LTV Analysis',
-            href: '/admin/analytics/ltv',
-            icon: DollarSign,
-          },
-          {
-            title: 'Funnel',
-            href: '/admin/analytics/funnel',
-            icon: BarChart3,
-          },
-          {
             title: 'Advanced',
             href: '/admin/analytics/advanced',
-            icon: BarChart3,
+            icon: TrendingUp,
           },
         ],
       },
+      {
+        title: 'Billing',
+        href: '/admin/billing',
+        icon: CreditCard,
+        badge: 'new',
+      },
+      {
+        title: 'Audit Log',
+        href: '/admin/audit-log',
+        icon: ClipboardList,
+      },
     ],
   },
+  // ─── Marketing ───
   {
     title: 'Marketing',
     items: [
@@ -207,11 +154,6 @@ export const adminNavigation: NavigationGroup[] = [
         href: '/admin/marketing',
         icon: Mail,
         children: [
-          {
-            title: 'Campaigns',
-            href: '/admin/marketing/campaigns',
-            icon: Mail,
-          },
           {
             title: 'Automations',
             href: '/admin/marketing/automations',
@@ -223,51 +165,15 @@ export const adminNavigation: NavigationGroup[] = [
             icon: FileText,
           },
           {
-            title: 'Analytics',
-            href: '/admin/marketing/analytics',
-            icon: BarChart3,
-          },
-        ],
-      },
-      {
-        title: 'Ads Manager',
-        href: '/admin/ads',
-        icon: Megaphone,
-        children: [
-          {
-            title: 'Overview',
-            href: '/admin/ads',
-            icon: LayoutDashboard,
-          },
-          {
-            title: 'Meta Ads',
-            href: '/admin/ads/meta',
-            icon: Megaphone,
-          },
-          {
-            title: 'Google Ads',
-            href: '/admin/ads/google',
-            icon: Megaphone,
-          },
-          {
-            title: 'TikTok Ads',
-            href: '/admin/ads/tiktok',
-            icon: Megaphone,
-          },
-          {
-            title: 'Attribution',
-            href: '/admin/ads/attribution',
-            icon: Target,
-          },
-          {
-            title: 'ROI',
-            href: '/admin/ads/roi',
-            icon: DollarSign,
+            title: 'Communications Log',
+            href: '/admin/marketing/communications',
+            icon: Mail,
           },
         ],
       },
     ],
   },
+  // ─── Systeme ───
   {
     title: 'Système',
     items: [
@@ -282,9 +188,9 @@ export const adminNavigation: NavigationGroup[] = [
         icon: Activity,
       },
       {
-        title: 'Integrations',
-        href: '/admin/integrations',
-        icon: Zap,
+        title: 'AI Management',
+        href: '/admin/ai',
+        icon: Bot,
       },
       {
         title: 'Settings',
@@ -300,11 +206,6 @@ export const adminNavigation: NavigationGroup[] = [
             title: 'Security',
             href: '/admin/settings/security',
             icon: Shield,
-          },
-          {
-            title: 'Notifications',
-            href: '/admin/settings/notifications',
-            icon: Bell,
           },
         ],
       },

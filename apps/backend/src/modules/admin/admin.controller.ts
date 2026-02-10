@@ -47,6 +47,16 @@ export class AdminController {
     return this.adminService.getTenants();
   }
 
+  @Get('brands/:brandId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get brand detail with full relations' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiResponse({ status: 200, description: 'Brand detail' })
+  @ApiResponse({ status: 404, description: 'Brand not found' })
+  async getBrandDetail(@Param('brandId') brandId: string) {
+    return this.adminService.getBrandDetail(brandId);
+  }
+
   // ========================================
   // CUSTOMER MANAGEMENT
   // ========================================
@@ -113,11 +123,23 @@ export class AdminController {
     @Res() res: Response,
   ) {
     const result = await this.adminService.exportData(format, type);
-    
+
     res.setHeader('Content-Type', result.contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-    
+
     return res.send(result.content);
+  }
+
+  // ========================================
+  // BILLING
+  // ========================================
+
+  @Get('billing/overview')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get billing/subscription overview' })
+  @ApiResponse({ status: 200, description: 'Billing overview' })
+  async getBillingOverview() {
+    return this.adminService.getBillingOverview();
   }
 
   @Post('create-admin')

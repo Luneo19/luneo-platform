@@ -2,6 +2,8 @@
 
 /**
  * Admin Settings - Configuration générale de la plateforme
+ * TODO: Connect to GET/PUT /api/v1/admin/settings when endpoint is available.
+ * Settings are currently stored in local state only; Save shows a success toast but does not persist.
  */
 import React, { useState } from 'react';
 import {
@@ -14,6 +16,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import {
   Settings,
   Shield,
@@ -23,27 +26,49 @@ import {
   Clock,
   Languages,
   CheckCircle,
+  Save,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminSettingsPage() {
+  const { toast } = useToast();
   const [enforce2FA, setEnforce2FA] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState('30');
   const [ipWhitelist, setIpWhitelist] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [webhookAlerts, setWebhookAlerts] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = () => {
+    setSaving(true);
+    // TODO: Connect to GET/PUT /api/v1/admin/settings when endpoint is available
+    setTimeout(() => {
+      setSaving(false);
+      toast({ title: 'Paramètres enregistrés', description: 'Les modifications ont été enregistrées (mode démo).' });
+    }, 400);
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-screen bg-zinc-900 text-zinc-100 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-          <Settings className="h-8 w-8 text-zinc-400" />
-          Paramètres
-        </h1>
-        <p className="mt-2 text-zinc-400">
-          Configuration générale de la plateforme
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Settings className="h-8 w-8 text-zinc-400" />
+            Paramètres
+          </h1>
+          <p className="mt-2 text-zinc-400">
+            Configuration générale de la plateforme (non persistée — API à connecter)
+          </p>
+        </div>
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+        >
+          {saving ? 'Enregistrement…' : <><Save className="h-4 w-4 mr-2" />Enregistrer</>}
+        </Button>
       </div>
 
       {/* Settings grid */}

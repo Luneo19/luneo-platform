@@ -14,49 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const MOCK_SEGMENTS = [
-  {
-    id: '1',
-    name: 'Power Users',
-    type: 'Behavioral',
-    userCount: 234,
-    description: 'Users with >20 sessions/month',
-    conditions: [{ property: 'sessions_per_month', operator: 'gt', value: '20' }],
-  },
-  {
-    id: '2',
-    name: 'Trial Users',
-    type: 'Plan-based',
-    userCount: 89,
-    description: 'Users currently on trial plan',
-    conditions: [{ property: 'plan', operator: 'is', value: 'TRIAL' }],
-  },
-  {
-    id: '3',
-    name: 'High Revenue',
-    type: 'Revenue',
-    userCount: 45,
-    description: 'MRR > €100',
-    conditions: [{ property: 'mrr', operator: 'gt', value: '100' }],
-  },
-  {
-    id: '4',
-    name: 'At Risk',
-    type: 'Behavioral',
-    userCount: 23,
-    description: 'No login in 14+ days',
-    conditions: [{ property: 'days_since_login', operator: 'gt', value: '14' }],
-  },
-  {
-    id: '5',
-    name: 'Enterprise Potential',
-    type: 'Revenue',
-    userCount: 12,
-    description: 'Using >80% of plan limits',
-    conditions: [{ property: 'usage_percent', operator: 'gt', value: '80' }],
-  },
-];
+import { useSegments } from '@/hooks/admin/use-segments';
 
 const PROPERTIES = [
   { value: 'plan', label: 'Plan' },
@@ -81,7 +39,7 @@ const OPERATORS = [
 type ConditionRow = { property: string; operator: string; value: string };
 
 export default function OrionSegmentsPage() {
-  const [segments] = useState(MOCK_SEGMENTS);
+  const { segments, isLoading, isError, error, createSegment, deleteSegment } = useSegments();
   const [logicMode, setLogicMode] = useState<'AND' | 'OR'>('AND');
   const [conditions, setConditions] = useState<ConditionRow[]>([
     { property: 'sessions_per_month', operator: 'gt', value: '' },
@@ -89,7 +47,9 @@ export default function OrionSegmentsPage() {
   const [segmentName, setSegmentName] = useState('');
   const [segmentDescription, setSegmentDescription] = useState('');
   const [segmentType, setSegmentType] = useState('Behavioral');
-  const [previewCount] = useState(0);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const addCondition = () => {
     setConditions((c) => [...c, { property: 'plan', operator: 'is', value: '' }]);
@@ -105,12 +65,56 @@ export default function OrionSegmentsPage() {
     );
   };
 
-  const totalSegmented = segments.reduce((acc, s) => acc + s.userCount, 0);
+  const handleSaveSegment = async () => {
+    const name = segmentName.trim();
+    if (!name) {
+      setCreateError('Segment name is required');
+      return;
+    }
+    setCreateError(null);
+    setCreateLoading(true);
+    try {
+      await createSegment({
+        name,
+        description: segmentDescription.trim() || undefined,
+        type: segmentType,
+        conditions: conditions.map((c) => ({
+          property: c.property,
+          operator: c.operator,
+          value: c.value.trim(),
+        })),
+      });
+      setSegmentName('');
+      setSegmentDescription('');
+      setSegmentType('Behavioral');
+      setConditions([{ property: 'sessions_per_month', operator: 'gt', value: '' }]);
+    } catch {
+      setCreateError('Failed to create segment');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await deleteSegment(id);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const totalSegmented = segments.reduce((acc, s) => acc + (s.userCount ?? 0), 0);
   const activeFilters = conditions.filter((c) => c.value.trim()).length;
+
+  const segmentTypeDisplay = (seg: { type?: string | null; criteria?: Record<string, unknown> }) => {
+    if (seg.type) return seg.type;
+    const criteria = seg.criteria as { type?: string } | undefined;
+    return criteria?.type ?? 'Behavioral';
+  };
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100 p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-zinc-800 border border-zinc-700">
           <Brain className="h-8 w-8 text-emerald-400" />
@@ -121,12 +125,21 @@ export default function OrionSegmentsPage() {
         </div>
       </div>
 
-      {/* Stats bar */}
+      {isError && (
+        <Card className="bg-red-950/30 border-red-800">
+          <CardContent className="py-4 text-red-200">
+            {error?.message ?? 'Failed to load segments'}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-zinc-800/80 border-zinc-700">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 text-zinc-400 text-sm">Total segments</div>
-            <div className="text-2xl font-semibold text-zinc-100">{segments.length}</div>
+            <div className="text-2xl font-semibold text-zinc-100">
+              {isLoading ? '—' : segments.length}
+            </div>
           </CardContent>
         </Card>
         <Card className="bg-zinc-800/80 border-zinc-700">
@@ -134,7 +147,9 @@ export default function OrionSegmentsPage() {
             <div className="flex items-center gap-2 text-zinc-400 text-sm">
               <Users className="h-4 w-4" /> Users segmented
             </div>
-            <div className="text-2xl font-semibold text-zinc-100">{totalSegmented}</div>
+            <div className="text-2xl font-semibold text-zinc-100">
+              {isLoading ? '—' : totalSegmented}
+            </div>
           </CardContent>
         </Card>
         <Card className="bg-zinc-800/80 border-zinc-700">
@@ -147,7 +162,6 @@ export default function OrionSegmentsPage() {
         </Card>
       </div>
 
-      {/* Segment builder */}
       <Card className="bg-zinc-800/80 border-zinc-700">
         <CardHeader>
           <CardTitle className="text-zinc-100">Visual Segment Builder</CardTitle>
@@ -298,72 +312,91 @@ export default function OrionSegmentsPage() {
           </div>
 
           <div className="flex items-center justify-between pt-2">
-            <span className="text-zinc-400 text-sm">
-              Preview: <strong className="text-zinc-200">{previewCount}</strong> matching users
-            </span>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              Save segment
+            {createError && (
+              <span className="text-red-400 text-sm">{createError}</span>
+            )}
+            <div className="flex-1" />
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={handleSaveSegment}
+              disabled={createLoading}
+            >
+              {createLoading ? 'Saving…' : 'Save segment'}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Existing segments list */}
       <Card className="bg-zinc-800/80 border-zinc-700">
         <CardHeader>
           <CardTitle className="text-zinc-100">Existing segments</CardTitle>
           <CardDescription className="text-zinc-400">Click edit or delete to manage</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
-            {segments.map((seg) => (
-              <Card
-                key={seg.id}
-                className="bg-zinc-700/50 border-zinc-600 hover:border-zinc-500 transition-colors"
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-zinc-100 text-lg">{seg.name}</CardTitle>
-                      <CardDescription className="text-zinc-400 text-sm mt-1">
-                        {seg.description}
-                      </CardDescription>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={
-                        seg.type === 'Behavioral'
-                          ? 'border-emerald-500/50 text-emerald-400'
-                          : seg.type === 'Plan-based'
-                            ? 'border-blue-500/50 text-blue-400'
-                            : seg.type === 'Revenue'
-                              ? 'border-amber-500/50 text-amber-400'
-                              : 'border-zinc-500 text-zinc-400'
-                      }
-                    >
-                      {seg.type}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-400 text-sm">
-                      <Users className="h-4 w-4 inline mr-1" />
-                      {seg.userCount} users
-                    </span>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-200">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-red-400">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="py-12 text-center text-zinc-400">Loading segments…</div>
+          ) : segments.length === 0 ? (
+            <div className="py-12 text-center text-zinc-500">No segments yet. Create one above.</div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+              {segments.map((seg) => {
+                const typeLabel = segmentTypeDisplay(seg);
+                return (
+                  <Card
+                    key={seg.id}
+                    className="bg-zinc-700/50 border-zinc-600 hover:border-zinc-500 transition-colors"
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-zinc-100 text-lg">{seg.name}</CardTitle>
+                          <CardDescription className="text-zinc-400 text-sm mt-1">
+                            {seg.description ?? '—'}
+                          </CardDescription>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={
+                            typeLabel === 'Behavioral'
+                              ? 'border-emerald-500/50 text-emerald-400'
+                              : typeLabel === 'Plan-based'
+                                ? 'border-blue-500/50 text-blue-400'
+                                : typeLabel === 'Revenue'
+                                  ? 'border-amber-500/50 text-amber-400'
+                                  : 'border-zinc-500 text-zinc-400'
+                          }
+                        >
+                          {typeLabel}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-400 text-sm">
+                          <Users className="h-4 w-4 inline mr-1" />
+                          {seg.userCount ?? 0} users
+                        </span>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-200">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-zinc-400 hover:text-red-400"
+                            onClick={() => handleDelete(seg.id)}
+                            disabled={deletingId === seg.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

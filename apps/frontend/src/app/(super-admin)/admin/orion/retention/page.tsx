@@ -31,27 +31,47 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { endpoints } from '@/lib/api/client';
 
 type SortKey = 'name' | 'email' | 'healthScore' | 'churnRisk' | 'lastActivity';
 type SortDir = 'asc' | 'desc';
-
-const MOCK_USERS = [
-  { id: 'u1', name: 'Alex Morgan', email: 'alex.m@example.com', healthScore: 22, churnRisk: 'CRITICAL' as const, lastActivity: '2025-01-02' },
-  { id: 'u2', name: 'Jordan Lee', email: 'jordan.lee@example.com', healthScore: 28, churnRisk: 'CRITICAL' as const, lastActivity: '2025-01-05' },
-  { id: 'u3', name: 'Sam Taylor', email: 'sam.t@example.com', healthScore: 35, churnRisk: 'HIGH' as const, lastActivity: '2025-01-18' },
-  { id: 'u4', name: 'Casey Kim', email: 'casey.kim@example.com', healthScore: 41, churnRisk: 'HIGH' as const, lastActivity: '2025-01-20' },
-  { id: 'u5', name: 'Riley Davis', email: 'riley.d@example.com', healthScore: 48, churnRisk: 'HIGH' as const, lastActivity: '2025-01-24' },
-  { id: 'u6', name: 'Morgan Bell', email: 'morgan.b@example.com', healthScore: 52, churnRisk: 'HIGH' as const, lastActivity: '2025-01-28' },
-  { id: 'u7', name: 'Quinn Wright', email: 'quinn.w@example.com', healthScore: 55, churnRisk: 'HIGH' as const, lastActivity: '2025-02-01' },
-  { id: 'u8', name: 'Skyler Green', email: 'skyler.g@example.com', healthScore: 58, churnRisk: 'HIGH' as const, lastActivity: '2025-02-03' },
-  { id: 'u9', name: 'Jamie Fox', email: 'jamie.f@example.com', healthScore: 65, churnRisk: 'MEDIUM' as const, lastActivity: '2025-02-05' },
-  { id: 'u10', name: 'Drew Hill', email: 'drew.h@example.com', healthScore: 72, churnRisk: 'MEDIUM' as const, lastActivity: '2025-02-06' },
-  { id: 'u11', name: 'Blake Stone', email: 'blake.s@example.com', healthScore: 78, churnRisk: 'LOW' as const, lastActivity: '2025-02-07' },
-  { id: 'u12', name: 'Cameron Reed', email: 'cameron.r@example.com', healthScore: 85, churnRisk: 'LOW' as const, lastActivity: '2025-02-08' },
-];
-
 type ChurnRisk = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+type DashboardData = {
+  totalUsers: number;
+  avgHealthScore: number;
+  atRiskCount: number;
+  atRiskPercent: number;
+};
+
+type AtRiskUser = {
+  id: string;
+  userId: string;
+  healthScore: number;
+  churnRisk: string;
+  lastActivityAt: string | null;
+  user: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    lastLoginAt: string | null;
+  };
+};
+
+type TableRowData = {
+  id: string;
+  name: string;
+  email: string;
+  healthScore: number;
+  churnRisk: ChurnRisk;
+  lastActivity: string;
+  lastActivityRaw: string;
+};
+
+function getApiBase(): string {
+  if (typeof window === 'undefined') return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  return process.env.NEXT_PUBLIC_API_URL || '';
+}
 
 function churnBadgeClass(risk: ChurnRisk): string {
   switch (risk) {
@@ -78,55 +98,78 @@ function formatDate(d: string): string {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function mapAtRiskToTableRows(items: AtRiskUser[]): TableRowData[] {
+  return items.map((r) => {
+    const name = [r.user.firstName, r.user.lastName].filter(Boolean).join(' ') || '—';
+    const lastActivityRaw = r.lastActivityAt || r.user.lastLoginAt || '';
+    return {
+      id: r.id,
+      name,
+      email: r.user.email,
+      healthScore: r.healthScore,
+      churnRisk: r.churnRisk as ChurnRisk,
+      lastActivity: lastActivityRaw ? formatDate(lastActivityRaw) : '—',
+      lastActivityRaw: lastActivityRaw || '',
+    };
+  });
+}
+
 export default function HealthScoreDashboardPage() {
-  const [dashboard, setDashboard] = useState<{
-    totalUsers: number;
-    avgHealthScore: number;
-    atRiskCount: number;
-    atRiskPercent: number;
-  } | null>(null);
-  const [rows, setRows] = useState(MOCK_USERS);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [atRiskRows, setAtRiskRows] = useState<TableRowData[]>([]);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [atRiskLoading, setAtRiskLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [atRiskError, setAtRiskError] = useState<string | null>(null);
   const [churnFilter, setChurnFilter] = useState<string>('all');
   const [healthMin, setHealthMin] = useState<string>('');
   const [healthMax, setHealthMax] = useState<string>('');
   const [activityFrom, setActivityFrom] = useState<string>('');
   const [sortKey, setSortKey] = useState<SortKey>('healthScore');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    endpoints.orion.retention
-      .dashboard()
-      .then((data) => {
-        setDashboard({
-          totalUsers: data.totalUsers,
-          avgHealthScore: data.avgHealthScore,
-          atRiskCount: data.atRiskCount,
-          atRiskPercent: data.atRiskPercent,
-        });
+    const base = getApiBase();
+    const url = base ? `${base}/api/v1/orion/retention/dashboard` : '/api/v1/orion/retention/dashboard';
+    setDashboardLoading(true);
+    setDashboardError(null);
+    fetch(url, { credentials: 'include' })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load dashboard');
+        return res.json();
       })
-      .catch(() => {
-        setDashboard({
-          totalUsers: 670,
-          avgHealthScore: 62.4,
-          atRiskCount: 70,
-          atRiskPercent: 10.4,
-        });
-      })
-      .finally(() => setLoading(false));
+      .then((data: DashboardData) => setDashboard(data))
+      .catch(() => setDashboardError('Failed to load dashboard'))
+      .finally(() => setDashboardLoading(false));
   }, []);
 
-  const filteredRows = rows.filter((r) => {
+  useEffect(() => {
+    const base = getApiBase();
+    const url = base ? `${base}/api/v1/orion/retention/at-risk` : '/api/v1/orion/retention/at-risk';
+    setAtRiskLoading(true);
+    setAtRiskError(null);
+    fetch(url, { credentials: 'include' })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load at-risk users');
+        return res.json();
+      })
+      .then((data: AtRiskUser[]) => setAtRiskRows(mapAtRiskToTableRows(data)))
+      .catch(() => setAtRiskError('Failed to load at-risk users'))
+      .finally(() => setAtRiskLoading(false));
+  }, []);
+
+  const filteredRows = atRiskRows.filter((r) => {
     if (churnFilter !== 'all' && r.churnRisk !== churnFilter) return false;
     const min = healthMin === '' ? -1 : parseInt(healthMin, 10);
     const max = healthMax === '' ? 101 : parseInt(healthMax, 10);
     if (!Number.isNaN(min) && r.healthScore < min) return false;
     if (!Number.isNaN(max) && r.healthScore > max) return false;
-    if (activityFrom) {
+    if (activityFrom && r.lastActivityRaw) {
       const from = new Date(activityFrom);
-      const last = new Date(r.lastActivity);
-      if (last < from) return false;
+      const last = new Date(r.lastActivityRaw);
+      if (!Number.isNaN(last.getTime()) && last < from) return false;
     }
+    if (activityFrom && !r.lastActivityRaw) return false;
     return true;
   });
 
@@ -148,7 +191,7 @@ export default function HealthScoreDashboardPage() {
         break;
       }
       case 'lastActivity':
-        cmp = new Date(a.lastActivity).getTime() - new Date(b.lastActivity).getTime();
+        cmp = (a.lastActivityRaw ? new Date(a.lastActivityRaw).getTime() : 0) - (b.lastActivityRaw ? new Date(b.lastActivityRaw).getTime() : 0);
         break;
       default:
         break;
@@ -164,14 +207,10 @@ export default function HealthScoreDashboardPage() {
     }
   };
 
-  const totalUsers = dashboard?.totalUsers ?? 670;
-  const avgHealth = dashboard?.avgHealthScore ?? 62.4;
-  const atRiskPct = dashboard?.atRiskPercent ?? 10.4;
-  const savedThisMonth = 42;
+  const hasError = dashboardError || atRiskError;
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100 p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-zinc-800 border border-zinc-700">
           <Activity className="h-8 w-8 text-amber-400" />
@@ -184,7 +223,15 @@ export default function HealthScoreDashboardPage() {
         </div>
       </div>
 
-      {/* Overview cards */}
+      {hasError && (
+        <Card className="bg-red-950/30 border-red-800">
+          <CardContent className="py-4 text-red-200">
+            {dashboardError && <p>{dashboardError}</p>}
+            {atRiskError && <p>{atRiskError}</p>}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-zinc-800/80 border-zinc-700">
           <CardHeader className="pb-2">
@@ -194,7 +241,9 @@ export default function HealthScoreDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-zinc-100">{loading ? '—' : totalUsers}</div>
+            <div className="text-2xl font-bold text-zinc-100">
+              {dashboardLoading ? '—' : dashboard != null ? dashboard.totalUsers : '—'}
+            </div>
             <p className="text-zinc-500 text-xs mt-1">with health score</p>
           </CardContent>
         </Card>
@@ -206,7 +255,9 @@ export default function HealthScoreDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-zinc-100">{loading ? '—' : Math.round(avgHealth)}</div>
+            <div className="text-2xl font-bold text-zinc-100">
+              {dashboardLoading ? '—' : dashboard != null ? Math.round(dashboard.avgHealthScore) : '—'}
+            </div>
             <p className="text-zinc-500 text-xs mt-1">out of 100</p>
           </CardContent>
         </Card>
@@ -218,7 +269,9 @@ export default function HealthScoreDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-zinc-100">{loading ? '—' : atRiskPct}%</div>
+            <div className="text-2xl font-bold text-zinc-100">
+              {dashboardLoading ? '—' : dashboard != null ? dashboard.atRiskPercent : '—'}%
+            </div>
             <p className="text-zinc-500 text-xs mt-1">HIGH + CRITICAL</p>
           </CardContent>
         </Card>
@@ -230,13 +283,12 @@ export default function HealthScoreDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-400">{savedThisMonth}</div>
+            <div className="text-2xl font-bold text-emerald-400">—</div>
             <p className="text-zinc-500 text-xs mt-1">win-back conversions</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
       <Card className="bg-zinc-800/80 border-zinc-700">
         <CardHeader>
           <CardTitle className="text-zinc-100 text-sm font-medium flex items-center gap-2">
@@ -314,7 +366,6 @@ export default function HealthScoreDashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Full table */}
       <Card className="bg-zinc-800/80 border-zinc-700">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -333,79 +384,93 @@ export default function HealthScoreDashboardPage() {
           </Button>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-zinc-700 hover:bg-zinc-800/50">
-                <TableHead
-                  className="text-zinc-400 cursor-pointer hover:text-zinc-200"
-                  onClick={() => toggleSort('name')}
-                >
-                  <span className="flex items-center gap-1">
-                    User
-                    {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="text-zinc-400 cursor-pointer hover:text-zinc-200"
-                  onClick={() => toggleSort('email')}
-                >
-                  <span className="flex items-center gap-1">
-                    Email
-                    {sortKey === 'email' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="text-zinc-400 cursor-pointer hover:text-zinc-200"
-                  onClick={() => toggleSort('healthScore')}
-                >
-                  <span className="flex items-center gap-1">
-                    Health Score
-                    {sortKey === 'healthScore' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="text-zinc-400 cursor-pointer hover:text-zinc-200"
-                  onClick={() => toggleSort('churnRisk')}
-                >
-                  <span className="flex items-center gap-1">
-                    Churn Risk
-                    {sortKey === 'churnRisk' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="text-zinc-400 cursor-pointer hover:text-zinc-200"
-                  onClick={() => toggleSort('lastActivity')}
-                >
-                  <span className="flex items-center gap-1">
-                    Last Activity
-                    {sortKey === 'lastActivity' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
-                  </span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedRows.map((r) => (
-                <TableRow key={r.id} className="border-zinc-700 hover:bg-zinc-800/50">
-                  <TableCell className="font-medium text-zinc-200">{r.name}</TableCell>
-                  <TableCell className="text-zinc-400">{r.email}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 w-28">
-                      <Progress
-                        value={r.healthScore}
-                        className="h-2 bg-zinc-700 flex-1"
-                        indicatorClassName={healthBarClass(r.healthScore)}
-                      />
-                      <span className="text-zinc-300 text-sm w-8">{r.healthScore}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={churnBadgeClass(r.churnRisk)}>{r.churnRisk}</Badge>
-                  </TableCell>
-                  <TableCell className="text-zinc-400">{formatDate(r.lastActivity)}</TableCell>
+          {atRiskLoading ? (
+            <div className="py-12 text-center text-zinc-400">Loading users…</div>
+          ) : atRiskError ? (
+            <div className="py-12 text-center text-red-400">{atRiskError}</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-zinc-700 hover:bg-zinc-800/50">
+                  <TableHead
+                    className="text-zinc-400 cursor-pointer hover:text-zinc-200"
+                    onClick={() => toggleSort('name')}
+                  >
+                    <span className="flex items-center gap-1">
+                      User
+                      {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                    </span>
+                  </TableHead>
+                  <TableHead
+                    className="text-zinc-400 cursor-pointer hover:text-zinc-200"
+                    onClick={() => toggleSort('email')}
+                  >
+                    <span className="flex items-center gap-1">
+                      Email
+                      {sortKey === 'email' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                    </span>
+                  </TableHead>
+                  <TableHead
+                    className="text-zinc-400 cursor-pointer hover:text-zinc-200"
+                    onClick={() => toggleSort('healthScore')}
+                  >
+                    <span className="flex items-center gap-1">
+                      Health Score
+                      {sortKey === 'healthScore' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                    </span>
+                  </TableHead>
+                  <TableHead
+                    className="text-zinc-400 cursor-pointer hover:text-zinc-200"
+                    onClick={() => toggleSort('churnRisk')}
+                  >
+                    <span className="flex items-center gap-1">
+                      Churn Risk
+                      {sortKey === 'churnRisk' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                    </span>
+                  </TableHead>
+                  <TableHead
+                    className="text-zinc-400 cursor-pointer hover:text-zinc-200"
+                    onClick={() => toggleSort('lastActivity')}
+                  >
+                    <span className="flex items-center gap-1">
+                      Last Activity
+                      {sortKey === 'lastActivity' && (sortDir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                    </span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {sortedRows.length === 0 ? (
+                  <TableRow className="border-zinc-700">
+                    <TableCell colSpan={5} className="py-12 text-center text-zinc-500">
+                      No users match the filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sortedRows.map((r) => (
+                    <TableRow key={r.id} className="border-zinc-700 hover:bg-zinc-800/50">
+                      <TableCell className="font-medium text-zinc-200">{r.name}</TableCell>
+                      <TableCell className="text-zinc-400">{r.email}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 w-28">
+                          <Progress
+                            value={r.healthScore}
+                            className="h-2 bg-zinc-700 flex-1"
+                            indicatorClassName={healthBarClass(r.healthScore)}
+                          />
+                          <span className="text-zinc-300 text-sm w-8">{r.healthScore}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={churnBadgeClass(r.churnRisk)}>{r.churnRisk}</Badge>
+                      </TableCell>
+                      <TableCell className="text-zinc-400">{r.lastActivity}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

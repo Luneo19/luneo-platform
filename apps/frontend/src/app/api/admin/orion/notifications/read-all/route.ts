@@ -1,0 +1,36 @@
+/**
+ * ADMIN ORION NOTIFICATIONS MARK ALL READ API
+ */
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminUser } from '@/lib/admin/permissions';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const API_URL = getBackendUrl();
+
+function forwardHeaders(request: NextRequest): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    Cookie: request.headers.get('cookie') || '',
+  };
+  const auth = request.headers.get('authorization');
+  if (auth) headers['Authorization'] = auth;
+  return headers;
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const adminUser = await getAdminUser();
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const res = await fetch(`${API_URL}/api/v1/orion/notifications/read-all`, {
+      method: 'PUT',
+      headers: forwardHeaders(request),
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 });
+  }
+}

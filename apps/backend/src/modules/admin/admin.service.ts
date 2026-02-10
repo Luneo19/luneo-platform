@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { UserRole, Prisma } from '@prisma/client';
+import { UserRole, Prisma, PaymentStatus, SubscriptionStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
 
 @Injectable()
@@ -37,6 +37,44 @@ export class AdminService {
         status: b.subscriptionStatus || 'active',
       })),
     };
+  }
+
+  /**
+   * Get brand detail with full relations
+   */
+  async getBrandDetail(brandId: string) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: brandId },
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            lastLoginAt: true,
+            isActive: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            users: true,
+            products: true,
+            designs: true,
+            orders: true,
+            invoices: true,
+          },
+        },
+      },
+    });
+
+    if (!brand) {
+      throw new NotFoundException(`Brand ${brandId} not found`);
+    }
+
+    return brand;
   }
 
   // ========================================
@@ -389,6 +427,86 @@ export class AdminService {
     }
 
     throw new BadRequestException(`Unknown export type: ${type}`);
+  }
+
+  // ========================================
+  // BILLING
+  // ========================================
+
+  /**
+   * Get billing/subscription overview
+   */
+  async getBillingOverview() {
+    const brands = await this.prisma.brand.findMany({
+      where: { deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        subscriptionPlan: true,
+        subscriptionStatus: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        planExpiresAt: true,
+        trialEndsAt: true,
+        createdAt: true,
+      },
+    });
+
+    // Calculate plan distribution
+    const subscribersByPlan: Record<string, number> = {};
+    let activeSubscriptions = 0;
+    let trialSubscriptions = 0;
+    let cancelledSubscriptions = 0;
+
+    for (const brand of brands) {
+      const plan = brand.subscriptionPlan || brand.plan || 'free';
+      subscribersByPlan[plan] = (subscribersByPlan[plan] || 0) + 1;
+
+      if (brand.subscriptionStatus === SubscriptionStatus.ACTIVE) activeSubscriptions++;
+      else if (brand.subscriptionStatus === SubscriptionStatus.TRIALING) trialSubscriptions++;
+      else if (brand.subscriptionStatus === SubscriptionStatus.CANCELED) cancelledSubscriptions++;
+    }
+
+    // Get recent invoices
+    const recentInvoices = await this.prisma.invoice.findMany({
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        brand: { select: { name: true } },
+      },
+    });
+
+    // Get revenue from orders (paymentStatus SUCCEEDED)
+    const revenue = await this.prisma.order.aggregate({
+      where: { paymentStatus: PaymentStatus.SUCCEEDED },
+      _sum: { totalCents: true },
+    });
+
+    const totalRevenue = (revenue._sum.totalCents || 0) / 100;
+    const mrr = totalRevenue / Math.max(1, 12); // Simplified MRR calculation
+    const arr = mrr * 12;
+
+    return {
+      mrr: Math.round(mrr * 100) / 100,
+      arr: Math.round(arr * 100) / 100,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      subscribersByPlan,
+      revenueByPlan: subscribersByPlan, // Simplified for now
+      churnRevenue: 0,
+      activeSubscriptions,
+      trialSubscriptions,
+      cancelledSubscriptions,
+      recentInvoices: recentInvoices.map((inv) => ({
+        id: inv.id,
+        brandName: inv.brand?.name || 'Unknown',
+        amount: Number(inv.amount),
+        currency: inv.currency,
+        status: inv.status,
+        paidAt: inv.paidAt?.toISOString() || null,
+        createdAt: inv.createdAt.toISOString(),
+      })),
+    };
   }
 
   async getMetrics() {
