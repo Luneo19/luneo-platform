@@ -138,7 +138,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 7. Onboarding check — redirect to /onboarding if not completed
+  // 7. Prevent CDN caching for admin routes
+  // Admin pages are dynamic (they read cookies and check roles server-side).
+  // CDN must NEVER serve a cached redirect for these routes.
+  if (pathname.startsWith('/admin')) {
+    response.headers.set('Cache-Control', 'private, no-cache, no-store, max-age=0, must-revalidate');
+    response.headers.set('CDN-Cache-Control', 'private, no-store');
+    response.headers.set('Vercel-CDN-Cache-Control', 'private, no-store');
+  }
+
+  // 8. Onboarding check — redirect to /onboarding if not completed
   // This is a lightweight cookie-based check. Full validation is in the dashboard layout.
   const requiresOnboarding = config.onboardingRequiredRoutes.some(
     (route) => pathname.startsWith(route) && !pathname.startsWith('/api/')

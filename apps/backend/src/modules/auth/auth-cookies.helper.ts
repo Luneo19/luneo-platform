@@ -79,6 +79,10 @@ export class AuthCookiesHelper {
 
   /**
    * Extraire le domaine depuis une URL
+   * Retourne toujours avec un point devant pour le partage de cookies cross-subdomain.
+   * Ex: "https://luneo.app"      -> ".luneo.app"
+   *     "https://app.luneo.app"  -> ".luneo.app"
+   *     "http://localhost:3000"   -> null
    */
   private static extractDomain(url: string): string | null {
     try {
@@ -90,11 +94,12 @@ export class AuthCookiesHelper {
         return null;
       }
 
-      // Extraire le domaine principal (sans sous-domaine si nécessaire)
+      // Extraire le domaine principal avec point devant
       // Ex: app.luneo.app -> .luneo.app
+      //     luneo.app     -> .luneo.app
       const parts = hostname.split('.');
-      if (parts.length > 2) {
-        return `.${parts.slice(-2).join('.')}`; // .luneo.app
+      if (parts.length >= 2) {
+        return `.${parts.slice(-2).join('.')}`;
       }
       
       return hostname;

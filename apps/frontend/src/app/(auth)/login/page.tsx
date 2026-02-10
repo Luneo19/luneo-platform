@@ -148,15 +148,34 @@ function LoginPageContent() {
           localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
         }
         
-        setSuccess('Connexion reussie ! Redirection...');
+        setSuccess('Connexion reussie ! Verification de la session...');
         
-        // Use window.location.href for a full page reload so cookies are properly read
+        // Verify cookies were actually stored by the browser before navigating.
+        // Without this check, if the browser blocks cookies (extensions, settings),
+        // the user enters an infinite redirect loop /admin → /login → /admin.
         const params = new URLSearchParams(window.location.search);
         const redirectTo = params.get('redirect');
         const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
-        setTimeout(() => {
-          window.location.href = safeRedirect || getRoleBasedRedirect(response.user?.role);
-        }, 800);
+        const targetUrl = safeRedirect || getRoleBasedRedirect(response.user?.role);
+        
+        // Small delay to let browser process Set-Cookie headers
+        await new Promise(r => setTimeout(r, 300));
+        
+        try {
+          const verifyResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
+          if (verifyResp.ok) {
+            setSuccess('Session verifiee ! Redirection...');
+            window.location.href = targetUrl;
+          } else {
+            // Cookies were not stored — navigate anyway but warn
+            logger.warn('Cookie verification failed, navigating anyway', { status: verifyResp.status });
+            window.location.href = targetUrl;
+          }
+        } catch {
+          // Network error during verification — navigate anyway
+          logger.warn('Cookie verification fetch failed, navigating anyway');
+          window.location.href = targetUrl;
+        }
       } else {
         setError('Réponse invalide du serveur');
       }

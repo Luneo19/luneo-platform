@@ -222,13 +222,21 @@ function RegisterPageContent() {
       if (response.user) {
         localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
         
-        setSuccess('Compte créé avec succès ! Préparation de votre espace...');
+        setSuccess('Compte créé avec succès ! Verification de la session...');
         
-        // Use window.location.href for a full page reload so cookies are properly read
-        // by the middleware on the next request (router.push may miss new cookies)
-        setTimeout(() => {
-          window.location.href = '/overview';
-        }, 1200);
+        // Small delay to let browser process Set-Cookie headers
+        await new Promise(r => setTimeout(r, 300));
+        
+        try {
+          const verifyResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
+          if (verifyResp.ok) {
+            setSuccess('Session verifiee ! Redirection...');
+          }
+        } catch {
+          // Verification failed silently — continue with navigation
+        }
+        
+        window.location.href = '/overview';
       } else {
         setError('Réponse invalide du serveur');
       }
