@@ -3,14 +3,20 @@ import {
   Post,
   Get,
   Put,
+  Patch,
+  Delete,
   Body,
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
 import { CurrentUser } from '@/common/types/user.types';
@@ -41,6 +47,10 @@ import { CreateCreatorPayoutDto } from './dto/create-creator-payout.dto';
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
 import { ProcessCreatorPayoutDto } from './dto/process-creator-payout.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { MarketplaceService } from './marketplace.service';
+import { CreateMarketplaceItemDto } from './dto/create-marketplace-item.dto';
+import { UpdateMarketplaceItemDto } from './dto/update-marketplace-item.dto';
+import { ReviewItemDto } from './dto/review-item.dto';
 
 @ApiTags('Marketplace')
 @Controller('marketplace')
@@ -57,7 +67,136 @@ export class MarketplaceController {
     private readonly marketplaceTemplate: MarketplaceTemplateService, // ✅ PHASE 7
     private readonly revenueSharing: RevenueSharingService, // ✅ PHASE 7
     private readonly engagement: EngagementService, // ✅ PHASE 7
+    private readonly marketplaceService: MarketplaceService, // ✅ PHASE 8 - Brand-to-brand marketplace
   ) {}
+
+  // ========================================
+  // PHASE 8: Marketplace items (templates & assets between brands)
+  // ========================================
+
+  @Get()
+  @ApiOperation({ summary: 'List marketplace items with filters' })
+  @ApiResponse({ status: 200, description: 'Items list' })
+  async listItems(
+    @Query('type') type?: string,
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('sort') sort?: 'newest' | 'popular' | 'price-asc' | 'price-desc' | 'rating',
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.marketplaceService.listItems({
+      type,
+      category,
+      search,
+      minPrice: minPrice !== undefined ? Number(minPrice) : undefined,
+      maxPrice: maxPrice !== undefined ? Number(maxPrice) : undefined,
+      sort,
+      page: page !== undefined ? Number(page) : undefined,
+      limit: limit !== undefined ? Number(limit) : undefined,
+    });
+  }
+
+  @Get('seller/dashboard')
+  @ApiOperation({ summary: 'Seller dashboard stats and items' })
+  @ApiResponse({ status: 200, description: 'Seller dashboard' })
+  async getSellerDashboard(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.getSellerDashboard(brandId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get marketplace item by id' })
+  @ApiResponse({ status: 200, description: 'Item details' })
+  async getItem(@Param('id') id: string) {
+    return this.marketplaceService.getItem(id);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create marketplace item (seller)' })
+  @ApiResponse({ status: 201, description: 'Item created' })
+  async createItem(@Body() dto: CreateMarketplaceItemDto, @Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.createItem(brandId, dto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update marketplace item (seller)' })
+  @ApiResponse({ status: 200, description: 'Item updated' })
+  async updateItem(
+    @Param('id') id: string,
+    @Body() dto: UpdateMarketplaceItemDto,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.updateItem(id, brandId, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete marketplace item (seller, soft)' })
+  @ApiResponse({ status: 200, description: 'Item deleted' })
+  async deleteItem(@Param('id') id: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.deleteItem(id, brandId);
+  }
+
+  @Post(':id/purchase')
+  @ApiOperation({ summary: 'Purchase marketplace item' })
+  @ApiResponse({ status: 201, description: 'Purchase completed' })
+  async purchaseItem(@Param('id') id: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.purchaseItem(id, brandId);
+  }
+
+  @Post(':id/review')
+  @ApiOperation({ summary: 'Review marketplace item' })
+  @ApiResponse({ status: 201, description: 'Review created/updated' })
+  async reviewItem(
+    @Param('id') id: string,
+    @Body() dto: ReviewItemDto,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.reviewItem(id, brandId, dto.rating, dto.comment);
+  }
+
+  // ========================================
+  // FILE UPLOAD & DOWNLOAD
+  // ========================================
+
+  @Post('upload')
+  @ApiOperation({ summary: 'Upload a file for marketplace item' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'File uploaded, URL returned' })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string; size: number } | undefined,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    if (!file) throw new BadRequestException('File is required');
+    if (file.size > 100 * 1024 * 1024) throw new BadRequestException('File too large (max 100MB)');
+    return this.marketplaceService.uploadFile(file.buffer, file.mimetype, file.originalname);
+  }
+
+  @Get(':id/download')
+  @ApiOperation({ summary: 'Get download URL for a purchased marketplace item' })
+  @ApiResponse({ status: 200, description: 'Download URL returned' })
+  async getDownloadUrl(
+    @Param('id') id: string,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.getDownloadUrl(id, brandId);
+  }
 
   // ========================================
   // ARTISAN ONBOARDING
@@ -382,6 +521,7 @@ export class MarketplaceController {
   async getArtisanQCStats(@Param('artisanId') artisanId: string) {
     return this.qcSystem.getArtisanQCStats(artisanId);
   }
+
 }
 
 

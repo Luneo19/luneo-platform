@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,7 @@ interface Integration {
   settingsUrl?: string;
 }
 
-const integrations: Integration[] = [
+const DEFAULT_INTEGRATIONS: Integration[] = [
   {
     id: 'shopify',
     name: 'Shopify',
@@ -99,6 +99,25 @@ const getStatusLabel = (status: Integration['status']) => {
 
 function IntegrationsDashboardPageContent() {
   const [filter, setFilter] = useState<'all' | Integration['category']>('all');
+  const [integrations, setIntegrations] = useState<Integration[]>(DEFAULT_INTEGRATIONS);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/v1/integrations', { credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          const real = data.data || data;
+          if (Array.isArray(real) && real.length > 0) {
+            setIntegrations(real);
+          }
+        }
+      })
+      .catch(() => {
+        // Keep defaults on error
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const filteredIntegrations = filter === 'all'
     ? integrations

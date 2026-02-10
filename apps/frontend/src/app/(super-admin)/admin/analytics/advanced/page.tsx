@@ -17,8 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { logger } from '@/lib/logger';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-
 interface HeatmapDataPoint {
   date: string;
   hour: number;
@@ -44,6 +42,7 @@ export default function AdvancedAnalyticsPage() {
   const { data: overviewData, isLoading: overviewLoading } = useAdminOverview();
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
   const [isLoading, setIsLoading] = useState(true);
+  const [usingPlaceholder, setUsingPlaceholder] = useState(false);
   
   // Data states
   const [heatmapData, setHeatmapData] = useState<HeatmapDataPoint[]>([]);
@@ -53,13 +52,14 @@ export default function AdvancedAnalyticsPage() {
   // Fetch advanced analytics data from backend
   const fetchAdvancedAnalytics = useCallback(async () => {
     setIsLoading(true);
+    setUsingPlaceholder(false);
     
     const days = selectedPeriod === '7d' ? 7 : selectedPeriod === '30d' ? 30 : 90;
     
     try {
       // Fetch heatmap data (activity by hour)
       const heatmapResponse = await fetch(
-        `${API_BASE}/api/v1/analytics/heatmap?days=${days}`,
+        `/api/admin/analytics/heatmap?days=${days}`,
         { credentials: 'include' }
       );
       
@@ -70,14 +70,16 @@ export default function AdvancedAnalyticsPage() {
         } else {
           // Generate placeholder based on real activity patterns
           setHeatmapData(generateHeatmapPlaceholder(days, overviewData));
+          setUsingPlaceholder(true);
         }
       } else {
         setHeatmapData(generateHeatmapPlaceholder(days, overviewData));
+        setUsingPlaceholder(true);
       }
 
       // Fetch scatter data (revenue vs orders correlation)
       const scatterResponse = await fetch(
-        `${API_BASE}/api/v1/analytics/correlation?days=${days}`,
+        `/api/admin/analytics/correlation?days=${days}`,
         { credentials: 'include' }
       );
       
@@ -87,14 +89,16 @@ export default function AdvancedAnalyticsPage() {
           setScatterData(scatterResult.data);
         } else {
           setScatterData(generateScatterPlaceholder(overviewData));
+          setUsingPlaceholder(true);
         }
       } else {
         setScatterData(generateScatterPlaceholder(overviewData));
+        setUsingPlaceholder(true);
       }
 
       // Fetch area data (trends over time)
       const areaResponse = await fetch(
-        `${API_BASE}/api/v1/analytics/trends?days=${days}`,
+        `/api/admin/analytics/trends?days=${days}`,
         { credentials: 'include' }
       );
       
@@ -104,9 +108,11 @@ export default function AdvancedAnalyticsPage() {
           setAreaData(areaResult.data);
         } else {
           setAreaData(generateAreaPlaceholder(days, overviewData));
+          setUsingPlaceholder(true);
         }
       } else {
         setAreaData(generateAreaPlaceholder(days, overviewData));
+        setUsingPlaceholder(true);
       }
 
     } catch (error) {
@@ -114,6 +120,7 @@ export default function AdvancedAnalyticsPage() {
       setHeatmapData(generateHeatmapPlaceholder(days, overviewData));
       setScatterData(generateScatterPlaceholder(overviewData));
       setAreaData(generateAreaPlaceholder(days, overviewData));
+      setUsingPlaceholder(true);
     } finally {
       setIsLoading(false);
     }
@@ -191,7 +198,12 @@ export default function AdvancedAnalyticsPage() {
           {' '}
           Advanced visualizations and correlation analysis{' '}
         </p>{' '}
-      </div>{' '}
+      </div>
+      {usingPlaceholder && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2 text-amber-300 text-sm">
+          Données estimées — Les endpoints analytics avancés ne sont pas encore disponibles.
+        </div>
+      )}
       <Tabs defaultValue="heatmap" className="space-y-4">
         {' '}
         <TabsList>
@@ -274,13 +286,32 @@ export default function AdvancedAnalyticsPage() {
           {' '}
           <RadarChart
             title="Performance Metrics"
-            data={[
-              { category: 'Revenue', current: 85, target: 100 },
-              { category: 'Orders', current: 70, target: 90 },
-              { category: 'Customers', current: 90, target: 100 },
-              { category: 'Retention', current: 75, target: 85 },
-              { category: 'Satisfaction', current: 88, target: 95 },
-            ]}
+            data={(() => {
+              // Derive radar values from real overview data when available
+              const o = overviewData;
+              if (!o) return [
+                { category: 'Revenue', current: 0, target: 100 },
+                { category: 'Orders', current: 0, target: 100 },
+                { category: 'Customers', current: 0, target: 100 },
+                { category: 'Retention', current: 0, target: 100 },
+                { category: 'Growth', current: 0, target: 100 },
+              ];
+              // Normalize real metrics to 0-100 scale
+              const mrrTarget = Math.max(o.revenue?.mrr || 0, 10000); // Scale against 10k target or current
+              const revenueScore = Math.min(100, Math.round(((o.revenue?.mrr || 0) / mrrTarget) * 100));
+              const customerTarget = Math.max(o.kpis?.customers?.value || 0, 1000);
+              const customerScore = Math.min(100, Math.round(((o.kpis?.customers?.value || 0) / customerTarget) * 100));
+              const retentionScore = Math.min(100, Math.max(0, Math.round(100 - (o.churn?.rate || 0))));
+              const growthScore = Math.min(100, Math.max(0, Math.round(50 + (o.revenue?.mrrGrowthPercent || 0))));
+              const ltvScore = Math.min(100, Math.round(((o.ltv?.average || 0) / Math.max(o.ltv?.projected || 1, 1)) * 100));
+              return [
+                { category: 'Revenue', current: revenueScore, target: 100 },
+                { category: 'LTV', current: ltvScore, target: 100 },
+                { category: 'Customers', current: customerScore, target: 100 },
+                { category: 'Retention', current: retentionScore, target: 95 },
+                { category: 'Growth', current: growthScore, target: 80 },
+              ];
+            })()}
             series={[
               {
                 key: 'current',
@@ -295,7 +326,7 @@ export default function AdvancedAnalyticsPage() {
                 fillOpacity: 0.3,
               },
             ]}
-            isLoading={isLoading}
+            isLoading={isLoading || overviewLoading}
             maxValue={100}
           />{' '}
         </TabsContent>{' '}

@@ -2,7 +2,7 @@
 
 /**
  * Admin Marketing - Vue d'ensemble campagnes et automations
- * Stats chargées depuis /api/v1/orion/communications/stats
+ * Stats chargées depuis /api/admin/marketing/communications/stats
  */
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -17,8 +17,6 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type CommunicationsStats = {
   totalTemplates: number;
@@ -39,7 +37,7 @@ export default function AdminMarketingPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const url = `${API_BASE_URL}/api/v1/orion/communications/stats`;
+    const url = '/api/admin/marketing/communications/stats';
     fetch(url, { credentials: 'include' })
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText || 'Erreur chargement stats');

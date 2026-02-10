@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { PlansService } from '@/modules/plans/plans.service';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class TeamService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => PlansService)) private plansService: PlansService,
+  ) {}
 
   async findAll(organizationId: string) {
     return this.prisma.teamMember.findMany({
@@ -118,6 +122,9 @@ export class TeamService {
 
   async invite(data: { email: string; role?: string }, organizationId: string, invitedBy: string) {
     const { email, role = 'member' } = data;
+
+    // Enforce team member limit based on plan
+    await this.plansService.enforceTeamLimit(invitedBy);
 
     // Check if invitation already exists
     const existingInvite = await this.prisma.teamInvite.findFirst({

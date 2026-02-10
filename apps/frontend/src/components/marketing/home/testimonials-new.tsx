@@ -4,6 +4,8 @@ import { Star } from 'lucide-react';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
 
+// NOTE: Example testimonials for launch. Replace with real customer testimonials
+// when available via CMS or testimonial collection tool (e.g., Trustpilot API)
 const testimonials = [
   {
     quote: "Luneo a transforme notre experience client. +45% de conversions en 3 mois grace a la personnalisation en temps reel.",
@@ -62,10 +64,10 @@ export function TestimonialsNew() {
                   <Star key={i} className="w-4 sm:w-5 h-4 sm:h-5 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <span className="text-white font-bold text-base sm:text-lg">4.9</span>
+              <span className="text-white font-bold text-base sm:text-lg">Excellent</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-white/10" />
-            <span className="text-slate-400 text-xs sm:text-sm">380+ avis verifies</span>
+            <span className="text-slate-400 text-xs sm:text-sm">Avis clients</span>
           </div>
         </ScrollReveal>
 

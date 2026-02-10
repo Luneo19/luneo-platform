@@ -31,10 +31,11 @@ export async function GET(request: NextRequest) {
     searchParams.forEach((v, k) => url.searchParams.set(k, v));
 
     const res = await fetch(url.toString(), { headers: forwardHeaders(request) });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to fetch audit logs' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to fetch audit logs' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/orion/audit-log', 'GET', error, 500);

@@ -129,6 +129,7 @@ export class AdminService {
           isActive: true,
           createdAt: true,
           updatedAt: true,
+          lastLoginAt: true,
           brand: {
             select: {
               id: true,
@@ -137,13 +138,60 @@ export class AdminService {
               subscriptionStatus: true,
             },
           },
+          customer: {
+            select: {
+              totalRevenue: true,
+              ltv: true,
+              engagementScore: true,
+              churnRisk: true,
+              totalSessions: true,
+              totalTimeSpent: true,
+              lastSeenAt: true,
+              firstSeenAt: true,
+            },
+          },
+          healthScore: {
+            select: {
+              healthScore: true,
+              churnRisk: true,
+              engagementScore: true,
+            },
+          },
         },
       }),
       this.prisma.user.count({ where }),
     ]);
 
     return {
-      data: customers,
+      data: customers.map((user) => {
+        const brand = user.brand;
+        const cust = user.customer;
+        const hs = user.healthScore;
+
+        // Determine status
+        let status: string = 'active';
+        if (brand?.subscriptionStatus === 'TRIALING') status = 'trial';
+        else if (user.lastLoginAt && new Date().getTime() - new Date(user.lastLoginAt).getTime() > 30 * 24 * 60 * 60 * 1000) status = 'churned';
+        else if (user.lastLoginAt && new Date().getTime() - new Date(user.lastLoginAt).getTime() > 14 * 24 * 60 * 60 * 1000) status = 'at-risk';
+        else if (!user.lastLoginAt) status = 'none';
+
+        return {
+          ...user,
+          // Customer intelligence
+          ltv: cust?.ltv ?? 0,
+          totalRevenue: cust?.totalRevenue ?? 0,
+          engagementScore: cust?.engagementScore ?? hs?.engagementScore ?? 0,
+          churnRisk: hs?.churnRisk?.toLowerCase() ?? cust?.churnRisk ?? 'low',
+          totalSessions: cust?.totalSessions ?? 0,
+          totalTimeSpent: cust?.totalTimeSpent ?? 0,
+          lastSeenAt: cust?.lastSeenAt ?? user.lastLoginAt,
+          // Computed
+          status,
+          planPrice: 0, // Will be enriched later or by frontend
+          plan: brand?.subscriptionPlan ? String(brand.subscriptionPlan) : 'free',
+          name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
+        };
+      }),
       meta: {
         total,
         page,
@@ -157,7 +205,7 @@ export class AdminService {
    * Get customer details by ID
    */
   async getCustomerById(customerId: string) {
-    const customer = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: customerId },
       select: {
         id: true,
@@ -169,12 +217,33 @@ export class AdminService {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        lastLoginAt: true,
         brand: {
           select: {
             id: true,
             name: true,
+            plan: true,
             subscriptionPlan: true,
             subscriptionStatus: true,
+          },
+        },
+        customer: {
+          select: {
+            totalRevenue: true,
+            ltv: true,
+            engagementScore: true,
+            churnRisk: true,
+            totalSessions: true,
+            totalTimeSpent: true,
+            lastSeenAt: true,
+            firstSeenAt: true,
+          },
+        },
+        healthScore: {
+          select: {
+            healthScore: true,
+            churnRisk: true,
+            engagementScore: true,
           },
         },
         designs: {
@@ -201,11 +270,35 @@ export class AdminService {
       },
     });
 
-    if (!customer) {
+    if (!user) {
       throw new NotFoundException(`Customer with ID ${customerId} not found`);
     }
 
-    return customer;
+    const brand = user.brand;
+    const cust = user.customer;
+    const hs = user.healthScore;
+
+    // Determine status (same logic as getCustomers)
+    let status: string = 'active';
+    if (brand?.subscriptionStatus === 'TRIALING') status = 'trial';
+    else if (user.lastLoginAt && new Date().getTime() - new Date(user.lastLoginAt).getTime() > 30 * 24 * 60 * 60 * 1000) status = 'churned';
+    else if (user.lastLoginAt && new Date().getTime() - new Date(user.lastLoginAt).getTime() > 14 * 24 * 60 * 60 * 1000) status = 'at-risk';
+    else if (!user.lastLoginAt) status = 'none';
+
+    return {
+      ...user,
+      ltv: cust?.ltv ?? 0,
+      totalRevenue: cust?.totalRevenue ?? 0,
+      engagementScore: cust?.engagementScore ?? hs?.engagementScore ?? 0,
+      churnRisk: hs?.churnRisk?.toLowerCase() ?? cust?.churnRisk ?? 'low',
+      totalSessions: cust?.totalSessions ?? 0,
+      totalTimeSpent: cust?.totalTimeSpent ?? 0,
+      lastSeenAt: cust?.lastSeenAt ?? user.lastLoginAt,
+      status,
+      planPrice: 0,
+      plan: brand?.subscriptionPlan ? String(brand.subscriptionPlan) : 'free',
+      name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
+    };
   }
 
   // ========================================
@@ -213,14 +306,20 @@ export class AdminService {
   // ========================================
 
   /**
-   * Get analytics overview
+   * Get analytics overview — full structure expected by frontend useAdminOverview hook.
    */
   async getAnalyticsOverview() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    twelveMonthsAgo.setDate(1);
+    twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+    const nonAdminWhere = { role: { not: UserRole.PLATFORM_ADMIN } as const };
+    const paidOrderWhere = { status: 'PAID' as const };
 
     const [
       totalCustomers,
@@ -229,60 +328,316 @@ export class AdminService {
       ordersLast30Days,
       revenueData,
       previousRevenueData,
+      activeCustomers,
+      totalRevenueAllTime,
+      recentOrdersForActivity,
+      recentUsersForCustomers,
+      ordersForRevenueChart,
+      usersCreatedForChart,
+      planDistributionRaw,
+      ordersForLtv,
     ] = await Promise.all([
-      this.prisma.user.count({ where: { role: { not: UserRole.PLATFORM_ADMIN } } }),
+      this.prisma.user.count({ where: nonAdminWhere }),
       this.prisma.user.count({
-        where: {
-          role: { not: UserRole.PLATFORM_ADMIN },
-          createdAt: { gte: thirtyDaysAgo },
-        },
+        where: { ...nonAdminWhere, createdAt: { gte: thirtyDaysAgo } },
       }),
       this.prisma.order.count(),
-      this.prisma.order.count({
-        where: { createdAt: { gte: thirtyDaysAgo } },
-      }),
+      this.prisma.order.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
       this.prisma.order.aggregate({
-        where: {
-          status: 'PAID',
-          createdAt: { gte: thirtyDaysAgo },
-        },
+        where: { ...paidOrderWhere, createdAt: { gte: thirtyDaysAgo } },
         _sum: { totalCents: true },
       }),
       this.prisma.order.aggregate({
         where: {
-          status: 'PAID',
+          ...paidOrderWhere,
           createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
         },
         _sum: { totalCents: true },
+      }),
+      this.prisma.user.count({
+        where: {
+          ...nonAdminWhere,
+          orders: { some: { createdAt: { gte: thirtyDaysAgo } } },
+        },
+      }),
+      this.prisma.order.aggregate({
+        where: paidOrderWhere,
+        _sum: { totalCents: true },
+      }),
+      this.prisma.order.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          orderNumber: true,
+          totalCents: true,
+          status: true,
+          createdAt: true,
+          customerName: true,
+          customerEmail: true,
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+      }),
+      this.prisma.user.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        where: nonAdminWhere,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          avatar: true,
+          lastLoginAt: true,
+          isActive: true,
+          createdAt: true,
+          brand: {
+            select: { subscriptionPlan: true, subscriptionStatus: true },
+          },
+          orders: {
+            where: paidOrderWhere,
+            select: { totalCents: true },
+          },
+        },
+      }),
+      this.prisma.order.findMany({
+        where: {
+          ...paidOrderWhere,
+          createdAt: { gte: twelveMonthsAgo },
+          deletedAt: null,
+        },
+        select: { createdAt: true, totalCents: true },
+      }),
+      this.prisma.user.findMany({
+        where: { ...nonAdminWhere, createdAt: { gte: twelveMonthsAgo } },
+        select: { createdAt: true },
+      }),
+      this.prisma.brand.groupBy({
+        by: ['subscriptionPlan'],
+        where: { deletedAt: null },
+        _count: true,
+      }),
+      this.prisma.order.findMany({
+        where: { ...paidOrderWhere, userId: { not: null } },
+        select: { userId: true, totalCents: true },
       }),
     ]);
 
     const mrr = (revenueData._sum.totalCents || 0) / 100;
     const previousMrr = (previousRevenueData._sum.totalCents || 0) / 100;
-    
-    // Simple churn calculation (customers who haven't ordered in 30 days)
-    const activeCustomers = await this.prisma.user.count({
-      where: {
-        role: { not: UserRole.PLATFORM_ADMIN },
-        orders: {
-          some: { createdAt: { gte: thirtyDaysAgo } },
-        },
-      },
+    const mrrChange = mrr - previousMrr;
+    const mrrChangePercent = previousMrr > 0 ? (mrrChange / previousMrr) * 100 : 0;
+    const churnRate =
+      totalCustomers > 0
+        ? Math.round(((totalCustomers - activeCustomers) / totalCustomers) * 10000) / 100
+        : 0;
+    const totalRevenue = (totalRevenueAllTime._sum.totalCents || 0) / 100;
+    const avgRevenuePerUser = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
+    const ltvValue = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
+
+    const trend = (current: number, previous: number): 'up' | 'down' | 'neutral' =>
+      current > previous ? 'up' : current < previous ? 'down' : 'neutral';
+
+    const customerTrend: 'up' | 'down' | 'neutral' =
+      newCustomersLast30Days > 0 ? 'up' : 'neutral';
+
+    // Recent activity from last 10 orders
+    const recentActivity = recentOrdersForActivity.map((o) => ({
+      id: o.id,
+      type: 'order',
+      message: `Order ${o.orderNumber} - ${(o.totalCents / 100).toFixed(2)} €`,
+      customerName:
+        o.customerName ??
+        (o.user ? [o.user.firstName, o.user.lastName].filter(Boolean).join(' ') || undefined : undefined),
+      customerEmail: o.customerEmail ?? o.user?.email,
+      timestamp: o.createdAt,
+      metadata: { orderNumber: o.orderNumber, totalCents: o.totalCents, status: o.status },
+    }));
+
+    // Recent customers with status
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    const thirtyDaysAgoForChurn = new Date();
+    thirtyDaysAgoForChurn.setDate(thirtyDaysAgoForChurn.getDate() - 30);
+
+    const recentCustomers = recentUsersForCustomers.map((u) => {
+      const plan = u.brand?.subscriptionPlan ?? null;
+      const planName = plan ? String(plan) : null;
+      const mrrUser = u.orders.reduce((s, o) => s + (o.totalCents || 0), 0) / 100;
+      const lastLogin = u.lastLoginAt ?? null;
+      let status: 'active' | 'trial' | 'churned' | 'at-risk' = 'active';
+      if (u.brand?.subscriptionStatus === SubscriptionStatus.TRIALING) status = 'trial';
+      else if (lastLogin && lastLogin < thirtyDaysAgoForChurn) status = 'churned';
+      else if (lastLogin && lastLogin < fourteenDaysAgo) status = 'at-risk';
+      else if (lastLogin && lastLogin >= sevenDaysAgo) status = 'active';
+      else if (u.isActive) status = 'active';
+      else status = 'at-risk';
+
+      return {
+        id: u.id,
+        name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
+        email: u.email,
+        avatar: u.avatar ?? null,
+        plan: planName,
+        mrr: Math.round(mrrUser * 100) / 100,
+        ltv: Math.round((u.orders.reduce((s, o) => s + (o.totalCents || 0), 0) / 100) * 100) / 100,
+        status,
+        customerSince: u.createdAt,
+      };
     });
-    
-    const churnRate = totalCustomers > 0 
-      ? ((totalCustomers - activeCustomers) / totalCustomers) * 100 
-      : 0;
+
+    // Revenue chart: last 12 months
+    const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const revenueByMonth: Record<string, { revenue: number; newCustomers: number }> = {};
+    for (let i = 0; i < 12; i++) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (11 - i));
+      d.setDate(1);
+      d.setHours(0, 0, 0, 0);
+      revenueByMonth[monthKey(d)] = { revenue: 0, newCustomers: 0 };
+    }
+    for (const o of ordersForRevenueChart) {
+      const key = monthKey(o.createdAt);
+      if (revenueByMonth[key] != null) revenueByMonth[key].revenue += o.totalCents / 100;
+    }
+    for (const u of usersCreatedForChart) {
+      const key = monthKey(u.createdAt);
+      if (revenueByMonth[key] != null) revenueByMonth[key].newCustomers += 1;
+    }
+    const revenueChart = Object.entries(revenueByMonth)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, { revenue, newCustomers }]) => ({
+        date,
+        mrr: Math.round(revenue * 100) / 100,
+        revenue: Math.round(revenue * 100) / 100,
+        newCustomers,
+      }));
+
+    // Plan distribution: count + mrr per plan (MRR from orders in last 30 days by brand plan)
+    const planCounts = new Map<string, { count: number; mrr: number }>();
+    for (const g of planDistributionRaw) {
+      const name = String(g.subscriptionPlan);
+      planCounts.set(name, { count: g._count, mrr: 0 });
+    }
+    const ordersByBrandPlan = await this.prisma.order.groupBy({
+      by: ['brandId'],
+      where: { ...paidOrderWhere, createdAt: { gte: thirtyDaysAgo }, deletedAt: null },
+      _sum: { totalCents: true },
+    });
+    const brandIds = await this.prisma.brand.findMany({
+      where: { deletedAt: null },
+      select: { id: true, subscriptionPlan: true },
+    });
+    const brandPlanMap = new Map(brandIds.map((b) => [b.id, b.subscriptionPlan]));
+    for (const ob of ordersByBrandPlan) {
+      const plan = brandPlanMap.get(ob.brandId);
+      if (plan == null) continue;
+      const name = String(plan);
+      const entry = planCounts.get(name);
+      if (entry) entry.mrr += (ob._sum.totalCents || 0) / 100;
+    }
+    const planDistribution = Array.from(planCounts.entries()).map(([name, { count, mrr }]) => ({
+      name,
+      count,
+      mrr: Math.round(mrr * 100) / 100,
+    }));
+
+    // LTV: average, median, byPlan (defaults), projected
+    const ltvByUser = new Map<string, number>();
+    for (const o of ordersForLtv) {
+      if (o.userId) ltvByUser.set(o.userId, (ltvByUser.get(o.userId) || 0) + o.totalCents / 100);
+    }
+    const ltvValues = Array.from(ltvByUser.values());
+    const ltvMedian =
+      ltvValues.length === 0
+        ? 0
+        : (() => {
+            const sorted = [...ltvValues].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+          })();
+    const ltvByPlanAvg: Record<string, number> = {};
+    const payingUserIds = Array.from(ltvByUser.keys());
+    if (payingUserIds.length > 0) {
+      const usersWithPlan = await this.prisma.user.findMany({
+        where: { id: { in: payingUserIds } },
+        select: {
+          id: true,
+          brand: { select: { subscriptionPlan: true } },
+        },
+      });
+      const planSums: Record<string, { total: number; count: number }> = {};
+      for (const u of usersWithPlan) {
+        const plan = u.brand?.subscriptionPlan ? String(u.brand.subscriptionPlan) : 'FREE';
+        const userLtv = ltvByUser.get(u.id) ?? 0;
+        if (!planSums[plan]) planSums[plan] = { total: 0, count: 0 };
+        planSums[plan].total += userLtv;
+        planSums[plan].count += 1;
+      }
+      for (const [plan, { total, count }] of Object.entries(planSums)) {
+        ltvByPlanAvg[plan] = Math.round((total / count) * 100) / 100;
+      }
+    }
 
     return {
-      mrr,
-      arr: mrr * 12,
-      customers: totalCustomers,
-      newCustomers: newCustomersLast30Days,
-      totalOrders,
-      ordersLast30Days,
-      churnRate: Math.round(churnRate * 100) / 100,
-      mrrGrowth: previousMrr > 0 ? ((mrr - previousMrr) / previousMrr) * 100 : 0,
+      kpis: {
+        mrr: {
+          value: Math.round(mrr * 100) / 100,
+          change: Math.round(mrrChange * 100) / 100,
+          changePercent: Math.round(mrrChangePercent * 100) / 100,
+          trend: trend(mrr, previousMrr),
+        },
+        customers: {
+          value: totalCustomers,
+          new: newCustomersLast30Days,
+          trend: customerTrend,
+        },
+        churnRate: {
+          value: churnRate,
+          change: 0,
+          trend: 'neutral' as const,
+        },
+        ltv: {
+          value: Math.round(ltvValue * 100) / 100,
+          projected: Math.round(ltvValue * 1.1 * 100) / 100,
+          trend: 'neutral' as const,
+        },
+      },
+      revenue: {
+        mrr: Math.round(mrr * 100) / 100,
+        arr: Math.round(mrr * 12 * 100) / 100,
+        mrrGrowth: Math.round(mrrChange * 100) / 100,
+        mrrGrowthPercent: Math.round(mrrChangePercent * 100) / 100,
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        avgRevenuePerUser: Math.round(avgRevenuePerUser * 100) / 100,
+      },
+      churn: {
+        rate: churnRate,
+        count: totalCustomers - activeCustomers,
+        revenueChurn: 0,
+        netRevenueRetention: 100 - churnRate,
+      },
+      ltv: {
+        average: Math.round(ltvValue * 100) / 100,
+        median: Math.round(ltvMedian * 100) / 100,
+        byPlan: ltvByPlanAvg,
+        projected: Math.round(ltvValue * 1.1 * 100) / 100,
+      },
+      acquisition: {
+        cac: 0,
+        paybackPeriod: 0,
+        ltvCacRatio: 0,
+        byChannel: {},
+      },
+      recentActivity,
+      recentCustomers,
+      revenueChart,
+      planDistribution,
+      acquisitionChannels:
+        totalCustomers > 0 ? [{ channel: 'Organic', count: totalCustomers, cac: 0 }] : [],
     };
   }
 

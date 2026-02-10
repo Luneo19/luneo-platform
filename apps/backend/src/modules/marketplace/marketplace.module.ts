@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MarketplaceController } from './marketplace.controller';
+import { MarketplaceService } from './marketplace.service';
 import { ArtisanOnboardingService } from './services/artisan-onboarding.service';
 import { OrderRoutingService } from './services/order-routing.service';
 import { StripeConnectService } from './services/stripe-connect.service';
@@ -13,12 +14,14 @@ import { RevenueSharingService } from './services/revenue-sharing.service'; // �
 import { EngagementService } from './services/engagement.service'; // ✅ PHASE 7
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
+import { CloudinaryModule } from '@/libs/storage/cloudinary.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [PrismaModule, SmartCacheModule, ConfigModule, ScheduleModule],
+  imports: [PrismaModule, SmartCacheModule, ConfigModule, CloudinaryModule, ScheduleModule],
   controllers: [MarketplaceController],
   providers: [
+    MarketplaceService, // ✅ PHASE 8 - Brand-to-brand marketplace
     ArtisanOnboardingService,
     OrderRoutingService,
     StripeConnectService,
@@ -31,6 +34,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     EngagementService, // ✅ PHASE 7 - Engagement
   ],
   exports: [
+    MarketplaceService,
     ArtisanOnboardingService,
     OrderRoutingService,
     StripeConnectService,

@@ -1,21 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Activity, Server, Database, Cpu, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
-
-const systemStatus = [
-  { name: 'API Gateway', status: 'operational', latency: '12ms', icon: Server },
-  { name: 'Database', status: 'operational', latency: '3ms', icon: Database },
-  { name: 'Redis Cache', status: 'operational', latency: '0.8ms', icon: Cpu },
-  { name: 'AI Engine', status: 'degraded', latency: '420ms', icon: Activity },
-];
-
-const metrics = [
-  { label: 'API latency (p95)', value: '142ms', status: 'ok', threshold: 200 },
-  { label: 'Error rate (24h)', value: '0.08%', status: 'ok', threshold: 1 },
-  { label: 'Uptime (30d)', value: '99.97%', status: 'ok' },
-  { label: 'Queue depth', value: '12', status: 'warning' },
-];
 
 function StatusDot({ status }: { status: string }) {
   if (status === 'operational') {
@@ -43,6 +30,53 @@ function StatusDot({ status }: { status: string }) {
 }
 
 function AdminHealthContent() {
+  const [systemStatus, setSystemStatus] = useState<Array<{name: string; status: string; latency: string; icon: typeof Server}>>([]);
+  const [metrics, setMetrics] = useState<Array<{label: string; value: string; status: string; threshold?: number}>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const res = await fetch('/api/v1/health', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const health = data.data || data;
+          if (health.services) setSystemStatus(health.services);
+          if (health.metrics) setMetrics(health.metrics);
+        }
+      } catch {
+        // Fallback: show unknown status
+        setSystemStatus([
+          { name: 'API Gateway', status: 'unknown', latency: '-', icon: Server },
+          { name: 'Database', status: 'unknown', latency: '-', icon: Database },
+          { name: 'Redis Cache', status: 'unknown', latency: '-', icon: Cpu },
+          { name: 'AI Engine', status: 'unknown', latency: '-', icon: Activity },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  // Default metrics if API doesn't return them
+  const displayMetrics = metrics.length > 0 ? metrics : [
+    { label: 'API latency (p95)', value: '-', status: 'unknown' },
+    { label: 'Error rate (24h)', value: '-', status: 'unknown' },
+    { label: 'Uptime (30d)', value: '-', status: 'unknown' },
+    { label: 'Queue depth', value: '-', status: 'unknown' },
+  ];
+
+  // Default system status if API doesn't return it
+  const displaySystemStatus = systemStatus.length > 0 ? systemStatus : [
+    { name: 'API Gateway', status: 'unknown', latency: '-', icon: Server },
+    { name: 'Database', status: 'unknown', latency: '-', icon: Database },
+    { name: 'Redis Cache', status: 'unknown', latency: '-', icon: Cpu },
+    { name: 'AI Engine', status: 'unknown', latency: '-', icon: Activity },
+  ];
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -51,7 +85,7 @@ function AdminHealthContent() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metrics.map((m) => (
+        {displayMetrics.map((m) => (
           <div
             key={m.label}
             className="dash-card border-white/[0.06] p-5 bg-white/[0.03] backdrop-blur-sm"
@@ -67,9 +101,12 @@ function AdminHealthContent() {
 
       <div className="dash-card border-white/[0.06] p-6 bg-white/[0.03] backdrop-blur-sm">
         <h2 className="text-lg font-semibold text-white mb-4">System status</h2>
-        <div className="divide-y divide-white/[0.06]">
-          {systemStatus.map((s) => {
-            const Icon = s.icon;
+        {isLoading ? (
+          <div className="text-white/60 text-sm">Loading...</div>
+        ) : (
+          <div className="divide-y divide-white/[0.06]">
+            {displaySystemStatus.map((s) => {
+              const Icon = s.icon;
             return (
               <div
                 key={s.name}
@@ -88,7 +125,8 @@ function AdminHealthContent() {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

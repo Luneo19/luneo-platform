@@ -95,6 +95,7 @@ enum SubscriptionPlan {
   FREE
   STARTER
   PROFESSIONAL
+  BUSINESS
   ENTERPRISE
 }
 
@@ -300,6 +301,21 @@ enum OnboardingActionType {
   SKIP
 }
 
+enum MarketplaceItemType {
+  TEMPLATE
+  DESIGN
+  MODEL_3D
+  TEXTURE
+  ANIMATION
+  PROMPT_PACK
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+}
+
 // ========================================
 // MODELS
 // ========================================
@@ -482,6 +498,7 @@ model Brand {
   slug        String      @unique
   description String?
   logo        String?
+  industry    String?   // e.g. "jewelry", "watches", "glasses", "other"
   website     String?
   status      BrandStatus @default(PENDING_VERIFICATION)
 
@@ -589,6 +606,11 @@ model Brand {
   // Feature Flags
   featureFlags FeatureFlag[] @relation("BrandFeatureFlags")
 
+  // Marketplace (Phase 8 - templates & assets between brands)
+  marketplaceItems    MarketplaceItem[]    @relation("MarketplaceSeller")
+  marketplaceReviews  MarketplaceReview[]  @relation("MarketplaceReviewer")
+  marketplacePurchases MarketplacePurchase[] @relation("MarketplaceBuyer")
+
   // Organization
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
@@ -605,6 +627,71 @@ model Brand {
   @@index([planExpiresAt])
   @@index([subscriptionStatus, trialEndsAt])
   @@index([organizationId])
+}
+
+// ========================================
+// MARKETPLACE (Phase 8 - templates & assets between brands)
+// ========================================
+
+model MarketplaceItem {
+  id              String   @id @default(cuid())
+  sellerId        String   // Brand ID of the seller
+  seller          Brand    @relation("MarketplaceSeller", fields: [sellerId], references: [id])
+  title           String
+  description     String?  @db.Text
+  type            MarketplaceItemType
+  category        String?  // jewelry, watches, glasses, etc.
+  tags            String[]
+  price           Decimal  @db.Decimal(10, 2)  // 0 = free
+  currency        String   @default("CHF")
+  previewImages   String[]
+  fileUrl         String?  // URL to the downloadable asset
+  fileType        String?  // glb, png, json, etc.
+  downloads       Int      @default(0)
+  rating          Decimal? @db.Decimal(3, 2)
+  reviewCount     Int      @default(0)
+  isActive        Boolean  @default(true)
+  isFeatured      Boolean  @default(false)
+  metadata        Json?    // Additional info (dimensions, file size, etc.)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  reviews         MarketplaceReview[]
+  purchases       MarketplacePurchase[]
+
+  @@index([sellerId])
+  @@index([type])
+  @@index([category])
+  @@index([isActive, isFeatured])
+}
+
+model MarketplaceReview {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      MarketplaceItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  buyerId   String   // Brand ID of the reviewer
+  buyer     Brand    @relation("MarketplaceReviewer", fields: [buyerId], references: [id])
+  rating    Int      // 1-5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@unique([itemId, buyerId])
+  @@index([itemId])
+}
+
+model MarketplacePurchase {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      MarketplaceItem @relation(fields: [itemId], references: [id])
+  buyerId   String   // Brand ID of the buyer
+  buyer     Brand    @relation("MarketplaceBuyer", fields: [buyerId], references: [id])
+  price    Decimal  @db.Decimal(10, 2)
+  currency String   @default("CHF")
+  status   PurchaseStatus @default(COMPLETED)
+  createdAt DateTime @default(now())
+
+  @@index([buyerId])
+  @@index([itemId])
 }
 
 // ========================================
@@ -972,6 +1059,9 @@ model Product {
   // 3D configurator
   product3DConfig Product3DConfiguration?
 
+  // Variants & Inventory
+  variants ProductVariant[]
+
   @@unique([brandId, slug]) // NOUVEAU: Unique par brand
   @@index([brandId])
   @@index([isActive])
@@ -979,6 +1069,29 @@ model Product {
   @@index([brandId, isActive]) // NOUVEAU: Composite
   @@index([status])
   @@index([deletedAt]) // Soft delete index for efficient queries on active products
+}
+
+model ProductVariant {
+  id                String   @id @default(cuid())
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku               String?
+  name              String   // e.g. "Or Rose 18K - Taille 52"
+  attributes        Json     // { color: "Or Rose", size: "52", material: "18K" }
+  price             Decimal? @db.Decimal(10, 2) // null = use product price
+  compareAtPrice    Decimal? @db.Decimal(10, 2)
+  stock             Int      @default(0)
+  lowStockThreshold Int      @default(5)
+  images            String[]
+  weight            Decimal? @db.Decimal(10, 2)
+  barcode           String?
+  isActive          Boolean  @default(true)
+  position          Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([productId])
+  @@index([sku])
 }
 
 model Product3DConfiguration {

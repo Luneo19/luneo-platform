@@ -1,6 +1,6 @@
 /**
- * ★★★ PAGE - LIBRARY ★★★
- * Page Server Component pour la bibliothèque. Cookie-based auth with NestJS backend.
+ * ★★★ PAGE - DESIGN LIBRARY (Bibliothèque) ★★★
+ * Page Server Component pour la bibliothèque de designs IA. Cookie-based auth with NestJS backend.
  */
 
 import { Suspense } from 'react';
@@ -8,12 +8,12 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { serverFetch } from '@/lib/api/server-fetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LibraryPageClient } from './LibraryPageClient';
+import { DesignLibraryPageClient } from './DesignLibraryPageClient';
 import { LibrarySkeleton } from './components/LibrarySkeleton';
 
 export const metadata = {
   title: 'Bibliothèque | Luneo',
-  description: 'Gérez vos templates et designs',
+  description: 'Gérez vos designs générés par l’IA',
 };
 
 /**
@@ -32,7 +32,7 @@ export default async function LibraryPage() {
   return (
     <ErrorBoundary level="page" componentName="LibraryPage">
       <Suspense fallback={<LibrarySkeleton />}>
-        <LibraryPageClient />
+        <DesignLibraryPageClient />
       </Suspense>
     </ErrorBoundary>
   );

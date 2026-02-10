@@ -1,43 +1,43 @@
-import { logger } from '@/lib/logger';
-
 /**
- * 💰 PRICING CONSTANTS - Luneo
+ * PRICING CONSTANTS - Luneo
  * 
- * Centralisation de tous les prix pour éviter les hardcoded values
- * Modifier ici pour mettre à jour tous les prix du site
+ * MUST match backend source of truth: apps/backend/src/libs/plans/plan-config.ts
+ * 
+ * Plans: FREE(0) | STARTER(19) | PROFESSIONAL(49) | BUSINESS(99) | ENTERPRISE(299)
+ * Yearly discount: ~20% off (exact values from plan-config.ts)
  */
 
 export const PRICING = {
   starter: {
-    monthly: 29,
-    yearly: 278.40, // 29 * 12 * 0.8 = -20%
-    yearlyMonthly: 23.20, // 278.40 / 12
+    monthly: 19,
+    yearly: 190, // From plan-config.ts yearlyPrice
+    yearlyMonthly: 15.83, // 190 / 12
     name: 'Starter',
     stripePriceId: 'price_1SY2bqKG9MsM6fdSlgkR5hNX',
     stripePriceIdYearly: 'price_1SY2bxKG9MsM6fdSe78TX8fZ',
   },
   professional: {
     monthly: 49,
-    yearly: 470.40, // 49 * 12 * 0.8 = -20%
-    yearlyMonthly: 39.20, // 470.40 / 12
+    yearly: 490, // From plan-config.ts yearlyPrice
+    yearlyMonthly: 40.83, // 490 / 12
     name: 'Professional',
     stripePriceId: 'price_1SY2cEKG9MsM6fdSTKND31Ti',
     stripePriceIdYearly: 'price_1SY2cEKG9MsM6fdSDKL1gPye',
   },
   business: {
     monthly: 99,
-    yearly: 950.40, // 99 * 12 * 0.8 = -20%
-    yearlyMonthly: 79.20, // 950.40 / 12
+    yearly: 990, // From plan-config.ts yearlyPrice
+    yearlyMonthly: 82.50, // 990 / 12
     name: 'Business',
     stripePriceId: 'price_1SY2cTKG9MsM6fdSwoQu1S5I',
     stripePriceIdYearly: 'price_1SY2cUKG9MsM6fdShCcJvXO7',
   },
   enterprise: {
-    monthly: 0, // Sur demande
-    yearly: 0,
-    yearlyMonthly: 0,
+    monthly: 299,
+    yearly: 2990, // From plan-config.ts yearlyPrice
+    yearlyMonthly: 249.17, // 2990 / 12
     name: 'Enterprise',
-    stripePriceId: null, // Sur demande - pas de prix Stripe
+    stripePriceId: null, // Custom pricing via sales
     stripePriceIdYearly: null,
   },
 } as const;
@@ -85,17 +85,10 @@ export const calculateSavings = () => {
  */
 export const getYearlyDiscount = (plan: keyof typeof PRICING) => {
   const p = PRICING[plan];
-  if (p.monthly === 0) return 0;
+  const monthly = p.monthly as number;
+  if (monthly === 0) return 0;
   
-  const annualTotal = p.monthly * 12;
+  const annualTotal = monthly * 12;
   const discount = ((annualTotal - p.yearly) / annualTotal) * 100;
   return Math.round(discount);
 };
-
-// Exemple d'utilisation:
-// const savings = calculateSavings();
-// logger.info(`Économies: -${savings.percentage}%`); // -77%
-// logger.info(`Prix Luneo: ${savings.luneoPrice}€/mois vs ${savings.competitorAvg}€/mois`);
-
-
-

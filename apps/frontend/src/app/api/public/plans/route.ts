@@ -34,7 +34,7 @@ const DEFAULT_PLANS = [
     id: 'starter',
     name: 'Starter',
     description: 'Parfait pour les createurs independants et petits projets',
-    price: { monthly: 19, yearly: 182.40 }, // -20% annuel
+    price: { monthly: 19, yearly: 190 },
     currency: 'EUR',
     features: [
       { name: '50 designs/mois', included: true },
@@ -62,10 +62,10 @@ const DEFAULT_PLANS = [
     id: 'professional',
     name: 'Professional',
     description: 'Pour les createurs et PME qui veulent passer a la vitesse superieure',
-    price: { monthly: 49, yearly: 470.40 }, // -20% annuel
+    price: { monthly: 49, yearly: 490 },
     currency: 'EUR',
     features: [
-      { name: '250 designs/mois', included: true },
+      { name: '200 designs/mois', included: true },
       { name: 'Customizer 2D', included: true },
       { name: 'Configurateur 3D', included: true },
       { name: '500 rendus 2D/mois', included: true },
@@ -75,14 +75,14 @@ const DEFAULT_PLANS = [
       { name: 'API access', included: true },
       { name: 'Support prioritaire', included: true },
       { name: '10 membres d\'équipe', included: true },
-      { name: '50 GB stockage', included: true },
+      { name: '25 GB stockage', included: true },
       { name: 'Branding personnalisé', included: true },
       { name: 'Webhooks temps réel', included: true },
     ],
     limits: {
-      designs: 250,
-      products: 250,
-      storage: '50 GB',
+      designs: 200,
+      products: 50,
+      storage: '25 GB',
       apiCalls: 100000,
       teamMembers: 10,
     },
@@ -96,7 +96,7 @@ const DEFAULT_PLANS = [
     id: 'business',
     name: 'Business',
     description: 'Pour les équipes qui ont besoin de collaboration et de volume',
-    price: { monthly: 99, yearly: 950.40 }, // -20% annuel
+    price: { monthly: 99, yearly: 990 },
     currency: 'EUR',
     features: [
       { name: '1000 designs/mois', included: true },

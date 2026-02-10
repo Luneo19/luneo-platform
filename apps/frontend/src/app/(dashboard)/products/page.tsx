@@ -36,7 +36,7 @@ function ProductsPageContent() {
       name: p.name,
       description: p.description,
       category: p.category || 'other',
-      image_url: p.imageUrl || p.images?.[0] || `https://picsum.photos/seed/${p.id}/400/400`,
+      image_url: p.imageUrl || p.images?.[0] || '/placeholder-product.png',
       price: p.price || 0,
     }));
   }, [productsQuery.data]);

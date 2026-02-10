@@ -207,6 +207,29 @@ export default function HealthScoreDashboardPage() {
     }
   };
 
+  const handleExport = () => {
+    if (sortedRows.length === 0) return;
+    
+    // Generate CSV from current filtered and sorted data
+    const headers = ['Name', 'Email', 'Health Score', 'Churn Risk', 'Last Activity'];
+    const rows = sortedRows.map((row) => [
+      row.name,
+      row.email,
+      String(row.healthScore),
+      row.churnRisk,
+      row.lastActivity,
+    ]);
+    
+    const csv = [headers, ...rows].map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `retention-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const hasError = dashboardError || atRiskError;
 
   return (
@@ -378,9 +401,11 @@ export default function HealthScoreDashboardPage() {
             variant="outline"
             size="sm"
             className="border-zinc-600 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100"
+            onClick={handleExport}
+            disabled={sortedRows.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export (placeholder)
+            Export
           </Button>
         </CardHeader>
         <CardContent className="overflow-x-auto">

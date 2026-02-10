@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useDemoMode } from '@/hooks/useDemoMode';
 import { logger } from '@/lib/logger';
 import { Palette, Eye, Download, DollarSign } from 'lucide-react';
 
@@ -72,16 +71,13 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isDemoMode } = useDemoMode();
 
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const endpoint = isDemoMode
-        ? `/api/demo/dashboard?period=${period}`
-        : `/api/dashboard/stats?period=${period}`;
+      const endpoint = `/api/dashboard/stats?period=${period}`;
 
       const response = await fetch(endpoint, {
         credentials: 'include',
@@ -250,14 +246,13 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
       logger.error('Erreur chargement dashboard', {
         error: err,
         period,
-        isDemoMode,
         message: errorMessage,
       });
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [period, isDemoMode]);
+  }, [period]);
 
   useEffect(() => {
     loadDashboardData();

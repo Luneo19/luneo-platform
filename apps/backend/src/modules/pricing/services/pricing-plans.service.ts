@@ -19,6 +19,8 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrencyUtils } from '@/config/currency.config';
+import { PLAN_CONFIGS } from '@/libs/plans/plan-config';
+import { PlanTier } from '@/libs/plans/plan-config.types';
 
 // ============================================================================
 // TYPES STRICTS
@@ -113,8 +115,8 @@ export class PricingPlansService {
       id: 'starter',
       name: 'Starter',
       description: 'Parfait pour découvrir Luneo et tester toutes les fonctionnalités de base',
-      monthlyPriceCents: 2900, // 29€
-      yearlyPriceCents: 27840, // 278.40€ (20% de remise)
+      monthlyPriceCents: PLAN_CONFIGS[PlanTier.STARTER].pricing.monthlyPrice * 100,
+      yearlyPriceCents: PLAN_CONFIGS[PlanTier.STARTER].pricing.yearlyPrice * 100,
       features: [
         '50 designs/mois',
         'Customizer 2D',
@@ -141,8 +143,8 @@ export class PricingPlansService {
       id: 'professional',
       name: 'Professional',
       description: 'Pour les créateurs et PME qui veulent passer à la vitesse supérieure',
-      monthlyPriceCents: 4900, // 49€
-      yearlyPriceCents: 47040, // 470.40€ (20% de remise)
+      monthlyPriceCents: PLAN_CONFIGS[PlanTier.PROFESSIONAL].pricing.monthlyPrice * 100,
+      yearlyPriceCents: PLAN_CONFIGS[PlanTier.PROFESSIONAL].pricing.yearlyPrice * 100,
       features: [
         '200 designs/mois',
         'Customizer 2D/3D',
@@ -154,12 +156,12 @@ export class PricingPlansService {
         '10 intégrations',
         'API accès complet',
         '10 membres d\'équipe',
-        '50 GB stockage',
+        '25 GB stockage',
       ],
       limits: {
         ai_generations: 100,
         ar_sessions: 1000,
-        storage_gb: 50,
+        storage_gb: 25,
         api_calls: 100000,
         team_members: 10,
         designs_per_month: 200,
@@ -172,8 +174,8 @@ export class PricingPlansService {
       id: 'business',
       name: 'Business',
       description: 'Pour les équipes qui ont besoin de collaboration et de volume',
-      monthlyPriceCents: 9900, // 99€
-      yearlyPriceCents: 95040, // 950.40€ (20% de remise)
+      monthlyPriceCents: PLAN_CONFIGS[PlanTier.BUSINESS].pricing.monthlyPrice * 100,
+      yearlyPriceCents: PLAN_CONFIGS[PlanTier.BUSINESS].pricing.yearlyPrice * 100,
       features: [
         '500 designs/mois',
         'Virtual Try-On',
@@ -200,8 +202,8 @@ export class PricingPlansService {
       id: 'enterprise',
       name: 'Enterprise',
       description: 'Solution sur-mesure pour les grandes organisations',
-      monthlyPriceCents: 0, // Sur demande
-      yearlyPriceCents: 0,
+      monthlyPriceCents: PLAN_CONFIGS[PlanTier.ENTERPRISE].pricing.monthlyPrice * 100,
+      yearlyPriceCents: PLAN_CONFIGS[PlanTier.ENTERPRISE].pricing.yearlyPrice * 100,
       features: [
         'Designs illimités',
         'Utilisateurs illimités',

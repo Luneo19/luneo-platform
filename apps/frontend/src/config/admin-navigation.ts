@@ -18,19 +18,16 @@ import {
   Activity,
   Settings,
   Zap,
-  DollarSign,
   TrendingUp,
-  Target,
   FileText,
   Sparkles,
-  Shield,
   Bell,
   Download,
   Building2,
   CreditCard,
   ClipboardList,
   Beaker,
-  Bot,
+  Target,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -188,26 +185,9 @@ export const adminNavigation: NavigationGroup[] = [
         icon: Activity,
       },
       {
-        title: 'AI Management',
-        href: '/admin/ai',
-        icon: Bot,
-      },
-      {
         title: 'Settings',
         href: '/admin/settings',
         icon: Settings,
-        children: [
-          {
-            title: 'General',
-            href: '/admin/settings',
-            icon: Settings,
-          },
-          {
-            title: 'Security',
-            href: '/admin/settings/security',
-            icon: Shield,
-          },
-        ],
       },
     ],
   },

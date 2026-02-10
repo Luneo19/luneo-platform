@@ -40,7 +40,8 @@ export async function GET(_request: NextRequest) {
       logger.warn('Backend admin/tenants fetch failed', { status: tenantsRes.status, userId: user.id });
       throw { status: 500, message: 'Erreur lors de la récupération des tenants' };
     }
-    const data = await tenantsRes.json();
+    const raw = await tenantsRes.json();
+    const data = raw.data ?? raw;
     const tenants = data.tenants ?? [];
 
     logger.info('Tenants fetched', { userId: user.id, count: tenants.length });

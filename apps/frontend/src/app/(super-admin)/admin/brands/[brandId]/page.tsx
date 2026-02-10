@@ -192,7 +192,7 @@ export default function BrandDetailPage() {
                       {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('fr-FR') : '—'}
                     </TableCell>
                     <TableCell className="text-sm text-zinc-400">
-                      {(user as { createdAt?: string }).createdAt ? new Date((user as { createdAt: string }).createdAt).toLocaleDateString('fr-FR') : '—'}
+                      {(user as unknown as { createdAt?: string }).createdAt ? new Date((user as unknown as { createdAt: string }).createdAt).toLocaleDateString('fr-FR') : '—'}
                     </TableCell>
                   </TableRow>
                 ))}

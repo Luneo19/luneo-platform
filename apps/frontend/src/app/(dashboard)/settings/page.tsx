@@ -118,6 +118,22 @@ function SettingsPageContent() {
     sessions: 3
   });
 
+  // Load settings from API
+  useEffect(() => {
+    fetch('/api/v1/users/settings', { credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          const settings = data.data || data;
+          if (settings.security) setSecurity(prev => ({ ...prev, ...settings.security }));
+          if (settings.notifications) setNotifications(prev => ({ ...prev, ...settings.notifications }));
+          if (settings.theme) setTheme(settings.theme);
+          if (settings.language) setLanguage(settings.language);
+        }
+      })
+      .catch(() => { /* Keep defaults if API fails */ });
+  }, []);
+
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',

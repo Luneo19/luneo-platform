@@ -33,10 +33,11 @@ export async function GET(
     const res = await fetch(`${API_URL}/api/v1/admin/brands/${brandId}`, {
       headers: forwardHeaders(request),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to fetch brand' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to fetch brand' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/brands/[brandId]', 'GET', error, 500);

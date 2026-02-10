@@ -160,6 +160,17 @@ export class TryOnController {
   // SESSIONS ENDPOINTS
   // ========================================
 
+  @Get('analytics')
+  @ApiOperation({ summary: 'Get try-on analytics' })
+  async getAnalytics(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    const user = req.user;
+    const brandId = user?.brandId;
+    return this.sessionService.getAnalytics(brandId, days ?? 30);
+  }
+
   @Post('sessions')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({

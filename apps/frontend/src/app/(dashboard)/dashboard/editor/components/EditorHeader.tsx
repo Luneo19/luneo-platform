@@ -1,17 +1,27 @@
 /**
- * Header de l'éditeur
+ * Editor header: logo, file name, save, export dropdown, undo/redo, view options
  */
 
 'use client';
 
-import { Save, Download, Undo2, Redo2, Grid, Ruler, Eye } from 'lucide-react';
+import { Save, Download, Undo2, Redo2, Grid, Ruler, Eye, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import type { ExportFormat } from '../types';
 
 interface EditorHeaderProps {
+  fileName: string;
+  onFileNameChange: (name: string) => void;
   onSave: () => void;
-  onExport: () => void;
+  onExport: (format: ExportFormat) => void;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -24,7 +34,16 @@ interface EditorHeaderProps {
   onToggleRulers: () => void;
 }
 
+const EXPORT_OPTIONS: { format: ExportFormat; label: string }[] = [
+  { format: 'png', label: 'PNG' },
+  { format: 'jpg', label: 'JPG' },
+  { format: 'svg', label: 'SVG' },
+  { format: 'pdf', label: 'PDF' },
+];
+
 export function EditorHeader({
+  fileName,
+  onFileNameChange,
   onSave,
   onExport,
   onUndo,
@@ -39,76 +58,94 @@ export function EditorHeader({
   onToggleRulers,
 }: EditorHeaderProps) {
   return (
-    <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-      <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold text-gray-900">Éditeur de Design</h1>
+    <div className="flex items-center justify-between gap-4 px-4 py-3 bg-zinc-900 border-b border-zinc-700">
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-lg font-semibold text-white">Luneo</span>
+          <span className="text-zinc-500 text-sm">Editor</span>
+        </div>
+        <Input
+          value={fileName}
+          onChange={(e) => onFileNameChange(e.target.value)}
+          className="max-w-[220px] h-9 bg-zinc-800 border-zinc-600 text-zinc-200 placeholder:text-zinc-500 text-sm"
+          placeholder="File name"
+        />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
+          className="h-9 w-9 text-zinc-400 hover:text-white hover:bg-zinc-800"
           onClick={onUndo}
           disabled={!canUndo}
-          className="text-gray-700"
         >
           <Undo2 className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
+          className="h-9 w-9 text-zinc-400 hover:text-white hover:bg-zinc-800"
           onClick={onRedo}
           disabled={!canRedo}
-          className="text-gray-700"
         >
           <Redo2 className="w-4 h-4" />
         </Button>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-6 bg-zinc-700 mx-1" />
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
+          className={cn('h-9 w-9', showGrid ? 'text-blue-400 bg-zinc-800' : 'text-zinc-400 hover:text-white hover:bg-zinc-800')}
           onClick={onToggleGrid}
-          className={cn('text-gray-700', showGrid && 'bg-gray-100')}
         >
           <Grid className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
+          className={cn('h-9 w-9', showGuides ? 'text-blue-400 bg-zinc-800' : 'text-zinc-400 hover:text-white hover:bg-zinc-800')}
           onClick={onToggleGuides}
-          className={cn('text-gray-700', showGuides && 'bg-gray-100')}
         >
           <Eye className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
+          className={cn('h-9 w-9', showRulers ? 'text-blue-400 bg-zinc-800' : 'text-zinc-400 hover:text-white hover:bg-zinc-800')}
           onClick={onToggleRulers}
-          className={cn('text-gray-700', showRulers && 'bg-gray-100')}
         >
           <Ruler className="w-4 h-4" />
         </Button>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-6 bg-zinc-700 mx-1" />
         <Button
           variant="outline"
           size="sm"
           onClick={onSave}
-          className="border-gray-200 text-gray-700"
+          className="h-9 border-zinc-600 text-zinc-200 hover:bg-zinc-800"
         >
           <Save className="w-4 h-4 mr-2" />
-          Enregistrer
+          Save
         </Button>
-        <Button
-          size="sm"
-          onClick={onExport}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Exporter
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700">
+              <Download className="w-4 h-4 mr-2" />
+              Export
+              <ChevronDown className="w-4 h-4 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-zinc-800 border-zinc-700">
+            {EXPORT_OPTIONS.map(({ format, label }) => (
+              <DropdownMenuItem
+                key={format}
+                onClick={() => onExport(format)}
+                className="text-zinc-200 focus:bg-zinc-700"
+              >
+                {label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
 }
-
-
-

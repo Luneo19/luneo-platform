@@ -29,10 +29,11 @@ export async function GET(request: NextRequest) {
     const res = await fetch(`${API_URL}/api/v1/admin/billing/overview`, {
       headers: forwardHeaders(request),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to fetch billing overview' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to fetch billing overview' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/billing/overview', 'GET', error, 500);

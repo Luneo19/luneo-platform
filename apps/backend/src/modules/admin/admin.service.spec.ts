@@ -22,12 +22,13 @@ describe('AdminService', () => {
       count: jest.fn(),
       aggregate: jest.fn(),
       findMany: jest.fn(),
+      groupBy: jest.fn(),
     },
     analyticsSegment: {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
-    brand: { count: jest.fn() },
+    brand: { count: jest.fn(), findMany: jest.fn(), groupBy: jest.fn() },
     product: { count: jest.fn() },
     design: { count: jest.fn() },
     aICost: { findMany: jest.fn() },
@@ -136,23 +137,51 @@ describe('AdminService', () => {
   });
 
   describe('getAnalyticsOverview', () => {
-    it('should return analytics overview', async () => {
-      mockPrisma.user.count.mockResolvedValueOnce(100).mockResolvedValueOnce(10);
+    it('should return full analytics overview matching frontend AdminOverviewData', async () => {
+      mockPrisma.user.count
+        .mockResolvedValueOnce(100)
+        .mockResolvedValueOnce(10)
+        .mockResolvedValueOnce(80);
       mockPrisma.order.count.mockResolvedValueOnce(50).mockResolvedValueOnce(5);
       mockPrisma.order.aggregate
         .mockResolvedValueOnce({ _sum: { totalCents: 100000 } })
-        .mockResolvedValueOnce({ _sum: { totalCents: 50000 } });
-      mockPrisma.user.count.mockResolvedValueOnce(80);
+        .mockResolvedValueOnce({ _sum: { totalCents: 50000 } })
+        .mockResolvedValueOnce({ _sum: { totalCents: 200000 } });
+      mockPrisma.order.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockPrisma.user.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockPrisma.brand.groupBy.mockResolvedValue([
+        { subscriptionPlan: 'FREE', _count: 50 },
+        { subscriptionPlan: 'STARTER', _count: 30 },
+      ]);
+      mockPrisma.order.groupBy.mockResolvedValue([]);
+      mockPrisma.brand.findMany.mockResolvedValue([]);
+      mockPrisma.user.findMany.mockResolvedValueOnce([]);
 
       const result = await service.getAnalyticsOverview();
 
-      expect(result.customers).toBe(100);
-      expect(result.newCustomers).toBe(10);
-      expect(result.totalOrders).toBe(50);
-      expect(result.ordersLast30Days).toBe(5);
-      expect(result.mrr).toBe(1000);
-      expect(result.arr).toBe(12000);
-      expect(typeof result.churnRate).toBe('number');
+      expect(result.kpis).toBeDefined();
+      expect(result.kpis.customers.value).toBe(100);
+      expect(result.kpis.customers.new).toBe(10);
+      expect(result.kpis.mrr.value).toBe(1000);
+      expect(result.kpis.mrr.trend).toMatch(/^(up|down|neutral)$/);
+      expect(result.revenue.mrr).toBe(1000);
+      expect(result.revenue.arr).toBe(12000);
+      expect(result.revenue.totalRevenue).toBe(2000);
+      expect(result.churn.rate).toBe(20);
+      expect(result.churn.count).toBe(20);
+      expect(result.ltv).toBeDefined();
+      expect(result.acquisition).toBeDefined();
+      expect(Array.isArray(result.recentActivity)).toBe(true);
+      expect(Array.isArray(result.recentCustomers)).toBe(true);
+      expect(Array.isArray(result.revenueChart)).toBe(true);
+      expect(Array.isArray(result.planDistribution)).toBe(true);
+      expect(Array.isArray(result.acquisitionChannels)).toBe(true);
     });
   });
 

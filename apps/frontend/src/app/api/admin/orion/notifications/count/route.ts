@@ -28,10 +28,11 @@ export async function GET(request: NextRequest) {
     const res = await fetch(`${API_URL}/api/v1/orion/notifications/count`, {
       headers: forwardHeaders(request),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
       return NextResponse.json({ count: 0 }, { status: 200 });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ count: 0 }, { status: 200 });

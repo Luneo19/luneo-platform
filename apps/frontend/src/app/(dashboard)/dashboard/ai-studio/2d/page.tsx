@@ -49,20 +49,43 @@ export default function AIStudio2DPage() {
 
     setIsGenerating(true);
     try {
-      // Simuler la génération (remplacer par l'appel API réel)
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      
-      const mockImage = `https://picsum.photos/512/512?random=${Date.now()}`;
-      setGeneratedImages((prev) => [mockImage, ...prev]);
+      // Calculate dimensions from aspect ratio
+      const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+      const baseSize = 512;
+      const width = Math.round((baseSize * widthRatio) / Math.max(widthRatio, heightRatio));
+      const height = Math.round((baseSize * heightRatio) / Math.max(widthRatio, heightRatio));
+
+      const res = await fetch('/api/v1/ai/generate-2d', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, style, width, height, quality: quality[0] }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Generation failed' }));
+        throw new Error(errorData.message || 'Generation failed');
+      }
+
+      const data = await res.json();
+      const result = data.data || data;
+      const imageUrl = result.imageUrl || result.url || result.image;
+
+      if (!imageUrl) {
+        throw new Error('No image URL returned from API');
+      }
+
+      setGeneratedImages((prev) => [imageUrl, ...prev]);
       
       toast({
         title: 'Succès',
         description: 'Design généré avec succès',
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la génération';
       toast({
         title: 'Erreur',
-        description: 'Erreur lors de la génération',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

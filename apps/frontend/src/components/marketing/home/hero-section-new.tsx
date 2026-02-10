@@ -21,10 +21,10 @@ const PRODUCT_TABS = [
 ] as const;
 
 const STATS = [
-  { value: '10K+', label: 'Utilisateurs actifs' },
-  { value: '500+', label: 'Marques' },
+  { value: 'IA', label: 'Powered' },
+  { value: '< 5s', label: 'Génération' },
   { value: '99.9%', label: 'Uptime' },
-  { value: '4.9/5', label: 'Note clients' },
+  { value: '24/7', label: 'Support' },
 ];
 
 // =============================================================================

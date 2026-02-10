@@ -5,7 +5,9 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { Palette, Sparkles, Box, Camera } from 'lucide-react';
 import { AnalyticsHeader } from './components/AnalyticsHeader';
 import { AnalyticsFilters } from './components/AnalyticsFilters';
 import { AnalyticsKPIs } from './components/AnalyticsKPIs';
@@ -131,8 +133,29 @@ export function AnalyticsPageClient() {
     );
   }
 
+  const moduleLinks = [
+    { title: 'Designs', href: '/dashboard/analytics/designs', icon: Palette, description: 'Designs créés, taux de complétion' },
+    { title: 'AI Studio', href: '/dashboard/analytics/ai', icon: Sparkles, description: 'Générations, crédits, coûts' },
+    { title: 'Configurateur 3D', href: '/dashboard/analytics/configurator', icon: Box, description: 'Sessions, configurations sauvegardées' },
+    { title: 'Virtual Try-On', href: '/dashboard/analytics/try-on', icon: Camera, description: 'Sessions AR, conversions' },
+  ];
+
   return (
     <div className="space-y-6 pb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {moduleLinks.map(({ title, href, icon: Icon, description }) => (
+          <Link
+            key={href}
+            href={href}
+            className="rounded-lg border border-gray-700 bg-gray-800/50 p-4 hover:bg-gray-800 hover:border-cyan-500/50 transition-colors"
+          >
+            <Icon className="w-8 h-8 text-cyan-400 mb-3" />
+            <h3 className="font-semibold text-white">{title}</h3>
+            <p className="text-sm text-gray-400 mt-1">{description}</p>
+          </Link>
+        ))}
+      </div>
+
       <div className="flex items-center justify-between">
         <AnalyticsHeader
           onExport={() => setShowExportModal(true)}

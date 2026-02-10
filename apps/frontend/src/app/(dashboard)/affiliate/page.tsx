@@ -60,21 +60,17 @@ function ReferralDashboardContent() {
         setStats(data.data.stats ?? null);
         setReferrals(data.data.referrals ?? []);
       } else {
-        // Données de démo
+        // Empty state - no data yet
         setStats({
-          totalReferrals: 12,
-          activeReferrals: 8,
-          pendingCommissions: 156.80,
-          paidCommissions: 892.40,
-          currentTier: 'Argent',
-          commissionRate: 25,
-          referralCode: 'LUNEO-USER123',
+          totalReferrals: 0,
+          activeReferrals: 0,
+          pendingCommissions: 0,
+          paidCommissions: 0,
+          currentTier: 'Bronze',
+          commissionRate: 20,
+          referralCode: '',
         });
-        setReferrals([
-          { id: '1', email: 'john***@email.com', status: 'active', plan: 'Professional', commission: 12.25, joined_at: '2024-01-15' },
-          { id: '2', email: 'marie***@email.com', status: 'active', plan: 'Business', commission: 24.75, joined_at: '2024-01-18' },
-          { id: '3', email: 'pierre***@email.com', status: 'pending', plan: 'Starter', commission: 0, joined_at: '2024-02-01' },
-        ]);
+        setReferrals([]);
       }
     } catch (error) {
       logger.error('Error loading referral data', { error });

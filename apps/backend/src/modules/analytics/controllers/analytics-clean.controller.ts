@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { AnalyticsCleanService } from '../services/analytics-clean.service';
@@ -43,6 +44,7 @@ export class AnalyticsCleanController {
 
   @Post('events')
   @Public() // Public: Accept anonymous tracking events (login page, etc.)
+  @Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 requests per minute per IP
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Track analytics events (single or batch)' })
   @ApiResponse({ status: 201, description: 'Event(s) tracked successfully' })

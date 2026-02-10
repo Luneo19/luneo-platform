@@ -5,11 +5,12 @@ import { Card } from '@/components/ui/card';
 import { FadeIn, SlideUp } from '@/components/animations';
 import { Check, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { PRICING } from '@/lib/pricing-constants';
 
 const plans = [
   {
     name: 'Starter',
-    price: '29',
+    price: PRICING.starter.monthly.toString(),
     period: '/mois',
     description: 'Parfait pour débuter',
     features: [
@@ -22,8 +23,8 @@ const plans = [
     popular: false,
   },
   {
-    name: 'Pro',
-    price: '99',
+    name: 'Professional',
+    price: PRICING.professional.monthly.toString(),
     period: '/mois',
     description: 'Pour les professionnels',
     features: [
@@ -38,7 +39,7 @@ const plans = [
   },
   {
     name: 'Enterprise',
-    price: 'Custom',
+    price: 'Sur demande',
     period: '',
     description: 'Sur mesure pour votre entreprise',
     features: [

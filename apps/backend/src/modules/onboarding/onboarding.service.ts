@@ -155,6 +155,10 @@ export class OnboardingService {
         where: { id: org.id },
         data: { industryId: industry.id },
       });
+      await this.prisma.brand.update({
+        where: { id: brandId },
+        data: { industry: industrySlug },
+      });
       const progress = await this.upsertProgress(org.id, userId);
       await this.prisma.onboardingProgress.update({
         where: { id: progress.id },

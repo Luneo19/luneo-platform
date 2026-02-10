@@ -31,6 +31,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { BulkActionProductsDto, ImportProductsDto, UploadProductModelDto } from './dto/products-extra.dto';
+import { CreateVariantDto, UpdateVariantDto, BulkCreateVariantsDto, UpdateStockDto } from './dto/product-variant.dto';
 
 @ApiTags('products')
 @Controller('products')
@@ -302,5 +303,78 @@ export class ProductsController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.productsService.uploadModel(id, body, req.user);
+  }
+
+  @Get(':id/variants')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List product variants' })
+  async getVariants(
+    @Param('id') productId: string,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user?.brandId;
+    return this.productsService.getVariants(productId, brandId);
+  }
+
+  @Post(':id/variants')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a product variant' })
+  async createVariant(
+    @Param('id') productId: string,
+    @Body() dto: CreateVariantDto,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user?.brandId;
+    return this.productsService.createVariant(productId, brandId, dto);
+  }
+
+  @Post(':id/variants/bulk')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Bulk create variants from attribute matrix' })
+  async bulkCreateVariants(
+    @Param('id') productId: string,
+    @Body() dto: BulkCreateVariantsDto,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user?.brandId;
+    return this.productsService.bulkCreateVariants(productId, brandId, dto);
+  }
+
+  @Patch(':id/variants/:variantId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a product variant' })
+  async updateVariant(
+    @Param('id') productId: string,
+    @Param('variantId') variantId: string,
+    @Body() dto: UpdateVariantDto,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user?.brandId;
+    return this.productsService.updateVariant(productId, variantId, brandId, dto);
+  }
+
+  @Patch(':id/variants/:variantId/stock')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update variant stock' })
+  async updateStock(
+    @Param('id') productId: string,
+    @Param('variantId') variantId: string,
+    @Body() dto: UpdateStockDto,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user?.brandId;
+    return this.productsService.updateStock(productId, variantId, brandId, dto.stock);
+  }
+
+  @Delete(':id/variants/:variantId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a product variant' })
+  async deleteVariant(
+    @Param('id') productId: string,
+    @Param('variantId') variantId: string,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user?.brandId;
+    return this.productsService.deleteVariant(productId, variantId, brandId);
   }
 }

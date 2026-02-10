@@ -7,7 +7,7 @@
 import { BudgetService } from '@/libs/budgets/budget.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AIGenerationStatus as PrismaAIGenerationStatus, AIGenerationType as PrismaAIGenerationType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
@@ -27,6 +27,9 @@ import {
     PromptTemplate,
 } from '../interfaces/ai-studio.interface';
 import { AIStudioQueueService } from './ai-studio-queue.service';
+import { MeshyProviderService } from './meshy-provider.service';
+import { RunwayProviderService } from './runway-provider.service';
+import { PlansService } from '@/modules/plans/plans.service';
 
 @Injectable()
 export class AIStudioService {
@@ -40,6 +43,9 @@ export class AIStudioService {
     private readonly queueService: AIStudioQueueService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly meshyProvider: MeshyProviderService,
+    private readonly runwayProvider: RunwayProviderService,
+    @Inject(forwardRef(() => PlansService)) private readonly plansService: PlansService,
   ) {
     this.openaiApiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
   }
@@ -61,6 +67,11 @@ export class AIStudioService {
   ): Promise<AIGeneration> {
     try {
       this.logger.log(`Generating ${type} for user: ${userId}, brand: ${brandId}`);
+
+      // Enforce design limit for image generations (2D, 3D, animations create designs)
+      if (type === AIGenerationType.IMAGE_2D || type === AIGenerationType.MODEL_3D || type === AIGenerationType.ANIMATION) {
+        await this.plansService.enforceDesignLimit(userId);
+      }
 
       // Vérifier le budget
       const estimatedCost = await this.estimateCost(type, prompt, parameters, model);
@@ -93,6 +104,43 @@ export class AIStudioService {
           brandId,
         },
       });
+
+      // Connect real providers for 3D and animation: start task and store taskId for worker polling
+      const paramsRecord = (created.parameters as Record<string, unknown>) || {};
+      if (type === AIGenerationType.MODEL_3D && this.meshyProvider.isConfigured) {
+        try {
+          const { taskId } = await this.meshyProvider.generateFromText(prompt, {
+            artStyle: (parameters.style as 'realistic' | 'cartoon' | 'low-poly' | 'sculpture') || 'realistic',
+            negativePrompt: parameters.negativePrompt,
+          });
+          await this.prisma.aIGeneration.update({
+            where: { id: created.id },
+            data: {
+              parameters: { ...paramsRecord, meshyTaskId: taskId },
+              status: PrismaAIGenerationStatus.PROCESSING,
+            },
+          });
+        } catch (err) {
+          this.logger.warn(`Meshy 3D start failed for ${created.id}, worker will use fallback: ${err instanceof Error ? err.message : err}`);
+        }
+      }
+      if (type === AIGenerationType.ANIMATION && this.runwayProvider.isConfigured && parameters.referenceImageUrl) {
+        try {
+          const { taskId } = await this.runwayProvider.generateVideo(parameters.referenceImageUrl as string, {
+            promptText: prompt,
+            duration: 5,
+          });
+          await this.prisma.aIGeneration.update({
+            where: { id: created.id },
+            data: {
+              parameters: { ...paramsRecord, runwayTaskId: taskId },
+              status: PrismaAIGenerationStatus.PROCESSING,
+            },
+          });
+        } catch (err) {
+          this.logger.warn(`Runway animation start failed for ${created.id}, worker will use fallback: ${err instanceof Error ? err.message : err}`);
+        }
+      }
 
       await this.queueService.queueGeneration(
         created.id,

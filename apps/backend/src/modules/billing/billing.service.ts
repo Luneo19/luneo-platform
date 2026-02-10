@@ -14,6 +14,7 @@ import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { StripeClientService } from './services/stripe-client.service';
 import { StripeWebhookService } from './services/stripe-webhook.service';
+import { AuditLogsService, AuditEventType } from '@/modules/security/services/audit-logs.service';
 
 /**
  * BillingService — Façade for all billing operations.
@@ -31,6 +32,7 @@ export class BillingService {
     private prisma: PrismaService,
     private stripeClient: StripeClientService,
     private webhookService: StripeWebhookService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   // ──────────────────────────────────────────────────────────────
@@ -793,7 +795,7 @@ export class BillingService {
         updateParams
       );
 
-      // 10. Mettre à jour la base de données locale
+      // 10. Mettre à jour la base de données locale avec protection transactionnelle
       const planMapping: Record<string, string> = {
         'starter': 'STARTER',
         'professional': 'PROFESSIONAL',
@@ -801,15 +803,31 @@ export class BillingService {
         'enterprise': 'ENTERPRISE',
       };
 
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: {
-          plan: newPlanId,
-          subscriptionPlan: (planMapping[newPlanId] || 'STARTER') as SubscriptionPlan,
-          // Ne pas changer le status si c'est un downgrade programmé
-          ...(isUpgrade ? { subscriptionStatus: 'ACTIVE' } : {}),
-        },
-      });
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.brand.update({
+            where: { id: brand.id },
+            data: {
+              plan: newPlanId,
+              subscriptionPlan: (planMapping[newPlanId] || 'STARTER') as SubscriptionPlan,
+              // Ne pas changer le status si c'est un downgrade programmé
+              ...(isUpgrade ? { subscriptionStatus: 'ACTIVE' } : {}),
+            },
+          });
+        });
+      } catch (dbError) {
+        // CRITICAL: Stripe was updated but DB failed - log for manual reconciliation
+        this.logger.error('CRITICAL: Stripe subscription updated but database sync failed', {
+          userId,
+          brandId: brand.id,
+          stripeSubscriptionId: updatedSubscription.id,
+          newPlan: newPlanId,
+          error: dbError instanceof Error ? dbError.message : 'Unknown',
+        });
+        throw new InternalServerErrorException(
+          'Plan change partially applied. Our team has been notified and will resolve this shortly.'
+        );
+      }
 
       // 11. Log the successful change
       this.logger.log('Plan change completed', {
@@ -821,6 +839,25 @@ export class BillingService {
         prorationAmount,
         subscriptionId: updatedSubscription.id,
       });
+
+      // 12. Audit log the plan change
+      try {
+        await this.auditLogsService.logSuccess(AuditEventType.BILLING_UPDATED, 'plan_change', {
+          userId,
+          brandId: brand.id,
+          resourceType: 'subscription',
+          resourceId: brand.stripeSubscriptionId || undefined,
+          metadata: {
+            previousPlan: currentPlanInfo.planName,
+            newPlan: newPlanId,
+            type: isUpgrade ? 'upgrade' : 'downgrade',
+            prorationAmount: prorationAmount || 0,
+          },
+        });
+      } catch (auditError) {
+        // Don't fail the operation if audit logging fails
+        this.logger.warn('Failed to log audit event for plan change', { error: auditError });
+      }
 
       return {
         success: true,

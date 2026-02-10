@@ -32,10 +32,11 @@ export async function GET(request: NextRequest) {
     searchParams.forEach((v, k) => url.searchParams.set(k, v));
 
     const res = await fetch(url.toString(), { headers: forwardHeaders(request) });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to fetch webhooks' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to fetch webhooks' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/webhooks', 'GET', error, 500);
@@ -56,10 +57,11 @@ export async function POST(request: NextRequest) {
       headers: forwardHeaders(request),
       body: JSON.stringify(body),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to create webhook' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to create webhook' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data, { status: res.status === 201 ? 201 : 200 });
   } catch (error) {
     serverLogger.apiError('/api/admin/webhooks', 'POST', error, 500);

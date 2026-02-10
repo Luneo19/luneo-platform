@@ -200,6 +200,10 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         minimumPlan: 'business',
         children: [
           { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, description: 'Métriques principales' },
+          { name: 'Designs', href: '/dashboard/analytics/designs', icon: Palette, description: 'Designs, taux de complétion' },
+          { name: 'AI Studio', href: '/dashboard/analytics/ai', icon: Sparkles, description: 'Générations, crédits' },
+          { name: 'Configurateur 3D', href: '/dashboard/analytics/configurator', icon: Box, description: 'Sessions, configs sauvegardées' },
+          { name: 'Virtual Try-On', href: '/dashboard/analytics/try-on', icon: Camera, description: 'Sessions AR, conversions' },
           { name: 'Analytics Avancées', href: '/dashboard/analytics-advanced', icon: TrendingUp, description: 'Analyses approfondies' },
           { name: 'A/B Testing', href: '/dashboard/ab-testing', icon: FlaskConical, description: 'Tests d\'optimisation' }
         ]
@@ -211,12 +215,14 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         description: 'Gestion des webhooks',
       },
       {
-        name: 'Seller',
-        href: '/dashboard/seller',
+        name: 'Marketplace',
+        href: '/dashboard/marketplace',
         icon: Store,
-        description: 'Dashboard vendeur',
-        badge: 'Pro',
-        moduleSlug: 'marketplace',
+        description: 'Templates et assets entre marques',
+        children: [
+          { name: 'Browse', href: '/dashboard/marketplace', icon: Store, description: 'Parcourir le marketplace' },
+          { name: 'Seller dashboard', href: '/dashboard/marketplace/seller', icon: Store, description: 'Gérer vos annonces' },
+        ],
       },
       {
         name: 'Monitoring temps réel',
@@ -499,7 +505,7 @@ function Sidebar() {
 
             <div className="space-y-1">
               {section.items.map((item) => {
-                if (item.href === '/monitoring' && !monitoringEnabled) {
+                if (item.href === '/dashboard/monitoring' && !monitoringEnabled) {
                   return null;
                 }
 

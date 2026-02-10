@@ -10,6 +10,8 @@ import { Job } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AIOrchestratorService } from '@/libs/ai/ai-orchestrator.service';
 import { AiService } from '@/modules/ai/ai.service';
+import { MeshyProviderService } from '@/modules/ai/services/meshy-provider.service';
+import { RunwayProviderService } from '@/modules/ai/services/runway-provider.service';
 import { AIGenerationStatus, AIGenerationType } from '@prisma/client';
 
 export interface AIGenerationJob {
@@ -33,6 +35,8 @@ export class AIStudioWorker {
     private readonly prisma: PrismaService,
     private readonly aiOrchestrator: AIOrchestratorService,
     private readonly aiService: AiService,
+    private readonly meshyProvider: MeshyProviderService,
+    private readonly runwayProvider: RunwayProviderService,
   ) {}
 
   @Process('generate-ai-studio')
@@ -76,10 +80,10 @@ export class AIStudioWorker {
           break;
         }
         case AIGenerationType.MODEL_3D:
-          ({ resultUrl, thumbnailUrl, quality } = await this.generateModel3D(prompt, negativePrompt, model, parameters));
+          ({ resultUrl, thumbnailUrl, quality } = await this.generateModel3D(generationId, prompt, negativePrompt, model, parameters));
           break;
         case AIGenerationType.ANIMATION:
-          ({ resultUrl, thumbnailUrl, quality } = await this.generateAnimation(prompt, negativePrompt, model, parameters));
+          ({ resultUrl, thumbnailUrl, quality } = await this.generateAnimation(generationId, prompt, negativePrompt, model, parameters));
           break;
         case AIGenerationType.TEMPLATE:
           ({ resultUrl, thumbnailUrl, quality } = await this.generateTemplate(prompt, negativePrompt, model, parameters));
@@ -189,14 +193,35 @@ export class AIStudioWorker {
   }
 
   /**
-   * Génère un modèle 3D — stub: crée des entrées placeholder pour traitement externe ultérieur
+   * Génère un modèle 3D — Meshy when configured and taskId present, else stub
    */
   private async generateModel3D(
-    _prompt: string,
+    generationId: string,
+    prompt: string,
     _negativePrompt: string | undefined,
     _model: string,
-    _parameters: any,
+    parameters: any,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
+    const generation = await this.prisma.aIGeneration.findUnique({
+      where: { id: generationId },
+    });
+    const params = (generation?.parameters as Record<string, unknown>) || {};
+    const meshyTaskId = params.meshyTaskId as string | undefined;
+
+    if (this.meshyProvider.isConfigured && meshyTaskId) {
+      const task = await this.meshyProvider.pollUntilComplete(meshyTaskId);
+      const resultUrl = task.model_urls?.glb || task.model_urls?.obj || '';
+      const thumbnailUrl = task.thumbnail_url || resultUrl;
+      if (!resultUrl) {
+        throw new Error('Meshy succeeded but no model URL returned');
+      }
+      return {
+        resultUrl,
+        thumbnailUrl,
+        quality: 90,
+      };
+    }
+
     await this.simulateGeneration(5000);
     const id = Date.now();
     return {
@@ -207,14 +232,30 @@ export class AIStudioWorker {
   }
 
   /**
-   * Génère une animation — stub: placeholder pour traitement externe
+   * Génère une animation — Runway when configured and taskId present, else stub
    */
   private async generateAnimation(
+    generationId: string,
     _prompt: string,
     _negativePrompt: string | undefined,
     _model: string,
-    _parameters: any,
+    parameters: any,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
+    const generation = await this.prisma.aIGeneration.findUnique({
+      where: { id: generationId },
+    });
+    const params = (generation?.parameters as Record<string, unknown>) || {};
+    const runwayTaskId = params.runwayTaskId as string | undefined;
+
+    if (this.runwayProvider.isConfigured && runwayTaskId) {
+      const { videoUrl } = await this.runwayProvider.pollUntilComplete(runwayTaskId);
+      return {
+        resultUrl: videoUrl,
+        thumbnailUrl: videoUrl,
+        quality: 88,
+      };
+    }
+
     await this.simulateGeneration(8000);
     const id = Date.now();
     return {

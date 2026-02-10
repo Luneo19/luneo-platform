@@ -1,30 +1,30 @@
 'use client';
 
 import { FadeIn, StaggerChildren, StaggerItem } from '@/components/animations';
-import { Users, Sparkles, Zap, Globe } from 'lucide-react';
+import { Palette, Zap, Shield, Globe } from 'lucide-react';
 
 const stats = [
   {
-    value: '10,000+',
-    label: 'Créateurs actifs',
-    icon: <Users className="w-8 h-8" />,
+    value: 'IA Avancée',
+    label: 'Génération de designs',
+    icon: <Palette className="w-8 h-8" />,
     gradient: 'from-blue-500 to-cyan-500',
   },
   {
-    value: '500M+',
-    label: 'Designs générés',
-    icon: <Sparkles className="w-8 h-8" />,
+    value: '< 5s',
+    label: 'Temps de génération',
+    icon: <Zap className="w-8 h-8" />,
     gradient: 'from-purple-500 to-pink-500',
   },
   {
-    value: '3.2s',
-    label: 'Temps moyen génération',
-    icon: <Zap className="w-8 h-8" />,
+    value: '99.9%',
+    label: 'Disponibilité',
+    icon: <Shield className="w-8 h-8" />,
     gradient: 'from-orange-500 to-red-500',
   },
   {
-    value: '150+',
-    label: 'Pays',
+    value: 'Multi-pays',
+    label: 'Couverture internationale',
     icon: <Globe className="w-8 h-8" />,
     gradient: 'from-green-500 to-emerald-500',
   },

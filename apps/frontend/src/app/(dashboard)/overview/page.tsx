@@ -1,8 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { DemoModeBanner } from '@/components/demo/DemoModeBanner';
 import { useOverviewData } from './hooks/useOverviewData';
 import { OverviewHeader } from './components/OverviewHeader';
 import { OverviewStatsGrid } from './components/OverviewStatsGrid';
@@ -15,6 +15,8 @@ import { OverviewLoadingState } from './components/OverviewLoadingState';
 import { OverviewErrorState } from './components/OverviewErrorState';
 import { Sparkles, Layers, TrendingUp, Store, Zap, ChevronRight } from 'lucide-react';
 
+// TODO: Replace with personalized suggestions from /api/v1/ai/suggestions
+// based on user behavior and current plan usage
 const AI_SUGGESTIONS = [
   {
     id: 'batch',
@@ -47,6 +49,20 @@ const AI_SUGGESTIONS = [
 ] as const;
 
 export default function DashboardPage() {
+  useEffect(() => {
+    fetch('/api/onboarding/progress', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const progress = data?.data ?? data;
+        if (progress && progress.completed === false) {
+          window.location.href = '/onboarding';
+        } else if (progress && progress.organization && !progress.organization.onboardingCompletedAt && (progress.currentStep ?? 0) < 6) {
+          window.location.href = '/onboarding';
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const {
     loading,
     error,
@@ -58,7 +74,6 @@ export default function DashboardPage() {
     recentActivity,
     topDesigns,
     quickActions,
-    isDemoMode,
   } = useOverviewData();
 
   if (loading) return <OverviewLoadingState />;
@@ -69,12 +84,10 @@ export default function DashboardPage() {
   return (
     <ErrorBoundary level="page" componentName="DashboardOverview">
       <div className="min-h-screen bg-dark-bg text-white space-y-[var(--dash-gap)]">
-        <DemoModeBanner />
         <OverviewHeader
           selectedPeriod={selectedPeriod}
           onPeriodChange={handlePeriodChange}
           onRefresh={refresh}
-          isDemoMode={isDemoMode}
         />
         {error && <OverviewErrorBanner error={error} onRetry={refresh} />}
         <OverviewStatsGrid stats={displayStats} chartData={chartData} />

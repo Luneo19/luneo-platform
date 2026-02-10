@@ -32,7 +32,8 @@ export async function PUT(
       method: 'PUT',
       headers: forwardHeaders(request),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });

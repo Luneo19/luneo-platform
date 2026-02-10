@@ -311,12 +311,25 @@ export const endpoints = {
 
   // Products
   products: {
-    list: (params?: { page?: number; limit?: number }) => 
+    list: (params?: { page?: number; limit?: number }) =>
       api.get('/api/v1/products', { params }),
     get: (id: string) => api.get(`/api/v1/products/${id}`),
     create: (data: Record<string, unknown>) => api.post('/api/v1/products', data),
     update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/products/${id}`, data),
     delete: (id: string) => api.delete(`/api/v1/products/${id}`),
+    variants: {
+      list: (productId: string) => api.get(`/api/v1/products/${productId}/variants`),
+      create: (productId: string, data: Record<string, unknown>) =>
+        api.post(`/api/v1/products/${productId}/variants`, data),
+      update: (productId: string, variantId: string, data: Record<string, unknown>) =>
+        api.patch(`/api/v1/products/${productId}/variants/${variantId}`, data),
+      updateStock: (productId: string, variantId: string, stock: number) =>
+        api.patch(`/api/v1/products/${productId}/variants/${variantId}/stock`, { stock }),
+      delete: (productId: string, variantId: string) =>
+        api.delete(`/api/v1/products/${productId}/variants/${variantId}`),
+      bulkCreate: (productId: string, data: { attributeOptions: Record<string, string[]>; basePrice?: number; baseStock?: number }) =>
+        api.post(`/api/v1/products/${productId}/variants/bulk`, data),
+    },
   },
 
   // Projects / Workspaces

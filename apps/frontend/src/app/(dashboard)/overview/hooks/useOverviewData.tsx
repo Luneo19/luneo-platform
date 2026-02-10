@@ -7,7 +7,6 @@ import {
   useDashboardUsage,
 } from '@/lib/hooks/api/useDashboard';
 import { useNotifications } from '@/lib/hooks/useNotifications';
-import { useDemoMode } from '@/hooks/useDemoMode';
 import type { StatItem } from '../components/OverviewStatsGrid';
 import type { ActivityItem } from '../components/OverviewRecentActivity';
 import type { TopDesignItem } from '../components/OverviewTopDesigns';
@@ -26,7 +25,6 @@ export function useOverviewData() {
   const { data: chartData, isLoading: chartLoading } = useDashboardChartData(selectedPeriod);
   const { data: usageData } = useDashboardUsage(selectedPeriod);
   const { notifications, loading: notificationsLoading } = useNotifications(10);
-  const { isDemoMode } = useDemoMode();
 
   const loading = statsLoading || chartLoading;
   const error = statsError?.message || null;
@@ -187,6 +185,5 @@ export function useOverviewData() {
     notifications: notifications as NotificationItem[],
     showAllNotifications,
     setShowAllNotifications,
-    isDemoMode,
   };
 }

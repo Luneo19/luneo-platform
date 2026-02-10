@@ -29,11 +29,12 @@ export async function GET(request: NextRequest) {
     const res = await fetch(`${API_URL}/api/v1/admin/marketing/automations`, {
       headers: forwardHeaders(request),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to fetch automations' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to fetch automations' }, { status: res.status });
     }
-    return NextResponse.json(Array.isArray(data) ? data : data.data ?? data);
+    const data = raw.data ?? raw;
+    return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/marketing/automations', 'GET', error);
     return NextResponse.json({ error: 'Failed to fetch automations' }, { status: 500 });
@@ -52,10 +53,11 @@ export async function POST(request: NextRequest) {
       headers: forwardHeaders(request),
       body: JSON.stringify(body),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to create automation' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to create automation' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data, { status: res.status === 201 ? 201 : 200 });
   } catch (error) {
     serverLogger.apiError('/api/admin/marketing/automations', 'POST', error);

@@ -33,10 +33,11 @@ export async function DELETE(
       method: 'DELETE',
       headers: forwardHeaders(_request),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to delete segment' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to delete segment' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/orion/segments/[id]', 'DELETE', error, 500);

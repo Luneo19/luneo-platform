@@ -21,6 +21,47 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       },
       log: configService.get('app.nodeEnv') === 'development' ? ['query', 'error', 'warn'] : ['error'],
     });
+
+    // Soft-delete middleware: automatically filter deleted records
+    this.$use(async (params, next) => {
+      // Models with soft delete
+      const softDeleteModels = ['User', 'Brand', 'Product', 'Design', 'Order', 'Generation', 'Workspace', 'Template'];
+      
+      if (softDeleteModels.includes(params.model || '')) {
+        // For find operations, add deletedAt: null filter
+        if (params.action === 'findMany' || params.action === 'findFirst') {
+          if (!params.args) params.args = {};
+          if (!params.args.where) params.args.where = {};
+          // Don't override if explicitly querying for deleted records
+          if (params.args.where.deletedAt === undefined) {
+            params.args.where.deletedAt = null;
+          }
+        }
+        // For count operations
+        if (params.action === 'count') {
+          if (!params.args) params.args = {};
+          if (!params.args.where) params.args.where = {};
+          if (params.args.where.deletedAt === undefined) {
+            params.args.where.deletedAt = null;
+          }
+        }
+        // Convert delete to soft delete
+        if (params.action === 'delete') {
+          params.action = 'update';
+          if (!params.args) params.args = {};
+          params.args['data'] = { deletedAt: new Date() };
+          // where clause is already in params.args.where
+        }
+        if (params.action === 'deleteMany') {
+          params.action = 'updateMany';
+          if (!params.args) params.args = {};
+          params.args['data'] = { deletedAt: new Date() };
+          // where clause is already in params.args.where
+        }
+      }
+      
+      return next(params);
+    });
   }
 
   async onModuleInit() {

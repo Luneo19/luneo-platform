@@ -1,95 +1,213 @@
 /**
- * Hook personnalisé pour gérer l'éditeur
+ * Hook for the visual editor: objects, history, tools, export, save, AI
  */
 
 import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/lib/api/client';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-import type { Layer, EditorTool, HistoryState, TextTool, ShapeTool, ImageTool } from '../types';
+import type {
+  CanvasObject,
+  EditorTool,
+  HistoryState,
+  ShapeKind,
+  ExportFormat,
+  EditorTemplate,
+} from '../types';
+
+const defaultTextTool = {
+  fontFamily: 'Arial',
+  fontSize: 24,
+  fontWeight: 'normal',
+  color: '#000000',
+  align: 'left' as const,
+};
+
+const defaultShapeTool = {
+  type: 'rect' as ShapeKind,
+  fill: '#3B82F6',
+  stroke: '#1e40af',
+  strokeWidth: 0,
+  borderRadius: 0,
+};
+
+function createId() {
+  return `obj-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function createObject(
+  type: CanvasObject['type'],
+  overrides: Partial<CanvasObject> & { shapeKind?: ShapeKind }
+): CanvasObject {
+  const base: CanvasObject = {
+    id: createId(),
+    type,
+    x: 120,
+    y: 120,
+    width: type === 'text' ? 200 : 150,
+    height: type === 'text' ? 40 : 150,
+    rotation: 0,
+    fill: type === 'text' ? '#000000' : defaultShapeTool.fill,
+    opacity: 1,
+    name: `${type} ${Date.now()}`,
+    visible: true,
+    locked: false,
+    zIndex: 0,
+  };
+  if (type === 'text') {
+    base.text = 'Text';
+    base.fontSize = 24;
+    base.fontFamily = 'Arial';
+    base.align = 'left';
+  }
+  if (type === 'shape' && overrides.shapeKind) base.shapeKind = overrides.shapeKind;
+  return { ...base, ...overrides };
+}
 
 export function useEditor() {
   const { toast } = useToast();
+  const stageRef = useRef<{ toDataURL: (opts?: { mimeType?: string; quality?: number }) => string } | null>(null);
+
+  const [fileName, setFileName] = useState('Untitled design');
   const [selectedTool, setSelectedTool] = useState<EditorTool>('select');
-  const [layers, setLayers] = useState<Layer[]>([]);
-  const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
+  const [objects, setObjects] = useState<CanvasObject[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(true);
   const [showGuides, setShowGuides] = useState(true);
-  const [showRulers, setShowRulers] = useState(true);
+  const [showRulers, setShowRulers] = useState(false);
+  const [textTool, setTextTool] = useState(defaultTextTool);
+  const [shapeTool, setShapeTool] = useState(defaultShapeTool);
+  const [drawColor, setDrawColor] = useState('#000000');
+  const [drawStrokeWidth, setDrawStrokeWidth] = useState(4);
 
-  const [textTool, setTextTool] = useState<TextTool>({
-    fontFamily: 'Arial',
-    fontSize: 24,
-    fontWeight: 'normal',
-    color: '#000000',
-    align: 'left',
-  });
-
-  const [shapeTool, setShapeTool] = useState<ShapeTool>({
-    type: 'rect',
-    fill: '#3B82F6',
-    stroke: '#000000',
-    strokeWidth: 0,
-    borderRadius: 0,
-  });
-
-  const [imageTool, setImageTool] = useState<ImageTool>({
-    brightness: 100,
-    contrast: 100,
-    saturation: 100,
-    opacity: 100,
-  });
-
-  const saveHistory = useCallback((newLayers: Layer[]) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({
-      layers: newLayers,
-      timestamp: Date.now(),
+  const pushHistory = useCallback((newObjects: CanvasObject[]) => {
+    setHistory((prev) => {
+      const next = prev.slice(0, historyIndex + 1);
+      next.push({ objects: newObjects, timestamp: Date.now() });
+      return next.slice(-50);
     });
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  }, [history, historyIndex]);
+    setHistoryIndex((prev) => Math.min(prev + 1, 49));
+  }, [historyIndex]);
 
-  const handleAddLayer = useCallback((type: Layer['type']) => {
-    const newLayer: Layer = {
-      id: `layer-${Date.now()}`,
-      name: `${type === 'text' ? 'Texte' : type === 'image' ? 'Image' : 'Forme'} ${layers.length + 1}`,
-      type,
-      visible: true,
-      locked: false,
-      opacity: 100,
-      x: 100,
-      y: 100,
-      width: type === 'text' ? 200 : 150,
-      height: type === 'text' ? 50 : 150,
-      rotation: 0,
-      zIndex: layers.length,
-      data: {},
-    };
+  const updateObject = useCallback((id: string, attrs: Partial<CanvasObject>) => {
+    setObjects((prev) => {
+      const next = prev.map((o) => (o.id === id ? { ...o, ...attrs } : o));
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
 
-    const newLayers = [...layers, newLayer];
-    setLayers(newLayers);
-    setSelectedLayer(newLayer.id);
-    saveHistory(newLayers);
-    toast({ title: 'Succès', description: 'Calque ajouté' });
-  }, [layers, saveHistory, toast]);
+  const addObject = useCallback((obj: CanvasObject) => {
+    const withZ = { ...obj, zIndex: objects.length };
+    setObjects((prev) => {
+      const next = [...prev, withZ];
+      pushHistory(next);
+      return next;
+    });
+    setSelectedId(obj.id);
+    toast({ title: 'Added', description: `${obj.type} added to canvas` });
+  }, [objects.length, pushHistory, toast]);
 
-  const handleDeleteLayer = useCallback((layerId: string) => {
-    const newLayers = layers.filter((l) => l.id !== layerId);
-    setLayers(newLayers);
-    setSelectedLayer(null);
-    saveHistory(newLayers);
-    toast({ title: 'Succès', description: 'Calque supprimé' });
-  }, [layers, saveHistory, toast]);
+  const addText = useCallback(() => {
+    addObject(
+      createObject('text', {
+        text: 'Text',
+        fontSize: textTool.fontSize,
+        fontFamily: textTool.fontFamily,
+        fill: textTool.color,
+        align: textTool.align as 'left' | 'center' | 'right',
+      })
+    );
+  }, [addObject, textTool]);
+
+  const addShape = useCallback((kind: ShapeKind) => {
+    addObject(
+      createObject('shape', {
+        shapeKind: kind,
+        fill: shapeTool.fill,
+        stroke: shapeTool.stroke,
+        strokeWidth: shapeTool.strokeWidth,
+      })
+    );
+  }, [addObject, shapeTool]);
+
+  const addImage = useCallback((src: string) => {
+    addObject(
+      createObject('image', { src, width: 200, height: 200 })
+    );
+  }, [addObject]);
+
+  const addDrawLayer = useCallback((points: number[]) => {
+    if (points.length < 4) return;
+    addObject(
+      createObject('draw', {
+        points,
+        fill: drawColor,
+        strokeWidth: drawStrokeWidth,
+        width: 0,
+        height: 0,
+      })
+    );
+  }, [addObject, drawColor, drawStrokeWidth]);
+
+  const deleteObject = useCallback((id: string) => {
+    setObjects((prev) => {
+      const next = prev.filter((o) => o.id !== id);
+      pushHistory(next);
+      return next;
+    });
+    if (selectedId === id) setSelectedId(null);
+    toast({ title: 'Deleted', description: 'Object removed' });
+  }, [pushHistory, selectedId, toast]);
+
+  const reorderObject = useCallback((id: string, direction: 'up' | 'down') => {
+    setObjects((prev) => {
+      const sorted = [...prev].sort((a, b) => a.zIndex - b.zIndex);
+      const idx = sorted.findIndex((o) => o.id === id);
+      if (idx < 0) return prev;
+      const swapIdx = direction === 'up' ? idx + 1 : idx - 1;
+      if (swapIdx < 0 || swapIdx >= sorted.length) return prev;
+      const a = sorted[idx];
+      const b = sorted[swapIdx];
+      const next = prev.map((o) => {
+        if (o.id === a.id) return { ...o, zIndex: b.zIndex };
+        if (o.id === b.id) return { ...o, zIndex: a.zIndex };
+        return o;
+      });
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
+
+  const setObjectsWithHistory = useCallback((next: CanvasObject[]) => {
+    setObjects(next);
+    pushHistory(next);
+  }, [pushHistory]);
+
+  const applyTemplate = useCallback((template: EditorTemplate) => {
+    const withIds = template.objects.map((o, i) => ({
+      ...o,
+      id: createId(),
+      zIndex: objects.length + i,
+      x: o.x + 0,
+      y: o.y + 0,
+    })) as CanvasObject[];
+    setObjects((prev) => {
+      const next = [...prev, ...withIds];
+      pushHistory(next);
+      return next;
+    });
+    toast({ title: 'Template applied', description: template.name });
+  }, [objects.length, pushHistory, toast]);
 
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
-      setLayers(history[newIndex].layers);
+      setObjects(history[newIndex].objects);
     }
   }, [history, historyIndex]);
 
@@ -97,70 +215,132 @@ export function useEditor() {
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
-      setLayers(history[newIndex].layers);
+      setObjects(history[newIndex].objects);
     }
   }, [history, historyIndex]);
 
-  const handleSave = useCallback(async () => {
-    try {
-      await api.post('/api/v1/editor/projects', { layers });
-      toast({ title: 'Succès', description: 'Projet enregistré' });
-      return { success: true };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erreur lors de l'enregistrement";
-      logger.error('Failed to save project', { error });
-      toast({
-        title: 'Erreur',
-        description: message,
-        variant: 'destructive',
-      });
-      return { success: false, error: message };
-    }
-  }, [layers, toast]);
-
-  const handleExport = useCallback(async (format: string) => {
-    try {
-      const data = await api.post<Blob | { url?: string }>(
-        '/api/v1/editor/export',
-        { layers, format },
-        { responseType: 'blob' }
-      );
-      if (data instanceof Blob) {
-        const url = window.URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `design.${format}`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } else if (data && typeof (data as { url?: string }).url === 'string') {
-        const a = document.createElement('a');
-        a.href = (data as { url: string }).url;
-        a.download = `design.${format}`;
-        a.click();
-      } else {
-        throw new Error('Export response missing url or blob');
+  const handleExport = useCallback(
+    async (format: ExportFormat) => {
+      const stage = stageRef.current;
+      if (!stage?.toDataURL) {
+        toast({ title: 'Error', description: 'Canvas not ready', variant: 'destructive' });
+        return;
       }
-      toast({ title: 'Succès', description: 'Export réussi' });
-      return { success: true };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erreur lors de l'export";
-      logger.error('Failed to export', { error });
-      toast({
-        title: 'Erreur',
-        description: message,
-        variant: 'destructive',
-      });
-      return { success: false, error: message };
+      try {
+        if (format === 'png') {
+          const dataUrl = stage.toDataURL({});
+          downloadDataUrl(dataUrl, `${fileName}.png`);
+        } else if (format === 'jpg') {
+          const dataUrl = stage.toDataURL({ mimeType: 'image/jpeg', quality: 0.9 });
+          downloadDataUrl(dataUrl, `${fileName}.jpg`);
+        } else if (format === 'svg') {
+          const width = (stage as { width?: () => number }).width?.() ?? 800;
+          const height = (stage as { height?: () => number }).height?.() ?? 600;
+          let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+          svgContent += `<rect width="${width}" height="${height}" fill="white"/>`;
+          objects
+            .filter((o) => o.visible !== false)
+            .forEach((obj) => {
+              const x = obj.x;
+              const y = obj.y;
+              const w = obj.width ?? 0;
+              const h = obj.height ?? 0;
+              const fill = obj.fill ?? '#000';
+              const opacity = obj.opacity ?? 1;
+              const rotation = obj.rotation ?? 0;
+              const cx = x + w / 2;
+              const cy = y + h / 2;
+              if (obj.type === 'shape' && obj.shapeKind === 'rect') {
+                svgContent += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" opacity="${opacity}" transform="rotate(${rotation} ${cx} ${cy})"/>`;
+              } else if (obj.type === 'shape' && obj.shapeKind === 'circle') {
+                const r = Math.min(w, h) / 2;
+                svgContent += `<circle cx="${x + r}" cy="${y + r}" r="${r}" fill="${fill}" opacity="${opacity}" transform="rotate(${rotation} ${x + r} ${y + r})"/>`;
+              } else if (obj.type === 'text') {
+                const fontSize = obj.fontSize ?? 24;
+                const fontFamily = obj.fontFamily ?? 'Arial';
+                const text = (obj.text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                svgContent += `<text x="${x}" y="${y + fontSize}" font-family="${fontFamily}" font-size="${fontSize}" fill="${fill}" opacity="${opacity}" transform="rotate(${rotation} ${cx} ${cy})">${text}</text>`;
+              }
+            });
+          svgContent += '</svg>';
+          const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${fileName}.svg`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } else if (format === 'pdf') {
+          const dataUrl = (stage as { toDataURL: (opts?: { pixelRatio?: number }) => string }).toDataURL({ pixelRatio: 2 });
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+            printWindow.document.write(`
+              <html><head><title>${fileName ?? 'design'}</title>
+              <style>@media print { body { margin: 0; } img { max-width: 100%; height: auto; } }</style>
+              </head><body>
+              <img src="${dataUrl}" onload="window.print();window.close();" alt="Design" />
+              </body></html>
+            `);
+            printWindow.document.close();
+            toast({ title: 'Exported', description: 'PDF ready to print' });
+          } else {
+            downloadDataUrl(dataUrl, `${fileName}.png`);
+            toast({ title: 'Info', description: 'PDF blocked: PNG downloaded. Allow popups for PDF.' });
+          }
+          return;
+        }
+        toast({ title: 'Exported', description: `${format.toUpperCase()} downloaded` });
+      } catch (e) {
+        logger.error('Export failed', { error: e });
+        toast({ title: 'Export failed', variant: 'destructive' });
+      }
+    },
+    [fileName, objects, toast]
+  );
+
+  const handleSaveToLibrary = useCallback(async () => {
+    const stage = stageRef.current;
+    if (!stage?.toDataURL) {
+      toast({ title: 'Error', description: 'Canvas not ready', variant: 'destructive' });
+      return { success: false };
     }
-  }, [layers, toast]);
+    try {
+      const dataUrl = stage.toDataURL({ mimeType: 'image/png', quality: 0.9 });
+      const res = await endpoints.designs.create({
+        name: fileName,
+        prompt: fileName,
+        previewUrl: dataUrl,
+        status: 'COMPLETED',
+      } as any);
+      toast({ title: 'Saved', description: 'Design saved to library' });
+      return { success: true, design: res };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Save failed';
+      logger.error('Save to library failed', { error });
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+      return { success: false };
+    }
+  }, [fileName, toast]);
+
+  const toggleVisibility = useCallback((id: string) => {
+    setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, visible: !o.visible } : o)));
+  }, []);
+
+  const toggleLock = useCallback((id: string) => {
+    setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, locked: !o.locked } : o)));
+  }, []);
 
   return {
+    stageRef,
+    fileName,
+    setFileName,
     selectedTool,
     setSelectedTool,
-    layers,
-    setLayers,
-    selectedLayer,
-    setSelectedLayer,
+    objects,
+    setObjects,
+    setObjectsWithHistory,
+    selectedId,
+    setSelectedId,
     history,
     historyIndex,
     zoom,
@@ -175,17 +355,30 @@ export function useEditor() {
     setTextTool,
     shapeTool,
     setShapeTool,
-    imageTool,
-    setImageTool,
-    handleAddLayer,
-    handleDeleteLayer,
+    drawColor,
+    setDrawColor,
+    drawStrokeWidth,
+    setDrawStrokeWidth,
+    updateObject,
+    addText,
+    addShape,
+    addImage,
+    addDrawLayer,
+    deleteObject,
+    reorderObject,
+    applyTemplate,
     handleUndo,
     handleRedo,
-    handleSave,
     handleExport,
-    saveHistory,
+    handleSaveToLibrary,
+    toggleVisibility,
+    toggleLock,
   };
 }
 
-
-
+function downloadDataUrl(dataUrl: string, filename: string) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  a.click();
+}

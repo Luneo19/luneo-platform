@@ -13,7 +13,8 @@ import { Prisma, SubscriptionStatus, SubscriptionPlan } from '@prisma/client';
 import { CreditsService } from '@/libs/credits/credits.service';
 import { CurrencyUtils } from '@/config/currency.config';
 import { EmailService } from '@/modules/email/email.service';
-import { normalizePlanTier, PlanTier } from '@/libs/plans/plan-config';
+import { normalizePlanTier } from '@/libs/plans/plan-config';
+import { PlanTier } from '@/libs/plans/plan-config.types';
 import { StripeClientService } from './stripe-client.service';
 import type Stripe from 'stripe';
 
@@ -40,19 +41,22 @@ export class StripeWebhookService {
 
     // BIL-07: Idempotency via ProcessedWebhookEvent table
     try {
-      const existingEvent = await this.prisma.processedWebhookEvent.findUnique({
-        where: { eventId: event.id },
-      });
-      if (existingEvent?.processed) {
-        this.logger.debug(`Webhook event already processed: ${event.id}`);
-        return { processed: true, result: existingEvent.result as Record<string, unknown> | null };
-      }
-
-      await this.prisma.processedWebhookEvent.upsert({
+      // Atomic idempotency check: try to create/claim the event
+      const eventRecord = await this.prisma.processedWebhookEvent.upsert({
         where: { eventId: event.id },
         create: { eventId: event.id, eventType: event.type, processed: false, attempts: 1 },
         update: { attempts: { increment: 1 } },
       });
+      // If already processed, skip
+      if (eventRecord.processed) {
+        this.logger.debug(`Webhook event already processed: ${event.id}`);
+        return { processed: true, result: (eventRecord.result as Record<string, unknown>) ?? undefined };
+      }
+      // If another worker already claimed it (attempts > 1 and we're not the first), skip
+      if (eventRecord.attempts > 1) {
+        this.logger.debug(`Webhook event being processed by another worker: ${event.id}`);
+        return { processed: false, result: undefined };
+      }
     } catch (error: any) {
       this.logger.warn(`Failed to check/create webhook event record: ${error.message}`);
     }

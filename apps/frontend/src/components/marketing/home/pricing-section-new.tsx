@@ -11,7 +11,7 @@ const plans = [
     name: 'Starter',
     description: 'Parfait pour les individus et les petits projets',
     monthlyPrice: 19,
-    yearlyPrice: 15,
+    yearlyPrice: 15.83,
     features: [
       { text: "Jusqu'a 5 projets", included: true },
       { text: 'Analytics de base', included: true },
@@ -27,7 +27,7 @@ const plans = [
     name: 'Professional',
     description: 'Ideal pour les equipes et entreprises en croissance',
     monthlyPrice: 49,
-    yearlyPrice: 39,
+    yearlyPrice: 40.83,
     features: [
       { text: 'Projets illimites', included: true },
       { text: 'Analytics avances', included: true },
@@ -43,7 +43,7 @@ const plans = [
     name: 'Enterprise',
     description: 'Pour les grandes organisations avec des besoins personnalises',
     monthlyPrice: 99,
-    yearlyPrice: 79,
+    yearlyPrice: 82.50,
     features: [
       { text: 'Tout dans Professional', included: true },
       { text: 'Gestionnaire de compte dedie', included: true },

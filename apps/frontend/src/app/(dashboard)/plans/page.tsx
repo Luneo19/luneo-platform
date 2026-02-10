@@ -9,6 +9,7 @@ import {
   Check, X, Zap, Crown, Building, Sparkles, ArrowRight, HeadphonesIcon
 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PRICING } from '@/lib/pricing-constants';
 
 interface Plan {
   id: string;
@@ -64,8 +65,8 @@ function PlansPageContent() {
     {
       id: 'pro',
       name: 'Pro',
-      price: 47,
-      priceAnnual: 470,
+      price: PRICING.professional.monthly,
+      priceAnnual: PRICING.professional.yearly,
       icon: <Zap className="w-8 h-8" />,
       color: 'purple',
       gradient: 'from-purple-600 to-pink-600',
@@ -95,8 +96,8 @@ function PlansPageContent() {
     {
       id: 'business',
       name: 'Business',
-      price: 97,
-      priceAnnual: 970,
+      price: PRICING.business.monthly,
+      priceAnnual: PRICING.business.yearly,
       icon: <Building className="w-8 h-8" />,
       color: 'orange',
       gradient: 'from-orange-600 to-red-600',

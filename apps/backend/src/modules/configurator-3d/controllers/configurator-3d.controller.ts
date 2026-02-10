@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Request,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -18,6 +19,8 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
+import { Request as ExpressRequest } from 'express';
+import { CurrentUser } from '@/common/types/user.types';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Configurator3DService } from '../services/configurator-3d.service';
 import { Configurator3DSessionService } from '../services/configurator-3d-session.service';
@@ -34,6 +37,22 @@ export class Configurator3DController {
     private readonly configuratorService: Configurator3DService,
     private readonly sessionService: Configurator3DSessionService,
   ) {}
+
+  // ========================================
+  // ANALYTICS ENDPOINT
+  // ========================================
+
+  @Get('analytics')
+  @ApiOperation({ summary: 'Get configurator 3D analytics' })
+  @ApiResponse({ status: 200, description: 'Analytics data returned' })
+  async getAnalytics(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    const user = req.user;
+    const brandId = user?.brandId;
+    return this.sessionService.getAnalytics(brandId, days ?? 30);
+  }
 
   // ========================================
   // CONFIGURATIONS ENDPOINTS

@@ -29,10 +29,11 @@ export async function GET(request: NextRequest) {
     const res = await fetch(`${API_URL}/api/v1/orion/experiments`, {
       headers: forwardHeaders(request),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to fetch experiments' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to fetch experiments' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/orion/experiments', 'GET', error, 500);
@@ -53,10 +54,11 @@ export async function POST(request: NextRequest) {
       headers: forwardHeaders(request),
       body: JSON.stringify(body),
     });
-    const data = await res.json().catch(() => ({}));
+    const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(data.error ?? { error: 'Failed to create experiment' }, { status: res.status });
+      return NextResponse.json(raw.error ?? { error: 'Failed to create experiment' }, { status: res.status });
     }
+    const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch (error) {
     serverLogger.apiError('/api/admin/orion/experiments', 'POST', error, 500);

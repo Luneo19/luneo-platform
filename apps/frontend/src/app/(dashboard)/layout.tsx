@@ -72,8 +72,30 @@ export default function DashboardLayoutGroup({
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        await endpoints.auth.me();
+        const user = await endpoints.auth.me();
         setIsAuthenticated(true);
+
+        // Check onboarding status for non-admin users
+        // Skip if user is already on the onboarding page
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        const isOnboardingPage = currentPath.startsWith('/onboarding');
+        const isAdmin = (user as any)?.role === 'PLATFORM_ADMIN' || (user as any)?.role === 'SUPER_ADMIN';
+
+        if (!isOnboardingPage && !isAdmin) {
+          try {
+            const progressRes = await fetch('/api/onboarding/progress');
+            if (progressRes.ok) {
+              const progress = await progressRes.json();
+              const completed = progress.organization?.onboardingCompletedAt;
+              if (!completed && progress.currentStep < 6) {
+                router.push('/onboarding');
+                return;
+              }
+            }
+          } catch {
+            // Onboarding check failed silently - don't block the user
+          }
+        }
       } catch (error) {
         logger.error('Auth check error', {
           error,

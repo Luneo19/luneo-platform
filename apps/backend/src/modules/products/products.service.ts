@@ -1,5 +1,6 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { CreateVariantDto, UpdateVariantDto, BulkCreateVariantsDto } from './dto/product-variant.dto';
 import { StorageService } from '@/libs/storage/storage.service';
 import { PlansService } from '@/modules/plans/plans.service';
 import { Prisma, UserRole } from '@prisma/client';
@@ -558,5 +559,134 @@ export class ProductsService {
       fileType: body.fileType,
       uploadedAt: new Date().toISOString(),
     };
+  }
+
+  // --- VARIANTS ---
+
+  async getVariants(productId: string, brandId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, brandId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    return this.prisma.productVariant.findMany({
+      where: { productId },
+      orderBy: { position: 'asc' },
+    });
+  }
+
+  async createVariant(productId: string, brandId: string, dto: CreateVariantDto) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, brandId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const maxPosition = await this.prisma.productVariant.aggregate({
+      where: { productId },
+      _max: { position: true },
+    });
+
+    return this.prisma.productVariant.create({
+      data: {
+        productId,
+        name: dto.name,
+        sku: dto.sku,
+        attributes: dto.attributes as unknown as Prisma.InputJsonValue,
+        price: dto.price,
+        compareAtPrice: dto.compareAtPrice,
+        stock: dto.stock ?? 0,
+        lowStockThreshold: dto.lowStockThreshold ?? 5,
+        images: dto.images ?? [],
+        isActive: dto.isActive ?? true,
+        position: (maxPosition._max.position ?? -1) + 1,
+      },
+    });
+  }
+
+  async updateVariant(productId: string, variantId: string, brandId: string, dto: UpdateVariantDto) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, brandId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    return this.prisma.productVariant.update({
+      where: { id: variantId, productId },
+      data: {
+        ...dto,
+        ...(dto.attributes && { attributes: dto.attributes as unknown as Prisma.InputJsonValue }),
+      },
+    });
+  }
+
+  async deleteVariant(productId: string, variantId: string, brandId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, brandId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    return this.prisma.productVariant.delete({
+      where: { id: variantId, productId },
+    });
+  }
+
+  async updateStock(productId: string, variantId: string, brandId: string, stock: number) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, brandId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const variant = await this.prisma.productVariant.update({
+      where: { id: variantId, productId },
+      data: { stock },
+    });
+
+    if (variant.stock <= variant.lowStockThreshold) {
+      this.logger.warn(`Low stock alert: Product ${productId}, Variant ${variantId}, Stock: ${variant.stock}`);
+    }
+
+    return variant;
+  }
+
+  async bulkCreateVariants(productId: string, brandId: string, dto: BulkCreateVariantsDto) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, brandId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const attributeKeys = Object.keys(dto.attributeOptions);
+    const combinations = this.generateCombinations(dto.attributeOptions, attributeKeys);
+
+    const variants = combinations.map((combo, index) => ({
+      productId,
+      name: Object.values(combo).join(' - '),
+      attributes: combo as unknown as Prisma.InputJsonValue,
+      price: dto.basePrice ?? null,
+      stock: dto.baseStock ?? 0,
+      lowStockThreshold: 5,
+      images: [],
+      isActive: true,
+      position: index,
+    }));
+
+    return this.prisma.productVariant.createMany({ data: variants });
+  }
+
+  private generateCombinations(
+    options: Record<string, string[]>,
+    keys: string[],
+    current: Record<string, string> = {},
+    index = 0,
+  ): Record<string, string>[] {
+    if (index === keys.length) return [{ ...current }];
+
+    const key = keys[index];
+    const results: Record<string, string>[] = [];
+
+    for (const value of options[key]) {
+      current[key] = value;
+      results.push(...this.generateCombinations(options, keys, current, index + 1));
+    }
+
+    return results;
   }
 }

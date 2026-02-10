@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { PaymentStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export type RevenueOverview = {
@@ -57,65 +57,141 @@ export class RevenueService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getRevenueOverview(): Promise<RevenueOverview> {
-    // No dedicated revenue aggregate in schema; use computed/mock data
-    const mrr = 12450;
-    const arr = mrr * 12;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+    const [currentRevenue, previousRevenue] = await Promise.all([
+      this.prisma.order.aggregate({
+        where: {
+          paymentStatus: PaymentStatus.SUCCEEDED,
+          deletedAt: null,
+          createdAt: { gte: thirtyDaysAgo },
+        },
+        _sum: { totalCents: true },
+      }),
+      this.prisma.order.aggregate({
+        where: {
+          paymentStatus: PaymentStatus.SUCCEEDED,
+          deletedAt: null,
+          createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
+        },
+        _sum: { totalCents: true },
+      }),
+    ]);
+
+    const mrr = (currentRevenue._sum.totalCents || 0) / 100;
+    const previousMrr = (previousRevenue._sum.totalCents || 0) / 100;
+    const growthRate = previousMrr > 0 ? (mrr - previousMrr) / previousMrr : 0;
+    const expansionRevenue = Math.max(0, mrr - previousMrr);
+    const churnRevenue = Math.max(0, previousMrr - mrr);
+
     return {
       mrr,
-      arr,
-      growthRate: 0.082,
-      churnRevenue: 420,
-      expansionRevenue: 2100,
+      arr: mrr * 12,
+      growthRate: Math.round(growthRate * 1000) / 1000,
+      churnRevenue: Math.round(churnRevenue * 100) / 100,
+      expansionRevenue: Math.round(expansionRevenue * 100) / 100,
     };
   }
 
   async getUpsellOpportunities(limit = 10): Promise<UpsellOpportunity[]> {
-    // Mock: users near plan limits (usage > 80%). In production, join usage/limits from product usage tables.
-    const users = await this.prisma.user.findMany({
-      take: Math.min(limit, 6),
-      select: { id: true, email: true, firstName: true, lastName: true },
-      where: { role: { not: UserRole.PLATFORM_ADMIN } },
-    }).catch(() => []);
+    const brands = await this.prisma.brand.findMany({
+      where: {
+        deletedAt: null,
+        maxMonthlyGenerations: { gt: 0 },
+      },
+      select: {
+        id: true,
+        name: true,
+        subscriptionPlan: true,
+        monthlyGenerations: true,
+        maxMonthlyGenerations: true,
+        users: { take: 1, select: { id: true, email: true, firstName: true, lastName: true } },
+      },
+      orderBy: { monthlyGenerations: 'desc' },
+      take: limit,
+    });
 
-    const plans = ['Starter', 'Professional', 'Starter', 'Professional', 'Starter', 'Professional'];
-    const usagePcts = [92, 87, 85, 94, 81, 88];
-    const potentialMrrs = [29, 79, 29, 79, 29, 79];
-    const confidences: ('high' | 'medium' | 'low')[] = ['high', 'high', 'medium', 'high', 'medium', 'high'];
-
-    return users.slice(0, 6).map((u, i) => ({
-      id: u.id,
-      customerId: u.id,
-      customerName: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email?.split('@')[0] || 'Customer',
-      currentPlan: plans[i] ?? 'Starter',
-      usagePercent: usagePcts[i] ?? 85,
-      potentialMrr: potentialMrrs[i] ?? 49,
-      confidence: confidences[i] ?? 'medium',
-    }));
+    return brands
+      .filter((b) => b.maxMonthlyGenerations > 0)
+      .map((brand) => {
+        const usage = Math.round(
+          (brand.monthlyGenerations / brand.maxMonthlyGenerations) * 100,
+        );
+        const customerName =
+          brand.name ||
+          brand.users[0]?.email ||
+          [brand.users[0]?.firstName, brand.users[0]?.lastName]
+            .filter(Boolean)
+            .join(' ') ||
+          'Unknown';
+        return {
+          id: brand.id,
+          customerId: brand.users[0]?.id ?? brand.id,
+          customerName,
+          currentPlan: brand.subscriptionPlan?.toString() ?? 'FREE',
+          usagePercent: usage,
+          potentialMrr: 0,
+          confidence:
+            usage >= 90 ? 'high' : usage >= 70 ? 'medium' : ('low' as const),
+        };
+      });
   }
 
   async getLeadScores(limit = 10): Promise<LeadScore[]> {
-    // Mock: lead scores for trial/free users based on engagement
-    const users = await this.prisma.user.findMany({
-      take: Math.min(limit, 8),
-      select: { id: true, email: true, createdAt: true },
-      where: { role: { not: UserRole.PLATFORM_ADMIN } },
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentUsers = await this.prisma.user.findMany({
+      where: {
+        role: { not: UserRole.PLATFORM_ADMIN },
+        createdAt: { gte: sevenDaysAgo },
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        createdAt: true,
+        lastLoginAt: true,
+        brand: { select: { subscriptionPlan: true } },
+      },
       orderBy: { createdAt: 'desc' },
-    }).catch(() => []);
+      take: limit,
+    });
 
-    const sources = ['Organic', 'Paid', 'Referral', 'Direct', 'Organic', 'Paid', 'Referral', 'Direct'];
-    const scores = [85, 72, 68, 45, 91, 58, 62, 38];
-    const statuses: ('hot' | 'warm' | 'cold')[] = ['hot', 'warm', 'warm', 'cold', 'hot', 'warm', 'warm', 'cold'];
-    const lastActivities = ['2 hours ago', '1 day ago', '3 days ago', '1 week ago', '30 min ago', '2 days ago', '4 days ago', '2 weeks ago'];
+    return recentUsers.map((user) => {
+      const hasLoggedIn = !!user.lastLoginAt;
+      const hasBrand = !!user.brand;
+      const daysSinceSignup = Math.floor(
+        (Date.now() - new Date(user.createdAt).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
 
-    return users.slice(0, 8).map((u, i) => ({
-      id: u.id,
-      userId: u.id,
-      email: u.email ?? '',
-      score: scores[i] ?? 50,
-      source: sources[i] ?? 'Direct',
-      lastActivity: lastActivities[i] ?? '1 day ago',
-      status: statuses[i] ?? 'warm',
-    }));
+      let score = 50;
+      if (hasLoggedIn) score += 20;
+      if (hasBrand) score += 15;
+      if (daysSinceSignup <= 1) score += 15;
+
+      const status: 'hot' | 'warm' | 'cold' =
+        score >= 80 ? 'hot' : score >= 60 ? 'warm' : 'cold';
+
+      return {
+        id: user.id,
+        userId: user.id,
+        email: user.email ?? '',
+        score: Math.min(score, 100),
+        source: 'Organic',
+        lastActivity: (
+          user.lastLoginAt
+            ? new Date(user.lastLoginAt)
+            : new Date(user.createdAt)
+        ).toISOString(),
+        status,
+      };
+    });
   }
 
   async getExperiments() {

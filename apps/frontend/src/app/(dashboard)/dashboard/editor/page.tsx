@@ -1,6 +1,5 @@
 /**
- * ★★★ PAGE - EDITOR ★★★
- * Page Server Component pour Editor. Cookie-based auth with NestJS backend.
+ * Editor page - Visual editor (Canva-like). Server wrapper + client editor.
  */
 
 import { Suspense } from 'react';
@@ -10,14 +9,13 @@ import { serverFetch } from '@/lib/api/server-fetch';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { EditorPageClient } from './EditorPageClient';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
-  title: 'Éditeur de Design | Luneo',
-  description: 'Éditeur de design professionnel',
+  title: 'Visual Editor | Luneo',
+  description: 'Create designs with the Luneo visual editor',
 };
 
-/**
- * Server Component - Vérifie l'authentification
- */
 export default async function EditorPage() {
   const cookieStore = await cookies();
   if (!cookieStore.get('accessToken')?.value) redirect('/login');
@@ -30,7 +28,13 @@ export default async function EditorPage() {
 
   return (
     <ErrorBoundary level="page" componentName="EditorPage">
-      <Suspense fallback={<div className="h-screen"><div className="dash-card h-16 rounded-2xl animate-pulse border-white/[0.06] bg-white/[0.03]" /></div>}>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-screen bg-zinc-950">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+          </div>
+        }
+      >
         <EditorPageClient />
       </Suspense>
     </ErrorBoundary>
