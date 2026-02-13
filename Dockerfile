@@ -135,11 +135,8 @@ RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Verification Prisma Client..."\nPR
 # Fix ownership of start.sh
 RUN chown nestjs:nodejs /app/start.sh
 
-# Nettoyer les fichiers inutiles pour réduire la taille (en root pour les permissions /tmp)
-# IMPORTANT: Ne PAS supprimer .prisma/client car il est nécessaire au runtime
-RUN rm -rf /app/node_modules/.cache /tmp/* 2>/dev/null; \
-    echo "Verifying Prisma Client after cleanup..." && \
-    node -e "require('@prisma/client'); console.log('OK: Prisma Client importable after cleanup')"
+# Nettoyer les fichiers inutiles pour réduire la taille
+RUN rm -rf /app/node_modules/.cache /tmp/* 2>/dev/null; echo "Cleanup done"
 
 USER nestjs
 
