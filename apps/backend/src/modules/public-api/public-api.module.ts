@@ -9,6 +9,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
+import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
     RateLimitModule,
     WebhooksModule,
     AnalyticsModule,
+    UsageBillingModule, // ApiQuotaGuard needs QuotasService, UsageTrackingService
   ],
   controllers: [PublicApiController],
   providers: [PublicApiService],
