@@ -152,7 +152,7 @@ export class CreditsController {
 
     // Create Stripe Checkout session
     const stripe = await this.getStripe();
-    const frontendUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
     
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const url = new URL(`${API_URL}/api/v1/admin/analytics/cohort`);
+    const url = new URL(`${API_URL}/api/v1/analytics/advanced/cohort`);
     searchParams.forEach((v, k) => url.searchParams.set(k, v));
 
     const res = await fetch(url.toString(), { headers: forwardHeaders(request) });

@@ -919,7 +919,7 @@ export class AuthService {
         },
       );
 
-      const appUrl = this.configService.get('app.frontendUrl') || this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const appUrl = this.configService.get('app.frontendUrl') || this.configService.get<string>('FRONTEND_URL') || (this.configService.get<string>('NODE_ENV') === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
       const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
       this.emailService.queueConfirmationEmail(

@@ -234,7 +234,7 @@ export class StripeConnectService {
     },
   ): Promise<{ accountId: string; onboardingUrl: string; isExisting: boolean }> {
     const stripe = await this.getStripe();
-    const frontendUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
 
     // Vérifier si l'utilisateur a déjà un compte Connect (via Artisan)
     const existingArtisan = await this.prisma.artisan.findUnique({

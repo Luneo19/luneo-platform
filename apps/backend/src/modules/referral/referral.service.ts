@@ -124,7 +124,7 @@ export class ReferralService {
       totalEarnings,
       pendingEarnings,
       referralCode,
-      referralLink: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000'}/ref/${referralCode}`,
+      referralLink: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (this.configService.get('NODE_ENV') === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000')}/ref/${referralCode}`,
       recentReferrals,
     };
   }
@@ -149,7 +149,7 @@ export class ReferralService {
     // Envoyer email via EmailService (SendGrid/Mailgun selon config)
     const fromEmail = this.configService.get<string>('SENDGRID_FROM_EMAIL') || process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app';
     const contactEmail = this.configService.get<string>('CONTACT_EMAIL') || process.env.CONTACT_EMAIL || 'affiliate@luneo.app';
-    const frontendUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || (this.configService.get('NODE_ENV') === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
     try {
       // Email à l'équipe
       await this.emailService.sendEmail({
@@ -464,7 +464,7 @@ export class ReferralService {
   ): Promise<{ id: string; amountCents: number } | null> {
     try {
       // Trouver le referral actif pour cet utilisateur
-      const referral = await this.prisma.referral.findUnique({
+      const referral = await this.prisma.referral.findFirst({
         where: {
           referredUserId,
           status: 'ACTIVE',

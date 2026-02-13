@@ -53,7 +53,7 @@ export class ArStudioController {
       throw new BadRequestException('User must have a brandId');
     }
     const model = await this.arStudioService.getModelById(body.modelId, brandId);
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
     const previewUrl = model ? `${baseUrl}/ar/preview/${body.modelId}` : undefined;
     return {
       previewUrl: previewUrl ?? undefined,
@@ -258,7 +258,7 @@ export class ArStudioController {
       throw new NotFoundException('AR model not found');
     }
 
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
     const previewUrl = `${baseUrl}/ar/preview/${id}`;
 
     return {

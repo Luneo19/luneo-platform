@@ -94,15 +94,16 @@ function formatDate(d: string): string {
 }
 
 function mapAtRiskToTableRows(items: AtRiskUser[]): TableRowData[] {
+  if (!Array.isArray(items)) return [];
   return items.map((r) => {
-    const name = [r.user.firstName, r.user.lastName].filter(Boolean).join(' ') || '—';
-    const lastActivityRaw = r.lastActivityAt || r.user.lastLoginAt || '';
+    const name = [r.user?.firstName, r.user?.lastName].filter(Boolean).join(' ') || '—';
+    const lastActivityRaw = r.lastActivityAt || r.user?.lastLoginAt || '';
     return {
       id: r.id,
       name,
-      email: r.user.email,
-      healthScore: r.healthScore,
-      churnRisk: r.churnRisk as ChurnRisk,
+      email: r.user?.email ?? '—',
+      healthScore: r.healthScore ?? 0,
+      churnRisk: (r.churnRisk as ChurnRisk) ?? 'LOW',
       lastActivity: lastActivityRaw ? formatDate(lastActivityRaw) : '—',
       lastActivityRaw: lastActivityRaw || '',
     };
@@ -143,7 +144,15 @@ export default function HealthScoreDashboardPage() {
         return res.json();
       })
       .then((data: DashboardData | null) => {
-        if (data != null) setDashboard(data);
+        if (data != null && typeof data === 'object' && 'totalUsers' in data) {
+          setDashboard(data);
+        } else if (data != null && typeof data === 'object' && 'data' in data) {
+          const inner = (data as unknown as { data: DashboardData }).data;
+          if (inner && 'totalUsers' in inner) setDashboard(inner);
+          else setDashboard(dashboardFallback);
+        } else {
+          setDashboard(dashboardFallback);
+        }
       })
       .catch(() => {
         setDashboard(dashboardFallback);
@@ -164,7 +173,13 @@ export default function HealthScoreDashboardPage() {
         return res.json();
       })
       .then((data: AtRiskUser[] | null) => {
-        if (data != null) setAtRiskRows(mapAtRiskToTableRows(data));
+        if (data != null && Array.isArray(data)) {
+          setAtRiskRows(mapAtRiskToTableRows(data));
+        } else if (data != null && typeof data === 'object' && 'data' in data) {
+          // API may wrap in { data: [...] }
+          const arr = (data as unknown as { data: AtRiskUser[] }).data;
+          setAtRiskRows(mapAtRiskToTableRows(Array.isArray(arr) ? arr : []));
+        }
       })
       .catch(() => {
         setAtRiskRows([]);

@@ -83,33 +83,76 @@ async function createApp(): Promise<express.Application> {
   // Cookie parser
   app.use(cookieParser());
 
-  // CORS - Gérer manuellement AVANT tous les autres middlewares pour éviter les conflits
-  const corsOrigin = configService.get('app.corsOrigin') || '*';
-  const allowedOrigins = corsOrigin.includes(',') 
-    ? corsOrigin.split(',').map((o: string) => o.trim()).filter(Boolean)
-    : corsOrigin === '*' ? ['*'] : [corsOrigin];
-  
-  logger.log(`CORS: Configuré avec ${allowedOrigins.length} origines: ${allowedOrigins.join(', ')}`);
+  // CORS - Configuration sécurisée alignée avec main.ts
+  // IMPORTANT: Ne JAMAIS utiliser '*' en production avec credentials
+  const nodeEnv = configService.get('app.nodeEnv') || process.env.NODE_ENV || 'development';
+  const corsOriginFromConfig = configService.get<string>('app.corsOrigin');
+  const hasCorsOrigins = process.env.CORS_ORIGINS && process.env.CORS_ORIGINS.trim().length > 0;
+
+  // Production: require explicit CORS configuration (no wildcard)
+  if (
+    nodeEnv === 'production' &&
+    !hasCorsOrigins &&
+    (!corsOriginFromConfig || corsOriginFromConfig === '*')
+  ) {
+    logger.error('FATAL: CORS_ORIGIN or CORS_ORIGINS must be explicitly configured in production (cannot be undefined or *)');
+    throw new Error('CORS_ORIGIN or CORS_ORIGINS must be explicitly configured in production.');
+  }
+
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((s: string) => s.trim()).filter(Boolean)
+    : [];
+  const corsOriginEnv = corsOriginFromConfig || '';
+
+  const productionOrigins = [
+    'https://app.luneo.app',
+    'https://luneo.app',
+    'https://www.luneo.app',
+    'https://api.luneo.app',
+  ];
+
+  const originWildcardPatterns = [
+    /^https:\/\/frontend-[a-z0-9-]+\.vercel\.app$/,
+  ];
+
+  const developmentOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+  ];
+
+  let allowedOrigins: string[] =
+    corsOrigins.length > 0
+      ? corsOrigins
+      : nodeEnv === 'production'
+        ? [...productionOrigins]
+        : [...productionOrigins, ...developmentOrigins];
+
+  if (corsOriginEnv && corsOriginEnv !== '*' && allowedOrigins.length > 0) {
+    const envOrigins = corsOriginEnv.split(',').map((o: string) => o.trim()).filter(Boolean);
+    allowedOrigins = [...new Set([...allowedOrigins, ...envOrigins])];
+  }
+
+  const isOriginAllowed = (origin: string | undefined): boolean => {
+    if (!origin) return false;
+    if (allowedOrigins.includes(origin)) return true;
+    return originWildcardPatterns.some((pattern) => pattern.test(origin));
+  };
+
+  logger.log(`CORS: Environnement ${nodeEnv}, ${allowedOrigins.length} origines autorisées (+ wildcards Vercel)`);
   
   // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
   server.use((req, res, next): void => {
     const origin = req.headers.origin;
     
-    // Déterminer l'origine autorisée
-    let allowedOrigin: string | null = null;
-    if (allowedOrigins.includes('*')) {
-      allowedOrigin = '*';
-    } else if (origin && allowedOrigins.includes(origin)) {
-      allowedOrigin = origin;
-    } else if (origin && allowedOrigins.some((allowed: string) => origin === allowed)) {
-      allowedOrigin = origin;
-    }
+    // Vérifier si l'origine est autorisée (liste exacte + patterns wildcard)
+    const isAllowed = isOriginAllowed(origin);
     
     // Ne définir le header QUE si une origine est autorisée
-    if (allowedOrigin) {
-      // Supprimer tout header CORS existant pour éviter les doublons
+    if (isAllowed && origin) {
       res.removeHeader('Access-Control-Allow-Origin');
-      res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+      res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Request-Time, x-request-time');

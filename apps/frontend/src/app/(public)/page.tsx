@@ -39,7 +39,7 @@ export const metadata: Metadata = generateSEOMetadata({
     'WooCommerce',
   ],
   ogType: 'website',
-  ogImage: '/og-homepage.png',
+  ogImage: '/og-image.png',
 });
 
 const softwareApplicationJsonLd = {

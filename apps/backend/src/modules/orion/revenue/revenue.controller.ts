@@ -47,6 +47,15 @@ export class RevenueController {
     return this.revenueService.getExperiment(id);
   }
 
+  @Get('experiments/:id/variant-stats')
+  getVariantStats(
+    @Param('id') id: string,
+    @Query('variantIds') variantIds?: string,
+  ) {
+    const ids = variantIds ? variantIds.split(',').filter(Boolean) : [];
+    return this.revenueService.getVariantStats(id, ids);
+  }
+
   @Post('experiments')
   createExperiment(
     @Body()

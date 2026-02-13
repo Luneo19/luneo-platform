@@ -431,7 +431,6 @@ async function bootstrap() {
   // The order of middleware registration is critical: /health must be registered
   // BEFORE NestJS adds its routing middleware during app.init()
   server.get('/health', (req: Express.Request, res: Express.Response) => {
-    logger.log(`[HEALTH] Health check endpoint called - path: ${req.path}, url: ${req.url}, originalUrl: ${req.originalUrl}`);
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),

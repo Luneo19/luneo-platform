@@ -252,6 +252,30 @@ export class RevenueService {
     });
   }
 
+  async getVariantStats(experimentId: string, variantIds: string[]) {
+    const experiment = await this.prisma.experiment.findUnique({
+      where: { id: experimentId },
+      include: { assignments: true },
+    });
+    if (!experiment) throw new NotFoundException('Experiment not found');
+
+    const variants: Record<string, { visitors: number; conversions: number; revenue: number }> = {};
+    const variantsConfig = Array.isArray(experiment.variants) ? (experiment.variants as { id: string; name: string }[]) : [];
+    const targetIds = variantIds.length > 0 ? variantIds : variantsConfig.map((v) => v.id);
+
+    for (const vid of targetIds) {
+      const visitors = experiment.assignments.filter(
+        (a) => a.variantId === vid,
+      ).length;
+      // Conversion and revenue tracking require analytics events;
+      // for now return assignment count as visitors with zero conversions/revenue
+      // until dedicated conversion tracking is implemented.
+      variants[vid] = { visitors, conversions: 0, revenue: 0 };
+    }
+
+    return { variants, data: variants };
+  }
+
   async updateExperiment(id: string, data: UpdateExperimentDto) {
     const existing = await this.prisma.experiment.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Experiment not found');

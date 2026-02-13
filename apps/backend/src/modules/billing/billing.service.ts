@@ -192,8 +192,8 @@ export class BillingService {
         mode: 'subscription',
         customer_email: userEmail,
         // CRITICAL FIX: Use FRONTEND_URL as base to avoid double-path with successUrl config
-        success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/billing/cancel`,
+        success_url: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000')}/dashboard/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000')}/dashboard/billing/cancel`,
         locale: (options?.locale ? this.mapLocaleToStripe(options.locale) : undefined) as Stripe.Checkout.SessionCreateParams.Locale | undefined,
         metadata: {
           userId,

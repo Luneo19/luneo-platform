@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authUrl, getRefreshToken, forwardCookiesToResponse, setNoCacheHeaders } from '../_helpers';
+import { authUrl, getRefreshToken, forwardCookiesToResponse, setNoCacheHeaders, safeFetchBackend } from '../_helpers';
 import { serverLogger } from '@/lib/logger-server';
 
 export const dynamic = 'force-dynamic';
@@ -14,22 +14,25 @@ export async function POST(req: NextRequest) {
       return res;
     }
 
-    // The backend accepts the refresh token either via cookie or body
-    const backendRes = await fetch(authUrl('refresh'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Forward the refresh token cookie to the backend
-        Cookie: `refreshToken=${refreshToken}`,
+    const result = await safeFetchBackend(
+      authUrl('refresh'),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `refreshToken=${refreshToken}`,
+        },
+        body: JSON.stringify({ refreshToken }),
       },
-      body: JSON.stringify({ refreshToken }),
-    });
+      'Refresh',
+    );
 
-    const data = await backendRes.json();
+    if (result instanceof NextResponse) return result;
+    const { backendRes, data } = result;
+
     const nextRes = NextResponse.json(data, { status: backendRes.status });
     setNoCacheHeaders(nextRes);
 
-    // Forward new cookies (new accessToken + refreshToken) from backend to browser
     if (backendRes.ok) {
       forwardCookiesToResponse(backendRes, nextRes);
     }

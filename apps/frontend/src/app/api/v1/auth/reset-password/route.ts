@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authUrl } from '../_helpers';
+import { authUrl, safeFetchBackend } from '../_helpers';
 import { serverLogger } from '@/lib/logger-server';
 
 export const dynamic = 'force-dynamic';
@@ -8,13 +8,19 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const backendRes = await fetch(authUrl('reset-password'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    const result = await safeFetchBackend(
+      authUrl('reset-password'),
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      'Reset-password',
+    );
 
-    const data = await backendRes.json();
+    if (result instanceof NextResponse) return result;
+    const { backendRes, data } = result;
+
     return NextResponse.json(data, { status: backendRes.status });
   } catch (error) {
     serverLogger.error('[Auth Proxy] Reset-password error:', error);

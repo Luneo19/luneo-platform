@@ -13,6 +13,7 @@ export function getBackendUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_URL;
   if (!url && process.env.NODE_ENV === 'production') {
     logger.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set in production — API calls will fail');
+    return 'https://api.luneo.app'; // Production fallback — prefer env var
   }
   return url || 'http://localhost:3001';
 }

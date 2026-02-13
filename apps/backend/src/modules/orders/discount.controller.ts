@@ -54,14 +54,14 @@ export class DiscountCodesPublicController {
   @ApiResponse({ status: 400, description: 'Invalid or expired discount code' })
   async validateDiscountCode(
     @Body() dto: ValidateDiscountCodeDto,
-    @Request() req: { user: { id: string } },
+    @Request() req: { user?: { id: string } },
   ) {
     const subtotal = dto.subtotalCents ?? 0;
     return this.discountService.validateAndApplyDiscount(
       dto.code,
       subtotal,
       dto.brandId,
-      req.user.id,
+      req.user?.id ?? undefined,
     );
   }
 }

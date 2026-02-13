@@ -1103,7 +1103,7 @@ export class DesignsService {
     const appUrl = this.configService.get<string>('app.frontendUrl')
       ?? this.configService.get<string>('FRONTEND_URL')
       ?? this.configService.get<string>('APP_URL')
-      ?? 'http://localhost:3000';
+      ?? (this.configService.get<string>('NODE_ENV') === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
     const shareUrl = `${appUrl}/designs/shared/${shareToken}`;
 
     this.logger.log(`Design shared: ${designId} with token ${shareToken}`);
@@ -1205,7 +1205,7 @@ export class DesignsService {
       ?? this.configService.get<string>('FRONTEND_URL')
       ?? this.configService.get<string>('APP_URL')
       ?? this.configService.get<string>('NEXT_PUBLIC_APP_URL')
-      ?? 'http://localhost:3000';
+      ?? (this.configService.get<string>('NODE_ENV') === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
     const shares = shareToken
       ? [
           {

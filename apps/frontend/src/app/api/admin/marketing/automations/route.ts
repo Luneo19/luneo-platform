@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     if (!adminUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-    const res = await fetch(`${API_URL}/api/v1/admin/marketing/automations`, {
+    const res = await fetch(`${API_URL}/api/v1/orion/automations`, {
       headers: forwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     const body = await request.json();
-    const res = await fetch(`${API_URL}/api/v1/admin/marketing/automations`, {
+    const res = await fetch(`${API_URL}/api/v1/orion/automations`, {
       method: 'POST',
       headers: forwardHeaders(request),
       body: JSON.stringify(body),

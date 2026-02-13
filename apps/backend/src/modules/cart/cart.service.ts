@@ -188,6 +188,9 @@ export class CartService {
       metadata: item.metadata,
     }));
 
+    // Clear the cart after converting to order data
+    await this.deleteCart(cart.id);
+
     return { items, cartId: cart.id };
   }
 

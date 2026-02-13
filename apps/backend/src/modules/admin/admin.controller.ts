@@ -51,9 +51,32 @@ export class AdminController {
   @Get('tenants')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all tenants (brands) for platform admin' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'plan', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'sortBy', required: false, type: String })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
   @ApiResponse({ status: 200, description: 'List of tenants' })
-  async getTenants() {
-    return this.adminService.getTenants();
+  async getTenants(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('plan') plan?: string,
+    @Query('status') status?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
+    return this.adminService.getTenants({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      plan,
+      status,
+      sortBy,
+      sortOrder,
+    });
   }
 
   @Get('brands/:brandId')
@@ -151,6 +174,38 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'Customer not found' })
   async getCustomerById(@Param('id') id: string) {
     return this.adminService.getCustomerById(id);
+  }
+
+  @Post('customers')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new user (admin)' })
+  @ApiResponse({ status: 201, description: 'User created' })
+  async createCustomer(
+    @Body() body: { email: string; name?: string; role?: string; brandId?: string; password?: string },
+  ) {
+    return this.adminService.createCustomer(body);
+  }
+
+  @Patch('customers/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a user (admin)' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User updated' })
+  async updateCustomer(
+    @Param('id') id: string,
+    @Body() body: { name?: string; role?: string; brandId?: string; isActive?: boolean },
+  ) {
+    return this.adminService.updateCustomer(id, body);
+  }
+
+  @Post('brands')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new brand (admin)' })
+  @ApiResponse({ status: 201, description: 'Brand created' })
+  async createBrand(
+    @Body() body: { name: string; slug: string; userId: string },
+  ) {
+    return this.adminService.createBrand(body);
   }
 
   @Post('customers/:id/ban')
@@ -525,5 +580,165 @@ export class AdminController {
     @Body('agentId') agentId: string,
   ) {
     return this.adminService.updateTicketStatus(id, status, agentId);
+  }
+
+  // ========================================
+  // WEBHOOKS MANAGEMENT (Admin)
+  // ========================================
+
+  @Get('webhooks')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all webhooks (admin view)' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'brandId', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Webhooks list' })
+  async getWebhooks(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('brandId') brandId?: string,
+  ) {
+    return this.adminService.getWebhooks({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      brandId,
+    });
+  }
+
+  @Get('webhooks/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get webhook detail' })
+  @ApiParam({ name: 'id', description: 'Webhook ID' })
+  @ApiResponse({ status: 200, description: 'Webhook detail' })
+  @ApiResponse({ status: 404, description: 'Webhook not found' })
+  async getWebhookById(@Param('id') id: string) {
+    return this.adminService.getWebhookById(id);
+  }
+
+  @Post('webhooks')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a webhook' })
+  @ApiResponse({ status: 201, description: 'Webhook created' })
+  async createWebhook(
+    @Body() body: { brandId: string; name: string; url: string; events?: string[]; isActive?: boolean },
+  ) {
+    return this.adminService.createWebhook(body);
+  }
+
+  @Patch('webhooks/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a webhook' })
+  @ApiParam({ name: 'id', description: 'Webhook ID' })
+  @ApiResponse({ status: 200, description: 'Webhook updated' })
+  async updateWebhook(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.adminService.updateWebhook(id, body);
+  }
+
+  @Delete('webhooks/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a webhook' })
+  @ApiParam({ name: 'id', description: 'Webhook ID' })
+  @ApiResponse({ status: 200, description: 'Webhook deleted' })
+  async deleteWebhook(@Param('id') id: string) {
+    return this.adminService.deleteWebhook(id);
+  }
+
+  @Post('webhooks/:id/test')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Test a webhook' })
+  @ApiParam({ name: 'id', description: 'Webhook ID' })
+  @ApiResponse({ status: 200, description: 'Webhook test result' })
+  async testWebhook(@Param('id') id: string) {
+    return this.adminService.testWebhook(id);
+  }
+
+  // ========================================
+  // EVENTS (Admin)
+  // ========================================
+
+  @Get('events')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List platform events' })
+  @ApiQuery({ name: 'days', required: false, type: Number })
+  @ApiQuery({ name: 'type', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Events list' })
+  async getEvents(
+    @Query('days') days?: number,
+    @Query('type') type?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.getEvents({
+      days: days ? Number(days) : undefined,
+      type,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  // ========================================
+  // TENANT FEATURES (Admin)
+  // ========================================
+
+  @Get('tenants/:brandId/features')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get tenant features and limits' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiResponse({ status: 200, description: 'Tenant features' })
+  async getTenantFeatures(@Param('brandId') brandId: string) {
+    return this.adminService.getTenantFeatures(brandId);
+  }
+
+  @Patch('tenants/:brandId/features')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update tenant features and limits (PATCH)' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiResponse({ status: 200, description: 'Tenant features updated' })
+  async updateTenantFeatures(
+    @Param('brandId') brandId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.adminService.updateTenantFeatures(brandId, body);
+  }
+
+  @Post('tenants/:brandId/features')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Enable/add a feature for a tenant' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiResponse({ status: 200, description: 'Tenant feature enabled' })
+  async addTenantFeature(
+    @Param('brandId') brandId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.adminService.updateTenantFeatures(brandId, body);
+  }
+
+  @Put('tenants/:brandId/features')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Bulk update tenant features' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiResponse({ status: 200, description: 'Tenant features updated' })
+  async bulkUpdateTenantFeatures(
+    @Param('brandId') brandId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.adminService.updateTenantFeatures(brandId, body);
+  }
+
+  @Delete('tenants/:brandId/features')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove a feature from a tenant' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiQuery({ name: 'feature', required: true, type: String })
+  @ApiResponse({ status: 200, description: 'Tenant feature removed' })
+  async removeTenantFeature(
+    @Param('brandId') brandId: string,
+    @Query('feature') feature: string,
+  ) {
+    return this.adminService.updateTenantFeatures(brandId, {
+      features: { [feature]: false },
+    });
   }
 }

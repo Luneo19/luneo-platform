@@ -165,7 +165,7 @@ export async function middleware(request: NextRequest) {
           Buffer.from(accessToken.split('.')[1], 'base64').toString()
         );
         const userRole = payload.role || payload.userRole || '';
-        if (!['SUPER_ADMIN', 'ADMIN'].includes(userRole)) {
+        if (!['PLATFORM_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(userRole)) {
           // Non-admin user trying to access admin routes - redirect to dashboard
           return NextResponse.redirect(new URL('/dashboard', request.url));
         }

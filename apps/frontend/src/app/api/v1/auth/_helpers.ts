@@ -129,3 +129,38 @@ export async function getRefreshToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
   return cookieStore.get('refreshToken')?.value;
 }
+
+/**
+ * Safely fetch from the backend and parse JSON response.
+ * Returns a proper NextResponse on network or JSON parse errors
+ * instead of letting the caller crash with a 500.
+ */
+export async function safeFetchBackend(
+  url: string,
+  init: RequestInit,
+  label: string,
+): Promise<{ backendRes: Response; data: unknown } | NextResponse> {
+  let backendRes: Response;
+  try {
+    backendRes = await fetch(url, init);
+  } catch (fetchError) {
+    const { serverLogger } = await import('@/lib/logger-server');
+    serverLogger.error(`[Auth Proxy] ${label} fetch failed (backend unreachable):`, fetchError);
+    const res = NextResponse.json({ message: 'Service temporarily unavailable' }, { status: 503 });
+    setNoCacheHeaders(res);
+    return res;
+  }
+
+  let data: unknown;
+  try {
+    data = await backendRes.json();
+  } catch {
+    const { serverLogger } = await import('@/lib/logger-server');
+    serverLogger.error(`[Auth Proxy] ${label}: backend returned non-JSON (status ${backendRes.status})`);
+    const res = NextResponse.json({ message: 'Bad gateway' }, { status: 502 });
+    setNoCacheHeaders(res);
+    return res;
+  }
+
+  return { backendRes, data };
+}

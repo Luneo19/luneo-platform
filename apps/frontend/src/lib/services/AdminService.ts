@@ -175,7 +175,7 @@ export class AdminService {
   async createUser(request: CreateUserRequest): Promise<User> {
     try {
       logger.info('Creating user', { email: request.email, role: request.role });
-      const raw = await api.post<RawUserRecord>('/api/v1/admin/users', {
+      const raw = await api.post<RawUserRecord>('/api/v1/admin/customers', {
         email: request.email,
         name: request.name,
         role: request.role,
@@ -197,7 +197,7 @@ export class AdminService {
   async updateUser(request: UpdateUserRequest): Promise<User> {
     try {
       logger.info('Updating user', { userId: request.id });
-      const raw = await api.patch<RawUserRecord>(`/api/v1/admin/users/${request.id}`, {
+      const raw = await api.patch<RawUserRecord>(`/api/v1/admin/customers/${request.id}`, {
         name: request.name,
         role: request.role,
         brandId: request.brandId,
@@ -266,7 +266,7 @@ export class AdminService {
     offset?: number;
   }): Promise<{ brands: Brand[]; total: number; hasMore: boolean }> {
     try {
-      const res = await api.get<{ brands?: RawBrandRecord[]; data?: RawBrandRecord[]; total?: number }>('/api/v1/admin/brands', {
+      const res = await api.get<{ brands?: RawBrandRecord[]; data?: RawBrandRecord[]; total?: number }>('/api/v1/admin/tenants', {
         params: { limit: options?.limit ?? 20, offset: options?.offset ?? 0, status: options?.status, plan: options?.plan },
       });
       const list = (res?.brands ?? res?.data ?? []) as RawBrandRecord[];

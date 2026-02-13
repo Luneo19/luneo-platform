@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authUrl, forwardCookiesToResponse, setNoCacheHeaders } from '../_helpers';
+import { authUrl, forwardCookiesToResponse, setNoCacheHeaders, safeFetchBackend } from '../_helpers';
 import { serverLogger } from '@/lib/logger-server';
 
 export const dynamic = 'force-dynamic';
@@ -8,18 +8,22 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const backendRes = await fetch(authUrl('signup'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    const result = await safeFetchBackend(
+      authUrl('signup'),
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      'Signup',
+    );
 
-    const data = await backendRes.json();
+    if (result instanceof NextResponse) return result;
+    const { backendRes, data } = result;
 
     const nextRes = NextResponse.json(data, { status: backendRes.status });
     setNoCacheHeaders(nextRes);
 
-    // Forward httpOnly cookies from backend to browser on successful signup
     if (backendRes.ok) {
       forwardCookiesToResponse(backendRes, nextRes);
     }

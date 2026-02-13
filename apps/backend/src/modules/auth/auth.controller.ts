@@ -60,9 +60,9 @@ export class AuthController {
     private readonly rbacService: RBACService,
   ) {}
 
-  /** Frontend base URL for OAuth/callback redirects (config or env, fallback localhost). */
+  /** Frontend base URL for OAuth/callback redirects (config or env, production-safe fallback). */
   private getFrontendUrl(): string {
-    return this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+    return this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
   }
 
   @Post('signup')
@@ -81,8 +81,7 @@ export class AuthController {
       type: 'object',
       properties: {
         user: { type: 'object', description: 'User object' },
-        accessToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie access_token' },
-        refreshToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie refresh_token' },
+        success: { type: 'boolean', description: 'Operation success flag' },
       },
     },
     headers: {
@@ -133,11 +132,10 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user + optional tokens in body (deprecated; prefer httpOnly cookies)
+    // Tokens are set in httpOnly cookies only — never exposed in response body
     return res.status(HttpStatus.CREATED).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
+      success: true,
     });
   }
 
@@ -157,8 +155,7 @@ export class AuthController {
       type: 'object',
       properties: {
         user: { type: 'object', description: 'User object' },
-        accessToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie access_token' },
-        refreshToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie refresh_token' },
+        success: { type: 'boolean', description: 'Operation success flag' },
       },
     },
     headers: {
@@ -211,16 +208,16 @@ export class AuthController {
         { rememberMe: loginDto.rememberMe },
       );
       
-      // Return user + optional tokens (deprecated; prefer httpOnly cookies)
+      // Tokens are set in httpOnly cookies only — never exposed in response body
       return res.status(HttpStatus.OK).json({
         user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        success: true,
       });
     }
     
     return res.status(HttpStatus.OK).json({
       user: result.user,
+      success: true,
     });
   }
 
@@ -244,11 +241,10 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user + optional tokens (deprecated; prefer httpOnly cookies)
+    // Tokens are set in httpOnly cookies only — never exposed in response body
     return res.status(HttpStatus.OK).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
+      success: true,
     });
   }
 
@@ -294,8 +290,7 @@ export class AuthController {
       type: 'object',
       properties: {
         user: { type: 'object', description: 'User object' },
-        accessToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie access_token' },
-        refreshToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie refresh_token' },
+        success: { type: 'boolean', description: 'Operation success flag' },
       },
     },
     headers: {
@@ -348,11 +343,10 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user + optional tokens (deprecated; prefer httpOnly cookies)
+    // Tokens are set in httpOnly cookies only — never exposed in response body
     return res.status(HttpStatus.OK).json({
       user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
+      success: true,
     });
   }
 

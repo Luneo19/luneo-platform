@@ -17,6 +17,7 @@ import {
   HttpStatus,
   HttpCode,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -34,6 +35,8 @@ import { CreateTemplateDto } from '../dto/create-template.dto';
 import { GenerateAnimationDto } from '../dto/generate-animation.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
 import { CacheTTL } from '@/common/interceptors/cache-control.interceptor';
+import { AIGenerationType } from '../interfaces/ai-studio.interface';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('AI Templates & Animations')
 @ApiBearerAuth()
@@ -41,6 +44,60 @@ import { CacheTTL } from '@/common/interceptors/cache-control.interceptor';
 @Controller('ai-studio')
 export class AITemplatesController {
   constructor(private readonly aiStudioService: AIStudioService) {}
+
+  // ========================================
+  // MODELS
+  // ========================================
+
+  @Get('models')
+  @CacheTTL(300)
+  @ApiOperation({ summary: 'Get available AI models' })
+  @ApiQuery({ name: 'type', required: false, description: 'Filter by generation type (IMAGE_2D, MODEL_3D, ANIMATION, TEMPLATE)' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'List of AI models' })
+  async getModels(
+    @Query('type') type?: string,
+  ) {
+    const aiType = type as AIGenerationType | undefined;
+    const models = await this.aiStudioService.getModels(aiType);
+    return { models, data: models };
+  }
+
+  // ========================================
+  // PROMPT OPTIMIZATION
+  // ========================================
+
+  @Post('optimize-prompt')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Optimize an AI generation prompt' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Optimized prompt result' })
+  async optimizePrompt(
+    @Body() body: { prompt: string },
+  ) {
+    if (!body.prompt || typeof body.prompt !== 'string') {
+      throw new BadRequestException('A prompt string is required');
+    }
+    const optimization = await this.aiStudioService.optimizePrompt(body.prompt);
+    return { optimization, data: optimization };
+  }
+
+  // ========================================
+  // COLLECTIONS
+  // ========================================
+
+  @Get('collections')
+  @ApiOperation({ summary: 'Get AI generation collections for the current user' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'List of collections' })
+  async getCollections(
+    @Req() req: ExpressRequest & { user?: { brandId?: string; userId?: string; sub?: string; id?: string } },
+  ) {
+    const brandId = req.user?.brandId;
+    const userId = req.user?.userId ?? req.user?.sub ?? req.user?.id;
+    if (!brandId || !userId) {
+      throw new BadRequestException('Brand ID and User ID required');
+    }
+    const collections = await this.aiStudioService.getCollections(userId, brandId);
+    return { collections, data: collections };
+  }
 
   // ========================================
   // TEMPLATES

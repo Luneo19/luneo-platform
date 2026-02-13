@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authUrl, forwardCookiesToResponse, setNoCacheHeaders } from '../_helpers';
+import { authUrl, forwardCookiesToResponse, setNoCacheHeaders, safeFetchBackend } from '../_helpers';
 import { serverLogger } from '@/lib/logger-server';
 
 export const dynamic = 'force-dynamic';
@@ -8,24 +8,27 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const backendRes = await fetch(authUrl('login'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Forward client IP for brute-force tracking
-        ...(req.headers.get('x-forwarded-for')
-          ? { 'x-forwarded-for': req.headers.get('x-forwarded-for')! }
-          : {}),
+    const result = await safeFetchBackend(
+      authUrl('login'),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(req.headers.get('x-forwarded-for')
+            ? { 'x-forwarded-for': req.headers.get('x-forwarded-for')! }
+            : {}),
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+      'Login',
+    );
 
-    const data = await backendRes.json();
+    if (result instanceof NextResponse) return result;
+    const { backendRes, data } = result;
 
     const nextRes = NextResponse.json(data, { status: backendRes.status });
     setNoCacheHeaders(nextRes);
 
-    // Forward httpOnly cookies (accessToken, refreshToken) from backend to browser
     if (backendRes.ok) {
       forwardCookiesToResponse(backendRes, nextRes);
     }

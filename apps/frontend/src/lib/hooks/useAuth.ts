@@ -134,12 +134,17 @@ export function useIsAuthenticated() {
  * Hook for OAuth login
  */
 export function useOAuthLogin() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl && typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    logger.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set — OAuth login will fail');
+  }
+  const baseUrl = apiUrl || 'http://localhost:3001';
   return {
     loginWithGoogle: () => {
-      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/google`;
+      window.location.href = `${baseUrl}/api/v1/auth/google`;
     },
     loginWithGithub: () => {
-      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/github`;
+      window.location.href = `${baseUrl}/api/v1/auth/github`;
     },
   };
 }

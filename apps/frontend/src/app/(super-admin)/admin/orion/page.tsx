@@ -309,8 +309,8 @@ export default function OrionCommandCenter() {
                   : agent.status === 'PAUSED'
                     ? 'bg-yellow-500'
                     : 'bg-red-500';
-              const slug = agent.name.toLowerCase();
-              const displayName = (agent as { displayName?: string }).displayName || agent.type || agent.name;
+              const slug = (agent.name ?? agent.id ?? '').toLowerCase();
+              const displayName = (agent as { displayName?: string }).displayName || agent.type || agent.name || 'Agent';
               return (
                 <Card
                   key={agent.id}

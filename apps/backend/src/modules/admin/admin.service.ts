@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { UserRole, Prisma, PaymentStatus, SubscriptionStatus, DiscountType, ReferralStatus, CommissionStatus, TicketStatus } from '@prisma/client';
+import { UserRole, Prisma, PaymentStatus, SubscriptionPlan, SubscriptionStatus, DiscountType, ReferralStatus, CommissionStatus, TicketStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
 import { BillingService } from '@/modules/billing/billing.service';
 
@@ -23,18 +23,75 @@ export class AdminService {
   /**
    * List all tenants (brands) for platform admin dashboard.
    */
-  async getTenants() {
-    const brands = await this.prisma.brand.findMany({
-      select: {
-        id: true,
-        name: true,
-        subscriptionPlan: true,
-        subscriptionStatus: true,
-      },
-      orderBy: { name: 'asc' },
-      take: 100,
-    });
+  async getTenants(params?: { page?: number; limit?: number; search?: string; plan?: string; status?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const skip = (page - 1) * limit;
+    const sortBy = params?.sortBy || 'createdAt';
+    const sortOrder = params?.sortOrder || 'desc';
+
+    const where: Prisma.BrandWhereInput = {};
+    if (params?.search) {
+      where.OR = [
+        { name: { contains: params.search, mode: 'insensitive' } },
+        { slug: { contains: params.search, mode: 'insensitive' } },
+      ];
+    }
+    if (params?.plan) where.subscriptionPlan = params.plan as SubscriptionPlan;
+    if (params?.status) where.subscriptionStatus = params.status as SubscriptionStatus;
+
+    const [brands, total] = await Promise.all([
+      this.prisma.brand.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logo: true,
+          plan: true,
+          subscriptionPlan: true,
+          subscriptionStatus: true,
+          status: true,
+          stripeCustomerId: true,
+          stripeSubscriptionId: true,
+          aiCostLimitCents: true,
+          aiCostUsedCents: true,
+          monthlyGenerations: true,
+          maxMonthlyGenerations: true,
+          maxProducts: true,
+          trialEndsAt: true,
+          planExpiresAt: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              users: true,
+              products: true,
+              designs: true,
+              orders: true,
+            },
+          },
+        },
+      }),
+      this.prisma.brand.count({ where }),
+    ]);
+
     return {
+      brands: brands.map((b) => ({
+        ...b,
+        plan: b.plan || b.subscriptionPlan || 'starter',
+        status: b.status || b.subscriptionStatus || 'active',
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+      // Keep backward compatibility
       tenants: brands.map((b) => ({
         id: b.id,
         name: b.name || 'Unnamed Tenant',
@@ -505,6 +562,145 @@ export class AdminService {
       plan: brand?.subscriptionPlan ? String(brand.subscriptionPlan) : 'free',
       name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
     };
+  }
+
+  // ========================================
+  // CREATE / UPDATE CUSTOMER (Admin)
+  // ========================================
+
+  /**
+   * Create a new user (admin action).
+   */
+  async createCustomer(data: {
+    email: string;
+    name?: string;
+    role?: string;
+    brandId?: string;
+    password?: string;
+  }) {
+    const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
+    if (existing) {
+      throw new BadRequestException(`User with email ${data.email} already exists`);
+    }
+
+    // Split name into first/last for DB schema
+    const nameParts = (data.name || '').split(' ');
+    const firstName = nameParts[0] || undefined;
+    const lastName = nameParts.slice(1).join(' ') || undefined;
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: data.email,
+        firstName,
+        lastName,
+        role: (data.role as UserRole) || UserRole.CONSUMER,
+        brandId: data.brandId || undefined,
+        emailVerified: true, // Admin-created users are pre-verified
+        isActive: true,
+        // Password is optional — admin-created users may need to set via reset flow
+        ...(data.password ? { password: data.password } : {}),
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        brandId: true,
+        isActive: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
+
+    this.logger.log(`Admin created user ${user.id} (${user.email})`);
+    return user;
+  }
+
+  /**
+   * Update a user (admin action).
+   */
+  async updateCustomer(
+    customerId: string,
+    data: {
+      name?: string;
+      role?: string;
+      brandId?: string;
+      isActive?: boolean;
+    },
+  ) {
+    const existing = await this.prisma.user.findUnique({ where: { id: customerId } });
+    if (!existing) {
+      throw new NotFoundException(`Customer with ID ${customerId} not found`);
+    }
+
+    const nameParts = data.name ? data.name.split(' ') : [];
+    const updateData: Record<string, unknown> = {};
+    if (data.name !== undefined) {
+      updateData.firstName = nameParts[0] || undefined;
+      updateData.lastName = nameParts.slice(1).join(' ') || undefined;
+    }
+    if (data.role !== undefined) updateData.role = data.role as UserRole;
+    if (data.brandId !== undefined) updateData.brandId = data.brandId;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+    const user = await this.prisma.user.update({
+      where: { id: customerId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        brandId: true,
+        isActive: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    this.logger.log(`Admin updated user ${user.id}`);
+    return user;
+  }
+
+  /**
+   * Create a new brand (admin action).
+   */
+  async createBrand(data: { name: string; slug: string; userId: string }) {
+    const existingSlug = await this.prisma.brand.findUnique({ where: { slug: data.slug } });
+    if (existingSlug) {
+      throw new BadRequestException(`Brand with slug "${data.slug}" already exists`);
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: data.userId } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${data.userId} not found`);
+    }
+
+    const brand = await this.prisma.brand.create({
+      data: {
+        name: data.name,
+        slug: data.slug,
+        users: { connect: { id: data.userId } },
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        createdAt: true,
+      },
+    });
+
+    // Link user to brand
+    await this.prisma.user.update({
+      where: { id: data.userId },
+      data: { brandId: brand.id },
+    });
+
+    this.logger.log(`Admin created brand ${brand.id} (${brand.name}) for user ${data.userId}`);
+    return brand;
   }
 
   // ========================================
@@ -1710,5 +1906,214 @@ export class AdminService {
     });
 
     return ticket;
+  }
+
+  // ========================================
+  // WEBHOOKS MANAGEMENT (Admin)
+  // ========================================
+
+  async getWebhooks(params: { page?: number; limit?: number; brandId?: string }) {
+    const page = params.page || 1;
+    const limit = params.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.WebhookWhereInput = {};
+    if (params.brandId) where.brandId = params.brandId;
+
+    const [webhooks, total] = await Promise.all([
+      this.prisma.webhook.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          brand: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.webhook.count({ where }),
+    ]);
+
+    return {
+      data: webhooks,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getWebhookById(id: string) {
+    const webhook = await this.prisma.webhook.findUnique({
+      where: { id },
+      include: {
+        brand: { select: { id: true, name: true } },
+        webhookLogs: {
+          take: 20,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+    if (!webhook) throw new NotFoundException('Webhook not found');
+    return webhook;
+  }
+
+  async createWebhook(data: {
+    brandId: string;
+    name: string;
+    url: string;
+    events?: string[];
+    isActive?: boolean;
+  }) {
+    const { randomBytes } = await import('crypto');
+    const secret = randomBytes(32).toString('hex');
+
+    return this.prisma.webhook.create({
+      data: {
+        brandId: data.brandId,
+        name: data.name,
+        url: data.url,
+        secret,
+        isActive: data.isActive ?? true,
+      },
+    });
+  }
+
+  async updateWebhook(id: string, data: Record<string, unknown>) {
+    const webhook = await this.prisma.webhook.findUnique({ where: { id } });
+    if (!webhook) throw new NotFoundException('Webhook not found');
+
+    const updateData: Prisma.WebhookUpdateInput = {};
+    if (data.name !== undefined) updateData.name = data.name as string;
+    if (data.url !== undefined) updateData.url = data.url as string;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive as boolean;
+
+    return this.prisma.webhook.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  async deleteWebhook(id: string) {
+    const webhook = await this.prisma.webhook.findUnique({ where: { id } });
+    if (!webhook) throw new NotFoundException('Webhook not found');
+
+    await this.prisma.webhook.delete({ where: { id } });
+    return { success: true, message: 'Webhook deleted' };
+  }
+
+  async testWebhook(id: string) {
+    const webhook = await this.prisma.webhook.findUnique({ where: { id } });
+    if (!webhook) throw new NotFoundException('Webhook not found');
+
+    try {
+      const response = await fetch(webhook.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'webhook.test',
+          timestamp: new Date().toISOString(),
+          data: { message: 'Test webhook from Luneo admin' },
+        }),
+      });
+
+      return {
+        success: response.ok,
+        statusCode: response.status,
+        message: response.ok ? 'Webhook test successful' : `Webhook returned ${response.status}`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        statusCode: null,
+        message: `Failed to reach webhook URL: ${(error as Error).message}`,
+      };
+    }
+  }
+
+  // ========================================
+  // EVENTS (Admin)
+  // ========================================
+
+  async getEvents(params: { days?: number; type?: string; page?: number; limit?: number }) {
+    const days = params.days || 30;
+    const page = params.page || 1;
+    const limit = params.limit || 50;
+    const skip = (page - 1) * limit;
+
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const where: Prisma.EventWhereInput = {
+      createdAt: { gte: since },
+    };
+    if (params.type) where.type = params.type;
+
+    const [events, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          customer: {
+            select: {
+              id: true,
+              userId: true,
+              user: { select: { email: true, firstName: true, lastName: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+
+    return {
+      data: events,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  // ========================================
+  // TENANT FEATURES (Admin)
+  // ========================================
+
+  async getTenantFeatures(brandId: string) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: brandId },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        subscriptionPlan: true,
+        maxProducts: true,
+        maxMonthlyGenerations: true,
+        aiCostLimitCents: true,
+        aiCostUsedCents: true,
+        monthlyGenerations: true,
+      },
+    });
+    if (!brand) throw new NotFoundException('Brand not found');
+    return brand;
+  }
+
+  async updateTenantFeatures(
+    brandId: string,
+    features: Record<string, unknown>,
+  ) {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
+    if (!brand) throw new NotFoundException('Brand not found');
+
+    const updateData: Prisma.BrandUpdateInput = {};
+    if (features.maxProducts !== undefined) updateData.maxProducts = features.maxProducts as number;
+    if (features.maxMonthlyGenerations !== undefined) updateData.maxMonthlyGenerations = features.maxMonthlyGenerations as number;
+    if (features.aiCostLimitCents !== undefined) updateData.aiCostLimitCents = features.aiCostLimitCents as number;
+
+    return this.prisma.brand.update({
+      where: { id: brandId },
+      data: updateData,
+    });
   }
 }

@@ -223,7 +223,7 @@ export default function OrionCommunicationsPage() {
                 <Card key={t.id} className="border-zinc-700 bg-zinc-800/50">
                   <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                     <CardTitle className="text-base font-medium text-white">
-                      {t.name}
+                      {t.name ?? '—'}
                     </CardTitle>
                     <Badge
                       variant="secondary"

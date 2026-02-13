@@ -6,18 +6,24 @@
 import {
   Controller,
   Get,
+  Post,
   Delete,
   Param,
   Query,
+  Body,
   UseGuards,
   Req,
   BadRequestException,
   NotFoundException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { GenerationService } from '@/modules/generation/generation.service';
+import { AIStudioService } from '../services/ai-studio.service';
+import { AIGenerationType, AIGenerationParams } from '../interfaces/ai-studio.interface';
 import { Request as ExpressRequest } from 'express';
 
 @ApiTags('AI Studio - Generations')
@@ -25,7 +31,57 @@ import { Request as ExpressRequest } from 'express';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AIGenerationsController {
-  constructor(private readonly generationService: GenerationService) {}
+  constructor(
+    private readonly generationService: GenerationService,
+    private readonly aiStudioService: AIStudioService,
+  ) {}
+
+  @Post('generations')
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @ApiOperation({ summary: 'Create a new AI generation' })
+  async createGeneration(
+    @Req() req: ExpressRequest & { user?: { brandId?: string; userId?: string; sub?: string; id?: string } },
+    @Body()
+    body: {
+      type: string;
+      prompt: string;
+      model: string;
+      negativePrompt?: string;
+      provider?: string;
+      parameters?: Record<string, unknown>;
+      status?: string;
+      credits?: number;
+      costCents?: number;
+    },
+  ) {
+    const brandId = req.user?.brandId;
+    const userId = req.user?.userId ?? req.user?.sub ?? req.user?.id;
+    if (!brandId || !userId) {
+      throw new BadRequestException('Brand ID and User ID required');
+    }
+    const typeMap: Record<string, AIGenerationType> = {
+      IMAGE_2D: 'IMAGE_2D' as AIGenerationType,
+      MODEL_3D: 'MODEL_3D' as AIGenerationType,
+      ANIMATION: 'ANIMATION' as AIGenerationType,
+      TEMPLATE: 'TEMPLATE' as AIGenerationType,
+    };
+    const generationType = typeMap[body.type] ?? ('IMAGE_2D' as AIGenerationType);
+    const params: AIGenerationParams = {
+      ...(body.parameters ?? {}),
+      negativePrompt: body.negativePrompt,
+    } as AIGenerationParams;
+
+    const generation = await this.aiStudioService.generate(
+      userId,
+      brandId,
+      generationType,
+      body.prompt,
+      body.model,
+      params,
+    );
+    return generation;
+  }
 
   @Get('generations')
   @ApiOperation({ summary: 'List generations for the current brand' })

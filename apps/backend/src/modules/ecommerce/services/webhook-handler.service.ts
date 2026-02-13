@@ -1,8 +1,9 @@
 import { JsonValue } from '@/common/types/utility-types';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Queue } from 'bullmq';
+import * as crypto from 'crypto';
 import { ShopifyConnector } from '../connectors/shopify/shopify.connector';
 import { WooCommerceConnector } from '../connectors/woocommerce/woocommerce.connector';
 import { WebhookPayload } from '../interfaces/ecommerce.interface';
@@ -45,6 +46,12 @@ export class WebhookHandlerService {
       // Valider le webhook
       const config = integration.config as Record<string, unknown>;
       const webhookSecret = (config.webhookSecret as string) || '';
+      if (!webhookSecret) {
+        this.logger.error(
+          `Shopify integration ${integration.id} has no webhookSecret – cannot verify webhook`,
+        );
+        throw new UnauthorizedException('Webhook signature verification failed: missing secret');
+      }
       const isValid = this.shopifyConnector.validateWebhook(
         JSON.stringify(payload),
         hmacHeader,
@@ -99,6 +106,26 @@ export class WebhookHandlerService {
       if (!integration) {
         this.logger.warn(`No active WooCommerce integration found`);
         return;
+      }
+
+      // Verify HMAC-SHA256 signature
+      const consumerSecret =
+        ((integration.config as Record<string, unknown>)?.consumerSecret as string) ?? '';
+      if (!consumerSecret) {
+        this.logger.error(
+          `WooCommerce integration ${integration.id} has no consumerSecret – cannot verify webhook`,
+        );
+        throw new UnauthorizedException('Webhook signature verification failed');
+      }
+      const expectedSignature = crypto
+        .createHmac('sha256', consumerSecret)
+        .update(JSON.stringify(payload))
+        .digest('base64');
+      if (signature !== expectedSignature) {
+        this.logger.warn(
+          `WooCommerce webhook signature mismatch for integration ${integration.id}`,
+        );
+        throw new UnauthorizedException('Webhook signature verification failed');
       }
 
       // Log du webhook

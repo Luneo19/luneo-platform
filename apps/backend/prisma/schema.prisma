@@ -437,6 +437,9 @@ model User {
   // Shopping Cart
   carts Cart[] @relation("UserCart")
 
+  // Knowledge Base
+  knowledgeBaseArticles KnowledgeBaseArticle[] @relation("KBAuthor")
+
   @@index([email])
   @@index([brandId])
   @@index([role])
@@ -632,6 +635,9 @@ model Brand {
   marketplaceItems    MarketplaceItem[]    @relation("MarketplaceSeller")
   marketplaceReviews  MarketplaceReview[]  @relation("MarketplaceReviewer")
   marketplacePurchases MarketplacePurchase[] @relation("MarketplaceBuyer")
+
+  // Usage Records
+  usageRecords UsageRecord[]
 
   // Organization
   organizationId String?
@@ -1298,6 +1304,9 @@ model Design {
   moderationRecords ModerationRecord[]
   ipClaims          IPClaim[]
 
+  // DNA
+  designDNA DesignDNA?
+
   @@index([userId])
   @@index([brandId])
   @@index([productId])
@@ -1429,6 +1438,10 @@ model Order {
 
   // Print-on-Demand
   printOrders PrintOrder[]
+
+  // Production & Quality
+  productionStatus ProductionStatus?
+  qualityReport    QualityReport?
 
   @@index([userId])
   @@index([brandId])
@@ -1664,6 +1677,7 @@ model PromptTemplate {
 model DesignDNA {
   id             String   @id @default(cuid())
   designId       String   @unique
+  design         Design   @relation(fields: [designId], references: [id], onDelete: Cascade)
   story          String? // Story/intention utilisateur
   tags           String[] // Tags normalisés
   embedding      Json? // Vector embedding (pgvector)
@@ -1831,6 +1845,7 @@ model ExportResult {
 model ProductionStatus {
   id           String   @id @default(cuid())
   orderId      String   @unique
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   currentStage String
   message      String
   percentage   Int
@@ -1842,6 +1857,7 @@ model ProductionStatus {
 model QualityReport {
   id              String   @id @default(cuid())
   orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   overallScore    Float
   issues          String[]
   recommendations String[]
@@ -2058,6 +2074,7 @@ model Invoice {
 model UsageRecord {
   id      String @id @default(cuid())
   brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   type  String // 'generation', 'ar_view', 'api_call', etc.
   count Int    @default(1)
@@ -3404,8 +3421,9 @@ model KnowledgeBaseArticle {
   views         Int       @default(0)
   helpful       Int       @default(0)
   notHelpful    Int       @default(0)
-  authorId      String // User ID
-  lastUpdatedBy String? // User ID
+  authorId      String
+  author        User      @relation("KBAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  lastUpdatedBy String?
   publishedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -3415,6 +3433,7 @@ model KnowledgeBaseArticle {
   @@index([isFeatured])
   @@index([slug])
   @@index([createdAt])
+  @@index([authorId])
   @@map("KnowledgeBaseArticle")
 }
 

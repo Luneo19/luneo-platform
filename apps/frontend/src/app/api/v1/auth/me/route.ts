@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authUrl, getAccessToken, setNoCacheHeaders } from '../_helpers';
+import { authUrl, getAccessToken, setNoCacheHeaders, safeFetchBackend } from '../_helpers';
 import { serverLogger } from '@/lib/logger-server';
 
 export const dynamic = 'force-dynamic';
@@ -14,15 +14,21 @@ export async function GET(req: NextRequest) {
       return res;
     }
 
-    const backendRes = await fetch(authUrl('me'), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    const result = await safeFetchBackend(
+      authUrl('me'),
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    });
+      'Me',
+    );
 
-    const data = await backendRes.json();
+    if (result instanceof NextResponse) return result;
+    const { backendRes, data } = result;
+
     const nextRes = NextResponse.json(data, { status: backendRes.status });
     setNoCacheHeaders(nextRes);
     return nextRes;

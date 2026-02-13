@@ -35,8 +35,16 @@ export default function OrionQuickWinsPage() {
     try {
       setLoading(true);
       setNoDataAvailable(false);
-      const res = await fetch('/api/admin/orion/quick-wins/status', { credentials: 'include' }).then((r) => r.json());
-      setStatus(res?.data ?? res ?? DEFAULT_QUICKWIN_STATUS);
+      const response = await fetch('/api/admin/orion/quick-wins/status', { credentials: 'include' });
+      const res = await response.json();
+      // Validate the shape of the response to avoid TypeError
+      const data = res?.data ?? res;
+      if (data && typeof data === 'object' && 'welcomeEmail' in data) {
+        setStatus(data as NonNullable<QuickWinStatus>);
+      } else {
+        setStatus(DEFAULT_QUICKWIN_STATUS);
+        setNoDataAvailable(true);
+      }
     } catch (e) {
       logger.error('Quick wins status failed', e);
       setStatus(DEFAULT_QUICKWIN_STATUS);
