@@ -100,7 +100,7 @@ COPY packages ./packages/
 
 # Installer les dépendances de production (prisma est maintenant une dep de prod)
 # Canvas sera compilé avec les outils de build installés ci-dessus
-# Cache bust: 2026-02-13-v2
+ARG CACHE_BUST=v3
 RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier le schéma Prisma depuis le builder
@@ -134,18 +134,17 @@ RUN printf '#!/bin/sh\nset -e\ncd /app\necho "Verification Prisma Client..."\nPR
 # Fix ownership of start.sh
 RUN chown nestjs:nodejs /app/start.sh
 
-USER nestjs
-
-# Nettoyer les fichiers inutiles pour réduire la taille
+# Nettoyer les fichiers inutiles pour réduire la taille (en root pour les permissions /tmp)
 # IMPORTANT: Ne PAS supprimer .prisma/client car il est nécessaire au runtime
-RUN rm -rf /app/node_modules/.cache \
-    && rm -rf /tmp/* \
-    && echo "Verifying Prisma Client after cleanup..." \
-    && if [ -d "/app/node_modules/.prisma/client" ]; then \
-         echo "OK: Prisma Client found at /app/node_modules/.prisma/client"; \
-       else \
-         echo "ERROR: Prisma Client missing after cleanup!" && exit 1; \
-       fi
+RUN rm -rf /app/node_modules/.cache /tmp/* 2>/dev/null; \
+    echo "Verifying Prisma Client after cleanup..." && \
+    if [ -d "/app/node_modules/.prisma/client" ]; then \
+      echo "OK: Prisma Client found at /app/node_modules/.prisma/client"; \
+    else \
+      echo "ERROR: Prisma Client missing after cleanup!" && exit 1; \
+    fi
+
+USER nestjs
 
 # Health check for container orchestrators (Railway, Docker Compose, K8s)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
