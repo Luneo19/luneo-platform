@@ -77,7 +77,7 @@ export class EditorController {
       throw new BadRequestException('User must be associated with a brand');
     }
 
-    return this.editorService.createProject(user.brandId, user.id, dto as Omit<import('./editor.service').EditorProject, 'id' | 'brandId' | 'userId' | 'createdAt' | 'updatedAt' | 'history' | 'layers'> & { layers?: import('./editor.service').EditorLayer[] });
+    return this.editorService.createProject(user.brandId, user.id, dto as unknown as Omit<import('./editor.service').EditorProject, 'id' | 'brandId' | 'userId' | 'createdAt' | 'updatedAt' | 'history' | 'layers'> & { layers?: import('./editor.service').EditorLayer[] });
   }
 
   @Put('projects/:id')
@@ -94,7 +94,7 @@ export class EditorController {
       throw new BadRequestException('User must be associated with a brand');
     }
 
-    return this.editorService.updateProject(id, user.brandId, user.id, dto as Parameters<typeof this.editorService.updateProject>[3]);
+    return this.editorService.updateProject(id, user.brandId, user.id, dto as unknown as Parameters<typeof this.editorService.updateProject>[3]);
   }
 
   @Delete('projects/:id')

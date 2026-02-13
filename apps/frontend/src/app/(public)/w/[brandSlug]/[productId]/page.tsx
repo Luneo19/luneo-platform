@@ -33,7 +33,7 @@ function WidgetPageContent() {
   const params = useParams();
   const { t } = useI18n();
   const { toast } = useToast();
-  const brandId = params.brandId as string;
+  const brandId = params.brandSlug as string;
   const productId = params.productId as string;
 
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
