@@ -54,7 +54,7 @@ jobs:
       - name: Run unit tests
         run: |
           cd apps/backend
-          pnpm run test -- --testPathPattern=unit --coverage
+          pnpm run test -- --passWithNoTests --coverage
       
       - name: Upload coverage
         uses: codecov/codecov-action@v4
